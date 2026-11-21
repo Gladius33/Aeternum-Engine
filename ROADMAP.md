@@ -12,7 +12,7 @@ A checklist item is complete only when implemented, documented and supported by 
 - [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, o2switch-compatible package and VPS instructions.
 - [ ] G09 Release: integration/concurrency/replay/security/performance/E2E tests, dependency audit, documented capacity and signed-off V1.0 acceptance; no known critical/high defects.
 
-## Current iteration 0022
+## Current development
 Persistent world memberships and immutable account ownership; actor-scoped economy command IDs, transactional authorization, private receipts and own-balance projection with due-event barrier. Relational locations and immutable actor-owned entities are now implemented. G02 still needs typed component rules, topology and relational balance scaling. Immutable bounded scalar components support trusted composition and private reads. G05 needs actual authenticated HTTP transport and identity lifecycle, rate limits and UI; no public service yet.
 
 Application identities now have unique canonical logins and Argon2id password hashes; Opaque sessions support expiry and revocation; abuse controls remain open.
@@ -43,3 +43,5 @@ Trusted account setup CLI available; browser UI and public registration remain o
 0025 adds automated Chromium end-to-end scenarios for both packs. Results must be checked on the exact commit before claiming browser validation; full production deployment remains open.
 
 0025 E2E exercises the real bounded CLI worker; it does not assume stock reads process due events.
+
+0025: both reference browser economy scenarios passed against real MariaDB and the CLI worker on exact head d0ac7f2ec17a71e0ce7b6f67a5c007d9d2d8368b (runs 44955461687 and 44955456003). G04 remains open for full gameplay and SDK. 0026 adds bounded expired-session maintenance and race coverage; rate limiter retention, public onboarding, and real deployment remain open.

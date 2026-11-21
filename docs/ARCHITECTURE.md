@@ -39,3 +39,5 @@ Discovery reads only accounts attached to active memberships in explicitly confi
 Browser E2E uses a test-only loopback router outside public/ to invoke the actual front controller; production HTTPS enforcement is unchanged.
 
 Browser test polling invokes the production CLI worker on the test world; HTTP queries retain their due-event barrier and do not advance simulation state.
+
+Session maintenance deletes only rows expired at its operational clock, using one bounded statement and no world locks. Live revoked rows remain until expiry. A separate least-privilege maintenance database credential is recommended; application HTTP credentials need no DELETE grant.
