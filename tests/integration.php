@@ -98,6 +98,7 @@ require __DIR__ . "/session-cleanup.php";
 require __DIR__ . "/http-api.php";
 require __DIR__ . "/rate-limits.php";
 require __DIR__ . "/auth-http.php";
+require __DIR__ . "/auth-global.php";
 require __DIR__ . "/economy-http.php";
 require __DIR__ . "/provisioning.php";
 require __DIR__ . "/world-worker.php";
