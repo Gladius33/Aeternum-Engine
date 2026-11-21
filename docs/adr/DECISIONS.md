@@ -14,3 +14,5 @@
 - ADR-012: ACCL-1.0 unchanged, third-party license inventory and explicit CLA for external contributions.
 
 - ADR-013: MariaDB event transactions lock world first, commit one event at a time, retain completed rows for idempotency, budget checks between transactions. No transaction spans external effects.
+
+- ADR-014: world-locked server-time command intake with distinct durable command IDs, canonical payload comparison and exact prior receipts; pending due events block new commands. Follow-up events commit with the command or not at all. No external I/O inside handlers.

@@ -5,8 +5,11 @@ use Aeternum\Core\{PdoScheduler,FrozenClock,ScheduledEvent,EventHandler};
 $pdo = db();
 // Refuse any existing schema rather than dropping or modifying existing data.
 if ($pdo->query('SHOW TABLES')->fetchColumn() !== false) throw new RuntimeException('Integration tests require an empty disposable database');
-foreach (explode(';', file_get_contents(__DIR__.'/../database/migrations/001_core.sql')) as $sql) {
-    if (trim($sql) !== '') $pdo->exec($sql);
+foreach (glob(__DIR__.'/../database/migrations/*.sql') as $migration) {
+    $source = preg_replace('/^--.*$/m', '', file_get_contents($migration));
+    foreach (explode(';', $source) as $sql) {
+        if (trim($sql) !== '') $pdo->exec($sql);
+    }
 }
 $clock = new FrozenClock(100);
 $id = 'world-A';
@@ -60,7 +63,7 @@ check($q->state()['trace'] === 'bacdef','world state isolated');
 function parallel(string $world,string $action): void {
     $children = [];
     for ($i=0; $i<4; $i++) {
-        $p = proc_open([PHP_BINARY,__DIR__.'/db-worker.php',$world,$action],
+        $p = proc_open([PHP_BINARY,__DIR__.'/db-worker.php',$world,$action,(string)$i],
             [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
         if (!is_resource($p)) throw new RuntimeException('Unable to spawn worker');
         fclose($pipes[0]);
@@ -79,4 +82,5 @@ check($race->pendingCount() === 1,'four concurrent duplicate submissions produce
 for ($i=0;$i<30;$i++) $race->schedule(new ScheduledEvent('race','ev-'.$i,'inc',200));
 parallel('race','process');
 check($race->pendingCount() === 0 && $race->state()['n'] === 31,'four concurrent processors committed each event once');
+require __DIR__ . "/commands.php";
 echo "MariaDB integration checks passed.\n";

@@ -121,6 +121,50 @@ final class PdoScheduler
         return $committed;
     }
 
+    /** Transactional command intake with durable receipts and atomic follow-up scheduling. */
+    public function execute(Command $command, CommandHandler $handler): CommandReceipt
+    {
+        if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
+        if ($command->worldId !== $this->worldId) throw new \InvalidArgumentException('Wrong world');
+        $this->processing = true;
+        try {
+            return $this->transaction(function () use ($command,$handler): CommandReceipt {
+                $world = $this->lockedWorld();
+                $payload = ScalarMap::encode($command->payload);
+                $existing = $this->query('SELECT command_type,payload_json,effective_at,result_state_json,scheduled_ids_json FROM engine_commands WHERE world_id = ? AND command_id = ?', [$this->worldId,$command->id])->fetch(PDO::FETCH_ASSOC);
+                if ($existing !== false) {
+                    if ($existing['command_type'] !== $command->type || ScalarMap::encode(ScalarMap::decode($existing['payload_json'])) !== $payload) {
+                        throw new \DomainException('Conflicting command ID');
+                    }
+                    return new CommandReceipt((int)$existing['effective_at'],ScalarMap::decode($existing['result_state_json']),json_decode($existing['scheduled_ids_json'],true,512,JSON_THROW_ON_ERROR));
+                }
+                $at = $this->clock->now();
+                if ($at < 0 || $at < (int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
+                $due = $this->query('SELECT event_id FROM engine_events WHERE world_id = ? AND completed = 0 AND due_at <= ? LIMIT 1 FOR UPDATE', [$this->worldId,$at])->fetchColumn();
+                if ($due !== false) throw new \DomainException('Due events must be processed before new commands');
+                $result = $handler->apply($command,ScalarMap::decode($world['state_json']),$at);
+                $stateJson = ScalarMap::encode($result->state);
+                $seq = (int)$world['next_sequence'];
+                $ids = [];
+                foreach ($result->events as $event) {
+                    if ($event->worldId !== $this->worldId || $event->dueAt < $at) throw new \DomainException('Invalid follow-up event world or time');
+                    if ($this->query('SELECT event_id FROM engine_events WHERE world_id = ? AND event_id = ?', [$this->worldId,$event->id])->fetchColumn() !== false) {
+                        throw new \DomainException('Follow-up event ID already exists');
+                    }
+                    if ($seq === PHP_INT_MAX) throw new \OverflowException('Event sequence exhausted');
+                    $seq++;
+                    $this->query('INSERT INTO engine_events (world_id,event_id,event_type,due_at,sequence_no,payload_json) VALUES (?,?,?,?,?,?)',[$this->worldId,$event->id,$event->type,$event->dueAt,$seq,ScalarMap::encode($event->payload)]);
+                    $ids[] = $event->id;
+                }
+                $this->query('UPDATE engine_worlds SET next_sequence = ?, watermark = ?, state_json = ? WHERE world_id = ?',[$seq,$at,$stateJson,$this->worldId]);
+                $this->query('INSERT INTO engine_commands (world_id,command_id,command_type,payload_json,effective_at,result_state_json,scheduled_ids_json) VALUES (?,?,?,?,?,?,?)',[$this->worldId,$command->id,$command->type,$payload,$at,$stateJson,json_encode($ids,JSON_THROW_ON_ERROR)]);
+                return new CommandReceipt($at,ScalarMap::decode($stateJson),$ids);
+            });
+        } finally {
+            $this->processing = false;
+        }
+    }
+
     public function state(): array
     {
         $json = $this->query('SELECT state_json FROM engine_worlds WHERE world_id = ?', [$this->worldId])->fetchColumn();

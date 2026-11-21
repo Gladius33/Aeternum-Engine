@@ -13,6 +13,19 @@ if ($argv[2] === 'schedule') {
             return $s;
         }
     }, 100);
+} elseif ($argv[2] === 'debit') {
+    try {
+        $q->execute(new \Aeternum\Core\Command($argv[1],'debit-'.$argv[3],'debit'), new class implements \Aeternum\Core\CommandHandler {
+            public function apply(\Aeternum\Core\Command $command,array $state,int $at): \Aeternum\Core\CommandResult {
+                if (($state['stock'] ?? 0) < 60) throw new DomainException('Insufficient stock');
+                usleep(10000);
+                $state['stock'] -= 60;
+                return new \Aeternum\Core\CommandResult($state);
+            }
+        });
+    } catch (DomainException $e) {
+        if ($e->getMessage() !== 'Insufficient stock') throw $e;
+    }
 } else {
     throw new InvalidArgumentException('Unknown worker action');
 }
