@@ -1,0 +1,59 @@
+'use strict';
+let token = null, busy = false, pending = null;
+const login = document.querySelector('#login'), game = document.querySelector('#game'), balance = document.querySelector('#balance'), action = document.querySelector('#action'), status = document.querySelector('#status'), stock = document.querySelector('#stock');
+async function api(path, method='GET', data) {
+    const headers = {'Accept':'application/json'};
+    if (token) headers.Authorization = 'Bearer '+token;
+    if (data !== undefined) headers['Content-Type'] = 'application/json';
+    const response = await fetch(path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),cache:'no-store',redirect:'error',credentials:'omit'});
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Request failed');
+    return result.data;
+}
+function locationFields() {
+    const f = new FormData(balance);
+    return Object.fromEntries(['world','account','resource'].map(k=>[k,String(f.get(k))]));
+}
+function base(f) { return '/v1/worlds/'+encodeURIComponent(f.world)+'/economy/'; }
+async function refresh() {
+    const f=locationFields();
+    const data=await api(base(f)+'balances/'+encodeURIComponent(f.account)+'/'+encodeURIComponent(f.resource));
+    stock.replaceChildren();
+    for (const key of ['stock','capacity','amount','interval','at']) {
+        const dt=document.createElement('dt'),dd=document.createElement('dd');
+        dt.textContent=key; dd.textContent=String(data[key]); stock.append(dt,dd);
+    }
+}
+async function run(work) {
+    if (busy) return;
+    busy=true;
+    const controls=[...document.querySelectorAll('button')];
+    controls.forEach(x=>x.disabled=true);
+    try { await work(); status.textContent='Success'; }
+    catch(e) { status.textContent=e.message || 'Request failed'; }
+    finally { busy=false; controls.forEach(x=>x.disabled=false); }
+}
+login.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(login);
+    const credentials={login:f.get('login'),password:f.get('password')};
+    login.elements.password.value='';
+    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;game.hidden=false;});
+});
+balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
+action.addEventListener('submit',e=>{
+    e.preventDefault();
+    run(async()=>{
+        const f=locationFields(), type=new FormData(action).get('type');
+        const signature=JSON.stringify([f,type]);
+        if (pending && pending.signature!==signature) throw new Error('Retry the previous action with identical fields first.');
+        if (!pending) pending={signature,body:{id:crypto.randomUUID(),type,payload:{account:f.account,resource:f.resource}}};
+        await api(base(f)+'commands','POST',pending.body);
+        pending=null;
+        await refresh();
+    });
+});
+document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
+    try { await api('/v1/auth/logout','POST'); }
+    finally { token=null;pending=null;stock.replaceChildren();game.hidden=true;login.hidden=false; }
+}));
