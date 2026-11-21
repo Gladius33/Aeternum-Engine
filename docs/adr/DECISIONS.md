@@ -41,3 +41,5 @@
 - ADR-026: 256-bit random opaque bearer tokens stored only as SHA-256 digests, absolute TTL 60–86400 seconds, idempotent revocation; resolve at request admission, no cancellation of in-flight requests.
 
 - ADR-027: initial HTTP surface is read-only authenticated entity/component projection; unauthorized ownership and absent resources map to the same 404, invalid sessions to 401. No public credential intake before abuse controls.
+
+- ADR-028: fixed-window operational rate limits use transactional hashed buckets; trusted server policy only. Denied requests do not increment counters. HTTP integration and cleanup pending.
