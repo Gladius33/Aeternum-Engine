@@ -1,9 +1,10 @@
 const {test, expect}=require('@playwright/test');
+const {execFileSync}=require('node:child_process');
 const url='http://127.0.0.1:8765';
 const password='browser-only test password';
 const scenarios=[
-    {login:'browser-medieval',world:'e2e-medieval',resource:'grain',initial:50,rate:12,cost:25,upgraded:20,duration:60},
-    {login:'browser-industrial',world:'e2e-industrial',resource:'steel',initial:200,rate:75,cost:120,upgraded:110,duration:180}
+    {pack:'reference-medieval',login:'browser-medieval',world:'e2e-medieval',resource:'grain',initial:50,rate:12,cost:25,upgraded:20,duration:60},
+    {pack:'reference-industrial',login:'browser-industrial',world:'e2e-industrial',resource:'steel',initial:200,rate:75,cost:120,upgraded:110,duration:180}
 ];
 async function signIn(page, scenario) {
     await page.goto(url+'/play.html');
@@ -17,10 +18,14 @@ async function signIn(page, scenario) {
     await expect(page.locator('select[name=world]')).toHaveValue(scenario.world);
     await page.selectOption('select[name=resource]',scenario.resource);
 }
-async function refresh(page) {
+async function refresh(page, allowDueConflict=false) {
     const received=page.waitForResponse(r=>r.url().includes('/economy/balances/'));
     await page.getByRole('button',{name:'Refresh stock'}).click();
     const response=await received;
+    if (allowDueConflict && response.status()===409) {
+        await expect(page.locator('#status')).toHaveText('command_or_access_conflict');
+        return null;
+    }
     expect(response.status()).toBe(200);
     const {data}=await response.json();
     await expect(page.locator('#status')).toHaveText('Success');
@@ -50,8 +55,15 @@ for (const s of scenarios) {
         expect(persisted.stock).toBeGreaterThanOrEqual(before.stock-s.cost);
         expect(persisted.stock).toBeLessThan(before.stock);
         expect(persisted.amount).toBe(s.rate);
-        // The live backend processes due events on reads; no mocked time or API responses.
-        await expect.poll(async()=> (await refresh(page)).amount,{timeout:(s.duration+35)*1000,intervals:[5000]}).toBe(s.upgraded);
+        // Reads cannot overtake due events. Run the actual bounded CLI worker,
+        // as CRON would; a due boundary between worker and read may return 409.
+        await expect.poll(async()=> {
+            const output=execFileSync('php',['bin/worker.php',s.pack,s.world],{encoding:'utf8',timeout:15000});
+            const report=JSON.parse(output);
+            expect(report.world).toBe(s.world);
+            expect(Number.isInteger(report.processed)).toBe(true);
+            return (await refresh(page,true))?.amount ?? null;
+        },{timeout:(s.duration+45)*1000,intervals:[5000]}).toBe(s.upgraded);
         await page.getByRole('button',{name:'Sign out'}).click();
         await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
         expect(errors).toEqual([]);

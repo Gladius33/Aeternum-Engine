@@ -54,3 +54,5 @@ Iteration 0015 adds direct HTTP dispatcher integration cases for authenticated o
 Browser CI installs the schema, provisions one distinct identity per pack, starts a loopback-only PHP test server, and drives Chromium through authentication, discovery isolation, stock display, upgrade debit, reload/re-authentication, eventual production increase, and logout. No network/API mocking or accelerated time. The test router emulates the HTTPS server flag exclusively on loopback; real TLS and shared hosting remain unverified. Passing results are required on the exact head SHA.
 
 0025 retry: the first browser run failed before scenarios because ubuntu-latest resolved to Ubuntu 26.04, unsupported by Playwright 1.56.1. Pin the browser runner to Ubuntu 24.04; rerun all gates before merge.
+
+0025 worker correction: the authenticated balance projection intentionally rejects due-event backlog. The browser scenario now invokes the real bounded CLI worker for its configured pack/world before polling the live API, allowing a transient 409 at the due boundary. No simulated clock or mocked transport.

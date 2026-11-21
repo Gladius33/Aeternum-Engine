@@ -49,3 +49,5 @@ Initial browser client at /play.html: sign in, inspect stock, settle and upgrade
 Player world discovery is available in the reference UI. Configure AETERNUM_MEDIEVAL_WORLD and AETERNUM_INDUSTRIAL_WORLD for the two bundled packs.
 
 Browser E2E CI: real Chromium, MariaDB and both bundled games; see tests/browser/.
+
+Schedule the bounded world worker for each configured world; browser stock reads do not process due events.

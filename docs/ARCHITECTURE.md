@@ -37,3 +37,5 @@ Initial static browser client uses memory-only bearer tokens and same-origin API
 Discovery reads only accounts attached to active memberships in explicitly configured worlds; the returned metadata is advisory, and every economy operation still checks authorization independently.
 
 Browser E2E uses a test-only loopback router outside public/ to invoke the actual front controller; production HTTPS enforcement is unchanged.
+
+Browser test polling invokes the production CLI worker on the test world; HTTP queries retain their due-event barrier and do not advance simulation state.

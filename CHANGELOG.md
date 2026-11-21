@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased — iteration 0025
+- Run the actual CLI world worker during browser scenarios; reads retain their due-event barrier.
 - Pin browser runner to Ubuntu 24.04 for compatibility with Playwright 1.56.1.
 - Add browser E2E CI against a fresh MariaDB database, real API, and timed upgrades in both reference packs.
 
