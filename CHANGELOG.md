@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0029
+- Add read-only actor-scoped stock and upgrade overview (current level, next rule, persisted pending due time).
+- Display authoritative upgrade progression in the reference UI and extend MariaDB and real Chromium scenarios.
+
 ## Unreleased — iteration 0028
 - Pin Argon2id parameters for new accounts and verify a public dummy hash for unknown well-formed logins without permitting authentication.
 - Add configurable shared login verification quota and distributed-peer concurrency tests.

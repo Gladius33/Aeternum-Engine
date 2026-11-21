@@ -49,3 +49,5 @@ Trusted account setup CLI available; browser UI and public registration remain o
 0026: exact head 561fa88e212bb141eda9c868152e93746f1b421a passed PHP/MariaDB (run 44956071186) and Chromium (run 44956071245), merged as ca024adf08e4c500ce5c9bab261b59f724696f74. 0027 implements bounded rate-limit retention, rollback protection and real CLI integration coverage; no G01–G09 gate is marked complete by this maintenance work alone.
 
 0027: PHP/MariaDB and Chromium passed on exact head 823908db8d1ae838c8cadbf1b3ae641c83e83579 (runs 44956530388 and 44956530516), merged as 3832bac60062a088848d3d6b261f6dc775333cea. 0028 adds fixed password hashing and a global verification budget; public onboarding, capacity and remaining G05 acceptance are open.
+
+0028: exact head daee5e12285910702925f2a02a50e032bc2f841b passed PHP/MariaDB (44956967641) and Chromium (44956967691), merged as 1ae12e943b771c2a48b71b0c06a6b2b7431afc1c. 0029 adds an owned-resource progression overview and browser rendering. Full gameplay, distinct game mechanics, public onboarding and remaining G03–G05 gates are open.

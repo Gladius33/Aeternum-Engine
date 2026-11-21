@@ -67,3 +67,5 @@
 - ADR-038: transactional rate-limit retention uses a durable operational clock floor and fixed guard-before-bucket lock ordering to prevent reset after stale bucket deletion. Retain seven days, cap windows at one day, and deny admission below the floor. Separate maintenance privileges; validate contention under load before V1.0.
 
 - ADR-039: apply global admission before expensive password verification in addition to peer and login buckets; unknown well-formed identities receive a public dummy Argon2id verification with the same fixed policy as new accounts. Never authenticate an absent row. Accept fixed-window boundary and denial-of-service tradeoffs pending capacity measurement.
+
+- ADR-040: expose stock and upgrade metadata in one actor-scoped snapshot using the existing world lock and due-event barrier. The pending event is verified against the exact world/account/resource and trusted next rule; no internal event identifiers or foreign state are exposed.

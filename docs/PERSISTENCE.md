@@ -79,3 +79,6 @@ Stop application writers during migration 014 and apply it using the normal migr
 
 ## Login verification budget (0028)
 AETERNUM_AUTH_GLOBAL_LIMIT is an optional trusted server environment integer 1–100000, default 120 per minute. Use identical settings across HTTP workers sharing the same database. The fixed-window limiter includes policy in the bucket key, so changing the setting creates a new bucket. Treat the default as an initial conservative setting requiring load validation. It is not a hard concurrency cap; global exhaustion can deny legitimate authentication. Logout remains subject to the peer limit but not the expensive verification quota. Do not deploy with inconsistent clocks or configuration.
+
+## Resource overview (0029)
+GET /v1/worlds/{world}/economy/overview/{account}/{resource} requires an active bearer session and ownership. Returns stock, capacity, amount, interval, at, remainder, level, pending (null or level/dueAt/amount) and next (null or level/cost/duration/amount). No migration is required. Pending due time comes from the persisted event. The endpoint may return 409 while due work is waiting for the worker, like the original balances route. The client renders UTC dates and does not treat a countdown as proof of completion.
