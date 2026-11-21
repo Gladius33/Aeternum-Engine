@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — iteration 0023
+- Add initial browser economy client using authenticated API and stable retry IDs during the page session.
+
 ## Unreleased — iteration 0022
 - Add trusted account provisioning CLI with password on stdin, existing identity authentication and retryable world setup.
 
