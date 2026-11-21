@@ -15,3 +15,5 @@ Entity components are bounded immutable administrative scalar maps under the wor
 Application identity is independent of world membership; registering does not grant world access. No public login endpoint until abuse controls and sessions exist.
 
 Opaque sessions use operational time and SHA-256 token hashes. Session resolution is a request admission check; revocation does not cancel already admitted requests. No public login endpoint yet.
+
+Initial HTTP adapter resolves opaque bearer sessions and exposes only own entity/component reads. The front controller requires server-indicated HTTPS and returns generic errors. Public login, economy commands, rate limiting and UI are future work.
