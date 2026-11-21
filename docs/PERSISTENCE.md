@@ -61,3 +61,6 @@ With the database environment configured, run php bin/worker.php reference-medie
 
 ## Migration runner (0021)
 Back up and stop application traffic before php bin/migrate.php. Use a fresh database for initial install; existing schemas without a ledger require explicit operator migration planning. A dirty entry signals possible partial DDL: restore a verified backup or reconcile manually. Do not delete dirty markers to bypass the guard. SQL files use simple semicolon-delimited DDL without routines or quoted semicolons.
+
+## Provisioning CLI (0022)
+After migration, use php bin/provision.php reference-medieval WORLD LOGIN and supply a password on stdin (avoid shell history and terminal echo). The JSON output includes account and entity identifiers. Retry identical credentials and world after interruption. This trusted administrative operation can reactivate membership; never expose it publicly.
