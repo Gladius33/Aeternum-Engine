@@ -1,0 +1,26 @@
+<?php
+declare(strict_types=1);
+use Aeternum\Core\{HttpApi,PdoEntities,PdoMemberships,PdoSessions,FrozenClock};
+$httpClock=new FrozenClock(200);
+$httpSessions=new PdoSessions(db(),$httpClock);
+$httpToken=$httpSessions->login('test-player','correct horse battery staple',60);
+$members=new PdoMemberships(db(),'entity-A');
+$members->grant($actor);
+$entities=new PdoEntities(db(),'entity-A');
+$entities->provision('http-unit','home',$actor,'village');
+$entities->attach('http-unit','storage',['capacity'=>99]);
+$api=new HttpApi(db(),$httpClock);
+$path='/v1/worlds/entity-A/entities/http-unit';
+$auth='Bearer '.$httpToken;
+check($api->handle('GET',$path,'')[0]===401,'HTTP requires token');
+check($api->handle('POST',$path,$auth)[0]===405,'HTTP read only');
+[$status,$body]=$api->handle('GET',$path,$auth);
+check($status===200&&$body['data']->kind==='village','HTTP own entity');
+[$status,$body]=$api->handle('GET',$path.'/components/storage',$auth);
+check($status===200&&$body['data']->capacity===99,'HTTP own component');
+check($api->handle('GET','/v1/worlds/entity-A/entities/unit',$auth)[0]===404,'HTTP foreign owner hidden');
+check($api->handle('GET','/v1/worlds/entity-B/entities/http-unit',$auth)[0]===404,'HTTP world isolation');
+$members->revoke($actor);
+check($api->handle('GET',$path,$auth)[0]===404,'HTTP revoked membership');
+$httpSessions->revoke($httpToken);
+check($api->handle('GET',$path,$auth)[0]===401,'HTTP revoked session');
