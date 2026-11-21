@@ -25,3 +25,17 @@ check((new PdoEntities(db(),'entity-A'))->own('alice','unit')['kind']==='village
 (new PdoMemberships(db(),'entity-A'))->revoke('alice');
 rejects(fn()=> $a->own('alice','unit'),DomainException::class,'revoked entity access');
 rejects(fn()=> $a->provision('other','home','alice','village'),DomainException::class,'revoked provisioning');
+
+$a->attach('unit','storage',['capacity'=>100,'enabled'=>true]);
+$a->attach('unit','storage',['enabled'=>true,'capacity'=>100]);
+rejects(fn()=> $a->attach('unit','storage',['capacity'=>200]),DomainException::class,'component conflict');
+rejects(fn()=> $a->attach('missing','storage',[]),DomainException::class,'unknown entity');
+rejects(fn()=> $a->attach('unit','bad',['nested'=>[]]),UnexpectedValueException::class,'invalid component');
+rejects(fn()=> $a->attach('unit','large',['data'=>str_repeat('x',8192)]),InvalidArgumentException::class,'oversize component');
+rejects(fn()=> $a->ownComponent('alice','unit','storage'),DomainException::class,'revoked component access');
+rejects(fn()=> $a->ownComponent('bob','unit','storage'),DomainException::class,'foreign owner component');
+rejects(fn()=> $b->ownComponent('bob','unit','storage'),DomainException::class,'foreign world component');
+(new PdoMemberships(db(),'entity-A'))->grant('alice');
+check((new PdoEntities(db(),'entity-A'))->ownComponent('alice','unit','storage')===['capacity'=>100,'enabled'=>true],'component reconnect and canonical retry');
+$b->attach('unit','storage',['capacity'=>200]);
+check($b->ownComponent('bob','unit','storage')===['capacity'=>200],'separate world component');
