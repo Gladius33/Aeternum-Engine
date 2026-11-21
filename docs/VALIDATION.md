@@ -25,3 +25,5 @@ Iteration 0010 tests account ownership, revoked membership, nonmember and cross-
 Iteration 0011 adds integration cases for entity provisioning retry, conflicting ownership, separate worlds, reconnect and revoked access. Concurrent provisioning and direct SQL constraint tests remain open; check CI for execution evidence.
 
 Iteration 0012 adds component canonical retry, malformed/oversized data, ownership, revocation, reconnect and isolation integration cases. CI evidence required.
+
+Iteration 0013 adds identity integration cases for reconnect, password verification, duplicate login and minimum password length. Argon2id support is required. Timing equalization and abuse controls remain open.
