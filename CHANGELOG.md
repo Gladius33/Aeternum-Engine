@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — iteration 0016
+- Add persistent transactional fixed-window rate limiter with bounded policy and rollback protection.
+
 ## Unreleased — iteration 0015
 - Add initial HTTPS JSON front controller and authenticated read-only entity/component routes.
 - Test unauthorized, foreign-world, foreign-owner, revoked membership/session and successful access.

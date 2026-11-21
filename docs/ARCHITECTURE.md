@@ -17,3 +17,5 @@ Application identity is independent of world membership; registering does not gr
 Opaque sessions use operational time and SHA-256 token hashes. Session resolution is a request admission check; revocation does not cancel already admitted requests. No public login endpoint yet.
 
 Initial HTTP adapter resolves opaque bearer sessions and exposes only own entity/component reads. The front controller requires server-indicated HTTPS and returns generic errors. Public login, economy commands, rate limiting and UI are future work.
+
+Rate limiting uses independent hashed policy buckets and locked rows, without world locks. Fixed windows permit bursts at boundaries. Not yet wired to HTTP.
