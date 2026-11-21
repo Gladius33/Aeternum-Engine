@@ -12,8 +12,8 @@ A checklist item is complete only when implemented, documented and supported by 
 - [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, o2switch-compatible package and VPS instructions.
 - [ ] G09 Release: integration/concurrency/replay/security/performance/E2E tests, dependency audit, documented capacity and signed-off V1.0 acceptance; no known critical/high defects.
 
-## Current iteration 0008
-Trusted delayed resource-production upgrades with atomic costs, old-rate settlement at logical completion, event ledger effects, replay, duplicate/pending/max-level checks and four-process real transfer test. G01 still needs fault/release validation. G03 remains open for broader actions, entities, relational scaling, interactions and authorization.
+## Current iteration 0009
+GamePackLoader validates bounded declarative JSON, exact integer values, schema fields and economic cross-references. Raw artifact SHA-256 binds rules to each world. Two distinct reference economy packs exercise upgrades and persistent replay. G04 remains open: user-facing playable games, localization, entity/action schema expansion and runtime artifact/version migration policy. G02 membership/entity/ownership and scale remain open.
 
 ## Next
-Design persistent world membership and entity ownership with actor-scoped command admission. Build validated game-pack manifests and trusted data-driven resource/upgrade definitions; test immutable artifact identity and two distinct packs. Add relational balance scaling and operational migration policy.
+Implement authenticated actor-scoped command admission with persistent world memberships and entity/resource ownership, relational state model and authorization tests. Expand reference packs and add a bounded CLI and user-facing application. Continue fault/release validation.

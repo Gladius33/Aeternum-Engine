@@ -88,4 +88,5 @@ require __DIR__ . "/outbox.php";
 require __DIR__ . "/rules.php";
 require __DIR__ . "/economy.php";
 require __DIR__ . "/upgrades.php";
+require __DIR__ . "/packs-db.php";
 echo "MariaDB integration checks passed.\n";

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — iteration 0009
+- Add bounded data-only JSON game-pack loader and published JSON schema, plus cross-field economic validation.
+- Derive rule artifact digest from exact manifest bytes and load two distinct reference economy packs without theme-specific PHP.
+- Test malformed/invalid packs, changed artifact rejection, and persistent upgrades/replay for both packs.
+
 ## Unreleased — iteration 0008
 - Add trusted configurable timed resource-production upgrades with atomic cost and scheduled completion; settle old rate at logical due time.
 - Extend persistent event handling with optional typed ledger effects, retaining compatibility with scalar handlers.
