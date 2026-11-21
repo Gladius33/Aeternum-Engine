@@ -95,4 +95,5 @@ require __DIR__ . "/identity.php";
 require __DIR__ . "/sessions.php";
 require __DIR__ . "/http-api.php";
 require __DIR__ . "/rate-limits.php";
+require __DIR__ . "/auth-http.php";
 echo "MariaDB integration checks passed.\n";
