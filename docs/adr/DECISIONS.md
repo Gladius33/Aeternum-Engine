@@ -47,3 +47,5 @@
 - ADR-029: login/logout use POST, bounded body and peer/login fixed-window limits. Peer is REMOTE_ADDR unless trusted server rewrites it. No public registration yet.
 
 - ADR-030: HTTP economy routes reuse actor transactions and pinned rules; domain conflicts share a generic 409. No implicit world provisioning.
+
+- ADR-031: trusted provisioning uses actor-derived account/location/entity identifiers and stable resource command IDs. Multi-transaction workflow requires operator retries and coordination with revocation.

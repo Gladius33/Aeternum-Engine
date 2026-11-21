@@ -37,3 +37,5 @@ Iteration 0015 adds direct HTTP dispatcher integration cases for authenticated o
 0017 tests HTTP authentication dispatch, malformed input, session resolution, logout, peer limit and rollover; actual transport and distributed abuse resistance remain unverified.
 
 0018 tests economy HTTP command, retry, balance, authorization and malformed input directly against MariaDB. Network transport remains untested.
+
+0019 checks unknown identity, repeated provisioning, initial balances and journal replay. Crash injection and concurrent administrative operations remain unverified.

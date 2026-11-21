@@ -52,3 +52,6 @@ POST /v1/auth/login accepts JSON login/password and returns token and expires_in
 
 ## Economy HTTP (0018)
 Configure AETERNUM_MEDIEVAL_WORLD for an existing medieval world. POST /v1/worlds/{world}/economy/commands takes id,type,payload JSON; GET /v1/worlds/{world}/economy/balances/{account}/{resource}. Bearer token required. World and account provisioning remain trusted operations.
+
+## Player provisioning (0019)
+Trusted operators call PlayerProvisioner::provision with an existing identity, world ID and validated GamePack. Retry identical arguments if interrupted. This grants membership and must never be exposed directly to players; coordinate with revocation. CLI and public onboarding remain open.

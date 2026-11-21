@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — iteration 0019
+- Add trusted retryable player provisioning and integration checks for initial resources and replay.
+
 ## Unreleased — iteration 0018
 - Expose actor-scoped economy commands and balances over authenticated HTTP, with trusted rules registry.
 

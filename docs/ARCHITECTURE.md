@@ -23,3 +23,5 @@ Rate limiting uses independent hashed policy buckets and locked rows, without wo
 AuthHttpApi exposes POST login/logout with server-derived peer and per-login rate buckets. No trust in forwarded IP headers. Public registration and global throttling remain open.
 
 Economy HTTP uses a trusted world-to-rules registry and existing actor transaction checks; clients cannot supply actor identity or rules. Commands are bounded and allowlisted.
+
+PlayerProvisioner is a trusted multi-transaction administrative workflow, not atomic onboarding; retry identical arguments after interruption, and never invoke concurrently with revocation.
