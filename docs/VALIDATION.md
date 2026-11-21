@@ -13,3 +13,5 @@ Iteration 0004 tests mixed command/event replay, duplicate omission, state and f
 Iteration 0005 checks outbox atomicity on accepted/rejected commands, duplicate retries, lease expiry/stale token rejection, delayed retry, world isolation and SIGKILL of a worker while the transaction is open before state writes. Lost acknowledgement after external delivery and ambiguous DB commit responses still require dedicated tests.
 
 Iteration 0006 adds rule binding integration checks and 10,000 partition/reference formula production cases, plus boundary arithmetic. These are not yet persistent economy/ledger or artifact supply-chain validation.
+
+Iteration 0007 verifies persistent reference economy conservation, atomic rejected settlements/transfers, stale retry, capacity, and ledger replay divergence. It does not yet test concurrent real economy transfers or event-generated ledger effects.

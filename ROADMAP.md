@@ -12,8 +12,8 @@ A checklist item is complete only when implemented, documented and supported by 
 - [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, o2switch-compatible package and VPS instructions.
 - [ ] G09 Release: integration/concurrency/replay/security/performance/E2E tests, dependency audit, documented capacity and signed-off V1.0 acceptance; no known critical/high defects.
 
-## Current iteration 0006
-Trusted rule registry and immutable world rule identity (legacy worlds explicitly unbound); mismatched rule/handler rejection and bounded integer lazy production with fractional carry. G01 still requires deeper fault testing and validation before closure. G03 primitive is not a persistent ledger yet.
+## Current iteration 0007
+Reference economy: trusted resource definitions, bounded world-scoped scalar balance accounts, lazy settlement, atomic transfers, persistent movement ledger/replay verification. G01 still requires fault and release validation. G03 remains open for concurrency testing of real transfers, delayed upgrades, relational balance scaling, progression and interactions.
 
 ## Next
-Implement resource economy commands, persistent stock model and conservation ledger, atomic transfers and delayed upgrades. Add game pack schema/manifest validation and remove reliance on manually asserted artifact digests for production worlds. Test upgrade and migration policy, including legacy worlds.
+Add parallel tests for competing economy transfers and event-driven actions, including resource costs/settlement and upgrades. Design relational entity/balance storage and authorized ownership, game pack schema/manifest validation, and artifact verification.

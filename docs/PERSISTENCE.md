@@ -19,3 +19,6 @@ Apply 004_outbox.sql with writers stopped. Existing journal entries are not back
 
 ## Rule binding (0006)
 Apply 005_rules.sql with writers stopped. Existing worlds retain the legacy key; new trusted application code should construct a RuleSet with ID, immutable version and verified artifact digest, register it once, and supply it to PdoScheduler. The scheduler rejects mismatched persisted identities and alternate handler instances. This is not a PHP sandbox or an automatic code hash: the application is responsible for verifying the artifact, registering deterministic immutable handlers and preserving older artifacts. No live upgrade or legacy conversion is implemented. Outbox metadata access is internal and not an authorization boundary.
+
+## Resource ledger (0007)
+Apply 006_resource_ledger.sql. CommandResult movements are committed atomically alongside the journal, state, receipt and outbox. Replay compares persisted ledger lines with deterministic handler results. Existing entries without movements stay empty. EventHandler still returns scalar state only; event-generated ledger effects require a future compatible extension. The ledger is internal diagnostic data, not a public accounting API.

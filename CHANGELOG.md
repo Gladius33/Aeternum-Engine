@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — iteration 0007
+- Add reference economy commands for resource accounts, lazy settlement and transfers with trusted definitions.
+- Commit resource ledger movements with journal, state, command receipt and outbox; verify movements during replay.
+- Tests cover production carry, conservation, duplicate retry, atomic insufficient/capacity rejection and ledger divergence.
+
 ## Unreleased — iteration 0006
 - Add trusted RuleSet and registry, pin rule identity to a world, reject mismatched identities and handlers in the scheduler.
 - Add immutable lazy production primitive with integer rational rates, fractional carry, explicit caps, overflow-safe saturation and balance checks.
