@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — iteration 0025
+- Add browser E2E CI against a fresh MariaDB database, real API, and timed upgrades in both reference packs.
+
 ## Unreleased — iteration 0024
 - Add authenticated player discovery and browser selection controls.
 - Correct industrial pack mapping in HTTP and CLI entrypoints.
