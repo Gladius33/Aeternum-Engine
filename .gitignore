@@ -47,3 +47,7 @@ Thumbs.db
 *.dump
 /backups/
 /test-results/
+
+/node_modules/
+/playwright-report/
+/browser-server.log

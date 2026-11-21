@@ -57,3 +57,7 @@
 - ADR-034: initial reference-player creation is operator-only CLI, passwords supplied through stdin rather than process arguments.
 
 - ADR-035: expose configured world and owned-account discovery through an actor-scoped read API, not arbitrary world enumeration.
+
+- ADR-036: verify the reference client against real MariaDB and the actual HTTP controller in Chromium; test-only HTTPS termination emulation does not certify production TLS.
+
+- ADR-036 clarification: browser E2E invokes the bounded world worker to process due events; HTTP reads must not implicitly mutate simulation state.

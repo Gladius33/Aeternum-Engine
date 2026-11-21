@@ -39,3 +39,7 @@ Trusted account setup CLI available; browser UI and public registration remain o
 0023: initial browser economy client wired to real API; Vue/TypeScript, localization and browser E2E remain open.
 
 0024: authenticated discovery of owned accounts and pack resources, with browser selection controls and corrected industrial pack mapping. Browser E2E remains open.
+
+0025 adds automated Chromium end-to-end scenarios for both packs. Results must be checked on the exact commit before claiming browser validation; full production deployment remains open.
+
+0025 E2E exercises the real bounded CLI worker; it does not assume stock reads process due events.

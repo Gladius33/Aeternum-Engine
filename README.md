@@ -5,7 +5,7 @@ A modular engine for persistent multiplayer browser strategy games.
 By Sébastien TOUILLEUX · Source Available · ACCL-1.0
 
 ## Status
-Early development — iteration 0024. The PHP core includes in-memory and MariaDB event schedulers with per-world locking and transactional completion, plus transactional commands and durable idempotency receipts, a deterministic replay journal, and a transactional outbox with expiring delivery leases, trusted rule-set pinning and integer lazy production, and a reference economy with atomic resource transfers a persistent movement ledger, and timed resource-production upgrades, and two validated data-only reference economy packs with world membership and account-scoped command admission. Relational locations and immutable actor-owned entities are available through trusted provisioning. Bounded immutable scalar components support entity composition. Persistent application identities use Argon2id passwords. Persistent expiring and revocable opaque sessions store token hashes only. Initial read-only authenticated HTTP API for own entities and components; rate-limited login/logout routes available, no playable game yet. See the [roadmap](ROADMAP.md) and CI results for the exact state.
+Early development — iteration 0025. The PHP core includes in-memory and MariaDB event schedulers with per-world locking and transactional completion, plus transactional commands and durable idempotency receipts, a deterministic replay journal, and a transactional outbox with expiring delivery leases, trusted rule-set pinning and integer lazy production, and a reference economy with atomic resource transfers a persistent movement ledger, and timed resource-production upgrades, and two validated data-only reference economy packs with world membership and account-scoped command admission. Relational locations and immutable actor-owned entities are available through trusted provisioning. Bounded immutable scalar components support entity composition. Persistent application identities use Argon2id passwords. Persistent expiring and revocable opaque sessions store token hashes only. Initial read-only authenticated HTTP API for own entities and components; rate-limited login/logout routes available, no playable game yet. See the [roadmap](ROADMAP.md) and CI results for the exact state.
 
 ## Vision
 Theme-agnostic persistent worlds, asynchronous actions, deterministic simulation, lazy resource production, transactional economy, composable entities, versioned game packs, multiplayer social features and scalable shared-hosting-compatible deployment.
@@ -47,3 +47,7 @@ Trusted CLI account setup: php bin/provision.php PACK WORLD LOGIN (password on s
 Initial browser client at /play.html: sign in, inspect stock, settle and upgrade. Operator-provisioned accounts only.
 
 Player world discovery is available in the reference UI. Configure AETERNUM_MEDIEVAL_WORLD and AETERNUM_INDUSTRIAL_WORLD for the two bundled packs.
+
+Browser E2E CI: real Chromium, MariaDB and both bundled games; see tests/browser/.
+
+Schedule the bounded world worker for each configured world; browser stock reads do not process due events.
