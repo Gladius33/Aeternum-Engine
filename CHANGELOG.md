@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0011
+- Add relational world-scoped locations and immutable actor-owned entities, with composite foreign keys and world-locked trusted provisioning.
+- Add own-entity projection and integration cases for isolation, retry, conflicts and revoked membership.
+
 ## Unreleased — iteration 0010
 - Add persistent world membership, trusted grant/revoke, immutable player-account assignment, actor-scoped idempotency and audit metadata.
 - Authorize economy command and own-balance projection inside world transaction, return receipts without private full world state.
