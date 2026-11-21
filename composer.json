@@ -12,6 +12,10 @@
     }
   },
   "scripts": {
-    "test": "php tests/run.php"
+    "test": "php tests/run.php",
+    "test:integration": "php tests/integration.php"
+  },
+  "suggest": {
+    "ext-pdo_mysql": "Required for MariaDB persistence"
   }
 }

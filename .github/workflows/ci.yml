@@ -18,3 +18,33 @@ jobs:
       - run: composer validate --strict --no-check-publish
       - run: find packages tests -name '*.php' -print0 | xargs -0 -r -n1 php -l
       - run: php tests/run.php
+  mariadb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci-local-only
+          MARIADB_DATABASE: aeternum_test
+          MARIADB_USER: aeternum_test
+          MARIADB_PASSWORD: ci-test-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          coverage: none
+      - run: php tests/integration.php
+        env:
+          AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_test;charset=utf8mb4
+          AETERNUM_TEST_USER: aeternum_test
+          AETERNUM_TEST_PASSWORD: ci-test-only

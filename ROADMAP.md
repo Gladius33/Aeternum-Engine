@@ -12,8 +12,8 @@ A checklist item is complete only when implemented, documented and supported by 
 - [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, o2switch-compatible package and VPS instructions.
 - [ ] G09 Release: integration/concurrency/replay/security/performance/E2E tests, dependency audit, documented capacity and signed-off V1.0 acceptance; no known critical/high defects.
 
-## Current iteration 0001
-Prototype of G01: injected clocks, chronological in-memory scheduling, stable sequence ties, bounded batches, immutable scalar event payloads, duplicate detection and failure retention. Persistent transactions and replay still open. CI and actual test results must be checked on the PR.
+## Current iteration 0002
+MariaDB event persistence, per-world row locking, stable sequence, duplicate detection, atomic completion, reconnect/retry and concurrent processing tests. G01 remains open: transactional commands, general journal/replay, outbox and further crash/failure tests.
 
 ## Next
-Implement MariaDB schema and transactional event repository with world lock, unique world/event and idempotency constraints, crash/retry tests. Preserve core contracts or document ADRs. Then implement commands and resources. Never expand scope without recording the decision.
+Implement transactional command intake and durable command idempotency with an event journal. Enforce pending older events before commands. Add deterministic replay and test crash/commit ambiguity. Then implement resources.

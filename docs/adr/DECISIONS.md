@@ -12,3 +12,5 @@
 - ADR-010: two reference games verify theme independence.
 - ADR-011: regression and integration gates before merge.
 - ADR-012: ACCL-1.0 unchanged, third-party license inventory and explicit CLA for external contributions.
+
+- ADR-013: MariaDB event transactions lock world first, commit one event at a time, retain completed rows for idempotency, budget checks between transactions. No transaction spans external effects.
