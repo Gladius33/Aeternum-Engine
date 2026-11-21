@@ -49,3 +49,6 @@ Iteration 0015 adds direct HTTP dispatcher integration cases for authenticated o
 0023 browser UI is not yet browser-E2E validated. Existing database API integration tests exercise its backend operations.
 
 0024 integration tests verify discovery authentication, scope isolation and revocation; browser and deployment tests remain open.
+
+## 0025 browser E2E
+Browser CI installs the schema, provisions one distinct identity per pack, starts a loopback-only PHP test server, and drives Chromium through authentication, discovery isolation, stock display, upgrade debit, reload/re-authentication, eventual production increase, and logout. No network/API mocking or accelerated time. The test router emulates the HTTPS server flag exclusively on loopback; real TLS and shared hosting remain unverified. Passing results are required on the exact head SHA.
