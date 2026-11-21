@@ -231,20 +231,93 @@ final class PdoScheduler
         }
     }
 
-    /** Transactional command intake with durable receipts and atomic follow-up scheduling. */
+    /** Trusted system command intake. Never expose directly to players. */
     public function execute(Command $command, CommandHandler $handler): CommandReceipt
+    {
+        if (str_starts_with($command->id,'actor:')) throw new \InvalidArgumentException('Reserved command namespace');
+        return $this->executeInternal($command,$handler,null,null);
+    }
+
+    /** Identity is supplied by a trusted authenticated application, never by request payload. */
+    public function executeForActor(string $actor,Command $command,EconomyCommandHandler $handler): ActorReceipt
+    {
+        PdoMemberships::validateId($actor);
+        if ($this->rules===null) throw new \DomainException('Actor intake requires pinned rules');
+        if ($command->worldId!==$this->worldId) throw new \InvalidArgumentException('Wrong world');
+        $scoped='actor:'.hash('sha256',json_encode([$actor,$command->id],JSON_THROW_ON_ERROR));
+        $internal=new Command($this->worldId,$scoped,$command->type,$command->payload);
+        $receipt=$this->executeInternal($internal,$handler,$actor,$command->id);
+        return new ActorReceipt($command->id,$receipt->effectiveAt,$receipt->scheduledIds);
+    }
+
+    /** Caller holds world lock; admin membership changes use the same lock. */
+    private function assertActiveActor(string $actor): void
+    {
+        if ($this->query('SELECT actor_id FROM engine_memberships WHERE world_id=? AND actor_id=? AND active=1',[$this->worldId,$actor])->fetchColumn()===false) {
+            throw new \DomainException('Actor access denied');
+        }
+    }
+
+    private function assertAccountOwner(mixed $account,?string $actor): void
+    {
+        if (!is_string($account)) throw new \InvalidArgumentException('Invalid account');
+        PdoMemberships::validateId($account);
+        $owner=$this->query('SELECT o.actor_id FROM engine_account_owners o JOIN engine_memberships m ON m.world_id=o.world_id AND m.actor_id=o.actor_id WHERE o.world_id=? AND o.account_id=? AND m.active=1',[$this->worldId,$account])->fetchColumn();
+        if ($owner===false || ($actor!==null && $owner!==$actor)) throw new \DomainException('Account access denied');
+    }
+
+    private function authorizeActor(string $actor,Command $command): void
+    {
+        $this->assertActiveActor($actor);
+        switch ($command->type) {
+            case 'economy.open':
+            case 'economy.settle':
+            case 'economy.upgrade':
+                $this->assertAccountOwner($command->payload['account']??null,$actor);
+                break;
+            case 'economy.transfer':
+                $this->assertAccountOwner($command->payload['from']??null,$actor);
+                $this->assertAccountOwner($command->payload['to']??null,null);
+                break;
+            default: throw new \DomainException('Actor command not allowed');
+        }
+    }
+
+    /** Own-account projection, guarded by the due-event barrier. */
+    public function balanceForActor(string $actor,string $account,string $resource,EconomyCommandHandler $handler): ProductionState
+    {
+        PdoMemberships::validateId($actor);
+        if ($this->rules===null) throw new \DomainException('Actor intake requires pinned rules');
+        $this->assertHandlers(commands:$handler);
+        if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
+        return $this->transaction(function () use ($actor,$account,$resource,$handler): ProductionState {
+            $world=$this->lockedWorld();
+            $this->assertActiveActor($actor);
+            $this->assertAccountOwner($account,$actor);
+            $at=$this->clock->now();
+            if ($at<0 || $at<(int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
+            if ($this->query('SELECT event_id FROM engine_events WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1 FOR UPDATE',[$this->worldId,$at])->fetchColumn()!==false) {
+                throw new \DomainException('Due events must be processed before projection');
+            }
+            return $handler->balanceAt(ScalarMap::decode($world['state_json']),$account,$resource,$at);
+        });
+    }
+
+    /** Transactional command intake with durable receipts and atomic follow-up scheduling. */
+    private function executeInternal(Command $command,CommandHandler $handler,?string $actor,?string $clientRequest): CommandReceipt
     {
         $this->assertHandlers(commands: $handler);
         if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
         if ($command->worldId !== $this->worldId) throw new \InvalidArgumentException('Wrong world');
         $this->processing = true;
         try {
-            return $this->transaction(function () use ($command,$handler): CommandReceipt {
+            return $this->transaction(function () use ($command,$handler,$actor,$clientRequest): CommandReceipt {
                 $world = $this->lockedWorld();
+                if ($actor!==null) $this->authorizeActor($actor,$command);
                 $payload = ScalarMap::encode($command->payload);
-                $existing = $this->query('SELECT command_type,payload_json,effective_at,result_state_json,scheduled_ids_json FROM engine_commands WHERE world_id = ? AND command_id = ?', [$this->worldId,$command->id])->fetch(PDO::FETCH_ASSOC);
+                $existing = $this->query('SELECT command_type,payload_json,effective_at,result_state_json,scheduled_ids_json,actor_id,client_request_id FROM engine_commands WHERE world_id = ? AND command_id = ?', [$this->worldId,$command->id])->fetch(PDO::FETCH_ASSOC);
                 if ($existing !== false) {
-                    if ($existing['command_type'] !== $command->type || ScalarMap::encode(ScalarMap::decode($existing['payload_json'])) !== $payload) {
+                    if ($existing['actor_id']!==$actor || $existing['client_request_id']!==$clientRequest || $existing['command_type'] !== $command->type || ScalarMap::encode(ScalarMap::decode($existing['payload_json'])) !== $payload) {
                         throw new \DomainException('Conflicting command ID');
                     }
                     return new CommandReceipt((int)$existing['effective_at'],ScalarMap::decode($existing['result_state_json']),json_decode($existing['scheduled_ids_json'],true,512,JSON_THROW_ON_ERROR));
@@ -268,7 +341,7 @@ final class PdoScheduler
                     $ids[] = $event->id;
                 }
                 $this->query('UPDATE engine_worlds SET next_sequence = ?, watermark = ?, state_json = ? WHERE world_id = ?',[$seq,$at,$stateJson,$this->worldId]);
-                $this->query('INSERT INTO engine_commands (world_id,command_id,command_type,payload_json,effective_at,result_state_json,scheduled_ids_json) VALUES (?,?,?,?,?,?,?)',[$this->worldId,$command->id,$command->type,$payload,$at,$stateJson,json_encode($ids,JSON_THROW_ON_ERROR)]);
+                $this->query('INSERT INTO engine_commands (world_id,command_id,command_type,payload_json,effective_at,result_state_json,scheduled_ids_json,actor_id,client_request_id) VALUES (?,?,?,?,?,?,?,?,?)',[$this->worldId,$command->id,$command->type,$payload,$at,$stateJson,json_encode($ids,JSON_THROW_ON_ERROR),$actor,$clientRequest]);
                 $this->journal($world,'command',$command->id,$command->type,$at,$payload,$stateJson,$result->events,$result->movements);
                 return new CommandReceipt($at,ScalarMap::decode($stateJson),$ids);
             });
