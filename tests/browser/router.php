@@ -1,0 +1,17 @@
+<?php
+declare(strict_types=1);
+// Test harness only. Never deploy tests/ or use this router in production.
+if (PHP_SAPI!=='cli-server' || getenv('AETERNUM_BROWSER_TEST')!=='1' || ($_SERVER['REMOTE_ADDR']??'')!=='127.0.0.1') {
+    http_response_code(403);
+    exit;
+}
+$path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
+if (in_array($path,['/play.html','/play.css','/play.js'],true)) return false;
+if (is_string($path) && str_starts_with($path,'/v1/')) {
+    // Emulate HTTPS termination by a trusted web server solely in loopback CI.
+    $_SERVER['HTTPS']='on';
+    require __DIR__.'/../../public/index.php';
+    return true;
+}
+http_response_code(404);
+return true;
