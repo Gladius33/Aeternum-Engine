@@ -106,6 +106,23 @@ final class EconomyCommandHandler implements CommandHandler
         return $this->read($state,$this->id($account),$this->id($resource))->advanceTo($at);
     }
 
+    /** Trusted metadata for a resource already read from the same state snapshot. */
+    public function upgradeProjection(array $state,string $account,string $resource): array
+    {
+        $account=$this->id($account);
+        $resource=$this->id($resource);
+        $this->read($state,$account,$resource);
+        $prefix=$this->prefix($account,$resource);
+        $level=$this->level($state,$prefix);
+        $pending=$state[$prefix.'pending']??null;
+        if ($pending!==null && (!is_string($pending) || !preg_match('/^upgrade:[a-f0-9]{64}$/D',$pending))) {
+            throw new \LogicException('Invalid pending upgrade reference');
+        }
+        $next=$this->upgrades['r:'.$resource][$level+1]??null;
+        if ($pending!==null && $next===null) throw new \LogicException('Pending unavailable upgrade');
+        return ['level'=>$level,'pendingId'=>$pending,'next'=>$next];
+    }
+
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
         $ledger = [];

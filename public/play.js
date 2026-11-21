@@ -35,15 +35,28 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>stock.replaceChildren());
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
-    const data=await api(base(f)+'balances/'+encodeURIComponent(f.account)+'/'+encodeURIComponent(f.resource));
+    const data=await api(base(f)+'overview/'+encodeURIComponent(f.account)+'/'+encodeURIComponent(f.resource));
+    if (JSON.stringify(f)!==JSON.stringify(locationFields())) return;
     stock.replaceChildren();
-    for (const key of ['stock','capacity','amount','interval','at']) {
+    function line(key,value) {
         const dt=document.createElement('dt'),dd=document.createElement('dd');
-        dt.textContent=key; dd.textContent=String(data[key]); stock.append(dt,dd);
+        dt.textContent=key; dd.textContent=String(value); stock.append(dt,dd);
     }
+    for (const key of ['stock','capacity','amount','interval','at','level']) line(key,data[key]);
+    if (data.pending) {
+        line('Upgrade status','Pending level '+data.pending.level);
+        line('Due (UTC)',new Date(data.pending.dueAt*1000).toISOString());
+        line('Future production',data.pending.amount);
+    } else if (data.next) {
+        line('Upgrade status','Next level '+data.next.level);
+        line('Upgrade cost',data.next.cost);
+        line('Duration (seconds)',data.next.duration);
+        line('Future production',data.next.amount);
+    } else line('Upgrade status','Maximum level');
 }
 async function run(work) {
     if (busy) return;

@@ -20,7 +20,7 @@ async function signIn(page, scenario) {
     await page.selectOption('select[name=resource]',scenario.resource);
 }
 async function refresh(page, allowDueConflict=false) {
-    const received=page.waitForResponse(r=>r.url().includes('/economy/balances/'));
+    const received=page.waitForResponse(r=>r.url().includes('/economy/overview/'));
     await page.getByRole('button',{name:'Refresh stock'}).click();
     const response=await received;
     if (allowDueConflict && response.status()===409) {
@@ -42,6 +42,10 @@ for (const s of scenarios) {
         await signIn(page,s);
         const before=await refresh(page);
         expect(before.amount).toBe(s.rate);
+        expect(before.level).toBe(0);
+        expect(before.next.cost).toBe(s.cost);
+        expect(before.next.duration).toBe(s.duration);
+        await expect(page.locator('#stock')).toContainText('Next level 1');
         expect(before.stock).toBeGreaterThanOrEqual(s.initial);
         await page.selectOption('select[name=type]','economy.upgrade');
         const receipt=page.waitForResponse(r=>r.url().endsWith('/economy/commands') && r.request().method()==='POST');
@@ -56,6 +60,11 @@ for (const s of scenarios) {
         expect(persisted.stock).toBeGreaterThanOrEqual(before.stock-s.cost);
         expect(persisted.stock).toBeLessThan(before.stock);
         expect(persisted.amount).toBe(s.rate);
+        expect(persisted.pending.level).toBe(1);
+        expect(persisted.pending.dueAt).toBe(data.effectiveAt+s.duration);
+        expect(persisted.next).toBeNull();
+        await expect(page.locator('#stock')).toContainText('Pending level 1');
+        await expect(page.locator('#stock')).toContainText(new Date(persisted.pending.dueAt*1000).toISOString());
         // Reads cannot overtake due events. Run the actual bounded CLI worker,
         // as CRON would; a due boundary between worker and read may return 409.
         await expect.poll(async()=> {
@@ -65,6 +74,11 @@ for (const s of scenarios) {
             expect(Number.isInteger(report.processed)).toBe(true);
             return (await refresh(page,true))?.amount ?? null;
         },{timeout:(s.duration+45)*1000,intervals:[5000]}).toBe(s.upgraded);
+        const completed=await refresh(page);
+        expect(completed.level).toBe(1);
+        expect(completed.pending).toBeNull();
+        expect(completed.next).toBeNull();
+        await expect(page.locator('#stock')).toContainText('Maximum level');
         await page.getByRole('button',{name:'Sign out'}).click();
         await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
         expect(errors).toEqual([]);
