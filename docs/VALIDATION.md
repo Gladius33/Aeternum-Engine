@@ -27,3 +27,5 @@ Iteration 0011 adds integration cases for entity provisioning retry, conflicting
 Iteration 0012 adds component canonical retry, malformed/oversized data, ownership, revocation, reconnect and isolation integration cases. CI evidence required.
 
 Iteration 0013 adds identity integration cases for reconnect, password verification, duplicate login and minimum password length. Argon2id support is required. Timing equalization and abuse controls remain open.
+
+Iteration 0014 adds session persistence, distinct tokens, invalid login, plaintext absence, exact expiry and revocation cases. Cleanup, rate limiting and HTTP transport remain open.
