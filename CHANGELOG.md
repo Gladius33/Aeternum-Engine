@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — iteration 0022
+- Add trusted account provisioning CLI with password on stdin, existing identity authentication and retryable world setup.
+
 ## Unreleased — iteration 0021
 - Add locked migration runner, checksummed ledger, dirty-state refusal and CLI.
 

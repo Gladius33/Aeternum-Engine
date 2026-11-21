@@ -43,3 +43,5 @@ Iteration 0015 adds direct HTTP dispatcher integration cases for authenticated o
 0020 integration cases cover future events, due completion, replay-safe retry, invalid limits and unknown world. Real shared-hosting CRON remains unverified.
 
 0021 replaces direct integration schema setup with MigrationRunner and checks full installation, no-op retry and dirty-state refusal. Restore and actual crash tests remain open.
+
+0022 relies on provisioning integration coverage from 0019; subprocess testing of the CLI remains open.

@@ -29,3 +29,5 @@ PlayerProvisioner is a trusted multi-transaction administrative workflow, not at
 WorldWorker wraps the pinned scheduler for one configured world. Each event commits independently. Budget is cooperative, not a hard deadline; database waits can extend runtime.
 
 DDL is not transactional in MariaDB. MigrationRunner records dirty markers before execution and verifies the immutable migration prefix under a connection-owned advisory lock.
+
+Trusted provisioning CLI authenticates existing identities or registers new ones, then runs PlayerProvisioner. Do not offer this administrative tool over HTTP.
