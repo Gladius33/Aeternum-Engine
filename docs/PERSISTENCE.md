@@ -37,3 +37,6 @@ Apply 010_components.sql. Trusted attach is immutable and idempotent; ownCompone
 
 ## Identity (0013)
 Apply 011_identity.sql. PHP must support PASSWORD_ARGON2ID. PdoIdentity is an internal registration/authentication service, not a public endpoint. Duplicate login raises a database exception; adapters must map failures safely. No password reset or session lifecycle yet.
+
+## Sessions (0014)
+Apply 012_sessions.sql. PdoSessions uses an operational clock, never simulation time. Protect returned bearer tokens, never log them; transport must use HTTPS. No cleanup job or public login route yet.

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0014
+- Add random opaque sessions with hashed token storage, bounded TTL and idempotent revocation.
+- Add integration tests for persistence, expiry, invalid credentials and revocation.
+
 ## Unreleased — iteration 0013
 - Add persistent application identities, unique canonical login and Argon2id password verification.
 - Add integration cases for reconnect, duplicate login and invalid credentials.

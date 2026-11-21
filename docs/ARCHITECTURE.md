@@ -13,3 +13,5 @@ Deployment: standard HTTPS PHP application, MariaDB, short CRON jobs; cache opti
 Entity components are bounded immutable administrative scalar maps under the world lock; game-specific validation and mutable simulation components remain open.
 
 Application identity is independent of world membership; registering does not grant world access. No public login endpoint until abuse controls and sessions exist.
+
+Opaque sessions use operational time and SHA-256 token hashes. Session resolution is a request admission check; revocation does not cancel already admitted requests. No public login endpoint yet.

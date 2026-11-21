@@ -37,3 +37,5 @@
 - ADR-024: immutable component attachments use composite entity foreign keys and canonical scalar maps, max 64 components, 64 fields and 8192 encoded bytes per component. Trusted provisioning only, private reads; no dynamic simulation mutation yet.
 
 - ADR-025: global random actor IDs and unique lowercase login, Argon2id hashes; registering never grants membership. Legacy actor IDs are not automatically linked. No public authentication route yet.
+
+- ADR-026: 256-bit random opaque bearer tokens stored only as SHA-256 digests, absolute TTL 60–86400 seconds, idempotent revocation; resolve at request admission, no cancellation of in-flight requests.
