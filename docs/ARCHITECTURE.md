@@ -35,3 +35,5 @@ Trusted provisioning CLI authenticates existing identities or registers new ones
 Initial static browser client uses memory-only bearer tokens and same-origin API; no client-side economy simulation. Vue/TypeScript migration remains open.
 
 Discovery reads only accounts attached to active memberships in explicitly configured worlds; the returned metadata is advisory, and every economy operation still checks authorization independently.
+
+Browser E2E uses a test-only loopback router outside public/ to invoke the actual front controller; production HTTPS enforcement is unchanged.
