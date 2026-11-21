@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,GamePackLoader,SystemClock};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,GamePackLoader,SystemClock};
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -23,19 +23,24 @@ try {
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$_SERVER['REMOTE_ADDR'] ?? ''
             );
-        } elseif (preg_match('~^/v1/worlds/[^/]+/economy/~',$path)) {
-            $rules=[];
+        } elseif ($path==='/v1/me/worlds' || preg_match('~^/v1/worlds/[^/]+/economy/~',$path)) {
+            $rules=[]; $packs=[];
             foreach (['AETERNUM_MEDIEVAL_WORLD'=>'reference-medieval','AETERNUM_SPACE_WORLD'=>'reference-space'] as $env=>$pack) {
                 $world=getenv($env);
                 if ($world!==false && $world!=='') {
                     if (isset($rules[$world])) throw new RuntimeException('Duplicate configured world');
-                    $rules[$world]=GamePackLoader::load(file_get_contents(__DIR__.'/../games/'.$pack.'/manifest.json'))->rules();
+                    $packs[$world]=GamePackLoader::load(file_get_contents(__DIR__.'/../games/'.$pack.'/manifest.json'));
+                    $rules[$world]=$packs[$world]->rules();
                 }
             }
+            if ($path==='/v1/me/worlds') {
+                [$status,$body]=(new PlayerDiscoveryApi($pdo,new SystemClock(),$packs))->handle($_SERVER['REQUEST_METHOD'] ?? '',$_SERVER['HTTP_AUTHORIZATION'] ?? '');
+            } else {
             [$status,$body]=(new EconomyHttpApi($pdo,new SystemClock(),$rules))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,8193) ?: ''
             );
+            }
         } else {
         [$status,$body]=(new HttpApi($pdo,new SystemClock()))->handle(
             $_SERVER['REQUEST_METHOD'] ?? '',
