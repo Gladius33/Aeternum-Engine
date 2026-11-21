@@ -1,0 +1,5 @@
+# Economy design — initial lazy production primitive
+
+ProductionState is immutable and generic: stock and capacity in integer smallest units, amount per integer interval in seconds, last effective timestamp and fractional numerator carry. Use only 64-bit PHP. Max amount/capacity is 10^12 units and max interval 2,592,000 seconds. Saturation discards output and carry, with a threshold check before computing elapsed * amount to prevent overflow. Debit/credit never settle automatically: first advance to the effective event/command time. Debit rejects overspending, credit rejects overflow. Never store PHP floats or trust client-supplied balances.
+
+This pure primitive is not yet a balance repository, ledger, market, resource definition registry or authorization system. The next integration must settle affected balances under the existing world transaction, persist state/ledger atomically, validate actor/world/asset scope, and test conservation and concurrent competing debits. Rate changes and capacity upgrades require settling prior production before changing the rule; define carry conversion explicitly.

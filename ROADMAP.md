@@ -12,8 +12,8 @@ A checklist item is complete only when implemented, documented and supported by 
 - [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, o2switch-compatible package and VPS instructions.
 - [ ] G09 Release: integration/concurrency/replay/security/performance/E2E tests, dependency audit, documented capacity and signed-off V1.0 acceptance; no known critical/high defects.
 
-## Current iteration 0005
-Transactional outbox for committed transition metadata, leased at-least-once delivery, retry delay, stale-token rejection, and abrupt process termination before commit test. Remaining G01: rule version binding, deeper commit-ambiguity fault tests and release validation.
+## Current iteration 0006
+Trusted rule registry and immutable world rule identity (legacy worlds explicitly unbound); mismatched rule/handler rejection and bounded integer lazy production with fractional carry. G01 still requires deeper fault testing and validation before closure. G03 primitive is not a persistent ledger yet.
 
 ## Next
-Pin trusted rule sets to worlds and test incompatible handlers. Implement fixed-point resource production, ledger and game packs. Delivery consumers and monitoring remain future platform work.
+Implement resource economy commands, persistent stock model and conservation ledger, atomic transfers and delayed upgrades. Add game pack schema/manifest validation and remove reliance on manually asserted artifact digests for production worlds. Test upgrade and migration policy, including legacy worlds.

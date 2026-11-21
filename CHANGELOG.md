@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — iteration 0006
+- Add trusted RuleSet and registry, pin rule identity to a world, reject mismatched identities and handlers in the scheduler.
+- Add immutable lazy production primitive with integer rational rates, fractional carry, explicit caps, overflow-safe saturation and balance checks.
+- Add MariaDB rule binding tests and 10,000 deterministic partition/reference-formula unit cases.
+
 ## Unreleased — iteration 0005
 - Add transactional outbox for committed transition metadata, claim/ack/release with expiring leases and stable deduplication key.
 - Test expiry, stale acknowledgement, retry delay, world scope, and abrupt worker termination before commit.
