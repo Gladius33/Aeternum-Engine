@@ -45,10 +45,10 @@ for (const s of scenarios) {
         const {data}=await command.json();
         expect(data.scheduledIds).toHaveLength(1);
         await expect(page.locator('#status')).toHaveText('Success');
-        await page.reload();
         await signIn(page,s);
         const persisted=await refresh(page);
         expect(persisted.stock).toBeGreaterThanOrEqual(before.stock-s.cost);
+        expect(persisted.stock).toBeLessThan(before.stock);
         expect(persisted.amount).toBe(s.rate);
         // The live backend processes due events on reads; no mocked time or API responses.
         await expect.poll(async()=> (await refresh(page)).amount,{timeout:(s.duration+35)*1000,intervals:[5000]}).toBe(s.upgraded);
