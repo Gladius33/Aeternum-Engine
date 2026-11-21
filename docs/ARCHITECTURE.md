@@ -25,3 +25,5 @@ AuthHttpApi exposes POST login/logout with server-derived peer and per-login rat
 Economy HTTP uses a trusted world-to-rules registry and existing actor transaction checks; clients cannot supply actor identity or rules. Commands are bounded and allowlisted.
 
 PlayerProvisioner is a trusted multi-transaction administrative workflow, not atomic onboarding; retry identical arguments after interruption, and never invoke concurrently with revocation.
+
+WorldWorker wraps the pinned scheduler for one configured world. Each event commits independently. Budget is cooperative, not a hard deadline; database waits can extend runtime.
