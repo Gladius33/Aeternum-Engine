@@ -16,3 +16,5 @@
 - ADR-013: MariaDB event transactions lock world first, commit one event at a time, retain completed rows for idempotency, budget checks between transactions. No transaction spans external effects.
 
 - ADR-014: world-locked server-time command intake with distinct durable command IDs, canonical payload comparison and exact prior receipts; pending due events block new commands. Follow-up events commit with the command or not at all. No external I/O inside handlers.
+
+- ADR-015: commit journal entries with the same world transaction as state, use canonical scalar-map state digests and full follow-up schedule digests. Migration establishes an explicit checkpoint for any existing state; earlier history is not reconstructed. Replay uses caller-supplied original trusted handlers until version pinning is implemented; diagnostic replay holds the world lock and is bounded by entry count.

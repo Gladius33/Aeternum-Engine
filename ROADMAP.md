@@ -12,8 +12,8 @@ A checklist item is complete only when implemented, documented and supported by 
 - [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, o2switch-compatible package and VPS instructions.
 - [ ] G09 Release: integration/concurrency/replay/security/performance/E2E tests, dependency audit, documented capacity and signed-off V1.0 acceptance; no known critical/high defects.
 
-## Current iteration 0003
-Persistent scheduling and transactional command intake, durable command receipts, atomic state plus follow-up event creation, due-event barrier, multi-process overspend tests. G01 remains open: journal/replay, outbox and abrupt crash/commit ambiguity tests.
+## Current iteration 0004
+Persistent scheduler, commands and receipts, atomic follow-up actions, chronological barrier, world-scoped journal with canonical state and follow-up digests and bounded deterministic replay from a migration checkpoint. G01 remains open: transactional outbox, crash/commit ambiguity tests and further rule-version binding.
 
 ## Next
-Implement versioned command/event journal and deterministic replay (define migration checkpoint semantics for already populated worlds), transactional outbox, abrupt process death tests. Then fixed-point economy and resource ledger.
+Implement transactional outbox, abrupt process death tests and rule pinning. Then fixed-point resource production, ledger and game packs.

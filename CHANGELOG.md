@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — iteration 0004
+- Add transactional journal of committed commands and events, canonical state/follow-up digests and bounded diagnostic replay.
+- Migration checkpoint preserves pre-journal worlds without inventing past history.
+- Add divergence, retry and replay size-limit tests. Rule version binding and outbox remain open.
+
 ## Unreleased — iteration 0003
 - Add world-scoped durable command receipts and pure command handlers with an authoritative effective time.
 - Commit state, planned events and command receipt atomically, refuse new commands while due work is pending.

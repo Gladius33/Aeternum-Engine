@@ -50,14 +50,14 @@ final class PdoScheduler
     {
         if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
         $this->transaction(fn()=> $this->query(
-            'INSERT INTO engine_worlds (world_id, state_json) VALUES (?, ?) ON DUPLICATE KEY UPDATE world_id = world_id',
-            [$this->worldId, '{}']
+            'INSERT INTO engine_worlds (world_id, state_json, checkpoint_json) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE world_id = world_id',
+            [$this->worldId, '{}', '{}']
         ));
     }
 
     private function lockedWorld(): array
     {
-        $row = $this->query('SELECT next_sequence, watermark, state_json FROM engine_worlds WHERE world_id = ? FOR UPDATE', [$this->worldId])->fetch(PDO::FETCH_ASSOC);
+        $row = $this->query('SELECT next_sequence, watermark, state_json, journal_sequence, checkpoint_json, checkpoint_at FROM engine_worlds WHERE world_id = ? FOR UPDATE', [$this->worldId])->fetch(PDO::FETCH_ASSOC);
         if ($row === false) throw new \DomainException('World not initialized');
         return $row;
     }
@@ -110,6 +110,7 @@ final class PdoScheduler
                     $this->query('UPDATE engine_worlds SET state_json = ?, watermark = ? WHERE world_id = ?', [$newState,$event->dueAt,$this->worldId]);
                     $changed = $this->query('UPDATE engine_events SET completed = 1 WHERE world_id = ? AND event_id = ? AND completed = 0', [$this->worldId,$event->id])->rowCount();
                     if ($changed !== 1) throw new \LogicException('Event completion invariant violated');
+                    $this->journal($world,'event',$event->id,$event->type,$event->dueAt,ScalarMap::encode($event->payload),$newState,[]);
                     return $event->id;
                 });
                 if ($id === null) break;
@@ -119,6 +120,75 @@ final class PdoScheduler
             $this->processing = false;
         }
         return $committed;
+    }
+
+    /** Canonical digest includes complete planned event definitions in order. */
+    private function followupDigest(array $events): string
+    {
+        $rows = [];
+        foreach ($events as $event) {
+            $rows[] = [$event->worldId,$event->id,$event->type,$event->dueAt,ScalarMap::encode($event->payload)];
+        }
+        return hash('sha256',json_encode($rows,JSON_THROW_ON_ERROR));
+    }
+
+    private function journal(array $world, string $kind, string $id, string $type, int $at, string $payload, string $state, array $events): void
+    {
+        $seq = (int)$world['journal_sequence'];
+        if ($seq === PHP_INT_MAX) throw new \OverflowException('Journal exhausted');
+        $this->query('INSERT INTO engine_journal (world_id,journal_no,entry_kind,entry_id,entry_type,effective_at,payload_json,state_digest,followup_digest) VALUES (?,?,?,?,?,?,?,?,?)',[
+            $this->worldId,$seq+1,$kind,$id,$type,$at,$payload,hash('sha256',$state),$this->followupDigest($events),
+        ]);
+        $this->query('UPDATE engine_worlds SET journal_sequence = ? WHERE world_id = ?',[$seq+1,$this->worldId]);
+    }
+
+    /** Re-evaluate a bounded journal using the original trusted handlers.
+     * Diagnostic operation, never called on the normal request path.
+     * Existing worlds replay only from their migration checkpoint.
+     */
+    public function verifyReplay(CommandHandler $commands, EventHandler $events, int $maxEntries = 10000): ReplayReport
+    {
+        if ($maxEntries < 1 || $maxEntries > 100000) throw new \InvalidArgumentException('Invalid replay entry limit');
+        if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
+        $this->processing = true;
+        try {
+            return $this->transaction(function () use ($commands,$events,$maxEntries): ReplayReport {
+                $world = $this->lockedWorld();
+                $count = (int)$world['journal_sequence'];
+                if ($count > $maxEntries) throw new \LengthException('Journal exceeds replay limit');
+                $rows = $this->query('SELECT journal_no,entry_kind,entry_id,entry_type,effective_at,payload_json,state_digest,followup_digest FROM engine_journal WHERE world_id = ? ORDER BY journal_no LIMIT '.($maxEntries+1),[$this->worldId]);
+                $state = ScalarMap::decode($world['checkpoint_json']);
+                $at = (int)$world['checkpoint_at'];
+                $index = 0;
+                while ($row = $rows->fetch(PDO::FETCH_ASSOC)) {
+                    $index++;
+                    $nextAt = (int)$row['effective_at'];
+                    if ($index > $maxEntries || (int)$row['journal_no'] !== $index || $nextAt < $at) throw new \UnexpectedValueException('Journal order mismatch');
+                    $payload = ScalarMap::decode($row['payload_json']);
+                    $followups = [];
+                    if ($row['entry_kind'] === 'command') {
+                        $result = $commands->apply(new Command($this->worldId,$row['entry_id'],$row['entry_type'],$payload),$state,$nextAt);
+                        $state = ScalarMap::validate($result->state);
+                        $followups = $result->events;
+                    } elseif ($row['entry_kind'] === 'event') {
+                        $state = ScalarMap::validate($events->apply(new ScheduledEvent($this->worldId,$row['entry_id'],$row['entry_type'],$nextAt,$payload),$state));
+                    } else {
+                        throw new \UnexpectedValueException('Unknown journal entry');
+                    }
+                    if (!hash_equals($row['state_digest'],hash('sha256',ScalarMap::encode($state))) || !hash_equals($row['followup_digest'],$this->followupDigest($followups))) {
+                        throw new \UnexpectedValueException('Replay divergence at journal entry '.$index);
+                    }
+                    $at = $nextAt;
+                }
+                $stateJson = ScalarMap::encode($state);
+                if ($index !== $count || $at !== (int)$world['watermark'] || $stateJson !== ScalarMap::encode(ScalarMap::decode($world['state_json']))) {
+                    throw new \UnexpectedValueException('Replay differs from committed world');
+                }
+                return new ReplayReport($index,(int)$world['checkpoint_at'],$at,hash('sha256',$stateJson));
+            });
+        } finally {
+            $this->processing = false;
+        }
     }
 
     /** Transactional command intake with durable receipts and atomic follow-up scheduling. */
@@ -158,6 +228,7 @@ final class PdoScheduler
                 }
                 $this->query('UPDATE engine_worlds SET next_sequence = ?, watermark = ?, state_json = ? WHERE world_id = ?',[$seq,$at,$stateJson,$this->worldId]);
                 $this->query('INSERT INTO engine_commands (world_id,command_id,command_type,payload_json,effective_at,result_state_json,scheduled_ids_json) VALUES (?,?,?,?,?,?,?)',[$this->worldId,$command->id,$command->type,$payload,$at,$stateJson,json_encode($ids,JSON_THROW_ON_ERROR)]);
+                $this->journal($world,'command',$command->id,$command->type,$at,$payload,$stateJson,$result->events);
                 return new CommandReceipt($at,ScalarMap::decode($stateJson),$ids);
             });
         } finally {
