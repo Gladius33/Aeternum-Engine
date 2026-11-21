@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0013
+- Add persistent application identities, unique canonical login and Argon2id password verification.
+- Add integration cases for reconnect, duplicate login and invalid credentials.
+
 ## Unreleased — iteration 0012
 - Persist bounded immutable entity components, canonical scalar maps and owner-only reads.
 - Test conflicts, malformed and oversized data, revocation, reconnect and cross-world isolation.
