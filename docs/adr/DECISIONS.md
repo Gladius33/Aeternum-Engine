@@ -35,3 +35,5 @@
 - ADR-023: relational locations and entities use composite world-scoped foreign keys; trusted provisioning is immutable and idempotent under the world lock. Own projections require active membership. Administrative metadata is outside simulation replay until entity commands are designed.
 
 - ADR-024: immutable component attachments use composite entity foreign keys and canonical scalar maps, max 64 components, 64 fields and 8192 encoded bytes per component. Trusted provisioning only, private reads; no dynamic simulation mutation yet.
+
+- ADR-025: global random actor IDs and unique lowercase login, Argon2id hashes; registering never grants membership. Legacy actor IDs are not automatically linked. No public authentication route yet.
