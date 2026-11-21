@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0028
+- Pin Argon2id parameters for new accounts and verify a public dummy hash for unknown well-formed logins without permitting authentication.
+- Add configurable shared login verification quota and distributed-peer concurrency tests.
+
 ## Unreleased — iteration 0027
 - Add transactional bounded stale rate-limit cleanup and a durable minimum operational clock (migration 014), with shared admission locking and exclusive cleanup locking.
 - Add separate CLI and tests of rollback, exact concurrent admission limits, stale admission races, retry and real maintenance CLI execution.
