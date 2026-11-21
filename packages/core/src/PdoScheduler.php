@@ -13,6 +13,7 @@ final class PdoScheduler
         private readonly PDO $pdo,
         private readonly string $worldId,
         private readonly Clock $clock,
+        private readonly ?RuleSet $rules = null,
     ) {
         if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D', $worldId)) {
             throw new \InvalidArgumentException('Invalid world identifier');
@@ -49,17 +50,31 @@ final class PdoScheduler
     public function initialize(): void
     {
         if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
-        $this->transaction(fn()=> $this->query(
-            'INSERT INTO engine_worlds (world_id, state_json, checkpoint_json) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE world_id = world_id',
-            [$this->worldId, '{}', '{}']
-        ));
+        $this->transaction(function (): void {
+            $this->query(
+                'INSERT INTO engine_worlds (world_id,state_json,checkpoint_json,rules_key) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE world_id = world_id',
+                [$this->worldId,'{}','{}',$this->rulesKey()]
+            );
+            $this->lockedWorld();
+        });
     }
 
     private function lockedWorld(): array
     {
-        $row = $this->query('SELECT next_sequence, watermark, state_json, journal_sequence, checkpoint_json, checkpoint_at FROM engine_worlds WHERE world_id = ? FOR UPDATE', [$this->worldId])->fetch(PDO::FETCH_ASSOC);
+        $row = $this->query('SELECT next_sequence, watermark, state_json, journal_sequence, checkpoint_json, checkpoint_at, rules_key FROM engine_worlds WHERE world_id = ? FOR UPDATE', [$this->worldId])->fetch(PDO::FETCH_ASSOC);
         if ($row === false) throw new \DomainException('World not initialized');
+        if ($row['rules_key'] !== $this->rulesKey()) throw new \DomainException('World rules mismatch');
         return $row;
+    }
+
+    private function rulesKey(): string { return $this->rules?->key ?? 'legacy'; }
+
+    private function assertHandlers(?CommandHandler $commands = null, ?EventHandler $events = null): void
+    {
+        if ($this->rules !== null && (($commands !== null && $commands !== $this->rules->commands)
+            || ($events !== null && $events !== $this->rules->events))) {
+            throw new \DomainException('Handler is not part of the pinned rule set');
+        }
     }
 
     private function event(array $row): ScheduledEvent
@@ -92,6 +107,7 @@ final class PdoScheduler
     /** @return list<string> events committed by this invocation; already committed events survive later failure. */
     public function processDue(EventHandler $handler, int $limit = 100, int $budgetMs = 15000): array
     {
+        $this->assertHandlers(events: $handler);
         if ($limit < 1 || $budgetMs < 1) throw new \InvalidArgumentException('Positive batch limits required');
         if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
         $cutoff = $this->clock->now();
@@ -150,6 +166,7 @@ final class PdoScheduler
      */
     public function verifyReplay(CommandHandler $commands, EventHandler $events, int $maxEntries = 10000): ReplayReport
     {
+        $this->assertHandlers($commands,$events);
         if ($maxEntries < 1 || $maxEntries > 100000) throw new \InvalidArgumentException('Invalid replay entry limit');
         if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
         $this->processing = true;
@@ -196,6 +213,7 @@ final class PdoScheduler
     /** Transactional command intake with durable receipts and atomic follow-up scheduling. */
     public function execute(Command $command, CommandHandler $handler): CommandReceipt
     {
+        $this->assertHandlers(commands: $handler);
         if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
         if ($command->worldId !== $this->worldId) throw new \InvalidArgumentException('Wrong world');
         $this->processing = true;
@@ -240,13 +258,15 @@ final class PdoScheduler
 
     public function state(): array
     {
-        $json = $this->query('SELECT state_json FROM engine_worlds WHERE world_id = ?', [$this->worldId])->fetchColumn();
+        $json = $this->query('SELECT state_json FROM engine_worlds WHERE world_id = ? AND rules_key = ?', [$this->worldId,$this->rulesKey()])->fetchColumn();
         if ($json === false) throw new \DomainException('World not initialized');
         return ScalarMap::decode($json);
     }
 
     public function pendingCount(): int
     {
-        return (int)$this->query('SELECT COUNT(*) FROM engine_events WHERE world_id = ? AND completed = 0', [$this->worldId])->fetchColumn();
+        $count = $this->query('SELECT COUNT(e.event_id) FROM engine_worlds w LEFT JOIN engine_events e ON e.world_id = w.world_id AND e.completed = 0 WHERE w.world_id = ? AND w.rules_key = ? GROUP BY w.world_id',[$this->worldId,$this->rulesKey()])->fetchColumn();
+        if ($count === false) throw new \DomainException('World not initialized or rules mismatch');
+        return (int)$count;
     }
 }

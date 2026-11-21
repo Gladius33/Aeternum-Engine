@@ -45,4 +45,5 @@ check($queue->pendingCount() === 2 && $queue->state()['trace'] === 'bacd', 'fail
 rejects(fn()=> $clock->advanceTo(109), InvalidArgumentException::class, 'clock cannot regress');
 rejects(fn()=> new ScheduledEvent('world1','x','append',0,['bad'=>[]]), InvalidArgumentException::class, 'non-scalar payload rejected');
 rejects(fn()=> $queue->processDue($handler,0), InvalidArgumentException::class, 'invalid batch limit rejected');
+require __DIR__ . "/production.php";
 echo "All regression checks passed.\n";
