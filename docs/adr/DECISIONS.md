@@ -33,3 +33,5 @@
 - ADR-022: trusted membership administration and actor command admission share the world lock; actor identity is supplied only by a future authenticated adapter. Player command IDs are scoped by actor and request ID, command audit records retain both. Current membership is checked even on retry, private world state never returned in actor receipts, and read projections enforce due-event chronology. Ownership immutable until explicit audited transfer policy is designed.
 
 - ADR-023: relational locations and entities use composite world-scoped foreign keys; trusted provisioning is immutable and idempotent under the world lock. Own projections require active membership. Administrative metadata is outside simulation replay until entity commands are designed.
+
+- ADR-024: immutable component attachments use composite entity foreign keys and canonical scalar maps, max 64 components, 64 fields and 8192 encoded bytes per component. Trusted provisioning only, private reads; no dynamic simulation mutation yet.
