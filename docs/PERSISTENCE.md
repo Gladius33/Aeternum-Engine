@@ -49,3 +49,6 @@ Apply 013_rate_limits.sql. Use operational clock and trusted bucket keys. Retent
 
 ## Authentication HTTP (0017)
 POST /v1/auth/login accepts JSON login/password and returns token and expires_in; POST /v1/auth/logout uses the bearer token. Configure HTTPS and trusted REMOTE_ADDR. Use trusted provisioning for accounts. Do not log credentials or tokens. Cleanup, global limits and transport tests remain open.
+
+## Economy HTTP (0018)
+Configure AETERNUM_MEDIEVAL_WORLD for an existing medieval world. POST /v1/worlds/{world}/economy/commands takes id,type,payload JSON; GET /v1/worlds/{world}/economy/balances/{account}/{resource}. Bearer token required. World and account provisioning remain trusted operations.
