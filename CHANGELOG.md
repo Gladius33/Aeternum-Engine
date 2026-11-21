@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0017
+- Add rate-limited HTTP login/logout and bounded JSON credential intake.
+- Add integration tests for token issuance, revocation and peer throttling.
+
 ## Unreleased — iteration 0016
 - Add persistent transactional fixed-window rate limiter with bounded policy and rollback protection.
 
