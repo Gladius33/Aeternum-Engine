@@ -21,3 +21,5 @@ Iteration 0008 exercises atomic timed upgrade costs, duplicate/pending/max-level
 Iteration 0009 tests JSON schema field/type/limit and economic cross-field validation via the PHP loader, and distinct loaded reference pack upgrades/replay across reconnect. Neither pack has an authenticated UI or full gameplay yet; not counted as two playable games.
 
 Iteration 0010 tests account ownership, revoked membership, nonmember and cross-world denial, separate actor request IDs, private receipt, own-balance access, due-event barrier and replay. Authentication/session proof, HTTP abuse resistance, actor grant auditing and concurrent revoke/command race tests remain open.
+
+Iteration 0011 adds integration cases for entity provisioning retry, conflicting ownership, separate worlds, reconnect and revoked access. Concurrent provisioning and direct SQL constraint tests remain open; check CI for execution evidence.

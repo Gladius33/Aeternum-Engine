@@ -12,8 +12,8 @@ A checklist item is complete only when implemented, documented and supported by 
 - [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, o2switch-compatible package and VPS instructions.
 - [ ] G09 Release: integration/concurrency/replay/security/performance/E2E tests, dependency audit, documented capacity and signed-off V1.0 acceptance; no known critical/high defects.
 
-## Current iteration 0010
-Persistent world memberships and immutable account ownership; actor-scoped economy command IDs, transactional authorization, private receipts and own-balance projection with due-event barrier. G02 still needs entities, topology, richer ownership and relational scaling. G05 needs actual authenticated HTTP transport and identity lifecycle, rate limits and UI; no public service yet.
+## Current iteration 0011
+Persistent world memberships and immutable account ownership; actor-scoped economy command IDs, transactional authorization, private receipts and own-balance projection with due-event barrier. Relational locations and immutable actor-owned entities are now implemented. G02 still needs composable components, topology and relational balance scaling. G05 needs actual authenticated HTTP transport and identity lifecycle, rate limits and UI; no public service yet.
 
 ## Next
-Implement relational world/entity model and application identity/session boundary; expose only actor-scoped routes. Add bounded CLI processing and migration runner, then two minimal playable browser reference packs. Continue security, fault and scale validation.
+Implement composable entity components and application identity/session boundary; expose only actor-scoped routes. Add bounded CLI processing and migration runner, then two minimal playable browser reference packs. Continue security, fault and scale validation.
