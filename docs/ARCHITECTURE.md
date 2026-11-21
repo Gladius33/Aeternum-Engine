@@ -33,3 +33,5 @@ DDL is not transactional in MariaDB. MigrationRunner records dirty markers befor
 Trusted provisioning CLI authenticates existing identities or registers new ones, then runs PlayerProvisioner. Do not offer this administrative tool over HTTP.
 
 Initial static browser client uses memory-only bearer tokens and same-origin API; no client-side economy simulation. Vue/TypeScript migration remains open.
+
+Discovery reads only accounts attached to active memberships in explicitly configured worlds; the returned metadata is advisory, and every economy operation still checks authorization independently.
