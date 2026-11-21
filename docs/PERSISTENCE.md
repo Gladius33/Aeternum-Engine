@@ -43,3 +43,6 @@ Apply 012_sessions.sql. PdoSessions uses an operational clock, never simulation 
 
 ## HTTP (0015)
 Run composer install and configure the HTTPS web server document root to public/ with /v1/ routes rewritten to index.php and Authorization forwarded. Supply AETERNUM_DSN, AETERNUM_DB_USER and AETERNUM_DB_PASSWORD via server environment. GET /v1/worlds/{world}/entities/{entity} and its /components/{component} suffix require Authorization: Bearer TOKEN. Tokens are issued only by trusted internal service. Never expose configuration or logs; deployment and rate limiting remain unverified. This is not a playable installation.
+
+## Rate limiting (0016)
+Apply 013_rate_limits.sql. Use operational clock and trusted bucket keys. Retention and HTTP integration are not yet implemented; do not expose arbitrary bucket creation to clients.
