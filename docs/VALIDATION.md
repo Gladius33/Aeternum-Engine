@@ -68,3 +68,7 @@ Browser CI installs the schema, provisions one distinct identity per pack, start
 0027 result: exact head 823908db8d1ae838c8cadbf1b3ae641c83e83579 passed PHP/MariaDB (44956530388) and Chromium (44956530516), merged as 3832bac60062a088848d3d6b261f6dc775333cea. The logs confirm rollback floor, concurrent quota enforcement, and both production CLI entry points against disposable MariaDB.
 
 0028 integration tests cover dummy non-authentication, stored Argon2id parameters, separate-peer global quota, exact rollover, malformed requests, logout, invalid configuration bounds, and four parallel independent login requests with a budget of two. Timing indistinguishability and production capacity are not asserted; measure separately.
+
+0028 result: exact head daee5e12285910702925f2a02a50e032bc2f841b passed PHP/MariaDB (44956967641) and Chromium (44956967691), merged as 1ae12e943b771c2a48b71b0c06a6b2b7431afc1c.
+
+0029 tests authentication, foreign account and world denial, initial next rule, pending debit and persisted due time, the due-event barrier, completed level and revocation. Both Chromium scenarios additionally verify rendered next, pending and maximum levels and the real due timestamp across reloads. Require exact-head CI evidence.
