@@ -17,3 +17,5 @@ Iteration 0006 adds rule binding integration checks and 10,000 partition/referen
 Iteration 0007 verifies persistent reference economy conservation, atomic rejected settlements/transfers, stale retry, capacity, and ledger replay divergence. It does not yet test concurrent real economy transfers or event-generated ledger effects.
 
 Iteration 0008 exercises atomic timed upgrade costs, duplicate/pending/max-level checks, logical catch-up after reconnect, event ledger replay and four competing real resource transfers in independent PHP processes. No public actor authorization is implied.
+
+Iteration 0009 tests JSON schema field/type/limit and economic cross-field validation via the PHP loader, and distinct loaded reference pack upgrades/replay across reconnect. Neither pack has an authenticated UI or full gameplay yet; not counted as two playable games.

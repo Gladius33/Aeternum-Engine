@@ -1,0 +1,38 @@
+{
+  "engine_api": "1",
+  "id": "reference-industrial",
+  "version": "0.1.0",
+  "name": "Industrial networks",
+  "resources": [
+    {
+      "id": "steel",
+      "initial_stock": 200,
+      "capacity": 2000,
+      "amount": 75,
+      "interval_seconds": 60
+    },
+    {
+      "id": "energy",
+      "initial_stock": 500,
+      "capacity": 5000,
+      "amount": 200,
+      "interval_seconds": 120
+    }
+  ],
+  "upgrades": [
+    {
+      "resource": "steel",
+      "level": 1,
+      "cost": 120,
+      "duration_seconds": 180,
+      "amount": 110
+    },
+    {
+      "resource": "energy",
+      "level": 1,
+      "cost": 300,
+      "duration_seconds": 300,
+      "amount": 320
+    }
+  ]
+}

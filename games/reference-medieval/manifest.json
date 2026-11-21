@@ -1,0 +1,45 @@
+{
+  "engine_api": "1",
+  "id": "reference-medieval",
+  "version": "0.1.0",
+  "name": "Feudal settlements",
+  "resources": [
+    {
+      "id": "wood",
+      "initial_stock": 100,
+      "capacity": 1000,
+      "amount": 30,
+      "interval_seconds": 60
+    },
+    {
+      "id": "grain",
+      "initial_stock": 50,
+      "capacity": 500,
+      "amount": 12,
+      "interval_seconds": 60
+    }
+  ],
+  "upgrades": [
+    {
+      "resource": "wood",
+      "level": 1,
+      "cost": 40,
+      "duration_seconds": 120,
+      "amount": 50
+    },
+    {
+      "resource": "wood",
+      "level": 2,
+      "cost": 90,
+      "duration_seconds": 240,
+      "amount": 80
+    },
+    {
+      "resource": "grain",
+      "level": 1,
+      "cost": 25,
+      "duration_seconds": 60,
+      "amount": 20
+    }
+  ]
+}

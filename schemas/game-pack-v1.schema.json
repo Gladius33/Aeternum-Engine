@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aeternum game pack API 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "engine_api",
+    "id",
+    "version",
+    "name",
+    "resources",
+    "upgrades"
+  ],
+  "properties": {
+    "engine_api": {
+      "const": "1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.+-]{0,63}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "initial_stock",
+          "capacity",
+          "amount",
+          "interval_seconds"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/resourceId"
+          },
+          "initial_stock": {
+            "$ref": "#/$defs/units"
+          },
+          "capacity": {
+            "$ref": "#/$defs/units"
+          },
+          "amount": {
+            "$ref": "#/$defs/units"
+          },
+          "interval_seconds": {
+            "$ref": "#/$defs/interval"
+          }
+        }
+      }
+    },
+    "upgrades": {
+      "type": "array",
+      "maxItems": 12800,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resource",
+          "level",
+          "cost",
+          "duration_seconds",
+          "amount"
+        ],
+        "properties": {
+          "resource": {
+            "$ref": "#/$defs/resourceId"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "cost": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000000000
+          },
+          "duration_seconds": {
+            "$ref": "#/$defs/interval"
+          },
+          "amount": {
+            "$ref": "#/$defs/units"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "resourceId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+    },
+    "units": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000000000
+    },
+    "interval": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2592000
+    }
+  },
+  "$comment": "The PHP loader additionally enforces exact integer types, byte limits, names without control characters, initial_stock <= capacity, unique resource IDs, valid references, feasible costs, contiguous upgrade levels and strictly increasing production."
+}
