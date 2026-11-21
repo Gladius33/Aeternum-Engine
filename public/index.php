@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,SystemClock};
+use Aeternum\Core\{HttpApi,AuthHttpApi,SystemClock};
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -17,14 +17,22 @@ try {
             PDO::ATTR_EMULATE_PREPARES=>false
         ]);
         $pdo->exec('SET SESSION innodb_lock_wait_timeout = 3');
+        $path=explode('?',$_SERVER['REQUEST_URI'] ?? '',2)[0];
+        if (str_starts_with($path,'/v1/auth/')) {
+            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock()))->handle(
+                $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
+                file_get_contents('php://input',false,null,0,4097) ?: '',$_SERVER['REMOTE_ADDR'] ?? ''
+            );
+        } else {
         [$status,$body]=(new HttpApi($pdo,new SystemClock()))->handle(
             $_SERVER['REQUEST_METHOD'] ?? '',
             explode('?',$_SERVER['REQUEST_URI'] ?? '',2)[0],
             $_SERVER['HTTP_AUTHORIZATION'] ?? ''
         );
+        }
     }
     if ($status===401) header('WWW-Authenticate: Bearer');
-    if ($status===405) header('Allow: GET');
+    if ($status===405) header('Allow: '.(str_starts_with($path ?? '','/v1/auth/') ? 'POST' : 'GET'));
     http_response_code($status);
     echo json_encode($body,JSON_THROW_ON_ERROR);
 } catch (Throwable) {
