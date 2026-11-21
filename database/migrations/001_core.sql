@@ -1,4 +1,4 @@
--- MariaDB / InnoDB. Apply once to a new database; no destructive statements.
+-- MariaDB / InnoDB. Apply once to a new database, no destructive statements.
 CREATE TABLE engine_worlds (
     world_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
     next_sequence BIGINT NOT NULL DEFAULT 0 CHECK (next_sequence >= 0),
