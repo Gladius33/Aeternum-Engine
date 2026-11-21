@@ -25,7 +25,7 @@ try {
             );
         } elseif ($path==='/v1/me/worlds' || preg_match('~^/v1/worlds/[^/]+/economy/~',$path)) {
             $rules=[]; $packs=[];
-            foreach (['AETERNUM_MEDIEVAL_WORLD'=>'reference-medieval','AETERNUM_SPACE_WORLD'=>'reference-space'] as $env=>$pack) {
+            foreach (['AETERNUM_MEDIEVAL_WORLD'=>'reference-medieval','AETERNUM_INDUSTRIAL_WORLD'=>'reference-industrial'] as $env=>$pack) {
                 $world=getenv($env);
                 if ($world!==false && $world!=='') {
                     if (isset($rules[$world])) throw new RuntimeException('Duplicate configured world');
