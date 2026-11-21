@@ -122,11 +122,12 @@ final class PdoScheduler
                     $row = $this->query('SELECT event_id,event_type,due_at,payload_json FROM engine_events WHERE world_id = ? AND completed = 0 AND due_at <= ? ORDER BY due_at,sequence_no LIMIT 1 FOR UPDATE', [$this->worldId,$cutoff])->fetch(PDO::FETCH_ASSOC);
                     if ($row === false) return null;
                     $event = $this->event($row);
-                    $newState = ScalarMap::encode($handler->apply($event, ScalarMap::decode($world['state_json'])));
+                    $eventResult = $this->resolveEvent($handler,$event,ScalarMap::decode($world['state_json']));
+                    $newState = ScalarMap::encode($eventResult->state);
                     $this->query('UPDATE engine_worlds SET state_json = ?, watermark = ? WHERE world_id = ?', [$newState,$event->dueAt,$this->worldId]);
                     $changed = $this->query('UPDATE engine_events SET completed = 1 WHERE world_id = ? AND event_id = ? AND completed = 0', [$this->worldId,$event->id])->rowCount();
                     if ($changed !== 1) throw new \LogicException('Event completion invariant violated');
-                    $this->journal($world,'event',$event->id,$event->type,$event->dueAt,ScalarMap::encode($event->payload),$newState,[]);
+                    $this->journal($world,'event',$event->id,$event->type,$event->dueAt,ScalarMap::encode($event->payload),$newState,[],$eventResult->movements);
                     return $event->id;
                 });
                 if ($id === null) break;
@@ -136,6 +137,13 @@ final class PdoScheduler
             $this->processing = false;
         }
         return $committed;
+    }
+
+    private function resolveEvent(EventHandler $handler,ScheduledEvent $event,array $state): EventResult
+    {
+        return $handler instanceof EventEffectsHandler
+            ? $handler->resolve($event,$state)
+            : new EventResult($handler->apply($event,$state));
     }
 
     /** Canonical digest includes complete planned event definitions in order. */
@@ -196,7 +204,9 @@ final class PdoScheduler
                         $followups = $result->events;
                         $movements = $result->movements;
                     } elseif ($row['entry_kind'] === 'event') {
-                        $state = ScalarMap::validate($events->apply(new ScheduledEvent($this->worldId,$row['entry_id'],$row['entry_type'],$nextAt,$payload),$state));
+                        $result = $this->resolveEvent($events,new ScheduledEvent($this->worldId,$row['entry_id'],$row['entry_type'],$nextAt,$payload),$state);
+                        $state = ScalarMap::validate($result->state);
+                        $movements = $result->movements;
                     } else {
                         throw new \UnexpectedValueException('Unknown journal entry');
                     }

@@ -17,8 +17,9 @@ final readonly class ResourceMovement
         if ($delta === 0 || $delta < -ProductionState::MAX_UNITS || $delta > ProductionState::MAX_UNITS
             || $balanceAfter < 0 || $balanceAfter > ProductionState::MAX_UNITS
             || $balanceAfter-$delta < 0 || $balanceAfter-$delta > ProductionState::MAX_UNITS
-            || !in_array($reason,['opening','production','transfer'],true)
-            || ($reason !== 'transfer' && $delta < 0)) {
+            || !in_array($reason,['opening','production','transfer','upgrade_cost'],true)
+            || (in_array($reason,['opening','production'],true) && $delta < 0)
+            || ($reason === 'upgrade_cost' && $delta > 0)) {
             throw new \InvalidArgumentException('Invalid ledger movement');
         }
     }

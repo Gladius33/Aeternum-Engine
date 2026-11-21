@@ -25,3 +25,5 @@
 - ADR-018: production uses integer smallest units, rational rate per interval, carry, and saturation; max capacity/rate 10^12 units and interval 2,592,000 seconds keep intermediate products within signed int64. Discard carry at capacity. Never multiply elapsed time until saturation has been ruled out.
 
 - ADR-019: initial economy persists bounded scalar-map resource accounts with trusted immutable definitions, ledger lines typed by account/resource/reason and committed with journal. Transfers settle both balances before conserved debit/credit. Ledger effects are verified on replay. No ownership authorization or efficient relational balance storage yet.
+
+- ADR-020: trusted contiguous resource upgrades strictly improve amount at fixed interval/capacity, cost and duration configured by rules; one pending per account/resource. Settle old rate at scheduled due time, retain fractional carry since denominator unchanged, activate new level. EventEffectsHandler is optional and uses typed ledger movements in persistent execution/replay; existing scalar event handlers remain compatible.

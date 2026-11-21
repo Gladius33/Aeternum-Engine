@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — iteration 0008
+- Add trusted configurable timed resource-production upgrades with atomic cost and scheduled completion; settle old rate at logical due time.
+- Extend persistent event handling with optional typed ledger effects, retaining compatibility with scalar handlers.
+- Verify upgrade lifecycle, exact delayed catch-up, maximum level, replay and multi-process competing real transfers.
+
 ## Unreleased — iteration 0007
 - Add reference economy commands for resource accounts, lazy settlement and transfers with trusted definitions.
 - Commit resource ledger movements with journal, state, command receipt and outbox; verify movements during replay.
