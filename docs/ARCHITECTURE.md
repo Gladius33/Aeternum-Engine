@@ -6,6 +6,6 @@ Game packs define resources, entities, actions, progression, localization, prese
 
 Simulation uses effective event timestamps, stable ordering by (due_at, sequence), server-authoritative commands, and lazy fixed-point production. Persist state, event journal and outbox atomically. Start with per-world SQL row locks and unique idempotency constraints; never advance a world past pending older events. Bound CRON batches, retain failures, and alert on backlog. External side effects only after commit through a transactional outbox. No arbitrary executable code in untrusted game packs; approved extensions are trusted code.
 
-Iteration 0001 implements only an in-memory scheduling prototype with integer UTC epoch seconds, explicit world identity, fixed cutoff per batch and pure handler contract. The scheduler instance is not a persistent or multi-process transaction boundary. Next: MariaDB adapter, persistent sequence, commands and integration tests.
+Iterations 0001–0002 implement in-memory and MariaDB scheduling with integer UTC epoch seconds, explicit world identity, fixed cutoff per batch and pure handler contract. The MariaDB adapter locks one world row per transaction and atomically commits state and completion; persisted event records retain identity. General commands, replay and outbox remain future work. See [persistence](PERSISTENCE.md).
 
 Deployment: standard HTTPS PHP application, MariaDB, short CRON jobs; cache optional; dedicated workers optional later. Shared-hosting approval and load validation are separate acceptance prerequisites.

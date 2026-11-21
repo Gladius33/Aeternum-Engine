@@ -5,7 +5,7 @@ A modular engine for persistent multiplayer browser strategy games.
 By Sébastien TOUILLEUX · Source Available · ACCL-1.0
 
 ## Status
-Early development — iteration 0001. A framework-independent PHP core prototype implements injected clocks and in-memory scheduled events. No persistent database, HTTP API or playable game yet. See the [roadmap](ROADMAP.md) and CI results for the exact state.
+Early development — iteration 0002. The PHP core includes in-memory and MariaDB event schedulers with per-world locking and transactional completion. No HTTP API or playable game yet. See the [roadmap](ROADMAP.md) and CI results for the exact state.
 
 ## Vision
 Theme-agnostic persistent worlds, asynchronous actions, deterministic simulation, lazy resource production, transactional economy, composable entities, versioned game packs, multiplayer social features and scalable shared-hosting-compatible deployment.
@@ -17,7 +17,7 @@ PHP 8.4 is required; no dependencies are needed.
 ```sh
 php tests/run.php
 ```
-Tests exercise the in-memory scheduler only. This is not an installation procedure for a playable game.
+For MariaDB integration and concurrency tests, see [persistence](docs/PERSISTENCE.md). This is not an installation procedure for a playable game.
 
 ## Documentation
 [Architecture](docs/ARCHITECTURE.md) · [ADRs](docs/adr/DECISIONS.md) · [Validation](docs/VALIDATION.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md).

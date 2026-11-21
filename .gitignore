@@ -40,3 +40,10 @@
 Thumbs.db
 *.swp
 # Keep dependency lockfiles tracked for applications.
+
+# Database dumps and runtime artifacts
+*.sql.gz
+*.sql.zst
+*.dump
+/backups/
+/test-results/
