@@ -35,3 +35,5 @@ Iteration 0015 adds direct HTTP dispatcher integration cases for authenticated o
 0016 tests persistent counters, independent buckets, exact window rollover, clock rollback and invalid input. Parallel and cleanup tests remain open.
 
 0017 tests HTTP authentication dispatch, malformed input, session resolution, logout, peer limit and rollover; actual transport and distributed abuse resistance remain unverified.
+
+0018 tests economy HTTP command, retry, balance, authorization and malformed input directly against MariaDB. Network transport remains untested.
