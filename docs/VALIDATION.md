@@ -74,3 +74,5 @@ Browser CI installs the schema, provisions one distinct identity per pack, start
 0029 tests authentication, foreign account and world denial, initial next rule, pending debit and persisted due time, the due-event barrier, completed level and revocation. Both Chromium scenarios additionally verify rendered next, pending and maximum levels and the real due timestamp across reloads. Require exact-head CI evidence.
 
 0030: clear private browser state after HTTP 401, clear stale overview before refresh, and prevent selection changes during requests. Real browser test revokes a bearer via the live API and verifies return to sign-in. CI evidence pending.
+
+0030 first CI: PHP passed, both economic browser scenarios returned 404 because disabled selects are omitted from FormData; the revocation scenario passed. Read explicit select values while controls are locked; retain both original economy assertions and require new exact-head CI.

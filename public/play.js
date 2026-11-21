@@ -11,8 +11,7 @@ async function api(path, method='GET', data) {
     return result.data;
 }
 function locationFields() {
-    const f = new FormData(balance);
-    return Object.fromEntries(['world','account','resource'].map(k=>[k,String(f.get(k))]));
+    return Object.fromEntries(['world','account','resource'].map(k=>[k,balance.elements[k].value]));
 }
 function base(f) { return '/v1/worlds/'+encodeURIComponent(f.world).replaceAll('%3A',':')+'/economy/'; }
 function options(select, values) {
@@ -82,7 +81,7 @@ balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
 action.addEventListener('submit',e=>{
     e.preventDefault();
     run(async()=>{
-        const f=locationFields(), type=new FormData(action).get('type');
+        const f=locationFields(), type=action.elements.type.value;
         const signature=JSON.stringify([f,type]);
         if (pending && pending.signature!==signature) throw new Error('Retry the previous action with identical fields first.');
         if (!pending) pending={signature,body:{id:crypto.randomUUID(),type,payload:{account:f.account,resource:f.resource}}};
