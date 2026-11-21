@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,SystemClock};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,GamePackLoader,SystemClock};
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -23,6 +23,19 @@ try {
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$_SERVER['REMOTE_ADDR'] ?? ''
             );
+        } elseif (preg_match('~^/v1/worlds/[^/]+/economy/~',$path)) {
+            $rules=[];
+            foreach (['AETERNUM_MEDIEVAL_WORLD'=>'reference-medieval','AETERNUM_SPACE_WORLD'=>'reference-space'] as $env=>$pack) {
+                $world=getenv($env);
+                if ($world!==false && $world!=='') {
+                    if (isset($rules[$world])) throw new RuntimeException('Duplicate configured world');
+                    $rules[$world]=GamePackLoader::load(file_get_contents(__DIR__.'/../games/'.$pack.'/manifest.json'))->rules();
+                }
+            }
+            [$status,$body]=(new EconomyHttpApi($pdo,new SystemClock(),$rules))->handle(
+                $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
+                file_get_contents('php://input',false,null,0,8193) ?: ''
+            );
         } else {
         [$status,$body]=(new HttpApi($pdo,new SystemClock()))->handle(
             $_SERVER['REQUEST_METHOD'] ?? '',
@@ -32,7 +45,7 @@ try {
         }
     }
     if ($status===401) header('WWW-Authenticate: Bearer');
-    if ($status===405) header('Allow: '.(str_starts_with($path ?? '','/v1/auth/') ? 'POST' : 'GET'));
+    if ($status===405) header('Allow: '.((str_starts_with($path ?? '','/v1/auth/') || str_ends_with($path ?? '','/economy/commands')) ? 'POST' : 'GET'));
     http_response_code($status);
     echo json_encode($body,JSON_THROW_ON_ERROR);
 } catch (Throwable) {

@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — iteration 0018
+- Expose actor-scoped economy commands and balances over authenticated HTTP, with trusted rules registry.
+
 ## Unreleased — iteration 0017
 - Add rate-limited HTTP login/logout and bounded JSON credential intake.
 - Add integration tests for token issuance, revocation and peer throttling.

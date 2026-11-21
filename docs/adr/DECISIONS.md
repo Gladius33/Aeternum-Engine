@@ -45,3 +45,5 @@
 - ADR-028: fixed-window operational rate limits use transactional hashed buckets; trusted server policy only. Denied requests do not increment counters. HTTP integration and cleanup pending.
 
 - ADR-029: login/logout use POST, bounded body and peer/login fixed-window limits. Peer is REMOTE_ADDR unless trusted server rewrites it. No public registration yet.
+
+- ADR-030: HTTP economy routes reuse actor transactions and pinned rules; domain conflicts share a generic 409. No implicit world provisioning.
