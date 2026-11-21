@@ -1,0 +1,46 @@
+<?php
+declare(strict_types=1);
+use Aeternum\Core\{PdoScheduler,FrozenClock,Command,EconomyCommandHandler,EconomyEventHandler,ResourceDefinition,ResourceUpgrade,RuleSet,ScheduledEvent};
+$uc = new FrozenClock(100);
+$ue = new EconomyCommandHandler([new ResourceDefinition('wood',100,1000,3,2)],
+    [new ResourceUpgrade('wood',1,30,10,5),new ResourceUpgrade('wood',2,40,20,7)]);
+$uh = new EconomyEventHandler($ue);
+$ur = new RuleSet('upgrades','1',hash('sha256','upgrade-test'),$ue,$uh);
+$updo = db();
+$u = new PdoScheduler($updo,'upgrades',$uc,$ur);
+$u->initialize();
+$u->execute(new Command('upgrades','open','economy.open',['account'=>'alice','resource'=>'wood']),$ue);
+$uc->advanceTo(101);
+$upgrade = new Command('upgrades','upgrade-1','economy.upgrade',['account'=>'alice','resource'=>'wood']);
+$receipt = $u->execute($upgrade,$ue);
+check(count($receipt->scheduledIds)===1 && $u->pendingCount()===1,'upgrade cost and completion scheduled atomically');
+check($ue->balanceAt($u->state(),'alice','wood',101)->stock===71,'upgrade debits trusted cost after settlement');
+check($u->execute($upgrade,$ue)==$receipt,'upgrade duplicate returns same receipt');
+rejects(fn()=> $u->execute(new Command('upgrades','duplicate','economy.upgrade',['account'=>'alice','resource'=>'wood']),$ue),DomainException::class,'second upgrade blocked while pending');
+check($u->processDue($uh)===[],'upgrade cannot finish early');
+$uc->advanceTo(121);
+$u = new PdoScheduler(db(),'upgrades',$uc,$ur);
+check($u->processDue($uh)===$receipt->scheduledIds,'overdue upgrade completed after reconnect');
+$balance = $ue->balanceAt($u->state(),'alice','wood',121);
+check($balance->stock===111 && $balance->amount===5 && $balance->remainder===1,'old rate until due time and new rate after due time');
+$u->execute(new Command('upgrades','settle','economy.settle',['account'=>'alice','resource'=>'wood']),$ue);
+$sum = $updo->query("SELECT SUM(delta_units) FROM engine_resource_ledger WHERE world_id='upgrades'")->fetchColumn();
+check((int)$sum===111,'upgrade cost and event production recorded in resource ledger');
+check($u->verifyReplay($ue,$uh)->entries===4,'upgrade journal replay includes event ledger effects');
+$next=$u->execute(new Command('upgrades','upgrade-2','economy.upgrade',['account'=>'alice','resource'=>'wood']),$ue);
+$uc->advanceTo(141);
+check($u->processDue($uh)===$next->scheduledIds,'second configured upgrade succeeds');
+rejects(fn()=> $u->execute(new Command('upgrades','max','economy.upgrade',['account'=>'alice','resource'=>'wood']),$ue),DomainException::class,'maximum configured upgrade enforced');
+check($u->verifyReplay($ue,$uh)->entries===6,'two upgrades replay consistently');
+rejects(fn()=>new EconomyCommandHandler([new ResourceDefinition('wood',100,1000,3,2)],[new ResourceUpgrade('wood',2,30,10,5)]),InvalidArgumentException::class,'non-contiguous upgrades rejected');
+
+$raceEconomy = new EconomyCommandHandler([new ResourceDefinition('ore',100,1000,0,1)]);
+$raceHandler = new EconomyEventHandler($raceEconomy);
+$raceRules = new RuleSet('transfer-race','1',hash('sha256','transfer-race-test'),$raceEconomy,$raceHandler);
+$raceClock = new FrozenClock(500);
+$tr = new PdoScheduler(db(),'transfer-race',$raceClock,$raceRules);
+$tr->initialize();
+foreach (['a','b'] as $account) $tr->execute(new Command('transfer-race','open-'.$account,'economy.open',['account'=>$account,'resource'=>'ore']),$raceEconomy);
+parallel('transfer-race','economy-transfer');
+check($raceEconomy->balanceAt($tr->state(),'a','ore',500)->stock===40 && $raceEconomy->balanceAt($tr->state(),'b','ore',500)->stock===160,'four competing real transfers allow only one debit');
+check($tr->verifyReplay($raceEconomy,$raceHandler)->entries===3,'concurrent real-transfer journal contains only successful transfer');

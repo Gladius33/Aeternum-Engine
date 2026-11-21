@@ -7,9 +7,10 @@ final class EconomyCommandHandler implements CommandHandler
 {
     public const MAX_ACCOUNTS = 1000;
     private array $definitions = [];
+    private array $upgrades = [];
 
     /** @param list<ResourceDefinition> $definitions */
-    public function __construct(array $definitions)
+    public function __construct(array $definitions,array $upgrades = [])
     {
         if ($definitions === [] || count($definitions)>128 || !array_is_list($definitions)) throw new \InvalidArgumentException('Invalid resource definitions');
         foreach ($definitions as $definition) {
@@ -18,6 +19,34 @@ final class EconomyCommandHandler implements CommandHandler
             }
             $this->definitions['r:'.$definition->id] = $definition;
         }
+        if (!array_is_list($upgrades) || count($upgrades)>12800) throw new \InvalidArgumentException('Invalid upgrade list');
+        foreach ($upgrades as $upgrade) {
+            if (!$upgrade instanceof ResourceUpgrade || !isset($this->definitions['r:'.$upgrade->resource])) throw new \InvalidArgumentException('Unknown upgrade resource');
+            $key = 'r:'.$upgrade->resource;
+            if (isset($this->upgrades[$key][$upgrade->level]) || $upgrade->cost>$this->definitions[$key]->capacity) throw new \InvalidArgumentException('Duplicate or infeasible upgrade');
+            $this->upgrades[$key][$upgrade->level] = $upgrade;
+        }
+        foreach ($this->upgrades as $key=>&$levels) {
+            ksort($levels,SORT_NUMERIC);
+            $expected = 1; $previousAmount = $this->definitions[$key]->amount;
+            foreach ($levels as $level=>$upgrade) {
+                if ($level!==$expected++ || $upgrade->amount<=$previousAmount) throw new \InvalidArgumentException('Upgrades must be contiguous and improve production');
+                $previousAmount=$upgrade->amount;
+            }
+        }
+        unset($levels);
+    }
+
+    private function upgrade(string $resource,int $level): ResourceUpgrade
+    {
+        return $this->upgrades['r:'.$resource][$level] ?? throw new \DomainException('No upgrade available');
+    }
+
+    private function level(array $state,string $prefix): int
+    {
+        $level = $state[$prefix.'level'] ?? 0;
+        if (!is_int($level) || $level<0 || $level>100) throw new \DomainException('Invalid resource level');
+        return $level;
     }
 
     private function definition(string $id): ResourceDefinition
@@ -49,7 +78,9 @@ final class EconomyCommandHandler implements CommandHandler
         foreach (['stock','at','remainder'] as $key) {
             if (!isset($state[$p.$key]) || !is_int($state[$p.$key])) throw new \DomainException('Unknown or invalid resource account');
         }
-        return new ProductionState($state[$p.'stock'],$definition->capacity,$definition->amount,$definition->interval,$state[$p.'at'],$state[$p.'remainder']);
+        $level = $this->level($state,$p);
+        $amount = $level===0 ? $definition->amount : $this->upgrade($resource,$level)->amount;
+        return new ProductionState($state[$p.'stock'],$definition->capacity,$amount,$definition->interval,$state[$p.'at'],$state[$p.'remainder']);
     }
 
     private function write(array &$state,string $account,string $resource,ProductionState $balance): void
@@ -78,6 +109,7 @@ final class EconomyCommandHandler implements CommandHandler
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
         $ledger = [];
+        $events = [];
         if ($command->type === 'economy.open') {
             $payload = $this->payload($command,['account','resource']);
             $account = $this->id($payload['account']); $resource = $this->id($payload['resource']);
@@ -104,9 +136,44 @@ final class EconomyCommandHandler implements CommandHandler
             $this->write($state,$to,$resource,$target);
             $ledger[] = new ResourceMovement($from,$resource,-$units,$source->stock,'transfer');
             $ledger[] = new ResourceMovement($to,$resource,$units,$target->stock,'transfer');
+        } elseif ($command->type === 'economy.upgrade') {
+            $payload = $this->payload($command,['account','resource']);
+            $account = $this->id($payload['account']); $resource = $this->id($payload['resource']);
+            $prefix = $this->prefix($account,$resource);
+            if (isset($state[$prefix.'pending'])) throw new \DomainException('Upgrade already pending');
+            $level = $this->level($state,$prefix)+1;
+            $upgrade = $this->upgrade($resource,$level);
+            $balance = $this->settle($state,$ledger,$account,$resource,$effectiveAt)->debit($upgrade->cost);
+            if ($effectiveAt>PHP_INT_MAX-$upgrade->duration) throw new \OverflowException('Upgrade due time overflow');
+            $eventId = 'upgrade:'.hash('sha256',$command->id);
+            $state[$prefix.'pending']=$eventId;
+            $this->write($state,$account,$resource,$balance);
+            $ledger[] = new ResourceMovement($account,$resource,-$upgrade->cost,$balance->stock,'upgrade_cost');
+            $events[] = new ScheduledEvent($command->worldId,$eventId,'economy.upgrade.complete',$effectiveAt+$upgrade->duration,
+                ['account'=>$account,'resource'=>$resource,'level'=>$level]);
         } else {
             throw new \DomainException('Unknown economy command');
         }
-        return new CommandResult($state,[], $ledger);
+        return new CommandResult($state,$events,$ledger);
+    }
+
+    /** Completion settles the old rate at logical due time, then activates the trusted new rate. */
+    public function complete(ScheduledEvent $event,array $state): EventResult
+    {
+        if ($event->type!=='economy.upgrade.complete') throw new \DomainException('Unknown economy event');
+        $keys = array_keys($event->payload); sort($keys,SORT_STRING);
+        if ($keys!==['account','level','resource']) throw new \InvalidArgumentException('Invalid upgrade event payload');
+        $account = $this->id($event->payload['account']); $resource = $this->id($event->payload['resource']);
+        $level = $event->payload['level'];
+        $prefix = $this->prefix($account,$resource);
+        if (!is_int($level) || $level!==$this->level($state,$prefix)+1 || ($state[$prefix.'pending']??null)!==$event->id) {
+            throw new \DomainException('Upgrade completion does not match pending action');
+        }
+        $this->upgrade($resource,$level);
+        $ledger = [];
+        $this->settle($state,$ledger,$account,$resource,$event->dueAt);
+        $state[$prefix.'level']=$level;
+        unset($state[$prefix.'pending']);
+        return new EventResult($state,$ledger);
     }
 }

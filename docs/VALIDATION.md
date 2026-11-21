@@ -15,3 +15,5 @@ Iteration 0005 checks outbox atomicity on accepted/rejected commands, duplicate 
 Iteration 0006 adds rule binding integration checks and 10,000 partition/reference formula production cases, plus boundary arithmetic. These are not yet persistent economy/ledger or artifact supply-chain validation.
 
 Iteration 0007 verifies persistent reference economy conservation, atomic rejected settlements/transfers, stale retry, capacity, and ledger replay divergence. It does not yet test concurrent real economy transfers or event-generated ledger effects.
+
+Iteration 0008 exercises atomic timed upgrade costs, duplicate/pending/max-level checks, logical catch-up after reconnect, event ledger replay and four competing real resource transfers in independent PHP processes. No public actor authorization is implied.

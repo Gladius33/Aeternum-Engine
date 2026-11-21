@@ -26,6 +26,16 @@ if ($argv[2] === 'schedule') {
     } catch (DomainException $e) {
         if ($e->getMessage() !== 'Insufficient stock') throw $e;
     }
+} elseif ($argv[2] === 'economy-transfer') {
+    $econ = new \Aeternum\Core\EconomyCommandHandler([new \Aeternum\Core\ResourceDefinition('ore',100,1000,0,1)]);
+    $events = new \Aeternum\Core\EconomyEventHandler($econ);
+    $rules = new \Aeternum\Core\RuleSet('transfer-race','1',hash('sha256','transfer-race-test'),$econ,$events);
+    $q = new PdoScheduler(db(),$argv[1],new FrozenClock(500),$rules);
+    try {
+        $q->execute(new \Aeternum\Core\Command($argv[1],'transfer-'.$argv[3],'economy.transfer',['from'=>'a','to'=>'b','resource'=>'ore','units'=>60]),$econ);
+    } catch (DomainException $e) {
+        if ($e->getMessage() !== 'Invalid or insufficient debit') throw $e;
+    }
 } else {
     throw new InvalidArgumentException('Unknown worker action');
 }
