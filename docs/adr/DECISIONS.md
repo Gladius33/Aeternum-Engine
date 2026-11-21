@@ -61,3 +61,5 @@
 - ADR-036: verify the reference client against real MariaDB and the actual HTTP controller in Chromium; test-only HTTPS termination emulation does not certify production TLS.
 
 - ADR-036 clarification: browser E2E invokes the bounded world worker to process due events; HTTP reads must not implicitly mutate simulation state.
+
+- ADR-037: one bounded indexed deletion of expired sessions per maintenance invocation; do not delete live rows, including revoked-but-unexpired rows. Separate maintenance permissions from HTTP credentials. Parallel browser cases isolate their worlds; PR checks and main push checks remain mandatory.

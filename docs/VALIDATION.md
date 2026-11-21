@@ -56,3 +56,7 @@ Browser CI installs the schema, provisions one distinct identity per pack, start
 0025 retry: the first browser run failed before scenarios because ubuntu-latest resolved to Ubuntu 26.04, unsupported by Playwright 1.56.1. Pin the browser runner to Ubuntu 24.04; rerun all gates before merge.
 
 0025 worker correction: the authenticated balance projection intentionally rejects due-event backlog. The browser scenario now invokes the real bounded CLI worker for its configured pack/world before polling the live API, allowing a transient 409 at the due boundary. No simulated clock or mocked transport.
+
+0025 result: exact head d0ac7f2ec17a71e0ce7b6f67a5c007d9d2d8368b passed PHP/MariaDB and both real Chromium scenarios (PR run 44955461687, push run 44955456003); merged as 59359c5613e2efec8e872e2a3df754d8aa4b5f4b. This is browser evidence, not production TLS or shared-hosting acceptance.
+
+0026 tests bounded expiry, current and revoked session preservation, retry, invalid limits, transaction guard and two independent concurrent cleanup processes. CI must confirm these tests. The two independent browser scenarios run in parallel against distinct worlds; all required gates remain on PRs and main.

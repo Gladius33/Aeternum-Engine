@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0026
+- Add bounded expired-session purge and maintenance CLI, with boundary, retry, invalid-input and parallel database cases.
+- Run both independent browser scenarios in parallel; require complete PR CI and post-merge main CI without duplicate dev push runs.
+
 ## Unreleased — iteration 0025
 - Run the actual CLI world worker during browser scenarios; reads retain their due-event barrier.
 - Pin browser runner to Ubuntu 24.04 for compatibility with Playwright 1.56.1.

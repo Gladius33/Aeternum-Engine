@@ -70,3 +70,6 @@ Serve public/ as the HTTPS document root, rewrite /v1/ URLs to index.php and ope
 Configure AETERNUM_MEDIEVAL_WORLD and AETERNUM_INDUSTRIAL_WORLD to match provisioned world IDs. Use reference-medieval and reference-industrial as CLI pack arguments. The play client discovers active owned accounts automatically.
 
 Browser CI uses a disposable schema and public/ document root with a dedicated loopback test router. Never deploy tests/ or expose the test server. Production must enforce HTTPS with its actual web server.
+
+## Session cleanup (0026)
+Schedule `php bin/maintenance.php 500` with a dedicated CLI database credential using the same environment variable names as the worker (separate values). Grant only the session-table SELECT and DELETE privileges necessary for cleanup; do not add DELETE to the web credential. Limit 1–1000 (one statement per invocation); expired rows are selected by expires_at and token_hash, including revoked rows only once expired. Run regularly with synchronized UTC clocks; repeat batches via CRON, not an unbounded loop. The JSON count is safe to log; no token is logged. Connection errors or lock timeout exit nonzero. Rate-limit retention is separate future work.

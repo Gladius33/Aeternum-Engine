@@ -1,4 +1,5 @@
 const {test, expect}=require('@playwright/test');
+test.describe.configure({mode:'parallel'});
 const {execFileSync}=require('node:child_process');
 const url='http://127.0.0.1:8765';
 const password='browser-only test password';
