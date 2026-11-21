@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0012
+- Persist bounded immutable entity components, canonical scalar maps and owner-only reads.
+- Test conflicts, malformed and oversized data, revocation, reconnect and cross-world isolation.
+
 ## Unreleased — iteration 0011
 - Add relational world-scoped locations and immutable actor-owned entities, with composite foreign keys and world-locked trusted provisioning.
 - Add own-entity projection and integration cases for isolation, retry, conflicts and revoked membership.

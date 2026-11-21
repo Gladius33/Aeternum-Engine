@@ -31,3 +31,6 @@ Apply 008_memberships.sql. PdoMemberships is a trusted admin service; it must ne
 
 ## Entities (0011)
 Apply 009_entities.sql with writers stopped. PdoEntities::addLocation and provision are trusted administrative calls; own requires an authenticated actor supplied by the future adapter. Location and entity IDs are immutable within a world. No movement, component simulation, public provisioning or journal replay of administrative metadata yet.
+
+## Components (0012)
+Apply 010_components.sql. Trusted attach is immutable and idempotent; ownComponent requires an active authenticated owner. Components are administrative metadata outside simulation replay. No public attachment endpoint.
