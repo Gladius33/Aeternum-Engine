@@ -43,3 +43,5 @@
 - ADR-027: initial HTTP surface is read-only authenticated entity/component projection; unauthorized ownership and absent resources map to the same 404, invalid sessions to 401. No public credential intake before abuse controls.
 
 - ADR-028: fixed-window operational rate limits use transactional hashed buckets; trusted server policy only. Denied requests do not increment counters. HTTP integration and cleanup pending.
+
+- ADR-029: login/logout use POST, bounded body and peer/login fixed-window limits. Peer is REMOTE_ADDR unless trusted server rewrites it. No public registration yet.

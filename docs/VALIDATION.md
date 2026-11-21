@@ -33,3 +33,5 @@ Iteration 0014 adds session persistence, distinct tokens, invalid login, plainte
 Iteration 0015 adds direct HTTP dispatcher integration cases for authenticated own reads, denied access, method restrictions and revocation. Actual web server transport, rate limits and browser E2E remain unverified.
 
 0016 tests persistent counters, independent buckets, exact window rollover, clock rollback and invalid input. Parallel and cleanup tests remain open.
+
+0017 tests HTTP authentication dispatch, malformed input, session resolution, logout, peer limit and rollover; actual transport and distributed abuse resistance remain unverified.

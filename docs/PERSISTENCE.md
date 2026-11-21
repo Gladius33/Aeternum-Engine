@@ -46,3 +46,6 @@ Run composer install and configure the HTTPS web server document root to public/
 
 ## Rate limiting (0016)
 Apply 013_rate_limits.sql. Use operational clock and trusted bucket keys. Retention and HTTP integration are not yet implemented; do not expose arbitrary bucket creation to clients.
+
+## Authentication HTTP (0017)
+POST /v1/auth/login accepts JSON login/password and returns token and expires_in; POST /v1/auth/logout uses the bearer token. Configure HTTPS and trusted REMOTE_ADDR. Use trusted provisioning for accounts. Do not log credentials or tokens. Cleanup, global limits and transport tests remain open.
