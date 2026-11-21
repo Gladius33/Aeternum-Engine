@@ -19,7 +19,9 @@ try {
         $pdo->exec('SET SESSION innodb_lock_wait_timeout = 3');
         $path=explode('?',$_SERVER['REQUEST_URI'] ?? '',2)[0];
         if (str_starts_with($path,'/v1/auth/')) {
-            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock()))->handle(
+            $globalLimit=getenv('AETERNUM_AUTH_GLOBAL_LIMIT');
+            if ($globalLimit!==false && (!preg_match('/^[1-9][0-9]{0,5}$/D',$globalLimit) || (int)$globalLimit>100000)) throw new RuntimeException('Invalid auth verification configuration');
+            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$_SERVER['REMOTE_ADDR'] ?? ''
             );

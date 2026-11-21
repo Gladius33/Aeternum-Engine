@@ -64,3 +64,7 @@ Browser CI installs the schema, provisions one distinct identity per pack, start
 0026 result: exact head 561fa88e212bb141eda9c868152e93746f1b421a passed PHP/MariaDB (44956071186) and Chromium (44956071245). MariaDB logs confirm expiry boundary, live/revoked retention, concurrent cleanup, retry and invalid limit tests. Merged as ca024adf08e4c500ce5c9bab261b59f724696f74.
 
 0027 exercises bounded stale bucket deletion, preservation of active exhausted buckets, durable rollback floor, invalid inputs, simultaneous admit/purge and stale admission races with independent PHP processes. Both maintenance CLIs execute against the disposable CI database with real operational time after fixed-clock tests. CI on the exact head is required; no production load or clock-drift certification is claimed.
+
+0027 result: exact head 823908db8d1ae838c8cadbf1b3ae641c83e83579 passed PHP/MariaDB (44956530388) and Chromium (44956530516), merged as 3832bac60062a088848d3d6b261f6dc775333cea. The logs confirm rollback floor, concurrent quota enforcement, and both production CLI entry points against disposable MariaDB.
+
+0028 integration tests cover dummy non-authentication, stored Argon2id parameters, separate-peer global quota, exact rollover, malformed requests, logout, invalid configuration bounds, and four parallel independent login requests with a budget of two. Timing indistinguishability and production capacity are not asserted; measure separately.
