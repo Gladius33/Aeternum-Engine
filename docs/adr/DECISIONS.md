@@ -63,3 +63,5 @@
 - ADR-036 clarification: browser E2E invokes the bounded world worker to process due events; HTTP reads must not implicitly mutate simulation state.
 
 - ADR-037: one bounded indexed deletion of expired sessions per maintenance invocation; do not delete live rows, including revoked-but-unexpired rows. Separate maintenance permissions from HTTP credentials. Parallel browser cases isolate their worlds; PR checks and main push checks remain mandatory.
+
+- ADR-038: transactional rate-limit retention uses a durable operational clock floor and fixed guard-before-bucket lock ordering to prevent reset after stale bucket deletion. Retain seven days, cap windows at one day, and deny admission below the floor. Separate maintenance privileges; validate contention under load before V1.0.

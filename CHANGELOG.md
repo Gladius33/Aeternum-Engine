@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0027
+- Add transactional bounded stale rate-limit cleanup and a durable minimum operational clock (migration 014), with shared admission locking and exclusive cleanup locking.
+- Add separate CLI and tests of rollback, exact concurrent admission limits, stale admission races, retry and real maintenance CLI execution.
+
 ## Unreleased — iteration 0026
 - Add bounded expired-session purge and maintenance CLI, with boundary, retry, invalid-input and parallel database cases.
 - Run both independent browser scenarios in parallel; require complete PR CI and post-merge main CI without duplicate dev push runs.

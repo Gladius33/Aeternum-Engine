@@ -60,3 +60,7 @@ Browser CI installs the schema, provisions one distinct identity per pack, start
 0025 result: exact head d0ac7f2ec17a71e0ce7b6f67a5c007d9d2d8368b passed PHP/MariaDB and both real Chromium scenarios (PR run 44955461687, push run 44955456003); merged as 59359c5613e2efec8e872e2a3df754d8aa4b5f4b. This is browser evidence, not production TLS or shared-hosting acceptance.
 
 0026 tests bounded expiry, current and revoked session preservation, retry, invalid limits, transaction guard and two independent concurrent cleanup processes. CI must confirm these tests. The two independent browser scenarios run in parallel against distinct worlds; all required gates remain on PRs and main.
+
+0026 result: exact head 561fa88e212bb141eda9c868152e93746f1b421a passed PHP/MariaDB (44956071186) and Chromium (44956071245). MariaDB logs confirm expiry boundary, live/revoked retention, concurrent cleanup, retry and invalid limit tests. Merged as ca024adf08e4c500ce5c9bab261b59f724696f74.
+
+0027 exercises bounded stale bucket deletion, preservation of active exhausted buckets, durable rollback floor, invalid inputs, simultaneous admit/purge and stale admission races with independent PHP processes. Both maintenance CLIs execute against the disposable CI database with real operational time after fixed-clock tests. CI on the exact head is required; no production load or clock-drift certification is claimed.
