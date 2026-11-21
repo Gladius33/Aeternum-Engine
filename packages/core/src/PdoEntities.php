@@ -72,4 +72,35 @@ final class PdoEntities
             return $row;
         });
     }
+
+    /** Trusted immutable component attachment; not a simulation command. */
+    public function attach(string $id,string $component,array $data): void
+    {
+        PdoMemberships::validateId($id);
+        PdoMemberships::validateId($component);
+        if (count($data)>64) throw new \InvalidArgumentException('Too many component fields');
+        $json=ScalarMap::encode($data);
+        if (strlen($json)>8192) throw new \InvalidArgumentException('Component too large');
+        $this->locked(function () use ($id,$component,$json): void {
+            if ($this->query('SELECT entity_id FROM engine_entities WHERE world_id=? AND entity_id=?',[$this->world,$id])->fetchColumn()===false) throw new \DomainException('Unknown entity');
+            $previous=$this->query('SELECT data_json FROM engine_components WHERE world_id=? AND entity_id=? AND component_id=?',[$this->world,$id,$component])->fetchColumn();
+            if ($previous!==false) {
+                if ($previous!==$json) throw new \DomainException('Conflicting component');
+                return;
+            }
+            if ((int)$this->query('SELECT COUNT(*) FROM engine_components WHERE world_id=? AND entity_id=?',[$this->world,$id])->fetchColumn()>=64) throw new \DomainException('Component limit');
+            $this->query('INSERT INTO engine_components(world_id,entity_id,component_id,data_json) VALUES (?,?,?,?)',[$this->world,$id,$component,$json]);
+        });
+    }
+
+    public function ownComponent(string $actor,string $id,string $component): array
+    {
+        foreach ([$actor,$id,$component] as $value) PdoMemberships::validateId($value);
+        return $this->locked(function () use ($actor,$id,$component): array {
+            $this->active($actor);
+            $json=$this->query('SELECT c.data_json FROM engine_components c JOIN engine_entities e ON e.world_id=c.world_id AND e.entity_id=c.entity_id WHERE c.world_id=? AND c.entity_id=? AND c.component_id=? AND e.actor_id=?',[$this->world,$id,$component,$actor])->fetchColumn();
+            if ($json===false) throw new \DomainException('Component access denied');
+            return ScalarMap::decode($json);
+        });
+    }
 }
