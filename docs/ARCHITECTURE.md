@@ -41,3 +41,5 @@ Browser E2E uses a test-only loopback router outside public/ to invoke the actua
 Browser test polling invokes the production CLI worker on the test world; HTTP queries retain their due-event barrier and do not advance simulation state.
 
 Session maintenance deletes only rows expired at its operational clock, using one bounded statement and no world locks. Live revoked rows remain until expiry. A separate least-privilege maintenance database credential is recommended; application HTTP credentials need no DELETE grant.
+
+Rate limiter retention uses a durable single-row operational clock floor (migration 014). Admissions take a shared guard lock before any bucket mutation; cleanup takes the exclusive guard lock before bounded deletion and raises the floor atomically when rows are removed. Seven-day retention is conservative relative to the maximum one-day fixed window. An admission with clock below the floor is denied even for a missing bucket. No world locks are acquired. Shared guard contention needs load measurement.

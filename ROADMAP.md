@@ -45,3 +45,5 @@ Trusted account setup CLI available; browser UI and public registration remain o
 0025 E2E exercises the real bounded CLI worker; it does not assume stock reads process due events.
 
 0025: both reference browser economy scenarios passed against real MariaDB and the CLI worker on exact head d0ac7f2ec17a71e0ce7b6f67a5c007d9d2d8368b (runs 44955461687 and 44955456003). G04 remains open for full gameplay and SDK. 0026 adds bounded expired-session maintenance and race coverage; rate limiter retention, public onboarding, and real deployment remain open.
+
+0026: exact head 561fa88e212bb141eda9c868152e93746f1b421a passed PHP/MariaDB (run 44956071186) and Chromium (run 44956071245), merged as ca024adf08e4c500ce5c9bab261b59f724696f74. 0027 implements bounded rate-limit retention, rollback protection and real CLI integration coverage; no G01–G09 gate is marked complete by this maintenance work alone.
