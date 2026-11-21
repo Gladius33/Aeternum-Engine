@@ -64,3 +64,5 @@ Back up and stop application traffic before php bin/migrate.php. Use a fresh dat
 
 ## Provisioning CLI (0022)
 After migration, use php bin/provision.php reference-medieval WORLD LOGIN and supply a password on stdin (avoid shell history and terminal echo). The JSON output includes account and entity identifiers. Retry identical credentials and world after interruption. This trusted administrative operation can reactivate membership; never expose it publicly.
+
+Serve public/ as the HTTPS document root, rewrite /v1/ URLs to index.php and open /play.html. Enter identifiers returned by provisioning. Tokens and pending retry IDs live only in page memory; reload loses them. Browser E2E pending.
