@@ -37,3 +37,5 @@ Locked checksummed migration runner implemented; legacy schema adoption and back
 Trusted account setup CLI available; browser UI and public registration remain open.
 
 0023: initial browser economy client wired to real API; Vue/TypeScript, localization and browser E2E remain open.
+
+0024: authenticated discovery of owned accounts and pack resources, with browser selection controls and corrected industrial pack mapping. Browser E2E remains open.
