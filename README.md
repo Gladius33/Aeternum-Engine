@@ -5,7 +5,7 @@ A modular engine for persistent multiplayer browser strategy games.
 By Sébastien TOUILLEUX · Source Available · ACCL-1.0
 
 ## Status
-Early development — iteration 0015. The PHP core includes in-memory and MariaDB event schedulers with per-world locking and transactional completion, plus transactional commands and durable idempotency receipts, a deterministic replay journal, and a transactional outbox with expiring delivery leases, trusted rule-set pinning and integer lazy production, and a reference economy with atomic resource transfers a persistent movement ledger, and timed resource-production upgrades, and two validated data-only reference economy packs with world membership and account-scoped command admission. Relational locations and immutable actor-owned entities are available through trusted provisioning. Bounded immutable scalar components support entity composition. Persistent application identities use Argon2id passwords. Persistent expiring and revocable opaque sessions store token hashes only. Initial read-only authenticated HTTP API for own entities and components; no public login route or playable game yet. See the [roadmap](ROADMAP.md) and CI results for the exact state.
+Early development — iteration 0016. The PHP core includes in-memory and MariaDB event schedulers with per-world locking and transactional completion, plus transactional commands and durable idempotency receipts, a deterministic replay journal, and a transactional outbox with expiring delivery leases, trusted rule-set pinning and integer lazy production, and a reference economy with atomic resource transfers a persistent movement ledger, and timed resource-production upgrades, and two validated data-only reference economy packs with world membership and account-scoped command admission. Relational locations and immutable actor-owned entities are available through trusted provisioning. Bounded immutable scalar components support entity composition. Persistent application identities use Argon2id passwords. Persistent expiring and revocable opaque sessions store token hashes only. Initial read-only authenticated HTTP API for own entities and components; no public login route or playable game yet. See the [roadmap](ROADMAP.md) and CI results for the exact state.
 
 ## Vision
 Theme-agnostic persistent worlds, asynchronous actions, deterministic simulation, lazy resource production, transactional economy, composable entities, versioned game packs, multiplayer social features and scalable shared-hosting-compatible deployment.
@@ -31,3 +31,5 @@ Custom Aeternum Community & Commercial License v1.0 (ACCL-1.0); source-available
 The binding French [LICENSE.md](LICENSE.md) prevails over this informational summary. Contact the maintainer privately through GitHub for licensing inquiries.
 
 Copyright © 2026 Sébastien TOUILLEUX. All rights not expressly granted are reserved.
+
+Internal persistent fixed-window rate limiter available; HTTP wiring pending.
