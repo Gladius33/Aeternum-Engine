@@ -23,3 +23,5 @@ Iteration 0009 tests JSON schema field/type/limit and economic cross-field valid
 Iteration 0010 tests account ownership, revoked membership, nonmember and cross-world denial, separate actor request IDs, private receipt, own-balance access, due-event barrier and replay. Authentication/session proof, HTTP abuse resistance, actor grant auditing and concurrent revoke/command race tests remain open.
 
 Iteration 0011 adds integration cases for entity provisioning retry, conflicting ownership, separate worlds, reconnect and revoked access. Concurrent provisioning and direct SQL constraint tests remain open; check CI for execution evidence.
+
+Iteration 0012 adds component canonical retry, malformed/oversized data, ownership, revocation, reconnect and isolation integration cases. CI evidence required.
