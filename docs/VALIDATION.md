@@ -47,3 +47,5 @@ Iteration 0015 adds direct HTTP dispatcher integration cases for authenticated o
 0022 relies on provisioning integration coverage from 0019; subprocess testing of the CLI remains open.
 
 0023 browser UI is not yet browser-E2E validated. Existing database API integration tests exercise its backend operations.
+
+0024 integration tests verify discovery authentication, scope isolation and revocation; browser and deployment tests remain open.

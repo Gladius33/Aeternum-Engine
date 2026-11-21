@@ -6,7 +6,7 @@ try {
     require __DIR__.'/../vendor/autoload.php';
     $pack=$argv[1]??'';
     $world=$argv[2]??'';
-    if ($argc!==3 || !in_array($pack,['reference-medieval','reference-space'],true) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$world)) throw new InvalidArgumentException('Usage: php bin/worker.php PACK WORLD');
+    if ($argc!==3 || !in_array($pack,['reference-medieval','reference-industrial'],true) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$world)) throw new InvalidArgumentException('Usage: php bin/worker.php PACK WORLD');
     $dsn=getenv('AETERNUM_DSN');
     if (!$dsn) throw new RuntimeException('Missing database configuration');
     $pdo=new PDO($dsn,getenv('AETERNUM_DB_USER') ?: '',getenv('AETERNUM_DB_PASSWORD') ?: '',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);

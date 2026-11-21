@@ -55,3 +55,5 @@
 - ADR-033: forward-only trusted SQL migrations use SHA-256 ledger and advisory lock; implicit DDL commits require manual recovery of dirty state, never automatic replay.
 
 - ADR-034: initial reference-player creation is operator-only CLI, passwords supplied through stdin rather than process arguments.
+
+- ADR-035: expose configured world and owned-account discovery through an actor-scoped read API, not arbitrary world enumeration.

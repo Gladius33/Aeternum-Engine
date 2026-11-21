@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0024
+- Add authenticated player discovery and browser selection controls.
+- Correct industrial pack mapping in HTTP and CLI entrypoints.
+
 ## Unreleased — iteration 0023
 - Add initial browser economy client using authenticated API and stable retry IDs during the page session.
 
