@@ -6,7 +6,7 @@ try {
     require __DIR__.'/../vendor/autoload.php';
     if ($argc!==4 || !in_array($argv[1],['reference-medieval','reference-space'],true) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$argv[2])) throw new InvalidArgumentException('Usage: php bin/provision.php PACK WORLD LOGIN (password on stdin)');
     $password=fgets(STDIN,1026);
-    if ($password===false) throw new InvalidArgumentException('Password required on stdin');
+    if ($password===false || (!str_ends_with($password,"\n") && !feof(STDIN))) throw new InvalidArgumentException('Password required on stdin');
     $password=rtrim($password,"\r\n");
     $dsn=getenv('AETERNUM_DSN');
     if (!$dsn) throw new RuntimeException('Missing database configuration');
