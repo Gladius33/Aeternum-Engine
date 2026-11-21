@@ -5,7 +5,7 @@ A modular engine for persistent multiplayer browser strategy games.
 By Sébastien TOUILLEUX · Source Available · ACCL-1.0
 
 ## Status
-Early development — iteration 0009. The PHP core includes in-memory and MariaDB event schedulers with per-world locking and transactional completion, plus transactional commands and durable idempotency receipts, a deterministic replay journal, and a transactional outbox with expiring delivery leases, trusted rule-set pinning and integer lazy production, and a reference economy with atomic resource transfers a persistent movement ledger, and timed resource-production upgrades, and two validated data-only reference economy packs. No HTTP API or playable game yet. See the [roadmap](ROADMAP.md) and CI results for the exact state.
+Early development — iteration 0010. The PHP core includes in-memory and MariaDB event schedulers with per-world locking and transactional completion, plus transactional commands and durable idempotency receipts, a deterministic replay journal, and a transactional outbox with expiring delivery leases, trusted rule-set pinning and integer lazy production, and a reference economy with atomic resource transfers a persistent movement ledger, and timed resource-production upgrades, and two validated data-only reference economy packs with world membership and account-scoped command admission. No HTTP API or playable game yet. See the [roadmap](ROADMAP.md) and CI results for the exact state.
 
 ## Vision
 Theme-agnostic persistent worlds, asynchronous actions, deterministic simulation, lazy resource production, transactional economy, composable entities, versioned game packs, multiplayer social features and scalable shared-hosting-compatible deployment.

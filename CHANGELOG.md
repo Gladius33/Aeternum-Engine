@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — iteration 0010
+- Add persistent world membership, trusted grant/revoke, immutable player-account assignment, actor-scoped idempotency and audit metadata.
+- Authorize economy command and own-balance projection inside world transaction, return receipts without private full world state.
+- Test nonmembers, cross-account access, revoked members, actor retries, due-event read barrier and replay.
+
 ## Unreleased — iteration 0009
 - Add bounded data-only JSON game-pack loader and published JSON schema, plus cross-field economic validation.
 - Derive rule artifact digest from exact manifest bytes and load two distinct reference economy packs without theme-specific PHP.

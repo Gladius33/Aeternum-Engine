@@ -12,3 +12,6 @@ ResourceUpgrade definitions specify resource, resulting level, positive cost and
 
 ## Data-only packs (0009)
 See schemas/game-pack-v1.schema.json and games/reference-*/manifest.json. GamePackLoader::load validates JSON bytes and computes their SHA-256; GamePack::rules creates trusted economy handlers without theme-specific PHP. Keep exact original bytes for pinned worlds, including whitespace. No arbitrary code, file path or URL execution. Schema describes field structure; PHP loader enforces resource constraints. Pack content identity does not authenticate authorship or prove the running PHP implementation matches an older release. Duplicate JSON object keys are not separately detected by PHP json_decode; use canonical producer tooling and reviewed artifacts. No untrusted pack upload endpoint.
+
+## Player admission (0010)
+Use executeForActor only after the application has authenticated the actor. Account ownership is relational and assigned by a trusted operator. Players may open, settle or upgrade their own assigned accounts, and transfer from their own account to an active assigned destination. The request ID is scoped to the actor. Public responses must use ActorReceipt or balanceForActor, not the internal full world snapshot. Authentication and user-facing interface are not implemented yet.
