@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — iteration 0005
+- Add transactional outbox for committed transition metadata, claim/ack/release with expiring leases and stable deduplication key.
+- Test expiry, stale acknowledgement, retry delay, world scope, and abrupt worker termination before commit.
+- No automatic historic delivery backfill or external delivery consumer yet.
+
 ## Unreleased — iteration 0004
 - Add transactional journal of committed commands and events, canonical state/follow-up digests and bounded diagnostic replay.
 - Migration checkpoint preserves pre-journal worlds without inventing past history.

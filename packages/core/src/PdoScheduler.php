@@ -140,6 +140,8 @@ final class PdoScheduler
             $this->worldId,$seq+1,$kind,$id,$type,$at,$payload,hash('sha256',$state),$this->followupDigest($events),
         ]);
         $this->query('UPDATE engine_worlds SET journal_sequence = ? WHERE world_id = ?',[$seq+1,$this->worldId]);
+        $envelope = ScalarMap::encode(['schema'=>1,'kind'=>$kind,'id'=>$id,'type'=>$type,'effective_at'=>$at]);
+        $this->query('INSERT INTO engine_outbox (world_id,journal_no,envelope_json) VALUES (?,?,?)',[$this->worldId,$seq+1,$envelope]);
     }
 
     /** Re-evaluate a bounded journal using the original trusted handlers.

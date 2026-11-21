@@ -9,3 +9,5 @@ Iteration 0002 adds disposable MariaDB integration CI, reconnect/rollback tests 
 Iteration 0003 adds command receipt, backlog barrier, partial follow-up rollback and concurrent overspend tests. Authenticated command IDs and actor authorization are future API work.
 
 Iteration 0004 tests mixed command/event replay, duplicate omission, state and follow-up divergence detection and bounded replay. Verify with original rule handlers; no claim of pre-checkpoint reconstruction, malicious database tamper resistance or pinned rule versions.
+
+Iteration 0005 checks outbox atomicity on accepted/rejected commands, duplicate retries, lease expiry/stale token rejection, delayed retry, world isolation and SIGKILL of a worker while the transaction is open before state writes. Lost acknowledgement after external delivery and ambiguous DB commit responses still require dedicated tests.
