@@ -84,4 +84,5 @@ parallel('race','process');
 check($race->pendingCount() === 0 && $race->state()['n'] === 31,'four concurrent processors committed each event once');
 require __DIR__ . "/commands.php";
 require __DIR__ . "/journal.php";
+require __DIR__ . "/outbox.php";
 echo "MariaDB integration checks passed.\n";
