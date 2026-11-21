@@ -68,3 +68,5 @@ After migration, use php bin/provision.php reference-medieval WORLD LOGIN and su
 Serve public/ as the HTTPS document root, rewrite /v1/ URLs to index.php and open /play.html. Enter identifiers returned by provisioning. Tokens and pending retry IDs live only in page memory; reload loses them. Browser E2E pending.
 
 Configure AETERNUM_MEDIEVAL_WORLD and AETERNUM_INDUSTRIAL_WORLD to match provisioned world IDs. Use reference-medieval and reference-industrial as CLI pack arguments. The play client discovers active owned accounts automatically.
+
+Browser CI uses a disposable schema and public/ document root with a dedicated loopback test router. Never deploy tests/ or expose the test server. Production must enforce HTTPS with its actual web server.
