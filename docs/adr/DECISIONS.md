@@ -53,3 +53,5 @@
 - ADR-032: CLI worker processes one explicit world with pinned rules, bounded batches and cooperative time budget. No implicit provisioning.
 
 - ADR-033: forward-only trusted SQL migrations use SHA-256 ledger and advisory lock; implicit DDL commits require manual recovery of dirty state, never automatic replay.
+
+- ADR-034: initial reference-player creation is operator-only CLI, passwords supplied through stdin rather than process arguments.
