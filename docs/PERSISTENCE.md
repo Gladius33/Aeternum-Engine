@@ -34,3 +34,6 @@ Apply 009_entities.sql with writers stopped. PdoEntities::addLocation and provis
 
 ## Components (0012)
 Apply 010_components.sql. Trusted attach is immutable and idempotent; ownComponent requires an active authenticated owner. Components are administrative metadata outside simulation replay. No public attachment endpoint.
+
+## Identity (0013)
+Apply 011_identity.sql. PHP must support PASSWORD_ARGON2ID. PdoIdentity is an internal registration/authentication service, not a public endpoint. Duplicate login raises a database exception; adapters must map failures safely. No password reset or session lifecycle yet.
