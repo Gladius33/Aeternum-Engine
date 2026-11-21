@@ -1,0 +1,17 @@
+{
+  "name": "gladius33/aeternum-engine",
+  "description": "Persistent browser strategy simulation engine",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": "^8.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "Aeternum\\Core\\": "packages/core/src/"
+    }
+  },
+  "scripts": {
+    "test": "php tests/run.php"
+  }
+}

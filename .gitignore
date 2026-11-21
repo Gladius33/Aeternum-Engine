@@ -1,0 +1,42 @@
+# Dependencies and generated assets
+/vendor/
+/node_modules/
+**/node_modules/
+**/vendor/
+/public/build/
+/apps/web/dist/
+/coverage/
+/.phpunit.cache/
+.phpunit.result.cache
+.phpstan-cache/
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+/auth.json
+**/auth.json
+*.pem
+*.key
+*.p12
+*.pfx
+# Runtime and local databases
+/storage/logs/*
+!/storage/logs/.gitignore
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.log
+# Local tooling
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+# Keep dependency lockfiles tracked for applications.
