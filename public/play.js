@@ -39,6 +39,7 @@ for (const key of ['account','resource']) balance.elements[key].addEventListener
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
+    stock.replaceChildren();
     const data=await api(base(f)+'overview/'+encodeURIComponent(f.account)+'/'+encodeURIComponent(f.resource));
     if (JSON.stringify(f)!==JSON.stringify(locationFields())) return;
     stock.replaceChildren();
@@ -61,10 +62,13 @@ async function refresh() {
 async function run(work) {
     if (busy) return;
     busy=true;
-    const controls=[...document.querySelectorAll('button')];
+    const controls=[...document.querySelectorAll('button, select')];
     controls.forEach(x=>x.disabled=true);
     try { await work(); status.textContent='Success'; }
-    catch(e) { status.textContent=e.message || 'Request failed'; }
+    catch(e) {
+        if (e.status===401 && token) resetSession();
+        status.textContent=e.message || 'Request failed';
+    }
     finally { busy=false; controls.forEach(x=>x.disabled=false); }
 }
 login.addEventListener('submit',e=>{
@@ -87,7 +91,11 @@ action.addEventListener('submit',e=>{
         await refresh();
     });
 });
+function resetSession() {
+    token=null; pending=null; worlds=[]; options(balance.elements.world,[]); selectWorld();
+    stock.replaceChildren(); game.hidden=true; login.hidden=false;
+}
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }
-    finally { token=null;pending=null;worlds=[];options(balance.elements.world,[]);selectWorld();stock.replaceChildren();game.hidden=true;login.hidden=false; }
+    finally { resetSession(); }
 }));

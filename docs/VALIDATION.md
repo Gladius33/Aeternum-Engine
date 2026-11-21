@@ -72,3 +72,5 @@ Browser CI installs the schema, provisions one distinct identity per pack, start
 0028 result: exact head daee5e12285910702925f2a02a50e032bc2f841b passed PHP/MariaDB (44956967641) and Chromium (44956967691), merged as 1ae12e943b771c2a48b71b0c06a6b2b7431afc1c.
 
 0029 tests authentication, foreign account and world denial, initial next rule, pending debit and persisted due time, the due-event barrier, completed level and revocation. Both Chromium scenarios additionally verify rendered next, pending and maximum levels and the real due timestamp across reloads. Require exact-head CI evidence.
+
+0030: clear private browser state after HTTP 401, clear stale overview before refresh, and prevent selection changes during requests. Real browser test revokes a bearer via the live API and verifies return to sign-in. CI evidence pending.

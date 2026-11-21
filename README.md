@@ -59,3 +59,5 @@ Rate-limit maintenance: apply migration 014 before deploying iteration 0027, the
 Authentication verification uses fixed Argon2id registration parameters, dummy verification for unknown well-formed logins, and a shared per-minute verification budget (AETERNUM_AUTH_GLOBAL_LIMIT, default 120). This is a configurable abuse-control mitigation, not a production capacity guarantee.
 
 The reference client displays stock, current production level, next upgrade cost/duration and persisted pending upgrade due time. It uses the actor-scoped read-only overview API; the CLI worker remains responsible for completing due events.
+
+0030: clear private browser state after HTTP 401, clear stale overview before refresh, and prevent selection changes during requests. Real browser test revokes a bearer via the live API and verifies return to sign-in. CI evidence pending.

@@ -120,3 +120,5 @@
 - Add framework-independent clocks, immutable scheduled events, and a single-world in-memory scheduler prototype with chronological processing and duplicate detection.
 - Add executable regression tests and PHP CI configuration.
 - Persistence, HTTP, game packs and production deployment are not implemented.
+
+0030: clear private browser state after HTTP 401, clear stale overview before refresh, and prevent selection changes during requests. Real browser test revokes a bearer via the live API and verifies return to sign-in. CI evidence pending.
