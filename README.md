@@ -43,3 +43,5 @@ Bounded CLI event worker: php bin/worker.php PACK WORLD.
 Schema installation: php bin/migrate.php on a fresh database.
 
 Trusted CLI account setup: php bin/provision.php PACK WORLD LOGIN (password on stdin).
+
+Initial browser client at /play.html: sign in, inspect stock, settle and upgrade. Operator-provisioned accounts only.
