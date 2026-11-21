@@ -28,3 +28,6 @@ Apply migration 007 before enabling upgrade commands. Persistent event resolutio
 
 ## Actor boundary (0010)
 Apply 008_memberships.sql. PdoMemberships is a trusted admin service; it must never be directly exposed as a player route. Existing worlds/accounts are not automatically assigned to anyone. Explicitly grant active membership and assign account IDs. executeForActor requires pinned economy rules and an identity derived from trusted authentication, not a value asserted by the client. It checks membership/account ownership under the same world row lock as mutations and stores actor/request metadata. A revoked actor cannot retrieve old receipts until reactivated. balanceForActor exposes only an owned account projection and blocks behind due events. The raw scheduler methods and world state are trusted internal interfaces. This is not a complete authentication system; authorization endpoints, admin audit log, rate limiting and session lifecycle remain open.
+
+## Entities (0011)
+Apply 009_entities.sql with writers stopped. PdoEntities::addLocation and provision are trusted administrative calls; own requires an authenticated actor supplied by the future adapter. Location and entity IDs are immutable within a world. No movement, component simulation, public provisioning or journal replay of administrative metadata yet.
