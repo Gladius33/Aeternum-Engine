@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — iteration 0021
+- Add locked migration runner, checksummed ledger, dirty-state refusal and CLI.
+
 ## Unreleased — iteration 0020
 - Add bounded world event worker and CRON-compatible CLI entrypoint.
 

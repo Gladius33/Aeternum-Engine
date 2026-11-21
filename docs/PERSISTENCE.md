@@ -58,3 +58,6 @@ Trusted operators call PlayerProvisioner::provision with an existing identity, w
 
 ## Worker (0020)
 With the database environment configured, run php bin/worker.php reference-medieval WORLD. Schedule via CRON after provisioning. Default 100 events and 5000 ms cooperative budget; individual database waits may extend runtime. Exit 1 on failure. Do not expose bin/ through the web root.
+
+## Migration runner (0021)
+Back up and stop application traffic before php bin/migrate.php. Use a fresh database for initial install; existing schemas without a ledger require explicit operator migration planning. A dirty entry signals possible partial DDL: restore a verified backup or reconcile manually. Do not delete dirty markers to bypass the guard. SQL files use simple semicolon-delimited DDL without routines or quoted semicolons.

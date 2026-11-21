@@ -27,3 +27,5 @@ Economy HTTP uses a trusted world-to-rules registry and existing actor transacti
 PlayerProvisioner is a trusted multi-transaction administrative workflow, not atomic onboarding; retry identical arguments after interruption, and never invoke concurrently with revocation.
 
 WorldWorker wraps the pinned scheduler for one configured world. Each event commits independently. Budget is cooperative, not a hard deadline; database waits can extend runtime.
+
+DDL is not transactional in MariaDB. MigrationRunner records dirty markers before execution and verifies the immutable migration prefix under a connection-owned advisory lock.

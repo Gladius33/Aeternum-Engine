@@ -5,12 +5,13 @@ use Aeternum\Core\{PdoScheduler,FrozenClock,ScheduledEvent,EventHandler};
 $pdo = db();
 // Refuse any existing schema rather than dropping or modifying existing data.
 if ($pdo->query('SHOW TABLES')->fetchColumn() !== false) throw new RuntimeException('Integration tests require an empty disposable database');
-foreach (glob(__DIR__.'/../database/migrations/*.sql') as $migration) {
-    $source = preg_replace('/^--.*$/m', '', file_get_contents($migration));
-    foreach (explode(';', $source) as $sql) {
-        if (trim($sql) !== '') $pdo->exec($sql);
-    }
-}
+$migrationRunner=new \Aeternum\Core\MigrationRunner($pdo);
+$migrationPath=__DIR__.'/../database/migrations';
+check(count($migrationRunner->run($migrationPath))===count(glob($migrationPath.'/*.sql')),'all schema migrations applied');
+check($migrationRunner->run($migrationPath)===[],'migration rerun is no-op');
+$pdo->exec("UPDATE engine_schema_migrations SET completed=0 ORDER BY filename DESC LIMIT 1");
+rejects(fn()=> $migrationRunner->run($migrationPath),RuntimeException::class,'dirty migration rejected');
+$pdo->exec("UPDATE engine_schema_migrations SET completed=1");
 $clock = new FrozenClock(100);
 $id = 'world-A';
 $q = new PdoScheduler($pdo,$id,$clock);
