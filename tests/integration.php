@@ -92,4 +92,5 @@ require __DIR__ . "/packs-db.php";
 require __DIR__ . "/actors.php";
 require __DIR__ . "/entities.php";
 require __DIR__ . "/identity.php";
+require __DIR__ . "/sessions.php";
 echo "MariaDB integration checks passed.\n";
