@@ -39,3 +39,5 @@ Iteration 0015 adds direct HTTP dispatcher integration cases for authenticated o
 0018 tests economy HTTP command, retry, balance, authorization and malformed input directly against MariaDB. Network transport remains untested.
 
 0019 checks unknown identity, repeated provisioning, initial balances and journal replay. Crash injection and concurrent administrative operations remain unverified.
+
+0020 integration cases cover future events, due completion, replay-safe retry, invalid limits and unknown world. Real shared-hosting CRON remains unverified.
