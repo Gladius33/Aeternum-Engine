@@ -29,3 +29,5 @@ Iteration 0012 adds component canonical retry, malformed/oversized data, ownersh
 Iteration 0013 adds identity integration cases for reconnect, password verification, duplicate login and minimum password length. Argon2id support is required. Timing equalization and abuse controls remain open.
 
 Iteration 0014 adds session persistence, distinct tokens, invalid login, plaintext absence, exact expiry and revocation cases. Cleanup, rate limiting and HTTP transport remain open.
+
+Iteration 0015 adds direct HTTP dispatcher integration cases for authenticated own reads, denied access, method restrictions and revocation. Actual web server transport, rate limits and browser E2E remain unverified.

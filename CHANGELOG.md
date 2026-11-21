@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — iteration 0015
+- Add initial HTTPS JSON front controller and authenticated read-only entity/component routes.
+- Test unauthorized, foreign-world, foreign-owner, revoked membership/session and successful access.
+
 ## Unreleased — iteration 0014
 - Add random opaque sessions with hashed token storage, bounded TTL and idempotent revocation.
 - Add integration tests for persistence, expiry, invalid credentials and revocation.

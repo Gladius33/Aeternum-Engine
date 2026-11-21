@@ -39,3 +39,5 @@
 - ADR-025: global random actor IDs and unique lowercase login, Argon2id hashes; registering never grants membership. Legacy actor IDs are not automatically linked. No public authentication route yet.
 
 - ADR-026: 256-bit random opaque bearer tokens stored only as SHA-256 digests, absolute TTL 60–86400 seconds, idempotent revocation; resolve at request admission, no cancellation of in-flight requests.
+
+- ADR-027: initial HTTP surface is read-only authenticated entity/component projection; unauthorized ownership and absent resources map to the same 404, invalid sessions to 401. No public credential intake before abuse controls.
