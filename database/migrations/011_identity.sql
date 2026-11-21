@@ -1,0 +1,5 @@
+CREATE TABLE engine_identities (
+ actor_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+ login VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL
+) ENGINE=InnoDB;
