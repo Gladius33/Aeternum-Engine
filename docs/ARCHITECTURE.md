@@ -11,3 +11,5 @@ Iterations 0001–0012 implement in-memory and MariaDB scheduling with integer U
 Deployment: standard HTTPS PHP application, MariaDB, short CRON jobs; cache optional; dedicated workers optional later. Shared-hosting approval and load validation are separate acceptance prerequisites.
 
 Entity components are bounded immutable administrative scalar maps under the world lock; game-specific validation and mutable simulation components remain open.
+
+Application identity is independent of world membership; registering does not grant world access. No public login endpoint until abuse controls and sessions exist.
