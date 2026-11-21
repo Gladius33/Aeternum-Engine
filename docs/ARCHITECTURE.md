@@ -19,3 +19,5 @@ Opaque sessions use operational time and SHA-256 token hashes. Session resolutio
 Initial HTTP adapter resolves opaque bearer sessions and exposes only own entity/component reads. The front controller requires server-indicated HTTPS and returns generic errors. Public login, economy commands, rate limiting and UI are future work.
 
 Rate limiting uses independent hashed policy buckets and locked rows, without world locks. Fixed windows permit bursts at boundaries. Not yet wired to HTTP.
+
+AuthHttpApi exposes POST login/logout with server-derived peer and per-login rate buckets. No trust in forwarded IP headers. Public registration and global throttling remain open.
