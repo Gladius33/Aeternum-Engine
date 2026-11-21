@@ -35,3 +35,5 @@ Bounded CLI world worker implemented. Migration runner, shared-hosting deploymen
 Locked checksummed migration runner implemented; legacy schema adoption and backup restore validation remain open.
 
 Trusted account setup CLI available; browser UI and public registration remain open.
+
+0023: initial browser economy client wired to real API; Vue/TypeScript, localization and browser E2E remain open.
