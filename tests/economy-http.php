@@ -1,0 +1,24 @@
+<?php
+declare(strict_types=1);
+use Aeternum\Core\{EconomyHttpApi,GamePackLoader,PdoScheduler,PdoMemberships,PdoSessions,FrozenClock};
+$ec=new FrozenClock(500);
+$er=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/manifest.json'))->rules();
+$ew='http-economy';
+(new PdoScheduler(db(),$ew,$ec,$er))->initialize();
+$em=new PdoMemberships(db(),$ew);
+$em->grant($actor); $em->assign('mine',$actor);
+$et=(new PdoSessions(db(),$ec))->login('test-player','correct horse battery staple');
+$ea=new EconomyHttpApi(db(),$ec,[$ew=>$er]);
+$ep='/v1/worlds/'.$ew.'/economy/';
+$eh='Bearer '.$et;
+$eb=json_encode(['id'=>'open','type'=>'economy.open','payload'=>['account'=>'mine','resource'=>'wood']],JSON_THROW_ON_ERROR);
+check($ea->handle('POST',$ep.'commands','',$eb)[0]===401,'economy HTTP auth required');
+[$st,$br]=$ea->handle('POST',$ep.'commands',$eh,$eb);
+check($st===200,'economy HTTP command');
+check($ea->handle('POST',$ep.'commands',$eh,$eb)[1]==$br,'economy HTTP retry');
+[$st,$br]=$ea->handle('GET',$ep.'balances/mine/wood',$eh);
+check($st===200&&$br['data']->stock===100,'economy HTTP balance');
+check($ea->handle('GET',$ep.'balances/other/wood',$eh)[0]===409,'economy HTTP foreign account');
+check($ea->handle('POST',$ep.'commands',$eh,'{}')[0]===400,'economy HTTP invalid payload');
+$em->revoke($actor);
+check($ea->handle('GET',$ep.'balances/mine/wood',$eh)[0]===409,'economy HTTP revoked membership');
