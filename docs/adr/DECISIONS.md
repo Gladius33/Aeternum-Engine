@@ -51,3 +51,5 @@
 - ADR-031: trusted provisioning uses actor-derived account/location/entity identifiers and stable resource command IDs. Multi-transaction workflow requires operator retries and coordination with revocation.
 
 - ADR-032: CLI worker processes one explicit world with pinned rules, bounded batches and cooperative time budget. No implicit provisioning.
+
+- ADR-033: forward-only trusted SQL migrations use SHA-256 ledger and advisory lock; implicit DDL commits require manual recovery of dirty state, never automatic replay.
