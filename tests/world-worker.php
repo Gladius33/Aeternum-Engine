@@ -1,0 +1,20 @@
+<?php
+declare(strict_types=1);
+use Aeternum\Core\{WorldWorker,GamePackLoader,FrozenClock,PdoScheduler,PdoMemberships,Command};
+$wc=new FrozenClock(1000);
+$wp=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/manifest.json'));
+$wr=$wp->rules();
+$ww='worker-world';
+$ws=new PdoScheduler(db(),$ww,$wc,$wr);
+$ws->initialize();
+$wm=new PdoMemberships(db(),$ww);
+$wm->grant('worker-player'); $wm->assign('worker-account','worker-player');
+$ws->executeForActor('worker-player',new Command($ww,'open','economy.open',['account'=>'worker-account','resource'=>'wood']),$wr->commands);
+$receipt=$ws->executeForActor('worker-player',new Command($ww,'upgrade','economy.upgrade',['account'=>'worker-account','resource'=>'wood']),$wr->commands);
+$worker=new WorldWorker(db(),$wc);
+check($worker->run($ww,$wp,1,5000)===[],'worker does not process future event');
+$wc->advanceTo(10000);
+check($worker->run($ww,$wp,1,5000)===$receipt->scheduledIds,'worker processes due event');
+check($worker->run($ww,$wp,1,5000)===[],'worker retry does not duplicate');
+rejects(fn()=> $worker->run($ww,$wp,0),InvalidArgumentException::class,'worker rejects invalid limit');
+rejects(fn()=> $worker->run('missing-worker-world',$wp),DomainException::class,'worker does not initialize unknown world');

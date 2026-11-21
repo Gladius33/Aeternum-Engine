@@ -55,3 +55,6 @@ Configure AETERNUM_MEDIEVAL_WORLD for an existing medieval world. POST /v1/world
 
 ## Player provisioning (0019)
 Trusted operators call PlayerProvisioner::provision with an existing identity, world ID and validated GamePack. Retry identical arguments if interrupted. This grants membership and must never be exposed directly to players; coordinate with revocation. CLI and public onboarding remain open.
+
+## Worker (0020)
+With the database environment configured, run php bin/worker.php reference-medieval WORLD. Schedule via CRON after provisioning. Default 100 events and 5000 ms cooperative budget; individual database waits may extend runtime. Exit 1 on failure. Do not expose bin/ through the web root.

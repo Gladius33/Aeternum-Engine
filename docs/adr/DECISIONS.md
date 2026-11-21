@@ -49,3 +49,5 @@
 - ADR-030: HTTP economy routes reuse actor transactions and pinned rules; domain conflicts share a generic 409. No implicit world provisioning.
 
 - ADR-031: trusted provisioning uses actor-derived account/location/entity identifiers and stable resource command IDs. Multi-transaction workflow requires operator retries and coordination with revocation.
+
+- ADR-032: CLI worker processes one explicit world with pinned rules, bounded batches and cooperative time budget. No implicit provisioning.

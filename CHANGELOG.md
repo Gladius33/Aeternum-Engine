@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased — iteration 0020
+- Add bounded world event worker and CRON-compatible CLI entrypoint.
+
 ## Unreleased — iteration 0019
 - Add trusted retryable player provisioning and integration checks for initial resources and replay.
 
