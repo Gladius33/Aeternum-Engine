@@ -34,4 +34,15 @@ final class PdoSessions
         $s=$this->pdo->prepare('UPDATE engine_sessions SET revoked=1 WHERE token_hash=?');
         $s->execute([hash('sha256',$token)]);
     }
+    /** Delete at most one bounded batch of expired sessions, never live sessions. */
+    public function purgeExpired(int $limit=500): int
+    {
+        if ($limit<1 || $limit>1000) throw new \InvalidArgumentException('Invalid session purge limit');
+        if ($this->pdo->inTransaction()) throw new \LogicException('Nested transaction prohibited');
+        $now=$this->clock->now();
+        if ($now<0) throw new \DomainException('Invalid clock');
+        $s=$this->pdo->prepare('DELETE FROM engine_sessions WHERE expires_at<=? ORDER BY expires_at,token_hash LIMIT '.$limit);
+        $s->execute([$now]);
+        return $s->rowCount();
+    }
 }

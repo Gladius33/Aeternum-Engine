@@ -94,6 +94,7 @@ require __DIR__ . "/actors.php";
 require __DIR__ . "/entities.php";
 require __DIR__ . "/identity.php";
 require __DIR__ . "/sessions.php";
+require __DIR__ . "/session-cleanup.php";
 require __DIR__ . "/http-api.php";
 require __DIR__ . "/rate-limits.php";
 require __DIR__ . "/auth-http.php";
