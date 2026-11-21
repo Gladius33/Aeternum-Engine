@@ -1,5 +1,5 @@
 'use strict';
-let token = null, busy = false, pending = null;
+let token = null, busy = false, pending = null, worlds = [];
 const login = document.querySelector('#login'), game = document.querySelector('#game'), balance = document.querySelector('#balance'), action = document.querySelector('#action'), status = document.querySelector('#status'), stock = document.querySelector('#stock');
 async function api(path, method='GET', data) {
     const headers = {'Accept':'application/json'};
@@ -7,14 +7,35 @@ async function api(path, method='GET', data) {
     if (data !== undefined) headers['Content-Type'] = 'application/json';
     const response = await fetch(path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),cache:'no-store',redirect:'error',credentials:'omit'});
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Request failed');
+    if (!response.ok) { const error=new Error(result.error || 'Request failed'); error.status=response.status; throw error; }
     return result.data;
 }
 function locationFields() {
     const f = new FormData(balance);
     return Object.fromEntries(['world','account','resource'].map(k=>[k,String(f.get(k))]));
 }
-function base(f) { return '/v1/worlds/'+encodeURIComponent(f.world)+'/economy/'; }
+function base(f) { return '/v1/worlds/'+encodeURIComponent(f.world).replaceAll('%3A',':')+'/economy/'; }
+function options(select, values) {
+    select.replaceChildren();
+    for (const [value,label] of values) {
+        const option=document.createElement('option');
+        option.value=value; option.textContent=label; select.append(option);
+    }
+}
+function selectWorld() {
+    const w=worlds.find(w=>w.world===balance.elements.world.value);
+    options(balance.elements.account,(w?.accounts??[]).map(a=>[a,a]));
+    options(balance.elements.resource,(w?.resources??[]).map(a=>[a,a]));
+    stock.replaceChildren();
+}
+async function discover() {
+    const data=await api('/v1/me/worlds');
+    worlds=data.worlds;
+    options(balance.elements.world,worlds.map(w=>[w.world,w.name+' — '+w.world]));
+    selectWorld();
+}
+balance.elements.world.addEventListener('change',selectWorld);
+document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
     const data=await api(base(f)+'balances/'+encodeURIComponent(f.account)+'/'+encodeURIComponent(f.resource));
@@ -38,7 +59,7 @@ login.addEventListener('submit',e=>{
     const f=new FormData(login);
     const credentials={login:f.get('login'),password:f.get('password')};
     login.elements.password.value='';
-    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;game.hidden=false;});
+    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;game.hidden=false;await discover();});
 });
 balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
 action.addEventListener('submit',e=>{
@@ -48,12 +69,12 @@ action.addEventListener('submit',e=>{
         const signature=JSON.stringify([f,type]);
         if (pending && pending.signature!==signature) throw new Error('Retry the previous action with identical fields first.');
         if (!pending) pending={signature,body:{id:crypto.randomUUID(),type,payload:{account:f.account,resource:f.resource}}};
-        await api(base(f)+'commands','POST',pending.body);
+        try { await api(base(f)+'commands','POST',pending.body); } catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
         pending=null;
         await refresh();
     });
 });
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }
-    finally { token=null;pending=null;stock.replaceChildren();game.hidden=true;login.hidden=false; }
+    finally { token=null;pending=null;worlds=[];options(balance.elements.world,[]);selectWorld();stock.replaceChildren();game.hidden=true;login.hidden=false; }
 }));
