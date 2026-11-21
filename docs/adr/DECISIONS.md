@@ -23,3 +23,5 @@
 
 - ADR-017: pin world to a trusted application rule-set key derived from explicit ID/version/artifact digest; bound scheduler checks handler instance and stored identity. Legacy rows stay explicitly unbound until a tested migration policy exists. Digest is declared by trusted configuration, not proof of the PHP binary contents by itself.
 - ADR-018: production uses integer smallest units, rational rate per interval, carry, and saturation; max capacity/rate 10^12 units and interval 2,592,000 seconds keep intermediate products within signed int64. Discard carry at capacity. Never multiply elapsed time until saturation has been ruled out.
+
+- ADR-019: initial economy persists bounded scalar-map resource accounts with trusted immutable definitions, ledger lines typed by account/resource/reason and committed with journal. Transfers settle both balances before conserved debit/credit. Ledger effects are verified on replay. No ownership authorization or efficient relational balance storage yet.
