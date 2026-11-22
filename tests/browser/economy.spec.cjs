@@ -201,6 +201,15 @@ test('real multiplayer transfer and foreign balance denial', async ({browser})=>
         const mapRequest=await mapCall;
         await expect(sender.locator('#map-territories')).toContainText('east — hill — forest — own');
         await expect(sender.locator('#map-territories')).toContainText('west — ford — village — occupied');
+        const anonymousMap=await sender.request.get(url+'/v1/public/worlds/e2e-medieval/map/territories');
+        expect(anonymousMap.status()).toBe(200);
+        const publicPayload=await anonymousMap.json();
+        expect(publicPayload.data.territories).toEqual([
+            {id:'east',location:'hill',kind:'forest'},
+            {id:'west',location:'ford',kind:'village'}
+        ]);
+        expect(JSON.stringify(publicPayload)).not.toContain('owner_actor_id');
+
         const mapToken=(await mapRequest.allHeaders()).authorization;
         expect(mapToken).toMatch(/^Bearer [a-f0-9]{64}$/);
         await receiver.getByRole('button',{name:'Explore territories'}).click();

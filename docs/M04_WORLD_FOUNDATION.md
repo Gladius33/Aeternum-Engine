@@ -173,6 +173,18 @@ rendez-vous annulé sans produire de niveau. Le rejeu doit retrouver
 exactement les cinq entrées de ce scénario. Cette preuve ne remplace
 pas un essai de charge prolongé.
 
+### Projection publique sans propriétaires
+
+L'endpoint public `GET /v1/public/worlds/{world}/map/territories[/{after}]`
+expose uniquement les identifiants de terrain, lieu et type, sur des
+pages stables et bornées à 50 lignes. Les identités, appartenances,
+propriétaires, niveaux et stocks ne sont jamais interrogés par cette
+projection. Le monde doit être explicitement approuvé ; le client
+d'origine est résolu par la configuration de proxy de confiance et
+soumis à une limitation de débit par origine. Cet endpoint ne modifie
+aucun état et ne permet pas d'obtenir une donnée privée par variation
+de méthode ou de curseur.
+
 ## Sortie de macro NON acquise
 
 Restent à développer les règles typées de bâtiments, la construction

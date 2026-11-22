@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,WorldBuildingHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -51,6 +51,13 @@ try {
                 }
                 $status=200; $body=['data'=>['worlds'=>$worlds,'invitationRequired'=>getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1','activationRequired'=>getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1']];
             }
+        } elseif (str_starts_with($path,'/v1/public/worlds/') && str_contains($path,'/map/')) {
+            $trustedProxies=getenv('AETERNUM_TRUSTED_PROXY_IPS');
+            $peer=PeerAddressResolver::resolve($_SERVER['REMOTE_ADDR'] ?? '',
+                $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',
+                $trustedProxies===false?'':$trustedProxies);
+            [$status,$body]=(new PublicWorldMapHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
+                ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$peer ?? '');
         } elseif (str_starts_with($path,'/v1/auth/')) {
             $globalLimit=getenv('AETERNUM_AUTH_GLOBAL_LIMIT');
             if ($globalLimit!==false && (!preg_match('/^[1-9][0-9]{0,5}$/D',$globalLimit) || (int)$globalLimit>100000)) throw new RuntimeException('Invalid auth verification configuration');
