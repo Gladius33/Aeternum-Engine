@@ -41,6 +41,7 @@ document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
     stock.replaceChildren();
+    marketClaim.hidden=true;
     const data=await api(base(f)+'overview/'+encodeURIComponent(f.account)+'/'+encodeURIComponent(f.resource));
     if (JSON.stringify(f)!==JSON.stringify(locationFields())) return;
     stock.replaceChildren();
@@ -291,6 +292,7 @@ async function loadMarket(after=null) {
 }
 function marketChanged() {
     stock.replaceChildren();
+    marketClaim.hidden=true;
     clearMarketPage('Market changed. Reload offers to see the current market.');
 }
 function validMarketUnits(value) { return Number.isSafeInteger(value) && value>=1 && value<=1000000000000; }
