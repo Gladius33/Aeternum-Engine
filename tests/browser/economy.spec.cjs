@@ -567,3 +567,41 @@ test('public signup provisions real players, supports retry, reconnect and accou
         await context.close();
     }
 });
+
+test('a timed barter offer expires through the real worker and remains replay-safe', async ({browser})=>{
+    test.setTimeout(140000);
+    const context=await browser.newContext();
+    try {
+        const page=await context.newPage();
+        await signIn(page,{...scenarios[0],login:'browser-medieval-sender'});
+        await page.selectOption('select[name=resource]','wood');
+        const fields=page.locator('#market-create');
+        await fields.getByLabel('Offered resource',{exact:true}).selectOption('wood');
+        await fields.getByLabel('Offered units',{exact:true}).fill('1');
+        await fields.getByLabel('Requested resource',{exact:true}).selectOption('grain');
+        await fields.getByLabel('Requested units',{exact:true}).fill('1');
+        await fields.getByLabel('Optional expiry (seconds from now)',{exact:true}).fill('4');
+        const received=page.waitForResponse(r=>r.url().endsWith('/economy/commands')
+            && r.request().method()==='POST',{timeout:15000});
+        await page.getByRole('button',{name:'Create offer',exact:true}).click();
+        const response=await received;
+        expect(response.status()).toBe(200);
+        await expect(page.locator('#status')).toHaveText('Success');
+        const sent=response.request().postDataJSON();
+        expect(sent.payload.expiresAt).toBeGreaterThan(Math.floor(Date.now()/1000)-15);
+        expect(sent.payload.expiresAt).toBeLessThanOrEqual(Math.floor(Date.now()/1000)+10);
+        expect((await marketPage(page)).offers.some(o=>o.id===sent.id)).toBe(true);
+        await page.waitForTimeout(6000);
+        const output=execFileSync('php',['bin/worker.php','reference-medieval','e2e-medieval'],
+            {encoding:'utf8',timeout:15000});
+        const worker=JSON.parse(output);
+        expect(worker.world).toBe('e2e-medieval');
+        expect(worker.processed).toBeGreaterThanOrEqual(1);
+        expect((await marketPage(page)).offers.some(o=>o.id===sent.id)).toBe(false);
+        const originalAuthorization=(await response.request().allHeaders()).authorization;
+        const duplicate=await page.request.post(url+'/v1/worlds/e2e-medieval/economy/commands',
+            {headers:{Authorization:originalAuthorization},data:sent});
+        expect(duplicate.status()).toBe(200);
+        expect((await duplicate.json()).data).toEqual((await response.json()).data);
+    } finally { await context.close(); }
+});
