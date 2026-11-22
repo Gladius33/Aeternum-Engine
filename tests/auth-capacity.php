@@ -7,9 +7,10 @@ $authJson=static fn(array $payload):string=>json_encode($payload,JSON_THROW_ON_E
 // Login, recovery, rotation and password change must all reject an overload
 // before computing password hashes, and a normal sign-out must still work.
 $authSaturationActor=(new PdoIdentity(db()))->register('auth-saturation-user','auth saturation original strong password');
-// rate-cleanup.php has raised the durable global clock floor to 2,000,000.
-// This final fixture must be after that floor to exercise hashing slots, not 429.
-$authSaturationClock=new FrozenClock(3000000);
+// The preceding real-time operator CLI advances the durable rate-limit floor
+// near wall time. Use that same real clock, not an arbitrary simulated epoch;
+// otherwise admission correctly rejects a rollback with 429 before slot checks.
+$authSaturationClock=new \Aeternum\Core\SystemClock();
 $authSaturationApi=new AuthHttpApi(db(),$authSaturationClock,120,[],false,30,2);
 $authOriginalPassword='auth saturation original strong password';
 $authNewPassword='auth saturation new secure password';
