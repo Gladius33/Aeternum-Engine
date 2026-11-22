@@ -302,7 +302,19 @@ for (const s of scenarios) {
         expect(data.scheduledIds).toHaveLength(1);
         await expect(page.locator('#status')).toHaveText('Success');
         await signIn(page,s);
-        const persisted=await refresh(page);
+        // A different account in this shared world may have a due event.
+        // The API correctly refuses stale reads with 409 until the bounded
+        // world worker settles those events. Drain and retry rather than
+        // interpreting a consistency safeguard as a broken browser session.
+        let persisted=null;
+        for (let attempt=0; attempt<4; attempt++) {
+            persisted=await refresh(page,true);
+            if (persisted!==null) break;
+            const report=JSON.parse(execFileSync('php',['bin/worker.php',s.pack,s.world],{encoding:'utf8',timeout:15000}));
+            expect(report.world).toBe(s.world);
+            expect(Number.isInteger(report.processed)).toBe(true);
+        }
+        expect(persisted).not.toBeNull();
         expect(persisted.stock).toBeGreaterThanOrEqual(before.stock-s.cost);
         expect(persisted.stock).toBeLessThan(before.stock);
         expect(persisted.amount).toBe(s.rate);
