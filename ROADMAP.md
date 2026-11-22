@@ -53,3 +53,7 @@ Trusted account setup CLI available; browser UI and public registration remain o
 0028: exact head daee5e12285910702925f2a02a50e032bc2f841b passed PHP/MariaDB (44956967641) and Chromium (44956967691), merged as 1ae12e943b771c2a48b71b0c06a6b2b7431afc1c. 0029 adds an owned-resource progression overview and browser rendering. Full gameplay, distinct game mechanics, public onboarding and remaining G03–G05 gates are open.
 
 0030: clear private browser state after HTTP 401, clear stale overview before refresh, and prevent selection changes during requests. Real browser test revokes a bearer via the live API and verifies return to sign-in. CI evidence pending.
+
+0030 evidence: exact head 94ff65f5fea6a745688d38de656c6919b597f493 passed PHP/MariaDB (44959669342) and Chromium (44959669335), merged as a0f1ade8c3e13dce9e36b4fa9e9cb0614e47c660.
+
+0031: expose existing actor-authorized resource transfers in the reference UI using recipient account ID and integer units. Retry identity includes the full payload. HTTP integration tests verify exact debit/credit, retry and rejection; browser tests exercise rejected transfers against real API in both packs. Recipient discovery and successful browser multiplayer scenarios remain open. CI evidence pending.

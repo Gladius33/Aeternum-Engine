@@ -41,6 +41,16 @@ for (const s of scenarios) {
         expect((await request.get(url+'/v1/me/worlds')).status()).toBe(401);
         await signIn(page,s);
         const before=await refresh(page);
+        await page.selectOption('select[name=type]','economy.transfer');
+        await expect(page.getByLabel('Recipient account')).toBeVisible();
+        await page.getByLabel('Recipient account').fill('absent-recipient');
+        await page.getByLabel('Units',{exact:true}).fill('1');
+        const denied=page.waitForResponse(r=>r.url().endsWith('/economy/commands'));
+        await page.getByRole('button',{name:'Submit action'}).click();
+        expect((await denied).status()).toBe(409);
+        await expect(page.locator('#status')).toHaveText('command_or_access_conflict');
+        await page.selectOption('select[name=type]','economy.upgrade');
+        await expect(page.getByLabel('Recipient account')).toBeHidden();
         expect(before.amount).toBe(s.rate);
         expect(before.level).toBe(0);
         expect(before.next.cost).toBe(s.cost);

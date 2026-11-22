@@ -78,13 +78,21 @@ login.addEventListener('submit',e=>{
     run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;game.hidden=false;await discover();});
 });
 balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
+const transferFields=document.querySelector('#transfer-fields');
+function syncTransferFields() {
+    const active=action.elements.type.value==='economy.transfer';
+    transferFields.hidden=!active; transferFields.disabled=!active;
+}
+action.elements.type.addEventListener('change',syncTransferFields);
 action.addEventListener('submit',e=>{
     e.preventDefault();
     run(async()=>{
         const f=locationFields(), type=action.elements.type.value;
-        const signature=JSON.stringify([f,type]);
+        const payload=type==='economy.transfer' ? {from:f.account,to:action.elements.recipient.value,resource:f.resource,units:Number(action.elements.units.value)} : {account:f.account,resource:f.resource};
+        if (type==='economy.transfer' && (!Number.isSafeInteger(payload.units) || payload.units<1 || payload.units>1000000000000 || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(payload.to) || payload.to===payload.from)) throw new Error('Invalid transfer');
+        const signature=JSON.stringify([f.world,type,payload]);
         if (pending && pending.signature!==signature) throw new Error('Retry the previous action with identical fields first.');
-        if (!pending) pending={signature,body:{id:crypto.randomUUID(),type,payload:{account:f.account,resource:f.resource}}};
+        if (!pending) pending={signature,body:{id:crypto.randomUUID(),type,payload}};
         try { await api(base(f)+'commands','POST',pending.body); } catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
         pending=null;
         await refresh();
@@ -92,7 +100,7 @@ action.addEventListener('submit',e=>{
 });
 function resetSession() {
     token=null; pending=null; worlds=[]; options(balance.elements.world,[]); selectWorld();
-    stock.replaceChildren(); game.hidden=true; login.hidden=false;
+    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false;
 }
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }
