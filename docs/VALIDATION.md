@@ -141,3 +141,6 @@ M01 pending-claim session guard: existing operator-provisioned identities withou
 
 
 The one-use invitation browser scenario runs before real-time timed upgrade scenarios. This respects shared production-equivalent per-peer authorization quotas rather than disabling rate limiting or accepting HTTP 429 as a substitute for an authorization test.
+
+
+M01 E2E correction after run 45009542745: the invitation-only real browser case intentionally provisions a second industrial actor, so the existing industrial recipient-directory assertion must observe one real invited account rather than an empty directory. Move the expired-session scenario before the 60s/180s timed upgrades to separate its authentication requests from the final public signup/recovery path while enforcing the unchanged auth:peer limit 10/min. Do not weaken rate enforcement or accept 429 as a substitute for a credential-rejection assertion.

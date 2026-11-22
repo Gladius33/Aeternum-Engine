@@ -232,6 +232,26 @@ test('invitation-only live server enforces one-use code through the real browser
     await expect(page.locator('#stock')).toContainText('stock');
 });
 
+test('expired authorization clears private UI and returns to login', async ({page})=>{
+    await signIn(page,scenarios[0]);
+    // Revoke the real bearer session through the real API while retaining the browser's in-memory token.
+    const requestPromise=page.waitForRequest(r=>r.url().endsWith('/v1/me/worlds'));
+    await page.getByRole('button',{name:'Reload available worlds'}).click();
+    const req=await requestPromise;
+    const authorization=(await req.allHeaders()).authorization;
+    expect(authorization).toMatch(/^Bearer /);
+    await expect(page.locator('#status')).toHaveText('Success');
+    const response=await page.request.post(url+'/v1/auth/logout',{headers:{Authorization:authorization}});
+    expect(response.status()).toBe(200);
+    await page.getByRole('button',{name:'Reload available worlds'}).click();
+    await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
+    await expect(page.locator('#stock')).toBeEmpty();
+    await expect(page.locator('#market-offer option')).toHaveCount(1);
+    await expect(page.locator('#market-notice')).toBeEmpty();
+    await expect(page.locator('#retry-command')).toBeHidden();
+    await expect(page.locator('#game')).toBeHidden();
+});
+
 for (const s of scenarios) {
     test(s.world+' real login, debit, reload and timed completion',async({page,request})=>{
         test.setTimeout(300000);
@@ -245,8 +265,8 @@ for (const s of scenarios) {
         await expect(page.getByLabel('Recipient account')).toBeVisible();
         if (s.pack==='reference-industrial') {
             await page.getByRole('button',{name:'Find recipients'}).click();
-            await expect(page.locator('#recipient-notice')).toHaveText('No recipients found.');
-            await expect(page.locator('#recipient-directory option')).toHaveCount(1);
+            await expect(page.locator('#recipient-notice')).toHaveText('Choose a recipient or enter an account ID manually.');
+            await expect(page.locator('#recipient-directory option')).toHaveCount(2);
         }
         await page.getByLabel('Recipient account').fill('absent-recipient');
         await page.getByLabel('Units',{exact:true}).fill('1');
@@ -299,27 +319,6 @@ for (const s of scenarios) {
         expect(errors).toEqual([]);
     });
 }
-
-test('expired authorization clears private UI and returns to login', async ({page})=>{
-    await signIn(page,scenarios[0]);
-    // Revoke the real bearer session through the real API while retaining the browser's in-memory token.
-    const requestPromise=page.waitForRequest(r=>r.url().endsWith('/v1/me/worlds'));
-    await page.getByRole('button',{name:'Reload available worlds'}).click();
-    const req=await requestPromise;
-    const authorization=(await req.allHeaders()).authorization;
-    expect(authorization).toMatch(/^Bearer /);
-    await expect(page.locator('#status')).toHaveText('Success');
-    const response=await page.request.post(url+'/v1/auth/logout',{headers:{Authorization:authorization}});
-    expect(response.status()).toBe(200);
-    await page.getByRole('button',{name:'Reload available worlds'}).click();
-    await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
-    await expect(page.locator('#stock')).toBeEmpty();
-    await expect(page.locator('#market-offer option')).toHaveCount(1);
-    await expect(page.locator('#market-notice')).toBeEmpty();
-    await expect(page.locator('#retry-command')).toBeHidden();
-    await expect(page.locator('#game')).toBeHidden();
-});
-
 
 test('public signup provisions real players, supports retry, reconnect and account isolation',async ({browser})=>{
     test.setTimeout(90000);
