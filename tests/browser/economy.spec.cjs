@@ -195,6 +195,26 @@ test('real multiplayer transfer and foreign balance denial', async ({browser})=>
         const s=scenarios[0];
         await signIn(sender,{...s,login:'browser-medieval-sender'});
         await signIn(receiver,{...s,login:'browser-medieval-receiver'});
+        // M04: map projections for distinct authorized sessions.
+        const mapCall=sender.waitForRequest(r=>r.url().endsWith('/map/territories'));
+        await sender.getByRole('button',{name:'Explore territories'}).click();
+        const mapRequest=await mapCall;
+        await expect(sender.locator('#map-territories')).toContainText('east — hill — forest — own');
+        await expect(sender.locator('#map-territories')).toContainText('west — ford — village — occupied');
+        const mapToken=(await mapRequest.allHeaders()).authorization;
+        expect(mapToken).toMatch(/^Bearer [a-f0-9]{64}$/);
+        await receiver.getByRole('button',{name:'Explore territories'}).click();
+        await expect(receiver.locator('#map-territories')).toContainText('east — hill — forest — occupied');
+        await expect(receiver.locator('#map-territories')).toContainText('west — ford — village — own');
+        await sender.getByLabel('Map location').fill('crossroads');
+        await sender.getByRole('button',{name:'Inspect map routes'}).click();
+        await expect(sender.locator('#map-links')).toContainText('crossroads → hill (cost 3)');
+        const unauthorized=await sender.request.get(url+'/v1/worlds/e2e-industrial/map/territories',{headers:{Authorization:mapToken}});
+        expect(unauthorized.status()).toBe(404);
+        const anonymous=await sender.request.get(url+'/v1/worlds/e2e-medieval/map/territories');
+        expect(anonymous.status()).toBe(401);
+        const readOnly=await sender.request.post(url+'/v1/worlds/e2e-medieval/map/territories',{headers:{Authorization:mapToken},data:{}});
+        expect(readOnly.status()).toBe(405);
         const from=await sender.locator('select[name=account]').inputValue();
         const to=await receiver.locator('select[name=account]').inputValue();
         expect(from).not.toBe(to);

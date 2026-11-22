@@ -21,6 +21,50 @@ function options(select, values) {
         option.value=value; option.textContent=label; select.append(option);
     }
 }
+const mapList=document.querySelector('#map-territories'), mapLinks=document.querySelector('#map-links'),
+      mapNext=document.querySelector('#map-next'), mapNotice=document.querySelector('#map-notice');
+let mapAfter=null;
+function clearMap() {
+    mapList.replaceChildren(); mapLinks.replaceChildren();
+    mapAfter=null; mapNext.hidden=true; mapNotice.textContent='';
+    document.querySelector('#map-location').value='';
+}
+async function loadMap(after=null) {
+    const world=balance.elements.world.value;
+    if (!world) throw new Error('Choose a world first');
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/map';
+    const data=await api(root+'/territories'+(after===null?'':'/'+encodeURIComponent(after)));
+    if (world!==balance.elements.world.value) return;
+    mapList.replaceChildren();
+    for (const territory of data.territories) {
+        const item=document.createElement('li');
+        item.textContent=territory.id+' — '+territory.location+' — '+territory.kind+' — '+territory.control;
+        mapList.append(item);
+    }
+    mapAfter=data.nextAfter;
+    mapNext.hidden=mapAfter===null;
+    mapNotice.textContent=data.territories.length?'Territories in this world.':'No territories on this page.';
+}
+async function loadMapLinks() {
+    const world=balance.elements.world.value, location=document.querySelector('#map-location').value.trim();
+    if (!world || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(location)) throw new Error('Enter a valid map location');
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/map';
+    const data=await api(root+'/locations/'+encodeURIComponent(location)+'/links');
+    if (world!==balance.elements.world.value) return;
+    mapLinks.replaceChildren();
+    for(const link of data.neighbors) {
+        const item=document.createElement('li');
+        item.textContent=location+' → '+link.location+' (cost '+link.cost+')';
+        mapLinks.append(item);
+    }
+    if (!data.neighbors.length) {
+        const item=document.createElement('li');
+        item.textContent='No outgoing routes'; mapLinks.append(item);
+    }
+}
+document.querySelector('#map-load').addEventListener('click',()=>run(()=>loadMap()));
+mapNext.addEventListener('click',()=>{if(mapAfter!==null)run(()=>loadMap(mapAfter));});
+document.querySelector('#map-links-load').addEventListener('click',()=>run(loadMapLinks));
 function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);
     options(balance.elements.account,(w?.accounts??[]).map(a=>[a,a]));
@@ -28,6 +72,7 @@ function selectWorld() {
     stock.replaceChildren(); marketClaim.hidden=true;
     clearRecipients();
     clearMarket();
+    clearMap();
 }
 async function discover() {
     const data=await api('/v1/me/worlds');

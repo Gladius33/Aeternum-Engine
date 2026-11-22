@@ -36,6 +36,15 @@ les relations doivent rester synchronisées avec les membres et les lieux.
 Ne jamais retirer 022 sur une base de production contenant des territoires
 sans plan de migration et validation humaine.
 
+## API et navigateur (lecture seule)
+
+`GET /v1/worlds/{world}/map/territories[/{after}]` retourne 50 secteurs
+au maximum et `nextAfter`. `GET /v1/worlds/{world}/map/locations/{id}/links[/{after}]`
+fait de même pour les relations orientées. Les deux routes exigent une
+session active et une appartenance au monde configuré, appliquent un quota
+de lecture et n'exposent pas d'API de mutation. L'interface de référence
+permet de visualiser les territoires et les routes, pas de construire.
+
 ## Sortie de macro NON acquise
 
 Restent à développer les règles typées de bâtiments, la construction
