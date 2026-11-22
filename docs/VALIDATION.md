@@ -243,3 +243,7 @@ The production PHP HTTP controller denies both public-world discovery and public
 
 
 Defensive HTTP negative tests reject both oversized and CRLF-header-injected email values with status 400 before an identity or email delivery attempt is possible; they must not be misclassified as retryable server failures.
+
+
+## M01 cross-server HTTP 429 test isolation (exact-head retest pending)
+The browser CI's standard, email-verification and insecure-policy rejection servers intentionally share the same durable authentication peer quota: each is accessed from localhost and all trusted TLS proxies forward the observed socket address. A final security assertion can therefore receive a correct temporary 429 before its expected 401/404. The activation browser suite now retries ONLY those **negative probes**, waiting for a genuine 65-second fixed-window rollover without disabling or inflating any quota. CI #153 recorded exactly this original failure, not an activation bypass or an account leak. The corrected tests must prove the eventual rejection on a new SHA.
