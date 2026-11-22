@@ -64,8 +64,32 @@ async function industrialMarketSmoke(page) {
     expect(pageData.offers).toHaveLength(1);
     expect(pageData.offers[0].id).toBe(created.body.id);
     await page.getByLabel('Open offers',{exact:true}).selectOption(created.body.id);
-    const cancelled=await marketCommand(page,'Cancel selected offer','market.cancel');
+    // Commit a real cancellation and deliberately lose its browser acknowledgement.
+    let lostBody,lostReceipt,resolveLost,rejectLost;
+    const lost=new Promise((resolve,reject)=>{resolveLost=resolve;rejectLost=reject;});
+    await page.route('**/economy/commands',async route=>{
+        try {
+            lostBody=route.request().postDataJSON();
+            expect(lostBody.type).toBe('market.cancel');
+            const committed=await route.fetch();
+            expect(committed.status()).toBe(200);
+            lostReceipt=(await committed.json()).data;
+            await route.abort('failed');
+            resolveLost();
+        } catch(e) {rejectLost(e); await route.abort('failed').catch(()=>{});}
+    },{times:1});
+    await page.getByRole('button',{name:'Cancel selected offer',exact:true}).click();
+    await lost;
+    await expect(page.locator('#status')).toHaveText('Failed to fetch');
+    await expect(page.getByRole('button',{name:'Retry pending action',exact:true})).toBeVisible();
+    // Reload removes the cancelled offer, but the saved command remains retryable.
+    expect((await marketPage(page)).offers).toEqual([]);
+    await expect(page.locator('#market-offer option')).toHaveCount(1);
+    const cancelled=await marketCommand(page,'Retry pending action','market.cancel');
+    expect(cancelled.body).toEqual(lostBody);
+    expect(cancelled.receipt).toEqual(lostReceipt);
     expect(cancelled.body.payload.offer).toBe(created.body.id);
+    await expect(page.getByRole('button',{name:'Retry pending action',exact:true})).toBeHidden();
     expect((await marketPage(page)).offers).toEqual([]);
     await expect(page.locator('#market-next')).toBeHidden();
     await expect(page.locator('#market-notice')).toHaveText('No open offers.');
@@ -200,5 +224,6 @@ test('expired authorization clears private UI and returns to login', async ({pag
     await expect(page.locator('#stock')).toBeEmpty();
     await expect(page.locator('#market-offer option')).toHaveCount(1);
     await expect(page.locator('#market-notice')).toBeEmpty();
+    await expect(page.locator('#retry-command')).toBeHidden();
     await expect(page.locator('#game')).toBeHidden();
 });

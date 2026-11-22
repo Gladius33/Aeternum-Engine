@@ -113,16 +113,24 @@ action.addEventListener('submit',e=>{
         await refresh();
     });
 });
+const retryCommand=document.querySelector('#retry-command');
+function syncPendingRetry() { retryCommand.hidden=pending===null; }
+async function sendPending() {
+    if (!pending) throw new Error('No pending action');
+    const saved=pending;
+    try { await api(base({world:saved.world})+'commands','POST',saved.body); pending=null; }
+    catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
+    finally { syncPendingRetry(); }
+}
 async function submitCommand(f,type,payload) {
     const signature=JSON.stringify([f.world,type,payload]);
     if (pending && pending.signature!==signature) throw new Error('Retry the previous action with identical fields first.');
     if (!pending) {
         const id=crypto.randomUUID();
-        pending={signature,body:{id,type,payload:type==='market.create'?{...payload,offer:id}:payload}};
+        pending={world:f.world,signature,body:{id,type,payload:type==='market.create'?{...payload,offer:id}:payload}};
     }
-    try { await api(base(f)+'commands','POST',pending.body); }
-    catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
-    pending=null;
+    syncPendingRetry();
+    await sendPending();
 }
 const marketCreate=document.querySelector('#market-create'), marketChoice=document.querySelector('#market-offer'), marketNext=document.querySelector('#market-next'), marketNotice=document.querySelector('#market-notice');
 let marketOffers=[], marketAfter=null;
@@ -182,8 +190,13 @@ document.querySelector('#market-load').addEventListener('click',()=>run(()=>load
 marketNext.addEventListener('click',()=>{ if (marketAfter!==null) run(()=>loadMarket(marketAfter)); });
 document.querySelector('#market-accept').addEventListener('click',()=>run(()=>selectedMarketCommand('market.accept')));
 document.querySelector('#market-cancel').addEventListener('click',()=>run(()=>selectedMarketCommand('market.cancel')));
+retryCommand.addEventListener('click',()=>run(async()=>{
+    await sendPending();
+    stock.replaceChildren();
+    clearMarketPage('Saved action confirmed. Reload stock and offers.');
+}));
 function resetSession() {
-    token=null; pending=null; worlds=[]; options(balance.elements.world,[]); selectWorld();
+    token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
     stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false;
 }
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
