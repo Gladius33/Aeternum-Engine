@@ -132,7 +132,7 @@ $httpCommand=json_encode(['id'=>'third-http-upgrade','type'=>'economy.upgrade',
 [$code,$result]=$economy->handle('POST',$apiBase.'commands',$apiBearer,$httpCommand);
 check($code===200,'third pack accepts real authenticated progression command through dispatcher');
 [$replayCode,$retry]=$economy->handle('POST',$apiBase.'commands',$apiBearer,$httpCommand);
-check($replayCode===200 && $retry===$result,'third pack HTTP retry returns same durable receipt');
+check($replayCode===200 && json_encode($retry,JSON_THROW_ON_ERROR)===json_encode($result,JSON_THROW_ON_ERROR),'third pack HTTP retry returns same durable receipt');
 $apiClock->advanceTo(690);
 $apiWorker=new PdoScheduler(db(),'m02-third-api-world',$apiClock,$apiRules);
 check(count($apiWorker->processDue($apiRules->events))===1,
