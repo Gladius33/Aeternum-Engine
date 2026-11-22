@@ -15,8 +15,8 @@ async function signIn(page, scenario) {
     await page.getByRole('button',{name:'Sign in',exact:true}).click();
     expect((await discovery).status()).toBe(200);
     await expect(page.locator('#status')).toHaveText('Success');
-    await expect(page.locator('select[name=world] option')).toHaveCount(1);
-    await expect(page.locator('select[name=world]')).toHaveValue(scenario.world);
+    await expect(page.locator('#balance select[name=world] option')).toHaveCount(1);
+    await expect(page.locator('#balance select[name=world]')).toHaveValue(scenario.world);
     await page.selectOption('select[name=resource]',scenario.resource);
 }
 async function refresh(page, allowDueConflict=false) {

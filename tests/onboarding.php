@@ -28,9 +28,10 @@ $onGet=static function(string $actor):array {
     return $st->fetch(PDO::FETCH_ASSOC);
 };
 check($onGet($onActor)===['world_id'=>$onWorld,'status'=>'ready'],'public provisioning claim durable ready');
-$onScheduler=new PdoScheduler(db(),$onWorld,$onClock,$onPack->rules());
+$onRules=$onPack->rules();
+$onScheduler=new PdoScheduler(db(),$onWorld,$onClock,$onRules);
 foreach($onPack->resources as $resource) {
-    check($onScheduler->balanceForActor($onActor,$onActor,$resource->id,$onPack->rules()->commands)->stock===$resource->initialStock,'new player has seeded '.$resource->id);
+    check($onScheduler->balanceForActor($onActor,$onActor,$resource->id,$onRules->commands)->stock===$resource->initialStock,'new player has seeded '.$resource->id);
 }
 $onLedger=db()->prepare('SELECT COUNT(*) FROM engine_resource_ledger WHERE world_id=? AND account_id=?');
 $onLedger->execute([$onWorld,$onActor]); $onBefore=(int)$onLedger->fetchColumn();
@@ -56,7 +57,7 @@ $insert->execute([$onPartialActor,$onWorld,1200]);
 check($onRecoveredStatus===200 && $onRecovered['data']['account']===$onPartialActor,'replay resumes partially provisioned identity');
 check($onGet($onPartialActor)['status']==='ready','interrupted claim completes to ready');
 foreach($onPack->resources as $resource) {
-    check($onScheduler->balanceForActor($onPartialActor,$onPartialActor,$resource->id,$onPack->rules()->commands)->stock===$resource->initialStock,'recovered player has initial '.$resource->id);
+    check($onScheduler->balanceForActor($onPartialActor,$onPartialActor,$resource->id,$onRules->commands)->stock===$resource->initialStock,'recovered player has initial '.$resource->id);
 }
 for($n=0;$n<6;$n++) {
     $onPost(['login'=>'bad-'.$n,'password'=>'strong test password','world'=>$onWorld],'198.51.100.18');
