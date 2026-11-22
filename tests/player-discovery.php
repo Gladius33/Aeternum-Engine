@@ -17,3 +17,12 @@ check($api->handle('POST','Bearer '.$dt)[0]===405,'discovery read only');
 check($ds===200 && $dd['data']['worlds'][0]['accounts']===[$da],'discovery isolates accounts');
 (new PdoMemberships(db(),'discover-world'))->revoke($da);
 check($api->handle('GET','Bearer '.$dt)[1]['data']['worlds']===[],'revoked membership excluded');
+
+check($api->handle('GET','Bearer '.$dt,'discover-world')[1]['data']['accounts']===[],'revoked requester sees no recipients');
+(new PdoMemberships(db(),'discover-world'))->grant($da);
+check($api->handle('GET','Bearer '.$dt,'discover-world')[1]['data']['accounts']===[$dbob],'only other active recipient exposed');
+check($api->handle('GET','','discover-world')[0]===401,'recipient discovery requires session');
+check($api->handle('POST','Bearer '.$dt,'discover-world')[0]===405,'recipient discovery read only');
+check($api->handle('GET','Bearer '.$dt,'unconfigured-world')[0]===404,'unconfigured world excluded');
+(new PdoMemberships(db(),'discover-world'))->revoke($dbob);
+check($api->handle('GET','Bearer '.$dt,'discover-world')[1]['data']['accounts']===[],'revoked recipient excluded');
