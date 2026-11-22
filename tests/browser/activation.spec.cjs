@@ -49,12 +49,22 @@ test('HTTPS self-service mailbox proof creates no premature bearer, then player 
         const blocked=await postAfterPeerWindow(context.request,url+'/v1/auth/login',{data:{login,password}});
         expect(blocked.status()).toBe(401);
         await page.getByLabel('Activation login',{exact:true}).fill(login);
-        await page.getByLabel('Activation password',{exact:true}).fill(password);
-        await page.getByLabel('Email activation code',{exact:true}).fill(delivered.code);
-        const verifiedPromise=page.waitForResponse(r=>r.url().endsWith('/v1/auth/activate')&&r.request().method()==='POST');
-        await page.getByRole('button',{name:'Activate player',exact:true}).click();
-        const verified=await verifiedPromise;
-        expect(verified.status()).toBe(200);
+        let verified;
+        for(let attempt=0;attempt<3;attempt++) {
+            // The UI intentionally clears both secrets after each submission.
+            // A shared real per-peer quota may have been consumed by the
+            // preceding two-player and timed-offer browser scenarios.
+            await page.getByLabel('Activation password',{exact:true}).fill(password);
+            await page.getByLabel('Email activation code',{exact:true}).fill(delivered.code);
+            const responsePromise=page.waitForResponse(r=>r.url().endsWith('/v1/auth/activate')&&r.request().method()==='POST');
+            await page.getByRole('button',{name:'Activate player',exact:true}).click();
+            const response=await responsePromise;
+            if(response.status()===200) {verified=response;break;}
+            expect(response.status()).toBe(429);
+            if(attempt===2)throw new Error('Mailbox activation quota still exhausted after fixed-window retries');
+            await page.waitForTimeout(65000);
+        }
+        expect(verified).toBeDefined();
         const {data:player}=await verified.json();
         expect(player.account).toMatch(/^[a-f0-9]{64}$/);
         expect(player.recoveryCode).toMatch(/^[a-f0-9]{64}$/);

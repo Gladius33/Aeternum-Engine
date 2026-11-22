@@ -41,14 +41,42 @@ $pack=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-mediev
 $rules=$pack->rules();
 $game=new PdoScheduler($dst,'m01-legacy-world',new FrozenClock(50),$rules);
 $replay=$game->verifyReplay($rules->commands,$rules->events);
-if($replay->entries!==count($pack->resources)) throw new RuntimeException('Restored journal failed deterministic replay');
+// The nonempty pre-020 migration fixture includes one durable escrow offer
+// after the opening commands. Restore must replay that offer as well as the
+// initial resource openings, without modifying an existing journal.
+$expectedEntries=count($pack->resources)+1;
+if($replay->entries!==$expectedEntries) throw new RuntimeException(
+    'Restored journal count differs: expected '.$expectedEntries.', received '.$replay->entries
+);
+$offers=$game->marketForActor($actor);
+if(array_column($offers['offers'],'id')!==['legacy-m03-offer']) {
+    throw new RuntimeException('Restored pre-020 escrow offer missing from active market');
+}
+$offer=$dst->prepare('SELECT status,seller_id,give_resource,give_units,want_resource,want_units FROM engine_market_offers WHERE world_id=? AND offer_id=?');
+$offer->execute(['m01-legacy-world','legacy-m03-offer']);
+$persisted=$offer->fetch(PDO::FETCH_ASSOC);
+if($persisted===false || $persisted['status']!=='open' || $persisted['seller_id']!==$actor
+    || $persisted['give_resource']!=='wood' || (int)$persisted['give_units']!==1
+    || $persisted['want_resource']!=='grain' || (int)$persisted['want_units']!==1) {
+    throw new RuntimeException('Restored migrated escrow projection differs from source fixture');
+}
 foreach ($pack->resources as $resource) {
     $balance=$game->balanceForActor($actor,$actor,$resource->id,$rules->commands);
-    if($balance->stock!==$resource->initialStock) throw new RuntimeException('Restored resource stock differs');
+    // The legacy escrow offer reserves one wood unit before migration.
+    // Verify post-escrow stock, not the pre-market opening balance.
+    $expectedStock=$resource->initialStock-($resource->id==='wood'?1:0);
+    if($balance->stock!==$expectedStock) throw new RuntimeException(
+        'Restored resource stock differs for '.$resource->id
+    );
+    $row=$dst->prepare('SELECT stock_units FROM engine_economy_balances WHERE world_id=? AND account_id=? AND resource_id=?');
+    $row->execute(['m01-legacy-world',$actor,$resource->id]);
+    if((int)$row->fetchColumn()!==$expectedStock) {
+        throw new RuntimeException('Restored relational stock differs for '.$resource->id);
+    }
 }
 echo json_encode([
     'restoreVerified'=>true,'tablesCompared'=>count($tables),
     'rowsFingerprinted'=>$rowsChecked,
-    'legacyActorLogin'=>true,'journalReplayEntries'=>$replay->entries,
+    'legacyActorLogin'=>true,'journalReplayEntries'=>$replay->entries,'escrowOfferRestored'=>true,
     'scope'=>'isolated disposable DB; no host production restore'
 ],JSON_THROW_ON_ERROR|JSON_PRETTY_PRINT).PHP_EOL;
