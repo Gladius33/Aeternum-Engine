@@ -59,6 +59,26 @@ check($onGet($onPartialActor)['status']==='ready','interrupted claim completes t
 foreach($onPack->resources as $resource) {
     check($onScheduler->balanceForActor($onPartialActor,$onPartialActor,$resource->id,$onRules->commands)->stock===$resource->initialStock,'recovered player has initial '.$resource->id);
 }
+// Recovery from a later interruption, after ownership and the FIRST resource
+// were already committed, must not grant it again.
+$onLateActor=(new PdoIdentity(db()))->register('public-later','a later signup recovery password');
+$insert->execute([$onLateActor,$onWorld,1200]);
+$onLateMembership=new PdoMemberships(db(),$onWorld);
+$onLateMembership->grant($onLateActor);
+$onLateMembership->assign($onLateActor,$onLateActor);
+$onLateEntities=new \Aeternum\Core\PdoEntities(db(),$onWorld);
+$onLateEntities->addLocation($onLateActor);
+$onLateEntities->provision($onLateActor,$onLateActor,$onLateActor,'settlement');
+$onScheduler->executeForActor($onLateActor,
+    new \Aeternum\Core\Command($onWorld,'provision:wood','economy.open',['account'=>$onLateActor,'resource'=>'wood']),
+    $onRules->commands);
+$onLedger->execute([$onWorld,$onLateActor]);
+check((int)$onLedger->fetchColumn()===1,'injected interruption after one initial credit');
+[$onLateStatus,$onLateResult]=$onPost(['login'=>'public-later','password'=>'a later signup recovery password','world'=>$onWorld],'198.51.100.24');
+check($onLateStatus===200 && $onLateResult['data']['account']===$onLateActor,'signup resumes interrupted second-resource provisioning');
+$onLedger->execute([$onWorld,$onLateActor]);
+check((int)$onLedger->fetchColumn()===count($onPack->resources),'late restart never duplicates first resource');
+check($onGet($onLateActor)['status']==='ready','late interrupted claim ready');
 for($n=0;$n<6;$n++) {
     $onPost(['login'=>'bad-'.$n,'password'=>'strong test password','world'=>$onWorld],'198.51.100.18');
 }
@@ -67,7 +87,7 @@ check($onPost(['login'=>'last','password'=>'strong test password','world'=>$onWo
 // Four independent processes concurrently retry the same new signup identity.
 $raceWorld='public-concurrent-world';
 $racePack=$onPack;
-(new PdoScheduler(db(),$raceWorld,new FrozenClock(1900),$racePack->rules()))->initialize();
+// Workers race to initialize the same entirely absent world; no operator bootstrapping.
 $workers=[];
 for($i=0;$i<4;$i++) {
     $proc=proc_open([PHP_BINARY,__DIR__.'/onboarding-worker.php',$raceWorld,(string)$i],
