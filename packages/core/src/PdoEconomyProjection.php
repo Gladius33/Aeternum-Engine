@@ -37,10 +37,23 @@ final class PdoEconomyProjection
         foreach ($refunds as [$account,$resource]) $this->refund($state,$account,$resource);
     }
 
-    /** Apply changed keys without scanning and rewriting every SQL row. */
-    public function sync(array $before,array $after): void
+    /** The O(n) diff may be prepared before entering the world write lock. */
+    public static function deltaKeys(array $before,array $after): array
     {
-        $keys=array_unique([...array_keys($before),...array_keys($after)]);
+        $changed=[];
+        foreach ($before as $key=>$value) {
+            if (!array_key_exists($key,$after) || $after[$key]!==$value) $changed[]=$key;
+        }
+        foreach ($after as $key=>$value) {
+            if (!array_key_exists($key,$before)) $changed[]=$key;
+        }
+        return $changed;
+    }
+
+    /** Apply changed keys without scanning and rewriting every SQL row. */
+    public function sync(array $before,array $after,?array $changedKeys=null): void
+    {
+        $keys=$changedKeys??self::deltaKeys($before,$after);
         $balances=[]; $offers=[]; $refunds=[];
         foreach ($keys as $key) {
             if (($before[$key]??null)===($after[$key]??null) && array_key_exists($key,$before)===array_key_exists($key,$after)) continue;

@@ -89,3 +89,18 @@ persistés atomiquement. Les réessais d'un même identifiant renvoient
 le même ActorReceipt, sans nouvelle exécution. Les commandes système
 et toutes les lignes historiques restent inchangées ; aucune migration
 destructrice de reçus n'est réalisée.
+
+## Préparation optimiste des écritures
+
+Les commandes économiques authentifiées sous migration 020 peuvent calculer
+leur transition pure et les clés modifiées avant d'obtenir le verrou mondial.
+La transaction conserve ensuite la vérification des permissions, de l'horloge,
+des événements échus et des versions de l'état et du journal. Si une autre
+commande a écrit entre-temps, le résultat spéculatif est abandonné et recalculé
+sous verrou ; aucun reçu ou débit spéculatif n'est publié. Des processus MariaDB
+indépendants testent la contention et l'absence d'écriture perdue.
+
+Cela réduit le travail de calcul dans la section critique ; **le snapshot JSON
+canonique, le journal séquentiel et le verrou mondial des commits demeurent**.
+La suppression complète de cette contention et la qualification de charge
+restent nécessaires avant de considérer M03 achevée.

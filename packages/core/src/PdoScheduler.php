@@ -70,9 +70,39 @@ final class PdoScheduler
         return $this->projectionInstalled;
     }
 
-    private function syncProjection(array $before,array $after): void
+    private function syncProjection(array $before,array $after,?array $changedKeys=null): void
     {
-        if ($this->hasProjection()) (new PdoEconomyProjection($this->pdo,$this->worldId))->sync($before,$after);
+        if ($this->hasProjection()) (new PdoEconomyProjection($this->pdo,$this->worldId))->sync($before,$after,$changedKeys);
+    }
+
+    /**
+     * Prepare a pure actor economy transition before acquiring the world
+     * write lock. A changed snapshot forces re-evaluation inside the lock.
+     * This does not bypass membership, due events, journal order or receipts.
+     */
+    private function prepareEconomyTransition(Command $command,CommandHandler $handler,?string $actor): ?array
+    {
+        if ($actor===null || !$handler instanceof EconomyCommandHandler || !$this->hasProjection()) return null;
+        try {
+            // Speculative authorization is only a precheck; locked commit rechecks.
+            $this->authorizeActor($actor,$command);
+            $snapshot=$this->query('SELECT state_json,journal_sequence,watermark,rules_key,economy_projection_version
+                FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetch(PDO::FETCH_ASSOC);
+            if ($snapshot===false || $snapshot['rules_key']!==$this->rulesKey()
+                || (int)$snapshot['economy_projection_version']!==1) return null;
+            $at=$this->clock->now();
+            if ($at<0 || $at<(int)$snapshot['watermark']) return null;
+            $before=ScalarMap::decode($snapshot['state_json']);
+            $result=$handler->apply($command,$before,$at);
+            return ['state_json'=>$snapshot['state_json'],
+                'journal_sequence'=>(int)$snapshot['journal_sequence'],
+                'at'=>$at,'before'=>$before,'result'=>$result,
+                'changed_keys'=>PdoEconomyProjection::deltaKeys($before,$result->state)];
+        } catch (\Throwable) {
+            // The locked canonical path decides every visible error. A stale
+            // speculative read must never reject or commit a request.
+            return null;
+        }
     }
 
     /** All projection bootstrap runs under the existing InnoDB world lock. */
@@ -498,7 +528,8 @@ final class PdoScheduler
         if ($command->worldId !== $this->worldId) throw new \InvalidArgumentException('Wrong world');
         $this->processing = true;
         try {
-            return $this->transaction(function () use ($command,$handler,$actor,$clientRequest): CommandReceipt {
+            $prepared=$this->prepareEconomyTransition($command,$handler,$actor);
+            return $this->transaction(function () use ($command,$handler,$actor,$clientRequest,$prepared): CommandReceipt {
                 $world = $this->lockedWorld();
                 if ($actor!==null) $this->authorizeActor($actor,$command);
                 $payload = ScalarMap::encode($command->payload);
@@ -513,10 +544,21 @@ final class PdoScheduler
                 if ($at < 0 || $at < (int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
                 $due = $this->query('SELECT event_id FROM engine_events WHERE world_id = ? AND completed = 0 AND due_at <= ? LIMIT 1 FOR UPDATE', [$this->worldId,$at])->fetchColumn();
                 if ($due !== false) throw new \DomainException('Due events must be processed before new commands');
-                $before=ScalarMap::decode($world['state_json']);
-                $result = $handler->apply($command,$before,$at);
+                $usable=$prepared!==null
+                    && $prepared['journal_sequence']===(int)$world['journal_sequence']
+                    && $prepared['state_json']===$world['state_json']
+                    && $prepared['at']===$at;
+                if ($usable) {
+                    $before=$prepared['before'];
+                    $result=$prepared['result'];
+                    $changedKeys=$prepared['changed_keys'];
+                } else {
+                    $before=ScalarMap::decode($world['state_json']);
+                    $result=$handler->apply($command,$before,$at);
+                    $changedKeys=null;
+                }
                 $stateJson = ScalarMap::encode($result->state);
-                $this->syncProjection($before,$result->state);
+                $this->syncProjection($before,$result->state,$changedKeys);
                 $seq = (int)$world['next_sequence'];
                 $ids = [];
                 foreach ($result->events as $event) {
