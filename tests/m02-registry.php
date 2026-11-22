@@ -59,3 +59,32 @@ $badManifest['unknown']='test';
 rejects(fn()=>GamePackLoader::load($encode($badManifest)),InvalidArgumentException::class,'manifest unknown field rejected with SDK extensions');
 $legacy=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/manifest.json'));
 check($legacy->components===[] && $legacy->actions===[] && $legacy->eventHooks===[],'old API-1 manifest metadata remains optional');
+
+$trustedBytes=file_get_contents(__DIR__.'/../games/reference-medieval/manifest.json');
+$trustedManifest=GamePackLoader::load($trustedBytes);
+$trustedRegistry=json_encode(['registry_api'=>'1','worlds'=>[
+    ['world'=>'new-config-world','pack'=>$trustedManifest->id,
+     'version'=>$trustedManifest->version,'sha256'=>$trustedManifest->digest]
+]],JSON_THROW_ON_ERROR);
+$tmp=tempnam(sys_get_temp_dir(),'aeternum-registry-');
+if ($tmp===false || file_put_contents($tmp,$trustedRegistry)===false) throw new RuntimeException('Test registry file unavailable');
+$oldRegistry=getenv('AETERNUM_WORLD_REGISTRY');
+$oldMedieval=getenv('AETERNUM_MEDIEVAL_WORLD');
+$oldIndustrial=getenv('AETERNUM_INDUSTRIAL_WORLD');
+try {
+    putenv('AETERNUM_MEDIEVAL_WORLD');
+    putenv('AETERNUM_INDUSTRIAL_WORLD');
+    putenv('AETERNUM_WORLD_REGISTRY='.$tmp);
+    check(count(ConfiguredWorlds::load())===1 && ConfiguredWorlds::load()['new-config-world']->id==='reference-medieval',
+        'real configured-world adapter loads operator file and new world');
+    putenv('AETERNUM_MEDIEVAL_WORLD=conflicting-legacy');
+    rejects(fn()=> ConfiguredWorlds::load(),RuntimeException::class,'mixed registry and legacy configuration refused');
+} finally {
+    $restore=static function(string $name,string|false $value):void {
+        putenv($value===false?$name:$name.'='.$value);
+    };
+    $restore('AETERNUM_WORLD_REGISTRY',$oldRegistry);
+    $restore('AETERNUM_MEDIEVAL_WORLD',$oldMedieval);
+    $restore('AETERNUM_INDUSTRIAL_WORLD',$oldIndustrial);
+    unlink($tmp);
+}

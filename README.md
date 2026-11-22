@@ -34,3 +34,7 @@ The binding French [LICENSE.md](LICENSE.md) prevails over this informational sum
 
 Copyright © 2026 Sébastien TOUILLEUX. All rights not expressly granted are reserved.
 
+
+## Packs et mondes configurables (M02 en développement)
+
+Le registre de mondes approuvés et le SDK déclaratif à schémas typés sont documentés dans [docs/M02_SDK_AND_REGISTRY.md](docs/M02_SDK_AND_REGISTRY.md). Les mondes historiques restent épinglés aux octets exacts de leurs règles ; aucune migration silencieuse n'est autorisée. La validation d'une PR ne vaut pas recette de production.
