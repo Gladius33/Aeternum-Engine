@@ -200,6 +200,38 @@ test('real multiplayer transfer and foreign balance denial', async ({browser})=>
     }
 });
 
+
+test('invitation-only live server enforces one-use code through the real browser',async({page})=>{
+    test.setTimeout(90000);
+    const fs=require('node:fs');
+    const invitation=fs.readFileSync('tests/browser/.e2e-invite-token','utf8').trim();
+    expect(invitation).toMatch(/^[a-f0-9]{64}$/);
+    const invitedUrl='http://127.0.0.1:8766';
+    await page.goto(invitedUrl+'/play.html');
+    await expect(page.locator('#register')).toBeVisible();
+    await expect(page.locator('#invite-wrap')).toBeVisible();
+    await expect(page.getByLabel('Invitation code',{exact:true})).toHaveAttribute('required','');
+    await page.getByLabel('New login',{exact:true}).fill('browser-invited-first');
+    await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
+    await page.getByLabel('Confirm new password',{exact:true}).fill(password);
+    await page.getByLabel('World to join',{exact:true}).selectOption('e2e-industrial');
+    await page.getByLabel('Invitation code',{exact:true}).fill(invitation);
+    const received=page.waitForResponse(r=>r.url().endsWith('/v1/auth/register') && r.request().method()==='POST');
+    await page.getByRole('button',{name:'Create player',exact:true}).click();
+    const response=await received;
+    expect(response.status()).toBe(201);
+    const {data}=await response.json();
+    expect(data.world).toBe('e2e-industrial');
+    await expect(page.locator('#game')).toBeVisible();
+    await expect(page.locator('#balance select[name=account]')).toHaveValue(data.account);
+    const denied=await page.request.post(invitedUrl+'/v1/auth/register',{data:{
+        login:'browser-invited-thief',password,world:'e2e-industrial',inviteCode:invitation
+    }});
+    expect(denied.status()).toBe(409);
+    await page.getByRole('button',{name:'Refresh stock'}).click();
+    await expect(page.locator('#stock')).toContainText('stock');
+});
+
 for (const s of scenarios) {
     test(s.world+' real login, debit, reload and timed completion',async({page,request})=>{
         test.setTimeout(300000);
@@ -350,36 +382,4 @@ test('public signup provisions real players, supports retry, reconnect and accou
     } finally {
         await context.close();
     }
-});
-
-
-test('invitation-only live server enforces one-use code through the real browser',async({page})=>{
-    test.setTimeout(90000);
-    const fs=require('node:fs');
-    const invitation=fs.readFileSync('tests/browser/.e2e-invite-token','utf8').trim();
-    expect(invitation).toMatch(/^[a-f0-9]{64}$/);
-    const invitedUrl='http://127.0.0.1:8766';
-    await page.goto(invitedUrl+'/play.html');
-    await expect(page.locator('#register')).toBeVisible();
-    await expect(page.locator('#invite-wrap')).toBeVisible();
-    await expect(page.getByLabel('Invitation code',{exact:true})).toHaveAttribute('required','');
-    await page.getByLabel('New login',{exact:true}).fill('browser-invited-first');
-    await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
-    await page.getByLabel('Confirm new password',{exact:true}).fill(password);
-    await page.getByLabel('World to join',{exact:true}).selectOption('e2e-industrial');
-    await page.getByLabel('Invitation code',{exact:true}).fill(invitation);
-    const received=page.waitForResponse(r=>r.url().endsWith('/v1/auth/register') && r.request().method()==='POST');
-    await page.getByRole('button',{name:'Create player',exact:true}).click();
-    const response=await received;
-    expect(response.status()).toBe(201);
-    const {data}=await response.json();
-    expect(data.world).toBe('e2e-industrial');
-    await expect(page.locator('#game')).toBeVisible();
-    await expect(page.locator('#balance select[name=account]')).toHaveValue(data.account);
-    const denied=await page.request.post(invitedUrl+'/v1/auth/register',{data:{
-        login:'browser-invited-thief',password,world:'e2e-industrial',inviteCode:invitation
-    }});
-    expect(denied.status()).toBe(409);
-    await page.getByRole('button',{name:'Refresh stock'}).click();
-    await expect(page.locator('#stock')).toContainText('stock');
 });

@@ -138,3 +138,6 @@ M01 opt-in browser qualification: browser.yml starts an additional 127.0.0.1:876
 
 
 M01 pending-claim session guard: existing operator-provisioned identities without a public claim may still sign in, but a registered identity whose onboarding claim remains pending cannot obtain a bearer until its original world provisioning resumes and reaches ready. MariaDB verifies denial before recovery and acceptance afterwards.
+
+
+The one-use invitation browser scenario runs before real-time timed upgrade scenarios. This respects shared production-equivalent per-peer authorization quotas rather than disabling rate limiting or accepting HTTP 429 as a substitute for an authorization test.
