@@ -97,7 +97,10 @@ check($invitePost($quotaPayload,'192.0.2.245')[0]===429,
     'global signup quota rejects registration from fresh peer');
 check((new PdoIdentity(db()))->authenticate($quotaPayload['login'],$quotaPayload['password'])===null,
     'throttled signup leaves no identity and cannot consume invitation');
-$inviteClock->advanceTo(3600);
+// Earlier password-change fixtures use server time 30200. The shared
+// global limiter deliberately resists a backward clock, so advance beyond
+// that already observed window rather than assuming 3600 is a rollover.
+$inviteClock->advanceTo(32400);
 [$afterQuotaStatus,$afterQuotaBody]=$invitePost($quotaPayload,'192.0.2.246');
 check($afterQuotaStatus===201 && preg_match('/^[a-f0-9]{64}$/D',$afterQuotaBody['data']['account']??'')===1,
     'same invitation succeeds after global signup quota rollover (HTTP '.$afterQuotaStatus.', '.json_encode($afterQuotaBody).')');
