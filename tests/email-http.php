@@ -13,6 +13,12 @@ $fakeMailer=new class extends ActivationMailer {
 $emailApi=new AuthHttpApi(db(),$emailApiClock,120,[$emailWorld=>$emailPack],false,30,8,true,$fakeMailer);
 $emailJson=static fn(array $data):string=>json_encode($data,JSON_THROW_ON_ERROR);
 $emailReg=['login'=>'http-mail-player','password'=>'http activation strong password','world'=>$emailWorld,'email'=>'http-verified@example.org'];
+check($emailApi->handle('POST','/v1/auth/register','',$emailJson([
+    ...$emailReg,'email'=>"attacker@example.org\r\nBcc:someone@example.org"
+]),'203.0.113.120')[0]===400,'invalid mailbox or header injection rejected before account creation');
+check($emailApi->handle('POST','/v1/auth/register','',$emailJson([
+    ...$emailReg,'email'=>str_repeat('a',260).'@example.org'
+]),'203.0.113.121')[0]===400,'oversized mailbox rejected with HTTP 400');
 [$st,$out]=$emailApi->handle('POST','/v1/auth/register','',$emailJson($emailReg),'203.0.113.101');
 check($st===202 && $out===['data'=>['activationRequired'=>true]],'mailbox signup never returns a bearer');
 check(count($fakeMailer->deliveries)===1,'mail injected transport receives one code');

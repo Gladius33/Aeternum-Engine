@@ -89,7 +89,9 @@ final class AuthHttpApi
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
             if (!is_array($data) || !array_key_exists('login',$data) || !array_key_exists('password',$data)
                 || !array_key_exists('world',$data) || count($data)!==($this->requireInvitation?4:3)+($this->requireEmailActivation?1:0)
-                || ($this->requireEmailActivation && !is_string($data['email']??null))
+                || ($this->requireEmailActivation && (!is_string($data['email']??null)
+                    || strlen($data['email'])>254
+                    || filter_var(strtolower(trim($data['email'])),FILTER_VALIDATE_EMAIL)===false))
                 || ($this->requireInvitation && !is_string($data['inviteCode']??null))
                 || (!$this->requireInvitation && array_key_exists('inviteCode',$data))
                 || !is_string($data['login']) || !is_string($data['password']) || !is_string($data['world'])

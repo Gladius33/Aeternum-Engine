@@ -240,3 +240,6 @@ The read-only bin/m01-preflight.php checks local PHP 8.4, pdo_mysql, Argon2id, w
 
 ## M01 secure-default public enrollment policy (pending exact-head CI)
 The production PHP HTTP controller denies both public-world discovery and public registration if AETERNUM_PUBLIC_REGISTRATION=1 but neither operator-vetted invitation mode nor email activation is enabled. The backwards-compatible unverified path used by the old browser CI is now explicitly restricted to the local PHP built-in server, browser test flag, loopback socket IP and its lab-only override. A fourth browser CI server uses the same public-registration flag but removes the override: the actual HTTP GET /v1/public/worlds and POST /v1/auth/register must both return 404. This security tightening does not modify stored identities, replay or existing sessions.
+
+
+Defensive HTTP negative tests reject both oversized and CRLF-header-injected email values with status 400 before an identity or email delivery attempt is possible; they must not be misclassified as retryable server failures.
