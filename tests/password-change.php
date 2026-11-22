@@ -27,7 +27,7 @@ check($changeRequest($firstToken,['currentPassword'=>$oldPassword],'192.0.2.203'
 check($changeRequest($firstToken,[...$payload,'unexpected'=>'x'],'192.0.2.203')[0]===400,'password change rejects extra fields');
 check($changeRequest($firstToken,[...$payload,'newPassword'=>'short'],'192.0.2.203')[0]===400,'weak replacement password rejected');
 check($changeRequest($firstToken,[...$payload,'newPassword'=>$oldPassword],'192.0.2.203')[0]===400,'no-op password reuse rejected');
-check($changeRequest($firstToken,[...$payload,'currentPassword'=>'incorrect lengthy password'],'192.0.2.203')[0]===401,'wrong current password rejected');
+check($changeRequest($firstToken,[...$payload,'currentPassword'=>'incorrect lengthy password'],'192.0.2.203')[0]===403,'wrong current password rejected without invalidating session');
 check($changeSessions->resolve($firstToken)===$actor && $changeSessions->resolve($secondToken)===$actor,'failed changes preserve sessions and current credentials');
 [$changedStatus,$changedBody]=$changeRequest($firstToken,$payload,'192.0.2.204');
 check($changedStatus===200 && $changedBody['data']['sessionsRevoked']===true,'password change succeeds with current password');
@@ -80,7 +80,7 @@ foreach($workers as [$proc,$pipes]) {
     fclose($pipes[1]);fclose($pipes[2]);
     check(proc_close($proc)===0,'parallel password changer terminated: '.$errors);
     $result=json_decode($output,true,8,JSON_THROW_ON_ERROR);
-    check(in_array($result['status'],[200,401],true),'parallel change result is success or unauthorized');
+    check(in_array($result['status'],[200,401,403],true),'parallel change result is success, revoked bearer or lost password race');
     if($result['status']===200) { $winners++; $winnerCode=$result['recoveryCode']; }
 }
 check($winners===1,'only one competing password change commits');
