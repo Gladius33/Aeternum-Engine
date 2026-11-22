@@ -26,6 +26,11 @@ check($mapStatus===200 && $mapBody['data']['neighbors']===[
 check($mapApi->handle('GET',$linkPath.'/forest',$mapAuth)[1]['data']['neighbors'] === [
     ['location'=>'quarry','cost'=>7]
 ], 'M04 API link cursor behaves deterministically');
+check($mapApi->handle('GET','/v1/worlds/entity-A/map/routes/home/quarry',$mapAuth)[1]['data']['route']=== [
+    'cost'=>5,'locations'=>['home','forest','quarry']
+], 'M04 authorized API computes shortest directed route');
+check($mapApi->handle('GET','/v1/worlds/entity-A/map/routes/quarry/forest',$mapAuth)[1]['data']['route']===null,
+    'M04 API hides unreachable direction behind null route');
 check($mapApi->handle('GET',$linkPath.'/quarry',$mapAuth)[1]['data']['neighbors']===[],
     'M04 API cursor exhaustion');
 check($mapApi->handle('GET','/v1/worlds/entity-B/map/territories',$mapAuth)[0]===404,

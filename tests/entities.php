@@ -60,6 +60,19 @@ rejects(fn()=> $topologyA->connect('home','home',1),InvalidArgumentException::cl
 rejects(fn()=> $topologyA->connect('home','forest',0),InvalidArgumentException::class,'M04 zero cost');
 rejects(fn()=> $topologyB->connect('home','forest',3),DomainException::class,'M04 foreign world endpoint');
 check($topologyB->neighbors('bob','home')===[],'M04 topology isolated between worlds');
+$topologyA->connect('forest','quarry',2);
+check($topologyA->shortestPath('alice','home','quarry')===[
+    'cost'=>5,'locations'=>['home','forest','quarry']
+],'M04 cheapest route follows weighted directed edges');
+check($topologyA->shortestPath('alice','quarry','forest')===null,
+    'M04 unreachable direction has no route');
+check($topologyA->shortestPath('alice','home','home')===[
+    'cost'=>0,'locations'=>['home']
+],'M04 zero-length route allowed');
+rejects(fn()=> $topologyA->shortestPath('alice','home','missing'),DomainException::class,
+    'M04 path cannot cross unknown location');
+rejects(fn()=> $topologyA->shortestPath('alice','home','quarry',1),DomainException::class,
+    'M04 path expansion bounded');
 (new PdoMemberships(db(),'entity-A'))->revoke('alice');
 rejects(fn()=> $topologyA->neighbors('alice','home'),DomainException::class,'M04 revoked topology read');
 check((new \Aeternum\Core\PdoTopology(db(),'entity-A'))->neighbors('bob','home')===[['location'=>'forest','cost'=>3],['location'=>'quarry','cost'=>7]],'M04 reconnect persistence');

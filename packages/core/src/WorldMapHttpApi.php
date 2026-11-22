@@ -16,7 +16,7 @@ final class WorldMapHttpApi
     public function handle(string $method,string $path,string $authorization): array
     {
         if (strlen($path)>512 || !preg_match(
-            '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/map/(?:territories(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?|locations/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/links(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?)$~D',
+            '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/map/(?:territories(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?|locations/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/links(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?|routes/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))$~D',
             $path,$parts
         )) return [404,['error'=>'not_found']];
         if ($method!=='GET') return [405,['error'=>'method_not_allowed']];
@@ -28,6 +28,10 @@ final class WorldMapHttpApi
             return [429,['error'=>'rate_limited']];
         }
         try {
+            if (isset($parts[5]) && $parts[5]!=='') {
+                return [200,['data'=>['route'=>(new PdoTopology($this->pdo,$parts[1]))
+                    ->shortestPath($actor,$parts[5],$parts[6])]]];
+            }
             if (isset($parts[3]) && $parts[3]!=='') {
                 $neighbors=(new PdoTopology($this->pdo,$parts[1]))->neighbors($actor,$parts[3],51,$parts[4]??null);
                 $more=count($neighbors)>50;
