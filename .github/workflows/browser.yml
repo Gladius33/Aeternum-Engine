@@ -63,13 +63,21 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          php -S 127.0.0.1:8765 -t public tests/browser/router.php >browser-server.log 2>&1 &
+          # Ephemeral localhost TLS termination proxy never exposed externally.
+          tls_dir="$(mktemp -d)"
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout "$tls_dir/key.pem" -out "$tls_dir/cert.pem" -days 1 \
+            -subj '/CN=localhost' -addext 'subjectAltName=IP:127.0.0.1,DNS:localhost' >/dev/null 2>&1
+          AETERNUM_TRUSTED_PROXY_IPS=127.0.0.1 php -S 127.0.0.1:8765 -t public tests/browser/router.php >browser-server.log 2>&1 &
           server=$!
+          AETERNUM_TEST_TLS_KEY="$tls_dir/key.pem" AETERNUM_TEST_TLS_CERT="$tls_dir/cert.pem" \
+            node tests/browser/tls-proxy.cjs >browser-tls.log 2>&1 &
+          tls_server=$!
           # A second HTTPS-emulated loopback server enables real invitation-mode E2E.
           php bin/invite.php e2e-industrial 1 > tests/browser/.e2e-invite-token
           AETERNUM_SIGNUP_REQUIRE_INVITE=1 php -S 127.0.0.1:8766 -t public tests/browser/router.php >browser-invited.log 2>&1 &
           invited_server=$!
-          trap 'kill "$server" "$invited_server" 2>/dev/null || true; rm -f tests/browser/.e2e-invite-token' EXIT
+          trap 'kill "$server" "$invited_server" "$tls_server" 2>/dev/null || true; rm -f tests/browser/.e2e-invite-token; rm -rf "$tls_dir"' EXIT
           for n in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8766/play.html >/dev/null; then break; fi
             sleep 1
@@ -80,6 +88,12 @@ jobs:
             sleep 1
           done
           curl --fail http://127.0.0.1:8765/play.html >/dev/null
+          for n in {1..30}; do
+            if curl --fail --silent --cacert "$tls_dir/cert.pem" https://127.0.0.1:8777/play.html >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --cacert "$tls_dir/cert.pem" https://127.0.0.1:8777/play.html >/dev/null
+          npx playwright test tests/browser/tls.spec.cjs --workers=1 --reporter=github,line
           # The scenarios share real peer/auth quotas and persistent worlds.
           # Parallel workers race the same quota and make test order nondeterministic.
           npx playwright test tests/browser/economy.spec.cjs --workers=1 --reporter=github,line
@@ -90,6 +104,8 @@ jobs:
           tail -n 150 browser-server.log || true
           echo '=== Invitation server ==='
           tail -n 150 browser-invited.log || true
+          echo '=== Loopback TLS terminator ==='
+          tail -n 150 browser-tls.log || true
 
       - name: Preserve Chromium failure evidence
         if: failure()
@@ -103,3 +119,4 @@ jobs:
             playwright-report/
             browser-server.log
             browser-invited.log
+            browser-tls.log
