@@ -30,3 +30,21 @@ foreach($cliCodes as $code) {
 }
 check($invokeInvite($inviteWorld,'0')[0]!==0,'CLI rejects zero batch');
 check($invokeInvite('unconfigured-world','1')[0]!==0,'CLI rejects unapproved world');
+
+$revokeViaCli=static function(string $world,string $code) use($cliEnv):array {
+    $proc=proc_open([PHP_BINARY,__DIR__.'/../bin/invite-revoke.php',$world],
+        [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,null,$cliEnv);
+    if(!is_resource($proc)) throw new RuntimeException('Cannot run invitation-revoke CLI');
+    fwrite($pipes[0],$code.PHP_EOL);
+    fclose($pipes[0]);
+    $output=stream_get_contents($pipes[1]);$error=stream_get_contents($pipes[2]);
+    fclose($pipes[1]);fclose($pipes[2]);
+    return [proc_close($proc),$output,$error];
+};
+check($revokeViaCli($inviteWorld,$cliCodes[0])[0]===0,'operator CLI revokes unused invitation from stdin');
+check($revokeViaCli($inviteWorld,$cliCodes[0])[0]!==0,'operator CLI refuses second revocation');
+check($revokeViaCli('unconfigured-world',$cliCodes[1])[0]!==0,'operator CLI refuses nonapproved world');
+$revokedQuery=db()->prepare('SELECT revoked,actor_id FROM engine_signup_invitations WHERE token_hash=?');
+$revokedQuery->execute([hash('sha256',$cliCodes[0])]);
+$revoked=$revokedQuery->fetch(PDO::FETCH_ASSOC);
+check((int)$revoked['revoked']===1 && $revoked['actor_id']===null,'operator revoke persists without claiming identity');
