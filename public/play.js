@@ -65,7 +65,7 @@ async function run(work) {
     busy=true;
     const controls=[...document.querySelectorAll('button, select')];
     controls.forEach(x=>x.disabled=true);
-    try { await work(); status.textContent='Success'; }
+    try { const message=await work(); status.textContent=typeof message==='string'?message:'Success'; }
     catch(e) {
         if (e.status===401 && token) resetSession();
         status.textContent=e.message || 'Request failed';
@@ -128,7 +128,7 @@ recovery.addEventListener('submit',e=>{
         const data=await api('/v1/auth/recover','POST',payload);
         recovery.reset();
         showRecoveryCode(data.recoveryCode);
-        status.textContent='Password reset. Sign in with the replacement password.';
+        return 'Password reset. Sign in with the replacement password.';
     });
 });
 rotate.addEventListener('submit',e=>{
