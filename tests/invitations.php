@@ -103,6 +103,6 @@ check((new PdoIdentity(db()))->authenticate($quotaPayload['login'],$quotaPayload
 $inviteClock->advanceTo(32400);
 [$afterQuotaStatus,$afterQuotaBody]=$invitePost($quotaPayload,'192.0.2.246');
 check($afterQuotaStatus===201 && preg_match('/^[a-f0-9]{64}$/D',$afterQuotaBody['data']['account']??'')===1,
-    'same invitation succeeds after global signup quota rollover (HTTP '.$afterQuotaStatus.', '.json_encode($afterQuotaBody).')');
+    'same invitation succeeds after global signup quota rollover (HTTP '.$afterQuotaStatus.')');
 check((new PdoIdentity(db()))->authenticate($quotaPayload['login'],$quotaPayload['password'])===$afterQuotaBody['data']['account'],
     'global quota reset never duplicates the claimed identity');
