@@ -88,3 +88,14 @@ $httpBody=json_encode(['id'=>'api-claim-denied','type'=>'market.claim',
     'payload'=>['account'=>'buyer','resource'=>'ore']],JSON_THROW_ON_ERROR);
 check($api->handle('POST','/v1/worlds/'.$m03World.'/economy/commands','Bearer '.$session,$httpBody)[0]===409,
     'M03 HTTP forbids foreign actor from claiming refundable escrow');
+
+
+// Never let an unauthorised GET trigger expensive first-use migration.
+db()->exec("UPDATE engine_worlds SET economy_projection_version=0 WHERE world_id='m03-market-world'");
+rejects(fn()=> $m03Db->balanceForActor('not-a-member','seller','ore',$m03Economy),
+    DomainException::class,'M03 unauthorized balance read cannot force first-use backfill');
+$beforeVersion=(int)db()->query("SELECT economy_projection_version FROM engine_worlds WHERE world_id='m03-market-world'")->fetchColumn();
+check($beforeVersion===0,'M03 denied request leaves migration marker unchanged');
+$m03Db->balanceForActor($m03Actors['seller'],'seller','ore',$m03Economy);
+$afterVersion=(int)db()->query("SELECT economy_projection_version FROM engine_worlds WHERE world_id='m03-market-world'")->fetchColumn();
+check($afterVersion===1,'M03 authenticated read may safely complete versioned backfill');

@@ -335,7 +335,12 @@ final class PdoScheduler
                 if ($row===false || $row['rules_key']!==$this->rulesKey()) {
                     throw new \DomainException('World not initialized or rules mismatch');
                 }
-                if ((int)$row['economy_projection_version']===0) $this->lockedWorld();
+                if ((int)$row['economy_projection_version']===0) {
+                    // Never let an unauthenticated/nonmember read force a large
+                    // first-use backfill. Actor is rechecked in the snapshot.
+                    $this->assertActiveActor($actor);
+                    $this->lockedWorld();
+                }
                 elseif ((int)$row['economy_projection_version']!==1) throw new \UnexpectedValueException('Invalid projection version');
                 $this->assertActiveActor($actor);
                 return (new PdoEconomyProjection($this->pdo,$this->worldId))->marketPage($after,$limit,$this->clock->now());
@@ -361,7 +366,10 @@ final class PdoScheduler
         if ($this->processing) throw new \LogicException('Reentrant projection prohibited');
         $marker=$this->query('SELECT economy_projection_version FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetchColumn();
         if ($marker===false) throw new \DomainException('World not initialized');
-        if ((int)$marker===0) $this->materialize();
+        if ((int)$marker===0) {
+            $this->assertActiveActor($actor);
+            $this->materialize();
+        }
         return $this->transaction(function () use ($actor,$account,$resource,$handler): ProductionState {
             $world=$this->query('SELECT rules_key,watermark FROM engine_worlds WHERE world_id=?',
                 [$this->worldId])->fetch(PDO::FETCH_ASSOC);
@@ -392,7 +400,10 @@ final class PdoScheduler
         if ($this->processing) throw new \LogicException('Reentrant projection prohibited');
         $marker=$this->query('SELECT economy_projection_version FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetchColumn();
         if ($marker===false) throw new \DomainException('World not initialized');
-        if ((int)$marker===0) $this->materialize();
+        if ((int)$marker===0) {
+            $this->assertActiveActor($actor);
+            $this->materialize();
+        }
         return $this->transaction(function () use ($actor,$account,$resource,$handler): array {
             $world=$this->query('SELECT rules_key,watermark FROM engine_worlds WHERE world_id=?',
                 [$this->worldId])->fetch(PDO::FETCH_ASSOC);
