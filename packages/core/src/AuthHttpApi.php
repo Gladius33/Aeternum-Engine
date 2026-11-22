@@ -87,7 +87,8 @@ final class AuthHttpApi
                 || !is_string($data['newPassword']??null)) return [400,['error'=>'invalid_recovery']];
             if (!$rate->admit('auth:recovery-peer:'.$peerKey,5,3600)
                 || !$rate->admit('auth:recovery-global',100,3600)) return [429,['error'=>'rate_limited']];
-            $next=(new PdoRecovery($this->pdo,$this->clock))->reset($data['login'],$data['code'],$data['newPassword']);
+            try { $next=$this->withCredentialSlot(fn()=>(new PdoRecovery($this->pdo,$this->clock))->reset($data['login'],$data['code'],$data['newPassword'])); }
+            catch (SignupBusy) { return [503,['error'=>'authentication_busy']]; }
             return $next===null ? [401,['error'=>'unauthorized']] : [200,['data'=>['recoveryCode'=>$next,'sessionsRevoked'=>true]]];
         }
         if ($path==='/v1/auth/password/change') {
@@ -104,7 +105,8 @@ final class AuthHttpApi
                 || strlen($data['newPassword'])<12 || strlen($data['newPassword'])>1024
                 || $data['currentPassword']===$data['newPassword']) return [400,['error'=>'invalid_password_change']];
             if (!$rate->admit('auth:verification-global',$this->globalLoginLimit,60)) return [429,['error'=>'rate_limited']];
-            $next=(new PdoRecovery($this->pdo,$this->clock))->changePassword($actor,$data['currentPassword'],$data['newPassword']);
+            try { $next=$this->withCredentialSlot(fn()=>(new PdoRecovery($this->pdo,$this->clock))->changePassword($actor,$data['currentPassword'],$data['newPassword'])); }
+            catch (SignupBusy) { return [503,['error'=>'authentication_busy']]; }
             return $next===null ? [403,['error'=>'invalid_current_password']] : [200,['data'=>['recoveryCode'=>$next,'sessionsRevoked'=>true]]];
         }
         if ($path==='/v1/auth/recovery/rotate') {
@@ -116,7 +118,8 @@ final class AuthHttpApi
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
             if (!is_array($data) || count($data)!==1 || !is_string($data['password']??null)) return [400,['error'=>'invalid_credentials']];
             if (!$rate->admit('auth:verification-global',$this->globalLoginLimit,60)) return [429,['error'=>'rate_limited']];
-            $next=(new PdoRecovery($this->pdo,$this->clock))->rotate($actor,$data['password']);
+            try { $next=$this->withCredentialSlot(fn()=>(new PdoRecovery($this->pdo,$this->clock))->rotate($actor,$data['password'])); }
+            catch (SignupBusy) { return [503,['error'=>'authentication_busy']]; }
             return $next===null ? [403,['error'=>'invalid_current_password']] : [200,['data'=>['recoveryCode'=>$next]]];
         }
         if (strlen($body)>4096) return [413,['error'=>'too_large']];
@@ -127,7 +130,13 @@ final class AuthHttpApi
         if (!preg_match('/^[a-z0-9][a-z0-9_-]{2,63}$/D',$login)||strlen($data['password'])>1024) return [401,['error'=>'unauthorized']];
         if (!$rate->admit('auth:login:'.$login,10,60)) return [429,['error'=>'rate_limited']];
         if (!$rate->admit('auth:verification-global',$this->globalLoginLimit,60)) return [429,['error'=>'rate_limited']];
-        $token=$sessions->login($login,$data['password']);
+        try { $token=$this->withCredentialSlot(fn()=>$sessions->login($login,$data['password'])); }
+        catch (SignupBusy) { return [503,['error'=>'authentication_busy']]; }
         return $token===null ? [401,['error'=>'unauthorized']] : [200,['data'=>['token'=>$token,'expires_in'=>3600]]];
+    }
+    /** Share the registration memory ceiling with every expensive Argon2id path. */
+    private function withCredentialSlot(callable $operation): mixed
+    {
+        return (new PdoSignupSlots($this->pdo,$this->parallelSignupLimit))->run($operation);
     }
 }

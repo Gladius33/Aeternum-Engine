@@ -193,3 +193,7 @@ GitHub's browser job provisions an ephemeral 1-day self-signed localhost TLS cer
 
 
 The TLS smoke additionally includes the full public-player acceptance chain over the HTTPS origin: account creation without CLI, authorized production action and successful reconnect with the same persisted actor/account. It executes after existing economy scenarios to avoid mutating their expected recipients. Rate-limit retries are genuine fixed-window waits, not disabled authorization.
+
+
+## M01 shared Argon2id concurrency across auth lifecycle (pending exact-head CI)
+Two real independent PHP workers hold every MariaDB advisory slot while the actual HTTP API attempts login, offline recovery, authenticated password change and recovery-code rotation. All four paths must return retryable 503 authentication_busy, retain the original password and live bearer, and make no recovery rotation. A separate logout must still revoke the token under saturated hash slots. After the workers release, login and reuse of the original offline recovery code must succeed, with the replacement password persisted and the original rejected. This addresses simultaneous Argon2id memory pressure, not the volume of automated registrations or a measured production concurrency limit.

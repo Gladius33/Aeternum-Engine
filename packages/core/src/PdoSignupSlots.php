@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\Core;
 use PDO;
-/** Bounded concurrent expensive public registrations, shared by all PHP workers. */
+/** Shared bounded concurrency for expensive Argon2id verification and signup provisioning across PHP workers. */
 final class PdoSignupSlots
 {
     public function __construct(private readonly PDO $pdo,private readonly int $limit=8)
@@ -16,6 +16,7 @@ final class PdoSignupSlots
         if ($this->pdo->inTransaction()) throw new \LogicException('Cannot acquire signup slot inside a transaction');
         $schema=$this->pdo->query('SELECT DATABASE()')->fetchColumn();
         if (!is_string($schema) || $schema==='') throw new \RuntimeException('Database not selected');
+        // Shared slots cap registration, login, recovery and password changes.
         // Named locks are scoped to the database so separate installations on a
         // shared MariaDB host do not contend. A dead PHP connection releases them.
         $prefix='aeternum:signup:'.substr(hash('sha256',$schema),0,16).':';

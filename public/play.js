@@ -7,7 +7,7 @@ async function api(path, method='GET', data) {
     if (data !== undefined) headers['Content-Type'] = 'application/json';
     const response = await fetch(path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),cache:'no-store',redirect:'error',credentials:'omit'});
     const result = await response.json();
-    if (!response.ok) { const error=new Error(response.status===503 && result.error==='registration_busy' ? 'Registration server is busy. Please retry shortly.' : (result.error || 'Request failed')); error.status=response.status; throw error; }
+    if (!response.ok) { const error=new Error(response.status===503 && result.error==='registration_busy' ? 'Registration server is busy. Please retry shortly.' : response.status===503 && result.error==='authentication_busy' ? 'Authentication server is busy. Please retry shortly.' : (result.error || 'Request failed')); error.status=response.status; throw error; }
     return result.data;
 }
 function locationFields() {
