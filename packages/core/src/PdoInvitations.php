@@ -67,4 +67,22 @@ final class PdoInvitations
         $s->execute([hash('sha256',$code),$world]);
         return $s->fetchColumn()===$actor;
     }
+
+    /**
+     * Remove only UNUSED expired or revoked invites in a bounded database statement.
+     * An already-claimed token is retained even after expiry: pending enrollment
+     * must remain retryable, including after a temporary world provisioning failure.
+     * InnoDB row locks serialize deletion against concurrent invitation claims.
+     */
+    public function purgeInactive(int $limit=500): int
+    {
+        if ($limit<1 || $limit>1000) throw new \InvalidArgumentException('Invalid invitation purge limit');
+        if ($this->pdo->inTransaction()) throw new \LogicException('Nested invitation maintenance');
+        $now=$this->clock->now();
+        if ($now<0) throw new \DomainException('Invalid clock');
+        $s=$this->pdo->prepare('DELETE FROM engine_signup_invitations WHERE actor_id IS NULL AND (revoked=1 OR expires_at<=?) ORDER BY expires_at,token_hash LIMIT '.$limit);
+        $s->execute([$now]);
+        return $s->rowCount();
+    }
+
 }

@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{PdoSessions,FrozenClock,SystemClock};
+use Aeternum\Core\{PdoSessions,PdoInvitations,FrozenClock,SystemClock};
 // Execute after all fixed-clock integration tests. The CLI intentionally uses real wall time.
 function runMaintenanceCli(string $script,string $limit): array {
     $env=getenv();
@@ -28,7 +28,42 @@ check($cliLiveSvc->resolve($cliLiveToken)===$actor,'session CLI preserves live t
 check($cliExit===0&&$cliErr==='','rate maintenance CLI succeeds');
 $cliReport=json_decode($cliOut,true,8,JSON_THROW_ON_ERROR);
 check(is_int($cliReport['stale_rate_buckets_deleted']??null)&&$cliReport['stale_rate_buckets_deleted']>=1,'rate CLI reports actual deletions');
-foreach(['maintenance.php','rate-maintenance.php'] as $cliScript) {
+
+// All used invitation claims must survive maintenance for identity-bound replay.
+$usedInviteHash=db()->query('SELECT token_hash FROM engine_signup_invitations WHERE actor_id IS NOT NULL LIMIT 1')->fetchColumn();
+check($usedInviteHash!==false,'used invitation exists for maintenance preservation test');
+$inviteExpired=(new PdoInvitations(db(),new FrozenClock(1000)))->issue('maintenance-invitations',1,60)[0];
+$inviteRevoked=(new PdoInvitations(db(),new SystemClock()))->issue('maintenance-invitations',1,3600)[0];
+$inviteActive=(new PdoInvitations(db(),new SystemClock()))->issue('maintenance-invitations',1,86400)[0];
+check((new PdoInvitations(db(),new SystemClock()))->revoke($inviteRevoked,'maintenance-invitations'),
+    'revoked maintenance fixture persisted');
+$inviteMaintenanceSvc=new PdoInvitations(db(),new SystemClock());
+rejects(fn()=> $inviteMaintenanceSvc->purgeInactive(0),InvalidArgumentException::class,'invitation purge rejects zero limit');
+rejects(fn()=> $inviteMaintenanceSvc->purgeInactive(1001),InvalidArgumentException::class,'invitation purge rejects oversized batch');
+$invNested=db();
+$invNested->beginTransaction();
+try {
+    rejects(fn()=> (new PdoInvitations($invNested,new SystemClock()))->purgeInactive(1),
+        LogicException::class,'invitation purge refuses caller-owned transaction');
+    check($invNested->inTransaction(),'invitation purge preserves caller transaction');
+} finally {if($invNested->inTransaction())$invNested->rollBack();}
+check($inviteMaintenanceSvc->purgeInactive(1)===1,'invitation purge is bounded to one row');
+[$cliExit,$cliOut,$cliErr]=runMaintenanceCli('invite-maintenance.php','1000');
+check($cliExit===0&&$cliErr==='','invitation maintenance CLI succeeds');
+$invReport=json_decode($cliOut,true,8,JSON_THROW_ON_ERROR);
+check(is_int($invReport['inactive_unused_invitations_deleted']??null)&&$invReport['inactive_unused_invitations_deleted']>=1,
+    'invitation CLI reports actual inactive deletions');
+$invLookup=db()->prepare('SELECT COUNT(*) FROM engine_signup_invitations WHERE token_hash=?');
+foreach([$inviteExpired,$inviteRevoked] as $spent) {
+    $invLookup->execute([hash('sha256',$spent)]);
+    check((int)$invLookup->fetchColumn()===0,'unused expired or revoked invitation removed');
+}
+$invLookup->execute([hash('sha256',$inviteActive)]);
+check((int)$invLookup->fetchColumn()===1,'unexpired unused invitation preserved');
+$invLookup->execute([$usedInviteHash]);
+check((int)$invLookup->fetchColumn()===1,'consumed invitation claim preserved for replay');
+
+foreach(['maintenance.php','rate-maintenance.php','invite-maintenance.php'] as $cliScript) {
     [$cliExit,$cliOut,$cliErr]=runMaintenanceCli($cliScript,'0');
     check($cliExit===1&&$cliOut===''&&$cliErr!=='','maintenance CLI rejects invalid limit');
 }
