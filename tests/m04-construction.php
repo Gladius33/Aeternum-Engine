@@ -159,14 +159,17 @@ check((new PdoScheduler(db(),$buildWorld,$buildClock,$buildRules))
 
 /* Capacity saturation: cancellation must preserve every paid unit in durable
  * credits, even when later transfers filled all physical storage. */
-$capJson=json_decode(file_get_contents(__DIR__.'/../games/m04-construction-fixture/manifest.json'),true,16,JSON_THROW_ON_ERROR);
-$capJson['buildings']=array_values(array_filter($capJson['buildings'],static fn(array $row):bool=>$row['type']!=='vault'));
-foreach ($capJson['resources'] as &$resource) {
-    $resource['capacity']=100;
-    $resource['initial_stock']=100;
+$capSpec=json_decode(file_get_contents(__DIR__.'/../games/m04-construction-fixture/manifest.json'),false,16,JSON_THROW_ON_ERROR);
+// Preserve empty JSON objects for costs and requirements. Converting to
+// associative PHP arrays and back would silently turn {} into [], which
+// correctly fails the strict game-pack schema.
+$capSpec->buildings=array_values(array_filter($capSpec->buildings,
+    static fn(\stdClass $row):bool=>$row->type!=='vault'));
+foreach ($capSpec->resources as $resource) {
+    $resource->capacity=100;
+    $resource->initial_stock=100;
 }
-unset($resource);
-$capPack=GamePackLoader::load(json_encode($capJson,JSON_THROW_ON_ERROR));
+$capPack=GamePackLoader::load(json_encode($capSpec,JSON_THROW_ON_ERROR));
 $capRules=$capPack->rules();
 $capWorld='m04-refund-capacity';
 $capClock=new FrozenClock(1100);
