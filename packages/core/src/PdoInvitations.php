@@ -17,7 +17,7 @@ final class PdoInvitations
         if ($now<0 || $now>PHP_INT_MAX-$ttl) throw new \DomainException('Invalid invitation time');
         // An operator must never receive a partial batch after an insert failure.
         // Own the transaction rather than committing a caller's unrelated writes.
-        if ($this->pdo->inTransaction()) throw new \\LogicException('Nested invitation issuance transaction');
+        if ($this->pdo->inTransaction()) throw new \LogicException('Nested invitation issuance transaction');
         $codes=[];
         $this->pdo->beginTransaction();
         try {
@@ -28,7 +28,7 @@ final class PdoInvitations
                 $codes[]=$code;
             }
             $this->pdo->commit();
-        } catch (\\Throwable $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
             throw $e;
         }
