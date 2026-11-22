@@ -9,6 +9,12 @@ header('Referrer-Policy: no-referrer');
 header('X-Frame-Options: DENY');
 header('Content-Security-Policy: frame-ancestors \'none\'');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+// Only advertise HSTS when TLS is actually active at this entry point.
+// Reverse proxies must terminate HTTPS and supply the HTTPS server variable
+// through trusted web-server configuration, never an arbitrary client header.
+if (in_array($_SERVER['HTTPS'] ?? '', ['on', '1'], true)) {
+    header('Strict-Transport-Security: max-age=31536000');
+}
 try {
     require __DIR__.'/../vendor/autoload.php';
     // Behind a trusted reverse proxy, configure HTTPS at the web server.
