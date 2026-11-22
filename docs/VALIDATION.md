@@ -190,3 +190,6 @@ The MariaDB integration job now stages the exact repository migrations 001 throu
 
 ## M01 real loopback TLS + sanitized proxy Chromium smoke (pending CI)
 GitHub's browser job provisions an ephemeral 1-day self-signed localhost TLS certificate, starts an HTTPS Node reverse proxy on 127.0.0.1:8777 and keeps the PHP test backend on 127.0.0.1:8765. It sends a Chromium browser to the HTTPS-origin player signup UI and retrieves the approved-world API JSON with the actual TLS handshake. A separate test-router-only endpoint verifies that forwarded IP headers supplied by the client are stripped and replaced with the proxy's observed peer. The fixture is never exposed to the network or production; the PHP test router still emulates trusted backend HTTPS termination. Only operator-approved host-side tests can validate actual TLS certificates and production ingress configuration.
+
+
+The TLS smoke additionally includes the full public-player acceptance chain over the HTTPS origin: account creation without CLI, authorized production action and successful reconnect with the same persisted actor/account. It executes after existing economy scenarios to avoid mutating their expected recipients. Rate-limit retries are genuine fixed-window waits, not disabled authorization.

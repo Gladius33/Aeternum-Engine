@@ -93,10 +93,11 @@ jobs:
             sleep 1
           done
           curl --fail --cacert "$tls_dir/cert.pem" https://127.0.0.1:8777/play.html >/dev/null
-          npx playwright test tests/browser/tls.spec.cjs --workers=1 --reporter=github,line
-          # The scenarios share real peer/auth quotas and persistent worlds.
-          # Parallel workers race the same quota and make test order nondeterministic.
+          # Existing multiplayer/recovery expectations must run before the extra
+          # TLS test player is added to the shared industrial world.
+          # Rate limits remain enabled for both Chromium suites.
           npx playwright test tests/browser/economy.spec.cjs --workers=1 --reporter=github,line
+          npx playwright test tests/browser/tls.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
         run: |
