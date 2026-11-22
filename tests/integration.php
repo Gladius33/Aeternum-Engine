@@ -194,6 +194,7 @@ require __DIR__ . "/onboarding-status.php";
 require __DIR__ . "/market.php";
 require __DIR__ . "/m03-projection-db.php";
 require __DIR__ . "/m03-scale-db.php";
+require __DIR__ . "/m03-claim-race.php";
 require __DIR__ . "/m03-cli.php";
 // Run the high-watermark authenticated hash stress AFTER all lower fixed-clock
 // recovery tests so a deliberate simulated future cannot exhaust their quota.
