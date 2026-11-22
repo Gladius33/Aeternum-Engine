@@ -82,3 +82,7 @@ AETERNUM_AUTH_GLOBAL_LIMIT is an optional trusted server environment integer 1â€
 
 ## Resource overview (0029)
 GET /v1/worlds/{world}/economy/overview/{account}/{resource} requires an active bearer session and ownership. Returns stock, capacity, amount, interval, at, remainder, level, pending (null or level/dueAt/amount) and next (null or level/cost/duration/amount). No migration is required. Pending due time comes from the persisted event. The endpoint may return 409 while due work is waiting for the worker, like the original balances route. The client renders UTC dates and does not treat a countdown as proof of completion.
+
+0034 evidence: exact head 34d2e8becc17d8cb1ea41ce23604d7cb9279ae13 passed PHP/MariaDB (44996381709) and Chromium (44996381681).
+
+0035: implement internal actor-scoped fixed-lot barter offers with escrow, immutable terms, cancellation and atomic exchange using the existing world-locked command journal. Migration 015 adds ledger reasons. Tests cover authorization, retries, capacity rollback, replay and competing acceptances. No market HTTP/UI yet; 1,000 lifetime offer IDs per reference world, no expiry/partial fills, cancellation can fail if seller stock is full. CI pending.

@@ -123,8 +123,70 @@ final class EconomyCommandHandler implements CommandHandler
         return ['level'=>$level,'pendingId'=>$pending,'next'=>$next];
     }
 
+    /** Bounded reference market. Offer IDs remain reserved after closure. */
+    private function market(Command $command,array $state,int $at): CommandResult
+    {
+        $ledger=[];
+        if ($command->type==='market.create') {
+            $p=$this->payload($command,['offer','seller','giveResource','giveUnits','wantResource','wantUnits']);
+            $prefix='market:'.$this->id($p['offer']).':';
+            $seller=$this->id($p['seller']);
+            $give=$this->id($p['giveResource']); $want=$this->id($p['wantResource']);
+            $giveUnits=$p['giveUnits']; $wantUnits=$p['wantUnits'];
+            if ($give===$want || !is_int($giveUnits) || !is_int($wantUnits) || $giveUnits<1 || $wantUnits<1
+                || $giveUnits>$this->definition($give)->capacity || $wantUnits>$this->definition($want)->capacity) {
+                throw new \InvalidArgumentException('Invalid market terms');
+            }
+            if (isset($state[$prefix.'status'])) throw new \DomainException('Market offer ID already used');
+            $count=$state['market:count']??0;
+            if (!is_int($count) || $count<0 || $count>=1000) throw new \DomainException('Reference market offer limit reached');
+            $this->read($state,$seller,$want);
+            $stock=$this->settle($state,$ledger,$seller,$give,$at)->debit($giveUnits);
+            $this->write($state,$seller,$give,$stock);
+            $ledger[]=new ResourceMovement($seller,$give,-$giveUnits,$stock->stock,'market_reserve');
+            foreach (['seller'=>$seller,'giveResource'=>$give,'giveUnits'=>$giveUnits,'wantResource'=>$want,'wantUnits'=>$wantUnits,'status'=>'open'] as $key=>$value) {
+                $state[$prefix.$key]=$value;
+            }
+            $state['market:count']=$count+1;
+        } else {
+            $accept=$command->type==='market.accept';
+            $p=$this->payload($command,$accept?['offer','seller','buyer']:['offer','seller']);
+            $prefix='market:'.$this->id($p['offer']).':';
+            $seller=$this->id($p['seller']);
+            if (($state[$prefix.'status']??null)!=='open' || ($state[$prefix.'seller']??null)!==$seller) {
+                throw new \DomainException('Market offer unavailable');
+            }
+            $give=$state[$prefix.'giveResource']; $want=$state[$prefix.'wantResource'];
+            $giveUnits=$state[$prefix.'giveUnits']; $wantUnits=$state[$prefix.'wantUnits'];
+            if ($accept) {
+                $buyer=$this->id($p['buyer']);
+                if ($buyer===$seller) throw new \InvalidArgumentException('Cannot buy own offer');
+                $buyerPay=$this->settle($state,$ledger,$buyer,$want,$at)->debit($wantUnits);
+                $sellerPay=$this->settle($state,$ledger,$seller,$want,$at)->credit($wantUnits);
+                $buyerGoods=$this->settle($state,$ledger,$buyer,$give,$at)->credit($giveUnits);
+                $this->write($state,$buyer,$want,$buyerPay);
+                $this->write($state,$seller,$want,$sellerPay);
+                $this->write($state,$buyer,$give,$buyerGoods);
+                $ledger[]=new ResourceMovement($buyer,$want,-$wantUnits,$buyerPay->stock,'market_payment');
+                $ledger[]=new ResourceMovement($seller,$want,$wantUnits,$sellerPay->stock,'market_payment');
+                $ledger[]=new ResourceMovement($buyer,$give,$giveUnits,$buyerGoods->stock,'market_delivery');
+                $state[$prefix.'status']='filled';
+                $state[$prefix.'buyer']=$buyer;
+            } else {
+                $stock=$this->settle($state,$ledger,$seller,$give,$at)->credit($giveUnits);
+                $this->write($state,$seller,$give,$stock);
+                $ledger[]=new ResourceMovement($seller,$give,$giveUnits,$stock->stock,'market_release');
+                $state[$prefix.'status']='cancelled';
+            }
+        }
+        return new CommandResult($state,[],$ledger);
+    }
+
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
+        if (in_array($command->type,['market.create','market.accept','market.cancel'],true)) {
+            return $this->market($command,$state,$effectiveAt);
+        }
         $ledger = [];
         $events = [];
         if ($command->type === 'economy.open') {

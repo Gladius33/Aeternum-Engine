@@ -36,6 +36,15 @@ if ($argv[2] === 'schedule') {
     } catch (DomainException $e) {
         if ($e->getMessage() !== 'Invalid or insufficient debit') throw $e;
     }
+} elseif ($argv[2] === 'market-accept') {
+    $econ = new \Aeternum\Core\EconomyCommandHandler([new \Aeternum\Core\ResourceDefinition('ore',100,120,0,1),new \Aeternum\Core\ResourceDefinition('coin',100,120,0,1)]);
+    $rules = new \Aeternum\Core\RuleSet('market-test','1',hash('sha256','market-test'),$econ,new \Aeternum\Core\EconomyEventHandler($econ));
+    $q = new PdoScheduler(db(),$argv[1],new FrozenClock(500),$rules);
+    try {
+        $q->executeForActor('buyer',new \Aeternum\Core\Command($argv[1],'race-'.$argv[3],'market.accept',['offer'=>'race','seller'=>'s','buyer'=>'b']),$econ);
+    } catch (DomainException $e) {
+        if ($e->getMessage() !== 'Market offer unavailable') throw $e;
+    }
 } else {
     throw new InvalidArgumentException('Unknown worker action');
 }
