@@ -5,8 +5,9 @@ use PDO;
 
 /**
  * M04 immutable building catalog and trusted level-zero foundation placement.
- * No player mutation, debit, upgrade, construction or journal event yet.
- * All mutations serialize through the world lock and preserve pinned rules.
+ * Foundation and catalog mutations are operator-only; player construction,
+ * cancellation and claims are journaled by the economy command engine.
+ * All registry mutations serialize through the world lock and preserve pinned rules.
  */
 final class PdoBuildings
 {
