@@ -34,6 +34,43 @@ async function refresh(page, allowDueConflict=false) {
     return data;
 }
 
+async function marketPage(page) {
+    const received=page.waitForResponse(r=>r.url().endsWith('/economy/market') && r.request().method()==='GET');
+    await page.getByRole('button',{name:'Reload market',exact:true}).click();
+    const response=await received;
+    expect(response.status()).toBe(200);
+    await expect(page.locator('#status')).toHaveText('Success');
+    return (await response.json()).data;
+}
+async function marketCommand(page,button,type) {
+    const received=page.waitForResponse(r=>r.url().endsWith('/economy/commands') && r.request().method()==='POST' && r.request().postDataJSON().type===type);
+    await page.getByRole('button',{name:button,exact:true}).click();
+    const response=await received;
+    expect(response.status()).toBe(200);
+    await expect(page.locator('#status')).toHaveText('Success');
+    return {body:response.request().postDataJSON(),receipt:(await response.json()).data,authorization:(await response.request().allHeaders()).authorization};
+}
+async function industrialMarketSmoke(page) {
+    await expect(page.getByRole('heading',{name:'Market',exact:true})).toBeVisible();
+    expect((await marketPage(page)).offers).toEqual([]);
+    await expect(page.locator('#market-notice')).toHaveText('No open offers.');
+    await page.getByLabel('Offered resource',{exact:true}).selectOption('energy');
+    await page.getByLabel('Requested resource',{exact:true}).selectOption('steel');
+    await page.getByLabel('Offered units',{exact:true}).fill('1');
+    await page.getByLabel('Requested units',{exact:true}).fill('1');
+    const created=await marketCommand(page,'Create offer','market.create');
+    expect(created.body.payload.offer).toBe(created.body.id);
+    const pageData=await marketPage(page);
+    expect(pageData.offers).toHaveLength(1);
+    expect(pageData.offers[0].id).toBe(created.body.id);
+    await page.getByLabel('Open offers',{exact:true}).selectOption(created.body.id);
+    const cancelled=await marketCommand(page,'Cancel selected offer','market.cancel');
+    expect(cancelled.body.payload.offer).toBe(created.body.id);
+    expect((await marketPage(page)).offers).toEqual([]);
+    await expect(page.locator('#market-next')).toBeHidden();
+    await expect(page.locator('#market-notice')).toHaveText('No open offers.');
+}
+
 test('real multiplayer transfer and foreign balance denial', async ({browser})=>{
     const senderContext=await browser.newContext(), receiverContext=await browser.newContext();
     try {
@@ -86,6 +123,7 @@ for (const s of scenarios) {
         page.on('pageerror',e=>errors.push(e.message));
         expect((await request.get(url+'/v1/me/worlds')).status()).toBe(401);
         await signIn(page,s);
+        if (s.pack==='reference-industrial') await industrialMarketSmoke(page);
         const before=await refresh(page);
         await page.selectOption('select[name=type]','economy.transfer');
         await expect(page.getByLabel('Recipient account')).toBeVisible();
@@ -160,5 +198,7 @@ test('expired authorization clears private UI and returns to login', async ({pag
     await page.getByRole('button',{name:'Reload available worlds'}).click();
     await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
     await expect(page.locator('#stock')).toBeEmpty();
+    await expect(page.locator('#market-offer option')).toHaveCount(1);
+    await expect(page.locator('#market-notice')).toBeEmpty();
     await expect(page.locator('#game')).toBeHidden();
 });

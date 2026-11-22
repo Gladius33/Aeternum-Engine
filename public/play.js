@@ -27,6 +27,7 @@ function selectWorld() {
     options(balance.elements.resource,(w?.resources??[]).map(a=>[a,a]));
     stock.replaceChildren();
     clearRecipients();
+    clearMarket();
 }
 async function discover() {
     const data=await api('/v1/me/worlds');
@@ -108,14 +109,79 @@ action.addEventListener('submit',e=>{
         const f=locationFields(), type=action.elements.type.value;
         const payload=type==='economy.transfer' ? {from:f.account,to:action.elements.recipient.value,resource:f.resource,units:Number(action.elements.units.value)} : {account:f.account,resource:f.resource};
         if (type==='economy.transfer' && (!Number.isSafeInteger(payload.units) || payload.units<1 || payload.units>1000000000000 || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(payload.to) || payload.to===payload.from)) throw new Error('Invalid transfer');
-        const signature=JSON.stringify([f.world,type,payload]);
-        if (pending && pending.signature!==signature) throw new Error('Retry the previous action with identical fields first.');
-        if (!pending) pending={signature,body:{id:crypto.randomUUID(),type,payload}};
-        try { await api(base(f)+'commands','POST',pending.body); } catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
-        pending=null;
+        await submitCommand(f,type,payload);
         await refresh();
     });
 });
+async function submitCommand(f,type,payload) {
+    const signature=JSON.stringify([f.world,type,payload]);
+    if (pending && pending.signature!==signature) throw new Error('Retry the previous action with identical fields first.');
+    if (!pending) {
+        const id=crypto.randomUUID();
+        pending={signature,body:{id,type,payload:type==='market.create'?{...payload,offer:id}:payload}};
+    }
+    try { await api(base(f)+'commands','POST',pending.body); }
+    catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
+    pending=null;
+}
+const marketCreate=document.querySelector('#market-create'), marketChoice=document.querySelector('#market-offer'), marketNext=document.querySelector('#market-next'), marketNotice=document.querySelector('#market-notice');
+let marketOffers=[], marketAfter=null;
+function clearMarketPage(message='') {
+    marketOffers=[]; marketAfter=null;
+    options(marketChoice,[['','Choose an offer']]);
+    marketNext.hidden=true;
+    marketNotice.textContent=message;
+}
+function clearMarket() {
+    const w=worlds.find(w=>w.world===balance.elements.world.value);
+    const resources=(w?.resources??[]).map(r=>[r,r]);
+    options(marketCreate.elements.giveResource,resources);
+    options(marketCreate.elements.wantResource,resources);
+    if (resources.length>1) marketCreate.elements.wantResource.selectedIndex=1;
+    marketCreate.elements.giveUnits.value='1';
+    marketCreate.elements.wantUnits.value='1';
+    clearMarketPage();
+}
+async function loadMarket(after=null) {
+    const f=locationFields();
+    clearMarketPage();
+    if (!f.world) throw new Error('Choose a world first');
+    const data=await api(base(f)+'market'+(after===null?'':'/'+encodeURIComponent(after)));
+    marketOffers=data.offers; marketAfter=data.nextAfter;
+    options(marketChoice,[['','Choose an offer'],...marketOffers.map(o=>[o.id,o.seller+': '+o.giveUnits+' '+o.giveResource+' for '+o.wantUnits+' '+o.wantResource])]);
+    marketNext.hidden=marketAfter===null;
+    marketNotice.textContent=marketOffers.length?'Choose an offer to accept, or cancel your own offer.':'No open offers.';
+}
+function marketChanged() {
+    stock.replaceChildren();
+    clearMarketPage('Market changed. Reload offers to see the current market.');
+}
+function validMarketUnits(value) { return Number.isSafeInteger(value) && value>=1 && value<=1000000000000; }
+marketCreate.addEventListener('submit',e=>{
+    e.preventDefault();
+    run(async()=>{
+        const f=locationFields(), fields=marketCreate.elements;
+        const payload={seller:f.account,giveResource:fields.giveResource.value,giveUnits:Number(fields.giveUnits.value),wantResource:fields.wantResource.value,wantUnits:Number(fields.wantUnits.value)};
+        if (!f.world || !f.account || !payload.giveResource || !payload.wantResource || payload.giveResource===payload.wantResource || !validMarketUnits(payload.giveUnits) || !validMarketUnits(payload.wantUnits)) throw new Error('Invalid market terms');
+        await submitCommand(f,'market.create',payload);
+        marketChanged();
+    });
+});
+async function selectedMarketCommand(type) {
+    const f=locationFields(), offer=marketOffers.find(o=>o.id===marketChoice.value);
+    if (!f.world || !f.account || !offer) throw new Error('Choose an offer and account first');
+    const payload={offer:offer.id,seller:offer.seller};
+    if (type==='market.accept') {
+        if (f.account===offer.seller) throw new Error('Cannot buy own offer');
+        payload.buyer=f.account;
+    } else if (f.account!==offer.seller) throw new Error('Select the seller account to cancel');
+    await submitCommand(f,type,payload);
+    marketChanged();
+}
+document.querySelector('#market-load').addEventListener('click',()=>run(()=>loadMarket()));
+marketNext.addEventListener('click',()=>{ if (marketAfter!==null) run(()=>loadMarket(marketAfter)); });
+document.querySelector('#market-accept').addEventListener('click',()=>run(()=>selectedMarketCommand('market.accept')));
+document.querySelector('#market-cancel').addEventListener('click',()=>run(()=>selectedMarketCommand('market.cancel')));
 function resetSession() {
     token=null; pending=null; worlds=[]; options(balance.elements.world,[]); selectWorld();
     stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false;
