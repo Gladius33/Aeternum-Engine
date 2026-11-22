@@ -80,7 +80,7 @@ login.addEventListener('submit',e=>{
     // An offline recovery secret is only for its issuance screen. Never leave
     // it visible after the user attempts to enter an authenticated session.
     showRecoveryCode(null);
-    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;registration.hidden=true;recovery.hidden=true;game.hidden=false;await discover();});
+    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;registration.hidden=true;activation.hidden=true;activationResend.hidden=true;recovery.hidden=true;game.hidden=false;await discover();});
 });
 const registration=document.querySelector('#register');
 let joinableWorlds=[], inviteRequired=false, activationRequired=false;

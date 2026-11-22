@@ -74,6 +74,9 @@ test('HTTPS self-service mailbox proof creates no premature bearer, then player 
         }
         await expect(page.locator('#game')).toBeVisible();
         await expect(page.locator('#balance select[name=account]')).toHaveValue(player.account);
+        await expect(page.locator('#activate')).toBeHidden();
+        await expect(page.locator('#activation-resend')).toBeHidden();
+        await expect(page.locator('#recovery-secret')).toBeHidden();
         expect((await context.request.get(url+'/v1/me/worlds',{headers:{Authorization:'Bearer '+player.token}})).status()).toBe(200);
     } finally {await context.close();}
 });
