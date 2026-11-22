@@ -25,7 +25,7 @@ try {
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$_SERVER['REMOTE_ADDR'] ?? ''
             );
-        } elseif ($path==='/v1/me/worlds' || preg_match('~^/v1/worlds/[^/]+/economy/~',$path)) {
+        } elseif ($path==='/v1/me/worlds' || preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/recipients$~D',$path,$recipientMatch) || preg_match('~^/v1/worlds/[^/]+/economy/~',$path)) {
             $rules=[]; $packs=[];
             foreach (['AETERNUM_MEDIEVAL_WORLD'=>'reference-medieval','AETERNUM_INDUSTRIAL_WORLD'=>'reference-industrial'] as $env=>$pack) {
                 $world=getenv($env);
@@ -35,8 +35,8 @@ try {
                     $rules[$world]=$packs[$world]->rules();
                 }
             }
-            if ($path==='/v1/me/worlds') {
-                [$status,$body]=(new PlayerDiscoveryApi($pdo,new SystemClock(),$packs))->handle($_SERVER['REQUEST_METHOD'] ?? '',$_SERVER['HTTP_AUTHORIZATION'] ?? '');
+            if ($path==='/v1/me/worlds' || !empty($recipientMatch)) {
+                [$status,$body]=(new PlayerDiscoveryApi($pdo,new SystemClock(),$packs))->handle($_SERVER['REQUEST_METHOD'] ?? '',$_SERVER['HTTP_AUTHORIZATION'] ?? '',$recipientMatch[1] ?? null);
             } else {
             [$status,$body]=(new EconomyHttpApi($pdo,new SystemClock(),$rules))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
