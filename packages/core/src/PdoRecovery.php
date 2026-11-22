@@ -80,4 +80,41 @@ final class PdoRecovery
             throw $e;
         }
     }
+
+    /**
+     * Authenticated password change with explicit proof of the current password.
+     * The identity row serializes concurrent logins, recovery resets and changes.
+     * Password, recovery code and all session revocations commit atomically.
+     * Caller must require a live bearer token before invoking this method.
+     */
+    public function changePassword(string $actor,string $currentPassword,string $newPassword): ?string
+    {
+        PdoMemberships::validateId($actor);
+        if ($currentPassword===$newPassword || strlen($currentPassword)>1024
+            || strlen($newPassword)<12 || strlen($newPassword)>1024) return null;
+        if ($this->pdo->inTransaction()) throw new \LogicException('Nested password change transaction');
+        $this->pdo->beginTransaction();
+        try {
+            $s=$this->pdo->prepare('SELECT login FROM engine_identities WHERE actor_id=? FOR UPDATE');
+            $s->execute([$actor]);
+            $login=$s->fetchColumn();
+            if ($login===false || (new PdoIdentity($this->pdo))->authenticate($login,$currentPassword)!==$actor) {
+                $this->pdo->rollBack();
+                return null;
+            }
+            $hash=PdoIdentity::hashNewPassword($newPassword);
+            $recoveryCode=bin2hex(random_bytes(32));
+            $s=$this->pdo->prepare('UPDATE engine_identities SET password_hash=? WHERE actor_id=?');
+            $s->execute([$hash,$actor]);
+            $s=$this->pdo->prepare('DELETE FROM engine_sessions WHERE actor_id=?');
+            $s->execute([$actor]);
+            $s=$this->pdo->prepare('INSERT INTO engine_account_recovery(actor_id,token_hash,updated_at) VALUES (?,?,?) ON DUPLICATE KEY UPDATE token_hash=VALUES(token_hash),updated_at=VALUES(updated_at)');
+            $s->execute([$actor,hash('sha256',$recoveryCode),$this->clock->now()]);
+            $this->pdo->commit();
+            return $recoveryCode;
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
+    }
 }
