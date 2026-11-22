@@ -20,6 +20,16 @@ $tokenBuilding=(new PdoSessions(db(),$buildingClock))->login('building-http-acto
 $authBuilding='Bearer '.$tokenBuilding;
 $buildingApi=new WorldBuildingHttpApi(db(),$buildingClock,['entity-A'=>true,'entity-B'=>true]);
 $buildingPath='/v1/worlds/entity-A/buildings/building-api-site';
+$developmentApi=new \Aeternum\Core\HttpApi(db(),$buildingClock);
+[$devCode,$devBody]=$developmentApi->handle('GET',
+    '/v1/worlds/entity-A/entities/building-api-unit/development',$authBuilding);
+check($devCode===200 && $devBody['data']->development['buildingCount']===1
+    && $devBody['data']->development['levelSum']===0,
+    'M04 private HTTP development component reflects durable building foundations');
+check($developmentApi->handle('GET',
+    '/v1/worlds/entity-A/entities/unit/development',$authBuilding)[0]===404,
+    'M04 private HTTP development component rejects foreign entity');
+
 $optionsPath='/v1/worlds/entity-A/construction/options';
 check($buildingApi->handle('GET',$optionsPath,'')[0]===401,
  'M04 choice discovery rejects anonymous request');

@@ -79,6 +79,16 @@ check($placement->balanceForActor('alice','place-alice','wood',$placementRules->
 $placementClock->advanceTo(2005);
 check(count($placement->processDue($placementRules->events))===2,
     'M04 bounded worker independently completes two player constructions');
+$aliceDevelopment=$entity->ownDevelopment('alice','entity-alice');
+$bobDevelopment=$entity->ownDevelopment('bob','entity-bob');
+check($aliceDevelopment['development']['levelSum']===1
+    && $bobDevelopment['development']['levelSum']===1
+    && $aliceDevelopment['development']['buildingCount']===1
+    && $bobDevelopment['development']['buildingCount']===1
+    && $aliceDevelopment['development']['types']===['mill'=>1],
+    'M04 live entity development component reflects two distinct completed buildings');
+rejects(fn()=> $entity->ownDevelopment('alice','entity-bob'),
+    DomainException::class,'M04 dynamic component refuses foreign entity');
 check($buildings->own('alice','alice-mill')['level']===1 &&
     $buildings->own('bob','bob-mill')['level']===1,
     'M04 two player-built structures retain independent progression');

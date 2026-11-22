@@ -73,6 +73,54 @@ final class PdoEntities
         });
     }
 
+    /**
+     * Live entity development component derived from replay-canonical state.
+     * No secondary mutable counter can drift from the journal. Buildings are
+     * owned by the same actor and linked to this entity by relational FKs.
+     */
+    public function ownDevelopment(string $actor,string $entity): array
+    {
+        PdoMemberships::validateId($actor);
+        PdoMemberships::validateId($entity);
+        return $this->locked(function () use ($actor,$entity): array {
+            $this->active($actor);
+            if ($this->query('SELECT entity_id FROM engine_entities WHERE world_id=? AND entity_id=? AND actor_id=?',
+                [$this->world,$entity,$actor])->fetchColumn()===false) {
+                throw new \DomainException('Entity access denied');
+            }
+            $rows=$this->query('SELECT building_id,building_type FROM engine_buildings
+                WHERE world_id=? AND entity_id=? AND actor_id=?
+                ORDER BY building_id LIMIT 1001',[$this->world,$entity,$actor])->fetchAll(PDO::FETCH_ASSOC);
+            if (count($rows)>1000) throw new \DomainException('Entity development projection too large');
+            $json=$this->query('SELECT state_json FROM engine_worlds WHERE world_id=?',
+                [$this->world])->fetchColumn();
+            if ($json===false) throw new \LogicException('Missing canonical state');
+            $state=ScalarMap::decode($json);
+            $components=[];$total=0;$pending=0;$typeLevels=[];
+            foreach ($rows as $row) {
+                $prefix='build:'.$row['building_id'].':';
+                if (isset($state[$prefix.'type']) && $state[$prefix.'type']!==$row['building_type']) {
+                    throw new \UnexpectedValueException('Building type state drift');
+                }
+                $level=$state[$prefix.'level']??0;
+                if (!is_int($level) || $level<0 || $level>16) {
+                    throw new \UnexpectedValueException('Building level state drift');
+                }
+                $busy=isset($state[$prefix.'pending']);
+                $total+=$level;
+                if ($busy) $pending++;
+                $typeLevels[$row['building_type']]=max($typeLevels[$row['building_type']]??0,$level);
+                $components[]=['building'=>$row['building_id'],'type'=>$row['building_type'],
+                    'level'=>$level,'pending'=>$busy];
+            }
+            ksort($typeLevels,SORT_STRING);
+            return ['entity'=>$entity,'development'=>[
+                'levelSum'=>$total,'buildingCount'=>count($components),
+                'pendingCount'=>$pending,'types'=>$typeLevels
+            ],'buildings'=>$components];
+        });
+    }
+
     /** Trusted immutable component attachment; not a simulation command. */
     public function attach(string $id,string $component,array $data): void
     {
