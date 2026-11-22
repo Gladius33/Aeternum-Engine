@@ -123,3 +123,14 @@ avec verrouillage concurrent, et le replay reconstitue leur ordre final.
 pour préserver un journal unique ; le snapshot JSON complet est encore
 matérialisé. La montée en charge longue durée et les conditions réelles
 O2Switch/VPS ne sont pas réputées vérifiées par la seule CI.
+
+## Épreuve de contention reproductible
+
+Le test `tests/m03-parallel-writes.php` réalise 100 mutations d'escrow
+authentifiées par le modèle d'acteurs (4 processus distincts, 25 offres
+par acteur), avec un verrou concurrent au lancement. Il vérifie le
+nombre exact d'offres, les reçus, les débits de grand livre, le stock
+de chacun et le rejeu du journal, puis imprime le temps total et le
+débit observé. Les mesures de GitHub Actions sont indicatives et ne
+constituent ni une garantie de capacité sur hébergeur mutualisé ni un
+benchmark de production ; une qualification dédiée reste à réaliser.
