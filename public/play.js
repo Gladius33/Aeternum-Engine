@@ -285,3 +285,7 @@ document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }
     finally { resetSession(); }
 }));
+document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>{
+    await api('/v1/auth/logout/all','POST');
+    resetSession();
+}));
