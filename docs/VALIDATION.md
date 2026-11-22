@@ -121,3 +121,6 @@ Integration suite exercises disabled route, validation/methods/unknown world, se
 
 
 M01 recovery follow-up: MariaDB suite covers stored token hashing, invalid and replayed codes, atomic password change, session revocation, authenticated replacement and four simultaneous attempts to spend one token. Chromium creates a public player, reconnects, recovers with an offline code, checks old password denial and authenticates with the replacement password. This is not email verification. CI on exact head required.
+
+
+M01 password reset race hardening: session login and code rotation now serialize with account reset via identity row locks. Existing session and multi-process tests are mandatory regression gates; dedicated login/reset concurrency tests and load benchmarks remain part of final M01 sign-off.

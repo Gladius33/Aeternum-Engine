@@ -25,14 +25,24 @@ final class PdoRecovery
     public function rotate(string $actor,string $password): ?string
     {
         PdoMemberships::validateId($actor);
-        $s=$this->pdo->prepare('SELECT login FROM engine_identities WHERE actor_id=?');
-        $s->execute([$actor]);
-        $login=$s->fetchColumn();
-        if ($login===false || (new PdoIdentity($this->pdo))->authenticate($login,$password)!==$actor) return null;
-        $code=bin2hex(random_bytes(32));
-        $s=$this->pdo->prepare('INSERT INTO engine_account_recovery(actor_id,token_hash,updated_at) VALUES (?,?,?) ON DUPLICATE KEY UPDATE token_hash=VALUES(token_hash),updated_at=VALUES(updated_at)');
-        $s->execute([$actor,hash('sha256',$code),$this->clock->now()]);
-        return $code;
+        if ($this->pdo->inTransaction()) throw new \LogicException('Nested recovery rotation');
+        $this->pdo->beginTransaction();
+        try {
+            $s=$this->pdo->prepare('SELECT login FROM engine_identities WHERE actor_id=? FOR UPDATE');
+            $s->execute([$actor]);
+            $login=$s->fetchColumn();
+            if ($login===false || (new PdoIdentity($this->pdo))->authenticate($login,$password)!==$actor) {
+                $this->pdo->rollBack(); return null;
+            }
+            $code=bin2hex(random_bytes(32));
+            $s=$this->pdo->prepare('INSERT INTO engine_account_recovery(actor_id,token_hash,updated_at) VALUES (?,?,?) ON DUPLICATE KEY UPDATE token_hash=VALUES(token_hash),updated_at=VALUES(updated_at)');
+            $s->execute([$actor,hash('sha256',$code),$this->clock->now()]);
+            $this->pdo->commit();
+            return $code;
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
     }
 
     /**

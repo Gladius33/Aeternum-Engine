@@ -123,3 +123,6 @@
 
 
 - ADR-051 (M01): self-service recovery uses offline 256-bit one-time codes rather than pretending to send unconfigured email. Persist SHA-256 digests only; rotate under row locks; change password and revoke sessions transactionally. Authenticated rotation also requires the current password. Email attestation and production abuse/capacity validation remain outstanding.
+
+
+- ADR-052 (M01): session creation holds a shared identity row lock from password verification through session insertion, while password reset takes an exclusive identity lock before deleting sessions. Authenticated recovery-code rotation also locks the identity exclusively. This closes the old-password login/reset race without changing opaque bearer semantics; load and deadlock retry require real capacity qualification.
