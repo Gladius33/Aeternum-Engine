@@ -7,6 +7,16 @@ $invitePack=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-
 $inviteService=new PdoInvitations(db(),$inviteClock);
 rejects(fn()=> $inviteService->issue($inviteWorld,0),InvalidArgumentException::class,'zero invitations rejected');
 rejects(fn()=> $inviteService->issue($inviteWorld,51),InvalidArgumentException::class,'unbounded invite batches rejected');
+// Issuance must not commit an unrelated caller transaction or leak partial batches.
+$inviteDb=db();
+$inviteDb->beginTransaction();
+try {
+    rejects(fn()=> $inviteService->issue($inviteWorld,2),LogicException::class,
+        'nested invitation batch issuance rejected');
+    check($inviteDb->inTransaction(),'caller transaction remains owned by caller');
+} finally {
+    if ($inviteDb->inTransaction()) $inviteDb->rollBack();
+}
 [$codeA,$codeB,$codeC]=$inviteService->issue($inviteWorld,3);
 check(strlen($codeA)===64 && $codeA!==$codeB && $codeB!==$codeC,'invitation codes are independent random 256-bit secrets');
 $inviteHashQuery=db()->prepare('SELECT token_hash FROM engine_signup_invitations WHERE token_hash=?');
