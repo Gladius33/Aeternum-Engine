@@ -55,3 +55,29 @@ check($invitePost(['login'=>'invite-expired','password'=>'expired invitation pas
 check((new PdoIdentity(db()))->authenticate('invite-expired','expired invitation password')===null,'expiration rollback leaves no identity');
 rejects(fn()=> $inviteService->issue($inviteWorld,1,59),InvalidArgumentException::class,'invitation TTL has lower bound');
 rejects(fn()=> $inviteService->issue($inviteWorld,1,2592001),InvalidArgumentException::class,'invitation TTL has upper bound');
+
+
+// Four different identities competing for ONE invitation: exactly one may own it.
+// The three losers must leave no orphaned application identities or memberships.
+[$raceInvite]=$inviteService->issue($inviteWorld,1);
+$inviteChildren=[];
+for($n=0;$n<4;$n++) {
+    $proc=proc_open([PHP_BINARY,__DIR__.'/invitation-worker.php',$inviteWorld,(string)$n],
+        [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+    if(!is_resource($proc)) throw new RuntimeException('Unable to spawn invitation worker');
+    fwrite($pipes[0],$raceInvite.PHP_EOL);
+    fclose($pipes[0]);
+    $inviteChildren[]=[$proc,$pipes];
+}
+$admitted=0;
+foreach($inviteChildren as [$proc,$pipes]) {
+    $output=stream_get_contents($pipes[1]); $stderr=stream_get_contents($pipes[2]);
+    fclose($pipes[1]);fclose($pipes[2]);
+    check(proc_close($proc)===0,'invitation concurrency worker completed: '.$stderr);
+    $status=(int)trim($output);
+    check(in_array($status,[201,409],true),'invite race has controlled outcome');
+    if($status===201)++$admitted;
+}
+check($admitted===1,'one invite cannot be spent by two competing identities');
+$s=db()->query("SELECT COUNT(*) FROM engine_identities WHERE login LIKE 'invited-race-%'");
+check((int)$s->fetchColumn()===1,'failed competing invites rollback their identities');
