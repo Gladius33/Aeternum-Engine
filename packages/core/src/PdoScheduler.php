@@ -526,7 +526,12 @@ final class PdoScheduler
                     $ids[] = $event->id;
                 }
                 $this->query('UPDATE engine_worlds SET next_sequence = ?, watermark = ?, state_json = ? WHERE world_id = ?',[$seq,$at,$stateJson,$this->worldId]);
-                $this->query('INSERT INTO engine_commands (world_id,command_id,command_type,payload_json,effective_at,result_state_json,scheduled_ids_json,actor_id,client_request_id) VALUES (?,?,?,?,?,?,?,?,?)',[$this->worldId,$command->id,$command->type,$payload,$at,$stateJson,json_encode($ids,JSON_THROW_ON_ERROR),$actor,$clientRequest]);
+                // Actor API receipts expose only id/time/scheduled IDs, never
+                // the full world snapshot. On schema 020, store '{}' for such
+                // receipts to avoid quadratic database growth. Existing rows
+                // and trusted-system receipts retain their original format.
+                $receiptState=$actor!==null && $this->hasProjection() ? '{}' : $stateJson;
+                $this->query('INSERT INTO engine_commands (world_id,command_id,command_type,payload_json,effective_at,result_state_json,scheduled_ids_json,actor_id,client_request_id) VALUES (?,?,?,?,?,?,?,?,?)',[$this->worldId,$command->id,$command->type,$payload,$at,$receiptState,json_encode($ids,JSON_THROW_ON_ERROR),$actor,$clientRequest]);
                 $this->journal($world,'command',$command->id,$command->type,$at,$payload,$stateJson,$result->events,$result->movements);
                 return new CommandReceipt($at,ScalarMap::decode($stateJson),$ids);
             });

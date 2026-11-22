@@ -64,6 +64,8 @@ $balanceRows=(int)db()->query("SELECT COUNT(*) FROM engine_economy_balances WHER
 check($balanceRows===1002,'M03 more than 1000 indexed relational resource accounts persist');
 check($scale->balanceForActor('scale-seller','account1000','ore',$scaleEconomy)->stock===2000,
     'M03 actor can read his 1000th new account after migration and writes');
+check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='m03-scale-world' AND actor_id IS NOT NULL AND result_state_json='{}'")->fetchColumn()===2003,
+    'M03 actor receipts persist compact output without quadratic copies of the world snapshot');
 check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='m03-scale-world'")->fetchColumn()===2003,
     'M03 more than 2000 durable command receipts coexist without ID loss');
 

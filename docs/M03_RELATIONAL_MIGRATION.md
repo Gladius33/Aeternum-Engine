@@ -76,3 +76,16 @@ suppression complète, les verrous ciblés par compte et une mesure de
 capacité représentative exigent une nouvelle phase de travail.
 Les épreuves CI sur MariaDB/Chromium sont nécessaires. Une CI verte
 n'est pas une preuve de migration ou de sauvegarde sur O2Switch/VPS.
+
+## Format compact des reçus M03
+
+Les nouveaux reçus de commandes **joueur** sous migration 020 ne
+stockent plus une copie complète du snapshot mondial : ils conservent
+une valeur JSON vide dans la colonne historique result_state_json.
+Les informations contractuelles du reçu joueur (identifiant, horodatage
+logique et événements programmés), l'identité du demandeur, la charge
+canonique, le journal et les mouvements de grand livre demeurent
+persistés atomiquement. Les réessais d'un même identifiant renvoient
+le même ActorReceipt, sans nouvelle exécution. Les commandes système
+et toutes les lignes historiques restent inchangées ; aucune migration
+destructrice de reçus n'est réalisée.
