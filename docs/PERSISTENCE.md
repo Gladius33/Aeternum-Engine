@@ -122,3 +122,7 @@ When invite-only beta mode is enabled, engine_signup_invitations stores world-sc
 
 
 M01 unclaimed invitations carry server-side `expires_at` (default 7 days) and a `revoked` flag. Atomic claim refuses expired or revoked codes. Revocation affects only unused invitations; a previously claimed onboarding record may be completed idempotently after its code expires. Issued codes cannot be extended retroactively. Operators revoke by piping the secret to `bin/invite-revoke.php` and must protect CLI stdout and shell logs.
+
+
+### M01 identity-wide session revocation
+`PdoSessions::revokeAllForActor` obtains an exclusive `engine_identities` row lock and deletes all `engine_sessions` rows for **only** the resolved actor in one transaction. The login path uses a shared lock on the same identity before token issuance, and password change/recovery use exclusive identity locks, so an earlier login cannot outlive a committed global logout. A login starting afterwards is permitted with still-valid credentials. The HTTP route `/v1/auth/logout/all` first checks the calling bearer and never trusts a target actor supplied by the client. A request already admitted before revocation can finish; revocation governs subsequent admission, not cancellation of in-flight business transactions.
