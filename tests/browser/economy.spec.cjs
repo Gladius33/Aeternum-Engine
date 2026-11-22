@@ -15,6 +15,7 @@ async function signIn(page, scenario) {
     // independent scenarios exhaust it, wait for the server's next fixed window
     // instead of hanging on a discovery request that a rejected login never sends.
     for (let attempt=0; attempt<3; attempt++) {
+        await page.getByLabel('Password',{exact:true}).fill(password);
         const loginResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/login') && r.request().method()==='POST',{timeout:15000});
         await page.getByRole('button',{name:'Sign in',exact:true}).click();
         const response=await loginResponse;
