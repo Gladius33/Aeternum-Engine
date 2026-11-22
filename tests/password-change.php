@@ -2,6 +2,9 @@
 declare(strict_types=1);
 use Aeternum\Core\{AuthHttpApi,FrozenClock,GamePackLoader,PdoIdentity,PdoRecovery,PdoSessions};
 
+// Keep integration fixtures local; later suites rely on the original $actor.
+(static function (): void {
+
 $changeClock=new FrozenClock(30200);
 $changePack=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/manifest.json'));
 $changeApi=new AuthHttpApi(db(),$changeClock,120,['change-password-world'=>$changePack]);
@@ -89,3 +92,4 @@ check($identity->authenticate($raceLogin,$raceOld)===null && $identity->authenti
 check(is_string($winnerCode) && strlen($winnerCode)===64 && $winnerCode!==$raceCode,'single winning changer receives rotated recovery code');
 $codeRow->execute([$raceActor]);
 check($codeRow->fetchColumn()===hash('sha256',$winnerCode),'concurrent change commits new recovery code with password');
+})();
