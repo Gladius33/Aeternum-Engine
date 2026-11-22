@@ -35,6 +35,7 @@ function clearMap() {
     document.querySelector('#building-details').replaceChildren();
     currentBuilding=null;
     document.querySelector('#building-start').hidden=true;
+    document.querySelector('#building-cancel').hidden=true;
 }
 async function loadMap(after=null) {
     const world=balance.elements.world.value;
@@ -91,12 +92,14 @@ async function loadBuilding() {
     detail.replaceChildren();
     currentBuilding=null;
     document.querySelector('#building-start').hidden=true;
+    document.querySelector('#building-cancel').hidden=true;
     if (!world || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)) throw new Error('Choose an owned building ID');
     const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':');
     const building=await api(root+'/buildings/'+encodeURIComponent(id));
     if (world!==balance.elements.world.value) return;
     currentBuilding=building;
     document.querySelector('#building-start').hidden=building.next===null || building.pending!==null;
+    document.querySelector('#building-cancel').hidden=building.pending===null;
     const append=(key,value)=>{
         const dt=document.createElement('dt'),dd=document.createElement('dd');
         dt.textContent=key;dd.textContent=String(value);detail.append(dt,dd);
@@ -113,6 +116,18 @@ async function loadBuilding() {
     } else append('Next stage','Complete');
 }
 document.querySelector('#building-load').addEventListener('click',()=>run(loadBuilding));
+document.querySelector('#building-cancel').addEventListener('click',()=>run(async()=>{
+    const f=locationFields(),building=currentBuilding;
+    if (!building || !f.world || !f.account || building.account!==f.account
+        || building.pending===null || document.querySelector('#building-id').value.trim()!==building.id) {
+        throw new Error('Choose a pending building and its funding account');
+    }
+    await submitCommand(f,'building.cancel',{
+        building:building.id,account:f.account,type:building.type
+    });
+    await loadBuilding();
+    await refresh();
+}));
 document.querySelector('#building-start').addEventListener('click',()=>run(async()=>{
     const f=locationFields(),building=currentBuilding;
     if (!building || !f.world || !f.account || building.account!==f.account

@@ -483,6 +483,7 @@ final class PdoScheduler
                 $this->assertAccountOwner($command->payload['from']??null,$actor);
                 $this->assertAccountOwner($command->payload['to']??null,null);
                 break;
+            case 'building.cancel':
             case 'building.start':
                 $this->assertAccountOwner($command->payload['account']??null,$actor);
                 $building=$command->payload['building']??null;

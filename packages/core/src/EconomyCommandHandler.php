@@ -300,6 +300,44 @@ final class EconomyCommandHandler implements CommandHandler
         return new CommandResult($state,$events,$ledger);
     }
 
+    /**
+     * Compensating cancellation before the scheduled due time. Reimburse every
+     * resource in the same transaction or refuse the whole cancellation when
+     * storage cannot accommodate the full refund. No units are silently lost.
+     */
+    private function cancelBuilding(Command $command,array $state,int $at): CommandResult
+    {
+        $p=$this->payload($command,['building','account','type']);
+        $id=$this->id($p['building']);
+        $account=$this->id($p['account']);
+        $type=$this->id($p['type']);
+        $stages=$this->buildingStages($type);
+        if ($stages===null) throw new \DomainException('No pinned building');
+        $prefix='build:'.$id.':';
+        $pending=$state[$prefix.'pending']??null;
+        $level=$state[$prefix.'level']??null;
+        $started=$state[$prefix.'started']??null;
+        if (!is_string($pending) || !is_int($level) || !isset($stages[$level])
+            || !is_int($started) || $started<0
+            || ($state[$prefix.'account']??null)!==$account
+            || ($state[$prefix.'type']??null)!==$type) {
+            throw new \DomainException('No matching pending construction');
+        }
+        $stage=$stages[$level];
+        if ($started>PHP_INT_MAX-$stage['duration'] || $at>=$started+$stage['duration']) {
+            throw new \DomainException('Construction already due');
+        }
+        $ledger=[];
+        foreach ($stage['costs'] as $resource=>$units) {
+            $balance=$this->settle($state,$ledger,$account,$resource,$at)->credit($units);
+            $this->write($state,$account,$resource,$balance);
+            $ledger[]=new ResourceMovement($account,$resource,$units,$balance->stock,'construction_refund');
+        }
+        unset($state[$prefix.'pending'],$state[$prefix.'started']);
+        $state['build:cancelled:'.$pending]=true;
+        return new CommandResult($state,[],$ledger);
+    }
+
     /** Pure deterministic atomic multi-resource construction start. */
     private function startBuilding(Command $command,array $state,int $at): CommandResult
     {
@@ -347,6 +385,7 @@ final class EconomyCommandHandler implements CommandHandler
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
         if ($command->type==='building.start') return $this->startBuilding($command,$state,$effectiveAt);
+        if ($command->type==='building.cancel') return $this->cancelBuilding($command,$state,$effectiveAt);
         if (in_array($command->type,['market.create','market.accept','market.cancel','market.claim'],true)) {
             return $this->market($command,$state,$effectiveAt);
         }
@@ -411,6 +450,18 @@ final class EconomyCommandHandler implements CommandHandler
         $prefix='build:'.$id.':';
         $level=$p['level'];
         $stages=$this->buildingStages($type);
+        $cancelKey='build:cancelled:'.$event->id;
+        if (($state[$cancelKey]??null)===true) {
+            // Canceled work retains its scheduled event for journal continuity.
+            // Its eventual delivery is a deterministic, harmless no-op.
+            if (($state[$prefix.'account']??null)!==$account
+                || ($state[$prefix.'type']??null)!==$type
+                || !is_int($level) || $level<1 || $stages===null || $level>count($stages)) {
+                throw new \DomainException('Canceled construction envelope differs');
+            }
+            unset($state[$cancelKey]);
+            return new EventResult($state);
+        }
         if ($stages===null || !is_int($level) || $level<1 || $level>count($stages)
             || ($state[$prefix.'account']??null)!==$account
             || ($state[$prefix.'type']??null)!==$type

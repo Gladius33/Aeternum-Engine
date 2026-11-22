@@ -129,6 +129,21 @@ une lecture validée de sa propre fondation, sur son compte actif, sans
 client d'économie et rafraîchit le plan et les stocks après acceptation.
 Un rejeu non acquitté utilise le bouton de reprise de requête existant.
 
+### Annulation compensatoire (capacité de stockage disponible)
+
+La commande autorisée `building.cancel` ne peut interrompre qu'une
+étape encore en cours. Elle remet **exactement** tous les coûts dans les
+comptes, de manière atomique, et écrit des lignes `construction_refund`
+au grand livre. Si un stock n'a plus la capacité d'accueillir toutes
+les ressources à restituer, l'annulation est entièrement refusée :
+aucune unité ne disparaît. Le traitement ultérieur de l'événement
+original est un *no-op* déterministe journalisé. Les reprises multiples
+et redémarrages sont idempotents ; les annulations après échéance sont
+refusées et le worker termine d'abord les échéances.
+
+L'annulation avec capacité saturée et remboursement différé reste
+**à implémenter** avant validation de M04.
+
 ## Sortie de macro NON acquise
 
 Restent à développer les règles typées de bâtiments, la construction

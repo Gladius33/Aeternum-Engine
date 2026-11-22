@@ -116,3 +116,43 @@ check((new PdoScheduler(db(),$buildWorld,$buildClock,$buildRules))
  'M04 reconnect replays same journal and ledger across connections');
 check((new PdoBuildings(db(),$buildWorld))->own('alice','build-mill-a')['level']===2,
  'M04 durable private building state survives reconnect');
+$buildClock->advanceTo(1016);
+$bobPending=$start('bob','bob-pending-cancel','build-mill-b','build-b','mill');
+check($construction->balanceForActor('bob','build-b','wood',$buildRules->commands)->stock===93,
+ 'M04 cancellation fixture debited before compensation');
+$buildClock->advanceTo(1017);
+$bobCancel=new Command($buildWorld,'bob-cancel-before-due','building.cancel',[
+    'building'=>'build-mill-b','account'=>'build-b','type'=>'mill'
+]);
+$cancelled=$construction->executeForActor('bob',$bobCancel,$buildRules->commands);
+check($cancelled->scheduledIds===[],'M04 cancellation schedules no new event');
+check($construction->executeForActor('bob',$bobCancel,$buildRules->commands)==$cancelled,
+ 'M04 identical cancellation receipt is idempotent');
+check($construction->balanceForActor('bob','build-b','wood',$buildRules->commands)->stock===100
+ && $construction->balanceForActor('bob','build-b','grain',$buildRules->commands)->stock===80,
+ 'M04 cancellation restores both resources without hidden loss');
+check($buildStore->own('bob','build-mill-b')['pending']===null
+ && $buildStore->own('bob','build-mill-b')['level']===0,
+ 'M04 canceled stage has no visible pending construction');
+rejects(fn()=> $construction->executeForActor('bob',
+    new Command($buildWorld,'bob-double-cancel','building.cancel',[
+        'building'=>'build-mill-b','account'=>'build-b','type'=>'mill'
+    ]),$buildRules->commands),DomainException::class,
+ 'M04 repeated distinct cancellation cannot double reimburse');
+$buildClock->advanceTo(1021);
+rejects(fn()=> $construction->executeForActor('bob',
+    new Command($buildWorld,'cancel-after-due','building.cancel',[
+        'building'=>'build-mill-b','account'=>'build-b','type'=>'mill'
+    ]),$buildRules->commands),DomainException::class,
+ 'M04 due-event processing barrier remains intact for canceled events');
+check($construction->processDue($buildRules->events)===[$bobPending->scheduledIds[0]],
+ 'M04 original canceled event finishes as deterministic no-op');
+check($buildStore->own('bob','build-mill-b')['level']===0,
+ 'M04 worker cannot complete canceled construction');
+$refunds=db()->prepare("SELECT COUNT(*) FROM engine_resource_ledger WHERE world_id=? AND reason='construction_refund'");
+$refunds->execute([$buildWorld]);
+check((int)$refunds->fetchColumn()===2,'M04 both refunded resources have ledger evidence');
+check((new PdoScheduler(db(),$buildWorld,$buildClock,$buildRules))
+    ->verifyReplay($buildRules->commands,$buildRules->events)->entries===13,
+ 'M04 replay includes original start, compensating cancellation and no-op event');
+

@@ -34,7 +34,10 @@ test('M04 pinned two-player construction debits, completes and isolates actor st
     await expect(one.locator('#building-details')).toContainText('Ready');
     await expect(one.getByRole('button',{name:'Begin construction'})).toBeVisible();
     await two.getByLabel('Owned building ID').fill('builder-2-mill');
+    const twoRead=two.waitForRequest(r=>r.url().endsWith('/buildings/builder-2-mill'));
     await two.getByRole('button',{name:'Inspect building plan'}).click();
+    const twoToken=(await (await twoRead).allHeaders()).authorization;
+    expect(twoToken).toMatch(/^Bearer [a-f0-9]{64}$/);
     await expect(two.locator('#building-details')).toContainText('builder-2-mill');
     const ownAccount=await one.locator('#balance select[name=account]').inputValue();
     const twoAccount=await two.locator('#balance select[name=account]').inputValue();
@@ -55,6 +58,7 @@ test('M04 pinned two-player construction debits, completes and isolates actor st
     expect(receipt.data.scheduledIds).toHaveLength(1);
     await expect(one.locator('#building-details')).toContainText('Construction pending');
     await expect(one.getByRole('button',{name:'Begin construction'})).toBeHidden();
+    await expect(one.getByRole('button',{name:'Cancel construction'})).toBeVisible();
     const retry=await one.request.post(commandUrl,{headers:{Authorization:token},data:requestEnvelope});
     expect(retry.status()).toBe(200);
     expect(await retry.json()).toEqual(receipt);
@@ -94,5 +98,36 @@ test('M04 pinned two-player construction debits, completes and isolates actor st
     });
     expect(unchanged.status()).toBe(200);
     expect((await unchanged.json()).data.stock).toBe(93);
+    // Independently test compensating cancellation through the second player's
+    // own authenticated client. Canceled events still complete as safe no-ops.
+    const bobStartWait=two.waitForResponse(r=>r.url()===commandUrl && r.request().method()==='POST');
+    await two.getByRole('button',{name:'Begin construction'}).click();
+    const bobStarted=await bobStartWait;
+    expect(bobStarted.status()).toBe(200);
+    await expect(two.getByRole('button',{name:'Cancel construction'})).toBeVisible();
+    const bobCancelWait=two.waitForResponse(r=>r.url()===commandUrl && r.request().method()==='POST');
+    await two.getByRole('button',{name:'Cancel construction'}).click();
+    const bobCancelled=await bobCancelWait;
+    expect(bobCancelled.status()).toBe(200);
+    await expect(two.getByRole('button',{name:'Cancel construction'})).toBeHidden();
+    await expect(two.locator('#building-details')).toContainText('Ready');
+    const bobRefund=await two.request.get(base+'/v1/worlds/e2e-build/economy/balances/'+twoAccount+'/wood',{
+        headers:{Authorization:twoToken}
+    });
+    expect(bobRefund.status()).toBe(200);
+    expect((await bobRefund.json()).data.stock).toBe(100);
+    const cancelRetry=await two.request.post(commandUrl,{
+        headers:{Authorization:twoToken},data:bobCancelled.request().postDataJSON()
+    });
+    expect(cancelRetry.status()).toBe(200);
+    expect(await cancelRetry.json()).toEqual(await bobCancelled.json());
+    await two.waitForTimeout(5500);
+    const canceledWorker=execFileSync('php',['bin/worker.php','m04-construction-fixture','e2e-build'],{
+        encoding:'utf8',env:{...process.env,AETERNUM_MEDIEVAL_WORLD:'',AETERNUM_INDUSTRIAL_WORLD:'',
+            AETERNUM_WORLD_REGISTRY:process.env.AETERNUM_E2E_REGISTRY}
+    });
+    expect(JSON.parse(canceledWorker).processed).toBeGreaterThanOrEqual(1);
+    await two.getByRole('button',{name:'Inspect building plan'}).click();
+    await expect(two.locator('#building-details dd').nth(3)).toHaveText('0');
     await one.close();await two.close();
 });
