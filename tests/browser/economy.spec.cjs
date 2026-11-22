@@ -1,5 +1,5 @@
 const {test, expect}=require('@playwright/test');
-test.describe.configure({mode:'parallel'});
+test.describe.configure({mode:'default'});
 const {execFileSync}=require('node:child_process');
 const url='http://127.0.0.1:8765';
 const password='browser-only test password';
@@ -33,6 +33,45 @@ async function refresh(page, allowDueConflict=false) {
     await expect(page.locator('#stock dd').nth(0)).toHaveText(String(data.stock));
     return data;
 }
+
+test('real multiplayer transfer and foreign balance denial', async ({browser})=>{
+    const senderContext=await browser.newContext(), receiverContext=await browser.newContext();
+    try {
+        const sender=await senderContext.newPage(), receiver=await receiverContext.newPage();
+        const s=scenarios[0];
+        await signIn(sender,{...s,login:'browser-medieval-sender'});
+        await signIn(receiver,{...s,login:'browser-medieval-receiver'});
+        const from=await sender.locator('select[name=account]').inputValue();
+        const to=await receiver.locator('select[name=account]').inputValue();
+        expect(from).not.toBe(to);
+        // Keep this scenario on separate accounts; no upgrade events are created here.
+        const beforeSender=await refresh(sender,true), beforeReceiver=await refresh(receiver,true);
+        expect(beforeSender).not.toBeNull();
+        expect(beforeReceiver).not.toBeNull();
+        await sender.selectOption('select[name=type]','economy.transfer');
+        await sender.getByLabel('Recipient account').fill(to);
+        await sender.getByLabel('Units',{exact:true}).fill('5');
+        const command=sender.waitForResponse(r=>r.url().endsWith('/economy/commands'));
+        await sender.getByRole('button',{name:'Submit action'}).click();
+        expect((await command).status()).toBe(200);
+        await expect(sender.locator('#status')).toHaveText('Success');
+        const afterSender=await refresh(sender), afterReceiver=await refresh(receiver);
+        // Lazy production may accrue between snapshots, therefore check the
+        // debit via the committed stock and the credit via its lower bound.
+        expect(afterReceiver.stock).toBeGreaterThanOrEqual(beforeReceiver.stock+5);
+        expect(afterSender.stock).toBeLessThanOrEqual(afterSender.capacity);
+        const capture=sender.waitForRequest(r=>r.url().includes('/economy/overview/'));
+        await sender.getByRole('button',{name:'Refresh stock'}).click();
+        const req=await capture;
+        const authorization=(await req.allHeaders()).authorization;
+        const foreign=await sender.request.get(url+'/v1/worlds/'+s.world+'/economy/overview/'+encodeURIComponent(to)+'/'+s.resource,{headers:{Authorization:authorization}});
+        expect(foreign.status()).toBe(409);
+    } finally {
+        await senderContext.close();
+        await receiverContext.close();
+    }
+});
+
 for (const s of scenarios) {
     test(s.world+' real login, debit, reload and timed completion',async({page,request})=>{
         test.setTimeout(300000);
