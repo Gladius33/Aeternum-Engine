@@ -80,8 +80,7 @@ sans plan de migration et validation humaine.
 au maximum et `nextAfter`. `GET /v1/worlds/{world}/map/locations/{id}/links[/{after}]`
 fait de même pour les relations orientées. Les deux routes exigent une
 session active et une appartenance au monde configuré, appliquent un quota
-de lecture et n'exposent pas d'API de mutation. L'interface de référence
-permet de visualiser les territoires et les routes, pas de construire.
+de lecture et n'exposent pas d'API de mutation. La carte est en lecture seule ; l'interface de construction distincte permet aux membres propriétaires de commencer et d'annuler les améliorations éligibles sur les fondations préparées par l'opérateur.
 
 ### Recherche d'itinéraires
 
