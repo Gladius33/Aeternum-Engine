@@ -11,8 +11,7 @@ async function api(path, method='GET', data) {
     return result.data;
 }
 function locationFields() {
-    const f = new FormData(balance);
-    return Object.fromEntries(['world','account','resource'].map(k=>[k,String(f.get(k))]));
+    return Object.fromEntries(['world','account','resource'].map(k=>[k,balance.elements[k].value]));
 }
 function base(f) { return '/v1/worlds/'+encodeURIComponent(f.world).replaceAll('%3A',':')+'/economy/'; }
 function options(select, values) {
@@ -39,6 +38,7 @@ for (const key of ['account','resource']) balance.elements[key].addEventListener
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
+    stock.replaceChildren();
     const data=await api(base(f)+'overview/'+encodeURIComponent(f.account)+'/'+encodeURIComponent(f.resource));
     if (JSON.stringify(f)!==JSON.stringify(locationFields())) return;
     stock.replaceChildren();
@@ -61,10 +61,13 @@ async function refresh() {
 async function run(work) {
     if (busy) return;
     busy=true;
-    const controls=[...document.querySelectorAll('button')];
+    const controls=[...document.querySelectorAll('button, select')];
     controls.forEach(x=>x.disabled=true);
     try { await work(); status.textContent='Success'; }
-    catch(e) { status.textContent=e.message || 'Request failed'; }
+    catch(e) {
+        if (e.status===401 && token) resetSession();
+        status.textContent=e.message || 'Request failed';
+    }
     finally { busy=false; controls.forEach(x=>x.disabled=false); }
 }
 login.addEventListener('submit',e=>{
@@ -78,7 +81,7 @@ balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
 action.addEventListener('submit',e=>{
     e.preventDefault();
     run(async()=>{
-        const f=locationFields(), type=new FormData(action).get('type');
+        const f=locationFields(), type=action.elements.type.value;
         const signature=JSON.stringify([f,type]);
         if (pending && pending.signature!==signature) throw new Error('Retry the previous action with identical fields first.');
         if (!pending) pending={signature,body:{id:crypto.randomUUID(),type,payload:{account:f.account,resource:f.resource}}};
@@ -87,7 +90,11 @@ action.addEventListener('submit',e=>{
         await refresh();
     });
 });
+function resetSession() {
+    token=null; pending=null; worlds=[]; options(balance.elements.world,[]); selectWorld();
+    stock.replaceChildren(); game.hidden=true; login.hidden=false;
+}
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }
-    finally { token=null;pending=null;worlds=[];options(balance.elements.world,[]);selectWorld();stock.replaceChildren();game.hidden=true;login.hidden=false; }
+    finally { resetSession(); }
 }));

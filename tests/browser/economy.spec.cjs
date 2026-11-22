@@ -84,3 +84,20 @@ for (const s of scenarios) {
         expect(errors).toEqual([]);
     });
 }
+
+test('expired authorization clears private UI and returns to login', async ({page})=>{
+    await signIn(page,scenarios[0]);
+    // Revoke the real bearer session through the real API while retaining the browser's in-memory token.
+    const requestPromise=page.waitForRequest(r=>r.url().endsWith('/v1/me/worlds'));
+    await page.getByRole('button',{name:'Reload available worlds'}).click();
+    const req=await requestPromise;
+    const authorization=(await req.allHeaders()).authorization;
+    expect(authorization).toMatch(/^Bearer /);
+    await expect(page.locator('#status')).toHaveText('Success');
+    const response=await page.request.post(url+'/v1/auth/logout',{headers:{Authorization:authorization}});
+    expect(response.status()).toBe(200);
+    await page.getByRole('button',{name:'Reload available worlds'}).click();
+    await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
+    await expect(page.locator('#stock')).toBeEmpty();
+    await expect(page.locator('#game')).toBeHidden();
+});

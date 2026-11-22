@@ -51,3 +51,5 @@ Trusted account setup CLI available; browser UI and public registration remain o
 0027: PHP/MariaDB and Chromium passed on exact head 823908db8d1ae838c8cadbf1b3ae641c83e83579 (runs 44956530388 and 44956530516), merged as 3832bac60062a088848d3d6b261f6dc775333cea. 0028 adds fixed password hashing and a global verification budget; public onboarding, capacity and remaining G05 acceptance are open.
 
 0028: exact head daee5e12285910702925f2a02a50e032bc2f841b passed PHP/MariaDB (44956967641) and Chromium (44956967691), merged as 1ae12e943b771c2a48b71b0c06a6b2b7431afc1c. 0029 adds an owned-resource progression overview and browser rendering. Full gameplay, distinct game mechanics, public onboarding and remaining G03–G05 gates are open.
+
+0030: clear private browser state after HTTP 401, clear stale overview before refresh, and prevent selection changes during requests. Real browser test revokes a bearer via the live API and verifies return to sign-in. CI evidence pending.
