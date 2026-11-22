@@ -11,9 +11,19 @@ async function signIn(page, scenario) {
     await page.goto(url+'/play.html');
     await page.getByLabel('Login',{exact:true}).fill(scenario.login);
     await page.getByLabel('Password',{exact:true}).fill(password);
-    const discovery=page.waitForResponse(r=>r.url().endsWith('/v1/me/worlds'));
-    await page.getByRole('button',{name:'Sign in',exact:true}).click();
-    expect((await discovery).status()).toBe(200);
+    // The suite deliberately shares the real per-peer login quota. When earlier
+    // independent scenarios exhaust it, wait for the server's next fixed window
+    // instead of hanging on a discovery request that a rejected login never sends.
+    for (let attempt=0; attempt<3; attempt++) {
+        const loginResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/login') && r.request().method()==='POST',{timeout:15000});
+        await page.getByRole('button',{name:'Sign in',exact:true}).click();
+        const response=await loginResponse;
+        if (response.status()===200) break;
+        expect(response.status()).toBe(429);
+        if (attempt===2) throw new Error('Login quota remained exhausted after two windows');
+        await page.waitForTimeout(65000);
+    }
+    await expect(page.locator('#balance select[name=world] option')).toHaveCount(1,{timeout:15000});
     await expect(page.locator('#status')).toHaveText('Success');
     await expect(page.locator('#balance select[name=world] option')).toHaveCount(1);
     await expect(page.locator('#balance select[name=world]')).toHaveValue(scenario.world);
@@ -254,7 +264,7 @@ test('expired authorization clears private UI and returns to login', async ({pag
 
 for (const s of scenarios) {
     test(s.world+' real login, debit, reload and timed completion',async({page,request})=>{
-        test.setTimeout(300000);
+        test.setTimeout(480000);
         const errors=[];
         page.on('pageerror',e=>errors.push(e.message));
         expect((await request.get(url+'/v1/me/worlds')).status()).toBe(401);
