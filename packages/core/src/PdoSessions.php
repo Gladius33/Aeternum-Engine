@@ -57,6 +57,30 @@ final class PdoSessions
         $s=$this->pdo->prepare('UPDATE engine_sessions SET revoked=1 WHERE token_hash=?');
         $s->execute([hash('sha256',$token)]);
     }
+    /**
+     * Sign out every device for one verified actor. Identity locking serializes
+     * this operation with login token issuance and password/recovery changes.
+     * Callers at the HTTP boundary must resolve an active bearer first.
+     */
+    public function revokeAllForActor(string $actor): int
+    {
+        PdoMemberships::validateId($actor);
+        if ($this->pdo->inTransaction()) throw new \LogicException('Nested global logout prohibited');
+        $this->pdo->beginTransaction();
+        try {
+            $s=$this->pdo->prepare('SELECT actor_id FROM engine_identities WHERE actor_id=? FOR UPDATE');
+            $s->execute([$actor]);
+            if ($s->fetchColumn()===false) { $this->pdo->rollBack(); return 0; }
+            $s=$this->pdo->prepare('DELETE FROM engine_sessions WHERE actor_id=?');
+            $s->execute([$actor]);
+            $count=$s->rowCount();
+            $this->pdo->commit();
+            return $count;
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
+    }
     /** Delete at most one bounded batch of expired sessions, never live sessions. */
     public function purgeExpired(int $limit=500): int
     {
