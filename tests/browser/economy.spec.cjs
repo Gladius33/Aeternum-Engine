@@ -431,6 +431,14 @@ test('public signup provisions real players, supports retry, reconnect and accou
         // A player can change their password without an operator. The server
         // revokes every previous bearer and rotates offline recovery credentials.
         const oldAuthorization=(await rotation.request().allHeaders()).authorization;
+        await page.getByLabel('Current password',{exact:true}).fill('wrong current password');
+        await page.getByLabel('New account password (12 characters minimum)',{exact:true}).fill('browser final password after change');
+        await page.getByLabel('Confirm account password',{exact:true}).fill('browser final password after change');
+        const deniedChange=page.waitForResponse(r=>r.url().endsWith('/v1/auth/password/change') && r.request().method()==='POST');
+        await page.getByRole('button',{name:'Change password',exact:true}).click();
+        expect((await deniedChange).status()).toBe(403);
+        await expect(page.locator('#game')).toBeVisible();
+        await expect(page.locator('#status')).toHaveText('invalid_current_password');
         await page.getByLabel('Current password',{exact:true}).fill('browser new password after recovery');
         await page.getByLabel('New account password (12 characters minimum)',{exact:true}).fill('browser final password after change');
         await page.getByLabel('Confirm account password',{exact:true}).fill('browser final password after change');
