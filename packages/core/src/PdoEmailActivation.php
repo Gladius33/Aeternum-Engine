@@ -119,4 +119,61 @@ final class PdoEmailActivation
         $s=$this->pdo->prepare('UPDATE engine_email_activations SET consumed_at=? WHERE actor_id=? AND verified_at IS NOT NULL AND consumed_at IS NULL');
         $s->execute([$this->clock->now(),$actor]);
     }
+
+    /** Serialize the whole verification, provisioning and bearer issuance. */
+    public function exclusive(string $login,callable $work): mixed
+    {
+        if(!preg_match('/^[a-z0-9][a-z0-9_-]{2,63}$/D',$login)) throw new \InvalidArgumentException('Invalid activation login');
+        if($this->pdo->inTransaction())throw new \LogicException('Nested activation advisory lock');
+        $schema=$this->pdo->query('SELECT DATABASE()')->fetchColumn();
+        if(!is_string($schema)||$schema==='')throw new \RuntimeException('Database not selected');
+        $key='ae:mail:'.substr(hash('sha256',$schema.':'.$login),0,55);
+        $s=$this->pdo->prepare('SELECT GET_LOCK(?,0)');
+        $s->execute([$key]);$obtained=$s->fetchColumn();$s->closeCursor();
+        if((int)$obtained!==1)throw new SignupBusy('Activation already in progress');
+        try{return $work();}
+        finally{
+            $s=$this->pdo->prepare('SELECT RELEASE_LOCK(?)');
+            $s->execute([$key]);$released=$s->fetchColumn();$s->closeCursor();
+            if((int)$released!==1)throw new \RuntimeException('Activation lock release failed');
+        }
+    }
+
+    /** Remove only expired, UNVERIFIED, never-provisioned reservations. */
+    public function purgeExpired(int $limit=100): int
+    {
+        if($limit<1||$limit>500)throw new \InvalidArgumentException('Invalid activation cleanup limit');
+        if($this->pdo->inTransaction())throw new \LogicException('Nested activation cleanup');
+        $now=$this->clock->now();
+        if($now<0)throw new \DomainException('Invalid clock');
+        $this->pdo->beginTransaction();
+        try{
+            $s=$this->pdo->prepare(
+                "SELECT a.actor_id FROM engine_email_activations a
+                 JOIN engine_onboarding o ON o.actor_id=a.actor_id
+                 WHERE a.verified_at IS NULL AND a.expires_at<=? AND o.status='pending'
+                 ORDER BY a.expires_at,a.actor_id LIMIT ? FOR UPDATE SKIP LOCKED");
+            $s->bindValue(1,$now,PDO::PARAM_INT);
+            $s->bindValue(2,$limit,PDO::PARAM_INT);
+            $s->execute();$actors=$s->fetchAll(PDO::FETCH_COLUMN);
+            $invites=$this->pdo->prepare('DELETE FROM engine_signup_invitations WHERE actor_id=?');
+            $activation=$this->pdo->prepare('DELETE FROM engine_email_activations WHERE actor_id=?');
+            $pending=$this->pdo->prepare("DELETE FROM engine_onboarding WHERE actor_id=? AND status='pending'");
+            $identity=$this->pdo->prepare('DELETE FROM engine_identities WHERE actor_id=?');
+            foreach($actors as $actor){
+                $invites->execute([$actor]);
+                $activation->execute([$actor]);
+                $pending->execute([$actor]);
+                if($pending->rowCount()!==1)throw new \RuntimeException('Pending claim changed during cleanup');
+                $identity->execute([$actor]);
+                if($identity->rowCount()!==1)throw new \RuntimeException('Identity cleanup inconsistent');
+            }
+            $this->pdo->commit();
+            return count($actors);
+        }catch(\Throwable $e){
+            if($this->pdo->inTransaction())$this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
 }

@@ -64,6 +64,7 @@ final class AuthHttpApi
             try {
                 $result=$this->withCredentialSlot(function() use($data,$sessions): ?array {
                     $proof=new PdoEmailActivation($this->pdo,$this->clock);
+                    return $proof->exclusive($data['login'],function() use($proof,$data,$sessions):?array {
                     $verified=$proof->verify($data['login'],$data['password'],$data['code']);
                     if ($verified===null) return null;
                     if (!isset($this->registrationWorlds[$verified['world']])) throw new \DomainException('World no longer approved');
@@ -74,6 +75,7 @@ final class AuthHttpApi
                     if ($token===null) throw new \RuntimeException('Activation session unavailable');
                     return ['token'=>$token,'expires_in'=>3600,'world'=>$verified['world'],
                         'account'=>$claim['actor'],'recoveryCode'=>$claim['recoveryCode']];
+                    });
                 });
             } catch (SignupBusy) { return [503,['error'=>'authentication_busy']]; }
             catch (\DomainException) { return [409,['error'=>'activation_unavailable']]; }
