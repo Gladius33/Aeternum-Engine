@@ -5,10 +5,11 @@ use PDO;
 
 final class AuthHttpApi
 {
-    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120,private readonly array $registrationWorlds=[],private readonly bool $requireInvitation=false,private readonly int $registrationWorldHourlyLimit=30)
+    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120,private readonly array $registrationWorlds=[],private readonly bool $requireInvitation=false,private readonly int $registrationWorldHourlyLimit=30,private readonly int $parallelSignupLimit=8)
     {
         if ($globalLoginLimit<1 || $globalLoginLimit>100000) throw new \InvalidArgumentException('Invalid global verification limit');
         if ($registrationWorldHourlyLimit<1 || $registrationWorldHourlyLimit>100000) throw new \InvalidArgumentException('Invalid world registration limit');
+        if ($parallelSignupLimit<1 || $parallelSignupLimit>32) throw new \InvalidArgumentException('Invalid parallel signup limit');
     }
     public function handle(string $method,string $path,string $authorization,string $body,string $peer): array
     {
@@ -53,10 +54,13 @@ final class AuthHttpApi
                 return [429,['error'=>'rate_limited']];
             }
             try {
-                $claim=(new PdoOnboarding($this->pdo,$this->clock))->enroll(
-                    $data['world'],$this->registrationWorlds[$data['world']],$data['login'],$data['password'],
-                    $this->requireInvitation?$data['inviteCode']:null
-                );
+                $claim=(new PdoSignupSlots($this->pdo,$this->parallelSignupLimit))->run(fn() =>
+                    (new PdoOnboarding($this->pdo,$this->clock))->enroll(
+                        $data['world'],$this->registrationWorlds[$data['world']],$data['login'],$data['password'],
+                        $this->requireInvitation?$data['inviteCode']:null
+                    ));
+            } catch (SignupBusy) {
+                return [503,['error'=>'registration_busy']];
             } catch (\DomainException) {
                 return [409,['error'=>'registration_unavailable']];
             } catch (\Throwable) {

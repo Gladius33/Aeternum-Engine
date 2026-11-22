@@ -156,3 +156,40 @@ check($capStatuses===[201,201,429,429],'world quota is atomic under four concurr
 $capCount=db()->prepare('SELECT COUNT(*) FROM engine_onboarding WHERE world_id=?');
 $capCount->execute([$capRaceWorld]);
 check((int)$capCount->fetchColumn()===2,'rejected capacity race produces no orphaned accounts');
+
+
+// A database-scoped semaphore bounds concurrent Argon2id hashes and world
+// provisioning across PHP workers. Saturation is a retryable 503, not a half
+// created identity; slots are freed on exit or a dead DB connection.
+$signupSlotWorld='signup-slot-lab';
+$signupSlots=new \Aeternum\Core\PdoSignupSlots(db(),2);
+rejects(fn()=>new \Aeternum\Core\PdoSignupSlots(db(),0),InvalidArgumentException::class,'signup slot lower bound enforced');
+rejects(fn()=>new \Aeternum\Core\PdoSignupSlots(db(),33),InvalidArgumentException::class,'signup slot upper bound enforced');
+rejects(fn()=> $signupSlots->run(static function(){throw new DomainException('injected');}),
+    DomainException::class,'slot callback error propagates');
+check($signupSlots->run(static fn()=>42)===42,'failed callback releases signup slot for retry');
+$slotWorkers=[];
+for($i=0;$i<2;$i++) {
+    $proc=proc_open([PHP_BINARY,__DIR__.'/signup-slot-worker.php','2'],
+        [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+    if(!is_resource($proc)) throw new RuntimeException('Unable to start signup slot worker');
+    fclose($pipes[0]);
+    $ready=trim((string)fgets($pipes[1]));
+    check($ready==='locked','separate process acquired signup slot');
+    $slotWorkers[]=[$proc,$pipes];
+}
+$slotApi=new AuthHttpApi(db(),new FrozenClock(23000),120,[$signupSlotWorld=>$onPack],false,30,2);
+$slotData=['login'=>'signup-slot-retry','password'=>'signup slot password for retry','world'=>$signupSlotWorld];
+[$busyStatus,$busyBody]=$slotApi->handle('POST',$onPath,'',$onJson($slotData),'192.0.2.232');
+check($busyStatus===503 && ($busyBody['error']??null)==='registration_busy','full PHP signup pool fails closed and retryably');
+$slotExisting=db()->prepare('SELECT COUNT(*) FROM engine_identities WHERE login=?');
+$slotExisting->execute([$slotData['login']]);
+check((int)$slotExisting->fetchColumn()===0,'slot rejection creates no identity');
+foreach($slotWorkers as [$proc,$pipes]) {
+    $rest=stream_get_contents($pipes[1]); $err=stream_get_contents($pipes[2]);
+    fclose($pipes[1]); fclose($pipes[2]);
+    check(proc_close($proc)===0,'slot worker released its connection and lock: '.$err.$rest);
+}
+[$retryStatus,$retryBody]=$slotApi->handle('POST',$onPath,'',$onJson($slotData),'192.0.2.232');
+check($retryStatus===201 && preg_match('/^[a-f0-9]{64}$/D',$retryBody['data']['account']??'')===1,
+    'new signup succeeds after capacity is released');

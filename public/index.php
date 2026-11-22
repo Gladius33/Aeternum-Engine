@@ -35,7 +35,9 @@ try {
             if ($globalLimit!==false && (!preg_match('/^[1-9][0-9]{0,5}$/D',$globalLimit) || (int)$globalLimit>100000)) throw new RuntimeException('Invalid auth verification configuration');
             $worldLimit=getenv('AETERNUM_SIGNUP_WORLD_HOURLY_LIMIT');
             if ($worldLimit!==false && (!preg_match('/^[1-9][0-9]{0,5}$/D',$worldLimit) || (int)$worldLimit>100000)) throw new RuntimeException('Invalid world signup configuration');
-            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,getenv('AETERNUM_PUBLIC_REGISTRATION')==='1'?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit))->handle(
+            $parallelSignup=getenv('AETERNUM_SIGNUP_PARALLEL_LIMIT');
+            if ($parallelSignup!==false && (!preg_match('/^[1-9][0-9]?$/D',$parallelSignup) || (int)$parallelSignup>32)) throw new RuntimeException('Invalid signup parallel configuration');
+            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,getenv('AETERNUM_PUBLIC_REGISTRATION')==='1'?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit,$parallelSignup===false?8:(int)$parallelSignup))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$_SERVER['REMOTE_ADDR'] ?? ''
             );
