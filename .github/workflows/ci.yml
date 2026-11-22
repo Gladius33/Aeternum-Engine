@@ -56,6 +56,25 @@ jobs:
           AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_test;charset=utf8mb4
           AETERNUM_TEST_USER: aeternum_test
           AETERNUM_TEST_PASSWORD: ci-test-only
+      - name: Read-only M01 host preflight (safe invite policy and unsafe rejection)
+        shell: bash
+        env:
+          AETERNUM_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_test;charset=utf8mb4
+          AETERNUM_DB_USER: aeternum_test
+          AETERNUM_DB_PASSWORD: ci-test-only
+          AETERNUM_MEDIEVAL_WORLD: ci-preflight-world
+          AETERNUM_PUBLIC_REGISTRATION: '1'
+          AETERNUM_SIGNUP_REQUIRE_INVITE: '1'
+          AETERNUM_TRUSTED_PROXY_IPS: 127.0.0.1
+        run: |
+          set -Eeuo pipefail
+          php bin/m01-preflight.php > m01-ci-preflight.json
+          php -r '$r=json_decode(file_get_contents("m01-ci-preflight.json"),true,8,JSON_THROW_ON_ERROR); if(!$r["configurationPassed"] || $r["registrationPolicy"]!=="invitation-only") exit(1);'
+          if AETERNUM_SIGNUP_REQUIRE_INVITE=0 php bin/m01-preflight.php > m01-ci-rejection.json; then
+            echo 'Unsafe open signup unexpectedly passed preflight'
+            exit 1
+          fi
+          rm -f m01-ci-preflight.json m01-ci-rejection.json
       - name: Parallel signup load on disposable MariaDB
         env:
           AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_test;charset=utf8mb4

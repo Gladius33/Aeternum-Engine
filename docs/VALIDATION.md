@@ -232,3 +232,7 @@ MariaDB integration now proves bounded expired/unverified-account deletion, free
 
 
 The activation reference UI includes a separate self-service resend form, with an explicit one-minute cooldown notice, password proof, matching email field, and generic response text to avoid revealing registered accounts. The new form is visible only when mailbox activation mode is configured. Reuse of an already superseded code is covered by the real MariaDB HTTP suite.
+
+
+## M01 operator preflight (pending exact-head CI)
+The read-only bin/m01-preflight.php checks local PHP 8.4, pdo_mysql, Argon2id, world allowlist, explicit identity proof for enabled public enrollment, mail-transport configuration syntax, exact proxy-IP allowlist syntax, rate/parallel limit syntax and completed checksummed migration ledger. It emits only sanitized booleans and estimated hash-slot RAM. CI runs it on the disposable database with a valid invitation-only policy, and proves that unsafe unverified open signup configuration fails. It never sends mail or operates on an external host; actual delivery, host restore, capacity and operator acceptance remain manual gates.
