@@ -26,6 +26,19 @@ conservent tous leurs lieux, entités et journaux. Aucun changement de licence.
   Leur audit/rejeu et l'intégration de coûts/prérequis restent à construire
   avant de déclarer M04 terminée.
 
+## Initialisation opérateur
+
+Le CLI local `bin/m04-map.php` refuse les mondes non approuvés. Commandes :
+`location WORLD LOCATION`, `edge WORLD FROM TO COST`,
+`territory WORLD TERRITORY LOCATION KIND`, `owner WORLD TERRITORY ACTOR`,
+`inspect WORLD ACTOR [AFTER]`. En pratique, passer le monde en premier :
+`php bin/m04-map.php WORLD location LOCATION`.
+
+Ce CLI n'est pas un contrôleur HTTP et exige les mêmes variables
+`AETERNUM_DSN`, `AETERNUM_DB_USER` et `AETERNUM_DB_PASSWORD` que les
+autres tâches administratives. En CI, deux processus indépendants tentent
+une attribution contradictoire et un seul doit réussir.
+
 ## Migration et retour arrière
 
 Appliquer `php bin/migrate.php` avec une sauvegarde SQL préalable. Aucune
