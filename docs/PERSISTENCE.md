@@ -105,3 +105,9 @@ GET /v1/worlds/{world}/economy/overview/{account}/{resource} requires an active 
 
 ## Browser multiplayer market validation (0039)
 The browser E2E suite now exercises two independent operator-provisioned medieval accounts with distinct bearer tokens: durable escrow, accepted barter, idempotent retry, conflicting payload denial, cross-world market isolation, and closed-offer projection after login. Integration tests remain authoritative for exact ledger conservation and process races.
+
+
+## Public onboarding (M01, opt-in)
+Migration 016 introduces `engine_onboarding`, linking one existing application identity to one operator-approved world with `pending` or `ready` state. New identity and pending claim commit in one InnoDB transaction. Provisioning then reuses existing world-locked idempotent steps (membership, ownership, entity and initial resources). A crash can leave `pending`, in which case the same login/password/world resumes without introducing an additional ownership grant, initial resource credit or command receipt. The claim is marked `ready` only after the provisioning sequence commits. An identity created through operator-only CLI without a public claim cannot gain self-service membership. Registration of another world for a claimed identity is rejected. Do not attempt to rollback these already-committed multi-step world transitions as if they were one SQL transaction; recovery relies on stable identifiers and receipts, not on one long transaction.
+
+Current reference economy is bounded to 1,000 accounts and offers; public capacity must be controlled separately until M03. There is no email verification, password reset or real deployment certification yet. Opt-in is intended for isolated evaluation only.

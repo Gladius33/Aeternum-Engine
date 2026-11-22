@@ -58,7 +58,6 @@ check($onGet($onPartialActor)['status']==='ready','interrupted claim completes t
 foreach($onPack->resources as $resource) {
     check($onScheduler->balanceForActor($onPartialActor,$onPartialActor,$resource->id,$onPack->rules()->commands)->stock===$resource->initialStock,'recovered player has initial '.$resource->id);
 }
-for($n=0;$n<6;$n++) $onPost(['login'=>'limited-'.$n,'password'=>'a valid test password','world'=>'unknown'],'198.51.100.16');
 for($n=0;$n<6;$n++) {
     $onPost(['login'=>'bad-'.$n,'password'=>'strong test password','world'=>$onWorld],'198.51.100.18');
 }

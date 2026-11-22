@@ -1,5 +1,10 @@
 # Changelog
 
+## In progress — macro M01 (public onboarding)
+- Add optional allowlisted public signup, durable pending/ready claims, resumable actor-scoped provisioning, and an initial player session.
+- Add browser registration/world-selection form, independent public-world read endpoint, MariaDB concurrency/interrupted-state tests and live browser signup/reconnect/isolation test.
+- Public recovery/activation and production abuse/capacity qualification remain open; CI evidence pending.
+
 ## Unreleased — iteration 0039
 - Add independent seller/buyer Chromium barter scenario using authenticated live market endpoints and real MariaDB.
 - Verify owner-only browser actions, durable retry after acceptance, rejection of conflicting retry IDs and cross-world market isolation.

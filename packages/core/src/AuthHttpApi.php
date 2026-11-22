@@ -28,7 +28,8 @@ final class AuthHttpApi
             if (strlen($body)>4096) return [413,['error'=>'too_large']];
             try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
-            if (!is_array($data) || array_keys($data)!==['login','password','world']
+            if (!is_array($data) || !array_key_exists('login',$data) || !array_key_exists('password',$data)
+                || !array_key_exists('world',$data) || count($data)!==3
                 || !is_string($data['login']) || !is_string($data['password']) || !is_string($data['world'])
                 || !preg_match('/^[a-z0-9][a-z0-9_-]{2,63}$/D',$data['login'])
                 || strlen($data['password'])<12 || strlen($data['password'])>1024) {

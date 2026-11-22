@@ -117,3 +117,6 @@
 0038 accessibility correction: initial Chromium run 45003624969 failed locating the exact label of a nested select. Use explicit for/id associations for market resource, quantity and offer controls. Reproduced the original exact-label miss and verified the corrected labels/selection in local real Chromium. Bound market smoke action/response waits to 15 seconds; full corrected CI remains required.
 
 - ADR-049: require two independent browser sessions to cover the complete marketplace exchange, in addition to lower-level SQL concurrency tests. The client must use server-authoritative terms and preserve the transactional receipt on duplicate accept; a closed offer disappears from public projection. This is E2E evidence, not proof of production capacity or public onboarding.
+
+
+- ADR-050 (M01 pending): public onboarding is explicitly opt-in. Commit identity and pending claim together; reuse world-locked stable provision IDs to resume partial work after crash; mark ready only after all world operations. Never treat a CLI-only identity or an existing public claim for another world as a new public membership. Separate rate quotas and keep account activation/recovery and production qualification as open blockers.
