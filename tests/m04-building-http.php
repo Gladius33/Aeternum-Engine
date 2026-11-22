@@ -20,6 +20,28 @@ $tokenBuilding=(new PdoSessions(db(),$buildingClock))->login('building-http-acto
 $authBuilding='Bearer '.$tokenBuilding;
 $buildingApi=new WorldBuildingHttpApi(db(),$buildingClock,['entity-A'=>true,'entity-B'=>true]);
 $buildingPath='/v1/worlds/entity-A/buildings/building-api-site';
+$optionsPath='/v1/worlds/entity-A/construction/options';
+check($buildingApi->handle('GET',$optionsPath,'')[0]===401,
+ 'M04 choice discovery rejects anonymous request');
+check($buildingApi->handle('POST',$optionsPath,$authBuilding)[0]===405,
+ 'M04 choice discovery cannot mutate world');
+[$optionsCode,$optionsBody]=$buildingApi->handle('GET',$optionsPath,$authBuilding);
+check($optionsCode===200 && in_array(['id'=>'api-workshop','first'=>[
+    'costs'=>['grain'=>2,'wood'=>3],'duration'=>60,'requires'=>[]
+]],$optionsBody['data']['types'],true),
+ 'M04 choice discovery returns pinned building catalog');
+check(in_array([
+    'territory_id'=>'building-api-plot','location_id'=>'building-api-land',
+    'entity_id'=>'building-api-unit'
+],$optionsBody['data']['sites'],true),
+ 'M04 choice discovery enumerates only actor-owned matching site and entity');
+check(in_array([
+    'id'=>'building-api-site','type'=>'api-workshop','territory'=>'building-api-plot'
+],$optionsBody['data']['buildings'],true),
+ 'M04 choice discovery lists own building IDs');
+check($buildingApi->handle('GET','/v1/worlds/entity-B/construction/options',$authBuilding)[0]===404,
+ 'M04 site discovery cannot cross world');
+
 check($buildingApi->handle('GET',$buildingPath,'')[0]===401,
  'M04 building GET requires authorization');
 check($buildingApi->handle('POST',$buildingPath,$authBuilding)[0]===405,

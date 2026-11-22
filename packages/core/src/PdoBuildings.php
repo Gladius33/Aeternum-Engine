@@ -92,6 +92,50 @@ final class PdoBuildings
         });
     }
 
+    /**
+     * Bounded actor-specific construction choices, read from one locked world.
+     * Operators still decide which territories are owned and which rules exist.
+     * No ownership or cross-world metadata is disclosed to other actors.
+     */
+    public function choicesFor(string $actor): array
+    {
+        PdoMemberships::validateId($actor);
+        return $this->locked(function(string $rules) use ($actor):array {
+            if ($this->sql('SELECT actor_id FROM engine_memberships WHERE world_id=? AND actor_id=? AND active=1',
+                [$this->world,$actor])->fetchColumn()===false) throw new \DomainException('Access denied');
+            $sites=$this->sql('SELECT t.territory_id,t.location_id,e.entity_id FROM engine_territories t
+                JOIN engine_entities e ON e.world_id=t.world_id
+                  AND e.location_id=t.location_id AND e.actor_id=?
+                WHERE t.world_id=? AND t.owner_actor_id=?
+                ORDER BY t.territory_id,e.entity_id LIMIT 101',
+                [$actor,$this->world,$actor])->fetchAll(PDO::FETCH_ASSOC);
+            $siteTruncated=count($sites)>100;
+            if ($siteTruncated) array_pop($sites);
+            $types=$this->sql('SELECT building_type,stages_json FROM engine_building_types
+                WHERE world_id=? AND rules_key=? ORDER BY building_type LIMIT 129',
+                [$this->world,$rules])->fetchAll(PDO::FETCH_ASSOC);
+            if (count($types)>128) throw new \DomainException('Building type limit');
+            $offer=[];
+            foreach ($types as $type) {
+                $stages=BuildStages::normalize(json_decode($type['stages_json'],true,16,JSON_THROW_ON_ERROR));
+                $offer[]=['id'=>$type['building_type'],'first'=>$stages[0]];
+            }
+            $owned=$this->sql('SELECT building_id,building_type,territory_id FROM engine_buildings
+                WHERE world_id=? AND actor_id=? ORDER BY building_id LIMIT 101',
+                [$this->world,$actor])->fetchAll(PDO::FETCH_ASSOC);
+            $ownedTruncated=count($owned)>100;
+            if ($ownedTruncated) array_pop($owned);
+            return [
+                'sites'=>$sites,'types'=>$offer,'buildings'=>array_map(
+                    static fn(array $row):array=>[
+                        'id'=>$row['building_id'],'type'=>$row['building_type'],
+                        'territory'=>$row['territory_id']
+                    ],$owned),
+                'truncated'=>$siteTruncated||$ownedTruncated
+            ];
+        });
+    }
+
     /** Own building and next immutable cost schedule; no other actor's site. */
     public function own(string $actor,string $id): array
     {

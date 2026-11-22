@@ -11,7 +11,12 @@ final class WorldBuildingHttpApi
 
     public function handle(string $method,string $path,string $authorization): array
     {
-        if (strlen($path)>512 || !preg_match(
+        if (strlen($path)>512) return [404,['error'=>'not_found']];
+        $isOptions=preg_match(
+            '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/construction/options$~D',
+            $path,$match
+        )===1;
+        if (!$isOptions && !preg_match(
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/buildings/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
             $path,$match
         )) return [404,['error'=>'not_found']];
@@ -24,7 +29,8 @@ final class WorldBuildingHttpApi
             return [429,['error'=>'rate_limited']];
         }
         try {
-            return [200,['data'=>(new PdoBuildings($this->pdo,$match[1]))->own($actor,$match[2])]];
+            $service=new PdoBuildings($this->pdo,$match[1]);
+            return [200,['data'=>$isOptions?$service->choicesFor($actor):$service->own($actor,$match[2])]];
         } catch (\DomainException) {
             return [404,['error'=>'not_found']];
         }
