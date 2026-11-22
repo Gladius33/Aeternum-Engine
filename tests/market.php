@@ -57,3 +57,27 @@ check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='mar
 check((int)db()->query("SELECT SUM(delta_units) FROM engine_resource_ledger WHERE world_id='market-test' AND resource_id='ore'")->fetchColumn()===300,'market ledger conserves ore after all offers close');
 check((int)db()->query("SELECT SUM(delta_units) FROM engine_resource_ledger WHERE world_id='market-test' AND resource_id='coin'")->fetchColumn()===300,'market ledger conserves payment resource');
 check($market->verifyReplay($marketEcon,$marketRules->events)->entries===12,'market replay verifies all committed transitions');
+
+// A committed market view must be bounded, world scoped, and membership filtered.
+check($market->marketForActor('buyer')===['offers'=>[],'nextAfter'=>null],'market view omits filled and cancelled offers');
+foreach (['p2'=>'s','p1'=>'s','p3'=>'o'] as $offer=>$seller) {
+    $market->executeForActor($seller==='s'?'seller':'other',$marketCmd('create-'.$offer,'create',['offer'=>$offer,'seller'=>$seller,'giveResource'=>'ore','giveUnits'=>1,'wantResource'=>'coin','wantUnits'=>1]),$marketEcon);
+}
+$beforeView=$market->state();
+$pageOne=$market->marketForActor('buyer',null,2);
+check(array_column($pageOne['offers'],'id')===['p1','p2'] && $pageOne['nextAfter']==='p2','market view stable first page');
+$pageTwo=$market->marketForActor('buyer',$pageOne['nextAfter'],2);
+check(array_column($pageTwo['offers'],'id')===['p3'] && $pageTwo['nextAfter']===null,'market view stable final page');
+check($market->state()===$beforeView,'market view does not mutate committed state');
+$marketMembers->revoke('other');
+check(array_column($market->marketForActor('buyer')['offers'],'id')===['p1','p2'],'market view excludes revoked sellers');
+$marketMembers->revoke('buyer');
+rejects(fn()=> $market->marketForActor('buyer'),DomainException::class,'market view denies revoked requester');
+rejects(fn()=> $market->marketForActor('outsider'),DomainException::class,'market view denies nonmember');
+$marketMembers->grant('buyer');
+rejects(fn()=> $market->marketForActor('buyer','invalid:cursor'),InvalidArgumentException::class,'market view rejects malformed cursor');
+rejects(fn()=> $market->marketForActor('buyer',null,101),InvalidArgumentException::class,'market view rejects excessive page size');
+$foreignMarket=new PdoScheduler(db(),'market-other-world',$marketClock,$marketRules);
+$foreignMarket->initialize();
+(new PdoMemberships(db(),'market-other-world'))->grant('buyer');
+check($foreignMarket->marketForActor('buyer')===['offers'=>[],'nextAfter'=>null],'market view isolates worlds');

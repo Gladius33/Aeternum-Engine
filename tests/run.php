@@ -47,4 +47,5 @@ rejects(fn()=> new ScheduledEvent('world1','x','append',0,['bad'=>[]]), InvalidA
 rejects(fn()=> $queue->processDue($handler,0), InvalidArgumentException::class, 'invalid batch limit rejected');
 require __DIR__ . "/production.php";
 require __DIR__ . "/packs.php";
+require __DIR__ . "/market-projection.php";
 echo "All regression checks passed.\n";
