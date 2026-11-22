@@ -54,16 +54,22 @@ check((int)db()->query("SELECT SUM(delta_units) FROM engine_resource_ledger WHER
 // using the same production adapter and InnoDB projection (not mock handlers).
 for($i=1;$i<=1000;$i++) {
     $account='account'.str_pad((string)$i,4,'0',STR_PAD_LEFT);
-    $members->assign($account,'scale-seller');
-    $scale->executeForActor('scale-seller',new Command($scaleWorld,'open-'.$account,
+    $actor='scale-owner-'.str_pad((string)$i,4,'0',STR_PAD_LEFT);
+    $members->grant($actor);
+    $members->assign($account,$actor);
+    $scale->executeForActor($actor,new Command($scaleWorld,'open-'.$account,
         'economy.open',['account'=>$account,'resource'=>'ore']),$scaleEconomy);
 }
 check($scale->state()['econ:count']===1002,
     'M03 1002 resource account openings survive real MariaDB transaction boundaries');
 $balanceRows=(int)db()->query("SELECT COUNT(*) FROM engine_economy_balances WHERE world_id='m03-scale-world'")->fetchColumn();
 check($balanceRows===1002,'M03 more than 1000 indexed relational resource accounts persist');
-check($scale->balanceForActor('scale-seller','account1000','ore',$scaleEconomy)->stock===2000,
+check($scale->balanceForActor('scale-owner-1000','account1000','ore',$scaleEconomy)->stock===2000,
     'M03 actor can read his 1000th new account after migration and writes');
+check((int)db()->query("SELECT COUNT(DISTINCT actor_id) FROM engine_account_owners WHERE world_id='m03-scale-world'")->fetchColumn()===1001,
+    'M03 more than 1000 different actors own resource accounts (not one test actor only)');
+rejects(fn()=> $scale->balanceForActor('scale-owner-0001','account1000','ore',$scaleEconomy),
+    DomainException::class,'M03 distinct actor 1 cannot read actor 1000 private balance');
 check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='m03-scale-world' AND actor_id IS NOT NULL AND result_state_json='{}'")->fetchColumn()===2003,
     'M03 actor receipts persist compact output without quadratic copies of the world snapshot');
 check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='m03-scale-world'")->fetchColumn()===2003,
@@ -82,8 +88,8 @@ try {
     $parallelReader=new PdoScheduler(db(),$scaleWorld,$scaleClock,$scaleRules);
     $started=hrtime(true);
     $offers=$parallelReader->marketForActor('scale-reader',null,5);
-    $balance=$parallelReader->balanceForActor('scale-seller','account1000','ore',$scaleEconomy);
-    $overview=$parallelReader->overviewForActor('scale-seller','account1000','ore',$scaleEconomy);
+    $balance=$parallelReader->balanceForActor('scale-owner-1000','account1000','ore',$scaleEconomy);
+    $overview=$parallelReader->overviewForActor('scale-owner-1000','account1000','ore',$scaleEconomy);
     $elapsedMs=(hrtime(true)-$started)/1_000_000;
     check(count($offers['offers'])===5 && $offers['offers'][0]['id']==='o0000'
         && $balance->stock===2000 && $overview['stock']===2000,
