@@ -183,5 +183,29 @@ test('M04 pinned two-player construction debits, completes and isolates actor st
         await page.getByRole('button',{name:'Inspect building plan'}).click();
         await expect(page.locator('#building-details dd').nth(3)).toHaveText('1');
     }
+    const entityA=await one.locator('#balance select[name=account]').inputValue();
+    const entityB=await two.locator('#balance select[name=account]').inputValue();
+    const developmentA=await one.request.get(
+        base+'/v1/worlds/e2e-build/entities/'+entityA+'/development',
+        {headers:{Authorization:token}}
+    );
+    const developmentB=await two.request.get(
+        base+'/v1/worlds/e2e-build/entities/'+entityB+'/development',
+        {headers:{Authorization:twoToken}}
+    );
+    expect(developmentA.status()).toBe(200);
+    expect(developmentB.status()).toBe(200);
+    const levelsA=(await developmentA.json()).data.development;
+    const levelsB=(await developmentB.json()).data.development;
+    expect(levelsA.levelSum).toBe(2); // original mill and player-placed mill
+    expect(levelsB.levelSum).toBe(1); // original canceled, player-placed completed
+    expect(levelsA.buildingCount).toBe(2);
+    expect(levelsB.buildingCount).toBe(2);
+    const foreignDevelopment=await one.request.get(
+        base+'/v1/worlds/e2e-build/entities/'+entityB+'/development',
+        {headers:{Authorization:token}}
+    );
+    expect(foreignDevelopment.status()).toBe(404);
+
     await one.close();await two.close();
 });

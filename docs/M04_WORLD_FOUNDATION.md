@@ -203,6 +203,21 @@ un site et un type, de placer la fondation et de lancer sa construction.
 Un acteur ne peut ni placer sur le terrain d'un autre, ni utiliser
 une entité tierce ; les rejets conservent le journal et les stocks.
 
+### Composant de développement évolutif
+
+La projection `GET /v1/worlds/{world}/entities/{entity}/development`
+est calculée sous verrou de monde à partir des bâtiments relationnels de
+l'acteur et des niveaux de construction **dans l'état canonique rejouable**.
+Elle livre une somme de niveaux, le nombre de bâtiments, les travaux en
+cours et les maxima par type. Aucun compteur auxiliaire mutable ne peut
+diverger après rejeu. Les prérequis de construction utilisent déjà les
+maxima de niveaux, ce qui rend cette progression fonctionnelle. Les
+acteurs étrangers et membres révoqués n'obtiennent aucune donnée.
+
+La CI vérifie quatre processus concurrents de placement et exige un
+seul reçu et une seule fondation. Chromium vérifie les deux composants
+d'entité distincts après progression et le refus d'accès croisé.
+
 ## Sortie de macro NON acquise
 
 Le catalogue typé, les coûts multi-ressources, la planification, l'annulation,

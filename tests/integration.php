@@ -179,6 +179,7 @@ require __DIR__ . "/m04-buildings.php";
 require __DIR__ . "/m04-building-http.php";
 require __DIR__ . "/m04-construction.php";
 require __DIR__ . "/m04-player-placement.php";
+require __DIR__ . "/m04-placement-race.php";
 require __DIR__ . "/m04-map-cli.php";
 require __DIR__ . "/m04-building-cli.php";
 require __DIR__ . "/m04-construction-race.php";
