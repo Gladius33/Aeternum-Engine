@@ -7,15 +7,16 @@ const scenarios=[
     {pack:'reference-medieval',login:'browser-medieval',world:'e2e-medieval',resource:'grain',initial:50,rate:12,cost:25,upgraded:20,duration:60},
     {pack:'reference-industrial',login:'browser-industrial',world:'e2e-industrial',resource:'steel',initial:200,rate:75,cost:120,upgraded:110,duration:180}
 ];
-async function signIn(page, scenario) {
-    await page.goto(url+'/play.html');
+async function signIn(page, scenario, options={}) {
+    if (!options.reusePage) await page.goto(url+'/play.html');
+    const credential=scenario.password??password;
     await page.getByLabel('Login',{exact:true}).fill(scenario.login);
-    await page.getByLabel('Password',{exact:true}).fill(password);
+    await page.getByLabel('Password',{exact:true}).fill(credential);
     // The suite deliberately shares the real per-peer login quota. When earlier
     // independent scenarios exhaust it, wait for the server's next fixed window
     // instead of hanging on a discovery request that a rejected login never sends.
     for (let attempt=0; attempt<3; attempt++) {
-        await page.getByLabel('Password',{exact:true}).fill(password);
+        await page.getByLabel('Password',{exact:true}).fill(credential);
         const loginResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/login') && r.request().method()==='POST',{timeout:15000});
         await page.getByRole('button',{name:'Sign in',exact:true}).click();
         const response=await loginResponse;
@@ -352,7 +353,7 @@ for (const s of scenarios) {
 }
 
 test('public signup provisions real players, supports retry, reconnect and account isolation',async ({browser})=>{
-    test.setTimeout(90000);
+    test.setTimeout(240000);
     const context=await browser.newContext(), page=await context.newPage();
     try {
         await page.goto(url+'/play.html');
@@ -427,7 +428,31 @@ test('public signup provisions real players, supports retry, reconnect and accou
         expect(replay.status()).toBe(401);
         await expect(page.locator('#game')).toBeVisible();
         await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);
-        await page.getByRole('button',{name:'Sign out'}).click();
+        // A player can change their password without an operator. The server
+        // revokes every previous bearer and rotates offline recovery credentials.
+        const oldAuthorization=(await rotation.request().allHeaders()).authorization;
+        await page.getByLabel('Current password',{exact:true}).fill('browser new password after recovery');
+        await page.getByLabel('New account password (12 characters minimum)',{exact:true}).fill('browser final password after change');
+        await page.getByLabel('Confirm account password',{exact:true}).fill('browser final password after change');
+        const changedResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/password/change') && r.request().method()==='POST');
+        await page.getByRole('button',{name:'Change password',exact:true}).click();
+        const change=await changedResponse;
+        expect(change.status()).toBe(200);
+        const {data:changed}=await change.json();
+        expect(changed.sessionsRevoked).toBe(true);
+        expect(changed.recoveryCode).toMatch(/^[a-f0-9]{64}$/);
+        expect(changed.recoveryCode).not.toBe(rotated.recoveryCode);
+        await expect(page.locator('#game')).toBeHidden();
+        await expect(page.locator('#login')).toBeVisible();
+        await expect(page.locator('#recovery-secret')).toContainText(changed.recoveryCode);
+        await expect(page.locator('#status')).toHaveText('Password changed. All sessions signed out. Save your new recovery code before signing in.');
+        expect((await page.request.get(url+'/v1/me/worlds',{headers:{Authorization:oldAuthorization}})).status()).toBe(401);
+        const staleCode=await page.request.post(url+'/v1/auth/recover',{data:{
+            login:'browser-public-first',code:rotated.recoveryCode,newPassword:'browser replayed replaced recovery'
+        }});
+        expect(staleCode.status()).toBe(401);
+        await signIn(page,{...scenarios[1],login:'browser-public-first',password:'browser final password after change'},{reusePage:true});
+        await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);
         await expect(page.locator('#recovery-secret')).toBeHidden();
     } finally {
         await context.close();
