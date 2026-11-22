@@ -383,6 +383,32 @@ final class EconomyCommandHandler implements CommandHandler
     }
 
     /** Pure deterministic atomic multi-resource construction start. */
+    /**
+     * Pure, journal-replayable player placement. SQL ownership and type pins
+     * are checked by PdoScheduler under the world lock before commit.
+     * Placement is free; level-one construction incurs the pinned stage cost.
+     */
+    private function placeBuilding(Command $command,array $state): CommandResult
+    {
+        $p=$this->payload($command,['account','building','entity','territory','type']);
+        $id=$this->id($p['building']);
+        $account=$this->id($p['account']);
+        $entity=$this->id($p['entity']);
+        $territory=$this->id($p['territory']);
+        $type=$this->id($p['type']);
+        if ($this->buildingStages($type)===null) throw new \DomainException('Unknown building type');
+        $prefix='build:'.$id.':';
+        foreach (['type','account','level','pending','entity','territory'] as $key) {
+            if (array_key_exists($prefix.$key,$state)) throw new \DomainException('Building identifier already used');
+        }
+        $state[$prefix.'type']=$type;
+        $state[$prefix.'account']=$account;
+        $state[$prefix.'level']=0;
+        $state[$prefix.'entity']=$entity;
+        $state[$prefix.'territory']=$territory;
+        return new CommandResult($state);
+    }
+
     private function startBuilding(Command $command,array $state,int $at): CommandResult
     {
         $p=$this->payload($command,['building','account','type']);
@@ -428,6 +454,7 @@ final class EconomyCommandHandler implements CommandHandler
 
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
+        if ($command->type==='building.place') return $this->placeBuilding($command,$state);
         if ($command->type==='building.start') return $this->startBuilding($command,$state,$effectiveAt);
         if ($command->type==='building.cancel') return $this->cancelBuilding($command,$state,$effectiveAt);
         if ($command->type==='building.claim') return $this->claimBuilding($command,$state,$effectiveAt);
