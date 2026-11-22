@@ -330,7 +330,7 @@ final class PdoScheduler
                 // Normal SQL listing is an MVCC read; it does not lock the
                 // entire world or enumerate full JSON state. Only the initial
                 // controlled legacy backfill needs an exclusive world lock.
-                $row=$this->query('SELECT rules_key,economy_projection_version FROM engine_worlds WHERE world_id=?',
+                $row=$this->query('SELECT rules_key,economy_projection_version,watermark FROM engine_worlds WHERE world_id=?',
                     [$this->worldId])->fetch(PDO::FETCH_ASSOC);
                 if ($row===false || $row['rules_key']!==$this->rulesKey()) {
                     throw new \DomainException('World not initialized or rules mismatch');
@@ -343,7 +343,11 @@ final class PdoScheduler
                 }
                 elseif ((int)$row['economy_projection_version']!==1) throw new \UnexpectedValueException('Invalid projection version');
                 $this->assertActiveActor($actor);
-                return (new PdoEconomyProjection($this->pdo,$this->worldId))->marketPage($after,$limit,$this->clock->now());
+                $now=$this->clock->now();
+                if ($now<0 || $now<(int)$row['watermark']) {
+                    throw new \DomainException('Clock precedes committed logical time');
+                }
+                return (new PdoEconomyProjection($this->pdo,$this->worldId))->marketPage($after,$limit,$now);
             }
             $world=$this->lockedWorld();
             $this->assertActiveActor($actor);

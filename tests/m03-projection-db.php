@@ -45,6 +45,10 @@ check($m03Db->processDue($m03Rules->events)===[],'M03 expiration event cannot re
 $refund=db()->query("SELECT claimable_units FROM engine_market_refunds WHERE world_id='m03-market-world' AND account_id='seller' AND resource_id='ore'")->fetchColumn();
 check((int)$refund===10,'M03 full capacity preserves all ten units in separate durable refund balance');
 check($m03Db->marketForActor($m03Actors['buyer'])['offers']===[],'M03 expired offers disappear from SQL market');
+$rollbackReader=new PdoScheduler(db(),$m03World,new FrozenClock(50),$m03Rules);
+rejects(fn()=> $rollbackReader->marketForActor($m03Actors['buyer']),
+    DomainException::class,'M03 SQL market refuses clock rollback below committed world watermark');
+
 check($m03Db->state()['market:expiring:status']==='expired',
     'M03 event updates replayable state in same database transaction as projection');
 $claim=$m03Market('claim','market.claim',['account'=>'seller','resource'=>'ore']);
