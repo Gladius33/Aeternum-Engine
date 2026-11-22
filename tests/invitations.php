@@ -11,7 +11,7 @@ rejects(fn()=> $inviteService->issue($inviteWorld,51),InvalidArgumentException::
 $inviteDb=db();
 $inviteDb->beginTransaction();
 try {
-    rejects(fn()=> $inviteService->issue($inviteWorld,2),LogicException::class,
+    rejects(fn()=> (new PdoInvitations($inviteDb,$inviteClock))->issue($inviteWorld,2),LogicException::class,
         'nested invitation batch issuance rejected');
     check($inviteDb->inTransaction(),'caller transaction remains owned by caller');
 } finally {
