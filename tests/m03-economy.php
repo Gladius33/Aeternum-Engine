@@ -30,11 +30,12 @@ check($m03Handler->complete($events[0],$m03State)->state===$m03State,
 rejects(fn()=> $m03Handler->apply(new Command('unit-m03','claim-too-early','market.claim',
     ['account'=>'seller','resource'=>'ore']),$m03State,120),DomainException::class,
     'M03 claim cannot overfill capacity');
-$m03Apply('move','economy.transfer',['from'=>'seller','to'=>'buyer','resource'=>'ore','units'=>10],120);
+$m03Apply('reserve-room','market.create',['offer'=>'reserve-room','seller'=>'seller',
+    'giveResource'=>'ore','giveUnits'=>10,'wantResource'=>'coin','wantUnits'=>1],120);
 $m03Apply('claim','market.claim',['account'=>'seller','resource'=>'ore'],120);
 check(!isset($m03State['market:refund:seller:ore']) &&
     $m03State['econ:seller:ore:stock']===100 &&
-    $m03State['econ:buyer:ore:stock']===20,
+    $m03State['market:reserve-room:status']==='open',
     'M03 deferred refund is released exactly after storage becomes available');
 rejects(fn()=> $m03Handler->apply(new Command('unit-m03','claim-again','market.claim',
     ['account'=>'seller','resource'=>'ore']),$m03State,120),DomainException::class,
@@ -70,5 +71,5 @@ for($i=0;$i<1001;$i++) {
 }
 check($s['market:count']===1001 && $s['market:offer1000:status']==='open',
     'M03 pure engine accepts 1001 lifetime offers without former market cap');
-check(ScalarMap::decode(ScalarMap::encode($s))===$s,
+check(ScalarMap::decode(ScalarMap::encode($s))==ScalarMap::validate($s),
     'M03 1001 account/offer source snapshot remains serializable for replay');

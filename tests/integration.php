@@ -165,6 +165,7 @@ require __DIR__ . "/rate-cleanup.php";
 require __DIR__ . "/maintenance-cli.php";
 require __DIR__ . "/onboarding-status.php";
 require __DIR__ . "/market.php";
+require __DIR__ . "/m03-projection-db.php";
 // Run the high-watermark authenticated hash stress AFTER all lower fixed-clock
 // recovery tests so a deliberate simulated future cannot exhaust their quota.
 require __DIR__ . "/auth-capacity.php";
