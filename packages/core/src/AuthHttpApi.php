@@ -11,13 +11,20 @@ final class AuthHttpApi
     }
     public function handle(string $method,string $path,string $authorization,string $body,string $peer): array
     {
-        if (!in_array($path,['/v1/auth/login','/v1/auth/logout','/v1/auth/register','/v1/auth/recover','/v1/auth/recovery/rotate','/v1/auth/password/change'],true)) return [404,['error'=>'not_found']];
+        if (!in_array($path,['/v1/auth/login','/v1/auth/logout','/v1/auth/logout/all','/v1/auth/register','/v1/auth/recover','/v1/auth/recovery/rotate','/v1/auth/password/change'],true)) return [404,['error'=>'not_found']];
         if ($method!=='POST') return [405,['error'=>'method_not_allowed']];
         $packed=inet_pton($peer);
         if ($packed===false) return [400,['error'=>'invalid_peer']];
         $rate=new PdoRateLimiter($this->pdo,$this->clock);
         if (!$rate->admit('auth:peer:'.bin2hex($packed),10,60)) return [429,['error'=>'rate_limited']];
         $sessions=new PdoSessions($this->pdo,$this->clock);
+        if ($path==='/v1/auth/logout/all') {
+            if (!preg_match('/^Bearer ([a-f0-9]{64})$/D',$authorization,$m)) return [401,['error'=>'unauthorized']];
+            $actor=$sessions->resolve($m[1]);
+            if ($actor===null) return [401,['error'=>'unauthorized']];
+            $sessions->revokeAllForActor($actor);
+            return [200,['data'=>['revokedAll'=>true]]];
+        }
         if ($path==='/v1/auth/logout') {
             if (!preg_match('/^Bearer ([a-f0-9]{64})$/D',$authorization,$m)) return [401,['error'=>'unauthorized']];
             $sessions->revoke($m[1]);
