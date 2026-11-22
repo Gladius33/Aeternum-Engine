@@ -4,6 +4,11 @@ use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,Configu
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
+// Authentication and activation responses must not leak via referrers or framing.
+header('Referrer-Policy: no-referrer');
+header('X-Frame-Options: DENY');
+header('Content-Security-Policy: frame-ancestors \'none\'');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 try {
     require __DIR__.'/../vendor/autoload.php';
     // Behind a trusted reverse proxy, configure HTTPS at the web server.
