@@ -15,12 +15,22 @@ final class PdoInvitations
             throw new \InvalidArgumentException('Invalid invitation batch');
         $now=$this->clock->now();
         if ($now<0 || $now>PHP_INT_MAX-$ttl) throw new \DomainException('Invalid invitation time');
+        // An operator must never receive a partial batch after an insert failure.
+        // Own the transaction rather than committing a caller's unrelated writes.
+        if ($this->pdo->inTransaction()) throw new \\LogicException('Nested invitation issuance transaction');
         $codes=[];
-        $s=$this->pdo->prepare('INSERT INTO engine_signup_invitations(token_hash,world_id,created_at,expires_at) VALUES (?,?,?,?)');
-        for($i=0;$i<$count;$i++) {
-            $code=bin2hex(random_bytes(32));
-            $s->execute([hash('sha256',$code),$world,$now,$now+$ttl]);
-            $codes[]=$code;
+        $this->pdo->beginTransaction();
+        try {
+            $s=$this->pdo->prepare('INSERT INTO engine_signup_invitations(token_hash,world_id,created_at,expires_at) VALUES (?,?,?,?)');
+            for($i=0;$i<$count;$i++) {
+                $code=bin2hex(random_bytes(32));
+                $s->execute([hash('sha256',$code),$world,$now,$now+$ttl]);
+                $codes[]=$code;
+            }
+            $this->pdo->commit();
+        } catch (\\Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
         }
         return $codes;
     }
