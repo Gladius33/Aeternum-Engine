@@ -39,6 +39,23 @@ Ce CLI n'est pas un contrôleur HTTP et exige les mêmes variables
 autres tâches administratives. En CI, deux processus indépendants tentent
 une attribution contradictoire et un seul doit réussir.
 
+## Types de bâtiments et fondations (préparation M04)
+
+La migration 023 enregistre une liste immuable de coûts par niveau, chaque
+étape comprenant une durée et des prérequis déclaratifs. Les coûts sont
+normalisés puis validés : quantité entière strictement positive et au plus
+16 ressources/prérequis par étape. Les plans sont épinglés à
+`engine_worlds.rules_key`. Les bâtiments de niveau zéro sont liés à un
+acteur actif, une entité et un territoire de même monde et de même lieu,
+tous deux déjà possédés par l'acteur. Un identifiant de bâtiment est
+immuable, les lectures sont réservées au propriétaire actif.
+
+**Important :** `PdoBuildings::establish` reste réservé à l'opérateur ;
+aucun coût n'est débité, aucune construction planifiée ni achevée et
+aucun journal de commande généré. Il serait incorrect de présenter une
+fondation comme une construction jouable. L'intégration au moteur de
+commandes, à l'économie et au rejeu demeure une exigence M04 ouverte.
+
 ## Migration et retour arrière
 
 Appliquer `php bin/migrate.php` avec une sauvegarde SQL préalable. Aucune
