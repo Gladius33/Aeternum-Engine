@@ -54,11 +54,16 @@ final class AuthHttpApi
                 return [429,['error'=>'rate_limited']];
             }
             try {
-                $claim=(new PdoSignupSlots($this->pdo,$this->parallelSignupLimit))->run(fn() =>
-                    (new PdoOnboarding($this->pdo,$this->clock))->enroll(
+                [$claim,$token]=(new PdoSignupSlots($this->pdo,$this->parallelSignupLimit))->run(function() use($data,$sessions):array {
+                    $claim=(new PdoOnboarding($this->pdo,$this->clock))->enroll(
                         $data['world'],$this->registrationWorlds[$data['world']],$data['login'],$data['password'],
                         $this->requireInvitation?$data['inviteCode']:null
-                    ));
+                    );
+                    // Include the second Argon2id verification and token creation
+                    // in the same resource budget. No expensive post-slot gap.
+                    $token=$sessions->login($data['login'],$data['password']);
+                    return [$claim,$token];
+                });
             } catch (SignupBusy) {
                 return [503,['error'=>'registration_busy']];
             } catch (\DomainException) {
@@ -68,7 +73,6 @@ final class AuthHttpApi
                 // repeating this same registration after temporary failure.
                 return [503,['error'=>'registration_retry']];
             }
-            $token=$sessions->login($data['login'],$data['password']);
             if ($token===null) return [503,['error'=>'registration_retry']];
             return [$claim['created']?201:200,['data'=>[
                 'token'=>$token,'expires_in'=>3600,'world'=>$data['world'],'account'=>$claim['actor'],'recoveryCode'=>$claim['recoveryCode']

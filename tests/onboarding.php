@@ -193,3 +193,5 @@ foreach($slotWorkers as [$proc,$pipes]) {
 [$retryStatus,$retryBody]=$slotApi->handle('POST',$onPath,'',$onJson($slotData),'192.0.2.232');
 check($retryStatus===201 && preg_match('/^[a-f0-9]{64}$/D',$retryBody['data']['account']??'')===1,
     'new signup succeeds after capacity is released');
+check((new PdoSessions(db(),new FrozenClock(23000)))->resolve($retryBody['data']['token'])===$retryBody['data']['account'],
+    'signup completes a real bearer session under released slot capacity');
