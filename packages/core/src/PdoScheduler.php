@@ -8,6 +8,7 @@ use PDO;
 final class PdoScheduler
 {
     private bool $processing = false;
+    private ?bool $projectionInstalled = null;
 
     public function __construct(
         private readonly PDO $pdo,
@@ -59,11 +60,34 @@ final class PdoScheduler
         });
     }
 
+    /** Legacy migrations 001..019 are exercised in CI before 020 is applied. */
+    private function hasProjection(): bool
+    {
+        if ($this->projectionInstalled===null) {
+            $q=$this->pdo->query("SHOW COLUMNS FROM engine_worlds LIKE 'economy_projection_version'");
+            $this->projectionInstalled=$q->fetch(PDO::FETCH_ASSOC)!==false;
+        }
+        return $this->projectionInstalled;
+    }
+
+    private function syncProjection(array $before,array $after): void
+    {
+        if ($this->hasProjection()) (new PdoEconomyProjection($this->pdo,$this->worldId))->sync($before,$after);
+    }
+
+    /** All projection bootstrap runs under the existing InnoDB world lock. */
     private function lockedWorld(): array
     {
         $row = $this->query('SELECT next_sequence, watermark, state_json, journal_sequence, checkpoint_json, checkpoint_at, rules_key FROM engine_worlds WHERE world_id = ? FOR UPDATE', [$this->worldId])->fetch(PDO::FETCH_ASSOC);
         if ($row === false) throw new \DomainException('World not initialized');
         if ($row['rules_key'] !== $this->rulesKey()) throw new \DomainException('World rules mismatch');
+        if ($this->hasProjection()) {
+            $version=(int)$this->query('SELECT economy_projection_version FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetchColumn();
+            if ($version===0) {
+                (new PdoEconomyProjection($this->pdo,$this->worldId))->bootstrap(ScalarMap::decode($row['state_json']));
+                $this->query('UPDATE engine_worlds SET economy_projection_version=1 WHERE world_id=?',[$this->worldId]);
+            } elseif ($version!==1) throw new \UnexpectedValueException('Invalid economy projection version');
+        }
         return $row;
     }
 
@@ -122,8 +146,10 @@ final class PdoScheduler
                     $row = $this->query('SELECT event_id,event_type,due_at,payload_json FROM engine_events WHERE world_id = ? AND completed = 0 AND due_at <= ? ORDER BY due_at,sequence_no LIMIT 1 FOR UPDATE', [$this->worldId,$cutoff])->fetch(PDO::FETCH_ASSOC);
                     if ($row === false) return null;
                     $event = $this->event($row);
-                    $eventResult = $this->resolveEvent($handler,$event,ScalarMap::decode($world['state_json']));
+                    $before=ScalarMap::decode($world['state_json']);
+                    $eventResult = $this->resolveEvent($handler,$event,$before);
                     $newState = ScalarMap::encode($eventResult->state);
+                    $this->syncProjection($before,$eventResult->state);
                     $this->query('UPDATE engine_worlds SET state_json = ?, watermark = ? WHERE world_id = ?', [$newState,$event->dueAt,$this->worldId]);
                     $changed = $this->query('UPDATE engine_events SET completed = 1 WHERE world_id = ? AND event_id = ? AND completed = 0', [$this->worldId,$event->id])->rowCount();
                     if ($changed !== 1) throw new \LogicException('Event completion invariant violated');
@@ -273,6 +299,7 @@ final class PdoScheduler
             case 'economy.open':
             case 'economy.settle':
             case 'economy.upgrade':
+            case 'market.claim':
                 $this->assertAccountOwner($command->payload['account']??null,$actor);
                 break;
             case 'economy.transfer':
@@ -301,6 +328,9 @@ final class PdoScheduler
         return $this->transaction(function () use ($actor,$after,$limit): array {
             $world=$this->lockedWorld();
             $this->assertActiveActor($actor);
+            if ($this->hasProjection()) {
+                return (new PdoEconomyProjection($this->pdo,$this->worldId))->marketPage($after,$limit);
+            }
             $offers=MarketProjection::openOffers(ScalarMap::decode($world['state_json']));
             $accounts=array_values(array_unique(array_column($offers,'seller'),SORT_STRING));
             if ($accounts===[]) return ['offers'=>[],'nextAfter'=>null];
@@ -380,8 +410,10 @@ final class PdoScheduler
                 if ($at < 0 || $at < (int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
                 $due = $this->query('SELECT event_id FROM engine_events WHERE world_id = ? AND completed = 0 AND due_at <= ? LIMIT 1 FOR UPDATE', [$this->worldId,$at])->fetchColumn();
                 if ($due !== false) throw new \DomainException('Due events must be processed before new commands');
-                $result = $handler->apply($command,ScalarMap::decode($world['state_json']),$at);
+                $before=ScalarMap::decode($world['state_json']);
+                $result = $handler->apply($command,$before,$at);
                 $stateJson = ScalarMap::encode($result->state);
+                $this->syncProjection($before,$result->state);
                 $seq = (int)$world['next_sequence'];
                 $ids = [];
                 foreach ($result->events as $event) {

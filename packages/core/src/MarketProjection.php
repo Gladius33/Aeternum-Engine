@@ -29,7 +29,6 @@ final class MarketProjection
                 if (!is_int($v) || $v<1 || $v>1000000000000) throw new \LogicException('Invalid stored offer');
                 $offer[$field]=$v;
             }
-            if (count($offers)>=1000) throw new \LogicException('Market state exceeds reference limit');
             $offers[]=$offer;
         }
         usort($offers,static fn(array $a,array $b): int=>strcmp($a['id'],$b['id']));
