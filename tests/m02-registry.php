@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{GamePackLoader,WorldPackRegistry,PackSdk,ScheduledEvent,Command};
+use Aeternum\Core\{GamePackLoader,WorldPackRegistry,PackSdk,ScheduledEvent,Command,ConfiguredWorlds};
 $fixtureRoot=__DIR__.'/fixtures/m02-packs';
 $fixtureBytes=file_get_contents($fixtureRoot.'/sdk-fixture/manifest.json');
 check(is_string($fixtureBytes),'third SDK fixture is present outside games/');
