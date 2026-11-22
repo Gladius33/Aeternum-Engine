@@ -50,19 +50,19 @@ acteur actif, une entité et un territoire de même monde et de même lieu,
 tous deux déjà possédés par l'acteur. Un identifiant de bâtiment est
 immuable, les lectures sont réservées au propriétaire actif.
 
-**Important :** `PdoBuildings::establish` reste réservé à l'opérateur ;
-aucun coût n'est débité, aucune construction planifiée ni achevée et
-aucun journal de commande généré. Il serait incorrect de présenter une
-fondation comme une construction jouable. L'intégration au moteur de
-commandes, à l'économie et au rejeu demeure une exigence M04 ouverte.
+**Important :** `PdoBuildings::establish` reste réservé à l'opérateur et ne
+prélève aucun coût. En revanche, les fondations ainsi créées peuvent être
+améliorées par leur propriétaire avec `building.start`, qui débite les
+ressources, journalise l'action et programme son achèvement. Le placement
+autonome de nouvelles fondations par les joueurs reste à développer.
 
 ## Projection privée des bâtiments
 
 L'endpoint de lecture seule `GET /v1/worlds/{world}/buildings/{id}`
 demande un jeton valide, vérifie que le monde est approuvé et que l'acteur
 possède le bâtiment et son appartenance active, puis renvoie le niveau
-persistant et le prochain coût multi-ressources. Aucun endpoint joueur
-ne peut établir ou améliorer un bâtiment.
+persistant et le prochain coût multi-ressources. Aucun endpoint joueur ne peut établir une fondation ; les améliorations
+passent par l'API de commandes économiques authentifiée.
 
 ## Migration et retour arrière
 
@@ -74,7 +74,7 @@ les relations doivent rester synchronisées avec les membres et les lieux.
 Ne jamais retirer 022 sur une base de production contenant des territoires
 sans plan de migration et validation humaine.
 
-## API et navigateur (lecture seule)
+## API cartographique et navigateur
 
 `GET /v1/worlds/{world}/map/territories[/{after}]` retourne 50 secteurs
 au maximum et `nextAfter`. `GET /v1/worlds/{world}/map/locations/{id}/links[/{after}]`
@@ -118,9 +118,9 @@ après suspension des écritures, sauvegarde hors instance et répétition
 de restauration sur copie. La suite MariaDB simule la montée depuis un
 ancien monde déjà alimenté et vérifie le rejeu.
 
-Les règles de remboursement/annulation et le déploiement multi-mondes
-continu sont encore à développer et restent hors périmètre de cette
-première sous-livraison.
+Les règles d'annulation et de remboursement, y compris les crédits différés,
+sont décrites ci-dessous et couvertes par des tests MariaDB. La validation
+du déploiement continu sur des données persistantes d'hébergement reste ouverte.
 
 Le client HTML active désormais `Begin construction` uniquement après
 une lecture validée de sa propre fondation, sur son compte actif, sans
@@ -186,7 +186,11 @@ de méthode ou de curseur.
 
 ## Sortie de macro NON acquise
 
-Restent à développer les règles typées de bâtiments, la construction
-multi-ressources, la planification et l'annulation, l'intégration aux
-événements et au journal, le rejeu, l'API/UI des constructions et une
-preuve navigateur de deux joueurs évoluant indépendamment.
+Le catalogue typé, les coûts multi-ressources, la planification, l'annulation,
+le journal/rejeu et les parcours navigateur de construction existent déjà.
+Restent à développer le placement de fondations par les joueurs, les
+composants évolutifs et leurs effets métier, ainsi que la preuve E2E de
+deux joueurs développant indépendamment leurs entités jusqu'aux critères
+de sortie M04. Les essais de charge prolongés et une répétition des
+migrations sur copie de données persistantes représentatives manquent.
+La CI verte d'une sous-livraison ne vaut pas acceptation de M04.
