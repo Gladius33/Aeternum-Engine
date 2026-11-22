@@ -105,3 +105,24 @@ GET /v1/worlds/{world}/economy/overview/{account}/{resource} requires an active 
 
 ## Browser multiplayer market validation (0039)
 The browser E2E suite now exercises two independent operator-provisioned medieval accounts with distinct bearer tokens: durable escrow, accepted barter, idempotent retry, conflicting payload denial, cross-world market isolation, and closed-offer projection after login. Integration tests remain authoritative for exact ledger conservation and process races.
+
+
+## Public onboarding (M01, opt-in)
+Migration 016 introduces `engine_onboarding`, linking one existing application identity to one operator-approved world with `pending` or `ready` state. New identity and pending claim commit in one InnoDB transaction. Provisioning then reuses existing world-locked idempotent steps (membership, ownership, entity and initial resources). A crash can leave `pending`, in which case the same login/password/world resumes without introducing an additional ownership grant, initial resource credit or command receipt. The claim is marked `ready` only after the provisioning sequence commits. An identity created through operator-only CLI without a public claim cannot gain self-service membership. Registration of another world for a claimed identity is rejected. Do not attempt to rollback these already-committed multi-step world transitions as if they were one SQL transaction; recovery relies on stable identifiers and receipts, not on one long transaction.
+
+Current reference economy is bounded to 1,000 accounts and offers; public capacity must be controlled separately until M03. There is no email verification, password reset or real deployment certification yet. Opt-in is intended for isolated evaluation only.
+
+
+### Recovery tokens (migration 017)
+engine_account_recovery contains one SHA-256 hash of a random 256-bit recovery code per actor and an update timestamp, not the plaintext. The code is issued once after the signup claim is ready; if the first response is lost an authenticated player can rotate it with the current password. Recovery obtains exclusive identity and token locks, checks the digest using hash_equals, changes the Argon2id password, deletes outstanding sessions and rotates the code in one SQL transaction. Competing recovery attempts using one token are serialized. External operational abuse defenses and session-login races still need focused security review.
+
+
+### Invitation claims (migration 018)
+When invite-only beta mode is enabled, engine_signup_invitations stores world-scoped SHA-256 token digests and a nullable actor claim. A new account, its pending claim and the consumption of its invitation are committed in one InnoDB transaction. An invalid or already consumed invitation rolls back identity creation. Subsequent retries require matching login/password, world and original invitation. Issuance is CLI-only, limited to 50 secrets per batch; plaintext is emitted once and never persisted. Optional flag AETERNUM_SIGNUP_REQUIRE_INVITE=1 is off by default.
+
+
+M01 unclaimed invitations carry server-side `expires_at` (default 7 days) and a `revoked` flag. Atomic claim refuses expired or revoked codes. Revocation affects only unused invitations; a previously claimed onboarding record may be completed idempotently after its code expires. Issued codes cannot be extended retroactively. Operators revoke by piping the secret to `bin/invite-revoke.php` and must protect CLI stdout and shell logs.
+
+
+### M01 identity-wide session revocation
+`PdoSessions::revokeAllForActor` obtains an exclusive `engine_identities` row lock and deletes all `engine_sessions` rows for **only** the resolved actor in one transaction. The login path uses a shared lock on the same identity before token issuance, and password change/recovery use exclusive identity locks, so an earlier login cannot outlive a committed global logout. A login starting afterwards is permitted with still-valid credentials. The HTTP route `/v1/auth/logout/all` first checks the calling bearer and never trusts a target actor supplied by the client. A request already admitted before revocation can finish; revocation governs subsequent admission, not cancellation of in-flight business transactions.

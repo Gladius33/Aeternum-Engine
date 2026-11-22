@@ -114,3 +114,136 @@ Browser CI installs the schema, provisions one distinct identity per pack, start
 0038 accessibility correction: initial Chromium run 45003624969 failed locating the exact label of a nested select. Use explicit for/id associations for market resource, quantity and offer controls. Reproduced the original exact-label miss and verified the corrected labels/selection in local real Chromium. Bound market smoke action/response waits to 15 seconds; full corrected CI remains required.
 
 0039 acceptance: live MariaDB/Chromium must validate real two-player barter create/accept, own-offer and foreign-cancellation UI denials, conflicting idempotency IDs, exact duplicate receipt, world isolation and post-login offer closure. Lazy stock growth is an inequality, not an exact ledger assertion. CI result must be checked on exact PR SHA.
+
+
+## M01 signup qualification (pending CI)
+Integration suite exercises disabled route, validation/methods/unknown world, session resolution, first-world initial stock, duplicate credentials, immutable world claim, operator identity exclusion, crash recovery from committed pending claim, bounded peer quota and four independent concurrent signup processes returning one actor and one set of initial credits. Real Chromium covers public world listing, creating a new industrial player without CLI, automatic login, stock, sign-out/re-login, second independent user and foreign balance rejection. All tests run against disposable MariaDB. Production email/activation/recovery, rate-capacity measurement and external HTTPS remain unverified; do not mark M01 complete until then.
+
+
+M01 recovery follow-up: MariaDB suite covers stored token hashing, invalid and replayed codes, atomic password change, session revocation, authenticated replacement and four simultaneous attempts to spend one token. Chromium creates a public player, reconnects, recovers with an offline code, checks old password denial and authenticates with the replacement password. This is not email verification. CI on exact head required.
+
+
+M01 password reset race hardening: session login and code rotation now serialize with account reset via identity row locks. Existing session and multi-process tests are mandatory regression gates; dedicated login/reset concurrency tests and load benchmarks remain part of final M01 sign-off.
+
+
+M01 controlled-beta invitation checks: MariaDB tests rejection without code, malformed/unknown codes, exactly one actor per consumed invitation, orphan-free rollback, same-actor retry, wrong-actor denial and recovery of an invitation claim committed before world provisioning. A verified operator-run issuance CLI is still a deployment acceptance item.
+
+
+M01 invitation expiry/revocation: integration tests reject 59-second or over-30-day TTL, revoked unused codes, expired unused codes, repeated revocation and identity creation after expiry. Operator CLI tests issue and revoke a concrete code; a previously consumed code remains bound to the original actor for interrupted-provision retry.
+
+Invitation admission also refuses a timestamp earlier than creation (clock rollback); the invitation race worker uses the same logical clock as issuance.
+
+
+M01 opt-in browser qualification: browser.yml starts an additional 127.0.0.1:8766 server with AETERNUM_SIGNUP_REQUIRE_INVITE=1, issues one real token via operator CLI, checks invite form visibility and required attribute, enrolls a player in the configured industrial world and refuses a second actor using the consumed token. Both loopback servers share disposable MariaDB; the invitation secret is discarded at teardown, never committed. E2E remains a lab approximation and does not certify real TLS.
+
+
+M01 pending-claim session guard: existing operator-provisioned identities without a public claim may still sign in, but a registered identity whose onboarding claim remains pending cannot obtain a bearer until its original world provisioning resumes and reaches ready. MariaDB verifies denial before recovery and acceptance afterwards.
+
+
+The one-use invitation browser scenario runs before real-time timed upgrade scenarios. This respects shared production-equivalent per-peer authorization quotas rather than disabling rate limiting or accepting HTTP 429 as a substitute for an authorization test.
+
+
+M01 E2E correction after run 45009542745: the invitation-only real browser case intentionally provisions a second industrial actor, so the existing industrial recipient-directory assertion must observe one real invited account rather than an empty directory. Move the expired-session scenario before the 60s/180s timed upgrades to separate its authentication requests from the final public signup/recovery path while enforcing the unchanged auth:peer limit 10/min. Do not weaken rate enforcement or accept 429 as a substitute for a credential-rejection assertion.
+
+
+## M01 authenticated password-change gate (CI pending)
+`POST /v1/auth/password/change` requires a live bearer token, the verified current password, a distinct 12–1024-byte replacement and strict JSON fields. It returns a new one-time offline recovery credential, revokes all earlier bearers and never automatically issues a new session. `tests/password-change.php` runs against real disposable MariaDB: successful public signup, two independent sessions, wrong token/current password, missing/extra fields, weak/reused password, atomic session invalidation, old-password rejection, recovery-code digest/rotation/replay and subsequent offline recovery. Four independent PHP workers contend to change one identity: exactly one must commit, every preexisting bearer must be revoked, and the winning code digest must match the committed record. These are **test expectations**, not evidence of a green CI until the exact SHA passes.
+
+Chromium's public signup scenario additionally verifies the live client password-change form, replacement-code display, old bearer rejection, previous recovery-code denial and signing in again without residual secret in the DOM. The one-time recovery code is shown only during issuance/rotation and must be saved offline. Do not infer certified TLS or external mail identity confirmation from the localhost CI router.
+
+**Still open for M01 sign-off:** verified production HTTPS/reverse proxy and PHP shared-hosting behavior, an explicit activation policy appropriate to the service, abuse/capacity measurements and deployment acceptance. Do not merge on an incomplete or failed PHP/MariaDB/Chromium check.
+
+
+## M01 device-wide logout acceptance (CI pending)
+The authenticated `POST /v1/auth/logout/all` path resolves only its own bearer, returns `401` for an absent/expired token, never accepts a target actor ID and returns `200` only after identity-scoped global revocation. MariaDB `tests/auth-http.php` checks independent active sessions of one actor are all invalidated, a foreign actor's bearer survives, and subsequent login still works. Chromium `tests/browser/economy.spec.cjs` exercises the public-player button and proves the old bearer is denied by a subsequent authenticated API read. The browser preserves production rate limits and waits for a fresh quota window on `429`; do not count a throttled request as successful sign-out. Exact-head PHP/MariaDB/Chromium CI evidence is required.
+
+
+## M01 public producer and global abuse admission (CI pending)
+The real browser registration scenario now uses its freshly created **non-CLI industrial player** to submit an actor-scoped `economy.settle` action, checks the live response and UI confirmation, signs out, reconnects using the same user credentials, and verifies the persisted resource state/capacity. This is stronger than merely reading the initial provisioned stock and directly addresses M01's production/reconnect exit criterion.
+
+Real MariaDB integration tests now pre-exhaust the existing global hourly `auth:recovery-global` and `auth:registration-global` quotas, each independently of the attempted peer address. They require `429`, preservation of the valid unspent recovery/invitation credential without orphaned identities, and a genuine successful retry after fixed-window rollover. These tests verify fixed-window gate wiring and credential non-consumption only; they do not establish measured resilience against distributed bot or Sybil attacks on public infrastructure. Exact-head CI is essential.
+
+
+## M01 invitation retention and atomic signup admission (pending exact-head CI)
+Real MariaDB CI tests enforce a per-world hourly admission limit across four independent PHP processes. Exactly two of four distinct registration requests may become persistent ready actors when the configured world budget is 2; the other two receive 429 and create no identity. An independent world remains available. Unit and HTTP tests additionally verify IPv4-mapped normalization and IPv6 /64 peer bucketing, so rotating an IPv6 privacy address does not reset the caller's authorization/registration quota.
+
+A separate operator CLI, bin/invite-maintenance.php, removes at most a configured 1–1000 unused expired or revoked invitation rows. The real database CLI test checks bounded deletion, invalid limits, caller-transaction refusal, preservation of still-live invites and retention of already-consumed invite hashes for interrupted claim recovery. Used invitations must NOT be deleted by retention cleanup; replay protection relies on their actor binding. These checks prove laboratory invariants only; real hosting capacity and identity verification remain open.
+
+
+## M01 MariaDB concurrent signup semaphore (pending exact-head CI)
+The production HTTP signup handler wraps credential hashing, durable identity claim, world provisioning, and initial session creation eligibility in a database-scoped bounded semaphore. Two independent external PHP workers each hold one advisory lock; the real HTTP API rejects a third registration with retryable 503 registration_busy and confirms no identity was created. Once both worker processes release their connections, the original request succeeds. A callback-exception test verifies release on failure; invalid limits fail closed. The default production concurrency value of 8 is adjustable to 1–32. This is a laboratory concurrency guarantee, not a substitute for a hosting load test.
+
+M01 signup semaphore scope clarification: the same held MariaDB advisory slot covers both Argon2id operations (initial password hash and authenticated session issuance), the persistent claim and all world provisioning. A successful response is returned only after token issuance; a 503 due to full slots occurs before identity creation.
+
+
+## M01 trusted reverse-proxy peer validation (pending exact-head CI)
+The PHP front controller now resolves client IPs from X-Forwarded-For only if REMOTE_ADDR exactly matches an operator-approved proxy in AETERNUM_TRUSTED_PROXY_IPS; otherwise it ignores the header. The resolver walks backwards and takes the rightmost untrusted hop, rejecting malformed, oversized or overlength chains and invalid proxy configuration. Unit tests cover untrusted clients, malicious leftmost XFF prefixes, multi-hop trusted chains, IPv4-mapped and exact IPv6 proxy trust. An additional live MariaDB AuthHttpApi test verifies that varying a spoofed prefix cannot replenish a verified client's rate quota. This does not attest that a specific real reverse proxy appends or sanitizes headers correctly; HTTPS termination and production proxy-chain behavior require authorized external acceptance tests.
+
+
+## M01 operator enrollment diagnostics (pending exact-head CI)
+A read-only PdoOnboardingStatus aggregates status counts, stale pending claims older than 900 seconds, oldest pending age, invitation lifecycle states and active sessions scoped to an exact approved world. The CLI bin/onboarding-status.php accepts only a configured world and outputs numeric JSON without disclosing login or actor names or secrets. MariaDB checks include injected fixed-clock pending age, empty and foreign-world isolation, CLI integration on the real disposable database, rejected unknown world and malformed arguments, and equivalence to the direct database snapshot. These metrics are operator tools, not a live service or production monitoring certification.
+
+
+## M01 real MariaDB nonempty legacy upgrade regression (pending exact-head CI)
+The MariaDB integration job now stages the exact repository migrations 001 through 015 in a temporary private test directory and applies them to a fresh **disposable** database. It provisions an existing medieval actor and resources, records its deterministic journal/replay entries and stock, and inserts a preexisting session. Only then does the normal migration runner upgrade this populated schema to migrations 016 through 018. Assertions verify no loss of resource stock, unchanged journal replay, successful existing-session lookup and existing-password login, absence of implicit public onboarding for the legacy identity, and a no-op migration rerun. A dirty schema marker must still stop migration. No real operator database was migrated or restored here: operator backup, rollback and host-side dress rehearsal remain outstanding and are mandatory before an actual production upgrade.
+
+
+## M01 real loopback TLS + sanitized proxy Chromium smoke (pending CI)
+GitHub's browser job provisions an ephemeral 1-day self-signed localhost TLS certificate, starts an HTTPS Node reverse proxy on 127.0.0.1:8777 and keeps the PHP test backend on 127.0.0.1:8765. It sends a Chromium browser to the HTTPS-origin player signup UI and retrieves the approved-world API JSON with the actual TLS handshake. A separate test-router-only endpoint verifies that forwarded IP headers supplied by the client are stripped and replaced with the proxy's observed peer. The fixture is never exposed to the network or production; the PHP test router still emulates trusted backend HTTPS termination. Only operator-approved host-side tests can validate actual TLS certificates and production ingress configuration.
+
+
+The TLS smoke additionally includes the full public-player acceptance chain over the HTTPS origin: account creation without CLI, authorized production action and successful reconnect with the same persisted actor/account. It executes after existing economy scenarios to avoid mutating their expected recipients. Rate-limit retries are genuine fixed-window waits, not disabled authorization.
+
+
+## M01 shared Argon2id concurrency across auth lifecycle (pending exact-head CI)
+Two real independent PHP workers hold every MariaDB advisory slot while the actual HTTP API attempts login, offline recovery, authenticated password change and recovery-code rotation. All four paths must return retryable 503 authentication_busy, retain the original password and live bearer, and make no recovery rotation. A separate logout must still revoke the token under saturated hash slots. After the workers release, login and reuse of the original offline recovery code must succeed, with the replacement password persisted and the original rejected. This addresses simultaneous Argon2id memory pressure, not the volume of automated registrations or a measured production concurrency limit.
+
+The shared Argon2id stress fixture is deliberately the final integration fixture. Because its injected clock is far ahead of other tests, running it before previous recovery tests would advance their shared durable rate bucket and falsely fail a subsequent lower-clock recovery check. Production quotas never roll backwards; the ordering isolates synthetic-time tests without weakening that invariant.
+
+CI clock isolation note: because the rate-cleanup regression intentionally advances the *durable* minimum admission timestamp above 2,000,000, the last authentication-capacity fixture uses an injected clock at 3,000,000. Otherwise the rate limiter correctly returns 429 before reaching the intended exhausted hash-slot path. Do not disable rollback protection to make a fixture pass.
+
+Correction after PHP CI #379: the real operator maintenance CLI uses the actual wall clock and advances the durable admission floor to the present epoch, beyond any fixed fixture clock. For the terminal authentication stress case use SystemClock, as the maintenance test does, to avoid a deliberate rollback guard returning 429 instead of reaching saturation. Keep the monotonic limiter and all its tests intact.
+
+
+## M01 actual dump/restore and measured load in disposable CI (pending exact HEAD)
+The PHP 8.4/MariaDB job now runs 8 independent PHP registration processes against a single approved lab world and the real resource-limiting semaphore, recording observed HTTP 201/429/503 frequencies, per-worker duration p50/p95, and approximate peak worker RSS (Linux VmHWM). It asserts accepted account counts match the durable ready records, no pending actor is left behind, valid logins survive and starting stocks are granted. These are **measurements on a temporary Actions runner**, not hosting capacity guarantees or production SLOs. The test emits aggregates only, never credentials or tokens.
+
+After tests, the CI obtains a consistent InnoDB transaction dump of the **nonempty** complete disposable database with mariadb-dump, restores it into a fresh separate database, grants only SELECT on the clone, then compares the sets of tables and SHA-256 fingerprints of all sorted rows of every table. It also authenticates legacy accounts and replays a pre-existing medieval world journal, checking restored starting stock. Dump files are deleted when the job exits. This is an executed laboratory backup and restore (provided the exact-head workflow passes); it is **not** a claim about recovery on O2Switch/VPS or backup durability outside CI.
+
+
+## M01 self-service email activation state machine (pending CI)
+Optional migration 019 adds a mailbox proof keyed by an actor and unique normalized email address, with a 256-bit random activation code stored only as its SHA-256 digest. The identity, pending world claim and activation record are one transaction. No bearer or initial resources exist before activation. Proof checks both code and password, denies expired and replaced codes, allows only retry of an already-verified *pending* claim after interruption and refuses replay once the actor is ready. Resend requires credentials, a matching address and a minimum 60-second interval. Existing operator and legacy self-service identities have no activation row, preserving behavior. Real delivery requires an authorized configured PHP mail transport; CI tests never send real mail.
+
+
+## M01 mailbox activation HTTP and UI (pending HEAD CI)
+The activation opt-in adds POST /v1/auth/activate and /v1/auth/activation/resend with real persisted rate quotas and shared Argon2id concurrency. A registration returns generic HTTP 202 without bearer, and mailbox verification plus original password completes the idempotent world claim. Unit and real MariaDB HTTP tests cover wrong code/password, duplicate mail/login, no session until ready, expiry, resend rotation, one-use completion and subsequent login. The browser signup form conditionally renders an email input and a code/password activation form based on the public-world settings. Previous open-test registration remains available when the flag is disabled, preserving existing compatibility. This is not yet proof of real email delivery on hosting.
+
+
+## M01 real TLS self-service mailbox activation E2E (pending CI)
+A separate loopback-only PHP server enables email activation against the actual MariaDB instance. Its sendmail is replaced by a private temporary file sink; the browser test runner reads the one-time code without exposing it via API or logs. A separate real TLS reverse proxy terminates HTTPS on 127.0.0.1:8778 and sanitizes forwarding headers. Chromium must create a fresh identity, observe HTTP 202 with no bearer, fail to log in while pending, activate with email code **and** password, receive the real recovery secret/session, perform a production command, refuse one-time code replay, then reconnect to the same actor. Existing non-verification and invitation E2E run first on their separate servers and continue to work. No messages are transmitted to real email servers in CI.
+
+
+## M01 email ownership and concurrency safety
+An exact per-database and per-login MariaDB advisory lock wraps the complete email activation proof, durable world provisioning, consumed-code marking and bearer issuance. It prevents two concurrent HTTP requests from turning one code into multiple active sessions. The bounded operator-only CLI bin/activation-maintenance.php deletes expired, never-verified and never-provisioned account reservations; it never deletes a verified pending account after an interrupted provision, or any ready actor. These invariants require dedicated concurrency and retention tests on the exact HEAD before acceptance.
+
+
+## M01 tests for mailbox reservation expiry and activation proof race (pending exact-head CI)
+MariaDB integration now proves bounded expired/unverified-account deletion, freeing mailbox ownership, preservation of ready players and verified-but-pending crash recovery, and idempotent cleanup through the actual operator CLI. A four-process adversarial race submits the same activated mailbox code on distinct client addresses; exactly one 200 response must result, the others are 401 or retryable 503, with a single durable actor and single initial resource grant per resource. The HTTP resend test rotates a code and proves the old code cannot activate.
+
+
+The activation reference UI includes a separate self-service resend form, with an explicit one-minute cooldown notice, password proof, matching email field, and generic response text to avoid revealing registered accounts. The new form is visible only when mailbox activation mode is configured. Reuse of an already superseded code is covered by the real MariaDB HTTP suite.
+
+
+## M01 operator preflight (pending exact-head CI)
+The read-only bin/m01-preflight.php checks local PHP 8.4, pdo_mysql, Argon2id, world allowlist, explicit identity proof for enabled public enrollment, mail-transport configuration syntax, exact proxy-IP allowlist syntax, rate/parallel limit syntax and completed checksummed migration ledger. It emits only sanitized booleans and estimated hash-slot RAM. CI runs it on the disposable database with a valid invitation-only policy, and proves that unsafe unverified open signup configuration fails. It never sends mail or operates on an external host; actual delivery, host restore, capacity and operator acceptance remain manual gates.
+
+
+## M01 secure-default public enrollment policy (pending exact-head CI)
+The production PHP HTTP controller denies both public-world discovery and public registration if AETERNUM_PUBLIC_REGISTRATION=1 but neither operator-vetted invitation mode nor email activation is enabled. The backwards-compatible unverified path used by the old browser CI is now explicitly restricted to the local PHP built-in server, browser test flag, loopback socket IP and its lab-only override. A fourth browser CI server uses the same public-registration flag but removes the override: the actual HTTP GET /v1/public/worlds and POST /v1/auth/register must both return 404. This security tightening does not modify stored identities, replay or existing sessions.
+
+
+Defensive HTTP negative tests reject both oversized and CRLF-header-injected email values with status 400 before an identity or email delivery attempt is possible; they must not be misclassified as retryable server failures.
+
+
+## M01 cross-server HTTP 429 test isolation (exact-head retest pending)
+The browser CI's standard, email-verification and insecure-policy rejection servers intentionally share the same durable authentication peer quota: each is accessed from localhost and all trusted TLS proxies forward the observed socket address. A final security assertion can therefore receive a correct temporary 429 before its expected 401/404. The activation browser suite now retries ONLY those **negative probes**, waiting for a genuine 65-second fixed-window rollover without disabling or inflating any quota. CI #153 recorded exactly this original failure, not an activation bypass or an account leak. The corrected tests must prove the eventual rejection on a new SHA.

@@ -1,5 +1,14 @@
 # Changelog
 
+## In progress — M01 identity-proof enrollment safety
+- Public HTTP registration now requires either operator-vetted one-time invitations or verified-mailbox activation. The earlier intentionally unsecured signup mode survives only in loopback browser CI, preventing a production misconfiguration from silently opening anonymous self-enrollment.
+- Existing identities and API sessions are not migrated or revoked by this admission policy. Migration 019 adds optional validated-mailbox activation, concurrency/replay tests, and bounded cleanup.
+
+## In progress — macro M01 (public onboarding)
+- Add optional allowlisted public signup, durable pending/ready claims, resumable actor-scoped provisioning, and an initial player session.
+- Add browser registration/world-selection form, independent public-world read endpoint, MariaDB concurrency/interrupted-state tests and live browser signup/reconnect/isolation test.
+- Add offline one-time recovery code issuance and rotation, transactional password reset/session revocation and concurrent replay tests. Optional per-world 256-bit invitations for controlled beta now commit atomically with identity claims. Email activation and production abuse/capacity qualification remain open; CI evidence pending.
+
 ## Unreleased — iteration 0039
 - Add independent seller/buyer Chromium barter scenario using authenticated live market endpoints and real MariaDB.
 - Verify owner-only browser actions, durable retry after acceptance, rejection of conflicting retry IDs and cross-world market isolation.

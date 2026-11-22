@@ -7,7 +7,7 @@ async function api(path, method='GET', data) {
     if (data !== undefined) headers['Content-Type'] = 'application/json';
     const response = await fetch(path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),cache:'no-store',redirect:'error',credentials:'omit'});
     const result = await response.json();
-    if (!response.ok) { const error=new Error(result.error || 'Request failed'); error.status=response.status; throw error; }
+    if (!response.ok) { const error=new Error(response.status===503 && result.error==='registration_busy' ? 'Registration server is busy. Please retry shortly.' : response.status===503 && result.error==='authentication_busy' ? 'Authentication server is busy. Please retry shortly.' : (result.error || 'Request failed')); error.status=response.status; throw error; }
     return result.data;
 }
 function locationFields() {
@@ -65,7 +65,7 @@ async function run(work) {
     busy=true;
     const controls=[...document.querySelectorAll('button, select')];
     controls.forEach(x=>x.disabled=true);
-    try { await work(); status.textContent='Success'; }
+    try { const message=await work(); status.textContent=typeof message==='string'?message:'Success'; }
     catch(e) {
         if (e.status===401 && token) resetSession();
         status.textContent=e.message || 'Request failed';
@@ -77,7 +77,133 @@ login.addEventListener('submit',e=>{
     const f=new FormData(login);
     const credentials={login:f.get('login'),password:f.get('password')};
     login.elements.password.value='';
-    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;game.hidden=false;await discover();});
+    // An offline recovery secret is only for its issuance screen. Never leave
+    // it visible after the user attempts to enter an authenticated session.
+    showRecoveryCode(null);
+    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;registration.hidden=true;activation.hidden=true;activationResend.hidden=true;recovery.hidden=true;game.hidden=false;await discover();});
+});
+const registration=document.querySelector('#register');
+let joinableWorlds=[], inviteRequired=false, activationRequired=false;
+const activation=document.querySelector('#activate'), activationResend=document.querySelector('#activation-resend');
+async function discoverRegistrations() {
+    try {
+        const data=await api('/v1/public/worlds');
+        joinableWorlds=data.worlds;
+        inviteRequired=data.invitationRequired===true;
+        activationRequired=data.activationRequired===true;
+        document.querySelector('#email-wrap').hidden=!activationRequired;
+        registration.elements.email.required=activationRequired;
+        activation.hidden=!activationRequired || token!==null;
+        activationResend.hidden=!activationRequired || token!==null;
+        document.querySelector('#invite-wrap').hidden=!inviteRequired;
+        registration.elements.inviteCode.required=inviteRequired;
+        options(registration.elements.world,joinableWorlds.map(w=>[w.world,w.name+' — '+w.world]));
+        registration.hidden=joinableWorlds.length===0 || token!==null;
+    } catch {
+        joinableWorlds=[]; inviteRequired=false; activationRequired=false;
+        document.querySelector('#email-wrap').hidden=true;
+        registration.elements.email.required=false;
+        activation.hidden=true;
+        activationResend.hidden=true;
+        document.querySelector('#invite-wrap').hidden=true;
+        registration.elements.inviteCode.required=false;
+        registration.hidden=true;
+    }
+}
+void discoverRegistrations();
+registration.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(registration);
+    const loginValue=String(f.get('login')),password=String(f.get('password')),confirm=String(f.get('confirm')),world=String(f.get('world'));
+    run(async()=>{
+        if (password!==confirm) throw new Error('Passwords do not match');
+        const payload={login:loginValue,password,world};
+        if (inviteRequired) payload.inviteCode=String(f.get('inviteCode'));
+        if (activationRequired) payload.email=String(f.get('email'));
+        const data=await api('/v1/auth/register','POST',payload);
+        registration.elements.password.value='';
+        registration.elements.confirm.value='';
+        if (activationRequired) {
+            activation.elements.login.value=loginValue;
+            activationResend.elements.login.value=loginValue;
+            activationResend.elements.email.value=String(f.get('email'));
+            activation.hidden=false;
+            activationResend.hidden=false;
+            registration.hidden=true;
+            return 'Check your email for the activation code, then enter it below.';
+        }
+        token=data.token;
+        showRecoveryCode(data.recoveryCode);
+        login.hidden=true; registration.hidden=true; recovery.hidden=true; game.hidden=false;
+        await discover();
+    });
+});
+activation.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(activation);
+    const payload={login:String(f.get('login')),password:String(f.get('password')),code:String(f.get('code'))};
+    activation.elements.password.value='';
+    activation.elements.code.value='';
+    run(async()=>{
+        const data=await api('/v1/auth/activate','POST',payload);
+        token=data.token;
+        activation.hidden=true; activationResend.hidden=true; login.hidden=true; registration.hidden=true; recovery.hidden=true; game.hidden=false;
+        showRecoveryCode(data.recoveryCode);
+        await discover();
+    });
+});
+activationResend.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(activationResend);
+    const payload={login:String(f.get('login')),password:String(f.get('password')),email:String(f.get('email'))};
+    activationResend.elements.password.value='';
+    run(async()=>{
+        await api('/v1/auth/activation/resend','POST',payload);
+        return 'If the details match a pending player, a replacement activation code has been sent.';
+    });
+});
+const recovery=document.querySelector('#recover'), secret=document.querySelector('#recovery-secret'), rotate=document.querySelector('#rotate');
+function showRecoveryCode(code) {
+    secret.hidden=!code;
+    secret.textContent=code ? 'Store this recovery code offline now; it will not be shown again: '+code : '';
+}
+recovery.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(recovery), payload={login:String(f.get('login')),code:String(f.get('code')),newPassword:String(f.get('newPassword'))};
+    run(async()=>{
+        if (payload.newPassword!==String(f.get('confirm'))) throw new Error('Passwords do not match');
+        const data=await api('/v1/auth/recover','POST',payload);
+        recovery.reset();
+        showRecoveryCode(data.recoveryCode);
+        return 'Password reset. Sign in with the replacement password.';
+    });
+});
+rotate.addEventListener('submit',e=>{
+    e.preventDefault();
+    const pass=String(new FormData(rotate).get('password'));
+    rotate.reset();
+    run(async()=>{
+        const data=await api('/v1/auth/recovery/rotate','POST',{password:pass});
+        showRecoveryCode(data.recoveryCode);
+    });
+});
+const passwordChange=document.querySelector('#password-change');
+passwordChange.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(passwordChange);
+    const payload={currentPassword:String(f.get('currentPassword')),newPassword:String(f.get('newPassword'))};
+    const confirm=String(f.get('confirm'));
+    passwordChange.reset();
+    run(async()=>{
+        if (payload.newPassword!==confirm) throw new Error('Passwords do not match');
+        if (payload.currentPassword===payload.newPassword) throw new Error('Choose a different password');
+        const data=await api('/v1/auth/password/change','POST',payload);
+        // The server atomically revokes every bearer for this identity.
+        // Clear local auth and reveal only the newly issued offline code.
+        resetSession();
+        showRecoveryCode(data.recoveryCode);
+        return 'Password changed. All sessions signed out. Save your new recovery code before signing in.';
+    });
 });
 balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
 const transferFields=document.querySelector('#transfer-fields');
@@ -197,9 +323,13 @@ retryCommand.addEventListener('click',()=>run(async()=>{
 }));
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
-    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false;
+    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; activation.hidden=!activationRequired; activationResend.hidden=!activationRequired; showRecoveryCode(null);
 }
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }
     finally { resetSession(); }
+}));
+document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>{
+    await api('/v1/auth/logout/all','POST');
+    resetSession();
 }));

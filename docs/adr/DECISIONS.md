@@ -117,3 +117,21 @@
 0038 accessibility correction: initial Chromium run 45003624969 failed locating the exact label of a nested select. Use explicit for/id associations for market resource, quantity and offer controls. Reproduced the original exact-label miss and verified the corrected labels/selection in local real Chromium. Bound market smoke action/response waits to 15 seconds; full corrected CI remains required.
 
 - ADR-049: require two independent browser sessions to cover the complete marketplace exchange, in addition to lower-level SQL concurrency tests. The client must use server-authoritative terms and preserve the transactional receipt on duplicate accept; a closed offer disappears from public projection. This is E2E evidence, not proof of production capacity or public onboarding.
+
+
+- ADR-050 (M01 pending): public onboarding is explicitly opt-in. Commit identity and pending claim together; reuse world-locked stable provision IDs to resume partial work after crash; mark ready only after all world operations. Never treat a CLI-only identity or an existing public claim for another world as a new public membership. Separate rate quotas and keep account activation/recovery and production qualification as open blockers.
+
+
+- ADR-051 (M01): self-service recovery uses offline 256-bit one-time codes rather than pretending to send unconfigured email. Persist SHA-256 digests only; rotate under row locks; change password and revoke sessions transactionally. Authenticated rotation also requires the current password. Email attestation and production abuse/capacity validation remain outstanding.
+
+
+- ADR-052 (M01): session creation holds a shared identity row lock from password verification through session insertion, while password reset takes an exclusive identity lock before deleting sessions. Authenticated recovery-code rotation also locks the identity exclusively. This closes the old-password login/reset race without changing opaque bearer semantics; load and deadlock retry require real capacity qualification.
+
+
+- ADR-053 (M01): opt-in invitation-only signup for controlled beta. Generate 256-bit random tokens via trusted operator CLI, persist only SHA-256 digests, bind to one world and claim atomically with identity creation. Same actor/world/token can resume after partial provision; a second actor cannot reuse it. Invites are not email verification nor a complete anti-Sybil system.
+
+
+- ADR-054 (M01): beta invitations expire by trusted clock after seven days unless a bounded shorter lifetime is specified. Unused codes may be revoked, while consumed codes retain the actor binding so interrupted onboarding remains resumable after expiry. Revoking an already-claimed invitation never revokes the player identity; membership revocation is a separate trusted operator operation.
+
+
+- ADR-055 (M01): any public identity with a pending onboarding claim cannot receive a bearer token; login checks the claim while holding the shared identity lock. Operator-created identities without public claims retain their original login contract. A same-credentials resume completes provisioning before the user is admitted.

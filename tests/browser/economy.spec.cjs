@@ -7,16 +7,28 @@ const scenarios=[
     {pack:'reference-medieval',login:'browser-medieval',world:'e2e-medieval',resource:'grain',initial:50,rate:12,cost:25,upgraded:20,duration:60},
     {pack:'reference-industrial',login:'browser-industrial',world:'e2e-industrial',resource:'steel',initial:200,rate:75,cost:120,upgraded:110,duration:180}
 ];
-async function signIn(page, scenario) {
-    await page.goto(url+'/play.html');
+async function signIn(page, scenario, options={}) {
+    if (!options.reusePage) await page.goto(url+'/play.html');
+    const credential=scenario.password??password;
     await page.getByLabel('Login',{exact:true}).fill(scenario.login);
-    await page.getByLabel('Password',{exact:true}).fill(password);
-    const discovery=page.waitForResponse(r=>r.url().endsWith('/v1/me/worlds'));
-    await page.getByRole('button',{name:'Sign in',exact:true}).click();
-    expect((await discovery).status()).toBe(200);
+    await page.getByLabel('Password',{exact:true}).fill(credential);
+    // The suite deliberately shares the real per-peer login quota. When earlier
+    // independent scenarios exhaust it, wait for the server's next fixed window
+    // instead of hanging on a discovery request that a rejected login never sends.
+    for (let attempt=0; attempt<3; attempt++) {
+        await page.getByLabel('Password',{exact:true}).fill(credential);
+        const loginResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/login') && r.request().method()==='POST',{timeout:15000});
+        await page.getByRole('button',{name:'Sign in',exact:true}).click();
+        const response=await loginResponse;
+        if (response.status()===200) break;
+        expect(response.status()).toBe(429);
+        if (attempt===2) throw new Error('Login quota remained exhausted after two windows');
+        await page.waitForTimeout(65000);
+    }
+    await expect(page.locator('#balance select[name=world] option')).toHaveCount(1,{timeout:15000});
     await expect(page.locator('#status')).toHaveText('Success');
-    await expect(page.locator('select[name=world] option')).toHaveCount(1);
-    await expect(page.locator('select[name=world]')).toHaveValue(scenario.world);
+    await expect(page.locator('#balance select[name=world] option')).toHaveCount(1);
+    await expect(page.locator('#balance select[name=world]')).toHaveValue(scenario.world);
     await page.selectOption('select[name=resource]',scenario.resource);
 }
 async function refresh(page, allowDueConflict=false) {
@@ -32,6 +44,27 @@ async function refresh(page, allowDueConflict=false) {
     await expect(page.locator('#status')).toHaveText('Success');
     await expect(page.locator('#stock dd').nth(0)).toHaveText(String(data.stock));
     return data;
+}
+
+async function changePasswordInBrowser(page,current,next,expectedStatus) {
+    for (let attempt=0; attempt<3; attempt++) {
+        await page.getByLabel('Current password',{exact:true}).fill(current);
+        await page.getByLabel('New account password (12 characters minimum)',{exact:true}).fill(next);
+        await page.getByLabel('Confirm account password',{exact:true}).fill(next);
+        const received=page.waitForResponse(r=>r.url().endsWith('/v1/auth/password/change') && r.request().method()==='POST',{timeout:15000});
+        await page.getByRole('button',{name:'Change password',exact:true}).click();
+        const response=await received;
+        if (response.status()!==429) {
+            expect(response.status()).toBe(expectedStatus);
+            return response;
+        }
+        // Public signup, recovery and rotation deliberately share the real
+        // per-peer quota. Wait for a fresh server window, never bypass quotas.
+        await expect(page.locator('#status')).toHaveText('rate_limited');
+        if (attempt===2) throw new Error('Password change remained throttled after two quota windows');
+        await page.waitForTimeout(65000);
+    }
+    throw new Error('Password change retry budget exhausted');
 }
 
 async function marketPage(page) {
@@ -200,9 +233,115 @@ test('real multiplayer transfer and foreign balance denial', async ({browser})=>
     }
 });
 
+
+test('invitation-only live server enforces one-use code through the real browser',async({page})=>{
+    test.setTimeout(90000);
+    const fs=require('node:fs');
+    const invitation=fs.readFileSync('tests/browser/.e2e-invite-token','utf8').trim();
+    expect(invitation).toMatch(/^[a-f0-9]{64}$/);
+    const invitedUrl='http://127.0.0.1:8766';
+    await page.goto(invitedUrl+'/play.html');
+    await expect(page.locator('#register')).toBeVisible();
+    await expect(page.locator('#invite-wrap')).toBeVisible();
+    await expect(page.getByLabel('Invitation code',{exact:true})).toHaveAttribute('required','');
+    await page.getByLabel('New login',{exact:true}).fill('browser-invited-first');
+    await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
+    await page.getByLabel('Confirm new password',{exact:true}).fill(password);
+    await page.getByLabel('World to join',{exact:true}).selectOption('e2e-industrial');
+    await page.getByLabel('Invitation code',{exact:true}).fill(invitation);
+    const received=page.waitForResponse(r=>r.url().endsWith('/v1/auth/register') && r.request().method()==='POST');
+    await page.getByRole('button',{name:'Create player',exact:true}).click();
+    const response=await received;
+    expect(response.status()).toBe(201);
+    const {data}=await response.json();
+    expect(data.world).toBe('e2e-industrial');
+    await expect(page.locator('#game')).toBeVisible();
+    await expect(page.locator('#balance select[name=account]')).toHaveValue(data.account);
+    const denied=await page.request.post(invitedUrl+'/v1/auth/register',{data:{
+        login:'browser-invited-thief',password,world:'e2e-industrial',inviteCode:invitation
+    }});
+    expect(denied.status()).toBe(409);
+    await page.getByRole('button',{name:'Refresh stock'}).click();
+    await expect(page.locator('#stock')).toContainText('stock');
+});
+
+test('expired authorization clears private UI and returns to login', async ({page})=>{
+    await signIn(page,scenarios[0]);
+    // Revoke the real bearer session through the real API while retaining the browser's in-memory token.
+    const requestPromise=page.waitForRequest(r=>r.url().endsWith('/v1/me/worlds'));
+    await page.getByRole('button',{name:'Reload available worlds'}).click();
+    const req=await requestPromise;
+    const authorization=(await req.allHeaders()).authorization;
+    expect(authorization).toMatch(/^Bearer /);
+    await expect(page.locator('#status')).toHaveText('Success');
+    const response=await page.request.post(url+'/v1/auth/logout',{headers:{Authorization:authorization}});
+    expect(response.status()).toBe(200);
+    await page.getByRole('button',{name:'Reload available worlds'}).click();
+    await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
+    await expect(page.locator('#stock')).toBeEmpty();
+    await expect(page.locator('#market-offer option')).toHaveCount(1);
+    await expect(page.locator('#market-notice')).toBeEmpty();
+    await expect(page.locator('#retry-command')).toBeHidden();
+    await expect(page.locator('#game')).toBeHidden();
+});
+
+test('sign out all devices revokes another browser, not a foreign player',async ({browser})=>{
+    test.setTimeout(360000);
+    const ownerContext=await browser.newContext();
+    const otherDeviceContext=await browser.newContext();
+    const foreignContext=await browser.newContext();
+    try {
+        const owner=await ownerContext.newPage();
+        const otherDevice=await otherDeviceContext.newPage();
+        const foreign=await foreignContext.newPage();
+        await signIn(owner,scenarios[0]);
+        await signIn(otherDevice,scenarios[0]);
+        await signIn(foreign,{...scenarios[0],login:'browser-medieval-receiver'});
+        const ownAccount=await owner.locator('select[name=account]').inputValue();
+        expect(await otherDevice.locator('select[name=account]').inputValue()).toBe(ownAccount);
+        expect(await foreign.locator('select[name=account]').inputValue()).not.toBe(ownAccount);
+        // Capture the second device's live bearer before the first device
+        // terminates every session belonging to the owner.
+        const observed=otherDevice.waitForRequest(r=>r.url().endsWith('/v1/me/worlds'));
+        await otherDevice.getByRole('button',{name:'Reload available worlds'}).click();
+        const previousBearer=(await (await observed).allHeaders()).authorization;
+        expect(previousBearer).toMatch(/^Bearer [a-f0-9]{64}$/);
+        let revoked=false;
+        for (let attempt=0; attempt<3; attempt++) {
+            const received=owner.waitForResponse(r=>r.url().endsWith('/v1/auth/logout/all') && r.request().method()==='POST',{timeout:15000});
+            await owner.getByRole('button',{name:'Log out all devices',exact:true}).click();
+            const response=await received;
+            if (response.status()===200) {
+                expect((await response.json()).data.revokedAll).toBe(true);
+                revoked=true;
+                break;
+            }
+            expect(response.status()).toBe(429);
+            if (attempt===2) throw new Error('Global logout throttled beyond retry budget');
+            await owner.waitForTimeout(65000);
+        }
+        expect(revoked).toBe(true);
+        await expect(owner.locator('#login')).toBeVisible();
+        await expect(owner.locator('#game')).toBeHidden();
+        const denied=await otherDevice.request.get(url+'/v1/me/worlds',{headers:{Authorization:previousBearer}});
+        expect(denied.status()).toBe(401);
+        await otherDevice.getByRole('button',{name:'Reload available worlds'}).click();
+        await expect(otherDevice.locator('#login')).toBeVisible();
+        await expect(otherDevice.locator('#game')).toBeHidden();
+        await expect(otherDevice.locator('#stock')).toBeEmpty();
+        await foreign.getByRole('button',{name:'Reload available worlds'}).click();
+        await expect(foreign.locator('#status')).toHaveText('Success');
+        await expect(foreign.locator('#game')).toBeVisible();
+    } finally {
+        await ownerContext.close();
+        await otherDeviceContext.close();
+        await foreignContext.close();
+    }
+});
+
 for (const s of scenarios) {
     test(s.world+' real login, debit, reload and timed completion',async({page,request})=>{
-        test.setTimeout(300000);
+        test.setTimeout(480000);
         const errors=[];
         page.on('pageerror',e=>errors.push(e.message));
         expect((await request.get(url+'/v1/me/worlds')).status()).toBe(401);
@@ -213,8 +352,8 @@ for (const s of scenarios) {
         await expect(page.getByLabel('Recipient account')).toBeVisible();
         if (s.pack==='reference-industrial') {
             await page.getByRole('button',{name:'Find recipients'}).click();
-            await expect(page.locator('#recipient-notice')).toHaveText('No recipients found.');
-            await expect(page.locator('#recipient-directory option')).toHaveCount(1);
+            await expect(page.locator('#recipient-notice')).toHaveText('Choose a recipient or enter an account ID manually.');
+            await expect(page.locator('#recipient-directory option')).toHaveCount(2);
         }
         await page.getByLabel('Recipient account').fill('absent-recipient');
         await page.getByLabel('Units',{exact:true}).fill('1');
@@ -239,15 +378,35 @@ for (const s of scenarios) {
         expect(data.scheduledIds).toHaveLength(1);
         await expect(page.locator('#status')).toHaveText('Success');
         await signIn(page,s);
-        const persisted=await refresh(page);
+        // A different account in this shared world may have a due event.
+        // The API correctly refuses stale reads with 409 until the bounded
+        // world worker settles those events. Drain and retry rather than
+        // interpreting a consistency safeguard as a broken browser session.
+        let persisted=null;
+        for (let attempt=0; attempt<4; attempt++) {
+            persisted=await refresh(page,true);
+            if (persisted!==null) break;
+            const report=JSON.parse(execFileSync('php',['bin/worker.php',s.pack,s.world],{encoding:'utf8',timeout:15000}));
+            expect(report.world).toBe(s.world);
+            expect(Number.isInteger(report.processed)).toBe(true);
+        }
+        expect(persisted).not.toBeNull();
         expect(persisted.stock).toBeGreaterThanOrEqual(before.stock-s.cost);
         expect(persisted.stock).toBeLessThan(before.stock);
-        expect(persisted.amount).toBe(s.rate);
-        expect(persisted.pending.level).toBe(1);
-        expect(persisted.pending.dueAt).toBe(data.effectiveAt+s.duration);
+        // Short-duration upgrades can finish while the browser reconnects,
+        // particularly after a due-event 409 and worker catch-up. Both states
+        // are valid, but never accept a missing or inconsistent upgrade.
         expect(persisted.next).toBeNull();
-        await expect(page.locator('#stock')).toContainText('Pending level 1');
-        await expect(page.locator('#stock')).toContainText(new Date(persisted.pending.dueAt*1000).toISOString());
+        if (persisted.pending!==null) {
+            expect(persisted.amount).toBe(s.rate);
+            expect(persisted.pending.level).toBe(1);
+            expect(persisted.pending.dueAt).toBe(data.effectiveAt+s.duration);
+            await expect(page.locator('#stock')).toContainText('Pending level 1');
+            await expect(page.locator('#stock')).toContainText(new Date(persisted.pending.dueAt*1000).toISOString());
+        } else {
+            expect(persisted.level).toBe(1);
+            expect(persisted.amount).toBe(s.upgraded);
+        }
         // Reads cannot overtake due events. Run the actual bounded CLI worker,
         // as CRON would; a due boundary between worker and read may return 409.
         await expect.poll(async()=> {
@@ -268,22 +427,138 @@ for (const s of scenarios) {
     });
 }
 
-test('expired authorization clears private UI and returns to login', async ({page})=>{
-    await signIn(page,scenarios[0]);
-    // Revoke the real bearer session through the real API while retaining the browser's in-memory token.
-    const requestPromise=page.waitForRequest(r=>r.url().endsWith('/v1/me/worlds'));
-    await page.getByRole('button',{name:'Reload available worlds'}).click();
-    const req=await requestPromise;
-    const authorization=(await req.allHeaders()).authorization;
-    expect(authorization).toMatch(/^Bearer /);
-    await expect(page.locator('#status')).toHaveText('Success');
-    const response=await page.request.post(url+'/v1/auth/logout',{headers:{Authorization:authorization}});
-    expect(response.status()).toBe(200);
-    await page.getByRole('button',{name:'Reload available worlds'}).click();
-    await expect(page.getByRole('button',{name:'Sign in',exact:true})).toBeVisible();
-    await expect(page.locator('#stock')).toBeEmpty();
-    await expect(page.locator('#market-offer option')).toHaveCount(1);
-    await expect(page.locator('#market-notice')).toBeEmpty();
-    await expect(page.locator('#retry-command')).toBeHidden();
-    await expect(page.locator('#game')).toBeHidden();
+test('public signup provisions real players, supports retry, reconnect and account isolation',async ({browser})=>{
+    test.setTimeout(420000);
+    const context=await browser.newContext(), page=await context.newPage();
+    try {
+        await page.goto(url+'/play.html');
+        await expect(page.locator('#register')).toBeVisible();
+        await expect(page.locator('#register select option')).toHaveCount(2);
+        await page.getByLabel('New login',{exact:true}).fill('browser-public-first');
+        await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
+        await page.getByLabel('Confirm new password',{exact:true}).fill(password);
+        await page.getByLabel('World to join',{exact:true}).selectOption('e2e-industrial');
+        const received=page.waitForResponse(r=>r.url().endsWith('/v1/auth/register') && r.request().method()==='POST');
+        await page.getByRole('button',{name:'Create player',exact:true}).click();
+        const signup=await received;
+        expect(signup.status()).toBe(201);
+        const {data:first}=await signup.json();
+        expect(first.token).toMatch(/^[a-f0-9]{64}$/);
+        expect(first.world).toBe('e2e-industrial');
+        expect(first.account).toMatch(/^[a-f0-9]{64}$/);
+        await expect(page.locator('#game')).toBeVisible();
+        await expect(page.locator('select[name=account]')).toHaveValue(first.account);
+        await page.selectOption('select[name=resource]','steel');
+        const own=await refresh(page);
+        expect(own.stock).toBeGreaterThanOrEqual(0);
+        await page.waitForTimeout(2500);
+        const production=page.waitForResponse(r=>r.url().endsWith('/economy/commands') && r.request().method()==='POST',{timeout:15000});
+        await page.getByRole('button',{name:'Submit action',exact:true}).click();
+        expect((await production).status()).toBe(200);
+        await expect(page.locator('#status')).toHaveText('Success');
+        await page.getByRole('button',{name:'Sign out'}).click();
+        await signIn(page,{...scenarios[1],login:'browser-public-first'});
+        await expect(page.locator('select[name=account]')).toHaveValue(first.account);
+        const persisted=await refresh(page);
+        expect(persisted.stock).toBeGreaterThan(own.stock);
+        expect(persisted.capacity).toBe(own.capacity);
+        const second=await page.request.post(url+'/v1/auth/register',{data:{login:'browser-public-second',password,world:'e2e-industrial'}});
+        expect(second.status()).toBe(201);
+        const {data:other}=await second.json();
+        expect(other.account).not.toBe(first.account);
+        const denied=await page.request.get(url+'/v1/worlds/e2e-industrial/economy/overview/'+first.account+'/steel',{
+            headers:{Authorization:'Bearer '+other.token}
+        });
+        expect(denied.status()).toBe(409);
+        const granted=await page.request.get(url+'/v1/worlds/e2e-industrial/economy/overview/'+other.account+'/steel',{
+            headers:{Authorization:'Bearer '+other.token}
+        });
+        expect(granted.status()).toBe(200);
+        // Use the one-time recovery code issued after registration.
+        expect(first.recoveryCode).toMatch(/^[a-f0-9]{64}$/);
+        // Reload the client without a second logout: recovery must work even while an old bearer exists.
+        await page.goto(url+'/play.html');
+        await page.getByLabel('Recovery login',{exact:true}).fill('browser-public-first');
+        await page.getByLabel('Recovery code',{exact:true}).fill(first.recoveryCode);
+        await page.getByLabel('Replacement password',{exact:true}).fill('browser new password after recovery');
+        await page.getByLabel('Confirm replacement password',{exact:true}).fill('browser new password after recovery');
+        const resetResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/recover') && r.request().method()==='POST');
+        await page.getByRole('button',{name:'Reset password',exact:true}).click();
+        const reset=await resetResponse;
+        expect(reset.status()).toBe(200);
+        const {data:recovered}=await reset.json();
+        await expect(page.locator('#recovery-secret')).toContainText(recovered.recoveryCode);
+        await expect(page.locator('#status')).toHaveText('Password reset. Sign in with the replacement password.');
+        expect((await page.request.post(url+'/v1/auth/login',{data:{login:'browser-public-first',password}})).status()).toBe(401);
+        await page.getByLabel('Login',{exact:true}).fill('browser-public-first');
+        await page.getByLabel('Password',{exact:true}).fill('browser new password after recovery');
+        await page.getByRole('button',{name:'Sign in',exact:true}).click();
+        await expect(page.locator('#game')).toBeVisible();
+        await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);
+        // The replacement code is displayed only during recovery. A new
+        // sign-in must not leave it in the rendered, unauthenticated UI.
+        await expect(page.locator('#recovery-secret')).toBeHidden();
+        await page.getByLabel('Current password for recovery code').fill('browser new password after recovery');
+        const rotatedResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/recovery/rotate') && r.request().method()==='POST');
+        await page.getByRole('button',{name:'Replace recovery code',exact:true}).click();
+        const rotation=await rotatedResponse;
+        expect(rotation.status()).toBe(200);
+        const {data:rotated}=await rotation.json();
+        expect(rotated.recoveryCode).toMatch(/^[a-f0-9]{64}$/);
+        expect(rotated.recoveryCode).not.toBe(recovered.recoveryCode);
+        await expect(page.locator('#recovery-secret')).toContainText(rotated.recoveryCode);
+        // Rotation invalidates the previous code but keeps the session usable.
+        const replay=await page.request.post(url+'/v1/auth/recover',{data:{login:'browser-public-first',code:recovered.recoveryCode,newPassword:'browser attempted recovery replay'}});
+        expect(replay.status()).toBe(401);
+        await expect(page.locator('#game')).toBeVisible();
+        await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);
+        // A player can change their password without an operator. The server
+        // revokes every previous bearer and rotates offline recovery credentials.
+        const oldAuthorization=(await rotation.request().allHeaders()).authorization;
+        await changePasswordInBrowser(page,'wrong current password','browser final password after change',403);
+        await expect(page.locator('#game')).toBeVisible();
+        await expect(page.locator('#status')).toHaveText('invalid_current_password');
+        const change=await changePasswordInBrowser(page,'browser new password after recovery','browser final password after change',200);
+        const {data:changed}=await change.json();
+        expect(changed.sessionsRevoked).toBe(true);
+        expect(changed.recoveryCode).toMatch(/^[a-f0-9]{64}$/);
+        expect(changed.recoveryCode).not.toBe(rotated.recoveryCode);
+        await expect(page.locator('#game')).toBeHidden();
+        await expect(page.locator('#login')).toBeVisible();
+        await expect(page.locator('#recovery-secret')).toContainText(changed.recoveryCode);
+        await expect(page.locator('#status')).toHaveText('Password changed. All sessions signed out. Save your new recovery code before signing in.');
+        expect((await page.request.get(url+'/v1/me/worlds',{headers:{Authorization:oldAuthorization}})).status()).toBe(401);
+        const staleCode=await page.request.post(url+'/v1/auth/recover',{data:{
+            login:'browser-public-first',code:rotated.recoveryCode,newPassword:'browser replayed replaced recovery'
+        }});
+        expect(staleCode.status()).toBe(401);
+        await signIn(page,{...scenarios[1],login:'browser-public-first',password:'browser final password after change'},{reusePage:true});
+        await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);
+        await expect(page.locator('#recovery-secret')).toBeHidden();
+        // The global sign-out path must revoke the currently authenticated
+        // public player across devices, not merely hide the UI.
+        const observed=page.waitForRequest(r=>r.url().endsWith('/v1/me/worlds'));
+        await page.getByRole('button',{name:'Reload available worlds'}).click();
+        const logoutBearer=(await (await observed).allHeaders()).authorization;
+        expect(logoutBearer).toMatch(/^Bearer /);
+        let allLogout=null;
+        for (let attempt=0; attempt<3; attempt++) {
+            const received=page.waitForResponse(r=>r.url().endsWith('/v1/auth/logout/all') && r.request().method()==='POST');
+            await page.getByRole('button',{name:'Log out all devices',exact:true}).click();
+            const response=await received;
+            if (response.status()===200) { allLogout=response; break; }
+            expect(response.status()).toBe(429);
+            await expect(page.locator('#status')).toHaveText('rate_limited');
+            if (attempt===2) throw new Error('Global logout quota remained exhausted');
+            await page.waitForTimeout(65000);
+        }
+        expect(allLogout).not.toBeNull();
+        expect((await allLogout.json()).data.revokedAll).toBe(true);
+        await expect(page.locator('#login')).toBeVisible();
+        await expect(page.locator('#game')).toBeHidden();
+        await expect(page.locator('#recovery-secret')).toBeHidden();
+        expect((await page.request.get(url+'/v1/me/worlds',{headers:{Authorization:logoutBearer}})).status()).toBe(401);
+    } finally {
+        await context.close();
+    }
 });
