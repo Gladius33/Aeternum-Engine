@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 use Aeternum\Core\{PdoEmailActivation,FrozenClock,PdoSessions,PdoIdentity,PdoOnboarding,GamePackLoader};
+// Keep fixture-local actor and pack variables from shadowing earlier tests.
+(static function():void {
 $actClock=new FrozenClock(15000);
 $act=new PdoEmailActivation(db(),$actClock);
 $world='email-verification-world';
@@ -52,3 +54,5 @@ check($act->verify('email-expired','valid expiry password',$expired['code'])===n
     'expired mailbox proof cannot activate account');
 check((new PdoSessions(db(),$actClock))->login('email-expired','valid expiry password')===null,
     'expired but unverified identity remains inaccessible');
+
+})();
