@@ -285,6 +285,60 @@ test('expired authorization clears private UI and returns to login', async ({pag
     await expect(page.locator('#game')).toBeHidden();
 });
 
+test('sign out all devices revokes another browser, not a foreign player',async ({browser})=>{
+    test.setTimeout(360000);
+    const ownerContext=await browser.newContext();
+    const otherDeviceContext=await browser.newContext();
+    const foreignContext=await browser.newContext();
+    try {
+        const owner=await ownerContext.newPage();
+        const otherDevice=await otherDeviceContext.newPage();
+        const foreign=await foreignContext.newPage();
+        await signIn(owner,scenarios[0]);
+        await signIn(otherDevice,scenarios[0]);
+        await signIn(foreign,{...scenarios[0],login:'browser-medieval-receiver'});
+        const ownAccount=await owner.locator('select[name=account]').inputValue();
+        expect(await otherDevice.locator('select[name=account]').inputValue()).toBe(ownAccount);
+        expect(await foreign.locator('select[name=account]').inputValue()).not.toBe(ownAccount);
+        // Capture the second device's live bearer before the first device
+        // terminates every session belonging to the owner.
+        const observed=otherDevice.waitForRequest(r=>r.url().endsWith('/v1/me/worlds'));
+        await otherDevice.getByRole('button',{name:'Reload available worlds'}).click();
+        const previousBearer=(await (await observed).allHeaders()).authorization;
+        expect(previousBearer).toMatch(/^Bearer [a-f0-9]{64}$/);
+        let revoked=false;
+        for (let attempt=0; attempt<3; attempt++) {
+            const received=owner.waitForResponse(r=>r.url().endsWith('/v1/auth/logout/all') && r.request().method()==='POST',{timeout:15000});
+            await owner.getByRole('button',{name:'Log out all devices',exact:true}).click();
+            const response=await received;
+            if (response.status()===200) {
+                expect((await response.json()).data.revokedAll).toBe(true);
+                revoked=true;
+                break;
+            }
+            expect(response.status()).toBe(429);
+            if (attempt===2) throw new Error('Global logout throttled beyond retry budget');
+            await owner.waitForTimeout(65000);
+        }
+        expect(revoked).toBe(true);
+        await expect(owner.locator('#login')).toBeVisible();
+        await expect(owner.locator('#game')).toBeHidden();
+        const denied=await otherDevice.request.get(url+'/v1/me/worlds',{headers:{Authorization:previousBearer}});
+        expect(denied.status()).toBe(401);
+        await otherDevice.getByRole('button',{name:'Reload available worlds'}).click();
+        await expect(otherDevice.locator('#login')).toBeVisible();
+        await expect(otherDevice.locator('#game')).toBeHidden();
+        await expect(otherDevice.locator('#stock')).toBeEmpty();
+        await foreign.getByRole('button',{name:'Reload available worlds'}).click();
+        await expect(foreign.locator('#status')).toHaveText('Success');
+        await expect(foreign.locator('#game')).toBeVisible();
+    } finally {
+        await ownerContext.close();
+        await otherDeviceContext.close();
+        await foreignContext.close();
+    }
+});
+
 for (const s of scenarios) {
     test(s.world+' real login, debit, reload and timed completion',async({page,request})=>{
         test.setTimeout(480000);
