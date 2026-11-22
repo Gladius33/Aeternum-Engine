@@ -116,3 +116,11 @@ For a controlled beta, set AETERNUM_PUBLIC_REGISTRATION=1 and AETERNUM_SIGNUP_RE
 
 
 **Beta invitation expiry/revocation:** invitation codes expire seven days after issue by default (server time, maximum supported validity 30 days) and may be revoked while unused. Operators can revoke a specific code by piping it to `php bin/invite-revoke.php APPROVED_WORLD` through stdin (avoid the shell history and process arguments). A code already consumed for an identity remains available for an idempotent resume of pending world initialization; revocation is not an account-ban mechanism.
+
+
+### Authenticated password changes (M01)
+A signed-in player may use the **Change password** form or send `POST /v1/auth/password/change` with an opaque bearer and exactly `{"currentPassword":"...","newPassword":"..."}`. The current password must be correct, the replacement must differ and contain 12–1024 bytes, and the existing peer/global verification limits remain enforced. The endpoint never accepts a client-supplied actor ID.
+
+Within one InnoDB identity-row-locked transaction it updates the Argon2id password digest, revokes **all** existing sessions (including the calling session) and rotates the 256-bit offline recovery credential. A successful response contains `{"data":{"recoveryCode":"...","sessionsRevoked":true}}`, **not** an automatically authenticated replacement bearer. Save the new code offline, then sign in with the new password. The UI clears local authorization and private projections before displaying the new code. Trying to reuse an older recovery code fails; a rejected change leaves credentials and sessions intact.
+
+A lost response to a committed change does not restore the old password or sessions. Reconnect using the **new** password and rotate the code again if it was not saved. Verification, concurrent changes, recovery replay and browser sign-in must pass in CI; code merged to this PR is not itself proof of operational readiness. Email ownership and production anti-bot controls remain outside the current verified scope.
