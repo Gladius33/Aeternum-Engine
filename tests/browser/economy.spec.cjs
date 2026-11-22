@@ -195,6 +195,52 @@ test('real multiplayer transfer and foreign balance denial', async ({browser})=>
         const s=scenarios[0];
         await signIn(sender,{...s,login:'browser-medieval-sender'});
         await signIn(receiver,{...s,login:'browser-medieval-receiver'});
+        // M04: map projections for distinct authorized sessions.
+        const mapCall=sender.waitForRequest(r=>r.url().endsWith('/map/territories'));
+        await sender.getByRole('button',{name:'Explore territories'}).click();
+        const mapRequest=await mapCall;
+        await expect(sender.locator('#map-territories')).toContainText('east — hill — forest — own');
+        await expect(sender.locator('#map-territories')).toContainText('west — ford — village — occupied');
+        const anonymousMap=await sender.request.get(url+'/v1/public/worlds/e2e-medieval/map/territories');
+        expect(anonymousMap.status()).toBe(200);
+        const publicPayload=await anonymousMap.json();
+        expect(publicPayload.data.territories).toEqual([
+            {id:'east',location:'hill',kind:'forest'},
+            {id:'west',location:'ford',kind:'village'}
+        ]);
+        expect(JSON.stringify(publicPayload)).not.toContain('owner_actor_id');
+
+        const mapToken=(await mapRequest.allHeaders()).authorization;
+        expect(mapToken).toMatch(/^Bearer [a-f0-9]{64}$/);
+        await receiver.getByRole('button',{name:'Explore territories'}).click();
+        await expect(receiver.locator('#map-territories')).toContainText('east — hill — forest — occupied');
+        await expect(receiver.locator('#map-territories')).toContainText('west — ford — village — own');
+        await sender.getByLabel('Map location').fill('crossroads');
+        await sender.getByRole('button',{name:'Inspect map routes'}).click();
+        await expect(sender.locator('#map-links')).toContainText('crossroads → hill (cost 3)');
+        await sender.getByLabel('Map destination').fill('hill');
+        await sender.getByRole('button',{name:'Find shortest route'}).click();
+        await expect(sender.locator('#map-route')).toHaveText('crossroads → hill (cost 3)');
+        await sender.getByLabel('Owned building ID').fill('sender-mill');
+        await sender.getByRole('button',{name:'Inspect building plan'}).click();
+        await expect(sender.locator('#building-details')).toContainText('4 grain, 5 wood');
+        await expect(sender.locator('#building-details dd').nth(5)).toHaveText('60');
+        await receiver.getByLabel('Owned building ID').fill('receiver-mill');
+        await receiver.getByRole('button',{name:'Inspect building plan'}).click();
+        await expect(receiver.locator('#building-details')).toContainText('receiver-mill');
+        const privateOwn=await receiver.request.get(url+'/v1/worlds/e2e-medieval/buildings/sender-mill',{headers:{Authorization:mapToken}});
+        // The token belongs to sender; it may read its own plan.
+        expect(privateOwn.status()).toBe(200);
+        const privateOther=await receiver.request.get(url+'/v1/worlds/e2e-medieval/buildings/receiver-mill',{headers:{Authorization:mapToken}});
+        expect(privateOther.status()).toBe(404);
+        const anonymousBuilding=await receiver.request.get(url+'/v1/worlds/e2e-medieval/buildings/sender-mill');
+        expect(anonymousBuilding.status()).toBe(401);
+        const unauthorized=await sender.request.get(url+'/v1/worlds/e2e-industrial/map/territories',{headers:{Authorization:mapToken}});
+        expect(unauthorized.status()).toBe(404);
+        const anonymous=await sender.request.get(url+'/v1/worlds/e2e-medieval/map/territories');
+        expect(anonymous.status()).toBe(401);
+        const readOnly=await sender.request.post(url+'/v1/worlds/e2e-medieval/map/territories',{headers:{Authorization:mapToken},data:{}});
+        expect(readOnly.status()).toBe(405);
         const from=await sender.locator('select[name=account]').inputValue();
         const to=await receiver.locator('select[name=account]').inputValue();
         expect(from).not.toBe(to);

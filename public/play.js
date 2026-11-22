@@ -21,6 +21,203 @@ function options(select, values) {
         option.value=value; option.textContent=label; select.append(option);
     }
 }
+const mapList=document.querySelector('#map-territories'), mapLinks=document.querySelector('#map-links'),
+      mapNext=document.querySelector('#map-next'), mapNotice=document.querySelector('#map-notice');
+let mapAfter=null;
+let currentBuilding=null;
+function clearMap() {
+    mapList.replaceChildren(); mapLinks.replaceChildren();
+    mapAfter=null; mapNext.hidden=true; mapNotice.textContent='';
+    document.querySelector('#map-location').value='';
+    document.querySelector('#map-destination').value='';
+    document.querySelector('#map-route').textContent='';
+    document.querySelector('#building-id').value='';
+    document.querySelector('#building-details').replaceChildren();
+    options(document.querySelector('#foundation-site'),[]);
+    options(document.querySelector('#foundation-type'),[]);
+    options(document.querySelector('#owned-building-list'),[]);
+    document.querySelector('#foundation-id').value='';
+    document.querySelector('#foundation-notice').textContent='';
+    ownSiteOptions=[];
+    currentBuilding=null;
+    document.querySelector('#building-start').hidden=true;
+    document.querySelector('#building-cancel').hidden=true;
+    document.querySelector('#building-claim').hidden=true;
+}
+async function loadMap(after=null) {
+    const world=balance.elements.world.value;
+    if (!world) throw new Error('Choose a world first');
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/map';
+    const data=await api(root+'/territories'+(after===null?'':'/'+encodeURIComponent(after)));
+    if (world!==balance.elements.world.value) return;
+    mapList.replaceChildren();
+    for (const territory of data.territories) {
+        const item=document.createElement('li');
+        item.textContent=territory.id+' — '+territory.location+' — '+territory.kind+' — '+territory.control;
+        mapList.append(item);
+    }
+    mapAfter=data.nextAfter;
+    mapNext.hidden=mapAfter===null;
+    mapNotice.textContent=data.territories.length?'Territories in this world.':'No territories on this page.';
+}
+async function loadMapLinks() {
+    const world=balance.elements.world.value, location=document.querySelector('#map-location').value.trim();
+    if (!world || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(location)) throw new Error('Enter a valid map location');
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/map';
+    const data=await api(root+'/locations/'+encodeURIComponent(location)+'/links');
+    if (world!==balance.elements.world.value) return;
+    mapLinks.replaceChildren();
+    for(const link of data.neighbors) {
+        const item=document.createElement('li');
+        item.textContent=location+' → '+link.location+' (cost '+link.cost+')';
+        mapLinks.append(item);
+    }
+    if (!data.neighbors.length) {
+        const item=document.createElement('li');
+        item.textContent='No outgoing routes'; mapLinks.append(item);
+    }
+}
+document.querySelector('#map-load').addEventListener('click',()=>run(()=>loadMap()));
+mapNext.addEventListener('click',()=>{if(mapAfter!==null)run(()=>loadMap(mapAfter));});
+async function loadShortestRoute() {
+    const world=balance.elements.world.value,
+          start=document.querySelector('#map-location').value.trim(),
+          destination=document.querySelector('#map-destination').value.trim();
+    if (!world || ![start,destination].every(id=>/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id))) {
+        throw new Error('Enter valid source and destination locations');
+    }
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/map';
+    const data=await api(root+'/routes/'+encodeURIComponent(start)+'/'+encodeURIComponent(destination));
+    if (world!==balance.elements.world.value) return;
+    document.querySelector('#map-route').textContent=data.route===null?
+        'No directed route found.':data.route.locations.join(' → ')+' (cost '+data.route.cost+')';
+}
+document.querySelector('#map-route-load').addEventListener('click',()=>run(loadShortestRoute));
+let ownSiteOptions=[];
+async function loadConstructionChoices() {
+    const world=balance.elements.world.value;
+    if (!world) throw new Error('Choose a world');
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':');
+    const choices=await api(root+'/construction/options');
+    if (world!==balance.elements.world.value) return;
+    ownSiteOptions=choices.sites;
+    options(document.querySelector('#foundation-site'),
+        choices.sites.map(site=>[site.territory_id+'|'+site.entity_id,
+            site.territory_id+' — '+site.entity_id]));
+    options(document.querySelector('#foundation-type'),
+        choices.types.map(type=>[type.id,type.id+' — '+Object.entries(type.first.costs)
+            .map(([resource,units])=>units+' '+resource).join(', ')]));
+    options(document.querySelector('#owned-building-list'),
+        [['','Choose a building'],...choices.buildings.map(item=>[item.id,item.type+' — '+item.id])]);
+    const note=document.querySelector('#foundation-notice');
+    note.textContent=choices.truncated?'Only the first 100 owned sites or buildings are shown.':
+        choices.sites.length===0?'No owned matching territory and entity.':
+        choices.types.length===0?'No operator-approved building types in this world.':
+        'Choose a site and building type; placement is free, construction stages consume resources.';
+}
+document.querySelector('#foundation-discover').addEventListener('click',()=>run(loadConstructionChoices));
+document.querySelector('#owned-building-list').addEventListener('change',()=>{
+    const id=document.querySelector('#owned-building-list').value;
+    if (id) {
+        document.querySelector('#building-id').value=id;
+        document.querySelector('#building-details').replaceChildren();
+        currentBuilding=null;
+        document.querySelector('#building-start').hidden=true;
+        document.querySelector('#building-cancel').hidden=true;
+        document.querySelector('#building-claim').hidden=true;
+    }
+});
+document.querySelector('#foundation-place').addEventListener('click',()=>run(async()=>{
+    const f=locationFields();
+    const siteChoice=document.querySelector('#foundation-site').value,
+          type=document.querySelector('#foundation-type').value;
+    const site=ownSiteOptions.find(s=>s.territory_id+'|'+s.entity_id===siteChoice);
+    if (!f.world || !f.account || !site || !type) throw new Error('Choose an owned site and approved building type');
+    const idInput=document.querySelector('#foundation-id');
+    if (idInput.value.trim()==='') idInput.value=crypto.randomUUID();
+    const id=idInput.value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)) throw new Error('Invalid building identifier');
+    await submitCommand(f,'building.place',{
+        building:id,account:f.account,territory:site.territory_id,entity:site.entity_id,type
+    });
+    document.querySelector('#building-id').value=id;
+    await loadConstructionChoices();
+    await loadBuilding();
+}));
+async function loadBuilding() {
+    const world=balance.elements.world.value,id=document.querySelector('#building-id').value.trim();
+    const detail=document.querySelector('#building-details');
+    detail.replaceChildren();
+    currentBuilding=null;
+    document.querySelector('#building-start').hidden=true;
+    document.querySelector('#building-cancel').hidden=true;
+    document.querySelector('#building-claim').hidden=true;
+    if (!world || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)) throw new Error('Choose an owned building ID');
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':');
+    const building=await api(root+'/buildings/'+encodeURIComponent(id));
+    if (world!==balance.elements.world.value) return;
+    currentBuilding=building;
+    document.querySelector('#building-start').hidden=building.next===null || building.pending!==null;
+    document.querySelector('#building-cancel').hidden=building.pending===null;
+    document.querySelector('#building-claim').hidden=Object.keys(building.refundPending??{}).length===0;
+    const append=(key,value)=>{
+        const dt=document.createElement('dt'),dd=document.createElement('dd');
+        dt.textContent=key;dd.textContent=String(value);detail.append(dt,dd);
+    };
+    append('Building',building.id);
+    append('Type',building.type);
+    append('Territory',building.territory);
+    append('Level',building.level);
+    append('Status',building.pending===null?'Ready':'Construction pending');
+    const outstanding=Object.entries(building.refundPending??{});
+    if (outstanding.length>0) {
+        append('Pending refunds',outstanding.map(([resource,units])=>units+' '+resource).join(', '));
+    }
+    if (building.next) {
+        append('Next stage duration',building.next.duration);
+        append('Next stage costs',Object.entries(building.next.costs).map(([key,qty])=>qty+' '+key).join(', '));
+        append('Prerequisites',Object.entries(building.next.requires).map(([key,lvl])=>key+' level '+lvl).join(', ')||'None');
+    } else append('Next stage','Complete');
+}
+document.querySelector('#building-load').addEventListener('click',()=>run(loadBuilding));
+document.querySelector('#building-claim').addEventListener('click',()=>run(async()=>{
+    const f=locationFields(),building=currentBuilding;
+    const claims=building?Object.entries(building.refundPending??{}):[];
+    if (!building || !f.world || !f.account || f.account!==building.account || claims.length===0) {
+        throw new Error('Select a building belonging to the refund account');
+    }
+    await submitCommand(f,'building.claim',{account:f.account,resource:claims[0][0]});
+    await loadBuilding();
+    await refresh();
+}));
+document.querySelector('#building-cancel').addEventListener('click',()=>run(async()=>{
+    const f=locationFields(),building=currentBuilding;
+    if (!building || !f.world || !f.account || building.account!==f.account
+        || building.pending===null || document.querySelector('#building-id').value.trim()!==building.id) {
+        throw new Error('Choose a pending building and its funding account');
+    }
+    await submitCommand(f,'building.cancel',{
+        building:building.id,account:f.account,type:building.type
+    });
+    await loadBuilding();
+    await refresh();
+}));
+document.querySelector('#building-start').addEventListener('click',()=>run(async()=>{
+    const f=locationFields(),building=currentBuilding;
+    if (!building || !f.world || !f.account || building.account!==f.account
+        || building.pending!==null || building.next===null
+        || document.querySelector('#building-id').value.trim()!==building.id) {
+        throw new Error('Choose an eligible building and its funding account');
+    }
+    await submitCommand(f,'building.start',{
+        building:building.id,account:f.account,type:building.type
+    });
+    await loadBuilding();
+    await refresh();
+}));
+
+
+document.querySelector('#map-links-load').addEventListener('click',()=>run(loadMapLinks));
 function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);
     options(balance.elements.account,(w?.accounts??[]).map(a=>[a,a]));
@@ -28,6 +225,7 @@ function selectWorld() {
     stock.replaceChildren(); marketClaim.hidden=true;
     clearRecipients();
     clearMarket();
+    clearMap();
 }
 async function discover() {
     const data=await api('/v1/me/worlds');

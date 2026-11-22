@@ -60,6 +60,36 @@ jobs:
           printf '%s\n' 'browser-only test password' | php bin/provision.php reference-industrial e2e-industrial browser-industrial
           printf '%s\n' 'browser-only test password' | php bin/provision.php reference-medieval e2e-medieval browser-medieval-sender
           printf '%s\n' 'browser-only test password' | php bin/provision.php reference-medieval e2e-medieval browser-medieval-receiver
+      - name: Seed additive M04 map with two real world members
+        run: |
+          php <<'PHP'
+          <?php
+          require 'vendor/autoload.php';
+          $pdo=new PDO(getenv('AETERNUM_DSN'),getenv('AETERNUM_DB_USER'),getenv('AETERNUM_DB_PASSWORD'),[
+              PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false
+          ]);
+          $entity=new Aeternum\Core\PdoEntities($pdo,'e2e-medieval');
+          foreach (['crossroads','hill','ford'] as $id) $entity->addLocation($id);
+          $map=new Aeternum\Core\PdoTerritories($pdo,'e2e-medieval');
+          $map->define('east','hill','forest');
+          $map->define('west','ford','village');
+          $q=$pdo->prepare('SELECT actor_id FROM engine_identities WHERE login=?');
+          $q->execute(['browser-medieval-sender']);$sender=$q->fetchColumn();
+          $q->execute(['browser-medieval-receiver']);$receiver=$q->fetchColumn();
+          if (!is_string($sender) || !is_string($receiver) || $sender===$receiver) throw new RuntimeException('Invalid multiplayer fixture');
+          $map->assign('east',$sender);
+          $map->assign('west',$receiver);
+          (new Aeternum\Core\PdoTopology($pdo,'e2e-medieval'))->connect('crossroads','hill',3);
+          $entity->provision('sender-hill','hill',$sender,'settlement');
+          $entity->provision('receiver-ford','ford',$receiver,'settlement');
+          $buildings=new Aeternum\Core\PdoBuildings($pdo,'e2e-medieval');
+          $buildings->define('mill',[
+              ['costs'=>['wood'=>5,'grain'=>4],'duration'=>60,'requires'=>[]],
+              ['costs'=>['wood'=>20],'duration'=>120,'requires'=>['workshop'=>1]]
+          ]);
+          $buildings->establish('sender-mill','east','sender-hill',$sender,'mill');
+          $buildings->establish('receiver-mill','west','receiver-ford',$receiver,'mill');
+          PHP
       - name: Run real browser scenarios
         shell: bash
         run: |
@@ -77,7 +107,7 @@ jobs:
           registry_dir="$(mktemp -d)"
           php -r '
             $worlds=[];
-            foreach (["e2e-medieval"=>"reference-medieval","e2e-industrial"=>"reference-industrial","e2e-sdk"=>"sdk-fixture"] as $world=>$id) {
+            foreach (["e2e-medieval"=>"reference-medieval","e2e-industrial"=>"reference-industrial","e2e-sdk"=>"sdk-fixture","e2e-build"=>"m04-construction-fixture"] as $world=>$id) {
               $manifest="games/".$id."/manifest.json";
               $pack=json_decode(file_get_contents($manifest),true,32,JSON_THROW_ON_ERROR);
               $worlds[]=["world"=>$world,"pack"=>$id,"version"=>$pack["version"],"sha256"=>hash_file("sha256",$manifest)];
@@ -88,6 +118,43 @@ jobs:
           printf '%s\n' 'browser-only test password' | env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
             AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" \
             php bin/provision.php sdk-fixture e2e-sdk browser-sdk
+          export AETERNUM_E2E_REGISTRY="$registry_dir/worlds.json"
+          printf '%s\n' 'browser-only test password' | env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
+            AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" \
+            php bin/provision.php m04-construction-fixture e2e-build browser-build-one
+          printf '%s\n' 'browser-only test password' | env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
+            AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" \
+            php bin/provision.php m04-construction-fixture e2e-build browser-build-two
+          env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
+            AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" php <<'PHP'
+          <?php
+          require 'vendor/autoload.php';
+          $pdo=new PDO(getenv('AETERNUM_DSN'),getenv('AETERNUM_DB_USER'),getenv('AETERNUM_DB_PASSWORD'),[
+              PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false
+          ]);
+          $pack=Aeternum\Core\ConfiguredWorlds::load()['e2e-build'];
+          $q=$pdo->prepare('SELECT actor_id FROM engine_identities WHERE login=?');
+          $actors=[];
+          foreach (['browser-build-one','browser-build-two'] as $login) {
+              $q->execute([$login]);
+              $actor=$q->fetchColumn();
+              if (!is_string($actor)) throw new RuntimeException('Missing authorized building test user');
+              $actors[]=$actor;
+          }
+          if ($actors[0]===$actors[1]) throw new RuntimeException('Building identities must be separate');
+          $terr=new Aeternum\Core\PdoTerritories($pdo,'e2e-build');
+          $buildings=new Aeternum\Core\PdoBuildings($pdo,'e2e-build');
+          foreach ($pack->buildings as $type=>$stages) $buildings->define($type,$stages);
+          foreach ($actors as $i=>$actor) {
+              $plot='builder-'.($i+1).'-plot';
+              $site='builder-'.($i+1).'-mill';
+              // Provisioner already creates an actor-owned entity/location
+              // with the actor ID as both identifiers in this world.
+              $terr->define($plot,$actor,'settlement');
+              $terr->assign($plot,$actor);
+              $buildings->establish($site,$plot,$actor,$actor,'mill');
+          }
+          PHP
           env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
             AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" AETERNUM_TRUSTED_PROXY_IPS=127.0.0.1 \
             php -S 127.0.0.1:8765 -t public tests/browser/router.php >browser-server.log 2>&1 &
@@ -142,6 +209,7 @@ jobs:
           AETERNUM_TEST_ACTIVATION_OUTBOX="$activation_dir" \
             npx playwright test tests/browser/activation.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/registry.spec.cjs --workers=1 --reporter=github,line
+          npx playwright test tests/browser/construction.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
         run: |

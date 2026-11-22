@@ -176,6 +176,9 @@ final class PdoScheduler
      */
     private function prepareEconomyTransition(Command $command,CommandHandler $handler,?string $actor): ?array
     {
+        // A new building requires an InnoDB row in the same world-locked
+        // transaction as its journal/state. Never route placement via CAS.
+        if ($command->type==='building.place') return null;
         if ($actor===null || !$handler instanceof EconomyCommandHandler || !$this->hasProjection()) return null;
         try {
             // Speculative authorization is only a precheck; locked commit rechecks.
@@ -477,11 +480,61 @@ final class PdoScheduler
             case 'economy.settle':
             case 'economy.upgrade':
             case 'market.claim':
+            case 'building.claim':
                 $this->assertAccountOwner($command->payload['account']??null,$actor);
                 break;
             case 'economy.transfer':
                 $this->assertAccountOwner($command->payload['from']??null,$actor);
                 $this->assertAccountOwner($command->payload['to']??null,null);
+                break;
+            case 'building.place':
+                $this->assertAccountOwner($command->payload['account']??null,$actor);
+                $p=$command->payload;
+                foreach (['building','territory','entity','type'] as $key) {
+                    if (!is_string($p[$key]??null)) throw new \InvalidArgumentException('Missing foundation identity');
+                    PdoMemberships::validateId($p[$key]);
+                }
+                $stages=$this->rules?->commands instanceof EconomyCommandHandler
+                    ? $this->rules->commands->buildingStages($p['type']):null;
+                if ($stages===null) throw new \DomainException('Unapproved building type');
+                $typeRecord=$this->query('SELECT rules_key,stages_json FROM engine_building_types
+                    WHERE world_id=? AND building_type=?',[$this->worldId,$p['type']])->fetch(PDO::FETCH_ASSOC);
+                $entityRecord=$this->query('SELECT actor_id,location_id FROM engine_entities WHERE world_id=?
+                    AND entity_id=?',[$this->worldId,$p['entity']])->fetch(PDO::FETCH_ASSOC);
+                $territoryRecord=$this->query('SELECT owner_actor_id,location_id FROM engine_territories
+                    WHERE world_id=? AND territory_id=?',[$this->worldId,$p['territory']])->fetch(PDO::FETCH_ASSOC);
+                if ($typeRecord===false || $typeRecord['rules_key']!==$this->rulesKey()
+                    || $typeRecord['stages_json']!==json_encode($stages,JSON_THROW_ON_ERROR)
+                    || $entityRecord===false || $territoryRecord===false
+                    || $entityRecord['actor_id']!==$actor
+                    || $territoryRecord['owner_actor_id']!==$actor
+                    || $entityRecord['location_id']!==$territoryRecord['location_id']) {
+                    throw new \DomainException('Invalid or foreign foundation site');
+                }
+                break;
+            case 'building.cancel':
+            case 'building.start':
+                $this->assertAccountOwner($command->payload['account']??null,$actor);
+                $building=$command->payload['building']??null;
+                $type=$command->payload['type']??null;
+                if (!is_string($building) || !is_string($type)) {
+                    throw new \InvalidArgumentException('Invalid building identity');
+                }
+                PdoMemberships::validateId($building);
+                PdoMemberships::validateId($type);
+                $pinned=$this->rules?->commands instanceof EconomyCommandHandler
+                    ? $this->rules->commands->buildingStages($type) : null;
+                if ($pinned===null) throw new \DomainException('Building type not in pinned rules');
+                $row=$this->query('SELECT b.actor_id,b.building_type,t.rules_key,t.stages_json
+                    FROM engine_buildings b JOIN engine_building_types t
+                    ON t.world_id=b.world_id AND t.building_type=b.building_type
+                    WHERE b.world_id=? AND b.building_id=?',
+                    [$this->worldId,$building])->fetch(PDO::FETCH_ASSOC);
+                if ($row===false || $row['actor_id']!==$actor
+                    || $row['building_type']!==$type || $row['rules_key']!==$this->rulesKey()
+                    || $row['stages_json']!==json_encode($pinned,JSON_THROW_ON_ERROR)) {
+                    throw new \DomainException('Building not owned or incompatible with pinned rules');
+                }
                 break;
             case 'market.create':
             case 'market.cancel':
@@ -707,6 +760,25 @@ final class PdoScheduler
                     $before=ScalarMap::decode($world['state_json']);
                     $result=$handler->apply($command,$before,$at);
                     $changedKeys=null;
+                }
+                if ($command->type==='building.place') {
+                    if ($actor===null) throw new \DomainException('Actor required for player foundation');
+                    $p=$command->payload;
+                    $count=(int)$this->query('SELECT COUNT(*) FROM engine_buildings WHERE world_id=? AND actor_id=?',
+                        [$this->worldId,$actor])->fetchColumn();
+                    if ($count>=64) throw new \DomainException('Actor building count exceeded');
+                    // A second request with a different ID cannot mutate an
+                    // existing foundation. A replay with the same request ID
+                    // returns above before arriving here.
+                    if ($this->query('SELECT building_id FROM engine_buildings WHERE world_id=? AND building_id=?',
+                        [$this->worldId,$p['building']])->fetchColumn()!==false) {
+                        throw new \DomainException('Building identifier already registered');
+                    }
+                    $this->query('INSERT INTO engine_buildings
+                        (world_id,building_id,entity_id,territory_id,actor_id,building_type)
+                        VALUES (?,?,?,?,?,?)',[
+                        $this->worldId,$p['building'],$p['entity'],$p['territory'],$actor,$p['type']
+                    ]);
                 }
                 $stateJson = ScalarMap::encode($result->state);
                 $this->syncProjection($before,$result->state,$changedKeys);
