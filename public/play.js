@@ -1,6 +1,6 @@
 'use strict';
 let token = null, busy = false, pending = null, worlds = [];
-const login = document.querySelector('#login'), game = document.querySelector('#game'), balance = document.querySelector('#balance'), action = document.querySelector('#action'), status = document.querySelector('#status'), stock = document.querySelector('#stock');
+const login = document.querySelector('#login'), game = document.querySelector('#game'), balance = document.querySelector('#balance'), action = document.querySelector('#action'), status = document.querySelector('#status'), stock = document.querySelector('#stock'), marketClaim=document.querySelector('#market-claim');
 async function api(path, method='GET', data) {
     const headers = {'Accept':'application/json'};
     if (token) headers.Authorization = 'Bearer '+token;
@@ -25,7 +25,7 @@ function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);
     options(balance.elements.account,(w?.accounts??[]).map(a=>[a,a]));
     options(balance.elements.resource,(w?.resources??[]).map(a=>[a,a]));
-    stock.replaceChildren();
+    stock.replaceChildren(); marketClaim.hidden=true;
     clearRecipients();
     clearMarket();
 }
@@ -36,7 +36,7 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
-for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>stock.replaceChildren());
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;});
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
@@ -44,11 +44,13 @@ async function refresh() {
     const data=await api(base(f)+'overview/'+encodeURIComponent(f.account)+'/'+encodeURIComponent(f.resource));
     if (JSON.stringify(f)!==JSON.stringify(locationFields())) return;
     stock.replaceChildren();
+    marketClaim.hidden=!Number.isSafeInteger(data.refundPending) || data.refundPending<=0;
     function line(key,value) {
         const dt=document.createElement('dt'),dd=document.createElement('dd');
         dt.textContent=key; dd.textContent=String(value); stock.append(dt,dd);
     }
     for (const key of ['stock','capacity','amount','interval','at','level']) line(key,data[key]);
+    if (data.refundPending>0) line('Pending escrow refund',data.refundPending);
     if (data.pending) {
         line('Upgrade status','Pending level '+data.pending.level);
         line('Due (UTC)',new Date(data.pending.dueAt*1000).toISOString());
@@ -274,6 +276,7 @@ function clearMarket() {
     if (resources.length>1) marketCreate.elements.wantResource.selectedIndex=1;
     marketCreate.elements.giveUnits.value='1';
     marketCreate.elements.wantUnits.value='1';
+    marketCreate.elements.expirySeconds.value='';
     clearMarketPage();
 }
 async function loadMarket(after=null) {
@@ -297,6 +300,12 @@ marketCreate.addEventListener('submit',e=>{
         const f=locationFields(), fields=marketCreate.elements;
         const payload={seller:f.account,giveResource:fields.giveResource.value,giveUnits:Number(fields.giveUnits.value),wantResource:fields.wantResource.value,wantUnits:Number(fields.wantUnits.value)};
         if (!f.world || !f.account || !payload.giveResource || !payload.wantResource || payload.giveResource===payload.wantResource || !validMarketUnits(payload.giveUnits) || !validMarketUnits(payload.wantUnits)) throw new Error('Invalid market terms');
+        const expiryRaw=fields.expirySeconds.value.trim();
+        if (expiryRaw!=='') {
+            const seconds=Number(expiryRaw);
+            if (!Number.isSafeInteger(seconds) || seconds<1 || seconds>2592000) throw new Error('Invalid expiry duration');
+            payload.expiresAt=Math.floor(Date.now()/1000)+seconds;
+        }
         await submitCommand(f,'market.create',payload);
         marketChanged();
     });
@@ -312,6 +321,12 @@ async function selectedMarketCommand(type) {
     await submitCommand(f,type,payload);
     marketChanged();
 }
+marketClaim.addEventListener('click',()=>run(async()=>{
+    const f=locationFields();
+    if (!f.world || !f.account || !f.resource) throw new Error('Choose a world, account and resource');
+    await submitCommand(f,'market.claim',{account:f.account,resource:f.resource});
+    marketClaim.hidden=true;stock.replaceChildren();
+}));
 document.querySelector('#market-load').addEventListener('click',()=>run(()=>loadMarket()));
 marketNext.addEventListener('click',()=>{ if (marketAfter!==null) run(()=>loadMarket(marketAfter)); });
 document.querySelector('#market-accept').addEventListener('click',()=>run(()=>selectedMarketCommand('market.accept')));
@@ -323,7 +338,7 @@ retryCommand.addEventListener('click',()=>run(async()=>{
 }));
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
-    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; activation.hidden=!activationRequired; activationResend.hidden=!activationRequired; showRecoveryCode(null);
+    stock.replaceChildren(); marketClaim.hidden=true; action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; activation.hidden=!activationRequired; activationResend.hidden=!activationRequired; showRecoveryCode(null);
 }
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }

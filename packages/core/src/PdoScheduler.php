@@ -394,7 +394,9 @@ final class PdoScheduler
                 $pending=['level'=>$next->level,'dueAt'=>$event->dueAt,'amount'=>$next->amount];
                 $next=null;
             }
-            return get_object_vars($balance)+['level'=>$progress['level'],'pending'=>$pending,'next'=>$next===null?null:['level'=>$next->level,'cost'=>$next->cost,'duration'=>$next->duration,'amount'=>$next->amount]];
+            $claimable=$state['market:refund:'.$account.':'.$resource]??0;
+            if (!is_int($claimable) || $claimable<0) throw new \LogicException('Invalid pending escrow refund');
+            return get_object_vars($balance)+['refundPending'=>$claimable,'level'=>$progress['level'],'pending'=>$pending,'next'=>$next===null?null:['level'=>$next->level,'cost'=>$next->cost,'duration'=>$next->duration,'amount'=>$next->amount]];
         });
     }
 
