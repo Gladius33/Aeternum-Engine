@@ -85,3 +85,5 @@ Browser requests lock selection controls until completion. Explicit select value
 0038 review correction: preserve the original world and entire pending command; expose a dedicated in-session retry control independent of current selection or open offer list. The real Chromium industrial scenario drops the cancellation response after it commits, reloads the now-empty market, retries the saved command, and checks the identical durable receipt. Logout discards pending session state. CI pending on corrected head.
 
 0038 accessibility correction: initial Chromium run 45003624969 failed locating the exact label of a nested select. Use explicit for/id associations for market resource, quantity and offer controls. Reproduced the original exact-label miss and verified the corrected labels/selection in local real Chromium. Bound market smoke action/response waits to 15 seconds; full corrected CI remains required.
+
+0039 E2E: independent bearer sessions share a world but cannot authorize another actor's accounts or a foreign world's market. Market mutations flow through existing world lock, receipt and ledger. The browser never supplies trusted rule configuration.
