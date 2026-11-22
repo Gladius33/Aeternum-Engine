@@ -326,11 +326,22 @@ final class PdoScheduler
         if ($this->rules===null || !$this->rules->commands instanceof EconomyCommandHandler) throw new \DomainException('Market requires pinned economy rules');
         if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
         return $this->transaction(function () use ($actor,$after,$limit): array {
+            if ($this->hasProjection()) {
+                // Normal SQL listing is an MVCC read; it does not lock the
+                // entire world or enumerate full JSON state. Only the initial
+                // controlled legacy backfill needs an exclusive world lock.
+                $row=$this->query('SELECT rules_key,economy_projection_version FROM engine_worlds WHERE world_id=?',
+                    [$this->worldId])->fetch(PDO::FETCH_ASSOC);
+                if ($row===false || $row['rules_key']!==$this->rulesKey()) {
+                    throw new \DomainException('World not initialized or rules mismatch');
+                }
+                if ((int)$row['economy_projection_version']===0) $this->lockedWorld();
+                elseif ((int)$row['economy_projection_version']!==1) throw new \UnexpectedValueException('Invalid projection version');
+                $this->assertActiveActor($actor);
+                return (new PdoEconomyProjection($this->pdo,$this->worldId))->marketPage($after,$limit,$this->clock->now());
+            }
             $world=$this->lockedWorld();
             $this->assertActiveActor($actor);
-            if ($this->hasProjection()) {
-                return (new PdoEconomyProjection($this->pdo,$this->worldId))->marketPage($after,$limit);
-            }
             $offers=MarketProjection::openOffers(ScalarMap::decode($world['state_json']));
             $accounts=array_values(array_unique(array_column($offers,'seller'),SORT_STRING));
             if ($accounts===[]) return ['offers'=>[],'nextAfter'=>null];
@@ -434,6 +445,22 @@ final class PdoScheduler
         } finally {
             $this->processing = false;
         }
+    }
+
+    /** Trusted operator CLI: bootstrap legacy rows after a verified backup. */
+    public function materialize(): array
+    {
+        if ($this->processing) throw new \LogicException('Reentrant projection migration');
+        if (!$this->hasProjection()) throw new \DomainException('Migration 020 not installed');
+        return $this->transaction(function ():array {
+            $world=$this->lockedWorld();
+            $balances=(int)$this->query('SELECT COUNT(*) FROM engine_economy_balances WHERE world_id=?',[$this->worldId])->fetchColumn();
+            $offers=(int)$this->query('SELECT COUNT(*) FROM engine_market_offers WHERE world_id=?',[$this->worldId])->fetchColumn();
+            $refunds=(int)$this->query('SELECT COUNT(*) FROM engine_market_refunds WHERE world_id=?',[$this->worldId])->fetchColumn();
+            return ['world'=>$this->worldId,'journal'=>(int)$world['journal_sequence'],
+                'balances'=>$balances,'offers'=>$offers,'deferredRefunds'=>$refunds,
+                'projectionVersion'=>1];
+        });
     }
 
     public function state(): array

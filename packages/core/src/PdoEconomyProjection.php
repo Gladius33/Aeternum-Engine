@@ -121,7 +121,7 @@ final class PdoEconomyProjection
     }
 
     /** Read-only per-page SQL listing. Caller enforces actor's active membership. */
-    public function marketPage(?string $after,int $limit): array
+    public function marketPage(?string $after,int $limit,int $now): array
     {
         MarketProjection::validatePage($after,$limit);
         $q=$this->pdo->prepare('SELECT o.offer_id, o.seller_id, o.give_resource, o.want_resource,
@@ -129,8 +129,9 @@ final class PdoEconomyProjection
             FROM engine_market_offers o
             JOIN engine_account_owners own ON own.world_id=o.world_id AND own.account_id=o.seller_id
             JOIN engine_memberships m ON m.world_id=own.world_id AND m.actor_id=own.actor_id AND m.active=1
-            WHERE o.world_id=? AND o.status=? AND o.offer_id>? ORDER BY o.offer_id LIMIT '.($limit+1));
-        $q->execute([$this->worldId,'open',$after??'']);
+            WHERE o.world_id=? AND o.status=? AND o.offer_id>?
+              AND (o.expires_at IS NULL OR o.expires_at>?) ORDER BY o.offer_id LIMIT '.($limit+1));
+        $q->execute([$this->worldId,'open',$after??'',$now]);
         $rows=$q->fetchAll(PDO::FETCH_ASSOC);
         $more=count($rows)>$limit;
         if ($more) array_pop($rows);
