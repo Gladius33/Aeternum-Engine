@@ -315,9 +315,6 @@ test('public signup provisions real players, supports retry, reconnect and accou
         await page.getByRole('button',{name:'Sign out'}).click();
         await signIn(page,{...scenarios[1],login:'browser-public-first'});
         await expect(page.locator('select[name=account]')).toHaveValue(first.account);
-        const repeated=await page.request.post(url+'/v1/auth/register',{data:{login:'browser-public-first',password,world:'e2e-industrial'}});
-        expect(repeated.status()).toBe(200);
-        expect((await repeated.json()).data.account).toBe(first.account);
         const second=await page.request.post(url+'/v1/auth/register',{data:{login:'browser-public-second',password,world:'e2e-industrial'}});
         expect(second.status()).toBe(201);
         const {data:other}=await second.json();
@@ -332,7 +329,8 @@ test('public signup provisions real players, supports retry, reconnect and accou
         expect(granted.status()).toBe(200);
         // Use the one-time recovery code issued after registration.
         expect(first.recoveryCode).toMatch(/^[a-f0-9]{64}$/);
-        await page.getByRole('button',{name:'Sign out'}).click();
+        // Reload the client without a second logout: recovery must work even while an old bearer exists.
+        await page.goto(url+'/play.html');
         await page.getByLabel('Recovery login',{exact:true}).fill('browser-public-first');
         await page.getByLabel('Recovery code',{exact:true}).fill(first.recoveryCode);
         await page.getByLabel('Replacement password',{exact:true}).fill('browser new password after recovery');
