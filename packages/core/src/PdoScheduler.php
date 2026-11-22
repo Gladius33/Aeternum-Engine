@@ -483,6 +483,29 @@ final class PdoScheduler
                 $this->assertAccountOwner($command->payload['from']??null,$actor);
                 $this->assertAccountOwner($command->payload['to']??null,null);
                 break;
+            case 'building.start':
+                $this->assertAccountOwner($command->payload['account']??null,$actor);
+                $building=$command->payload['building']??null;
+                $type=$command->payload['type']??null;
+                if (!is_string($building) || !is_string($type)) {
+                    throw new \InvalidArgumentException('Invalid building identity');
+                }
+                PdoMemberships::validateId($building);
+                PdoMemberships::validateId($type);
+                $pinned=$this->rules?->commands instanceof EconomyCommandHandler
+                    ? $this->rules->commands->buildingStages($type) : null;
+                if ($pinned===null) throw new \DomainException('Building type not in pinned rules');
+                $row=$this->query('SELECT b.actor_id,b.building_type,t.rules_key,t.stages_json
+                    FROM engine_buildings b JOIN engine_building_types t
+                    ON t.world_id=b.world_id AND t.building_type=b.building_type
+                    WHERE b.world_id=? AND b.building_id=?',
+                    [$this->worldId,$building])->fetch(PDO::FETCH_ASSOC);
+                if ($row===false || $row['actor_id']!==$actor
+                    || $row['building_type']!==$type || $row['rules_key']!==$this->rulesKey()
+                    || $row['stages_json']!==json_encode($pinned,JSON_THROW_ON_ERROR)) {
+                    throw new \DomainException('Building not owned or incompatible with pinned rules');
+                }
+                break;
             case 'market.create':
             case 'market.cancel':
                 $this->assertAccountOwner($command->payload['seller']??null,$actor);

@@ -97,6 +97,32 @@ niveau d'un bâtiment identifié, sans déclencher de dépenses. Le scénario
 Chromium compare les vues de deux vrais joueurs et refuse la lecture d'un
 bâtiment tiers.
 
+## Construction économique déterministe — intégration en cours
+
+Un *pack opt-in* `games/m04-construction-fixture` introduit des types
+de bâtiments explicitement épinglés au digest du manifeste. Les mondes
+existants ne gagnent aucun type implicite.
+
+L'action `building.start` est autorisée uniquement si l'acteur actif
+possède une fondation compatible et le compte économique indiqué. Le
+moteur vérifie la correspondance exacte entre le catalogue relationnel
+et le manifeste épinglé, les niveaux maximum et les prérequis. Le coût
+multi-ressources est débité en **une transaction** et journalisé dans
+`engine_resource_ledger` sous `construction_cost`. L'événement
+`building.complete` est persistant, déclenché par le worker à la date
+logique prévue et **rejouable**. Les refus (concurrence, niveau terminal,
+prérequis, identité) ne doivent débiter aucune unité.
+
+La migration 024 étend l'ENUM des motifs de grand livre : cette DDL
+peut reconstruire la table, exiger un verrou et doit être exécutée
+après suspension des écritures, sauvegarde hors instance et répétition
+de restauration sur copie. La suite MariaDB simule la montée depuis un
+ancien monde déjà alimenté et vérifie le rejeu.
+
+Les règles de remboursement/annulation et le déploiement multi-mondes
+continu sont encore à développer et restent hors périmètre de cette
+première sous-livraison.
+
 ## Sortie de macro NON acquise
 
 Restent à développer les règles typées de bâtiments, la construction

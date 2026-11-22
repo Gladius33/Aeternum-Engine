@@ -105,10 +105,30 @@ final class PdoBuildings
                 [$this->world,$id,$actor])->fetch(PDO::FETCH_ASSOC);
             if ($row===false || $row['rules_key']!==$rules) throw new \DomainException('Building access denied');
             $stages=BuildStages::normalize(json_decode($row['stages_json'],true,16,JSON_THROW_ON_ERROR));
-            $level=(int)$row['level_no'];
-            if ($level<0 || $level>count($stages)) throw new \UnexpectedValueException('Invalid building level');
+            // Canonical construction actions live in the world journal/state;
+            // the relational building table is immutable ownership metadata.
+            $stateJson=$this->sql('SELECT state_json FROM engine_worlds WHERE world_id=?',
+                [$this->world])->fetchColumn();
+            if ($stateJson===false) throw new \LogicException('Missing world state');
+            $state=ScalarMap::decode($stateJson);
+            $prefix='build:'.$id.':';
+            if (isset($state[$prefix.'type']) && $state[$prefix.'type']!==$row['building_type']) {
+                throw new \UnexpectedValueException('Building type differs from replay state');
+            }
+            $level=$state[$prefix.'level']??0;
+            if (!is_int($level) || $level<0 || $level>count($stages)) {
+                throw new \UnexpectedValueException('Invalid building level');
+            }
+            $pending=$state[$prefix.'pending']??null;
+            if ($pending!==null && (!is_string($pending)
+                || !preg_match('/^build:[a-f0-9]{64}$/D',$pending))) {
+                throw new \UnexpectedValueException('Invalid building pending event');
+            }
+            $account=$state[$prefix.'account']??$actor;
+            if (!is_string($account)) throw new \UnexpectedValueException('Invalid building account');
             return ['id'=>$row['building_id'],'entity'=>$row['entity_id'],'territory'=>$row['territory_id'],
-                'type'=>$row['building_type'],'level'=>$level,
+                'type'=>$row['building_type'],'account'=>$account,'level'=>$level,'pending'=>$pending,
+                'startedAt'=>$pending!==null?($state[$prefix.'started']??null):null,
                 'next'=>$stages[$level]??null];
         });
     }

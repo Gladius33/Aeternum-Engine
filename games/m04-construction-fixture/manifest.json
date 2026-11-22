@@ -1,0 +1,20 @@
+{
+  "engine_api": "1",
+  "id": "m04-construction-fixture",
+  "version": "0.1.0",
+  "name": "Isolated construction integration fixture",
+  "resources": [
+    {"id":"wood","initial_stock":100,"capacity":1000,"amount":0,"interval_seconds":60},
+    {"id":"grain","initial_stock":80,"capacity":1000,"amount":0,"interval_seconds":60}
+  ],
+  "upgrades": [],
+  "buildings": [
+    {"type":"mill","stages":[
+      {"costs":{"wood":7,"grain":11},"duration":5,"requires":{}},
+      {"costs":{"wood":12,"grain":30},"duration":5,"requires":{"workshop":1}}
+    ]},
+    {"type":"workshop","stages":[
+      {"costs":{"wood":2,"grain":1},"duration":5,"requires":{}}
+    ]}
+  ]
+}

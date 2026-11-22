@@ -176,6 +176,7 @@ require __DIR__ . "/http-api.php";
 require __DIR__ . "/m04-map-http.php";
 require __DIR__ . "/m04-buildings.php";
 require __DIR__ . "/m04-building-http.php";
+require __DIR__ . "/m04-construction.php";
 require __DIR__ . "/m04-map-cli.php";
 require __DIR__ . "/rate-limits.php";
 require __DIR__ . "/auth-http.php";

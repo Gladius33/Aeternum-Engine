@@ -8,9 +8,10 @@ final class EconomyCommandHandler implements CommandHandler
     // No lifetime counter cap: world-scale capacity is enforced by storage and quotas.
     private array $definitions = [];
     private array $upgrades = [];
+    private array $buildings = [];
 
     /** @param list<ResourceDefinition> $definitions */
-    public function __construct(array $definitions,array $upgrades = [])
+    public function __construct(array $definitions,array $upgrades = [],array $buildings = [])
     {
         if ($definitions === [] || count($definitions)>128 || !array_is_list($definitions)) throw new \InvalidArgumentException('Invalid resource definitions');
         foreach ($definitions as $definition) {
@@ -35,6 +36,35 @@ final class EconomyCommandHandler implements CommandHandler
             }
         }
         unset($levels);
+        if (count($buildings)>128) throw new \InvalidArgumentException('Too many building types');
+        foreach ($buildings as $type=>$stages) {
+            if (!is_string($type)) throw new \InvalidArgumentException('Invalid building type');
+            $this->id($type);
+            if (!is_array($stages)) throw new \InvalidArgumentException('Invalid building stages');
+            $stages=BuildStages::normalize($stages);
+            foreach ($stages as $stage) {
+                foreach ($stage['costs'] as $resource=>$units) {
+                    $definition=$this->definition($resource);
+                    if ($units>$definition->capacity) throw new \InvalidArgumentException('Unpayable construction cost');
+                }
+            }
+            $this->buildings[$type]=$stages;
+        }
+        foreach ($this->buildings as $stages) {
+            foreach ($stages as $stage) {
+                foreach ($stage['requires'] as $required=>$level) {
+                    if (!isset($this->buildings[$required]) || $level>count($this->buildings[$required])) {
+                        throw new \InvalidArgumentException('Unknown construction prerequisite');
+                    }
+                }
+            }
+        }
+    }
+
+    /** Immutable, pinned building costs; null for packs without construction. */
+    public function buildingStages(string $type): ?array
+    {
+        return $this->buildings[$type]??null;
     }
 
     private function upgrade(string $resource,int $level): ResourceUpgrade
@@ -270,8 +300,53 @@ final class EconomyCommandHandler implements CommandHandler
         return new CommandResult($state,$events,$ledger);
     }
 
+    /** Pure deterministic atomic multi-resource construction start. */
+    private function startBuilding(Command $command,array $state,int $at): CommandResult
+    {
+        $p=$this->payload($command,['building','account','type']);
+        $id=$this->id($p['building']);
+        $account=$this->id($p['account']);
+        $type=$this->id($p['type']);
+        $stages=$this->buildingStages($type);
+        if ($stages===null) throw new \DomainException('Building not part of pinned pack');
+        $prefix='build:'.$id.':';
+        if (isset($state[$prefix.'account']) && $state[$prefix.'account']!==$account
+            || isset($state[$prefix.'type']) && $state[$prefix.'type']!==$type) {
+            throw new \DomainException('Building identity conflict');
+        }
+        if (isset($state[$prefix.'pending'])) throw new \DomainException('Construction already pending');
+        $level=$state[$prefix.'level']??0;
+        if (!is_int($level) || $level<0 || $level>count($stages)) {
+            throw new \DomainException('Invalid building level');
+        }
+        $stage=$stages[$level]??throw new \DomainException('Maximum building level');
+        foreach ($stage['requires'] as $requirement=>$requiredLevel) {
+            if (($state['build:max:'.$account.':'.$requirement]??0)<$requiredLevel) {
+                throw new \DomainException('Missing building prerequisite');
+            }
+        }
+        if ($at>PHP_INT_MAX-$stage['duration']) throw new \OverflowException('Construction due time overflow');
+        $ledger=[];
+        foreach ($stage['costs'] as $resource=>$units) {
+            $balance=$this->settle($state,$ledger,$account,$resource,$at)->debit($units);
+            $this->write($state,$account,$resource,$balance);
+            $ledger[]=new ResourceMovement($account,$resource,-$units,$balance->stock,'construction_cost');
+        }
+        $eventId='build:'.hash('sha256',$command->id);
+        $state[$prefix.'account']=$account;
+        $state[$prefix.'type']=$type;
+        $state[$prefix.'level']=$level;
+        $state[$prefix.'pending']=$eventId;
+        $state[$prefix.'started']=$at;
+        return new CommandResult($state,[
+            new ScheduledEvent($command->worldId,$eventId,'building.complete',$at+$stage['duration'],
+                ['building'=>$id,'account'=>$account,'type'=>$type,'level'=>$level+1])
+        ],$ledger);
+    }
+
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
+        if ($command->type==='building.start') return $this->startBuilding($command,$state,$effectiveAt);
         if (in_array($command->type,['market.create','market.accept','market.cancel','market.claim'],true)) {
             return $this->market($command,$state,$effectiveAt);
         }
@@ -325,8 +400,40 @@ final class EconomyCommandHandler implements CommandHandler
     }
 
     /** Completion settles the old rate at logical due time, then activates the trusted new rate. */
+    private function finishBuilding(ScheduledEvent $event,array $state): EventResult
+    {
+        $p=$event->payload;
+        $names=array_keys($p);sort($names,SORT_STRING);
+        if ($names!==['account','building','level','type']) throw new \InvalidArgumentException('Invalid construction event');
+        $id=$this->id($p['building']);
+        $account=$this->id($p['account']);
+        $type=$this->id($p['type']);
+        $prefix='build:'.$id.':';
+        $level=$p['level'];
+        $stages=$this->buildingStages($type);
+        if ($stages===null || !is_int($level) || $level<1 || $level>count($stages)
+            || ($state[$prefix.'account']??null)!==$account
+            || ($state[$prefix.'type']??null)!==$type
+            || ($state[$prefix.'level']??null)!==$level-1
+            || ($state[$prefix.'pending']??null)!==$event->id) {
+            throw new \DomainException('Construction event no longer matches pending stage');
+        }
+        $started=$state[$prefix.'started']??null;
+        if (!is_int($started) || $started<0
+            || $started>PHP_INT_MAX-$stages[$level-1]['duration']
+            || $started+$stages[$level-1]['duration']!==$event->dueAt) {
+            throw new \DomainException('Construction due date mismatch');
+        }
+        $state[$prefix.'level']=$level;
+        unset($state[$prefix.'pending'],$state[$prefix.'started']);
+        $maxKey='build:max:'.$account.':'.$type;
+        $state[$maxKey]=max($state[$maxKey]??0,$level);
+        return new EventResult($state);
+    }
+
     public function complete(ScheduledEvent $event,array $state): EventResult
     {
+        if ($event->type==='building.complete') return $this->finishBuilding($event,$state);
         if ($event->type==='market.expire') {
             $keys=array_keys($event->payload);sort($keys,SORT_STRING);
             if ($keys!==['offer','seller']) throw new \InvalidArgumentException('Invalid expiry envelope');

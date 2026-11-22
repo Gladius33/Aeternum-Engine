@@ -53,7 +53,7 @@ final class GamePackLoader
         if (!$decoded instanceof \stdClass) throw new \InvalidArgumentException('Expected JSON object');
         $fields=get_object_vars($decoded);
         $required=['engine_api','id','version','name','resources','upgrades'];
-        $optional=['components','actions','event_hooks'];
+        $optional=['components','actions','event_hooks','buildings'];
         foreach ($required as $key) if (!array_key_exists($key,$fields)) throw new \InvalidArgumentException('Missing manifest field');
         foreach (array_keys($fields) as $key) if (!in_array($key,$required,true) && !in_array($key,$optional,true)) throw new \InvalidArgumentException('Unexpected manifest field');
         $id=self::string($fields['id'],128);
@@ -79,6 +79,36 @@ final class GamePackLoader
         $components=self::definitions($fields['components']??[],'id','fields');
         $actions=self::definitions($fields['actions']??[],'type','payload');
         $hooks=self::definitions($fields['event_hooks']??[],'type','payload');
-        return new GamePack($id,$version,$name,hash('sha256',$json),$resources,$upgrades,$components,$actions,$hooks);
+        // API-1 additive, opt-in construction rules. Legacy packs omit this
+        // field and keep their original digest and deterministic handlers.
+        $buildings=[];
+        $buildingRows=$fields['buildings']??[];
+        if (!is_array($buildingRows) || count($buildingRows)>128) {
+            throw new \InvalidArgumentException('Invalid building manifest');
+        }
+        foreach ($buildingRows as $rawBuilding) {
+            $definition=self::object($rawBuilding,['type','stages']);
+            $type=self::string($definition['type'],64);
+            PdoMemberships::validateId($type);
+            if (isset($buildings[$type]) || !is_array($definition['stages'])) {
+                throw new \InvalidArgumentException('Duplicate or malformed building type');
+            }
+            $stages=[];
+            foreach ($definition['stages'] as $rawStage) {
+                $stage=self::object($rawStage,['costs','duration','requires']);
+                if (!$stage['costs'] instanceof \stdClass || !$stage['requires'] instanceof \stdClass) {
+                    throw new \InvalidArgumentException('Stage maps must be objects');
+                }
+                $stages[]=[
+                    'costs'=>get_object_vars($stage['costs']),
+                    'duration'=>$stage['duration'],
+                    'requires'=>get_object_vars($stage['requires'])
+                ];
+            }
+            $buildings[$type]=BuildStages::normalize($stages);
+        }
+        // Check cross-references against the exact pack resource definitions.
+        new EconomyCommandHandler($resources,$upgrades,$buildings);
+        return new GamePack($id,$version,$name,hash('sha256',$json),$resources,$upgrades,$components,$actions,$hooks,$buildings);
     }
 }
