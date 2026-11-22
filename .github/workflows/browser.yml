@@ -71,10 +71,13 @@ jobs:
             -subj '/CN=localhost' -addext 'subjectAltName=IP:127.0.0.1,DNS:localhost' >/dev/null 2>&1
           # Exercise the public server through the M02 registry, without
           # modifying the reference browser scenarios or either pinned world.
+          # Install the independent fixture only inside this disposable CI workspace.
+          mkdir -p games/sdk-fixture
+          cp tests/fixtures/m02-packs/sdk-fixture/manifest.json games/sdk-fixture/manifest.json
           registry_dir="$(mktemp -d)"
           php -r '
             $worlds=[];
-            foreach (["e2e-medieval"=>"reference-medieval","e2e-industrial"=>"reference-industrial"] as $world=>$id) {
+            foreach (["e2e-medieval"=>"reference-medieval","e2e-industrial"=>"reference-industrial","e2e-sdk"=>"sdk-fixture"] as $world=>$id) {
               $manifest="games/".$id."/manifest.json";
               $pack=json_decode(file_get_contents($manifest),true,32,JSON_THROW_ON_ERROR);
               $worlds[]=["world"=>$world,"pack"=>$id,"version"=>$pack["version"],"sha256"=>hash_file("sha256",$manifest)];
@@ -82,6 +85,9 @@ jobs:
             file_put_contents($argv[1],json_encode(["registry_api"=>"1","worlds"=>$worlds],JSON_THROW_ON_ERROR));
           ' "$registry_dir/worlds.json"
           php bin/registry-status.php "$registry_dir/worlds.json" > "$registry_dir/validated.json"
+          printf '%s\n' 'browser-only test password' | env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
+            AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" \
+            php bin/provision.php sdk-fixture e2e-sdk browser-sdk
           env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
             AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" AETERNUM_TRUSTED_PROXY_IPS=127.0.0.1 \
             php -S 127.0.0.1:8765 -t public tests/browser/router.php >browser-server.log 2>&1 &
@@ -135,6 +141,7 @@ jobs:
           curl --fail --cacert "$tls_dir/cert.pem" https://127.0.0.1:8778/play.html >/dev/null
           AETERNUM_TEST_ACTIVATION_OUTBOX="$activation_dir" \
             npx playwright test tests/browser/activation.spec.cjs --workers=1 --reporter=github,line
+          npx playwright test tests/browser/registry.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
         run: |
