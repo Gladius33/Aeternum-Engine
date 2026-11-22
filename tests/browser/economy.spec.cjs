@@ -448,8 +448,13 @@ test('public signup provisions real players, supports retry, reconnect and accou
         expect(first.account).toMatch(/^[a-f0-9]{64}$/);
         await expect(page.locator('#game')).toBeVisible();
         await expect(page.locator('select[name=account]')).toHaveValue(first.account);
+        await page.selectOption('select[name=resource]','steel');
         const own=await refresh(page);
         expect(own.stock).toBeGreaterThanOrEqual(0);
+        const production=page.waitForResponse(r=>r.url().endsWith('/economy/commands') && r.request().method()==='POST',{timeout:15000});
+        await page.getByRole('button',{name:'Submit action',exact:true}).click();
+        expect((await production).status()).toBe(200);
+        await expect(page.locator('#status')).toHaveText('Success');
         await page.getByRole('button',{name:'Sign out'}).click();
         await signIn(page,{...scenarios[1],login:'browser-public-first'});
         await expect(page.locator('select[name=account]')).toHaveValue(first.account);
