@@ -23,6 +23,20 @@
 <button id="map-route-load" type="button">Find shortest route</button>
 <p id="map-route" role="status"></p>
 <h3>Your buildings</h3>
+<section id="foundation-panel" aria-labelledby="foundation-title">
+<h4 id="foundation-title">Create an owned foundation</h4>
+<button id="foundation-discover" type="button">Find construction sites</button>
+<label for="foundation-site">Owned site and entity</label>
+<select id="foundation-site"></select>
+<label for="foundation-type">Building type</label>
+<select id="foundation-type"></select>
+<label for="foundation-id">New building identifier (optional)</label>
+<input id="foundation-id" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" autocomplete="off">
+<button id="foundation-place" type="button">Place foundation</button>
+<p id="foundation-notice" role="status"></p>
+<label for="owned-building-list">Existing owned buildings</label>
+<select id="owned-building-list"></select>
+</section>
 <p>The active player can pay resources to begin construction, cancel before the deadline, and claim refunds when storage space becomes available. Progress requires the world worker.</p>
 <label for="building-id">Owned building ID</label>
 <input id="building-id" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" maxlength="64">

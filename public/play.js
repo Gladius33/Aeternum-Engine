@@ -33,6 +33,12 @@ function clearMap() {
     document.querySelector('#map-route').textContent='';
     document.querySelector('#building-id').value='';
     document.querySelector('#building-details').replaceChildren();
+    options(document.querySelector('#foundation-site'),[]);
+    options(document.querySelector('#foundation-type'),[]);
+    options(document.querySelector('#owned-building-list'),[]);
+    document.querySelector('#foundation-id').value='';
+    document.querySelector('#foundation-notice').textContent='';
+    ownSiteOptions=[];
     currentBuilding=null;
     document.querySelector('#building-start').hidden=true;
     document.querySelector('#building-cancel').hidden=true;
@@ -87,6 +93,57 @@ async function loadShortestRoute() {
         'No directed route found.':data.route.locations.join(' → ')+' (cost '+data.route.cost+')';
 }
 document.querySelector('#map-route-load').addEventListener('click',()=>run(loadShortestRoute));
+let ownSiteOptions=[];
+async function loadConstructionChoices() {
+    const world=balance.elements.world.value;
+    if (!world) throw new Error('Choose a world');
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':');
+    const choices=await api(root+'/construction/options');
+    if (world!==balance.elements.world.value) return;
+    ownSiteOptions=choices.sites;
+    options(document.querySelector('#foundation-site'),
+        choices.sites.map(site=>[site.territory_id+'|'+site.entity_id,
+            site.territory_id+' — '+site.entity_id]));
+    options(document.querySelector('#foundation-type'),
+        choices.types.map(type=>[type.id,type.id+' — '+Object.entries(type.first.costs)
+            .map(([resource,units])=>units+' '+resource).join(', ')]));
+    options(document.querySelector('#owned-building-list'),
+        [['','Choose a building'],...choices.buildings.map(item=>[item.id,item.type+' — '+item.id])]);
+    const note=document.querySelector('#foundation-notice');
+    note.textContent=choices.truncated?'Only the first 100 owned sites or buildings are shown.':
+        choices.sites.length===0?'No owned matching territory and entity.':
+        choices.types.length===0?'No operator-approved building types in this world.':
+        'Choose a site and building type; placement is free, construction stages consume resources.';
+}
+document.querySelector('#foundation-discover').addEventListener('click',()=>run(loadConstructionChoices));
+document.querySelector('#owned-building-list').addEventListener('change',()=>{
+    const id=document.querySelector('#owned-building-list').value;
+    if (id) {
+        document.querySelector('#building-id').value=id;
+        document.querySelector('#building-details').replaceChildren();
+        currentBuilding=null;
+        document.querySelector('#building-start').hidden=true;
+        document.querySelector('#building-cancel').hidden=true;
+        document.querySelector('#building-claim').hidden=true;
+    }
+});
+document.querySelector('#foundation-place').addEventListener('click',()=>run(async()=>{
+    const f=locationFields();
+    const siteChoice=document.querySelector('#foundation-site').value,
+          type=document.querySelector('#foundation-type').value;
+    const site=ownSiteOptions.find(s=>s.territory_id+'|'+s.entity_id===siteChoice);
+    if (!f.world || !f.account || !site || !type) throw new Error('Choose an owned site and approved building type');
+    const idInput=document.querySelector('#foundation-id');
+    if (idInput.value.trim()==='') idInput.value=crypto.randomUUID();
+    const id=idInput.value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)) throw new Error('Invalid building identifier');
+    await submitCommand(f,'building.place',{
+        building:id,account:f.account,territory:site.territory_id,entity:site.entity_id,type
+    });
+    document.querySelector('#building-id').value=id;
+    await loadConstructionChoices();
+    await loadBuilding();
+}));
 async function loadBuilding() {
     const world=balance.elements.world.value,id=document.querySelector('#building-id').value.trim();
     const detail=document.querySelector('#building-details');

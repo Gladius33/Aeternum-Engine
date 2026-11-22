@@ -184,6 +184,25 @@ soumis à une limitation de débit par origine. Cet endpoint ne modifie
 aucun état et ne permet pas d'obtenir une donnée privée par variation
 de méthode ou de curseur.
 
+### Fondation créée par un joueur
+
+La commande `building.place` est journalisée et rejouée dans le moteur.
+L'acteur doit posséder un compte du monde, l'entité et le territoire
+de même lieu ; le type doit appartenir au manifeste épinglé **et** au
+catalogue SQL. Le monde est verrouillé pendant l'autorisation,
+l'insertion de la fondation, le changement d'état et la publication
+du reçu. Un quota de 64 bâtiments par acteur empêche la création
+illimitée. Le placement est gratuit ; le premier coût est dû lors de
+`building.start`. Les identifiants ne peuvent jamais être réattribués.
+
+`GET /v1/worlds/{world}/construction/options` expose en lecture privée
+les combinaisons de terrains/entités propres à l'acteur, les types
+approuvés et les identifiants de ses propres fondations (maximum 100
+choix, avec indicateur de troncature). L'interface permet de choisir
+un site et un type, de placer la fondation et de lancer sa construction.
+Un acteur ne peut ni placer sur le terrain d'un autre, ni utiliser
+une entité tierce ; les rejets conservent le journal et les stocks.
+
 ## Sortie de macro NON acquise
 
 Le catalogue typé, les coûts multi-ressources, la planification, l'annulation,

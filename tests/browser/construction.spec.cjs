@@ -24,6 +24,28 @@ test('M04 pinned two-player construction debits, completes and isolates actor st
     }
     await signIn(one,'browser-build-one');
     await signIn(two,'browser-build-two');
+    // M04: both users place their own foundation through the actual UI and
+    // the server-side actor/territory/entity checks, without operator CLI.
+    for (const [page,id,plot] of [
+        [one,'browser-own-mill-1','builder-1-plot'],
+        [two,'browser-own-mill-2','builder-2-plot']
+    ]) {
+        const choices=page.waitForResponse(r=>r.url().endsWith('/construction/options'));
+        await page.getByRole('button',{name:'Find construction sites'}).click();
+        expect((await choices).status()).toBe(200);
+        await expect(page.locator('#foundation-site option')).toHaveCount(1);
+        await expect(page.locator('#foundation-site option')).toContainText(plot);
+        await page.getByLabel('Building type',{exact:true}).selectOption('mill');
+        await page.getByLabel('New building identifier (optional)').fill(id);
+        const placed=page.waitForResponse(r=>r.url()===commandUrl &&
+            r.request().postDataJSON().type==='building.place',{timeout:15000});
+        await page.getByRole('button',{name:'Place foundation'}).click();
+        expect((await placed).status()).toBe(200);
+        await expect(page.locator('#building-details')).toContainText(id);
+        await expect(page.locator('#building-details')).toContainText('Ready');
+        await expect(page.locator('#owned-building-list')).toContainText(id);
+    }
+
     await one.getByLabel('Owned building ID').fill('builder-1-mill');
     const ownRequest=one.waitForRequest(r=>r.url().endsWith('/buildings/builder-1-mill'));
     await one.getByRole('button',{name:'Inspect building plan'}).click();
@@ -129,5 +151,37 @@ test('M04 pinned two-player construction debits, completes and isolates actor st
     expect(JSON.parse(canceledWorker).processed).toBeGreaterThanOrEqual(1);
     await two.getByRole('button',{name:'Inspect building plan'}).click();
     await expect(two.locator('#building-details dd').nth(3)).toHaveText('0');
+
+    // Both players now develop their SELF-PLACED buildings and persist the
+    // resulting levels after a real CLI worker cycle.
+    const firstAccount=await one.locator('#balance select[name=account]').inputValue();
+    const secondAccount=await two.locator('#balance select[name=account]').inputValue();
+    const invalidSite=await one.request.post(commandUrl,{headers:{Authorization:token},data:{
+        id:'browser-foreign-site',type:'building.place',payload:{
+            account:firstAccount,building:'foreign-site-illegal',entity:firstAccount,
+            territory:'builder-2-plot',type:'mill'
+        }
+    }});
+    expect(invalidSite.status()).toBe(409);
+    for (const [page,id] of [[one,'browser-own-mill-1'],[two,'browser-own-mill-2']]) {
+        await page.getByLabel('Owned building ID').fill(id);
+        await page.getByRole('button',{name:'Inspect building plan'}).click();
+        const started=page.waitForResponse(r=>r.url()===commandUrl &&
+            r.request().postDataJSON().type==='building.start');
+        await page.getByRole('button',{name:'Begin construction'}).click();
+        expect((await started).status()).toBe(200);
+        await expect(page.locator('#building-details')).toContainText('Construction pending');
+    }
+    await one.waitForTimeout(5500);
+    const finalWorker=execFileSync('php',['bin/worker.php','m04-construction-fixture','e2e-build'],{
+        encoding:'utf8',env:{...process.env,AETERNUM_MEDIEVAL_WORLD:'',AETERNUM_INDUSTRIAL_WORLD:'',
+            AETERNUM_WORLD_REGISTRY:process.env.AETERNUM_E2E_REGISTRY}
+    });
+    expect(JSON.parse(finalWorker).processed).toBeGreaterThanOrEqual(2);
+    for (const [page,id] of [[one,'browser-own-mill-1'],[two,'browser-own-mill-2']]) {
+        await page.getByLabel('Owned building ID').fill(id);
+        await page.getByRole('button',{name:'Inspect building plan'}).click();
+        await expect(page.locator('#building-details dd').nth(3)).toHaveText('1');
+    }
     await one.close();await two.close();
 });
