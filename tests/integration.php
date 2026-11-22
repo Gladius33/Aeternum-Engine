@@ -7,8 +7,56 @@ $pdo = db();
 if ($pdo->query('SHOW TABLES')->fetchColumn() !== false) throw new RuntimeException('Integration tests require an empty disposable database');
 $migrationRunner=new \Aeternum\Core\MigrationRunner($pdo);
 $migrationPath=__DIR__.'/../database/migrations';
-check(count($migrationRunner->run($migrationPath))===count(glob($migrationPath.'/*.sql')),'all schema migrations applied');
-check($migrationRunner->run($migrationPath)===[],'migration rerun is no-op');
+// Exercise a real 001..015 -> 016..018 migration on a NONEMPTY synthetic
+// legacy world, not merely a fresh-schema install. This DB is disposable.
+$legacyDir=sys_get_temp_dir().'/aeternum-m01-upgrade-'.bin2hex(random_bytes(8));
+if(!mkdir($legacyDir,0700)) throw new RuntimeException('Unable to stage legacy migrations');
+try {
+    $allFiles=glob($migrationPath.'/*.sql');
+    $legacyFiles=array_values(array_filter($allFiles,
+        static fn(string $f):bool=>(int)substr(basename($f),0,3)<=15));
+    check(count($legacyFiles)===15,'legacy baseline comprises migrations 001..015');
+    foreach($legacyFiles as $src) {
+        if(!copy($src,$legacyDir.'/'.basename($src))) throw new RuntimeException('Cannot stage legacy migration');
+    }
+    check(count($migrationRunner->run($legacyDir))===15,'legacy schema applied without public onboarding tables');
+    $legacyClock=new FrozenClock(50);
+    $legacyPack=\Aeternum\Core\GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/manifest.json'));
+    $legacyRules=$legacyPack->rules();
+    $legacyActor=(new \Aeternum\Core\PdoIdentity($pdo))->register('migration-old-player','legacy account long-lived password');
+    $legacyWorld='m01-legacy-world';
+    (new \Aeternum\Core\PlayerProvisioner($pdo,$legacyClock))->provision($legacyWorld,$legacyActor,$legacyPack);
+    $legacyScheduler=new PdoScheduler($pdo,$legacyWorld,$legacyClock,$legacyRules);
+    $legacyStock=[];
+    foreach($legacyPack->resources as $resource) {
+        $legacyStock[$resource->id]=$legacyScheduler->balanceForActor($legacyActor,$legacyActor,$resource->id,$legacyRules->commands)->stock;
+    }
+    $legacyJournalEntries=$legacyScheduler->verifyReplay($legacyRules->commands,$legacyRules->events)->entries;
+    check($legacyJournalEntries===count($legacyPack->resources),'nonempty pre-upgrade journal replays');
+    $legacyToken=bin2hex(random_bytes(32));
+    $legacySession=$pdo->prepare('INSERT INTO engine_sessions(token_hash,actor_id,expires_at) VALUES (?,?,?)');
+    $legacySession->execute([hash('sha256',$legacyToken),$legacyActor,1000]);
+    $newMigrations=count($allFiles)-count($legacyFiles);
+    check(count($migrationRunner->run($migrationPath))===$newMigrations,'M01 schema migrations applied on populated legacy world');
+    check($migrationRunner->run($migrationPath)===[],'migration rerun is no-op');
+    $legacyAfter=new PdoScheduler($pdo,$legacyWorld,$legacyClock,$legacyRules);
+    foreach($legacyPack->resources as $resource) {
+        check($legacyAfter->balanceForActor($legacyActor,$legacyActor,$resource->id,$legacyRules->commands)->stock===$legacyStock[$resource->id],
+            'upgrade preserved legacy world stock '.$resource->id);
+    }
+    check($legacyAfter->verifyReplay($legacyRules->commands,$legacyRules->events)->entries===$legacyJournalEntries,
+        'migration retained preexisting deterministic journal and rules');
+    $legacyAuth=new \Aeternum\Core\PdoSessions($pdo,$legacyClock);
+    check($legacyAuth->resolve($legacyToken)===$legacyActor,'preexisting legacy session remains valid after upgrade');
+    check($legacyAuth->login('migration-old-player','legacy account long-lived password')!==null,
+        'existing account can log in after onboarding migrations');
+    $s=$pdo->prepare('SELECT COUNT(*) FROM engine_onboarding WHERE actor_id=?');
+    $s->execute([$legacyActor]);
+    check((int)$s->fetchColumn()===0,'upgrade never silently enrolls existing operator account');
+} finally {
+    foreach(glob($legacyDir.'/*.sql') ?: [] as $staged) unlink($staged);
+    rmdir($legacyDir);
+}
 $pdo->exec("UPDATE engine_schema_migrations SET completed=0 ORDER BY filename DESC LIMIT 1");
 rejects(fn()=> $migrationRunner->run($migrationPath),RuntimeException::class,'dirty migration rejected');
 $pdo->exec("UPDATE engine_schema_migrations SET completed=1");
