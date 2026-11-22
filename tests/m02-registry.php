@@ -13,6 +13,15 @@ check($component['level']===1,'SDK validates typed component instance');
 $command=$sdk->command('third-world','sdk-open','economy.open',['account'=>'tester','resource'=>'amber']);
 check($command instanceof Command && $command->type==='economy.open','SDK creates a typed trusted command');
 $event=$sdk->event('third-world','sdk-event','economy.upgrade.complete',120,['account'=>'tester','resource'=>'amber','level'=>1]);
+$runtimeRules=$fixture->rules();
+rejects(fn()=> $runtimeRules->events->resolve(
+    new ScheduledEvent('third-world','wrong-type','economy.upgrade.complete',120,
+        ['account'=>'tester','resource'=>'amber','level'=>'1']),[]),
+    InvalidArgumentException::class,'runtime typed event handler rejects wrong scalar type before mutation');
+rejects(fn()=> $runtimeRules->events->resolve(
+    new ScheduledEvent('third-world','unknown-hook','unknown.event',120,[]),[]),
+    DomainException::class,'runtime typed event handler denies undeclared hooks');
+
 check($event instanceof ScheduledEvent && $event->dueAt===120,'SDK creates a typed event envelope');
 rejects(fn()=> $sdk->component('outpost',['owner'=>'tester','level'=>'1','active'=>true]),InvalidArgumentException::class,'SDK rejects numeric string for integer component');
 rejects(fn()=> $sdk->command('third-world','sdk-bad','economy.open',['account'=>'tester','resource'=>'amber','admin'=>true]),InvalidArgumentException::class,'SDK refuses undeclared action payload fields');
