@@ -5,7 +5,7 @@ use PDO;
 
 final class AuthHttpApi
 {
-    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120,private readonly array $registrationWorlds=[])
+    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120,private readonly array $registrationWorlds=[],private readonly bool $requireInvitation=false)
     {
         if ($globalLoginLimit<1 || $globalLoginLimit>100000) throw new \InvalidArgumentException('Invalid global verification limit');
     }
@@ -29,10 +29,13 @@ final class AuthHttpApi
             try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
             if (!is_array($data) || !array_key_exists('login',$data) || !array_key_exists('password',$data)
-                || !array_key_exists('world',$data) || count($data)!==3
+                || !array_key_exists('world',$data) || count($data)!==($this->requireInvitation?4:3)
+                || ($this->requireInvitation && !is_string($data['inviteCode']??null))
+                || (!$this->requireInvitation && array_key_exists('inviteCode',$data))
                 || !is_string($data['login']) || !is_string($data['password']) || !is_string($data['world'])
                 || !preg_match('/^[a-z0-9][a-z0-9_-]{2,63}$/D',$data['login'])
-                || strlen($data['password'])<12 || strlen($data['password'])>1024) {
+                || strlen($data['password'])<12 || strlen($data['password'])>1024
+                || ($this->requireInvitation && !preg_match('/^[a-f0-9]{64}$/D',$data['inviteCode']))) {
                 return [400,['error'=>'invalid_registration']];
             }
             if (!isset($this->registrationWorlds[$data['world']])) return [404,['error'=>'not_found']];
@@ -42,7 +45,8 @@ final class AuthHttpApi
             }
             try {
                 $claim=(new PdoOnboarding($this->pdo,$this->clock))->enroll(
-                    $data['world'],$this->registrationWorlds[$data['world']],$data['login'],$data['password']
+                    $data['world'],$this->registrationWorlds[$data['world']],$data['login'],$data['password'],
+                    $this->requireInvitation?$data['inviteCode']:null
                 );
             } catch (\DomainException) {
                 return [409,['error'=>'registration_unavailable']];

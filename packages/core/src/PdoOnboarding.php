@@ -16,11 +16,12 @@ final class PdoOnboarding
     /**
      * @return array{actor:string,created:bool,recoveryCode:?string}
      */
-    public function enroll(string $world,GamePack $pack,string $login,string $password): array
+    public function enroll(string $world,GamePack $pack,string $login,string $password,?string $inviteCode=null): array
     {
         if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$world)
             || !preg_match('/^[a-z0-9][a-z0-9_-]{2,63}$/D',$login)
-            || strlen($password)<12 || strlen($password)>1024) {
+            || strlen($password)<12 || strlen($password)>1024
+            || ($inviteCode!==null && !preg_match('/^[a-f0-9]{64}$/D',$inviteCode))) {
             throw new \InvalidArgumentException('Invalid registration');
         }
         if ($this->pdo->inTransaction()) throw new \LogicException('Nested onboarding transaction');
@@ -32,6 +33,7 @@ final class PdoOnboarding
         $this->pdo->beginTransaction();
         try {
             $actor=$identity->register($login,$password);
+            if ($inviteCode!==null) (new PdoInvitations($this->pdo,$this->clock))->claim($inviteCode,$world,$actor);
             $s=$this->pdo->prepare('INSERT INTO engine_onboarding(actor_id,world_id,status,created_at) VALUES (?,?,?,?)');
             $s->execute([$actor,$world,'pending',$now]);
             $this->pdo->commit();
@@ -46,6 +48,9 @@ final class PdoOnboarding
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
             throw $e;
+        }
+        if ($inviteCode!==null && !$created && !(new PdoInvitations($this->pdo,$this->clock))->belongsTo($inviteCode,$world,$actor)) {
+            throw new \DomainException('Invitation unavailable');
         }
         $s=$this->pdo->prepare('SELECT world_id,status FROM engine_onboarding WHERE actor_id=?');
         $s->execute([$actor]);
