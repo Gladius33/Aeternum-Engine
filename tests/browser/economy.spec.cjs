@@ -317,12 +317,20 @@ for (const s of scenarios) {
         expect(persisted).not.toBeNull();
         expect(persisted.stock).toBeGreaterThanOrEqual(before.stock-s.cost);
         expect(persisted.stock).toBeLessThan(before.stock);
-        expect(persisted.amount).toBe(s.rate);
-        expect(persisted.pending.level).toBe(1);
-        expect(persisted.pending.dueAt).toBe(data.effectiveAt+s.duration);
+        // Short-duration upgrades can finish while the browser reconnects,
+        // particularly after a due-event 409 and worker catch-up. Both states
+        // are valid, but never accept a missing or inconsistent upgrade.
         expect(persisted.next).toBeNull();
-        await expect(page.locator('#stock')).toContainText('Pending level 1');
-        await expect(page.locator('#stock')).toContainText(new Date(persisted.pending.dueAt*1000).toISOString());
+        if (persisted.pending!==null) {
+            expect(persisted.amount).toBe(s.rate);
+            expect(persisted.pending.level).toBe(1);
+            expect(persisted.pending.dueAt).toBe(data.effectiveAt+s.duration);
+            await expect(page.locator('#stock')).toContainText('Pending level 1');
+            await expect(page.locator('#stock')).toContainText(new Date(persisted.pending.dueAt*1000).toISOString());
+        } else {
+            expect(persisted.level).toBe(1);
+            expect(persisted.amount).toBe(s.upgraded);
+        }
         // Reads cannot overtake due events. Run the actual bounded CLI worker,
         // as CRON would; a due boundary between worker and read may return 409.
         await expect.poll(async()=> {
