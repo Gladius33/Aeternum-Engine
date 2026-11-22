@@ -7,11 +7,11 @@
 <dl id="stock"></dl><form id="action"><label>Action <select name="type"><option value="economy.settle">Settle production</option><option value="economy.upgrade">Upgrade production</option><option value="economy.transfer">Transfer resources</option></select></label><fieldset id="transfer-fields" hidden disabled><legend>Transfer details</legend><button id="load-recipients" type="button">Find recipients</button><label>Available recipients <select id="recipient-directory"><option value="">Choose a recipient</option></select></label><p id="recipient-notice" role="status"></p><label>Recipient account <input name="recipient" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_\\-]{0,63}" required></label><label>Units <input name="units" type="number" min="1" max="1000000000000" step="1" required></label></fieldset><button>Submit action</button></form>
 <section id="market-panel"><h2>Market</h2>
 <form id="market-create"><h3>Publish a barter offer</h3>
-<label>Offered resource <select name="giveResource" required></select></label><label>Offered units <input name="giveUnits" type="number" min="1" max="1000000000000" step="1" value="1" required></label>
-<label>Requested resource <select name="wantResource" required></select></label><label>Requested units <input name="wantUnits" type="number" min="1" max="1000000000000" step="1" value="1" required></label>
+<label for="market-give-resource">Offered resource</label><select id="market-give-resource" name="giveResource" required></select><label for="market-give-units">Offered units</label><input id="market-give-units" name="giveUnits" type="number" min="1" max="1000000000000" step="1" value="1" required>
+<label for="market-want-resource">Requested resource</label><select id="market-want-resource" name="wantResource" required></select><label for="market-want-units">Requested units</label><input id="market-want-units" name="wantUnits" type="number" min="1" max="1000000000000" step="1" value="1" required>
 <button>Create offer</button></form>
 <button id="market-load" type="button">Reload market</button><button id="market-next" type="button" hidden>Next market page</button>
-<label>Open offers <select id="market-offer"><option value="">Choose an offer</option></select></label>
+<label for="market-offer">Open offers</label><select id="market-offer"><option value="">Choose an offer</option></select>
 <button id="market-accept" type="button">Accept selected offer</button><button id="market-cancel" type="button">Cancel selected offer</button><p id="market-notice" role="status"></p>
 </section></section>
 <p id="status" role="status" aria-live="polite"></p></main></body></html>

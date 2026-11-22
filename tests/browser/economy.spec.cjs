@@ -35,7 +35,7 @@ async function refresh(page, allowDueConflict=false) {
 }
 
 async function marketPage(page) {
-    const received=page.waitForResponse(r=>r.url().endsWith('/economy/market') && r.request().method()==='GET');
+    const received=page.waitForResponse(r=>r.url().endsWith('/economy/market') && r.request().method()==='GET',{timeout:15000});
     await page.getByRole('button',{name:'Reload market',exact:true}).click();
     const response=await received;
     expect(response.status()).toBe(200);
@@ -43,7 +43,7 @@ async function marketPage(page) {
     return (await response.json()).data;
 }
 async function marketCommand(page,button,type) {
-    const received=page.waitForResponse(r=>r.url().endsWith('/economy/commands') && r.request().method()==='POST' && r.request().postDataJSON().type===type);
+    const received=page.waitForResponse(r=>r.url().endsWith('/economy/commands') && r.request().method()==='POST' && r.request().postDataJSON().type===type,{timeout:15000});
     await page.getByRole('button',{name:button,exact:true}).click();
     const response=await received;
     expect(response.status()).toBe(200);
@@ -51,6 +51,7 @@ async function marketCommand(page,button,type) {
     return {body:response.request().postDataJSON(),receipt:(await response.json()).data,authorization:(await response.request().allHeaders()).authorization};
 }
 async function industrialMarketSmoke(page) {
+    page.setDefaultTimeout(15000);
     await expect(page.getByRole('heading',{name:'Market',exact:true})).toBeVisible();
     expect((await marketPage(page)).offers).toEqual([]);
     await expect(page.locator('#market-notice')).toHaveText('No open offers.');
