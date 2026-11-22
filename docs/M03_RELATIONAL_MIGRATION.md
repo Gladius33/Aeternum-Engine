@@ -134,3 +134,14 @@ de chacun et le rejeu du journal, puis imprime le temps total et le
 débit observé. Les mesures de GitHub Actions sont indicatives et ne
 constituent ni une garantie de capacité sur hébergeur mutualisé ni un
 benchmark de production ; une qualification dédiée reste à réaliser.
+
+## Événements planifiés : calcul hors verrou et reprise par lots
+
+Pour les événements économiques du moteur de référence, le traitement
+prépare également hors verrou le résultat de l'événement arrivé à échéance,
+puis revalide sous verrou la version de l'état, les deux séquences et
+l'identité/charge de l'événement en tête de file. Une mutation intercalée
+entraîne le recalcul canonique. Les handlers génériques conservent la
+voie historique sans exécution spéculative. Le test de dix expirations
+par lots (3 + 7) prouve la restitution totale de l'escrow sous saturation,
+le rejeu du journal et la non-duplication des remboursements.

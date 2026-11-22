@@ -266,16 +266,32 @@ final class PdoScheduler
         $this->processing = true;
         try {
             while (count($committed) < $limit && (hrtime(true) - $started) / 1000000 < $budgetMs) {
-                $id = $this->transaction(function () use ($handler, $cutoff): ?string {
+                $prepared=$this->prepareEconomyEvent($handler,$cutoff);
+                $id = $this->transaction(function () use ($handler, $cutoff,$prepared): ?string {
                     $world = $this->lockedWorld();
                     if ($cutoff < (int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
                     $row = $this->query('SELECT event_id,event_type,due_at,payload_json FROM engine_events WHERE world_id = ? AND completed = 0 AND due_at <= ? ORDER BY due_at,sequence_no LIMIT 1 FOR UPDATE', [$this->worldId,$cutoff])->fetch(PDO::FETCH_ASSOC);
                     if ($row === false) return null;
                     $event = $this->event($row);
-                    $before=ScalarMap::decode($world['state_json']);
-                    $eventResult = $this->resolveEvent($handler,$event,$before);
+                    $usable=$prepared!==null
+                        && $prepared['journal_sequence']===(int)$world['journal_sequence']
+                        && $prepared['state_json']===$world['state_json']
+                        && $prepared['next_sequence']===(int)$world['next_sequence']
+                        && $prepared['event_id']===$event->id
+                        && $prepared['event_type']===$event->type
+                        && $prepared['due_at']===$event->dueAt
+                        && $prepared['payload_json']===$row['payload_json'];
+                    if ($usable) {
+                        $before=$prepared['before'];
+                        $eventResult=$prepared['result'];
+                        $changedKeys=$prepared['changed_keys'];
+                    } else {
+                        $before=ScalarMap::decode($world['state_json']);
+                        $eventResult=$this->resolveEvent($handler,$event,$before);
+                        $changedKeys=null;
+                    }
                     $newState = ScalarMap::encode($eventResult->state);
-                    $this->syncProjection($before,$eventResult->state);
+                    $this->syncProjection($before,$eventResult->state,$changedKeys);
                     $this->query('UPDATE engine_worlds SET state_json = ?, watermark = ? WHERE world_id = ?', [$newState,$event->dueAt,$this->worldId]);
                     $changed = $this->query('UPDATE engine_events SET completed = 1 WHERE world_id = ? AND event_id = ? AND completed = 0', [$this->worldId,$event->id])->rowCount();
                     if ($changed !== 1) throw new \LogicException('Event completion invariant violated');
@@ -289,6 +305,41 @@ final class PdoScheduler
             $this->processing = false;
         }
         return $committed;
+    }
+
+    /**
+     * Speculative computation for pinned, pure economy events. Read world and
+     * due event outside any writer lock; processDue rechecks the full
+     * version, sequence and exact due event under world FOR UPDATE before use.
+     */
+    private function prepareEconomyEvent(EventHandler $handler,int $cutoff): ?array
+    {
+        if (!$handler instanceof EconomyEventHandler || !$this->hasProjection()) return null;
+        try {
+            $world=$this->query('SELECT state_json,journal_sequence,next_sequence,watermark,rules_key,economy_projection_version
+                FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetch(PDO::FETCH_ASSOC);
+            if ($world===false || $world['rules_key']!==$this->rulesKey()
+                || (int)$world['economy_projection_version']!==1
+                || $cutoff<(int)$world['watermark']) return null;
+            $row=$this->query('SELECT event_id,event_type,due_at,payload_json,sequence_no FROM engine_events
+                WHERE world_id=? AND completed=0 AND due_at<=?
+                ORDER BY due_at,sequence_no LIMIT 1',[$this->worldId,$cutoff])->fetch(PDO::FETCH_ASSOC);
+            if ($row===false) return null;
+            $event=$this->event($row);
+            $before=ScalarMap::decode($world['state_json']);
+            $result=$this->resolveEvent($handler,$event,$before);
+            return ['state_json'=>$world['state_json'],
+                'journal_sequence'=>(int)$world['journal_sequence'],
+                'next_sequence'=>(int)$world['next_sequence'],
+                'event_id'=>$event->id,'event_type'=>$event->type,
+                'due_at'=>$event->dueAt,'payload_json'=>$row['payload_json'],
+                'before'=>$before,'result'=>$result,
+                'changed_keys'=>PdoEconomyProjection::deltaKeys($before,$result->state)];
+        } catch (\Throwable) {
+            // A bad speculative snapshot is never a result. The locked
+            // canonical event processor reports the actual domain error.
+            return null;
+        }
     }
 
     private function resolveEvent(EventHandler $handler,ScheduledEvent $event,array $state): EventResult
