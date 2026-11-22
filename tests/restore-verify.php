@@ -62,7 +62,17 @@ if($persisted===false || $persisted['status']!=='open' || $persisted['seller_id'
 }
 foreach ($pack->resources as $resource) {
     $balance=$game->balanceForActor($actor,$actor,$resource->id,$rules->commands);
-    if($balance->stock!==$resource->initialStock) throw new RuntimeException('Restored resource stock differs');
+    // The legacy escrow offer reserves one wood unit before migration.
+    // Verify post-escrow stock, not the pre-market opening balance.
+    $expectedStock=$resource->initialStock-($resource->id==='wood'?1:0);
+    if($balance->stock!==$expectedStock) throw new RuntimeException(
+        'Restored resource stock differs for '.$resource->id
+    );
+    $row=$dst->prepare('SELECT stock_units FROM engine_economy_balances WHERE world_id=? AND account_id=? AND resource_id=?');
+    $row->execute(['m01-legacy-world',$actor,$resource->id]);
+    if((int)$row->fetchColumn()!==$expectedStock) {
+        throw new RuntimeException('Restored relational stock differs for '.$resource->id);
+    }
 }
 echo json_encode([
     'restoreVerified'=>true,'tablesCompared'=>count($tables),
