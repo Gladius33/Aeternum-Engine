@@ -132,3 +132,6 @@ M01 controlled-beta invitation checks: MariaDB tests rejection without code, mal
 M01 invitation expiry/revocation: integration tests reject 59-second or over-30-day TTL, revoked unused codes, expired unused codes, repeated revocation and identity creation after expiry. Operator CLI tests issue and revoke a concrete code; a previously consumed code remains bound to the original actor for interrupted-provision retry.
 
 Invitation admission also refuses a timestamp earlier than creation (clock rollback); the invitation race worker uses the same logical clock as issuance.
+
+
+M01 opt-in browser qualification: browser.yml starts an additional 127.0.0.1:8766 server with AETERNUM_SIGNUP_REQUIRE_INVITE=1, issues one real token via operator CLI, checks invite form visibility and required attribute, enrolls a player in the configured industrial world and refuses a second actor using the consumed token. Both loopback servers share disposable MariaDB; the invitation secret is discarded at teardown, never committed. E2E remains a lab approximation and does not certify real TLS.

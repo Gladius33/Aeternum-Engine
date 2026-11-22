@@ -65,7 +65,16 @@ jobs:
           set -Eeuo pipefail
           php -S 127.0.0.1:8765 -t public tests/browser/router.php >browser-server.log 2>&1 &
           server=$!
-          trap 'kill "$server" 2>/dev/null || true' EXIT
+          # A second HTTPS-emulated loopback server enables real invitation-mode E2E.
+          php bin/invite.php e2e-industrial 1 > tests/browser/.e2e-invite-token
+          AETERNUM_SIGNUP_REQUIRE_INVITE=1 php -S 127.0.0.1:8766 -t public tests/browser/router.php >browser-invited.log 2>&1 &
+          invited_server=$!
+          trap 'kill "$server" "$invited_server" 2>/dev/null || true; rm -f tests/browser/.e2e-invite-token' EXIT
+          for n in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8766/play.html >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail http://127.0.0.1:8766/play.html >/dev/null
           for n in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8765/play.html >/dev/null; then break; fi
             sleep 1
