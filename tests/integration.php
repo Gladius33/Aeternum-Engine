@@ -154,6 +154,7 @@ require __DIR__ . "/recovery.php";
 require __DIR__ . "/password-change.php";
 require __DIR__ . "/invitations.php";
 require __DIR__ . "/email-activation.php";
+require __DIR__ . "/email-http.php";
 require __DIR__ . "/invite-cli.php";
 require __DIR__ . "/world-worker.php";
 require __DIR__.'/player-discovery.php';

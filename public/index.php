@@ -28,7 +28,7 @@ try {
                 foreach (ConfiguredWorlds::load() as $world=>$pack) {
                     $worlds[]=['world'=>$world,'pack'=>$pack->id,'name'=>$pack->name];
                 }
-                $status=200; $body=['data'=>['worlds'=>$worlds,'invitationRequired'=>getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1']];
+                $status=200; $body=['data'=>['worlds'=>$worlds,'invitationRequired'=>getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1','activationRequired'=>getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1']];
             }
         } elseif (str_starts_with($path,'/v1/auth/')) {
             $globalLimit=getenv('AETERNUM_AUTH_GLOBAL_LIMIT');
@@ -39,7 +39,7 @@ try {
             if ($parallelSignup!==false && (!preg_match('/^[1-9][0-9]?$/D',$parallelSignup) || (int)$parallelSignup>32)) throw new RuntimeException('Invalid signup parallel configuration');
             $trustedProxyIps=getenv('AETERNUM_TRUSTED_PROXY_IPS');
             $resolvedPeer=PeerAddressResolver::resolve($_SERVER['REMOTE_ADDR'] ?? '',$_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',$trustedProxyIps===false?'':$trustedProxyIps);
-            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,getenv('AETERNUM_PUBLIC_REGISTRATION')==='1'?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit,$parallelSignup===false?8:(int)$parallelSignup))->handle(
+            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,getenv('AETERNUM_PUBLIC_REGISTRATION')==='1'?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit,$parallelSignup===false?8:(int)$parallelSignup,getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1'))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$resolvedPeer ?? ''
             );

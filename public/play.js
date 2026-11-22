@@ -83,18 +83,26 @@ login.addEventListener('submit',e=>{
     run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;registration.hidden=true;recovery.hidden=true;game.hidden=false;await discover();});
 });
 const registration=document.querySelector('#register');
-let joinableWorlds=[], inviteRequired=false;
+let joinableWorlds=[], inviteRequired=false, activationRequired=false;
+const activation=document.querySelector('#activate');
 async function discoverRegistrations() {
     try {
         const data=await api('/v1/public/worlds');
         joinableWorlds=data.worlds;
         inviteRequired=data.invitationRequired===true;
+        activationRequired=data.activationRequired===true;
+        document.querySelector('#email-wrap').hidden=!activationRequired;
+        registration.elements.email.required=activationRequired;
+        activation.hidden=!activationRequired || token!==null;
         document.querySelector('#invite-wrap').hidden=!inviteRequired;
         registration.elements.inviteCode.required=inviteRequired;
         options(registration.elements.world,joinableWorlds.map(w=>[w.world,w.name+' — '+w.world]));
         registration.hidden=joinableWorlds.length===0 || token!==null;
     } catch {
-        joinableWorlds=[]; inviteRequired=false;
+        joinableWorlds=[]; inviteRequired=false; activationRequired=false;
+        document.querySelector('#email-wrap').hidden=true;
+        registration.elements.email.required=false;
+        activation.hidden=true;
         document.querySelector('#invite-wrap').hidden=true;
         registration.elements.inviteCode.required=false;
         registration.hidden=true;
@@ -109,12 +117,33 @@ registration.addEventListener('submit',e=>{
         if (password!==confirm) throw new Error('Passwords do not match');
         const payload={login:loginValue,password,world};
         if (inviteRequired) payload.inviteCode=String(f.get('inviteCode'));
+        if (activationRequired) payload.email=String(f.get('email'));
         const data=await api('/v1/auth/register','POST',payload);
-        token=data.token;
         registration.elements.password.value='';
         registration.elements.confirm.value='';
+        if (activationRequired) {
+            activation.elements.login.value=loginValue;
+            activation.hidden=false;
+            registration.hidden=true;
+            return 'Check your email for the activation code, then enter it below.';
+        }
+        token=data.token;
         showRecoveryCode(data.recoveryCode);
         login.hidden=true; registration.hidden=true; recovery.hidden=true; game.hidden=false;
+        await discover();
+    });
+});
+activation.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(activation);
+    const payload={login:String(f.get('login')),password:String(f.get('password')),code:String(f.get('code'))};
+    activation.elements.password.value='';
+    activation.elements.code.value='';
+    run(async()=>{
+        const data=await api('/v1/auth/activate','POST',payload);
+        token=data.token;
+        activation.hidden=true; login.hidden=true; registration.hidden=true; recovery.hidden=true; game.hidden=false;
+        showRecoveryCode(data.recoveryCode);
         await discover();
     });
 });
@@ -279,7 +308,7 @@ retryCommand.addEventListener('click',()=>run(async()=>{
 }));
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
-    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; showRecoveryCode(null);
+    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; activation.hidden=!activationRequired; showRecoveryCode(null);
 }
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }
