@@ -30,7 +30,7 @@ check((new PdoSessions(db(),$authClock))->resolve($authToken)===null,'HTTP logou
     check($authApi->handle('POST','/v1/auth/logout/all','Bearer '.$first,'','192.0.2.11')[0]===401,'stale global logout bearer is denied');
     $newSession=$sessions->login('test-player','correct horse battery staple');
     check($newSession!==null && $sessions->resolve($newSession)===$actor,'password remains valid after all devices sign out');
-    rejects(fn()=> $sessions->revokeAllForActor('invalid'),InvalidArgumentException::class,'global logout rejects invalid actor identifier');
+    rejects(fn()=> $sessions->revokeAllForActor('invalid actor id'),InvalidArgumentException::class,'global logout rejects invalid actor identifier');
 })();
 
 for ($i=0;$i<10;$i++) check($authApi->handle('POST',$loginPath,'','{}','192.0.2.2')[0]===400,'bounded malformed request');
