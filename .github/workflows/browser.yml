@@ -82,7 +82,11 @@ jobs:
           curl --fail http://127.0.0.1:8765/play.html >/dev/null
           # The scenarios share real peer/auth quotas and persistent worlds.
           # Parallel workers race the same quota and make test order nondeterministic.
-          npx playwright test tests/browser/economy.spec.cjs --workers=1 --reporter=line
+          npx playwright test tests/browser/economy.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
-        run: tail -n 150 browser-server.log || true
+        run: |
+          echo '=== Public server ==='
+          tail -n 150 browser-server.log || true
+          echo '=== Invitation server ==='
+          tail -n 150 browser-invited.log || true
