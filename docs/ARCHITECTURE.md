@@ -90,3 +90,6 @@ Browser requests lock selection controls until completion. Explicit select value
 
 
 M01 (work in progress): an explicit opt-in signup gateway composes approved world packs, PdoIdentity, the durable engine_onboarding claim and retryable PlayerProvisioner. No public route receives untrusted engine or pack code, no signup attempts to erase already-committed world transactions, and the actor's secret is never stored in the claim. A distinct public read endpoint lists only operator-approved worlds.
+
+
+M01 account recovery: the PdoRecovery service issues one-time high-entropy offline credentials. It stores no reusable plaintext code; a successful reset rotates it and invalidates bearer sessions transactionally. Email ownership remains unverified.

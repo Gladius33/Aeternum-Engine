@@ -118,3 +118,6 @@ Browser CI installs the schema, provisions one distinct identity per pack, start
 
 ## M01 signup qualification (pending CI)
 Integration suite exercises disabled route, validation/methods/unknown world, session resolution, first-world initial stock, duplicate credentials, immutable world claim, operator identity exclusion, crash recovery from committed pending claim, bounded peer quota and four independent concurrent signup processes returning one actor and one set of initial credits. Real Chromium covers public world listing, creating a new industrial player without CLI, automatic login, stock, sign-out/re-login, duplicate signup, second independent user and foreign balance rejection. All tests run against disposable MariaDB. Production email/activation/recovery, rate-capacity measurement and external HTTPS remain unverified; do not mark M01 complete until then.
+
+
+M01 recovery follow-up: MariaDB suite covers stored token hashing, invalid and replayed codes, atomic password change, session revocation, authenticated replacement and four simultaneous attempts to spend one token. Chromium creates a public player, reconnects, recovers with an offline code, checks old password denial and authenticates with the replacement password. This is not email verification. CI on exact head required.

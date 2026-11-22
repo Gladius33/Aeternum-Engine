@@ -120,3 +120,6 @@
 
 
 - ADR-050 (M01 pending): public onboarding is explicitly opt-in. Commit identity and pending claim together; reuse world-locked stable provision IDs to resume partial work after crash; mark ready only after all world operations. Never treat a CLI-only identity or an existing public claim for another world as a new public membership. Separate rate quotas and keep account activation/recovery and production qualification as open blockers.
+
+
+- ADR-051 (M01): self-service recovery uses offline 256-bit one-time codes rather than pretending to send unconfigured email. Persist SHA-256 digests only; rotate under row locks; change password and revoke sessions transactionally. Authenticated rotation also requires the current password. Email attestation and production abuse/capacity validation remain outstanding.

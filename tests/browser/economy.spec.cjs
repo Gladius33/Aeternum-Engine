@@ -330,6 +330,25 @@ test('public signup provisions real players, supports retry, reconnect and accou
             headers:{Authorization:'Bearer '+other.token}
         });
         expect(granted.status()).toBe(200);
+        // Use the one-time recovery code issued after registration.
+        expect(first.recoveryCode).toMatch(/^[a-f0-9]{64}$/);
+        await page.getByRole('button',{name:'Sign out'}).click();
+        await page.getByLabel('Recovery login',{exact:true}).fill('browser-public-first');
+        await page.getByLabel('Recovery code',{exact:true}).fill(first.recoveryCode);
+        await page.getByLabel('Replacement password',{exact:true}).fill('browser new password after recovery');
+        await page.getByLabel('Confirm replacement password',{exact:true}).fill('browser new password after recovery');
+        const resetResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/recover') && r.request().method()==='POST');
+        await page.getByRole('button',{name:'Reset password',exact:true}).click();
+        const reset=await resetResponse;
+        expect(reset.status()).toBe(200);
+        const {data:recovered}=await reset.json();
+        await expect(page.locator('#recovery-secret')).toContainText(recovered.recoveryCode);
+        expect((await page.request.post(url+'/v1/auth/login',{data:{login:'browser-public-first',password}})).status()).toBe(401);
+        await page.getByLabel('Login',{exact:true}).fill('browser-public-first');
+        await page.getByLabel('Password',{exact:true}).fill('browser new password after recovery');
+        await page.getByRole('button',{name:'Sign in',exact:true}).click();
+        await expect(page.locator('#game')).toBeVisible();
+        await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);
     } finally {
         await context.close();
     }
