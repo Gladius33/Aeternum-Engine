@@ -102,3 +102,6 @@ GET /v1/worlds/{world}/economy/overview/{account}/{resource} requires an active 
 0038 review correction: preserve the original world and entire pending command; expose a dedicated in-session retry control independent of current selection or open offer list. The real Chromium industrial scenario drops the cancellation response after it commits, reloads the now-empty market, retries the saved command, and checks the identical durable receipt. Logout discards pending session state. CI pending on corrected head.
 
 0038 accessibility correction: initial Chromium run 45003624969 failed locating the exact label of a nested select. Use explicit for/id associations for market resource, quantity and offer controls. Reproduced the original exact-label miss and verified the corrected labels/selection in local real Chromium. Bound market smoke action/response waits to 15 seconds; full corrected CI remains required.
+
+## Browser multiplayer market validation (0039)
+The browser E2E suite now exercises two independent operator-provisioned medieval accounts with distinct bearer tokens: durable escrow, accepted barter, idempotent retry, conflicting payload denial, cross-world market isolation, and closed-offer projection after login. Integration tests remain authoritative for exact ledger conservation and process races.

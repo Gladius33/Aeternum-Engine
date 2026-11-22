@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — iteration 0039
+- Add independent seller/buyer Chromium barter scenario using authenticated live market endpoints and real MariaDB.
+- Verify owner-only browser actions, durable retry after acceptance, rejection of conflicting retry IDs and cross-world market isolation.
+- Validate seller payment and buyer delivery after lazy production, and offer closure across a fresh browser login.
+
 ## Unreleased — iteration 0029
 - Add read-only actor-scoped stock and upgrade overview (current level, next rule, persisted pending due time).
 - Display authoritative upgrade progression in the reference UI and extend MariaDB and real Chromium scenarios.

@@ -96,6 +96,65 @@ async function industrialMarketSmoke(page) {
     await expect(page.locator('#market-notice')).toHaveText('No open offers.');
 }
 
+
+test('two real browser players settle a persisted market barter exactly once',async ({browser})=>{
+    const sellerContext=await browser.newContext(), buyerContext=await browser.newContext();
+    try {
+        const seller=await sellerContext.newPage(), buyer=await buyerContext.newPage();
+        const scenario=scenarios[0];
+        await signIn(seller,{...scenario,login:'browser-medieval-sender'});
+        await signIn(buyer,{...scenario,login:'browser-medieval-receiver'});
+        const sellerAccount=await seller.locator('select[name=account]').inputValue();
+        const buyerAccount=await buyer.locator('select[name=account]').inputValue();
+        expect(sellerAccount).not.toBe(buyerAccount);
+        await buyer.selectOption('select[name=resource]','wood');
+        const beforeBuyer=await refresh(buyer,true);
+        expect(beforeBuyer).not.toBeNull();
+        await seller.selectOption('select[name=resource]','grain');
+        const beforeSeller=await refresh(seller,true);
+        expect(beforeSeller).not.toBeNull();
+        await seller.getByLabel('Offered resource',{exact:true}).selectOption('wood');
+        await seller.getByLabel('Offered units',{exact:true}).fill('5');
+        await seller.getByLabel('Requested resource',{exact:true}).selectOption('grain');
+        await seller.getByLabel('Requested units',{exact:true}).fill('3');
+        const created=await marketCommand(seller,'Create offer','market.create');
+        expect(created.body.payload.seller).toBe(sellerAccount);
+        expect(created.body.payload.offer).toBe(created.body.id);
+        const own=(await marketPage(seller)).offers;
+        expect(own).toHaveLength(1);
+        await seller.getByLabel('Open offers',{exact:true}).selectOption(created.body.id);
+        await seller.getByRole('button',{name:'Accept selected offer'}).click();
+        await expect(seller.locator('#status')).toHaveText('Cannot buy own offer');
+        const offers=(await marketPage(buyer)).offers;
+        expect(offers).toHaveLength(1);
+        expect(offers[0]).toMatchObject({id:created.body.id,seller:sellerAccount,giveResource:'wood',giveUnits:5,wantResource:'grain',wantUnits:3});
+        await buyer.getByLabel('Open offers',{exact:true}).selectOption(created.body.id);
+        await buyer.getByRole('button',{name:'Cancel selected offer'}).click();
+        await expect(buyer.locator('#status')).toHaveText('Select the seller account to cancel');
+        const accepted=await marketCommand(buyer,'Accept selected offer','market.accept');
+        expect(accepted.body.payload).toEqual({offer:created.body.id,seller:sellerAccount,buyer:buyerAccount});
+        const retry=await buyer.request.post(url+'/v1/worlds/'+scenario.world+'/economy/commands',{headers:{Authorization:accepted.authorization},data:accepted.body});
+        expect(retry.status()).toBe(200);
+        expect((await retry.json()).data).toEqual(accepted.receipt);
+        const incompatible={...accepted.body,payload:{...accepted.body.payload,offer:'not-the-same-offer'}};
+        const conflicting=await buyer.request.post(url+'/v1/worlds/'+scenario.world+'/economy/commands',{headers:{Authorization:accepted.authorization},data:incompatible});
+        expect(conflicting.status()).toBe(409);
+        expect((await marketPage(buyer)).offers).toEqual([]);
+        const foreignWorld=await buyer.request.get(url+'/v1/worlds/e2e-industrial/economy/market',{headers:{Authorization:accepted.authorization}});
+        expect(foreignWorld.status()).toBe(409);
+        const afterBuyer=await refresh(buyer);
+        const afterSeller=await refresh(seller);
+        // Production accrues lazily; the delivered units are a strict lower bound.
+        expect(afterBuyer.stock).toBeGreaterThanOrEqual(beforeBuyer.stock+5);
+        expect(afterSeller.stock).toBeGreaterThanOrEqual(beforeSeller.stock+3);
+        await signIn(buyer,{...scenario,login:'browser-medieval-receiver'});
+        expect((await marketPage(buyer)).offers).toEqual([]);
+    } finally {
+        await sellerContext.close();
+        await buyerContext.close();
+    }
+});
+
 test('real multiplayer transfer and foreign balance denial', async ({browser})=>{
     const senderContext=await browser.newContext(), receiverContext=await browser.newContext();
     try {

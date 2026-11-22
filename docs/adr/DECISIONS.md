@@ -115,3 +115,5 @@
 - ADR-048 amendment: pending retry stores its original world and command body and can be submitted explicitly even after the offer disappears or selection changes. Do not derive retry identity from the refreshed list.
 
 0038 accessibility correction: initial Chromium run 45003624969 failed locating the exact label of a nested select. Use explicit for/id associations for market resource, quantity and offer controls. Reproduced the original exact-label miss and verified the corrected labels/selection in local real Chromium. Bound market smoke action/response waits to 15 seconds; full corrected CI remains required.
+
+- ADR-049: require two independent browser sessions to cover the complete marketplace exchange, in addition to lower-level SQL concurrency tests. The client must use server-authoritative terms and preserve the transactional receipt on duplicate accept; a closed offer disappears from public projection. This is E2E evidence, not proof of production capacity or public onboarding.
