@@ -287,3 +287,50 @@ test('expired authorization clears private UI and returns to login', async ({pag
     await expect(page.locator('#retry-command')).toBeHidden();
     await expect(page.locator('#game')).toBeHidden();
 });
+
+
+test('public signup provisions real players, supports retry, reconnect and account isolation',async ({browser})=>{
+    test.setTimeout(90000);
+    const context=await browser.newContext(), page=await context.newPage();
+    try {
+        await page.goto(url+'/play.html');
+        await expect(page.locator('#register')).toBeVisible();
+        await expect(page.locator('#register select option')).toHaveCount(2);
+        await page.getByLabel('New login',{exact:true}).fill('browser-public-first');
+        await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
+        await page.getByLabel('Confirm new password',{exact:true}).fill(password);
+        await page.getByLabel('World to join',{exact:true}).selectOption('e2e-industrial');
+        const received=page.waitForResponse(r=>r.url().endsWith('/v1/auth/register') && r.request().method()==='POST');
+        await page.getByRole('button',{name:'Create player',exact:true}).click();
+        const signup=await received;
+        expect(signup.status()).toBe(201);
+        const {data:first}=await signup.json();
+        expect(first.token).toMatch(/^[a-f0-9]{64}$/);
+        expect(first.world).toBe('e2e-industrial');
+        expect(first.account).toMatch(/^[a-f0-9]{64}$/);
+        await expect(page.locator('#game')).toBeVisible();
+        await expect(page.locator('select[name=account]')).toHaveValue(first.account);
+        const own=await refresh(page);
+        expect(own.stock).toBeGreaterThanOrEqual(0);
+        await page.getByRole('button',{name:'Sign out'}).click();
+        await signIn(page,{...scenarios[1],login:'browser-public-first'});
+        await expect(page.locator('select[name=account]')).toHaveValue(first.account);
+        const repeated=await page.request.post(url+'/v1/auth/register',{data:{login:'browser-public-first',password,world:'e2e-industrial'}});
+        expect(repeated.status()).toBe(200);
+        expect((await repeated.json()).data.account).toBe(first.account);
+        const second=await page.request.post(url+'/v1/auth/register',{data:{login:'browser-public-second',password,world:'e2e-industrial'}});
+        expect(second.status()).toBe(201);
+        const {data:other}=await second.json();
+        expect(other.account).not.toBe(first.account);
+        const denied=await page.request.get(url+'/v1/worlds/e2e-industrial/economy/overview/'+first.account+'/steel',{
+            headers:{Authorization:'Bearer '+other.token}
+        });
+        expect(denied.status()).toBe(409);
+        const granted=await page.request.get(url+'/v1/worlds/e2e-industrial/economy/overview/'+other.account+'/steel',{
+            headers:{Authorization:'Bearer '+other.token}
+        });
+        expect(granted.status()).toBe(200);
+    } finally {
+        await context.close();
+    }
+});

@@ -77,7 +77,35 @@ login.addEventListener('submit',e=>{
     const f=new FormData(login);
     const credentials={login:f.get('login'),password:f.get('password')};
     login.elements.password.value='';
-    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;game.hidden=false;await discover();});
+    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;registration.hidden=true;game.hidden=false;await discover();});
+});
+const registration=document.querySelector('#register');
+let joinableWorlds=[];
+async function discoverRegistrations() {
+    try {
+        const data=await api('/v1/public/worlds');
+        joinableWorlds=data.worlds;
+        options(registration.elements.world,joinableWorlds.map(w=>[w.world,w.name+' — '+w.world]));
+        registration.hidden=joinableWorlds.length===0 || token!==null;
+    } catch {
+        joinableWorlds=[];
+        registration.hidden=true;
+    }
+}
+void discoverRegistrations();
+registration.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(registration);
+    const loginValue=String(f.get('login')),password=String(f.get('password')),confirm=String(f.get('confirm')),world=String(f.get('world'));
+    run(async()=>{
+        if (password!==confirm) throw new Error('Passwords do not match');
+        const data=await api('/v1/auth/register','POST',{login:loginValue,password,world});
+        token=data.token;
+        registration.elements.password.value='';
+        registration.elements.confirm.value='';
+        login.hidden=true; registration.hidden=true; game.hidden=false;
+        await discover();
+    });
 });
 balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
 const transferFields=document.querySelector('#transfer-fields');
@@ -197,7 +225,7 @@ retryCommand.addEventListener('click',()=>run(async()=>{
 }));
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
-    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false;
+    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; registration.hidden=joinableWorlds.length===0;
 }
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }

@@ -31,6 +31,7 @@ jobs:
       AETERNUM_MEDIEVAL_WORLD: e2e-medieval
       AETERNUM_INDUSTRIAL_WORLD: e2e-industrial
       AETERNUM_BROWSER_TEST: '1'
+      AETERNUM_PUBLIC_REGISTRATION: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
