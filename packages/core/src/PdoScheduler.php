@@ -279,6 +279,14 @@ final class PdoScheduler
                 $this->assertAccountOwner($command->payload['from']??null,$actor);
                 $this->assertAccountOwner($command->payload['to']??null,null);
                 break;
+            case 'market.create':
+            case 'market.cancel':
+                $this->assertAccountOwner($command->payload['seller']??null,$actor);
+                break;
+            case 'market.accept':
+                $this->assertAccountOwner($command->payload['buyer']??null,$actor);
+                $this->assertAccountOwner($command->payload['seller']??null,null);
+                break;
             default: throw new \DomainException('Actor command not allowed');
         }
     }
