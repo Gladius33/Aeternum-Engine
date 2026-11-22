@@ -119,3 +119,6 @@ engine_account_recovery contains one SHA-256 hash of a random 256-bit recovery c
 
 ### Invitation claims (migration 018)
 When invite-only beta mode is enabled, engine_signup_invitations stores world-scoped SHA-256 token digests and a nullable actor claim. A new account, its pending claim and the consumption of its invitation are committed in one InnoDB transaction. An invalid or already consumed invitation rolls back identity creation. Subsequent retries require matching login/password, world and original invitation. Issuance is CLI-only, limited to 50 secrets per batch; plaintext is emitted once and never persisted. Optional flag AETERNUM_SIGNUP_REQUIRE_INVITE=1 is off by default.
+
+
+M01 unclaimed invitations carry server-side `expires_at` (default 7 days) and a `revoked` flag. Atomic claim refuses expired or revoked codes. Revocation affects only unused invitations; a previously claimed onboarding record may be completed idempotently after its code expires. Issued codes cannot be extended retroactively. Operators revoke by piping the secret to `bin/invite-revoke.php` and must protect CLI stdout and shell logs.

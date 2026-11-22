@@ -4,6 +4,8 @@ CREATE TABLE engine_signup_invitations (
  world_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  actor_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
  created_at BIGINT NOT NULL CHECK(created_at>=0),
+ expires_at BIGINT NOT NULL CHECK(expires_at>created_at),
+ revoked TINYINT NOT NULL DEFAULT 0 CHECK(revoked IN (0,1)),
  used_at BIGINT NULL,
  INDEX invitation_world (world_id,actor_id),
  CONSTRAINT invite_identity_fk FOREIGN KEY(actor_id) REFERENCES engine_identities(actor_id),

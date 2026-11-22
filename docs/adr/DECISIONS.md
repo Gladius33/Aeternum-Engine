@@ -129,3 +129,6 @@
 
 
 - ADR-053 (M01): opt-in invitation-only signup for controlled beta. Generate 256-bit random tokens via trusted operator CLI, persist only SHA-256 digests, bind to one world and claim atomically with identity creation. Same actor/world/token can resume after partial provision; a second actor cannot reuse it. Invites are not email verification nor a complete anti-Sybil system.
+
+
+- ADR-054 (M01): beta invitations expire by trusted clock after seven days unless a bounded shorter lifetime is specified. Unused codes may be revoked, while consumed codes retain the actor binding so interrupted onboarding remains resumable after expiry. Revoking an already-claimed invitation never revokes the player identity; membership revocation is a separate trusted operator operation.

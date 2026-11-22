@@ -127,3 +127,6 @@ M01 password reset race hardening: session login and code rotation now serialize
 
 
 M01 controlled-beta invitation checks: MariaDB tests rejection without code, malformed/unknown codes, exactly one actor per consumed invitation, orphan-free rollback, same-actor retry, wrong-actor denial and recovery of an invitation claim committed before world provisioning. A verified operator-run issuance CLI is still a deployment acceptance item.
+
+
+M01 invitation expiry/revocation: integration tests reject 59-second or over-30-day TTL, revoked unused codes, expired unused codes, repeated revocation and identity creation after expiry. Operator CLI tests issue and revoke a concrete code; a previously consumed code remains bound to the original actor for interrupted-provision retry.

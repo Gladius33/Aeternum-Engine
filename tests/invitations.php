@@ -42,3 +42,16 @@ try {
 [$recoverStatus,$recoverData]=$invitePost(['login'=>'invited-partial','password'=>'partial invitation password','world'=>$inviteWorld,'inviteCode'=>$codeC],'192.0.2.104');
 check($recoverStatus===200 && $recoverData['data']['account']===$preActor,'invited partial claim resumes after interruption');
 check($invitePost(['login'=>'invited-other','password'=>'other password is long','world'=>$inviteWorld,'inviteCode'=>$codeC],'192.0.2.105')[0]===409,'spent recovery invitation remains bound');
+
+
+// An unused invite expires; an unclaimed credential can also be revoked by its issuer.
+[$expiredCode,$revokedCode]=$inviteService->issue($inviteWorld,2,60);
+check($inviteService->revoke($revokedCode,$inviteWorld),'operator revokes one unused invitation');
+check(!$inviteService->revoke($revokedCode,$inviteWorld),'revocation is single transition');
+check(!$inviteService->revoke($codeA,$inviteWorld),'spent invitation cannot be revoked retroactively');
+check($invitePost(['login'=>'invite-revoked','password'=>'revoked invitation password','world'=>$inviteWorld,'inviteCode'=>$revokedCode],'192.0.2.106')[0]===409,'revoked invite cannot create an account');
+$inviteClock->advanceTo(2460);
+check($invitePost(['login'=>'invite-expired','password'=>'expired invitation password','world'=>$inviteWorld,'inviteCode'=>$expiredCode],'192.0.2.107')[0]===409,'expired invite cannot create an account');
+check((new PdoIdentity(db()))->authenticate('invite-expired','expired invitation password')===null,'expiration rollback leaves no identity');
+rejects(fn()=> $inviteService->issue($inviteWorld,1,59),InvalidArgumentException::class,'invitation TTL has lower bound');
+rejects(fn()=> $inviteService->issue($inviteWorld,1,2592001),InvalidArgumentException::class,'invitation TTL has upper bound');
