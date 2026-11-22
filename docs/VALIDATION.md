@@ -156,3 +156,9 @@ Chromium's public signup scenario additionally verifies the live client password
 
 ## M01 device-wide logout acceptance (CI pending)
 The authenticated `POST /v1/auth/logout/all` path resolves only its own bearer, returns `401` for an absent/expired token, never accepts a target actor ID and returns `200` only after identity-scoped global revocation. MariaDB `tests/auth-http.php` checks independent active sessions of one actor are all invalidated, a foreign actor's bearer survives, and subsequent login still works. Chromium `tests/browser/economy.spec.cjs` exercises the public-player button and proves the old bearer is denied by a subsequent authenticated API read. The browser preserves production rate limits and waits for a fresh quota window on `429`; do not count a throttled request as successful sign-out. Exact-head PHP/MariaDB/Chromium CI evidence is required.
+
+
+## M01 public producer and global abuse admission (CI pending)
+The real browser registration scenario now uses its freshly created **non-CLI industrial player** to submit an actor-scoped `economy.settle` action, checks the live response and UI confirmation, signs out, reconnects using the same user credentials, and verifies the persisted resource state/capacity. This is stronger than merely reading the initial provisioned stock and directly addresses M01's production/reconnect exit criterion.
+
+Real MariaDB integration tests now pre-exhaust the existing global hourly `auth:recovery-global` and `auth:registration-global` quotas, each independently of the attempted peer address. They require `429`, preservation of the valid unspent recovery/invitation credential without orphaned identities, and a genuine successful retry after fixed-window rollover. These tests verify fixed-window gate wiring and credential non-consumption only; they do not establish measured resilience against distributed bot or Sybil attacks on public infrastructure. Exact-head CI is essential.
