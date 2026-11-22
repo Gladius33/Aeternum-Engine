@@ -458,6 +458,9 @@ test('public signup provisions real players, supports retry, reconnect and accou
         await page.getByRole('button',{name:'Sign out'}).click();
         await signIn(page,{...scenarios[1],login:'browser-public-first'});
         await expect(page.locator('select[name=account]')).toHaveValue(first.account);
+        const persisted=await refresh(page);
+        expect(persisted.stock).toBeGreaterThanOrEqual(own.stock);
+        expect(persisted.capacity).toBe(own.capacity);
         const second=await page.request.post(url+'/v1/auth/register',{data:{login:'browser-public-second',password,world:'e2e-industrial'}});
         expect(second.status()).toBe(201);
         const {data:other}=await second.json();
