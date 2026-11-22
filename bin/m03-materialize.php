@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{ConfiguredWorlds,PdoScheduler,SystemClock};
+use Aeternum\Core\{ConfiguredWorlds,PdoScheduler,SystemClock,PdoEconomyProjection};
 if (PHP_SAPI!=='cli') {http_response_code(404);exit(1);}
 try {
     require __DIR__.'/../vendor/autoload.php';
@@ -22,6 +22,7 @@ try {
     $replay=$scheduler->verifyReplay($rules->commands,$rules->events,100000);
     $report['replayedEntries']=$replay->entries;
     $report['replayedDigest']=$replay->stateDigest;
+    $report['projectionAudit']=(new PdoEconomyProjection($pdo,$world))->assertConsistent($scheduler->state());
     $report['productionRestoreCertified']=false;
     echo json_encode($report,JSON_THROW_ON_ERROR|JSON_PRETTY_PRINT).PHP_EOL;
 } catch (Throwable) {

@@ -64,6 +64,17 @@ check((int)db()->query("SELECT COALESCE(SUM(delta_units),0) FROM engine_resource
     'M03 ledger conserves stock, active escrow and claimed returns without double counting');
 check($m03Db->verifyReplay($m03Economy,$m03Rules->events)->entries===8,
     'M03 expiry, deferred escrow and claim replay from pinned handlers');
+
+$audit=new \Aeternum\Core\PdoEconomyProjection(db(),$m03World);
+check($audit->assertConsistent($m03Db->state())['offers']===2,
+    'M03 operator audit matches relational status to pinned scalar state');
+db()->exec("UPDATE engine_market_offers SET give_units=99 WHERE world_id='m03-market-world' AND offer_id='fresh'");
+rejects(fn()=> $audit->assertConsistent($m03Db->state()),UnexpectedValueException::class,
+    'M03 operator audit catches relational tampering not visible in replay journal');
+db()->exec("UPDATE engine_market_offers SET give_units=10 WHERE world_id='m03-market-world' AND offer_id='fresh'");
+check($audit->assertConsistent($m03Db->state())['offers']===2,
+    'M03 restored projection passes independent audit without altering canonical journal');
+
 $m03Foreign=new PdoScheduler(db(),'m03-foreign-world',$m03Clock,$m03Rules);
 $m03Foreign->initialize();
 (new PdoMemberships(db(),'m03-foreign-world'))->grant($m03Actors['buyer']);

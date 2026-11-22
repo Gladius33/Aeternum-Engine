@@ -111,13 +111,73 @@ final class PdoEconomyProjection
         $units=$state[$key]??null;
         if ($units===null) {
             $this->sql('DELETE FROM engine_market_refunds WHERE world_id=? AND account_id=? AND resource_id=?',[$this->worldId,$account,$resource]);
-        } elseif (is_int($units) && $units>0 && $units<=ProductionState::MAX_UNITS) {
+        } elseif (is_int($units) && $units>0) {
             $this->sql('INSERT INTO engine_market_refunds (world_id,account_id,resource_id,claimable_units)
                 VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE claimable_units=VALUES(claimable_units)',
                 [$this->worldId,$account,$resource,$units]);
         } else {
             throw new \UnexpectedValueException('Invalid refundable escrow');
         }
+    }
+
+    /**
+     * Full operator-only audit against replay-canonical JSON.
+     * This O(world size) verification is deliberately NOT on HTTP reads.
+     * It detects SQL projection drift, orphan rows and ledger-view divergence.
+     */
+    public function assertConsistent(array $state): array
+    {
+        $expectedBalances=0;$expectedOffers=0;$expectedRefunds=0;
+        foreach ($state as $key=>$value) {
+            if (preg_match('/^econ:([A-Za-z0-9_-]{1,64}):([A-Za-z0-9_-]{1,64}):stock$/D',$key)) $expectedBalances++;
+            elseif (preg_match('/^market:([A-Za-z0-9_-]{1,64}):status$/D',$key)) $expectedOffers++;
+            elseif (preg_match('/^market:refund:([A-Za-z0-9_-]{1,64}):([A-Za-z0-9_-]{1,64})$/D',$key)) $expectedRefunds++;
+        }
+        $q=$this->pdo->prepare('SELECT account_id,resource_id,stock_units,settled_at,remainder,level_no,pending_event_id
+            FROM engine_economy_balances WHERE world_id=?');
+        $q->execute([$this->worldId]);$found=0;
+        while ($row=$q->fetch(PDO::FETCH_ASSOC)) {
+            $prefix='econ:'.$row['account_id'].':'.$row['resource_id'].':';
+            if (($state[$prefix.'stock']??null)!==(int)$row['stock_units']
+                || ($state[$prefix.'at']??null)!==(int)$row['settled_at']
+                || ($state[$prefix.'remainder']??null)!==(int)$row['remainder']
+                || ($state[$prefix.'level']??0)!==(int)$row['level_no']
+                || ($state[$prefix.'pending']??null)!==$row['pending_event_id']) {
+                throw new \UnexpectedValueException('Relational economy balance divergence');
+            }
+            $found++;
+        }
+        if ($found!==$expectedBalances) throw new \UnexpectedValueException('Relational balance row count mismatch');
+        $q=$this->pdo->prepare('SELECT offer_id,seller_id,give_resource,give_units,want_resource,want_units,status,buyer_id,expires_at
+            FROM engine_market_offers WHERE world_id=?');
+        $q->execute([$this->worldId]);$found=0;
+        while ($row=$q->fetch(PDO::FETCH_ASSOC)) {
+            $prefix='market:'.$row['offer_id'].':';
+            if (($state[$prefix.'seller']??null)!==$row['seller_id']
+                || ($state[$prefix.'giveResource']??null)!==$row['give_resource']
+                || ($state[$prefix.'giveUnits']??null)!==(int)$row['give_units']
+                || ($state[$prefix.'wantResource']??null)!==$row['want_resource']
+                || ($state[$prefix.'wantUnits']??null)!==(int)$row['want_units']
+                || ($state[$prefix.'status']??null)!==$row['status']
+                || ($state[$prefix.'buyer']??null)!==$row['buyer_id']
+                || ($state[$prefix.'expiresAt']??null)!==($row['expires_at']===null?null:(int)$row['expires_at'])) {
+                throw new \UnexpectedValueException('Relational market offer divergence');
+            }
+            $found++;
+        }
+        if ($found!==$expectedOffers) throw new \UnexpectedValueException('Relational offer row count mismatch');
+        $q=$this->pdo->prepare('SELECT account_id,resource_id,claimable_units
+            FROM engine_market_refunds WHERE world_id=?');
+        $q->execute([$this->worldId]);$found=0;
+        while ($row=$q->fetch(PDO::FETCH_ASSOC)) {
+            $key='market:refund:'.$row['account_id'].':'.$row['resource_id'];
+            if (($state[$key]??null)!==(int)$row['claimable_units']) {
+                throw new \UnexpectedValueException('Relational escrow refund divergence');
+            }
+            $found++;
+        }
+        if ($found!==$expectedRefunds) throw new \UnexpectedValueException('Relational escrow refund count mismatch');
+        return ['balances'=>$expectedBalances,'offers'=>$expectedOffers,'refunds'=>$expectedRefunds];
     }
 
     /** Read-only per-page SQL listing. Caller enforces actor's active membership. */

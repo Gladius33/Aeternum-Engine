@@ -40,7 +40,7 @@ CREATE TABLE engine_market_refunds (
   world_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   account_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   resource_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  claimable_units BIGINT NOT NULL CHECK (claimable_units BETWEEN 1 AND 1000000000000),
+  claimable_units BIGINT NOT NULL CHECK (claimable_units > 0),
   PRIMARY KEY (world_id,account_id,resource_id),
   CONSTRAINT refund_world_fk FOREIGN KEY (world_id) REFERENCES engine_worlds(world_id)
 ) ENGINE=InnoDB;
