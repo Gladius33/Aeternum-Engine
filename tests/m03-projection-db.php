@@ -110,3 +110,31 @@ check($beforeVersion===0,'M03 denied request leaves migration marker unchanged')
 $m03Db->balanceForActor($m03Actors['seller'],'seller','ore',$m03Economy);
 $afterVersion=(int)db()->query("SELECT economy_projection_version FROM engine_worlds WHERE world_id='m03-market-world'")->fetchColumn();
 check($afterVersion===1,'M03 authenticated read may safely complete versioned backfill');
+
+
+// Inject a real MariaDB failure after the handler has computed an escrow
+// refund but before its projection write can commit. No command receipt,
+// ledger, journal, SQL offer or canonical JSON transition may leak.
+$beforeState=$m03Db->state();
+$beforeJournal=(int)db()->query("SELECT COUNT(*) FROM engine_journal WHERE world_id='m03-market-world'")->fetchColumn();
+$beforeLedger=(int)db()->query("SELECT COUNT(*) FROM engine_resource_ledger WHERE world_id='m03-market-world'")->fetchColumn();
+db()->exec("CREATE TRIGGER m03_fail_offer_projection BEFORE UPDATE ON engine_market_offers
+    FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='m03 transactional fault injection'");
+try {
+    rejects(fn()=> $m03Db->executeForActor($m03Actors['seller'],
+        new Command($m03World,'failed-projection-cancel','market.cancel',
+            ['offer'=>'fresh','seller'=>'seller']),$m03Economy),
+        PDOException::class,'M03 injected SQL projection failure aborts escrow cancellation');
+} finally {
+    db()->exec('DROP TRIGGER IF EXISTS m03_fail_offer_projection');
+}
+check($m03Db->state()===$beforeState,
+    'M03 failed relational projection never commits changed canonical world state');
+check((int)db()->query("SELECT COUNT(*) FROM engine_journal WHERE world_id='m03-market-world'")->fetchColumn()===$beforeJournal,
+    'M03 failed projection does not append journal');
+check((int)db()->query("SELECT COUNT(*) FROM engine_resource_ledger WHERE world_id='m03-market-world'")->fetchColumn()===$beforeLedger,
+    'M03 failed projection does not double-post ledger');
+check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='m03-market-world' AND command_id='failed-projection-cancel'")->fetchColumn()===0,
+    'M03 failed projection does not preserve a false idempotency receipt');
+check($audit->assertConsistent($m03Db->state())['offers']===2,
+    'M03 failed projection leaves all relational rows consistent with world replay state');
