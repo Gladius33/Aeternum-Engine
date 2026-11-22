@@ -15,6 +15,9 @@
     ]},
     {"type":"workshop","stages":[
       {"costs":{"wood":2,"grain":1},"duration":5,"requires":{}}
+    ]},
+    {"type":"vault","stages":[
+      {"costs":{"grain":1,"wood":1000},"duration":5,"requires":{}}
     ]}
   ]
 }

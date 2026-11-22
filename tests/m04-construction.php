@@ -6,7 +6,7 @@ $legacyBuildPack=GamePackLoader::load(file_get_contents(__DIR__.'/../games/refer
 check($legacyBuildPack->buildings===[] && $legacyBuildPack->rules()->commands->buildingStages('mill')===null,
  'M04 older pinned pack remains without construction types');
 $buildingPack=GamePackLoader::load(file_get_contents(__DIR__.'/../games/m04-construction-fixture/manifest.json'));
-check(count($buildingPack->buildings)===2
+check(count($buildingPack->buildings)===3
     && $buildingPack->rules()->commands->buildingStages('mill')[0]['costs']===['grain'=>11,'wood'=>7],
  'M04 typed manifest loads multi-resource pinned stages');
 $invalidBuildPack=json_decode(file_get_contents(__DIR__.'/../games/m04-construction-fixture/manifest.json'),true);
@@ -40,6 +40,7 @@ $buildStore=new PdoBuildings(db(),$buildWorld);
 foreach ($buildingPack->buildings as $type=>$schedule) $buildStore->define($type,$schedule);
 $buildStore->establish('build-mill-a','build-land-a','build-entity-a','alice','mill');
 $buildStore->establish('build-work-a','build-land-a','build-entity-a','alice','workshop');
+$buildStore->establish('build-vault-a','build-land-a','build-entity-a','alice','vault');
 $buildStore->establish('build-mill-b','build-land-b','build-entity-b','bob','mill');
 foreach (['build-a'=>'alice','build-b'=>'bob'] as $account=>$owner) {
     foreach ($buildingPack->resources as $resource) {
@@ -60,6 +61,12 @@ rejects(fn()=> $start('alice','wrong-type','build-mill-a','build-a','workshop'),
 $beforeWood=$construction->balanceForActor('alice','build-a','wood',$buildRules->commands)->stock;
 $beforeGrain=$construction->balanceForActor('alice','build-a','grain',$buildRules->commands)->stock;
 check($beforeWood===100 && $beforeGrain===80,'M04 fixture initial balances');
+rejects(fn()=> $start('alice','vault-insufficient','build-vault-a','build-a','vault'),
+ DomainException::class,'M04 insufficient second resource aborts whole multi-cost debit');
+check($construction->balanceForActor('alice','build-a','wood',$buildRules->commands)->stock===100
+ && $construction->balanceForActor('alice','build-a','grain',$buildRules->commands)->stock===80
+ && $construction->pendingCount()===0,
+ 'M04 failed second resource leaves both balances and event queue untouched');
 $first=$start('alice','build-mill-request','build-mill-a','build-a','mill');
 $again=$start('alice','build-mill-request','build-mill-a','build-a','mill');
 check($again==$first && count($first->scheduledIds)===1,'M04 same request replays exact original receipt');

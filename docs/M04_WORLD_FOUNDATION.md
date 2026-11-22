@@ -123,6 +123,12 @@ Les règles de remboursement/annulation et le déploiement multi-mondes
 continu sont encore à développer et restent hors périmètre de cette
 première sous-livraison.
 
+Le client HTML active désormais `Begin construction` uniquement après
+une lecture validée de sa propre fondation, sur son compte actif, sans
+événement déjà en cours. L'envoi reprend les reçus idempotents du
+client d'économie et rafraîchit le plan et les stocks après acceptation.
+Un rejeu non acquitté utilise le bouton de reprise de requête existant.
+
 ## Sortie de macro NON acquise
 
 Restent à développer les règles typées de bâtiments, la construction
