@@ -229,3 +229,6 @@ An exact per-database and per-login MariaDB advisory lock wraps the complete ema
 
 ## M01 tests for mailbox reservation expiry and activation proof race (pending exact-head CI)
 MariaDB integration now proves bounded expired/unverified-account deletion, freeing mailbox ownership, preservation of ready players and verified-but-pending crash recovery, and idempotent cleanup through the actual operator CLI. A four-process adversarial race submits the same activated mailbox code on distinct client addresses; exactly one 200 response must result, the others are 401 or retryable 503, with a single durable actor and single initial resource grant per resource. The HTTP resend test rotates a code and proves the old code cannot activate.
+
+
+The activation reference UI includes a separate self-service resend form, with an explicit one-minute cooldown notice, password proof, matching email field, and generic response text to avoid revealing registered accounts. The new form is visible only when mailbox activation mode is configured. Reuse of an already superseded code is covered by the real MariaDB HTTP suite.

@@ -25,6 +25,7 @@ test('HTTPS self-service mailbox proof creates no premature bearer, then player 
         expect(signup.status()).toBe(202);
         expect(await signup.json()).toEqual({data:{activationRequired:true}});
         await expect(page.locator('#activate')).toBeVisible();
+        await expect(page.locator('#activation-resend')).toBeVisible();
         await expect(page.locator('#game')).toBeHidden();
         // Read a non-public, private-directory mail sink used ONLY in loopback CI.
         const sink=process.env.AETERNUM_TEST_ACTIVATION_OUTBOX;

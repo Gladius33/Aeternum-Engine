@@ -84,7 +84,7 @@ login.addEventListener('submit',e=>{
 });
 const registration=document.querySelector('#register');
 let joinableWorlds=[], inviteRequired=false, activationRequired=false;
-const activation=document.querySelector('#activate');
+const activation=document.querySelector('#activate'), activationResend=document.querySelector('#activation-resend');
 async function discoverRegistrations() {
     try {
         const data=await api('/v1/public/worlds');
@@ -94,6 +94,7 @@ async function discoverRegistrations() {
         document.querySelector('#email-wrap').hidden=!activationRequired;
         registration.elements.email.required=activationRequired;
         activation.hidden=!activationRequired || token!==null;
+        activationResend.hidden=!activationRequired || token!==null;
         document.querySelector('#invite-wrap').hidden=!inviteRequired;
         registration.elements.inviteCode.required=inviteRequired;
         options(registration.elements.world,joinableWorlds.map(w=>[w.world,w.name+' — '+w.world]));
@@ -103,6 +104,7 @@ async function discoverRegistrations() {
         document.querySelector('#email-wrap').hidden=true;
         registration.elements.email.required=false;
         activation.hidden=true;
+        activationResend.hidden=true;
         document.querySelector('#invite-wrap').hidden=true;
         registration.elements.inviteCode.required=false;
         registration.hidden=true;
@@ -123,7 +125,10 @@ registration.addEventListener('submit',e=>{
         registration.elements.confirm.value='';
         if (activationRequired) {
             activation.elements.login.value=loginValue;
+            activationResend.elements.login.value=loginValue;
+            activationResend.elements.email.value=String(f.get('email'));
             activation.hidden=false;
+            activationResend.hidden=false;
             registration.hidden=true;
             return 'Check your email for the activation code, then enter it below.';
         }
@@ -142,9 +147,19 @@ activation.addEventListener('submit',e=>{
     run(async()=>{
         const data=await api('/v1/auth/activate','POST',payload);
         token=data.token;
-        activation.hidden=true; login.hidden=true; registration.hidden=true; recovery.hidden=true; game.hidden=false;
+        activation.hidden=true; activationResend.hidden=true; login.hidden=true; registration.hidden=true; recovery.hidden=true; game.hidden=false;
         showRecoveryCode(data.recoveryCode);
         await discover();
+    });
+});
+activationResend.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(activationResend);
+    const payload={login:String(f.get('login')),password:String(f.get('password')),email:String(f.get('email'))};
+    activationResend.elements.password.value='';
+    run(async()=>{
+        await api('/v1/auth/activation/resend','POST',payload);
+        return 'If the details match a pending player, a replacement activation code has been sent.';
     });
 });
 const recovery=document.querySelector('#recover'), secret=document.querySelector('#recovery-secret'), rotate=document.querySelector('#rotate');
@@ -308,7 +323,7 @@ retryCommand.addEventListener('click',()=>run(async()=>{
 }));
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
-    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; activation.hidden=!activationRequired; showRecoveryCode(null);
+    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; activation.hidden=!activationRequired; activationResend.hidden=!activationRequired; showRecoveryCode(null);
 }
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }
