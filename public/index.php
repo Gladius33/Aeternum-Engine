@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,GamePackLoader,SystemClock};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,ConfiguredWorlds,SystemClock};
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -18,23 +18,29 @@ try {
         ]);
         $pdo->exec('SET SESSION innodb_lock_wait_timeout = 3');
         $path=explode('?',$_SERVER['REQUEST_URI'] ?? '',2)[0];
-        if (str_starts_with($path,'/v1/auth/')) {
+        if ($path==='/v1/public/worlds') {
+            if ($_SERVER['REQUEST_METHOD']!=='GET') {
+                $status=405; $body=['error'=>'method_not_allowed'];
+            } elseif (getenv('AETERNUM_PUBLIC_REGISTRATION')!=='1') {
+                $status=404; $body=['error'=>'not_found'];
+            } else {
+                $worlds=[];
+                foreach (ConfiguredWorlds::load() as $world=>$pack) {
+                    $worlds[]=['world'=>$world,'pack'=>$pack->id,'name'=>$pack->name];
+                }
+                $status=200; $body=['data'=>['worlds'=>$worlds]];
+            }
+        } elseif (str_starts_with($path,'/v1/auth/')) {
             $globalLimit=getenv('AETERNUM_AUTH_GLOBAL_LIMIT');
             if ($globalLimit!==false && (!preg_match('/^[1-9][0-9]{0,5}$/D',$globalLimit) || (int)$globalLimit>100000)) throw new RuntimeException('Invalid auth verification configuration');
-            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit))->handle(
+            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,getenv('AETERNUM_PUBLIC_REGISTRATION')==='1'?ConfiguredWorlds::load():[]))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$_SERVER['REMOTE_ADDR'] ?? ''
             );
         } elseif ($path==='/v1/me/worlds' || preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/recipients$~D',$path,$recipientMatch) || preg_match('~^/v1/worlds/[^/]+/economy/~',$path)) {
-            $rules=[]; $packs=[];
-            foreach (['AETERNUM_MEDIEVAL_WORLD'=>'reference-medieval','AETERNUM_INDUSTRIAL_WORLD'=>'reference-industrial'] as $env=>$pack) {
-                $world=getenv($env);
-                if ($world!==false && $world!=='') {
-                    if (isset($rules[$world])) throw new RuntimeException('Duplicate configured world');
-                    $packs[$world]=GamePackLoader::load(file_get_contents(__DIR__.'/../games/'.$pack.'/manifest.json'));
-                    $rules[$world]=$packs[$world]->rules();
-                }
-            }
+            $packs=ConfiguredWorlds::load();
+            $rules=[];
+            foreach ($packs as $world=>$pack) $rules[$world]=$pack->rules();
             if ($path==='/v1/me/worlds' || !empty($recipientMatch)) {
                 [$status,$body]=(new PlayerDiscoveryApi($pdo,new SystemClock(),$packs))->handle($_SERVER['REQUEST_METHOD'] ?? '',$_SERVER['HTTP_AUTHORIZATION'] ?? '',$recipientMatch[1] ?? null);
             } else {

@@ -5,13 +5,13 @@ use PDO;
 
 final class AuthHttpApi
 {
-    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120)
+    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120,private readonly array $registrationWorlds=[])
     {
         if ($globalLoginLimit<1 || $globalLoginLimit>100000) throw new \InvalidArgumentException('Invalid global verification limit');
     }
     public function handle(string $method,string $path,string $authorization,string $body,string $peer): array
     {
-        if (!in_array($path,['/v1/auth/login','/v1/auth/logout'],true)) return [404,['error'=>'not_found']];
+        if (!in_array($path,['/v1/auth/login','/v1/auth/logout','/v1/auth/register'],true)) return [404,['error'=>'not_found']];
         if ($method!=='POST') return [405,['error'=>'method_not_allowed']];
         $packed=inet_pton($peer);
         if ($packed===false) return [400,['error'=>'invalid_peer']];
@@ -22,6 +22,39 @@ final class AuthHttpApi
             if (!preg_match('/^Bearer ([a-f0-9]{64})$/D',$authorization,$m)) return [401,['error'=>'unauthorized']];
             $sessions->revoke($m[1]);
             return [200,['data'=>['revoked'=>true]]];
+        }
+        if ($path==='/v1/auth/register') {
+            if ($this->registrationWorlds===[]) return [404,['error'=>'not_found']];
+            if (strlen($body)>4096) return [413,['error'=>'too_large']];
+            try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+            catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
+            if (!is_array($data) || array_keys($data)!==['login','password','world']
+                || !is_string($data['login']) || !is_string($data['password']) || !is_string($data['world'])
+                || !preg_match('/^[a-z0-9][a-z0-9_-]{2,63}$/D',$data['login'])
+                || strlen($data['password'])<12 || strlen($data['password'])>1024) {
+                return [400,['error'=>'invalid_registration']];
+            }
+            if (!isset($this->registrationWorlds[$data['world']])) return [404,['error'=>'not_found']];
+            if (!$rate->admit('auth:registration-peer:'.bin2hex($packed),6,3600)
+                || !$rate->admit('auth:registration-global',100,3600)) {
+                return [429,['error'=>'rate_limited']];
+            }
+            try {
+                $claim=(new PdoOnboarding($this->pdo,$this->clock))->enroll(
+                    $data['world'],$this->registrationWorlds[$data['world']],$data['login'],$data['password']
+                );
+            } catch (\DomainException) {
+                return [409,['error'=>'registration_unavailable']];
+            } catch (\Throwable) {
+                // A partial world provision remains pending and can be resumed by
+                // repeating this same registration after temporary failure.
+                return [503,['error'=>'registration_retry']];
+            }
+            $token=$sessions->login($data['login'],$data['password']);
+            if ($token===null) return [503,['error'=>'registration_retry']];
+            return [$claim['created']?201:200,['data'=>[
+                'token'=>$token,'expires_in'=>3600,'world'=>$data['world'],'account'=>$claim['actor']
+            ]]];
         }
         if (strlen($body)>4096) return [413,['error'=>'too_large']];
         try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
