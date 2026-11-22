@@ -354,7 +354,32 @@ final class PdoScheduler
     /** Own-account projection, guarded by the due-event barrier. */
     public function balanceForActor(string $actor,string $account,string $resource,EconomyCommandHandler $handler): ProductionState
     {
-        return $this->actorEconomyProjection($actor,$account,$resource,$handler,false);
+        if (!$this->hasProjection()) return $this->actorEconomyProjection($actor,$account,$resource,$handler,false);
+        PdoMemberships::validateId($actor);
+        if ($this->rules===null) throw new \DomainException('Actor intake requires pinned rules');
+        $this->assertHandlers(commands:$handler);
+        if ($this->processing) throw new \LogicException('Reentrant projection prohibited');
+        $marker=$this->query('SELECT economy_projection_version FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetchColumn();
+        if ($marker===false) throw new \DomainException('World not initialized');
+        if ((int)$marker===0) $this->materialize();
+        return $this->transaction(function () use ($actor,$account,$resource,$handler): ProductionState {
+            $world=$this->query('SELECT rules_key,watermark FROM engine_worlds WHERE world_id=?',
+                [$this->worldId])->fetch(PDO::FETCH_ASSOC);
+            if ($world===false || $world['rules_key']!==$this->rulesKey()) throw new \DomainException('World rules mismatch');
+            $this->assertActiveActor($actor);
+            $this->assertAccountOwner($account,$actor);
+            $at=$this->clock->now();
+            if ($at<0 || $at<(int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
+            if ($this->query('SELECT event_id FROM engine_events WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1',
+                [$this->worldId,$at])->fetchColumn()!==false) {
+                throw new \DomainException('Due events must be processed before projection');
+            }
+            $row=$this->query('SELECT stock_units,settled_at,remainder,level_no
+                FROM engine_economy_balances WHERE world_id=? AND account_id=? AND resource_id=?',
+                [$this->worldId,$account,$resource])->fetch(PDO::FETCH_ASSOC);
+            if ($row===false) throw new \DomainException('Unknown resource account');
+            return $handler->balanceAtRow($row,$resource,$at);
+        });
     }
 
     /** Atomic stock and progression snapshot; no private event identifiers are exposed. */

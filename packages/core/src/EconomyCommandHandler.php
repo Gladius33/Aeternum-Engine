@@ -100,6 +100,19 @@ final class EconomyCommandHandler implements CommandHandler
         return $new;
     }
 
+    /** Derive current stock from one authorized committed row, not a whole JSON world. */
+    public function balanceAtRow(array $row,string $resource,int $at): ProductionState
+    {
+        $definition=$this->definition($this->id($resource));
+        $level=(int)($row['level_no']??-1);
+        if ($level<0 || $level>100) throw new \DomainException('Invalid indexed resource level');
+        $amount=$level===0 ? $definition->amount : $this->upgrade($resource,$level)->amount;
+        return (new ProductionState(
+            (int)$row['stock_units'],$definition->capacity,$amount,$definition->interval,
+            (int)$row['settled_at'],(int)$row['remainder']
+        ))->advanceTo($at);
+    }
+
     /** Upgrade metadata reconstructed from the same committed SQL snapshot. */
     public function upgradeProjectionRow(array $row,string $resource): array
     {
