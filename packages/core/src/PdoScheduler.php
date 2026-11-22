@@ -354,7 +354,13 @@ final class PdoScheduler
     /** Own-account projection, guarded by the due-event barrier. */
     public function balanceForActor(string $actor,string $account,string $resource,EconomyCommandHandler $handler): ProductionState
     {
-        if (!$this->hasProjection()) return $this->actorEconomyProjection($actor,$account,$resource,$handler,false);
+        return $this->actorEconomyProjection($actor,$account,$resource,$handler,false);
+    }
+
+    /** Atomic stock and progression snapshot; no private event identifiers are exposed. */
+    public function overviewForActor(string $actor,string $account,string $resource,EconomyCommandHandler $handler): array
+    {
+        if (!$this->hasProjection()) return $this->actorEconomyProjection($actor,$account,$resource,$handler,true);
         PdoMemberships::validateId($actor);
         if ($this->rules===null) throw new \DomainException('Actor intake requires pinned rules');
         $this->assertHandlers(commands:$handler);
@@ -362,9 +368,7 @@ final class PdoScheduler
         $marker=$this->query('SELECT economy_projection_version FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetchColumn();
         if ($marker===false) throw new \DomainException('World not initialized');
         if ((int)$marker===0) $this->materialize();
-        return $this->transaction(function () use ($actor,$account,$resource,$handler): ProductionState {
-            // All reads are from one MVCC snapshot; no world-row FOR UPDATE
-            // once projection 020 has been materialized.
+        return $this->transaction(function () use ($actor,$account,$resource,$handler): array {
             $world=$this->query('SELECT rules_key,watermark FROM engine_worlds WHERE world_id=?',
                 [$this->worldId])->fetch(PDO::FETCH_ASSOC);
             if ($world===false || $world['rules_key']!==$this->rulesKey()) throw new \DomainException('World rules mismatch');
@@ -372,20 +376,41 @@ final class PdoScheduler
             $this->assertAccountOwner($account,$actor);
             $at=$this->clock->now();
             if ($at<0 || $at<(int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
-            $due=$this->query('SELECT event_id FROM engine_events WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1',
-                [$this->worldId,$at])->fetchColumn();
-            if ($due!==false) throw new \DomainException('Due events must be processed before projection');
-            $row=$this->query('SELECT stock_units,settled_at,remainder,level_no FROM engine_economy_balances
-                WHERE world_id=? AND account_id=? AND resource_id=?',[$this->worldId,$account,$resource])->fetch(PDO::FETCH_ASSOC);
+            if ($this->query('SELECT event_id FROM engine_events WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1',
+                [$this->worldId,$at])->fetchColumn()!==false) {
+                throw new \DomainException('Due events must be processed before projection');
+            }
+            $row=$this->query('SELECT stock_units,settled_at,remainder,level_no,pending_event_id
+                FROM engine_economy_balances WHERE world_id=? AND account_id=? AND resource_id=?',
+                [$this->worldId,$account,$resource])->fetch(PDO::FETCH_ASSOC);
             if ($row===false) throw new \DomainException('Unknown resource account');
-            return $handler->balanceAtRow($row,$resource,$at);
+            $balance=$handler->balanceAtRow($row,$resource,$at);
+            $progress=$handler->upgradeProjectionRow($row,$resource);
+            $pending=null;$next=$progress['next'];
+            if ($progress['pendingId']!==null) {
+                $scheduled=$this->query('SELECT event_id,event_type,due_at,payload_json FROM engine_events
+                    WHERE world_id=? AND event_id=? AND completed=0',
+                    [$this->worldId,$progress['pendingId']])->fetch(PDO::FETCH_ASSOC);
+                if ($scheduled===false) throw new \LogicException('Missing pending upgrade event');
+                $event=$this->event($scheduled);
+                if ($event->type!=='economy.upgrade.complete'
+                    || ($event->payload['account']??null)!==$account
+                    || ($event->payload['resource']??null)!==$resource
+                    || ($event->payload['level']??null)!==$next->level || $event->dueAt<=$at) {
+                    throw new \LogicException('Inconsistent pending upgrade event');
+                }
+                $pending=['level'=>$next->level,'dueAt'=>$event->dueAt,'amount'=>$next->amount];
+                $next=null;
+            }
+            $r=$this->query('SELECT claimable_units FROM engine_market_refunds
+                WHERE world_id=? AND account_id=? AND resource_id=?',
+                [$this->worldId,$account,$resource])->fetchColumn();
+            $claimable=$r===false?0:(int)$r;
+            return get_object_vars($balance)+['refundPending'=>$claimable,
+                'level'=>$progress['level'],'pending'=>$pending,
+                'next'=>$next===null?null:['level'=>$next->level,'cost'=>$next->cost,
+                    'duration'=>$next->duration,'amount'=>$next->amount]];
         });
-    }
-
-    /** Atomic stock and progression snapshot; no private event identifiers are exposed. */
-    public function overviewForActor(string $actor,string $account,string $resource,EconomyCommandHandler $handler): array
-    {
-        return $this->actorEconomyProjection($actor,$account,$resource,$handler,true);
     }
 
     private function actorEconomyProjection(string $actor,string $account,string $resource,EconomyCommandHandler $handler,bool $overview): ProductionState|array

@@ -100,26 +100,26 @@ final class EconomyCommandHandler implements CommandHandler
         return $new;
     }
 
+    /** Upgrade metadata reconstructed from the same committed SQL snapshot. */
+    public function upgradeProjectionRow(array $row,string $resource): array
+    {
+        $this->definition($this->id($resource));
+        $level=(int)($row['level_no']??-1);
+        if ($level<0 || $level>100) throw new \DomainException('Invalid indexed resource level');
+        $pending=$row['pending_event_id']??null;
+        if ($pending!==null && (!is_string($pending) ||
+            !preg_match('/^upgrade:[a-f0-9]{64}$/D',$pending))) {
+            throw new \LogicException('Invalid pending indexed upgrade');
+        }
+        $next=$this->upgrades['r:'.$resource][$level+1]??null;
+        if ($pending!==null && $next===null) throw new \LogicException('Pending unavailable indexed upgrade');
+        return ['level'=>$level,'pendingId'=>$pending,'next'=>$next];
+    }
+
     /** Read-only projection; not authorization or durable settlement. */
     public function balanceAt(array $state,string $account,string $resource,int $at): ProductionState
     {
         return $this->read($state,$this->id($account),$this->id($resource))->advanceTo($at);
-    }
-
-    /**
-     * Read a transactionally committed relational row without expanding the
-     * entire world JSON. Permission checks stay in the PDO adapter.
-     */
-    public function balanceAtRow(array $row,string $resource,int $at): ProductionState
-    {
-        $definition=$this->definition($this->id($resource));
-        $level=(int)($row['level_no']??-1);
-        if ($level<0 || $level>100) throw new \DomainException('Invalid indexed resource level');
-        $amount=$level===0?$definition->amount:$this->upgrade($resource,$level)->amount;
-        return (new ProductionState(
-            (int)$row['stock_units'],$definition->capacity,$amount,$definition->interval,
-            (int)$row['settled_at'],(int)$row['remainder']
-        ))->advanceTo($at);
     }
 
     /** Trusted metadata for a resource already read from the same state snapshot. */
