@@ -115,3 +115,7 @@ Current reference economy is bounded to 1,000 accounts and offers; public capaci
 
 ### Recovery tokens (migration 017)
 engine_account_recovery contains one SHA-256 hash of a random 256-bit recovery code per actor and an update timestamp, not the plaintext. The code is issued once after the signup claim is ready; if the first response is lost an authenticated player can rotate it with the current password. Recovery obtains exclusive identity and token locks, checks the digest using hash_equals, changes the Argon2id password, deletes outstanding sessions and rotates the code in one SQL transaction. Competing recovery attempts using one token are serialized. External operational abuse defenses and session-login races still need focused security review.
+
+
+### Invitation claims (migration 018)
+When invite-only beta mode is enabled, engine_signup_invitations stores world-scoped SHA-256 token digests and a nullable actor claim. A new account, its pending claim and the consumption of its invitation are committed in one InnoDB transaction. An invalid or already consumed invitation rolls back identity creation. Subsequent retries require matching login/password, world and original invitation. Issuance is CLI-only, limited to 50 secrets per batch; plaintext is emitted once and never persisted. Optional flag AETERNUM_SIGNUP_REQUIRE_INVITE=1 is off by default.

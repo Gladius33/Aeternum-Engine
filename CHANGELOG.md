@@ -3,7 +3,7 @@
 ## In progress — macro M01 (public onboarding)
 - Add optional allowlisted public signup, durable pending/ready claims, resumable actor-scoped provisioning, and an initial player session.
 - Add browser registration/world-selection form, independent public-world read endpoint, MariaDB concurrency/interrupted-state tests and live browser signup/reconnect/isolation test.
-- Add offline one-time recovery code issuance and rotation, transactional password reset/session revocation and concurrent replay tests. Email activation and production abuse/capacity qualification remain open; CI evidence pending.
+- Add offline one-time recovery code issuance and rotation, transactional password reset/session revocation and concurrent replay tests. Optional per-world 256-bit invitations for controlled beta now commit atomically with identity claims. Email activation and production abuse/capacity qualification remain open; CI evidence pending.
 
 ## Unreleased — iteration 0039
 - Add independent seller/buyer Chromium barter scenario using authenticated live market endpoints and real MariaDB.

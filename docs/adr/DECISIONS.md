@@ -126,3 +126,6 @@
 
 
 - ADR-052 (M01): session creation holds a shared identity row lock from password verification through session insertion, while password reset takes an exclusive identity lock before deleting sessions. Authenticated recovery-code rotation also locks the identity exclusively. This closes the old-password login/reset race without changing opaque bearer semantics; load and deadlock retry require real capacity qualification.
+
+
+- ADR-053 (M01): opt-in invitation-only signup for controlled beta. Generate 256-bit random tokens via trusted operator CLI, persist only SHA-256 digests, bind to one world and claim atomically with identity creation. Same actor/world/token can resume after partial provision; a second actor cannot reuse it. Invites are not email verification nor a complete anti-Sybil system.

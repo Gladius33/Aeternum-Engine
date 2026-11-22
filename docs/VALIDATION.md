@@ -124,3 +124,6 @@ M01 recovery follow-up: MariaDB suite covers stored token hashing, invalid and r
 
 
 M01 password reset race hardening: session login and code rotation now serialize with account reset via identity row locks. Existing session and multi-process tests are mandatory regression gates; dedicated login/reset concurrency tests and load benchmarks remain part of final M01 sign-off.
+
+
+M01 controlled-beta invitation checks: MariaDB tests rejection without code, malformed/unknown codes, exactly one actor per consumed invitation, orphan-free rollback, same-actor retry, wrong-actor denial and recovery of an invitation claim committed before world provisioning. A verified operator-run issuance CLI is still a deployment acceptance item.

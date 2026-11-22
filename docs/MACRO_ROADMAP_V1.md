@@ -110,7 +110,7 @@ Ce graphe fixe un ordre de livraison et **non** un ordre exclusif de préparatio
 
 | Macro | Statut | Preuve de sortie |
 |---|---|---|
-| M01 | **En cours** | Branche dev/macro-M01-onboarding : premier flux d'inscription, revendication durable, API, navigateur et tests développés ; CI, activation et défense anti-abus de production encore non validées ; récupération par code hors ligne implémentée, sans vérification d'email |
+| M01 | **En cours** | Branche dev/macro-M01-onboarding : premier flux d'inscription, revendication durable, API, navigateur et tests développés ; CI, activation et défense anti-abus de production encore non validées ; récupération par code hors ligne et invitations uniques optionnelles implémentées, sans vérification d'email |
 | M02–M13 | Non commencées | Aucune |
 
 La tâche récurrente doit utiliser ce fichier comme **plan de travail prioritaire**, tout en vérifiant la roadmap historique pour n'omettre aucun critère G01–G09.

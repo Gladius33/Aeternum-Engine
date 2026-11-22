@@ -80,15 +80,20 @@ login.addEventListener('submit',e=>{
     run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;registration.hidden=true;recovery.hidden=true;game.hidden=false;await discover();});
 });
 const registration=document.querySelector('#register');
-let joinableWorlds=[];
+let joinableWorlds=[], inviteRequired=false;
 async function discoverRegistrations() {
     try {
         const data=await api('/v1/public/worlds');
         joinableWorlds=data.worlds;
+        inviteRequired=data.invitationRequired===true;
+        document.querySelector('#invite-wrap').hidden=!inviteRequired;
+        registration.elements.inviteCode.required=inviteRequired;
         options(registration.elements.world,joinableWorlds.map(w=>[w.world,w.name+' — '+w.world]));
         registration.hidden=joinableWorlds.length===0 || token!==null;
     } catch {
-        joinableWorlds=[];
+        joinableWorlds=[]; inviteRequired=false;
+        document.querySelector('#invite-wrap').hidden=true;
+        registration.elements.inviteCode.required=false;
         registration.hidden=true;
     }
 }
@@ -99,7 +104,9 @@ registration.addEventListener('submit',e=>{
     const loginValue=String(f.get('login')),password=String(f.get('password')),confirm=String(f.get('confirm')),world=String(f.get('world'));
     run(async()=>{
         if (password!==confirm) throw new Error('Passwords do not match');
-        const data=await api('/v1/auth/register','POST',{login:loginValue,password,world});
+        const payload={login:loginValue,password,world};
+        if (inviteRequired) payload.inviteCode=String(f.get('inviteCode'));
+        const data=await api('/v1/auth/register','POST',payload);
         token=data.token;
         registration.elements.password.value='';
         registration.elements.confirm.value='';
