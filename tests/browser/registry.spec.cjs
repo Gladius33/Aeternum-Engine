@@ -1,6 +1,7 @@
 const {test,expect}=require('@playwright/test');
 const base='http://127.0.0.1:8765';
 test('third test pack is routed by registry through real browser, API and MariaDB',async ({page})=>{
+    test.setTimeout(200000); // Preserve real authentication quotas across the preceding browser suites.
     await page.goto(base+'/play.html');
     const advertised=await page.request.get(base+'/v1/public/worlds');
     expect(advertised.status()).toBe(200);
