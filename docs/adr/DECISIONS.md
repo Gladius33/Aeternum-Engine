@@ -97,3 +97,9 @@
 0036: add read-only market projection, active requester and seller membership checks under the existing world lock, bytewise offer-ID cursor pagination (maximum 100 per page), public terms only, no state mutation. Pages reflect independently committed snapshots; not a stable snapshot across requests. Bounded reference state; relational market storage and HTTP/UI remain open. PHP and MariaDB tests added; CI pending.
 
 - ADR-046: read only committed immutable terms of open offers under the world lock, with active requester and seller membership; cursor pages are independently evaluated, not a cross-request snapshot. The projection does not process events or promise acceptance; transactional command authorization and due-event checks remain authoritative.
+
+0036 evidence: exact head 1d9abd77c8c338f31feead0afd44f9363735325a passed PHP/MariaDB (45002721036) and Chromium (45002721081), merged as 1bd7c18914a8410eb78ac5474c688d7d6ac87e89.
+
+0037: expose authenticated GET /v1/worlds/{world}/economy/market and /market/{after} (50 terms per page), and allow the three market mutations through the existing economy command route. Shared economy admission limit 120/minute plus 20/minute per actor for market writes, including retries. All existing transactional authorization remains mandatory. Real MariaDB dispatcher tests cover sessions, membership, immutable terms, retry, capacity and quota. Reference-market lifetime limit and refund capacity restriction remain production blockers; operator-only onboarding, no public deployment or browser UI. CI pending.
+
+- ADR-047: market HTTP uses the bounded economy adapter and pinned configured world registry, with opaque sessions and an additional actor-scoped mutation quota. Cursor is a validated ASCII path segment; page length is server-controlled. Clients provide immutable offer IDs and retry IDs. Reference lifetime cap remains unsuitable for unbounded public onboarding.

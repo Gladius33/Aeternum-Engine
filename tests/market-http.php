@@ -1,0 +1,63 @@
+<?php
+declare(strict_types=1);
+use Aeternum\Core\{EconomyHttpApi,PdoScheduler,PdoMemberships,PdoIdentity,PdoSessions,FrozenClock,Command,EconomyCommandHandler,EconomyEventHandler,ResourceDefinition,RuleSet};
+$mhClock=new FrozenClock(900);
+$mhEconomy=new EconomyCommandHandler([new ResourceDefinition('ore',100,1000,0,1),new ResourceDefinition('coin',100,1000,0,1)]);
+$mhRules=new RuleSet('market-http','1',hash('sha256','market-http'),$mhEconomy,new EconomyEventHandler($mhEconomy));
+$mhWorld='market-http';
+$mhScheduler=new PdoScheduler(db(),$mhWorld,$mhClock,$mhRules);
+$mhScheduler->initialize();
+$mhMembers=new PdoMemberships(db(),$mhWorld);
+$mhIdentity=new PdoIdentity(db());
+$mhSession=new PdoSessions(db(),$mhClock);
+$mhActors=[]; $mhHeaders=[];
+foreach (['seller','buyer','outsider'] as $role) {
+    $login='market-http-'.$role;
+    $mhActors[$role]=$mhIdentity->register($login,'disposable market test password');
+    $mhHeaders[$role]='Bearer '.$mhSession->login($login,'disposable market test password');
+    if ($role==='outsider') continue;
+    $mhMembers->grant($mhActors[$role]); $mhMembers->assign($role,$mhActors[$role]);
+    foreach (['ore','coin'] as $resource) $mhScheduler->executeForActor($mhActors[$role],new Command($mhWorld,'open-'.$resource,'economy.open',['account'=>$role,'resource'=>$resource]),$mhEconomy);
+}
+$mhApi=new EconomyHttpApi(db(),$mhClock,[$mhWorld=>$mhRules]);
+$mhBase='/v1/worlds/'.$mhWorld.'/economy/';
+$mhGet=fn($role,$suffix='market')=>$mhApi->handle('GET',$mhBase.$suffix,$mhHeaders[$role]);
+$mhPost=fn($role,$id,$type,$payload)=>$mhApi->handle('POST',$mhBase.'commands',$mhHeaders[$role],json_encode(['id'=>$id,'type'=>$type,'payload'=>$payload],JSON_THROW_ON_ERROR));
+check($mhApi->handle('GET',$mhBase.'market','')[0]===401,'market HTTP requires bearer session');
+check($mhApi->handle('POST',$mhBase.'market',$mhHeaders['seller'])[0]===405,'market HTTP listing is read only');
+check($mhApi->handle('GET','/v1/worlds/unknown/economy/market',$mhHeaders['seller'])[0]===404,'market HTTP denies unconfigured world');
+check($mhGet('outsider')[0]===409,'market HTTP denies nonmember');
+check($mhGet('buyer','market/bad:cursor')[0]===404,'market HTTP rejects malformed cursor');
+check($mhGet('buyer')===[200,['data'=>['offers'=>[],'nextAfter'=>null]]],'market HTTP initially empty');
+$mhTerms=['offer'=>'offer-a','seller'=>'seller','giveResource'=>'ore','giveUnits'=>15,'wantResource'=>'coin','wantUnits'=>10];
+check($mhPost('buyer','foreign','market.create',$mhTerms)[0]===409,'market HTTP denies foreign seller');
+$mhCreated=$mhPost('seller','create','market.create',$mhTerms);
+check($mhCreated[0]===200 && $mhPost('seller','create','market.create',$mhTerms)==$mhCreated,'market HTTP create and retry');
+$mhPage=$mhGet('buyer');
+check($mhPage[0]===200 && $mhPage[1]['data']===['offers'=>[['id'=>'offer-a','seller'=>'seller','giveResource'=>'ore','wantResource'=>'coin','giveUnits'=>15,'wantUnits'=>10]],'nextAfter'=>null],'market HTTP public terms only');
+check($mhGet('buyer','market/offer-a')[1]['data']['offers']===[],'market HTTP cursor excludes previous offer');
+$mhMembers->revoke($mhActors['seller']);
+check($mhGet('buyer')[1]['data']['offers']===[],'market HTTP hides revoked seller');
+check($mhGet('seller')[0]===409,'market HTTP denies revoked member');
+$mhMembers->grant($mhActors['seller']);
+$mhAccept=['offer'=>'offer-a','seller'=>'seller','buyer'=>'buyer'];
+$mhAccepted=$mhPost('buyer','accept','market.accept',$mhAccept);
+check($mhAccepted[0]===200 && $mhPost('buyer','accept','market.accept',$mhAccept)==$mhAccepted,'market HTTP accept and retry');
+check($mhPost('buyer','accept-other','market.accept',$mhAccept)[0]===409,'market HTTP refuses double acceptance');
+check($mhGet('buyer','balances/buyer/ore')[1]['data']->stock===115 && $mhGet('seller','balances/seller/coin')[1]['data']->stock===110,'market HTTP committed balances');
+check($mhGet('buyer')[1]['data']['offers']===[],'market HTTP hides filled offer');
+$mhTerms['offer']='offer-b';
+check($mhPost('seller','create-b','market.create',$mhTerms)[0]===200,'market HTTP second offer');
+$mhCancel=['offer'=>'offer-b','seller'=>'seller'];
+check($mhPost('buyer','foreign-cancel','market.cancel',$mhCancel)[0]===409,'market HTTP foreign cancellation denied');
+$mhCancelled=$mhPost('seller','cancel','market.cancel',$mhCancel);
+check($mhCancelled[0]===200 && $mhPost('seller','cancel','market.cancel',$mhCancel)==$mhCancelled,'market HTTP cancel and retry');
+check($mhGet('seller','balances/seller/ore')[1]['data']->stock===85,'market HTTP exact returned stock');
+$mhMembers->grant($mhActors['outsider']); $mhMembers->assign('outsider',$mhActors['outsider']);
+for ($n=0;$n<20;$n++) {
+    if ($mhPost('outsider','missing-'.$n,'market.cancel',['offer'=>'missing','seller'=>'outsider'])[0]!==409) throw new RuntimeException('Market quota denied early');
+}
+check($mhPost('outsider','limit','market.cancel',['offer'=>'missing','seller'=>'outsider'])[0]===429,'market HTTP dedicated mutation quota enforced at 20');
+check($mhGet('outsider')[0]===200,'market mutation quota does not exhaust read quota');
+$mhClock->advanceTo(960);
+check($mhPost('outsider','reset','market.cancel',['offer'=>'missing','seller'=>'outsider'])[0]===409,'market HTTP mutation quota resets next window');
