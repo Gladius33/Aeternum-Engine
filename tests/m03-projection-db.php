@@ -84,10 +84,21 @@ check((int)db()->query("SELECT COUNT(*) FROM engine_market_offers WHERE world_id
     'M03 projection never leaks foreign world rows');
 $api=new EconomyHttpApi(db(),$m03Clock,[$m03World=>$m03Rules]);
 $session=(new PdoSessions(db(),$m03Clock))->login('m03-seller','m03 reproducible test password');
+check(is_string($session) && strlen($session)===64,
+    'M03 HTTP authorization test owns a valid persisted login session');
+check((new PdoSessions(db(),$m03Clock))->resolve($session)===$m03Actors['seller'],
+    'M03 HTTP test bearer resolves to the intended seller, not a different actor');
+rejects(fn()=> $m03Db->executeForActor($m03Actors['seller'],
+    new Command($m03World,'direct-claim-denied','market.claim',
+        ['account'=>'buyer','resource'=>'ore']),$m03Economy),
+    DomainException::class,'M03 domain adapter refuses cross-owner claims before HTTP dispatch');
 $httpBody=json_encode(['id'=>'api-claim-denied','type'=>'market.claim',
     'payload'=>['account'=>'buyer','resource'=>'ore']],JSON_THROW_ON_ERROR);
-check($api->handle('POST','/v1/worlds/'.$m03World.'/economy/commands','Bearer '.$session,$httpBody)[0]===409,
-    'M03 HTTP forbids foreign actor from claiming refundable escrow');
+[$deniedCode,$deniedBody]=$api->handle('POST','/v1/worlds/'.$m03World.'/economy/commands',
+    'Bearer '.$session,$httpBody);
+check($deniedCode===409,
+    'M03 HTTP forbids foreign actor from claiming escrow (actual HTTP '.$deniedCode.
+    ', body='.json_encode($deniedBody,JSON_THROW_ON_ERROR).')');
 
 
 // Never let an unauthorised GET trigger expensive first-use migration.
