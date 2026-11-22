@@ -37,3 +37,7 @@ If migration or onboarding validation fails, disable new registration and stop w
 ## Release gate
 
 The M01 pull request must remain unmerged until required PHP 8.4, MariaDB and Chromium checks are green on the **same exact HEAD SHA**, the restored nonempty-schema drill is verified, and an authorized operator signs off the real ingress, capacity and end-user journey. No external deployment or live payment is authorized by this document.
+
+
+## Repeatable lab proof now automated in CI
+The MariaDB CI runs tests/signup-load.php (eight independent PHP processes with measured latency and approximate RSS) and an actual mariadb-dump -> separate MariaDB schema restore -> tests/restore-verify.php comparison of every table's rows and a legacy-world deterministic journal replay. Only after the exact SHA's CI is green may those lab gates be marked acquired. **Real host recovery still requires a backup stored off-instance and an operator-performed full restoration in isolation.**

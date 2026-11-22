@@ -26,7 +26,7 @@ jobs:
       - run: php tests/run.php
   mariadb:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 18
     services:
       mariadb:
         image: mariadb:11.4
@@ -56,3 +56,31 @@ jobs:
           AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_test;charset=utf8mb4
           AETERNUM_TEST_USER: aeternum_test
           AETERNUM_TEST_PASSWORD: ci-test-only
+      - name: Parallel signup load on disposable MariaDB
+        env:
+          AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_test;charset=utf8mb4
+          AETERNUM_TEST_USER: aeternum_test
+          AETERNUM_TEST_PASSWORD: ci-test-only
+        run: php tests/signup-load.php
+      - name: Dump, restore, fingerprint and replay all lab data
+        shell: bash
+        env:
+          AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_test;charset=utf8mb4
+          AETERNUM_RESTORE_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_restore;charset=utf8mb4
+          AETERNUM_TEST_USER: aeternum_test
+          AETERNUM_TEST_PASSWORD: ci-test-only
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mariadb-client
+          dump_dir="$(mktemp -d)"
+          trap 'rm -rf "$dump_dir"' EXIT
+          MYSQL_PWD=ci-test-only mariadb-dump --host=127.0.0.1 --user=aeternum_test \
+            --single-transaction --quick --skip-lock-tables aeternum_test > "$dump_dir/backup.sql"
+          test -s "$dump_dir/backup.sql"
+          MYSQL_PWD=ci-local-only mariadb --host=127.0.0.1 --user=root \
+            -e "CREATE DATABASE aeternum_restore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          MYSQL_PWD=ci-local-only mariadb --host=127.0.0.1 --user=root aeternum_restore < "$dump_dir/backup.sql"
+          MYSQL_PWD=ci-local-only mariadb --host=127.0.0.1 --user=root \
+            -e "GRANT SELECT ON aeternum_restore.* TO 'aeternum_test'@'%'; FLUSH PRIVILEGES;"
+          php tests/restore-verify.php
