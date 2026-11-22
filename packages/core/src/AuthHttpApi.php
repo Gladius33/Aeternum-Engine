@@ -11,7 +11,7 @@ final class AuthHttpApi
     }
     public function handle(string $method,string $path,string $authorization,string $body,string $peer): array
     {
-        if (!in_array($path,['/v1/auth/login','/v1/auth/logout','/v1/auth/register','/v1/auth/recover','/v1/auth/recovery/rotate'],true)) return [404,['error'=>'not_found']];
+        if (!in_array($path,['/v1/auth/login','/v1/auth/logout','/v1/auth/register','/v1/auth/recover','/v1/auth/recovery/rotate','/v1/auth/password/change'],true)) return [404,['error'=>'not_found']];
         if ($method!=='POST') return [405,['error'=>'method_not_allowed']];
         $packed=inet_pton($peer);
         if ($packed===false) return [400,['error'=>'invalid_peer']];
@@ -71,6 +71,23 @@ final class AuthHttpApi
             if (!$rate->admit('auth:recovery-peer:'.bin2hex($packed),5,3600)
                 || !$rate->admit('auth:recovery-global',100,3600)) return [429,['error'=>'rate_limited']];
             $next=(new PdoRecovery($this->pdo,$this->clock))->reset($data['login'],$data['code'],$data['newPassword']);
+            return $next===null ? [401,['error'=>'unauthorized']] : [200,['data'=>['recoveryCode'=>$next,'sessionsRevoked'=>true]]];
+        }
+        if ($path==='/v1/auth/password/change') {
+            if (!preg_match('/^Bearer ([a-f0-9]{64})$/D',$authorization,$m)) return [401,['error'=>'unauthorized']];
+            $actor=$sessions->resolve($m[1]);
+            if ($actor===null) return [401,['error'=>'unauthorized']];
+            if (strlen($body)>4096) return [413,['error'=>'too_large']];
+            try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+            catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
+            if (!is_array($data) || count($data)!==2
+                || !is_string($data['currentPassword']??null)
+                || !is_string($data['newPassword']??null)
+                || strlen($data['currentPassword'])>1024
+                || strlen($data['newPassword'])<12 || strlen($data['newPassword'])>1024
+                || $data['currentPassword']===$data['newPassword']) return [400,['error'=>'invalid_password_change']];
+            if (!$rate->admit('auth:verification-global',$this->globalLoginLimit,60)) return [429,['error'=>'rate_limited']];
+            $next=(new PdoRecovery($this->pdo,$this->clock))->changePassword($actor,$data['currentPassword'],$data['newPassword']);
             return $next===null ? [401,['error'=>'unauthorized']] : [200,['data'=>['recoveryCode'=>$next,'sessionsRevoked'=>true]]];
         }
         if ($path==='/v1/auth/recovery/rotate') {
