@@ -104,3 +104,22 @@ Cela réduit le travail de calcul dans la section critique ; **le snapshot JSON
 canonique, le journal séquentiel et le verrou mondial des commits demeurent**.
 La suppression complète de cette contention et la qualification de charge
 restent nécessaires avant de considérer M03 achevée.
+
+## Commit optimiste des commandes (transactions M03)
+
+La voie SQL de la migration 020 applique d'abord les seules lignes de
+soldes, offres et remboursements modifiées dans une transaction InnoDB.
+Une comparaison atomique sur l'état JSON, la version du journal, l'horloge
+logique, les séquences d'événements et les règles épinglées acquiert ensuite
+le verrou exclusif du monde pour publier l'ordre canonique. Les droits et
+les événements échus sont de nouveau contrôlés avant l'insertion atomique
+du reçu, du journal, du grand livre et des événements. Un conflit de version
+ou un interblocage InnoDB annule intégralement les écritures tentatives,
+puis le moteur réexécute la commande par sa voie transactionnelle historique.
+
+Les tests à quatre processus vérifient des commandes d'acteurs distincts
+avec verrouillage concurrent, et le replay reconstitue leur ordre final.
+**Limite :** les commits conservent un court point de sérialisation mondial
+pour préserver un journal unique ; le snapshot JSON complet est encore
+matérialisé. La montée en charge longue durée et les conditions réelles
+O2Switch/VPS ne sont pas réputées vérifiées par la seule CI.

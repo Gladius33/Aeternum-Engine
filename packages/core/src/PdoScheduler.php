@@ -47,6 +47,100 @@ final class PdoScheduler
         }
     }
 
+    /**
+     * M03: write only the touched relational rows before acquiring the world
+     * row's exclusive lock. The final compare-and-swap atomically serializes
+     * canonical JSON, logical time and journal sequence. Failed CAS, deadlocks
+     * and lock timeouts roll back every tentative SQL projection and fall back
+     * to the original serialized command path.
+     *
+     * This is still a sequential global journal; no two commits can publish
+     * the same world version, receipt or escrow transfer.
+     */
+    private function tryOptimisticEconomyCommit(Command $command,string $actor,?string $clientRequest,array $candidate): ?CommandReceipt
+    {
+        if ($this->pdo->inTransaction()) throw new \LogicException('Nested transaction prohibited');
+        $result=$candidate['result'];
+        $at=$candidate['at'];
+        $seq=$candidate['next_sequence'];
+        if ($candidate['journal_sequence']===PHP_INT_MAX || $this->clock->now()!==$at) return null;
+        $payload=ScalarMap::encode($command->payload);
+        $stateJson=ScalarMap::encode($result->state);
+        $ids=[];
+        foreach ($result->events as $event) {
+            if ($event->worldId!==$this->worldId || $event->dueAt<$at) {
+                throw new \DomainException('Invalid follow-up event world or time');
+            }
+            if ($seq===PHP_INT_MAX) throw new \OverflowException('Event sequence exhausted');
+            $seq++;
+            $ids[]=$event->id;
+        }
+        $this->pdo->beginTransaction();
+        try {
+            // Upserts lock only affected balance/offer/refund rows. None are
+            // visible until this transaction and the world CAS both commit.
+            $this->syncProjection($candidate['before'],$result->state,$candidate['changed_keys']);
+            $changed=$this->query('UPDATE engine_worlds
+                SET next_sequence=?,watermark=?,state_json=?,journal_sequence=journal_sequence+1
+                WHERE world_id=? AND next_sequence=? AND journal_sequence=? AND watermark=?
+                  AND state_json=? AND rules_key=? AND economy_projection_version=1',
+                [$seq,$at,$stateJson,$this->worldId,$candidate['next_sequence'],
+                    $candidate['journal_sequence'],$candidate['watermark'],
+                    $candidate['state_json'],$this->rulesKey()])->rowCount();
+            if ($changed!==1 || $this->clock->now()!==$at) {
+                $this->pdo->rollBack();
+                return null;
+            }
+            // The CAS now owns the world write lock, just like the legacy
+            // path: recheck authorization and every barrier after any admin
+            // or event scheduler transactions that committed meanwhile.
+            $this->authorizeActor($actor,$command);
+            $old=$this->query('SELECT command_id FROM engine_commands WHERE world_id=? AND command_id=?',
+                [$this->worldId,$command->id])->fetchColumn();
+            if ($old!==false) {
+                $this->pdo->rollBack();
+                return null; // slow path validates immutable replay payload
+            }
+            $due=$this->query('SELECT event_id FROM engine_events
+                WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1 FOR UPDATE',
+                [$this->worldId,$at])->fetchColumn();
+            if ($due!==false) throw new \DomainException('Due events must be processed before new commands');
+            $eventSeq=$candidate['next_sequence'];
+            foreach ($result->events as $event) {
+                if ($this->query('SELECT event_id FROM engine_events WHERE world_id=? AND event_id=?',
+                    [$this->worldId,$event->id])->fetchColumn()!==false) {
+                    throw new \DomainException('Follow-up event ID already exists');
+                }
+                $eventSeq++;
+                $this->query('INSERT INTO engine_events
+                    (world_id,event_id,event_type,due_at,sequence_no,payload_json)
+                    VALUES (?,?,?,?,?,?)',[$this->worldId,$event->id,$event->type,
+                        $event->dueAt,$eventSeq,ScalarMap::encode($event->payload)]);
+            }
+            $this->query('INSERT INTO engine_commands
+                (world_id,command_id,command_type,payload_json,effective_at,result_state_json,
+                 scheduled_ids_json,actor_id,client_request_id)
+                VALUES (?,?,?,?,?,?,?,?,?)',
+                [$this->worldId,$command->id,$command->type,$payload,$at,'{}',
+                    json_encode($ids,JSON_THROW_ON_ERROR),$actor,$clientRequest]);
+            $this->journal(['journal_sequence'=>$candidate['journal_sequence']],
+                'command',$command->id,$command->type,$at,$payload,$stateJson,
+                $result->events,$result->movements);
+            $this->pdo->commit();
+            return new CommandReceipt($at,$result->state,$ids);
+        } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            // A competing scheduler can hold the world row first and then
+            // request a projection row; InnoDB resolves such lock inversions.
+            // Re-enter the canonical world-first path after rollback.
+            if (in_array((int)($e->errorInfo[1]??0),[1205,1213],true)) return null;
+            throw $e;
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
     /** Explicit provisioning; repeated initialization never resets existing state. */
     public function initialize(): void
     {
@@ -86,7 +180,7 @@ final class PdoScheduler
         try {
             // Speculative authorization is only a precheck; locked commit rechecks.
             $this->authorizeActor($actor,$command);
-            $snapshot=$this->query('SELECT state_json,journal_sequence,watermark,rules_key,economy_projection_version
+            $snapshot=$this->query('SELECT state_json,journal_sequence,next_sequence,watermark,rules_key,economy_projection_version
                 FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetch(PDO::FETCH_ASSOC);
             if ($snapshot===false || $snapshot['rules_key']!==$this->rulesKey()
                 || (int)$snapshot['economy_projection_version']!==1) return null;
@@ -96,6 +190,8 @@ final class PdoScheduler
             $result=$handler->apply($command,$before,$at);
             return ['state_json'=>$snapshot['state_json'],
                 'journal_sequence'=>(int)$snapshot['journal_sequence'],
+                'next_sequence'=>(int)$snapshot['next_sequence'],
+                'watermark'=>(int)$snapshot['watermark'],
                 'at'=>$at,'before'=>$before,'result'=>$result,
                 'changed_keys'=>PdoEconomyProjection::deltaKeys($before,$result->state)];
         } catch (\Throwable) {
@@ -529,6 +625,10 @@ final class PdoScheduler
         $this->processing = true;
         try {
             $prepared=$this->prepareEconomyTransition($command,$handler,$actor);
+            if ($prepared!==null && $actor!==null) {
+                $committed=$this->tryOptimisticEconomyCommit($command,$actor,$clientRequest,$prepared);
+                if ($committed!==null) return $committed;
+            }
             return $this->transaction(function () use ($command,$handler,$actor,$clientRequest,$prepared): CommandReceipt {
                 $world = $this->lockedWorld();
                 if ($actor!==null) $this->authorizeActor($actor,$command);
