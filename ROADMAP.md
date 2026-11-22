@@ -1,5 +1,7 @@
 # Roadmap — V1.0 release scope
 
+**Execution plan:** [13 macro-iterations M01–M13](docs/MACRO_ROADMAP_V1.md). The historical 0001–0039 development increments are kept for traceability. Large functional delivery milestones, not one-commit "iterations", control the next work. No G01–G09 criterion is waived.
+
 A checklist item is complete only when implemented, documented and supported by passing tests. No percentage based on file counts.
 
 - [ ] G01 Core: injected clock, stable event ordering, bounded processing, transactional persistent commands, idempotency and deterministic replay.
