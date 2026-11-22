@@ -29,13 +29,13 @@ check($store->balanceForActor('batch-seller','batch-account','ore',$economy)->st
 $clock->advanceTo(120);
 check(count($store->processDue($rules->events,3,10000))===3,
     'M03 capped expiry worker commits exactly three deterministic events');
-check((int)db()->query("SELECT COUNT(*) FROM engine_events WHERE world_id='m03-expiry-batch' AND completed=0")===7,
+check((int)db()->query("SELECT COUNT(*) FROM engine_events WHERE world_id='m03-expiry-batch' AND completed=0")->fetchColumn()===7,
     'M03 bounded event worker leaves seven valid durable expirations');
 check(count($store->processDue($rules->events,20,10000))===7,
     'M03 continuation commits remaining seven expirations');
 check($store->processDue($rules->events)===[],
     'M03 expiry worker cannot refund a completed event twice');
-check((int)db()->query("SELECT claimable_units FROM engine_market_refunds WHERE world_id='m03-expiry-batch'")===10,
+check((int)db()->query("SELECT claimable_units FROM engine_market_refunds WHERE world_id='m03-expiry-batch'")->fetchColumn()===10,
     'M03 full-capacity batched expiry preserves all escrow units');
 check($store->balanceForActor('batch-seller','batch-account','ore',$economy)->stock===30,
     'M03 batch escrow return never breaches resource capacity');
