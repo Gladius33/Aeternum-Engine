@@ -5,7 +5,7 @@ namespace Aeternum\Core;
 /** Reference economy for trusted commands. Authentication/actor ownership belongs to the application adapter. */
 final class EconomyCommandHandler implements CommandHandler
 {
-    public const MAX_ACCOUNTS = 1000;
+    // No lifetime counter cap: world-scale capacity is enforced by storage and quotas.
     private array $definitions = [];
     private array $upgrades = [];
 
@@ -123,12 +123,69 @@ final class EconomyCommandHandler implements CommandHandler
         return ['level'=>$level,'pendingId'=>$pending,'next'=>$next];
     }
 
-    /** Bounded reference market. Offer IDs remain reserved after closure. */
+    /**
+     * Return an escrow to the original seller without destroying units if
+     * production filled storage while the offer remained open. Excess units
+     * enter a durable, replayable claim balance, never the player's capped stock.
+     */
+    private function releaseEscrow(array &$state,array &$ledger,string $prefix,int $at,string $status): void
+    {
+        $seller=$this->id($state[$prefix.'seller']??null);
+        $resource=$this->id($state[$prefix.'giveResource']??null);
+        $units=$state[$prefix.'giveUnits']??null;
+        if (!is_int($units) || $units<1) throw new \LogicException('Invalid escrow units');
+        $stock=$this->settle($state,$ledger,$seller,$resource,$at);
+        $credit=min($units,$stock->capacity-$stock->stock);
+        if ($credit>0) {
+            $stock=$stock->credit($credit);
+            $this->write($state,$seller,$resource,$stock);
+            $ledger[]=new ResourceMovement($seller,$resource,$credit,$stock->stock,'market_release');
+        }
+        $remainder=$units-$credit;
+        if ($remainder>0) {
+            $key='market:refund:'.$seller.':'.$resource;
+            $pending=$state[$key]??0;
+            if (!is_int($pending) || $pending<0 || $pending>PHP_INT_MAX-$remainder) {
+                throw new \OverflowException('Pending refund overflow');
+            }
+            $state[$key]=$pending+$remainder;
+        }
+        $state[$prefix.'status']=$status;
+    }
+
+    /** Read-only bounded market terms; closed IDs remain reserved forever. */
     private function market(Command $command,array $state,int $at): CommandResult
     {
         $ledger=[];
+        $events=[];
+        if ($command->type==='market.claim') {
+            $p=$this->payload($command,['account','resource']);
+            $account=$this->id($p['account']); $resource=$this->id($p['resource']);
+            $key='market:refund:'.$account.':'.$resource;
+            $pending=$state[$key]??0;
+            if (!is_int($pending) || $pending<1) throw new \DomainException('No pending escrow refund');
+            $stock=$this->settle($state,$ledger,$account,$resource,$at);
+            $units=min($pending,$stock->capacity-$stock->stock);
+            if ($units<1) throw new \DomainException('No storage available for escrow refund');
+            $stock=$stock->credit($units);
+            $this->write($state,$account,$resource,$stock);
+            $ledger[]=new ResourceMovement($account,$resource,$units,$stock->stock,'market_claim');
+            if ($units===$pending) unset($state[$key]); else $state[$key]=$pending-$units;
+            return new CommandResult($state,[],$ledger);
+        }
         if ($command->type==='market.create') {
-            $p=$this->payload($command,['offer','seller','giveResource','giveUnits','wantResource','wantUnits']);
+            $fields=array_keys($command->payload);
+            sort($fields,SORT_STRING);
+            $expected=['offer','seller','giveResource','giveUnits','wantResource','wantUnits'];
+            $valid=$expected; sort($valid,SORT_STRING);
+            $withExpiry=[...$expected,'expiresAt']; sort($withExpiry,SORT_STRING);
+            if ($fields!==$valid && $fields!==$withExpiry) throw new \InvalidArgumentException('Invalid market creation fields');
+            $p=$command->payload;
+            $expiresAt=$p['expiresAt']??null;
+            if (array_key_exists('expiresAt',$p) && (!is_int($expiresAt) || $expiresAt<=$at
+                || $at>PHP_INT_MAX-2592000 || $expiresAt>$at+2592000)) {
+                throw new \InvalidArgumentException('Invalid market offer expiry');
+            }
             $prefix='market:'.$this->id($p['offer']).':';
             $seller=$this->id($p['seller']);
             $give=$this->id($p['giveResource']); $want=$this->id($p['wantResource']);
@@ -139,7 +196,7 @@ final class EconomyCommandHandler implements CommandHandler
             }
             if (isset($state[$prefix.'status'])) throw new \DomainException('Market offer ID already used');
             $count=$state['market:count']??0;
-            if (!is_int($count) || $count<0 || $count>=1000) throw new \DomainException('Reference market offer limit reached');
+            if (!is_int($count) || $count<0 || $count===PHP_INT_MAX) throw new \DomainException('Market offer counter exhausted');
             $this->read($state,$seller,$want);
             $stock=$this->settle($state,$ledger,$seller,$give,$at)->debit($giveUnits);
             $this->write($state,$seller,$give,$stock);
@@ -148,6 +205,11 @@ final class EconomyCommandHandler implements CommandHandler
                 $state[$prefix.$key]=$value;
             }
             $state['market:count']=$count+1;
+            if ($expiresAt!==null) {
+                $state[$prefix.'expiresAt']=$expiresAt;
+                $events[]=new ScheduledEvent($command->worldId,'market-expire:'.hash('sha256',$command->id),
+                    'market.expire',$expiresAt,['offer'=>$this->id($p['offer']),'seller'=>$seller]);
+            }
         } else {
             $accept=$command->type==='market.accept';
             $p=$this->payload($command,$accept?['offer','seller','buyer']:['offer','seller']);
@@ -173,18 +235,15 @@ final class EconomyCommandHandler implements CommandHandler
                 $state[$prefix.'status']='filled';
                 $state[$prefix.'buyer']=$buyer;
             } else {
-                $stock=$this->settle($state,$ledger,$seller,$give,$at)->credit($giveUnits);
-                $this->write($state,$seller,$give,$stock);
-                $ledger[]=new ResourceMovement($seller,$give,$giveUnits,$stock->stock,'market_release');
-                $state[$prefix.'status']='cancelled';
+                $this->releaseEscrow($state,$ledger,$prefix,$at,'cancelled');
             }
         }
-        return new CommandResult($state,[],$ledger);
+        return new CommandResult($state,$events,$ledger);
     }
 
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
-        if (in_array($command->type,['market.create','market.accept','market.cancel'],true)) {
+        if (in_array($command->type,['market.create','market.accept','market.cancel','market.claim'],true)) {
             return $this->market($command,$state,$effectiveAt);
         }
         $ledger = [];
@@ -194,7 +253,7 @@ final class EconomyCommandHandler implements CommandHandler
             $account = $this->id($payload['account']); $resource = $this->id($payload['resource']);
             if (array_key_exists($this->prefix($account,$resource).'stock',$state)) throw new \DomainException('Account already exists');
             $count = $state['econ:count'] ?? 0;
-            if (!is_int($count) || $count<0 || $count>=self::MAX_ACCOUNTS) throw new \DomainException('Resource account limit reached');
+            if (!is_int($count) || $count<0 || $count===PHP_INT_MAX) throw new \DomainException('Resource account counter exhausted');
             $balance = $this->definition($resource)->open($effectiveAt);
             $this->write($state,$account,$resource,$balance);
             $state['econ:count'] = $count+1;
@@ -239,6 +298,20 @@ final class EconomyCommandHandler implements CommandHandler
     /** Completion settles the old rate at logical due time, then activates the trusted new rate. */
     public function complete(ScheduledEvent $event,array $state): EventResult
     {
+        if ($event->type==='market.expire') {
+            $keys=array_keys($event->payload);sort($keys,SORT_STRING);
+            if ($keys!==['offer','seller']) throw new \InvalidArgumentException('Invalid expiry envelope');
+            $prefix='market:'.$this->id($event->payload['offer']).':';
+            $seller=$this->id($event->payload['seller']);
+            if (($state[$prefix.'seller']??null)!==$seller
+                || ($state[$prefix.'expiresAt']??null)!==$event->dueAt) {
+                throw new \DomainException('Offer expiry does not match pinned terms');
+            }
+            if (($state[$prefix.'status']??null)!=='open') return new EventResult($state,[]);
+            $ledger=[];
+            $this->releaseEscrow($state,$ledger,$prefix,$event->dueAt,'expired');
+            return new EventResult($state,$ledger);
+        }
         if ($event->type!=='economy.upgrade.complete') throw new \DomainException('Unknown economy event');
         $keys = array_keys($event->payload); sort($keys,SORT_STRING);
         if ($keys!==['account','level','resource']) throw new \InvalidArgumentException('Invalid upgrade event payload');
