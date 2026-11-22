@@ -144,6 +144,29 @@ refusées et le worker termine d'abord les échéances.
 L'annulation avec capacité saturée et remboursement différé reste
 **à implémenter** avant validation de M04.
 
+### Initialisation encadrée des bâtiments
+
+`php bin/m04-map.php WORLD building-type TYPE` enregistre uniquement
+un type de bâtiment présent dans le manifeste immuable approuvé.
+`php bin/m04-map.php WORLD foundation SITE TERRITORY ENTITY ACTOR TYPE`
+place une fondation de niveau zéro après vérification de l'identité
+commune du propriétaire. `building-inspect ACTOR SITE` fournit le
+prochain palier en lecture privée. Ces commandes CLI sont **réservées
+à l'opérateur** ; elles ne sont jamais exposées par HTTP. La suite
+MariaDB les teste avec un registre monde/pack temporaire dont le
+SHA-256 est vérifié.
+
+### Concurrence inter-processus
+
+La suite MariaDB lance quatre processus PHP distincts sur un même
+bâtiment, avec des identifiants de requête différents. Un seul doit
+pouvoir engager la construction ; les trois autres doivent être
+refusés. Elle répète l'expérience sur l'annulation : une seule
+restitution doit être journalisée, puis le worker doit vider le
+rendez-vous annulé sans produire de niveau. Le rejeu doit retrouver
+exactement les cinq entrées de ce scénario. Cette preuve ne remplace
+pas un essai de charge prolongé.
+
 ## Sortie de macro NON acquise
 
 Restent à développer les règles typées de bâtiments, la construction

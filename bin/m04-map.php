@@ -4,8 +4,8 @@ use Aeternum\Core\{ConfiguredWorlds,PdoEntities,PdoTopology,PdoTerritories};
 if (PHP_SAPI!=='cli') { http_response_code(404); exit(1); }
 try {
     require __DIR__.'/../vendor/autoload.php';
-    if ($argc<4 || $argc>6 || !isset(ConfiguredWorlds::load()[$argv[1]])) {
-        throw new InvalidArgumentException('Usage: php bin/m04-map.php APPROVED_WORLD location|edge|territory|owner|inspect ...');
+    if ($argc<4 || $argc>8 || !isset(ConfiguredWorlds::load()[$argv[1]])) {
+        throw new InvalidArgumentException('Usage: php bin/m04-map.php APPROVED_WORLD location|edge|territory|owner|inspect|building-type|foundation|building-inspect ...');
     }
     $world=$argv[1];$action=$argv[2];
     $dsn=getenv('AETERNUM_DSN');
@@ -32,6 +32,24 @@ try {
         case 'owner':
             if ($argc!==5) throw new InvalidArgumentException('Expected TERRITORY EXISTING_ACTIVE_ACTOR');
             (new PdoTerritories($pdo,$world))->assign($argv[3],$argv[4]);
+            break;
+        case 'building-type':
+            if ($argc!==4) throw new InvalidArgumentException('Expected PINNED_BUILDING_TYPE');
+            $pack=ConfiguredWorlds::load()[$world];
+            $stages=$pack->buildings[$argv[3]]??null;
+            if ($stages===null) throw new DomainException('Unknown pinned building');
+            (new Aeternum\Core\PdoBuildings($pdo,$world))->define($argv[3],$stages);
+            break;
+        case 'foundation':
+            if ($argc!==8) throw new InvalidArgumentException('Expected BUILDING TERRITORY ENTITY ACTOR TYPE');
+            $pack=ConfiguredWorlds::load()[$world];
+            if (!isset($pack->buildings[$argv[7]])) throw new DomainException('Building not approved for world');
+            (new Aeternum\Core\PdoBuildings($pdo,$world))->establish(
+                $argv[3],$argv[4],$argv[5],$argv[6],$argv[7]);
+            break;
+        case 'building-inspect':
+            if ($argc!==5) throw new InvalidArgumentException('Expected ACTOR OWN_BUILDING');
+            $output['data']=(new Aeternum\Core\PdoBuildings($pdo,$world))->own($argv[3],$argv[4]);
             break;
         case 'inspect':
             if ($argc!==4 && $argc!==5) throw new InvalidArgumentException('Expected ACTOR [AFTER]');
