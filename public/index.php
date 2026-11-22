@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,WorldBuildingHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -63,6 +63,10 @@ try {
             [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,$publicSignupAllowed?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit,$parallelSignup===false?8:(int)$parallelSignup,getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1'))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$resolvedPeer ?? ''
+            );
+        } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/buildings/')) {
+            [$status,$body]=(new WorldBuildingHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))->handle(
+                $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? ''
             );
         } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/map/')) {
             [$status,$body]=(new WorldMapHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))->handle(

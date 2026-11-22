@@ -56,6 +56,14 @@ aucun journal de commande généré. Il serait incorrect de présenter une
 fondation comme une construction jouable. L'intégration au moteur de
 commandes, à l'économie et au rejeu demeure une exigence M04 ouverte.
 
+## Projection privée des bâtiments
+
+L'endpoint de lecture seule `GET /v1/worlds/{world}/buildings/{id}`
+demande un jeton valide, vérifie que le monde est approuvé et que l'acteur
+possède le bâtiment et son appartenance active, puis renvoie le niveau
+persistant et le prochain coût multi-ressources. Aucun endpoint joueur
+ne peut établir ou améliorer un bâtiment.
+
 ## Migration et retour arrière
 
 Appliquer `php bin/migrate.php` avec une sauvegarde SQL préalable. Aucune
