@@ -39,6 +39,7 @@ try {
     $s->execute([$preActor,$inviteWorld]);
     $db->commit();
 } catch (Throwable $e) {if($db->inTransaction())$db->rollBack();throw $e;}
+check((new PdoSessions(db(),$inviteClock))->login('invited-partial','partial invitation password')===null,'pending invited identity cannot obtain bearer');
 [$recoverStatus,$recoverData]=$invitePost(['login'=>'invited-partial','password'=>'partial invitation password','world'=>$inviteWorld,'inviteCode'=>$codeC],'192.0.2.104');
 check($recoverStatus===200 && $recoverData['data']['account']===$preActor,'invited partial claim resumes after interruption');
 check($invitePost(['login'=>'invited-other','password'=>'other password is long','world'=>$inviteWorld,'inviteCode'=>$codeC],'192.0.2.105')[0]===409,'spent recovery invitation remains bound');

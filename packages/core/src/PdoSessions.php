@@ -26,6 +26,13 @@ final class PdoSessions
             }
             $actor=(new PdoIdentity($this->pdo))->authenticate($login,$password);
             if ($actor===null) { $this->pdo->commit(); return null; }
+            // Identity creation precedes world enrollment in a resumable
+            // workflow. Never issue a bearer for a partially provisioned
+            // public identity; operator-only identities have no such claim.
+            $s=$this->pdo->prepare('SELECT status FROM engine_onboarding WHERE actor_id=?');
+            $s->execute([$actor]);
+            $claim=$s->fetchColumn();
+            if ($claim!==false && $claim!=='ready') { $this->pdo->commit(); return null; }
             $token=bin2hex(random_bytes(32));
             $s=$this->pdo->prepare('INSERT INTO engine_sessions(token_hash,actor_id,expires_at) VALUES (?,?,?)');
             $s->execute([hash('sha256',$token),$actor,$now+$ttl]);

@@ -52,10 +52,12 @@ $onPartialPass='another strong test password';
 $onPartialActor=(new PdoIdentity(db()))->register($onPartial,$onPartialPass);
 $insert=db()->prepare("INSERT INTO engine_onboarding(actor_id,world_id,status,created_at) VALUES (?,?,'pending',?)");
 $insert->execute([$onPartialActor,$onWorld,1200]);
+check((new PdoSessions(db(),$onClock))->login($onPartial,$onPartialPass)===null,'pending public identity denied a bearer');
 (new PdoMemberships(db(),$onWorld))->grant($onPartialActor); // interrupted immediately after grant
 [$onRecoveredStatus,$onRecovered]=$onPost(['login'=>$onPartial,'password'=>$onPartialPass,'world'=>$onWorld],'198.51.100.13');
 check($onRecoveredStatus===200 && $onRecovered['data']['account']===$onPartialActor,'replay resumes partially provisioned identity');
 check($onGet($onPartialActor)['status']==='ready','interrupted claim completes to ready');
+check((new PdoSessions(db(),$onClock))->login($onPartial,$onPartialPass)!==null,'resumed public identity can now log in');
 foreach($onPack->resources as $resource) {
     check($onScheduler->balanceForActor($onPartialActor,$onPartialActor,$resource->id,$onRules->commands)->stock===$resource->initialStock,'recovered player has initial '.$resource->id);
 }

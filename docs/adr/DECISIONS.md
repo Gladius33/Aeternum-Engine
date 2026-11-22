@@ -132,3 +132,6 @@
 
 
 - ADR-054 (M01): beta invitations expire by trusted clock after seven days unless a bounded shorter lifetime is specified. Unused codes may be revoked, while consumed codes retain the actor binding so interrupted onboarding remains resumable after expiry. Revoking an already-claimed invitation never revokes the player identity; membership revocation is a separate trusted operator operation.
+
+
+- ADR-055 (M01): any public identity with a pending onboarding claim cannot receive a bearer token; login checks the claim while holding the shared identity lock. Operator-created identities without public claims retain their original login contract. A same-credentials resume completes provisioning before the user is admitted.

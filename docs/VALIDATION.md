@@ -135,3 +135,6 @@ Invitation admission also refuses a timestamp earlier than creation (clock rollb
 
 
 M01 opt-in browser qualification: browser.yml starts an additional 127.0.0.1:8766 server with AETERNUM_SIGNUP_REQUIRE_INVITE=1, issues one real token via operator CLI, checks invite form visibility and required attribute, enrolls a player in the configured industrial world and refuses a second actor using the consumed token. Both loopback servers share disposable MariaDB; the invitation secret is discarded at teardown, never committed. E2E remains a lab approximation and does not certify real TLS.
+
+
+M01 pending-claim session guard: existing operator-provisioned identities without a public claim may still sign in, but a registered identity whose onboarding claim remains pending cannot obtain a bearer until its original world provisioning resumes and reaches ready. MariaDB verifies denial before recovery and acceptance afterwards.
