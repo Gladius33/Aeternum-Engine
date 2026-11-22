@@ -374,7 +374,7 @@ for (const s of scenarios) {
 }
 
 test('public signup provisions real players, supports retry, reconnect and account isolation',async ({browser})=>{
-    test.setTimeout(300000);
+    test.setTimeout(420000);
     const context=await browser.newContext(), page=await context.newPage();
     try {
         await page.goto(url+'/play.html');
@@ -472,6 +472,29 @@ test('public signup provisions real players, supports retry, reconnect and accou
         await signIn(page,{...scenarios[1],login:'browser-public-first',password:'browser final password after change'},{reusePage:true});
         await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);
         await expect(page.locator('#recovery-secret')).toBeHidden();
+        // The global sign-out path must revoke the currently authenticated
+        // public player across devices, not merely hide the UI.
+        const observed=page.waitForRequest(r=>r.url().endsWith('/v1/me/worlds'));
+        await page.getByRole('button',{name:'Reload available worlds'}).click();
+        const logoutBearer=(await (await observed).allHeaders()).authorization;
+        expect(logoutBearer).toMatch(/^Bearer /);
+        let allLogout=null;
+        for (let attempt=0; attempt<3; attempt++) {
+            const received=page.waitForResponse(r=>r.url().endsWith('/v1/auth/logout/all') && r.request().method()==='POST');
+            await page.getByRole('button',{name:'Log out all devices',exact:true}).click();
+            const response=await received;
+            if (response.status()===200) { allLogout=response; break; }
+            expect(response.status()).toBe(429);
+            await expect(page.locator('#status')).toHaveText('rate_limited');
+            if (attempt===2) throw new Error('Global logout quota remained exhausted');
+            await page.waitForTimeout(65000);
+        }
+        expect(allLogout).not.toBeNull();
+        expect((await allLogout.json()).data.revokedAll).toBe(true);
+        await expect(page.locator('#login')).toBeVisible();
+        await expect(page.locator('#game')).toBeHidden();
+        await expect(page.locator('#recovery-secret')).toBeHidden();
+        expect((await page.request.get(url+'/v1/me/worlds',{headers:{Authorization:logoutBearer}})).status()).toBe(401);
     } finally {
         await context.close();
     }
