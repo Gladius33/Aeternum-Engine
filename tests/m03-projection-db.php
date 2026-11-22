@@ -86,11 +86,15 @@ check($m03Foreign->marketForActor($m03Actors['buyer'])===['offers'=>[],'nextAfte
     'M03 relational offers isolated between configured worlds');
 check((int)db()->query("SELECT COUNT(*) FROM engine_market_offers WHERE world_id='m03-foreign-world'")->fetchColumn()===0,
     'M03 projection never leaks foreign world rows');
-$api=new EconomyHttpApi(db(),$m03Clock,[$m03World=>$m03Rules]);
-$session=(new PdoSessions(db(),$m03Clock))->login('m03-seller','m03 reproducible test password');
+// HTTP throttling is shared with other integration suites and uses a durable
+// monotonic floor. Use wall time for real HTTP sessions, not the world's
+// intentionally historical FrozenClock(120), which correctly gets HTTP 429.
+$m03HttpClock=new \Aeternum\Core\SystemClock();
+$api=new EconomyHttpApi(db(),$m03HttpClock,[$m03World=>$m03Rules]);
+$session=(new PdoSessions(db(),$m03HttpClock))->login('m03-seller','m03 reproducible test password');
 check(is_string($session) && strlen($session)===64,
     'M03 HTTP authorization test owns a valid persisted login session');
-check((new PdoSessions(db(),$m03Clock))->resolve($session)===$m03Actors['seller'],
+check((new PdoSessions(db(),$m03HttpClock))->resolve($session)===$m03Actors['seller'],
     'M03 HTTP test bearer resolves to the intended seller, not a different actor');
 rejects(fn()=> $m03Db->executeForActor($m03Actors['seller'],
     new Command($m03World,'direct-claim-denied','market.claim',
