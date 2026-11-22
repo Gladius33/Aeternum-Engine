@@ -6,6 +6,9 @@ const http=require('node:http');
 const fs=require('node:fs');
 const keyPath=process.env.AETERNUM_TEST_TLS_KEY;
 const certPath=process.env.AETERNUM_TEST_TLS_CERT;
+const backend=Number(process.env.AETERNUM_TEST_BACKEND_PORT||8765);
+const listener=Number(process.env.AETERNUM_TEST_TLS_PORT||8777);
+if(!Number.isInteger(backend)||backend<1024||backend>65535||!Number.isInteger(listener)||listener<1024||listener>65535)throw new Error('Invalid loopback ports');
 if (!keyPath || !certPath) throw new Error('CI TLS fixture requires ephemeral key and certificate');
 const tls=https.createServer({key:fs.readFileSync(keyPath),cert:fs.readFileSync(certPath)},(request,response)=>{
     const headers={...request.headers};
@@ -14,9 +17,9 @@ const tls=https.createServer({key:fs.readFileSync(keyPath),cert:fs.readFileSync(
     if (!peer) {response.writeHead(400).end();return;}
     headers['x-forwarded-for']=peer;
     headers['x-forwarded-proto']='https';
-    headers.host='127.0.0.1:8765';
+    headers.host='127.0.0.1:'+backend;
     const upstream=http.request({
-        hostname:'127.0.0.1',port:8765,path:request.url,
+        hostname:'127.0.0.1',port:backend,path:request.url,
         method:request.method,headers,timeout:15000
     },(upstreamResponse)=>{
         response.writeHead(upstreamResponse.statusCode||502,upstreamResponse.headers);
@@ -27,4 +30,4 @@ const tls=https.createServer({key:fs.readFileSync(keyPath),cert:fs.readFileSync(
     request.on('aborted',()=>upstream.destroy());
     request.pipe(upstream);
 });
-tls.listen(8777,'127.0.0.1');
+tls.listen(listener,'127.0.0.1');

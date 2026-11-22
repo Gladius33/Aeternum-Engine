@@ -13,7 +13,7 @@ concurrency:
 jobs:
   chromium:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 19
     services:
       mariadb:
         image: mariadb:11.4
@@ -77,7 +77,17 @@ jobs:
           php bin/invite.php e2e-industrial 1 > tests/browser/.e2e-invite-token
           AETERNUM_SIGNUP_REQUIRE_INVITE=1 php -S 127.0.0.1:8766 -t public tests/browser/router.php >browser-invited.log 2>&1 &
           invited_server=$!
-          trap 'kill "$server" "$invited_server" "$tls_server" 2>/dev/null || true; rm -f tests/browser/.e2e-invite-token; rm -rf "$tls_dir"' EXIT
+          # Third server isolates the optional verified-email path from the
+          # backwards-compatible registration tests above.
+          activation_dir="$(mktemp -d)"
+          AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION=1 AETERNUM_TEST_ACTIVATION_OUTBOX="$activation_dir" \
+            php -S 127.0.0.1:8767 -t public tests/browser/router.php >browser-activation.log 2>&1 &
+          activation_server=$!
+          AETERNUM_TEST_TLS_KEY="$tls_dir/key.pem" AETERNUM_TEST_TLS_CERT="$tls_dir/cert.pem" \
+            AETERNUM_TEST_TLS_PORT=8778 AETERNUM_TEST_BACKEND_PORT=8767 \
+            node tests/browser/tls-proxy.cjs >browser-activation-tls.log 2>&1 &
+          activation_tls=$!
+          trap 'kill "$server" "$invited_server" "$tls_server" "$activation_server" "$activation_tls" 2>/dev/null || true; rm -f tests/browser/.e2e-invite-token; rm -rf "$tls_dir" "$activation_dir"' EXIT
           for n in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8766/play.html >/dev/null; then break; fi
             sleep 1
@@ -98,6 +108,13 @@ jobs:
           # Rate limits remain enabled for both Chromium suites.
           npx playwright test tests/browser/economy.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/tls.spec.cjs --workers=1 --reporter=github,line
+          for n in {1..30}; do
+            if curl --fail --silent --cacert "$tls_dir/cert.pem" https://127.0.0.1:8778/play.html >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --cacert "$tls_dir/cert.pem" https://127.0.0.1:8778/play.html >/dev/null
+          AETERNUM_TEST_ACTIVATION_OUTBOX="$activation_dir" \
+            npx playwright test tests/browser/activation.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
         run: |
@@ -107,6 +124,10 @@ jobs:
           tail -n 150 browser-invited.log || true
           echo '=== Loopback TLS terminator ==='
           tail -n 150 browser-tls.log || true
+          echo '=== Mailbox activation loopback server ==='
+          tail -n 150 browser-activation.log || true
+          echo '=== Mailbox TLS terminator ==='
+          tail -n 150 browser-activation-tls.log || true
 
       - name: Preserve Chromium failure evidence
         if: failure()
@@ -121,3 +142,5 @@ jobs:
             browser-server.log
             browser-invited.log
             browser-tls.log
+            browser-activation.log
+            browser-activation-tls.log
