@@ -82,3 +82,24 @@ foreach($inviteChildren as [$proc,$pipes]) {
 check($admitted===1,'one invite cannot be spent by two competing identities');
 $s=db()->query("SELECT COUNT(*) FROM engine_identities WHERE login LIKE 'invited-race-%'");
 check((int)$s->fetchColumn()===1,'failed competing invites rollback their identities');
+
+
+// The global signup quota applies independently of source IP. A throttled
+// request must not claim its invitation or create a half-initialized account.
+[$quotaCode]=$inviteService->issue($inviteWorld,1);
+$signupQuota=new \Aeternum\Core\PdoRateLimiter(db(),$inviteClock);
+$signupGranted=0;
+while($signupQuota->admit('auth:registration-global',100,3600)) {
+    if (++$signupGranted>100) throw new RuntimeException('Registration global budget did not close');
+}
+$quotaPayload=['login'=>'invite-quota-blocked','password'=>'valid password for signup quota','world'=>$inviteWorld,'inviteCode'=>$quotaCode];
+check($invitePost($quotaPayload,'192.0.2.245')[0]===429,
+    'global signup quota rejects registration from fresh peer');
+check((new PdoIdentity(db()))->authenticate($quotaPayload['login'],$quotaPayload['password'])===null,
+    'throttled signup leaves no identity and cannot consume invitation');
+$inviteClock->advanceTo(3600);
+[$afterQuotaStatus,$afterQuotaBody]=$invitePost($quotaPayload,'192.0.2.246');
+check($afterQuotaStatus===201 && preg_match('/^[a-f0-9]{64}$/D',$afterQuotaBody['data']['account']??'')===1,
+    'same invitation succeeds after global signup quota rollover');
+check((new PdoIdentity(db()))->authenticate($quotaPayload['login'],$quotaPayload['password'])===$afterQuotaBody['data']['account'],
+    'global quota reset never duplicates the claimed identity');
