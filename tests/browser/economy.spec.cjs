@@ -451,6 +451,7 @@ test('public signup provisions real players, supports retry, reconnect and accou
         await page.selectOption('select[name=resource]','steel');
         const own=await refresh(page);
         expect(own.stock).toBeGreaterThanOrEqual(0);
+        await page.waitForTimeout(2500);
         const production=page.waitForResponse(r=>r.url().endsWith('/economy/commands') && r.request().method()==='POST',{timeout:15000});
         await page.getByRole('button',{name:'Submit action',exact:true}).click();
         expect((await production).status()).toBe(200);
@@ -459,7 +460,7 @@ test('public signup provisions real players, supports retry, reconnect and accou
         await signIn(page,{...scenarios[1],login:'browser-public-first'});
         await expect(page.locator('select[name=account]')).toHaveValue(first.account);
         const persisted=await refresh(page);
-        expect(persisted.stock).toBeGreaterThanOrEqual(own.stock);
+        expect(persisted.stock).toBeGreaterThan(own.stock);
         expect(persisted.capacity).toBe(own.capacity);
         const second=await page.request.post(url+'/v1/auth/register',{data:{login:'browser-public-second',password,world:'e2e-industrial'}});
         expect(second.status()).toBe(201);
