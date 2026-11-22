@@ -33,6 +33,17 @@ try {
     }
     $legacyJournalEntries=$legacyScheduler->verifyReplay($legacyRules->commands,$legacyRules->events)->entries;
     check($legacyJournalEntries===count($legacyPack->resources),'nonempty pre-upgrade journal replays');
+    // Insert an escrow offer into a real world while the database contains
+    // ONLY migrations 001..015. Migration 020 must preserve it verbatim.
+    $historicOffer=['offer'=>'legacy-m03-offer','seller'=>$legacyActor,
+        'giveResource'=>'wood','giveUnits'=>1,'wantResource'=>'grain','wantUnits'=>1];
+    $legacyScheduler->executeForActor($legacyActor,new \Aeternum\Core\Command($legacyWorld,
+        'legacy-market-create','market.create',$historicOffer),$legacyRules->commands);
+    $legacyStock['wood']=$legacyScheduler->balanceForActor($legacyActor,$legacyActor,
+        'wood',$legacyRules->commands)->stock;
+    $legacyJournalEntries++;
+    check(array_column($legacyScheduler->marketForActor($legacyActor)['offers'],'id')===['legacy-m03-offer'],
+        'nonempty legacy scalar market works without relational tables');
     $legacyToken=bin2hex(random_bytes(32));
     $legacySession=$pdo->prepare('INSERT INTO engine_sessions(token_hash,actor_id,expires_at) VALUES (?,?,?)');
     $legacySession->execute([hash('sha256',$legacyToken),$legacyActor,1000]);
@@ -46,6 +57,22 @@ try {
     }
     check($legacyAfter->verifyReplay($legacyRules->commands,$legacyRules->events)->entries===$legacyJournalEntries,
         'migration retained preexisting deterministic journal and rules');
+    $relationalOffer=$pdo->prepare('SELECT status,give_units FROM engine_market_offers WHERE world_id=? AND offer_id=?');
+    $relationalOffer->execute([$legacyWorld,'legacy-m03-offer']);
+    $record=$relationalOffer->fetch(PDO::FETCH_ASSOC);
+    check($record!==false && $record['status']==='open' && (int)$record['give_units']===1,
+        'M03 lazy transactional backfill preserves an open escrow on a populated legacy world');
+    $relationalStock=$pdo->prepare('SELECT stock_units FROM engine_economy_balances WHERE world_id=? AND account_id=? AND resource_id=?');
+    $relationalStock->execute([$legacyWorld,$legacyActor,'wood']);
+    check((int)$relationalStock->fetchColumn()===$legacyStock['wood'],
+        'M03 legacy stock backfills to indexed balances without losing a unit');
+    $version=$pdo->prepare('SELECT economy_projection_version FROM engine_worlds WHERE world_id=?');
+    $version->execute([$legacyWorld]);
+    check((int)$version->fetchColumn()===1,'M03 migration backfill commits its version marker');
+    check(array_column($legacyAfter->marketForActor($legacyActor)['offers'],'id')===['legacy-m03-offer'],
+        'M03 new SQL market preserves historical listing and authorization');
+    check($legacyAfter->verifyReplay($legacyRules->commands,$legacyRules->events)->entries===$legacyJournalEntries,
+        'M03 migrated nonempty world still replays all legacy actions and offer receipts');
     $legacyAuth=new \Aeternum\Core\PdoSessions($pdo,$legacyClock);
     check($legacyAuth->resolve($legacyToken)===$legacyActor,'preexisting legacy session remains valid after upgrade');
     check($legacyAuth->login('migration-old-player','legacy account long-lived password')!==null,
