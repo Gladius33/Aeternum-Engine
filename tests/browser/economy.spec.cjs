@@ -403,12 +403,32 @@ test('public signup provisions real players, supports retry, reconnect and accou
         expect(reset.status()).toBe(200);
         const {data:recovered}=await reset.json();
         await expect(page.locator('#recovery-secret')).toContainText(recovered.recoveryCode);
+        await expect(page.locator('#status')).toHaveText('Password reset. Sign in with the replacement password.');
         expect((await page.request.post(url+'/v1/auth/login',{data:{login:'browser-public-first',password}})).status()).toBe(401);
         await page.getByLabel('Login',{exact:true}).fill('browser-public-first');
         await page.getByLabel('Password',{exact:true}).fill('browser new password after recovery');
         await page.getByRole('button',{name:'Sign in',exact:true}).click();
         await expect(page.locator('#game')).toBeVisible();
         await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);
+        // The replacement code is displayed only during recovery. A new
+        // sign-in must not leave it in the rendered, unauthenticated UI.
+        await expect(page.locator('#recovery-secret')).toBeHidden();
+        await page.getByLabel('Current password for recovery code').fill('browser new password after recovery');
+        const rotatedResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/recovery/rotate') && r.request().method()==='POST');
+        await page.getByRole('button',{name:'Replace recovery code',exact:true}).click();
+        const rotation=await rotatedResponse;
+        expect(rotation.status()).toBe(200);
+        const {data:rotated}=await rotation.json();
+        expect(rotated.recoveryCode).toMatch(/^[a-f0-9]{64}$/);
+        expect(rotated.recoveryCode).not.toBe(recovered.recoveryCode);
+        await expect(page.locator('#recovery-secret')).toContainText(rotated.recoveryCode);
+        // Rotation invalidates the previous code but keeps the session usable.
+        const replay=await page.request.post(url+'/v1/auth/recover',{data:{login:'browser-public-first',code:recovered.recoveryCode,newPassword:'browser attempted recovery replay'}});
+        expect(replay.status()).toBe(401);
+        await expect(page.locator('#game')).toBeVisible();
+        await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);
+        await page.getByRole('button',{name:'Sign out'}).click();
+        await expect(page.locator('#recovery-secret')).toBeHidden();
     } finally {
         await context.close();
     }
