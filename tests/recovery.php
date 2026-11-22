@@ -80,3 +80,21 @@ foreach($loginWorkers as [$proc,$pipes]) {
 }
 check((new PdoIdentity(db()))->authenticate($resetRaceLogin,$resetRaceOld)===null,'old password permanently rejected after concurrent reset');
 check($liveSessions->login($resetRaceLogin,$resetRaceNew)!==null,'new password can create a post-reset session');
+
+ 
+// The recovery limit is global across source IPs and cannot consume a valid
+// code merely because the server has exhausted its verification budget.
+$recoveryQuota=new \Aeternum\Core\PdoRateLimiter(db(),$onClock);
+$recoveryGranted=0;
+while($recoveryQuota->admit('auth:recovery-global',100,3600)) {
+    if (++$recoveryGranted>100) throw new RuntimeException('Recovery global budget did not close');
+}
+$quotaRecovery=['login'=>$resetRaceLogin,'code'=>$raceNext,'newPassword'=>'recovery after global quota rollover'];
+check($rcPost('/v1/auth/recover',$quotaRecovery,'203.0.113.77')[0]===429,
+    'recovery global quota rejects another peer with still-valid code');
+$onClock->advanceTo(3600);
+[$recoveredAfterQuota,$recoveredAfterQuotaData]=$rcPost('/v1/auth/recover',$quotaRecovery,'203.0.113.77');
+check($recoveredAfterQuota===200 && is_string($recoveredAfterQuotaData['data']['recoveryCode']??null),
+    'recovery code is not consumed by throttling and works after quota reset');
+check((new PdoIdentity(db()))->authenticate($resetRaceLogin,$quotaRecovery['newPassword'])===$resetRaceActor,
+    'global recovery rate limiter preserves valid identity across a window boundary');
