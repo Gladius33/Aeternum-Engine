@@ -45,5 +45,15 @@ for ($ipIndex=0;$ipIndex<10;$ipIndex++) {
     check($authApi->handle('POST',$loginPath,'','{}','192.0.2.199')[0]===400,'IPv4 native peer admission');
 }
 check($authApi->handle('POST',$loginPath,'','{}','::ffff:192.0.2.199')[0]===429,'IPv4-mapped IPv6 shares IPv4 quota');
+// The trusted last proxy hop, not a forged X-Forwarded-For prefix,
+// controls the same durable auth quota across multiple requests.
+$proxySocket='192.0.2.230';
+for ($attempt=0;$attempt<10;$attempt++) {
+    $resolved=\Aeternum\Core\PeerAddressResolver::resolve($proxySocket,'203.0.113.'.(10+$attempt).', 198.51.100.230',$proxySocket);
+    check($resolved==='198.51.100.230','proxy chain resolves stable true client');
+    check($authApi->handle('POST',$loginPath,'','{}',$resolved)[0]===400,'real auth accepts approved proxy client request');
+}
+$resolved=\Aeternum\Core\PeerAddressResolver::resolve($proxySocket,'203.0.113.254, 198.51.100.230',$proxySocket);
+check($authApi->handle('POST',$loginPath,'','{}',$resolved)[0]===429,'spoofed forwarding prefix cannot evade login limiter');
 $authClock->advanceTo(360);
 check($authApi->handle('POST',$loginPath,'',$credentials,'192.0.2.2')[0]===200,'peer window resets');
