@@ -14,7 +14,7 @@ final class PdoOnboarding
     public function __construct(private readonly PDO $pdo, private readonly Clock $clock) {}
 
     /**
-     * @return array{actor:string,created:bool}
+     * @return array{actor:string,created:bool,recoveryCode:?string}
      */
     public function enroll(string $world,GamePack $pack,string $login,string $password): array
     {
@@ -51,7 +51,7 @@ final class PdoOnboarding
         $s->execute([$actor]);
         $claim=$s->fetch(PDO::FETCH_ASSOC);
         if ($claim===false || $claim['world_id']!==$world) throw new \DomainException('Registration unavailable');
-        if ($claim['status']==='ready') return ['actor'=>$actor,'created'=>false];
+        if ($claim['status']==='ready') return ['actor'=>$actor,'created'=>false,'recoveryCode'=>(new PdoRecovery($this->pdo,$this->clock))->issueIfMissing($actor)];
         if ($claim['status']!=='pending') throw new \DomainException('Invalid registration state');
 
         // Existing provisioner has world locks, stable account/resource IDs and
@@ -59,6 +59,6 @@ final class PdoOnboarding
         (new PlayerProvisioner($this->pdo,$this->clock))->provision($world,$actor,$pack);
         $s=$this->pdo->prepare("UPDATE engine_onboarding SET status='ready' WHERE actor_id=? AND world_id=? AND status='pending'");
         $s->execute([$actor,$world]);
-        return ['actor'=>$actor,'created'=>$created];
+        return ['actor'=>$actor,'created'=>$created,'recoveryCode'=>(new PdoRecovery($this->pdo,$this->clock))->issueIfMissing($actor)];
     }
 }
