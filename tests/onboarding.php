@@ -112,3 +112,47 @@ check($onGet($accounts[0])===['world_id'=>$raceWorld,'status'=>'ready'],'concurr
 $ledger=db()->prepare('SELECT COUNT(*) FROM engine_resource_ledger WHERE world_id=? AND account_id=?');
 $ledger->execute([$raceWorld,$accounts[0]]);
 check((int)$ledger->fetchColumn()===count($onPack->resources),'concurrent signup grants resources once');
+
+
+// Per-world admission quota is durable, independent across approved worlds,
+// and cannot be bypassed by rotating the caller IP address.
+$capWorld='public-capacity-world';
+$capOther='public-capacity-other';
+$capApi=new AuthHttpApi(db(),new FrozenClock(8200),120,[$capWorld=>$onPack,$capOther=>$onPack],false,2);
+for($i=1;$i<=2;$i++) {
+    [$code,$out]=$capApi->handle('POST',$onPath,'',$onJson([
+        'login'=>'cap-user-'.$i,'password'=>'capacity user long password','world'=>$capWorld
+    ]),'198.51.100.'.(70+$i));
+    check($code===201 && isset($out['data']['account']),'world cap admits its first two complete players');
+}
+check($capApi->handle('POST',$onPath,'',$onJson([
+    'login'=>'cap-overflow','password'=>'capacity user long password','world'=>$capWorld
+]),'198.51.100.73')[0]===429,'third separate peer cannot exceed world cap');
+check($capApi->handle('POST',$onPath,'',$onJson([
+    'login'=>'cap-isolated','password'=>'capacity user long password','world'=>$capOther
+]),'198.51.100.74')[0]===201,'one world quota does not block another world');
+rejects(fn()=>new AuthHttpApi(db(),$onClock,120,[$capWorld=>$onPack],false,0),InvalidArgumentException::class,'world signup quota cannot be disabled by zero');
+rejects(fn()=>new AuthHttpApi(db(),$onClock,120,[$capWorld=>$onPack],false,100001),InvalidArgumentException::class,'world signup quota has upper bound');
+
+// Multiple independent PHP processes contend on the exact same real MariaDB
+// bucket; only two fully provisioned accounts may be committed.
+$capRaceWorld='public-capacity-concurrent';
+$capWorkers=[];
+for($i=0;$i<4;$i++) {
+    $proc=proc_open([PHP_BINARY,__DIR__.'/onboarding-capacity-worker.php',$capRaceWorld,(string)$i],
+        [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+    if(!is_resource($proc)) throw new RuntimeException('Unable to start capacity worker');
+    fclose($pipes[0]); $capWorkers[]=[$proc,$pipes];
+}
+$capStatuses=[];
+foreach($capWorkers as [$proc,$pipes]) {
+    $out=trim(stream_get_contents($pipes[1])); $err=stream_get_contents($pipes[2]);
+    fclose($pipes[1]); fclose($pipes[2]);
+    check(proc_close($proc)===0 && in_array($out,['201','429'],true),'capacity worker completed normally: '.$err);
+    $capStatuses[]=(int)$out;
+}
+sort($capStatuses);
+check($capStatuses===[201,201,429,429],'world quota is atomic under four concurrent separate peers');
+$capCount=db()->prepare('SELECT COUNT(*) FROM engine_onboarding WHERE world_id=?');
+$capCount->execute([$capRaceWorld]);
+check((int)$capCount->fetchColumn()===2,'rejected capacity race produces no orphaned accounts');

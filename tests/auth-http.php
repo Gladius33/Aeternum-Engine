@@ -35,5 +35,15 @@ check((new PdoSessions(db(),$authClock))->resolve($authToken)===null,'HTTP logou
 
 for ($i=0;$i<10;$i++) check($authApi->handle('POST',$loginPath,'','{}','192.0.2.2')[0]===400,'bounded malformed request');
 check($authApi->handle('POST',$loginPath,'',$credentials,'192.0.2.2')[0]===429,'peer throttled');
+// IPv6 privacy-address rotation must not reset a peer quota within /64.
+for ($ipIndex=1;$ipIndex<=10;$ipIndex++) {
+    check($authApi->handle('POST',$loginPath,'','{}','2001:db8:1:42::'.dechex($ipIndex))[0]===400,'IPv6 /64 shared peer admission');
+}
+check($authApi->handle('POST',$loginPath,'','{}','2001:db8:1:42::ff')[0]===429,'IPv6 address rotation cannot bypass peer quota');
+check($authApi->handle('POST',$loginPath,'','{}','2001:db8:1:43::1')[0]===400,'independent IPv6 /64 not penalized');
+for ($ipIndex=0;$ipIndex<10;$ipIndex++) {
+    check($authApi->handle('POST',$loginPath,'','{}','192.0.2.199')[0]===400,'IPv4 native peer admission');
+}
+check($authApi->handle('POST',$loginPath,'','{}','::ffff:192.0.2.199')[0]===429,'IPv4-mapped IPv6 shares IPv4 quota');
 $authClock->advanceTo(360);
 check($authApi->handle('POST',$loginPath,'',$credentials,'192.0.2.2')[0]===200,'peer window resets');

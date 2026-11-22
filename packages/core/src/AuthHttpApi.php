@@ -5,18 +5,19 @@ use PDO;
 
 final class AuthHttpApi
 {
-    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120,private readonly array $registrationWorlds=[],private readonly bool $requireInvitation=false)
+    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120,private readonly array $registrationWorlds=[],private readonly bool $requireInvitation=false,private readonly int $registrationWorldHourlyLimit=30)
     {
         if ($globalLoginLimit<1 || $globalLoginLimit>100000) throw new \InvalidArgumentException('Invalid global verification limit');
+        if ($registrationWorldHourlyLimit<1 || $registrationWorldHourlyLimit>100000) throw new \InvalidArgumentException('Invalid world registration limit');
     }
     public function handle(string $method,string $path,string $authorization,string $body,string $peer): array
     {
         if (!in_array($path,['/v1/auth/login','/v1/auth/logout','/v1/auth/logout/all','/v1/auth/register','/v1/auth/recover','/v1/auth/recovery/rotate','/v1/auth/password/change'],true)) return [404,['error'=>'not_found']];
         if ($method!=='POST') return [405,['error'=>'method_not_allowed']];
-        $packed=inet_pton($peer);
-        if ($packed===false) return [400,['error'=>'invalid_peer']];
+        $peerKey=PeerRateKey::fromIp($peer);
+        if ($peerKey===null) return [400,['error'=>'invalid_peer']];
         $rate=new PdoRateLimiter($this->pdo,$this->clock);
-        if (!$rate->admit('auth:peer:'.bin2hex($packed),10,60)) return [429,['error'=>'rate_limited']];
+        if (!$rate->admit('auth:peer:'.$peerKey,10,60)) return [429,['error'=>'rate_limited']];
         $sessions=new PdoSessions($this->pdo,$this->clock);
         if ($path==='/v1/auth/logout/all') {
             if (!preg_match('/^Bearer ([a-f0-9]{64})$/D',$authorization,$m)) return [401,['error'=>'unauthorized']];
@@ -46,8 +47,9 @@ final class AuthHttpApi
                 return [400,['error'=>'invalid_registration']];
             }
             if (!isset($this->registrationWorlds[$data['world']])) return [404,['error'=>'not_found']];
-            if (!$rate->admit('auth:registration-peer:'.bin2hex($packed),6,3600)
-                || !$rate->admit('auth:registration-global',100,3600)) {
+            if (!$rate->admit('auth:registration-peer:'.$peerKey,6,3600)
+                || !$rate->admit('auth:registration-global',100,3600)
+                || !$rate->admit('auth:registration-world:'.hash('sha256',$data['world']),$this->registrationWorldHourlyLimit,3600)) {
                 return [429,['error'=>'rate_limited']];
             }
             try {
@@ -75,7 +77,7 @@ final class AuthHttpApi
             if (!is_array($data) || count($data)!==3
                 || !is_string($data['login']??null) || !is_string($data['code']??null)
                 || !is_string($data['newPassword']??null)) return [400,['error'=>'invalid_recovery']];
-            if (!$rate->admit('auth:recovery-peer:'.bin2hex($packed),5,3600)
+            if (!$rate->admit('auth:recovery-peer:'.$peerKey,5,3600)
                 || !$rate->admit('auth:recovery-global',100,3600)) return [429,['error'=>'rate_limited']];
             $next=(new PdoRecovery($this->pdo,$this->clock))->reset($data['login'],$data['code'],$data['newPassword']);
             return $next===null ? [401,['error'=>'unauthorized']] : [200,['data'=>['recoveryCode'=>$next,'sessionsRevoked'=>true]]];

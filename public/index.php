@@ -33,7 +33,9 @@ try {
         } elseif (str_starts_with($path,'/v1/auth/')) {
             $globalLimit=getenv('AETERNUM_AUTH_GLOBAL_LIMIT');
             if ($globalLimit!==false && (!preg_match('/^[1-9][0-9]{0,5}$/D',$globalLimit) || (int)$globalLimit>100000)) throw new RuntimeException('Invalid auth verification configuration');
-            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,getenv('AETERNUM_PUBLIC_REGISTRATION')==='1'?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1'))->handle(
+            $worldLimit=getenv('AETERNUM_SIGNUP_WORLD_HOURLY_LIMIT');
+            if ($worldLimit!==false && (!preg_match('/^[1-9][0-9]{0,5}$/D',$worldLimit) || (int)$worldLimit>100000)) throw new RuntimeException('Invalid world signup configuration');
+            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,getenv('AETERNUM_PUBLIC_REGISTRATION')==='1'?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$_SERVER['REMOTE_ADDR'] ?? ''
             );
