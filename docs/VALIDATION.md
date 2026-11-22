@@ -144,3 +144,11 @@ The one-use invitation browser scenario runs before real-time timed upgrade scen
 
 
 M01 E2E correction after run 45009542745: the invitation-only real browser case intentionally provisions a second industrial actor, so the existing industrial recipient-directory assertion must observe one real invited account rather than an empty directory. Move the expired-session scenario before the 60s/180s timed upgrades to separate its authentication requests from the final public signup/recovery path while enforcing the unchanged auth:peer limit 10/min. Do not weaken rate enforcement or accept 429 as a substitute for a credential-rejection assertion.
+
+
+## M01 authenticated password-change gate (CI pending)
+`POST /v1/auth/password/change` requires a live bearer token, the verified current password, a distinct 12–1024-byte replacement and strict JSON fields. It returns a new one-time offline recovery credential, revokes all earlier bearers and never automatically issues a new session. `tests/password-change.php` runs against real disposable MariaDB: successful public signup, two independent sessions, wrong token/current password, missing/extra fields, weak/reused password, atomic session invalidation, old-password rejection, recovery-code digest/rotation/replay and subsequent offline recovery. Four independent PHP workers contend to change one identity: exactly one must commit, every preexisting bearer must be revoked, and the winning code digest must match the committed record. These are **test expectations**, not evidence of a green CI until the exact SHA passes.
+
+Chromium's public signup scenario additionally verifies the live client password-change form, replacement-code display, old bearer rejection, previous recovery-code denial and signing in again without residual secret in the DOM. The one-time recovery code is shown only during issuance/rotation and must be saved offline. Do not infer certified TLS or external mail identity confirmation from the localhost CI router.
+
+**Still open for M01 sign-off:** verified production HTTPS/reverse proxy and PHP shared-hosting behavior, an explicit activation policy appropriate to the service, abuse/capacity measurements and deployment acceptance. Do not merge on an incomplete or failed PHP/MariaDB/Chromium check.
