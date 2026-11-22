@@ -48,3 +48,21 @@ check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='m03
     'M03 SQL command receipts preserve every distinct opening and escrow action');
 check((int)db()->query("SELECT SUM(delta_units) FROM engine_resource_ledger WHERE world_id='m03-scale-world' AND resource_id='ore'")->fetchColumn()===999,
     'M03 ledger reflects all 1001 escrow debits and opening stock, without duplicate postings');
+
+
+// Open more than 1000 actual resources under one authenticated actor scope,
+// using the same production adapter and InnoDB projection (not mock handlers).
+for($i=1;$i<=1000;$i++) {
+    $account='account'.str_pad((string)$i,4,'0',STR_PAD_LEFT);
+    $members->assign($account,'scale-seller');
+    $scale->executeForActor('scale-seller',new Command($scaleWorld,'open-'.$account,
+        'economy.open',['account'=>$account,'resource'=>'ore']),$scaleEconomy);
+}
+check($scale->state()['econ:count']===1002,
+    'M03 1002 resource account openings survive real MariaDB transaction boundaries');
+$balanceRows=(int)db()->query("SELECT COUNT(*) FROM engine_economy_balances WHERE world_id='m03-scale-world'")->fetchColumn();
+check($balanceRows===1002,'M03 more than 1000 indexed relational resource accounts persist');
+check($scale->balanceForActor('scale-seller','account1000','ore',$scaleEconomy)->stock===2000,
+    'M03 actor can read his 1000th new account after migration and writes');
+check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='m03-scale-world'")->fetchColumn()===2003,
+    'M03 more than 2000 durable command receipts coexist without ID loss');
