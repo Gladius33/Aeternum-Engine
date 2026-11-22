@@ -90,3 +90,16 @@ jobs:
           tail -n 150 browser-server.log || true
           echo '=== Invitation server ==='
           tail -n 150 browser-invited.log || true
+
+      - name: Preserve Chromium failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromium-e2e-failure
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            test-results/
+            playwright-report/
+            browser-server.log
+            browser-invited.log
