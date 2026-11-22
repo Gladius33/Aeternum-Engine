@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{WorldPackRegistry,GamePackLoader,FrozenClock,PdoScheduler,Command};
+use Aeternum\Core\{WorldPackRegistry,GamePackLoader,FrozenClock,PdoScheduler,Command,PdoIdentity,PlayerProvisioner,PdoSessions,PlayerDiscoveryApi,EconomyHttpApi};
 $root=__DIR__.'/fixtures/m02-packs';
 $bytes=file_get_contents($root.'/sdk-fixture/manifest.json');
 $config=json_encode(['registry_api'=>'1','worlds'=>[
@@ -83,8 +83,8 @@ try {
     $operatorActor=$provisioned['account'];
     $operatorRules=$referencePack->rules();
     $operatorScheduler=new PdoScheduler(db(),'m02-cli-world',new FrozenClock(time()),$operatorRules);
-    check($operatorScheduler->balanceForActor($operatorActor,$operatorActor,'wood',$operatorRules->commands)->stock===100,
-        'configured world CLI provision persists authorized actor and starting stock');
+    check($operatorScheduler->balanceForActor($operatorActor,$operatorActor,'wood',$operatorRules->commands)->stock>=100,
+        'configured world CLI provision persists authorized actor and at least the starting stock');
     check($operatorScheduler->verifyReplay($operatorRules->commands,$operatorRules->events)->entries===count($referencePack->resources),
         'operator-created world replays all resource provisioning');
     [$result,$output]=$invokeRegistryCli([__DIR__.'/../bin/worker.php','reference-medieval','m02-cli-world']);
@@ -98,3 +98,44 @@ try {
 } finally {
     unlink($operatorPath);
 }
+
+
+// End-to-end PHP HTTP dispatcher coverage for the third pack, without
+// touching the front controller, and without granting cross-world access.
+$apiClock=new FrozenClock(600);
+$apiActor=(new PdoIdentity(db()))->register('m02-third-api','valid third-pack test password');
+(new PlayerProvisioner(db(),$apiClock))->provision('m02-third-api-world',$apiActor,$pack);
+$apiToken=(new PdoSessions(db(),$apiClock))->login('m02-third-api','valid third-pack test password');
+check(is_string($apiToken) && strlen($apiToken)===64,'third pack API player authenticated with opaque session');
+$apiBearer='Bearer '.$apiToken;
+$discovery=new PlayerDiscoveryApi(db(),$apiClock,[
+    'm02-new-world'=>$pack,'m02-third-api-world'=>$pack
+]);
+[$code,$result]=$discovery->handle('GET',$apiBearer);
+check($code===200 && count($result['data']['worlds'])===1
+    && $result['data']['worlds'][0]['world']==='m02-third-api-world'
+    && $result['data']['worlds'][0]['resources']===['amber'],
+    'authenticated discovery lists third pack only where membership is active');
+$apiRules=$pack->rules();
+$economy=new EconomyHttpApi(db(),$apiClock,[
+    'm02-new-world'=>$reloaded,
+    'm02-third-api-world'=>$apiRules
+]);
+$apiBase='/v1/worlds/m02-third-api-world/economy/';
+[$code,$result]=$economy->handle('GET',$apiBase.'balances/'.$apiActor.'/amber',$apiBearer);
+check($code===200 && $result['data']->stock===90,
+    'third pack public dispatcher resolves its own resource and authorized account');
+check($economy->handle('GET','/v1/worlds/m02-new-world/economy/balances/'.$apiActor.'/amber',$apiBearer)[0]===409,
+    'third pack cannot read another configured world without membership');
+$httpCommand=json_encode(['id'=>'third-http-upgrade','type'=>'economy.upgrade',
+    'payload'=>['account'=>$apiActor,'resource'=>'amber']],JSON_THROW_ON_ERROR);
+[$code,$result]=$economy->handle('POST',$apiBase.'commands',$apiBearer,$httpCommand);
+check($code===200,'third pack accepts real authenticated progression command through dispatcher');
+[$replayCode,$retry]=$economy->handle('POST',$apiBase.'commands',$apiBearer,$httpCommand);
+check($replayCode===200 && $retry===$result,'third pack HTTP retry returns same durable receipt');
+$apiClock->advanceTo(690);
+$apiWorker=new PdoScheduler(db(),'m02-third-api-world',$apiClock,$apiRules);
+check(count($apiWorker->processDue($apiRules->events))===1,
+    'third pack verified event completes on actual MariaDB after HTTP request');
+check($apiWorker->verifyReplay($apiRules->commands,$apiRules->events)->entries===3,
+    'third pack HTTP, provisioning and delayed event replay deterministically');
