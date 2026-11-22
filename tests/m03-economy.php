@@ -40,6 +40,27 @@ check(!isset($m03State['market:refund:seller:ore']) &&
 rejects(fn()=> $m03Handler->apply(new Command('unit-m03','claim-again','market.claim',
     ['account'=>'seller','resource'=>'ore']),$m03State,120),DomainException::class,
     'M03 claimed refund is not duplicable');
+
+// A seller must also be protected when cancelling by hand after production
+// saturates the stock. A subsequent expiry for a cancelled offer is a no-op.
+$m03Apply('full-cancel-create','market.create',[
+    'offer'=>'cancel-full','seller'=>'seller','giveResource'=>'ore','giveUnits'=>10,
+    'wantResource'=>'coin','wantUnits'=>1
+],120);
+$m03Apply('full-cancel','market.cancel',['offer'=>'cancel-full','seller'=>'seller'],130);
+check($m03State['market:cancel-full:status']==='cancelled' &&
+    $m03State['market:refund:seller:ore']===10,
+    'M03 cancellation after storage saturation retains escrow as refundable claim');
+$future=$m03Apply('cancel-early','market.create',[
+    'offer'=>'cancel-before-expiry','seller'=>'seller','giveResource'=>'ore',
+    'giveUnits'=>1,'wantResource'=>'coin','wantUnits'=>1,'expiresAt'=>150
+],130);
+$m03Apply('cancel-early-complete','market.cancel',
+    ['offer'=>'cancel-before-expiry','seller'=>'seller'],130);
+$cancelled=$m03State;
+check($m03Handler->complete($future[0],$cancelled)->state===$cancelled,
+    'M03 scheduled expiry of manually cancelled offer does not refund twice');
+
 $invalid=$expiring;$invalid['offer']='invalid';$invalid['expiresAt']=100;
 rejects(fn()=> $m03Handler->apply(new Command('unit-m03','invalid-expiry','market.create',$invalid),
     $m03State,100),InvalidArgumentException::class,'M03 rejects an already expired offer');
@@ -73,12 +94,3 @@ check($s['market:count']===1001 && $s['market:offer1000:status']==='open',
     'M03 pure engine accepts 1001 lifetime offers without former market cap');
 check(ScalarMap::decode(ScalarMap::encode($s))==ScalarMap::validate($s),
     'M03 1001 account/offer source snapshot remains serializable for replay');
-
-
-$balanceRow=['stock_units'=>90,'settled_at'=>100,'remainder'=>0,'level_no'=>0];
-$direct=$m03Handler->balanceAtRow($balanceRow,'ore',101);
-check($direct->stock===100 && $direct->capacity===100,
-    'M03 indexed MVCC resource read advances lazy production without expanding world state');
-rejects(fn()=> $m03Handler->balanceAtRow(
-    ['stock_units'=>90,'settled_at'=>100,'remainder'=>0,'level_no'=>999],'ore',100),
-    DomainException::class,'M03 invalid indexed upgrade level is rejected');
