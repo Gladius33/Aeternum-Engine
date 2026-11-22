@@ -291,6 +291,25 @@ final class PdoScheduler
         }
     }
 
+    /** Read committed market terms only, never private world state. */
+    public function marketForActor(string $actor,?string $after=null,int $limit=50): array
+    {
+        PdoMemberships::validateId($actor);
+        MarketProjection::validatePage($after,$limit);
+        if ($this->rules===null || !$this->rules->commands instanceof EconomyCommandHandler) throw new \DomainException('Market requires pinned economy rules');
+        if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
+        return $this->transaction(function () use ($actor,$after,$limit): array {
+            $world=$this->lockedWorld();
+            $this->assertActiveActor($actor);
+            $offers=MarketProjection::openOffers(ScalarMap::decode($world['state_json']));
+            $accounts=array_values(array_unique(array_column($offers,'seller'),SORT_STRING));
+            if ($accounts===[]) return ['offers'=>[],'nextAfter'=>null];
+            $slots=implode(',',array_fill(0,count($accounts),'?'));
+            $active=$this->query('SELECT o.account_id FROM engine_account_owners o JOIN engine_memberships m ON m.world_id=o.world_id AND m.actor_id=o.actor_id WHERE o.world_id=? AND m.active=1 AND o.account_id IN ('.$slots.')',[$this->worldId,...$accounts])->fetchAll(PDO::FETCH_COLUMN);
+            return MarketProjection::page($offers,$active,$after,$limit);
+        });
+    }
+
     /** Own-account projection, guarded by the due-event barrier. */
     public function balanceForActor(string $actor,string $account,string $resource,EconomyCommandHandler $handler): ProductionState
     {
