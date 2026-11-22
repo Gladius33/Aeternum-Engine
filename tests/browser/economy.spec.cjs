@@ -46,6 +46,27 @@ async function refresh(page, allowDueConflict=false) {
     return data;
 }
 
+async function changePasswordInBrowser(page,current,next,expectedStatus) {
+    for (let attempt=0; attempt<3; attempt++) {
+        await page.getByLabel('Current password',{exact:true}).fill(current);
+        await page.getByLabel('New account password (12 characters minimum)',{exact:true}).fill(next);
+        await page.getByLabel('Confirm account password',{exact:true}).fill(next);
+        const received=page.waitForResponse(r=>r.url().endsWith('/v1/auth/password/change') && r.request().method()==='POST',{timeout:15000});
+        await page.getByRole('button',{name:'Change password',exact:true}).click();
+        const response=await received;
+        if (response.status()!==429) {
+            expect(response.status()).toBe(expectedStatus);
+            return response;
+        }
+        // Public signup, recovery and rotation deliberately share the real
+        // per-peer quota. Wait for a fresh server window, never bypass quotas.
+        await expect(page.locator('#status')).toHaveText('rate_limited');
+        if (attempt===2) throw new Error('Password change remained throttled after two quota windows');
+        await page.waitForTimeout(65000);
+    }
+    throw new Error('Password change retry budget exhausted');
+}
+
 async function marketPage(page) {
     const received=page.waitForResponse(r=>r.url().endsWith('/economy/market') && r.request().method()==='GET',{timeout:15000});
     await page.getByRole('button',{name:'Reload market',exact:true}).click();
@@ -353,7 +374,7 @@ for (const s of scenarios) {
 }
 
 test('public signup provisions real players, supports retry, reconnect and account isolation',async ({browser})=>{
-    test.setTimeout(240000);
+    test.setTimeout(300000);
     const context=await browser.newContext(), page=await context.newPage();
     try {
         await page.goto(url+'/play.html');
@@ -431,21 +452,10 @@ test('public signup provisions real players, supports retry, reconnect and accou
         // A player can change their password without an operator. The server
         // revokes every previous bearer and rotates offline recovery credentials.
         const oldAuthorization=(await rotation.request().allHeaders()).authorization;
-        await page.getByLabel('Current password',{exact:true}).fill('wrong current password');
-        await page.getByLabel('New account password (12 characters minimum)',{exact:true}).fill('browser final password after change');
-        await page.getByLabel('Confirm account password',{exact:true}).fill('browser final password after change');
-        const deniedChange=page.waitForResponse(r=>r.url().endsWith('/v1/auth/password/change') && r.request().method()==='POST');
-        await page.getByRole('button',{name:'Change password',exact:true}).click();
-        expect((await deniedChange).status()).toBe(403);
+        await changePasswordInBrowser(page,'wrong current password','browser final password after change',403);
         await expect(page.locator('#game')).toBeVisible();
         await expect(page.locator('#status')).toHaveText('invalid_current_password');
-        await page.getByLabel('Current password',{exact:true}).fill('browser new password after recovery');
-        await page.getByLabel('New account password (12 characters minimum)',{exact:true}).fill('browser final password after change');
-        await page.getByLabel('Confirm account password',{exact:true}).fill('browser final password after change');
-        const changedResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/password/change') && r.request().method()==='POST');
-        await page.getByRole('button',{name:'Change password',exact:true}).click();
-        const change=await changedResponse;
-        expect(change.status()).toBe(200);
+        const change=await changePasswordInBrowser(page,'browser new password after recovery','browser final password after change',200);
         const {data:changed}=await change.json();
         expect(changed.sessionsRevoked).toBe(true);
         expect(changed.recoveryCode).toMatch(/^[a-f0-9]{64}$/);
