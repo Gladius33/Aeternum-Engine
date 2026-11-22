@@ -1,4 +1,4 @@
-# M04 — Monde géographique (travail en cours)
+# M04 — Monde stratégique : dossier technique et limites de validation
 
 Les migrations 021 et 022 sont **additives**. La 021 ajoute des liaisons
 orientées entre lieux ; la 022 ajoute un registre territorial, relié aux
@@ -218,13 +218,16 @@ La CI vérifie quatre processus concurrents de placement et exige un
 seul reçu et une seule fondation. Chromium vérifie les deux composants
 d'entité distincts après progression et le refus d'accès croisé.
 
-## Sortie de macro NON acquise
+## Qualification M04
 
-Le catalogue typé, les coûts multi-ressources, la planification, l'annulation,
-le journal/rejeu et les parcours navigateur de construction existent déjà.
-Restent à développer le placement de fondations par les joueurs, les
-composants évolutifs et leurs effets métier, ainsi que la preuve E2E de
-deux joueurs développant indépendamment leurs entités jusqu'aux critères
-de sortie M04. Les essais de charge prolongés et une répétition des
-migrations sur copie de données persistantes représentatives manquent.
-La CI verte d'une sous-livraison ne vaut pas acceptation de M04.
+La matrice de recette est détaillée dans [M04_ACCEPTANCE.md](M04_ACCEPTANCE.md).
+Le parcours en laboratoire est prévu pour prouver que deux joueurs
+créent leurs fondations sans CLI opérateur, débitent les coûts
+multi-ressources, exécutent un worker et observent séparément
+l'évolution de leurs entités. Les tests PHP/MariaDB et Chromium doivent
+être **entièrement verts sur le SHA exact** avant fusion.
+
+Une validation sur un hébergement O2Switch/VPS et sur une **copie des
+données persistantes réelles** reste à organiser avant déploiement.
+Ce point ne peut être présenté comme exécuté. Le périmètre de la V1.0
+demeure celui des neuf jalons de ROADMAP.md, sans raccourci.

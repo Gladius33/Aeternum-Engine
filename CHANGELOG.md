@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — macro M04 (monde stratégique)
+
+- Geographical world graph: directed weighted routes, territories, immutable ownership and bounded route exploration.
+- Declarative, pinned building types with multiresource costs, prerequisites, scheduled upgrades and replayable event completions.
+- Actor-initiated `building.place` inserts actor/territory/entity-owned foundations atomically with the command journal; existing approved worlds are not silently altered.
+- Construction cancellation and deferred capacity-safe refunds preserve every unit across concurrent attempts, worker delivery and replay.
+- Authenticated/public map projections, private building/discovery and entity-development components, and a reference browser placement/build workflow for two independent players.
+- Cover PHP 8.4, MariaDB 11.4, interprocess races, migration of a populated legacy world, dump/restore, and full Chromium E2E in CI. Production migration and V1.0 acceptance remain separate.
+
+
 ## In progress — M01 identity-proof enrollment safety
 - Public HTTP registration now requires either operator-vetted one-time invitations or verified-mailbox activation. The earlier intentionally unsecured signup mode survives only in loopback browser CI, preventing a production misconfiguration from silently opening anonymous self-enrollment.
 - Existing identities and API sessions are not migrated or revoked by this admission policy. Migration 019 adds optional validated-mailbox activation, concurrency/replay tests, and bounded cleanup.
