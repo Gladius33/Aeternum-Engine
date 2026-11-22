@@ -66,3 +66,27 @@ check($scale->balanceForActor('scale-seller','account1000','ore',$scaleEconomy)-
     'M03 actor can read his 1000th new account after migration and writes');
 check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='m03-scale-world'")->fetchColumn()===2003,
     'M03 more than 2000 durable command receipts coexist without ID loss');
+
+
+// A concurrent writer holds SELECT ... FOR UPDATE on this world's row. Public
+// read-only SQL market and stock/overview projections must still complete
+// without waiting for global serialization. The snapshot is committed data.
+$exclusive=db();
+$exclusive->beginTransaction();
+try {
+    $lock=$exclusive->prepare('SELECT world_id FROM engine_worlds WHERE world_id=? FOR UPDATE');
+    $lock->execute([$scaleWorld]);
+    check($lock->fetchColumn()===$scaleWorld,'M03 contention fixture holds actual world row lock');
+    $parallelReader=new PdoScheduler(db(),$scaleWorld,$scaleClock,$scaleRules);
+    $started=hrtime(true);
+    $offers=$parallelReader->marketForActor('scale-reader',null,5);
+    $balance=$parallelReader->balanceForActor('scale-seller','account1000','ore',$scaleEconomy);
+    $overview=$parallelReader->overviewForActor('scale-seller','account1000','ore',$scaleEconomy);
+    $elapsedMs=(hrtime(true)-$started)/1_000_000;
+    check(count($offers['offers'])===5 && $offers['offers'][0]['id']==='o0000'
+        && $balance->stock===2000 && $overview['stock']===2000,
+        'M03 indexed market, balance and overview remain readable during real writer lock');
+    check($elapsedMs<2000,'M03 read-only MVCC queries avoid world row lock wait');
+} finally {
+    if ($exclusive->inTransaction()) $exclusive->rollBack();
+}
