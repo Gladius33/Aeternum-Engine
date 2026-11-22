@@ -102,6 +102,7 @@ require __DIR__ . "/auth-global.php";
 require __DIR__ . "/economy-http.php";
 require __DIR__ . "/provisioning.php";
 require __DIR__ . "/onboarding.php";
+require __DIR__ . "/recovery.php";
 require __DIR__ . "/world-worker.php";
 require __DIR__.'/player-discovery.php';
 require __DIR__ . "/market-http.php";

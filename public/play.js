@@ -77,7 +77,7 @@ login.addEventListener('submit',e=>{
     const f=new FormData(login);
     const credentials={login:f.get('login'),password:f.get('password')};
     login.elements.password.value='';
-    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;registration.hidden=true;game.hidden=false;await discover();});
+    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;registration.hidden=true;recovery.hidden=true;game.hidden=false;await discover();});
 });
 const registration=document.querySelector('#register');
 let joinableWorlds=[];
@@ -103,8 +103,34 @@ registration.addEventListener('submit',e=>{
         token=data.token;
         registration.elements.password.value='';
         registration.elements.confirm.value='';
-        login.hidden=true; registration.hidden=true; game.hidden=false;
+        showRecoveryCode(data.recoveryCode);
+        login.hidden=true; registration.hidden=true; recovery.hidden=true; game.hidden=false;
         await discover();
+    });
+});
+const recovery=document.querySelector('#recover'), secret=document.querySelector('#recovery-secret'), rotate=document.querySelector('#rotate');
+function showRecoveryCode(code) {
+    secret.hidden=!code;
+    secret.textContent=code ? 'Store this recovery code offline now; it will not be shown again: '+code : '';
+}
+recovery.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(recovery), payload={login:String(f.get('login')),code:String(f.get('code')),newPassword:String(f.get('newPassword'))};
+    run(async()=>{
+        if (payload.newPassword!==String(f.get('confirm'))) throw new Error('Passwords do not match');
+        const data=await api('/v1/auth/recover','POST',payload);
+        recovery.reset();
+        showRecoveryCode(data.recoveryCode);
+        status.textContent='Password reset. Sign in with the replacement password.';
+    });
+});
+rotate.addEventListener('submit',e=>{
+    e.preventDefault();
+    const pass=String(new FormData(rotate).get('password'));
+    rotate.reset();
+    run(async()=>{
+        const data=await api('/v1/auth/recovery/rotate','POST',{password:pass});
+        showRecoveryCode(data.recoveryCode);
     });
 });
 balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
@@ -225,7 +251,7 @@ retryCommand.addEventListener('click',()=>run(async()=>{
 }));
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
-    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; registration.hidden=joinableWorlds.length===0;
+    stock.replaceChildren(); action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; showRecoveryCode(null);
 }
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }
