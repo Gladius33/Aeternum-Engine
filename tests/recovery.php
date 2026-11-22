@@ -46,3 +46,34 @@ foreach($children as [$proc,$pipes]) {
 check($wins===1,'parallel one-time recovery code commits once');
 check((new PdoSessions(db(),$onClock))->resolve($session)===null,'concurrent recovery revokes active session');
 check((new PdoIdentity(db()))->authenticate($onData['login'],'concurrent recovery test password')===$onActor,'single concurrent winner changed password');
+
+
+// Race: an old-password login must never survive the moment of password reset.
+// A login that finishes first is deleted by reset; one starting later fails.
+$resetRaceLogin='reset-login-race';
+$resetRaceOld='old concurrent session password';
+$resetRaceNew='new concurrent session password';
+$resetRaceActor=(new PdoIdentity(db()))->register($resetRaceLogin,$resetRaceOld);
+$recoveryService=new \Aeternum\Core\PdoRecovery(db(),$onClock);
+$resetRaceCode=$recoveryService->issueIfMissing($resetRaceActor);
+check($resetRaceCode!==null,'race fixture has single-use recovery code');
+$loginWorkers=[];
+for($n=0;$n<4;$n++) {
+    $proc=proc_open([PHP_BINARY,__DIR__.'/recovery-login-worker.php',$resetRaceLogin],
+        [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+    if(!is_resource($proc)) throw new RuntimeException('Unable to spawn competing login');
+    fwrite($pipes[0],$resetRaceOld.PHP_EOL); fclose($pipes[0]);
+    $loginWorkers[]=[$proc,$pipes];
+}
+$raceNext=$recoveryService->reset($resetRaceLogin,$resetRaceCode,$resetRaceNew);
+check($raceNext!==null && $raceNext!==$resetRaceCode,'password reset completes under concurrent login contention');
+$liveSessions=new PdoSessions(db(),$onClock);
+foreach($loginWorkers as [$proc,$pipes]) {
+    $token=trim(stream_get_contents($pipes[1]));$err=stream_get_contents($pipes[2]);
+    fclose($pipes[1]);fclose($pipes[2]);
+    check(proc_close($proc)===0,'competing login completes: '.$err);
+    check($token==='NONE' || preg_match('/^[a-f0-9]{64}$/D',$token)===1,'competing login result valid');
+    if($token!=='NONE') check($liveSessions->resolve($token)===null,'old-password token cannot survive reset');
+}
+check((new PdoIdentity(db()))->authenticate($resetRaceLogin,$resetRaceOld)===null,'old password permanently rejected after concurrent reset');
+check($liveSessions->login($resetRaceLogin,$resetRaceNew)!==null,'new password can create a post-reset session');
