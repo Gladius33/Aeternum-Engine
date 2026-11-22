@@ -49,5 +49,6 @@ require __DIR__ . "/peer-key.php";
 require __DIR__ . "/proxy-peer.php";
 require __DIR__ . "/production.php";
 require __DIR__ . "/packs.php";
+require __DIR__ . "/m02-registry.php";
 require __DIR__ . "/market-projection.php";
 echo "All regression checks passed.\n";

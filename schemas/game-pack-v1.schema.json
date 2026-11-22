@@ -96,6 +96,69 @@
           }
         }
       }
+    },
+    "components": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "fields"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "fields": {
+            "$ref": "#/$defs/fieldMap"
+          }
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "payload"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "payload": {
+            "$ref": "#/$defs/fieldMap"
+          }
+        }
+      }
+    },
+    "event_hooks": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "payload"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+          },
+          "payload": {
+            "$ref": "#/$defs/fieldMap"
+          }
+        }
+      }
     }
   },
   "$defs": {
@@ -112,7 +175,24 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 2592000
+    },
+    "fieldMap": {
+      "type": "object",
+      "maxProperties": 24,
+      "propertyNames": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+      },
+      "additionalProperties": {
+        "enum": [
+          "integer",
+          "string",
+          "boolean",
+          "nullable_integer",
+          "nullable_string",
+          "nullable_boolean"
+        ]
+      }
     }
   },
-  "$comment": "The PHP loader additionally enforces exact integer types, byte limits, names without control characters, initial_stock <= capacity, unique resource IDs, valid references, feasible costs, contiguous upgrade levels and strictly increasing production."
+  "$comment": "The PHP loader additionally enforces exact integer types, byte limits, names without control characters, initial_stock <= capacity, unique resource IDs, valid references, feasible costs, contiguous upgrade levels and strictly increasing production. Optional typed SDK metadata is declarative and cannot execute arbitrary scripts."
 }
