@@ -26,6 +26,7 @@ function selectWorld() {
     options(balance.elements.account,(w?.accounts??[]).map(a=>[a,a]));
     options(balance.elements.resource,(w?.resources??[]).map(a=>[a,a]));
     stock.replaceChildren();
+    clearRecipients();
 }
 async function discover() {
     const data=await api('/v1/me/worlds');
@@ -79,6 +80,23 @@ login.addEventListener('submit',e=>{
 });
 balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
 const transferFields=document.querySelector('#transfer-fields');
+const directory=document.querySelector('#recipient-directory'), recipientNotice=document.querySelector('#recipient-notice');
+function clearRecipients() {
+    options(directory,[['','Choose a recipient']]);
+    recipientNotice.textContent='';
+    action.elements.recipient.value='';
+}
+async function loadRecipients() {
+    const f=locationFields();
+    options(directory,[['','Choose a recipient']]);
+    recipientNotice.textContent='';
+    if (!f.world) throw new Error('Choose a world first');
+    const data=await api('/v1/worlds/'+encodeURIComponent(f.world).replaceAll('%3A',':')+'/recipients');
+    options(directory,[['','Choose a recipient'],...data.accounts.map(a=>[a,a])]);
+    recipientNotice.textContent=data.truncated?'First 100 recipients shown. Enter another account ID manually.':data.accounts.length?'Choose a recipient or enter an account ID manually.':'No recipients found.';
+}
+document.querySelector('#load-recipients').addEventListener('click',()=>run(loadRecipients));
+directory.addEventListener('change',()=>{action.elements.recipient.value=directory.value;});
 function syncTransferFields() {
     const active=action.elements.type.value==='economy.transfer';
     transferFields.hidden=!active; transferFields.disabled=!active;

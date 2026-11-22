@@ -49,7 +49,14 @@ test('real multiplayer transfer and foreign balance denial', async ({browser})=>
         expect(beforeSender).not.toBeNull();
         expect(beforeReceiver).not.toBeNull();
         await sender.selectOption('select[name=type]','economy.transfer');
-        await sender.getByLabel('Recipient account').fill(to);
+        const directoryResponse=sender.waitForResponse(r=>r.url().endsWith('/recipients'));
+        await sender.getByRole('button',{name:'Find recipients'}).click();
+        expect((await directoryResponse).status()).toBe(200);
+        await expect(sender.locator('#status')).toHaveText('Success');
+        await expect(sender.locator('#recipient-directory option').filter({hasText:to})).toHaveCount(1);
+        expect(await sender.locator('#recipient-directory option').evaluateAll(options=>options.map(o=>o.value))).not.toContain(from);
+        await sender.getByLabel('Available recipients').selectOption(to);
+        await expect(sender.getByLabel('Recipient account')).toHaveValue(to);
         await sender.getByLabel('Units',{exact:true}).fill('5');
         const command=sender.waitForResponse(r=>r.url().endsWith('/economy/commands'));
         await sender.getByRole('button',{name:'Submit action'}).click();
@@ -82,6 +89,11 @@ for (const s of scenarios) {
         const before=await refresh(page);
         await page.selectOption('select[name=type]','economy.transfer');
         await expect(page.getByLabel('Recipient account')).toBeVisible();
+        if (s.pack==='reference-industrial') {
+            await page.getByRole('button',{name:'Find recipients'}).click();
+            await expect(page.locator('#recipient-notice')).toHaveText('No recipients found.');
+            await expect(page.locator('#recipient-directory option')).toHaveCount(1);
+        }
         await page.getByLabel('Recipient account').fill('absent-recipient');
         await page.getByLabel('Units',{exact:true}).fill('1');
         const denied=page.waitForResponse(r=>r.url().endsWith('/economy/commands'));
