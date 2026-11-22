@@ -129,20 +129,26 @@ une lecture validée de sa propre fondation, sur son compte actif, sans
 client d'économie et rafraîchit le plan et les stocks après acceptation.
 Un rejeu non acquitté utilise le bouton de reprise de requête existant.
 
-### Annulation compensatoire (capacité de stockage disponible)
+### Annulation et crédits différés si le stockage est saturé
 
 La commande autorisée `building.cancel` ne peut interrompre qu'une
-étape encore en cours. Elle remet **exactement** tous les coûts dans les
-comptes, de manière atomique, et écrit des lignes `construction_refund`
-au grand livre. Si un stock n'a plus la capacité d'accueillir toutes
-les ressources à restituer, l'annulation est entièrement refusée :
-aucune unité ne disparaît. Le traitement ultérieur de l'événement
-original est un *no-op* déterministe journalisé. Les reprises multiples
-et redémarrages sont idempotents ; les annulations après échéance sont
-refusées et le worker termine d'abord les échéances.
+étape encore en cours. Elle restitue immédiatement la portion que le
+stockage peut recevoir et enregistre l'intégralité du reliquat dans un
+**crédit persistant séparé par monde, compte et ressource**, sous
+`build:refund:ACCOUNT:RESOURCE` dans l'état canonique journalisé.
+`building.claim` dépose ce crédit jusqu'à la capacité physique disponible,
+de manière atomique ; le solde reste dû si le stockage est encore trop
+plein. Le grand livre distingue `construction_refund` immédiat et
+`construction_claim` différé. Les actions sont autorisées au seul
+propriétaire actif du compte, et les rejeux de requêtes ne peuvent
+recréditer les unités déjà restituées.
 
-L'annulation avec capacité saturée et remboursement différé reste
-**à implémenter** avant validation de M04.
+L'événement de construction annulé reste programmé et s'achève par un
+no-op déterministe journalisé. Les remboursements sont conservés même
+après le traitement de cet événement. La restauration doit préserver
+la totalité du journal et des crédits pour éviter une perte de ressources.
+L'échéance atteinte interdit l'annulation, avant traitement normal du
+worker.
 
 ### Initialisation encadrée des bâtiments
 

@@ -126,9 +126,24 @@ final class PdoBuildings
             }
             $account=$state[$prefix.'account']??$actor;
             if (!is_string($account)) throw new \UnexpectedValueException('Invalid building account');
+            // The sum of pending credits is shared by this owner's funding
+            // account, not by one building. Never expose a foreign account.
+            $refunds=[];
+            foreach ($stages as $stage) {
+                foreach (array_keys($stage['costs']) as $resource) {
+                    $pendingCredit=$state['build:refund:'.$account.':'.$resource]??0;
+                    if (!is_int($pendingCredit) || $pendingCredit<0
+                        || $pendingCredit>ProductionState::MAX_UNITS) {
+                        throw new \UnexpectedValueException('Invalid construction refund credit');
+                    }
+                    if ($pendingCredit>0) $refunds[$resource]=$pendingCredit;
+                }
+            }
+            ksort($refunds,SORT_STRING);
             return ['id'=>$row['building_id'],'entity'=>$row['entity_id'],'territory'=>$row['territory_id'],
                 'type'=>$row['building_type'],'account'=>$account,'level'=>$level,'pending'=>$pending,
                 'startedAt'=>$pending!==null?($state[$prefix.'started']??null):null,
+                'refundPending'=>$refunds,
                 'next'=>$stages[$level]??null];
         });
     }

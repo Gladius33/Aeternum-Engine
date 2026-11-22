@@ -329,12 +329,56 @@ final class EconomyCommandHandler implements CommandHandler
         }
         $ledger=[];
         foreach ($stage['costs'] as $resource=>$units) {
-            $balance=$this->settle($state,$ledger,$account,$resource,$at)->credit($units);
-            $this->write($state,$account,$resource,$balance);
-            $ledger[]=new ResourceMovement($account,$resource,$units,$balance->stock,'construction_refund');
+            $balance=$this->settle($state,$ledger,$account,$resource,$at);
+            // Capacity is finite: never discard paid resources. Return the
+            // immediately storable quantity, place the remainder in durable
+            // account-scoped credit until an explicit claim opens storage.
+            $immediate=min($units,$balance->capacity-$balance->stock);
+            if ($immediate>0) {
+                $balance=$balance->credit($immediate);
+                $this->write($state,$account,$resource,$balance);
+                $ledger[]=new ResourceMovement($account,$resource,$immediate,$balance->stock,
+                    'construction_refund');
+            }
+            $deferred=$units-$immediate;
+            if ($deferred>0) {
+                $creditKey='build:refund:'.$account.':'.$resource;
+                $existing=$state[$creditKey]??0;
+                if (!is_int($existing) || $existing<0
+                    || $existing>ProductionState::MAX_UNITS-$deferred) {
+                    throw new \DomainException('Construction refund credit exhausted');
+                }
+                $state[$creditKey]=$existing+$deferred;
+            }
         }
         unset($state[$prefix.'pending'],$state[$prefix.'started']);
         $state['build:cancelled:'.$pending]=true;
+        return new CommandResult($state,[],$ledger);
+    }
+
+    /**
+     * Deposit a bounded outstanding cancellation credit to physical stock.
+     * The authoritative credit is in replay-canonical state, never browser
+     * input; duplicate request IDs are idempotent via PdoScheduler.
+     */
+    private function claimBuilding(Command $command,array $state,int $at): CommandResult
+    {
+        $p=$this->payload($command,['account','resource']);
+        $account=$this->id($p['account']);
+        $resource=$this->id($p['resource']);
+        $key='build:refund:'.$account.':'.$resource;
+        $pending=$state[$key]??null;
+        if (!is_int($pending) || $pending<1 || $pending>ProductionState::MAX_UNITS) {
+            throw new \DomainException('No pending construction refund');
+        }
+        $ledger=[];
+        $balance=$this->settle($state,$ledger,$account,$resource,$at);
+        $units=min($pending,$balance->capacity-$balance->stock);
+        if ($units<1) throw new \DomainException('No physical storage capacity for refund');
+        $balance=$balance->credit($units);
+        $this->write($state,$account,$resource,$balance);
+        $ledger[]=new ResourceMovement($account,$resource,$units,$balance->stock,'construction_claim');
+        if ($units===$pending) unset($state[$key]); else $state[$key]=$pending-$units;
         return new CommandResult($state,[],$ledger);
     }
 
@@ -386,6 +430,7 @@ final class EconomyCommandHandler implements CommandHandler
     {
         if ($command->type==='building.start') return $this->startBuilding($command,$state,$effectiveAt);
         if ($command->type==='building.cancel') return $this->cancelBuilding($command,$state,$effectiveAt);
+        if ($command->type==='building.claim') return $this->claimBuilding($command,$state,$effectiveAt);
         if (in_array($command->type,['market.create','market.accept','market.cancel','market.claim'],true)) {
             return $this->market($command,$state,$effectiveAt);
         }

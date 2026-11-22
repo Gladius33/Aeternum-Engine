@@ -36,6 +36,7 @@ function clearMap() {
     currentBuilding=null;
     document.querySelector('#building-start').hidden=true;
     document.querySelector('#building-cancel').hidden=true;
+    document.querySelector('#building-claim').hidden=true;
 }
 async function loadMap(after=null) {
     const world=balance.elements.world.value;
@@ -93,6 +94,7 @@ async function loadBuilding() {
     currentBuilding=null;
     document.querySelector('#building-start').hidden=true;
     document.querySelector('#building-cancel').hidden=true;
+    document.querySelector('#building-claim').hidden=true;
     if (!world || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)) throw new Error('Choose an owned building ID');
     const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':');
     const building=await api(root+'/buildings/'+encodeURIComponent(id));
@@ -100,6 +102,7 @@ async function loadBuilding() {
     currentBuilding=building;
     document.querySelector('#building-start').hidden=building.next===null || building.pending!==null;
     document.querySelector('#building-cancel').hidden=building.pending===null;
+    document.querySelector('#building-claim').hidden=Object.keys(building.refundPending??{}).length===0;
     const append=(key,value)=>{
         const dt=document.createElement('dt'),dd=document.createElement('dd');
         dt.textContent=key;dd.textContent=String(value);detail.append(dt,dd);
@@ -109,6 +112,10 @@ async function loadBuilding() {
     append('Territory',building.territory);
     append('Level',building.level);
     append('Status',building.pending===null?'Ready':'Construction pending');
+    const outstanding=Object.entries(building.refundPending??{});
+    if (outstanding.length>0) {
+        append('Pending refunds',outstanding.map(([resource,units])=>units+' '+resource).join(', '));
+    }
     if (building.next) {
         append('Next stage duration',building.next.duration);
         append('Next stage costs',Object.entries(building.next.costs).map(([key,qty])=>qty+' '+key).join(', '));
@@ -116,6 +123,16 @@ async function loadBuilding() {
     } else append('Next stage','Complete');
 }
 document.querySelector('#building-load').addEventListener('click',()=>run(loadBuilding));
+document.querySelector('#building-claim').addEventListener('click',()=>run(async()=>{
+    const f=locationFields(),building=currentBuilding;
+    const claims=building?Object.entries(building.refundPending??{}):[];
+    if (!building || !f.world || !f.account || f.account!==building.account || claims.length===0) {
+        throw new Error('Select a building belonging to the refund account');
+    }
+    await submitCommand(f,'building.claim',{account:f.account,resource:claims[0][0]});
+    await loadBuilding();
+    await refresh();
+}));
 document.querySelector('#building-cancel').addEventListener('click',()=>run(async()=>{
     const f=locationFields(),building=currentBuilding;
     if (!building || !f.world || !f.account || building.account!==f.account

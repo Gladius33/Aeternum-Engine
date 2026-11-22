@@ -17,8 +17,8 @@ final readonly class ResourceMovement
         if ($delta === 0 || $delta < -ProductionState::MAX_UNITS || $delta > ProductionState::MAX_UNITS
             || $balanceAfter < 0 || $balanceAfter > ProductionState::MAX_UNITS
             || $balanceAfter-$delta < 0 || $balanceAfter-$delta > ProductionState::MAX_UNITS
-            || !in_array($reason,['opening','production','transfer','upgrade_cost','market_reserve','market_payment','market_delivery','market_release','market_claim','construction_cost','construction_refund'],true)
-            || (in_array($reason,['opening','production','market_delivery','market_release','market_claim','construction_refund'],true) && $delta < 0)
+            || !in_array($reason,['opening','production','transfer','upgrade_cost','market_reserve','market_payment','market_delivery','market_release','market_claim','construction_cost','construction_refund','construction_claim'],true)
+            || (in_array($reason,['opening','production','market_delivery','market_release','market_claim','construction_refund','construction_claim'],true) && $delta < 0)
             || (in_array($reason,['upgrade_cost','market_reserve','construction_cost'],true) && $delta > 0)) {
             throw new \InvalidArgumentException('Invalid ledger movement');
         }

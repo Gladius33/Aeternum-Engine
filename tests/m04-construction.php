@@ -156,3 +156,96 @@ check((new PdoScheduler(db(),$buildWorld,$buildClock,$buildRules))
     ->verifyReplay($buildRules->commands,$buildRules->events)->entries===13,
  'M04 replay includes original start, compensating cancellation and no-op event');
 
+
+/* Capacity saturation: cancellation must preserve every paid unit in durable
+ * credits, even when later transfers filled all physical storage. */
+$capJson=json_decode(file_get_contents(__DIR__.'/../games/m04-construction-fixture/manifest.json'),true,16,JSON_THROW_ON_ERROR);
+$capJson['buildings']=array_values(array_filter($capJson['buildings'],static fn(array $row):bool=>$row['type']!=='vault'));
+foreach ($capJson['resources'] as &$resource) {
+    $resource['capacity']=100;
+    $resource['initial_stock']=100;
+}
+unset($resource);
+$capPack=GamePackLoader::load(json_encode($capJson,JSON_THROW_ON_ERROR));
+$capRules=$capPack->rules();
+$capWorld='m04-refund-capacity';
+$capClock=new FrozenClock(1100);
+$capScheduler=new PdoScheduler(db(),$capWorld,$capClock,$capRules);
+$capScheduler->initialize();
+$capMembers=new PdoMemberships(db(),$capWorld);
+$capMembers->grant('alice');$capMembers->grant('bob');
+$capMembers->assign('cap-alice','alice');
+$capMembers->assign('cap-bob','bob');
+$capEntities=new PdoEntities(db(),$capWorld);
+$capEntities->addLocation('cap-place');
+$capEntities->provision('cap-entity','cap-place','alice','settlement');
+$capPlots=new PdoTerritories(db(),$capWorld);
+$capPlots->define('cap-plot','cap-place','town');
+$capPlots->assign('cap-plot','alice');
+$capBuildings=new PdoBuildings(db(),$capWorld);
+$capBuildings->define('mill',$capPack->buildings['mill']);
+$capBuildings->establish('cap-mill','cap-plot','cap-entity','alice','mill');
+foreach (['cap-alice'=>'alice','cap-bob'=>'bob'] as $account=>$owner) {
+    foreach ($capPack->resources as $resource) {
+        $capScheduler->executeForActor($owner,new Command($capWorld,'cap-open-'.$account.'-'.$resource->id,
+            'economy.open',['account'=>$account,'resource'=>$resource->id]),$capRules->commands);
+    }
+}
+$capExecute=function(string $actor,string $request,string $type,array $payload)
+    use($capScheduler,$capRules,$capWorld) {
+    return $capScheduler->executeForActor($actor,new Command($capWorld,$request,$type,$payload),$capRules->commands);
+};
+$capStart=$capExecute('alice','cap-start','building.start',[
+    'building'=>'cap-mill','account'=>'cap-alice','type'=>'mill'
+]);
+check(count($capStart->scheduledIds)===1,'M04 saturated refund fixture starts durable construction');
+foreach (['wood'=>7,'grain'=>11] as $resource=>$units) {
+    $capExecute('bob','cap-fill-'.$resource,'economy.transfer',[
+        'from'=>'cap-bob','to'=>'cap-alice','resource'=>$resource,'units'=>$units
+    ]);
+}
+check($capScheduler->balanceForActor('alice','cap-alice','wood',$capRules->commands)->stock===100
+    && $capScheduler->balanceForActor('alice','cap-alice','grain',$capRules->commands)->stock===100,
+    'M04 competing transfers fill all space after costs were spent');
+$capClock->advanceTo(1101);
+$capExecute('alice','cap-cancel','building.cancel',[
+    'building'=>'cap-mill','account'=>'cap-alice','type'=>'mill'
+]);
+check($capBuildings->own('alice','cap-mill')['refundPending']===['grain'=>11,'wood'=>7],
+    'M04 capacity-saturated cancellation records every unit in durable account credits');
+check($capScheduler->balanceForActor('alice','cap-alice','wood',$capRules->commands)->stock===100,
+    'M04 refund preserves physical maximum capacity');
+$capClaim=static fn(string $id,string $resource)=>$capExecute('alice',$id,'building.claim',[
+    'account'=>'cap-alice','resource'=>$resource
+]);
+rejects(fn()=> $capClaim('cap-too-full','wood'),DomainException::class,
+    'M04 construction credit claim refuses full physical storage without losing debt');
+check($capBuildings->own('alice','cap-mill')['refundPending']===['grain'=>11,'wood'=>7],
+    'M04 failed credit claim leaves both resource claims unspent');
+foreach (['wood'=>7,'grain'=>11] as $resource=>$units) {
+    $capExecute('alice','cap-return-'.$resource,'economy.transfer',[
+        'from'=>'cap-alice','to'=>'cap-bob','resource'=>$resource,'units'=>$units
+    ]);
+}
+$capWoodClaim=$capClaim('cap-claim-wood','wood');
+check($capClaim('cap-claim-wood','wood')==$capWoodClaim,
+    'M04 exact construction credit claim is idempotent across replay');
+$capClaim('cap-claim-grain','grain');
+check($capScheduler->balanceForActor('alice','cap-alice','wood',$capRules->commands)->stock===100
+    && $capScheduler->balanceForActor('alice','cap-alice','grain',$capRules->commands)->stock===100
+    && $capBuildings->own('alice','cap-mill')['refundPending']===[],
+    'M04 delayed two-resource refund can be fully collected without creating or losing units');
+rejects(fn()=> $capClaim('cap-duplicate-claim','wood'),DomainException::class,
+    'M04 credited units cannot be claimed twice with a different request ID');
+$capLedger=db()->prepare("SELECT COUNT(*) FROM engine_resource_ledger WHERE world_id=? AND reason='construction_claim'");
+$capLedger->execute([$capWorld]);
+check((int)$capLedger->fetchColumn()===2,
+    'M04 delayed refunds are represented by two separate positive ledger movements');
+$capClock->advanceTo(1105);
+check($capScheduler->processDue($capRules->events)===$capStart->scheduledIds,
+    'M04 canceled saturation case has one safe due-event no-op');
+check($capBuildings->own('alice','cap-mill')['level']===0,
+    'M04 canceled stage cannot level-up after refund collection');
+check((new PdoScheduler(db(),$capWorld,$capClock,$capRules))
+    ->verifyReplay($capRules->commands,$capRules->events)->entries===13,
+    'M04 saturation, transfer, cancellation, claim, and no-op replay is deterministic');
