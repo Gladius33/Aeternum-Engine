@@ -182,3 +182,7 @@ Existing operator-only accounts and existing public users are not retroactively 
 
 
 In browser CI, the email verification path is qualified through a **separate real localhost TLS gateway**, with a private, temporary test mailbox. No activation code is returned by the public HTTP API and no real email is sent. The test verifies activation by token and password, access denial before verification, resource production, replay refusal and reconnect. This does **not** prove that O2Switch/VPS can deliver emails or that the production sender's SPF/DKIM/DMARC, privacy notices and anti-abuse controls are acceptable.
+
+
+### M01 expired email reservations
+Run php bin/activation-maintenance.php 100 from a secured operator CLI after an approved database backup and data-retention review. A batch transaction deletes at most 100 accounts that NEVER verified their email, did not provision world assets and whose 24-hour activation period expired. Their reserved logins and email addresses can then be used for a fresh signup. A claimed invitation associated with a permanently abandoned identity is destroyed, never recycled. Confirmed but pending activations and all ready players are preserved. The HTTP activation/resend endpoint rotates the code after at least 60 seconds, with authentication and rate limits. This maintenance is not exposed over HTTP.

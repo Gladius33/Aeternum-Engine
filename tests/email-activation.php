@@ -54,5 +54,15 @@ check($act->verify('email-expired','valid expiry password',$expired['code'])===n
     'expired mailbox proof cannot activate account');
 check((new PdoSessions(db(),$actClock))->login('email-expired','valid expiry password')===null,
     'expired but unverified identity remains inaccessible');
+rejects(fn()=> $act->purgeExpired(0),InvalidArgumentException::class,'activation cleanup rejects zero');
+rejects(fn()=> $act->purgeExpired(501),InvalidArgumentException::class,'activation cleanup rejects excess');
+check($act->purgeExpired(1)===1,'expired unverified email released transactionally');
+check($act->purgeExpired(1)===0,'expired cleanup retry idempotent');
+check((new PdoIdentity(db()))->authenticate('email-expired','valid expiry password')===null,
+    'expired pending identity removed without usable credentials');
+$reused=$act->begin('email-expiry-world','reclaimed-mail-player','different long approved password','expiry@example.org');
+check($reused!==null,'new signup can reclaim mailbox after cleanup');
+check((new PdoIdentity(db()))->authenticate('email-new-player','valid activation registration password')!==null,
+    'verified player remains intact after expired mail cleanup');
 
 })();

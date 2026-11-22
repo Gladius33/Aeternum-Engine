@@ -24,6 +24,17 @@ check($emailApi->handle('POST','/v1/auth/login','',$emailJson([
 check($emailApi->handle('POST','/v1/auth/register','',$emailJson($emailReg),'203.0.113.103')[0]===202,
     'duplicate signup returns nonrevealing accepted response');
 check(count($fakeMailer->deliveries)===1,'duplicate signup sends no new activation');
+$emailApiClock->advanceTo(30061);
+$resend=$emailApi->handle('POST','/v1/auth/activation/resend','',$emailJson([
+    'login'=>$emailReg['login'],'password'=>$emailReg['password'],'email'=>$emailReg['email']
+]),'203.0.113.110');
+check($resend[0]===202 && count($fakeMailer->deliveries)===2,'HTTP resend delivers a replacement mailbox code');
+$replacementCode=$fakeMailer->deliveries[1][2];
+check($replacementCode!==$code,'email resend rotates code');
+check($emailApi->handle('POST','/v1/auth/activate','',$emailJson([
+    'login'=>$emailReg['login'],'password'=>$emailReg['password'],'code'=>$code
+]),'203.0.113.111')[0]===401,'superseded mailbox code refused');
+$code=$replacementCode;
 $proof=['login'=>$emailReg['login'],'password'=>$emailReg['password'],'code'=>$code];
 check($emailApi->handle('POST','/v1/auth/activate','',$emailJson([...$proof,'code'=>str_repeat('a',64)]),'203.0.113.104')[0]===401,
     'HTTP activation rejects forged code');

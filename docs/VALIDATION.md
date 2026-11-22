@@ -225,3 +225,7 @@ A separate loopback-only PHP server enables email activation against the actual 
 
 ## M01 email ownership and concurrency safety
 An exact per-database and per-login MariaDB advisory lock wraps the complete email activation proof, durable world provisioning, consumed-code marking and bearer issuance. It prevents two concurrent HTTP requests from turning one code into multiple active sessions. The bounded operator-only CLI bin/activation-maintenance.php deletes expired, never-verified and never-provisioned account reservations; it never deletes a verified pending account after an interrupted provision, or any ready actor. These invariants require dedicated concurrency and retention tests on the exact HEAD before acceptance.
+
+
+## M01 tests for mailbox reservation expiry and activation proof race (pending exact-head CI)
+MariaDB integration now proves bounded expired/unverified-account deletion, freeing mailbox ownership, preservation of ready players and verified-but-pending crash recovery, and idempotent cleanup through the actual operator CLI. A four-process adversarial race submits the same activated mailbox code on distinct client addresses; exactly one 200 response must result, the others are 401 or retryable 503, with a single durable actor and single initial resource grant per resource. The HTTP resend test rotates a code and proves the old code cannot activate.

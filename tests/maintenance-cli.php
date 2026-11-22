@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{PdoSessions,PdoInvitations,FrozenClock,SystemClock};
+use Aeternum\Core\{PdoSessions,PdoInvitations,PdoEmailActivation,PdoIdentity,FrozenClock,SystemClock};
 // Execute after all fixed-clock integration tests. The CLI intentionally uses real wall time.
 function runMaintenanceCli(string $script,string $limit): array {
     $env=getenv();
@@ -63,7 +63,27 @@ check((int)$invLookup->fetchColumn()===1,'unexpired unused invitation preserved'
 $invLookup->execute([$usedInviteHash]);
 check((int)$invLookup->fetchColumn()===1,'consumed invitation claim preserved for replay');
 
-foreach(['maintenance.php','rate-maintenance.php','invite-maintenance.php'] as $cliScript) {
+
+// The wall-clock CLI deletes expired unverified accounts but never
+// interrupts a verified and still pending activation's durable retry.
+$oldActivation=new PdoEmailActivation(db(),new FrozenClock(1000));
+$expiredAccount=$oldActivation->begin('maintenance-mail-world','old-mail-expired',
+    'older mail registration password','expired-mail@example.org');
+$verifiedAccount=$oldActivation->begin('maintenance-mail-world','old-mail-verified',
+    'older verified mail password','verified-mail@example.org');
+check($expiredAccount!==null && $verifiedAccount!==null,'maintenance email fixtures created');
+check($oldActivation->verify('old-mail-verified','older verified mail password',$verifiedAccount['code'])!==null,
+    'confirmed pending account exists before maintenance');
+[$cliExit,$cliOut,$cliErr]=runMaintenanceCli('activation-maintenance.php','500');
+check($cliExit===0&&$cliErr==='','real activation cleanup CLI succeeded');
+$activationReport=json_decode($cliOut,true,8,JSON_THROW_ON_ERROR);
+check(($activationReport['expired_unverified_signups_deleted']??0)>=1,'expired unverified cleanup reported deletions');
+check((new PdoIdentity(db()))->authenticate('old-mail-expired','older mail registration password')===null,
+    'expired unverified account removed');
+check((new PdoIdentity(db()))->authenticate('old-mail-verified','older verified mail password')!==null,
+    'confirmed pending account retained for retry');
+
+foreach(['maintenance.php','rate-maintenance.php','invite-maintenance.php','activation-maintenance.php'] as $cliScript) {
     [$cliExit,$cliOut,$cliErr]=runMaintenanceCli($cliScript,'0');
     check($cliExit===1&&$cliOut===''&&$cliErr!=='','maintenance CLI rejects invalid limit');
 }
