@@ -77,3 +77,15 @@ test('HTTPS self-service mailbox proof creates no premature bearer, then player 
         expect((await context.request.get(url+'/v1/me/worlds',{headers:{Authorization:'Bearer '+player.token}})).status()).toBe(200);
     } finally {await context.close();}
 });
+
+
+test('public enrollment without invitation or mailbox verification is disabled by default',async({request})=>{
+    const unsafeUrl='http://127.0.0.1:8768';
+    const worlds=await request.get(unsafeUrl+'/v1/public/worlds');
+    expect(worlds.status()).toBe(404);
+    const denied=await request.post(unsafeUrl+'/v1/auth/register',{data:{
+        login:'browser-unsafe-mode',password:'strong unsafe attempted registration',world:'e2e-medieval'
+    }});
+    expect(denied.status()).toBe(404);
+    expect((await denied.json()).error).toBe('not_found');
+});

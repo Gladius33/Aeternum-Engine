@@ -236,3 +236,7 @@ The activation reference UI includes a separate self-service resend form, with a
 
 ## M01 operator preflight (pending exact-head CI)
 The read-only bin/m01-preflight.php checks local PHP 8.4, pdo_mysql, Argon2id, world allowlist, explicit identity proof for enabled public enrollment, mail-transport configuration syntax, exact proxy-IP allowlist syntax, rate/parallel limit syntax and completed checksummed migration ledger. It emits only sanitized booleans and estimated hash-slot RAM. CI runs it on the disposable database with a valid invitation-only policy, and proves that unsafe unverified open signup configuration fails. It never sends mail or operates on an external host; actual delivery, host restore, capacity and operator acceptance remain manual gates.
+
+
+## M01 secure-default public enrollment policy (pending exact-head CI)
+The production PHP HTTP controller denies both public-world discovery and public registration if AETERNUM_PUBLIC_REGISTRATION=1 but neither operator-vetted invitation mode nor email activation is enabled. The backwards-compatible unverified path used by the old browser CI is now explicitly restricted to the local PHP built-in server, browser test flag, loopback socket IP and its lab-only override. A fourth browser CI server uses the same public-registration flag but removes the override: the actual HTTP GET /v1/public/worlds and POST /v1/auth/register must both return 404. This security tightening does not modify stored identities, replay or existing sessions.

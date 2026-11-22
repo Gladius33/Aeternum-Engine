@@ -11,6 +11,7 @@ $public=getenv('AETERNUM_PUBLIC_REGISTRATION')==='1';
 $invited=getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1';
 $email=getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1';
 $record('public_signup_has_identity_proof',!$public||$invited||$email);
+$record('no_unverified_browser_bypass_on_host',getenv('AETERNUM_LAB_ALLOW_UNVERIFIED_SIGNUP')!=='1');
 // A test-only mailbox sink must never be enabled on a host.
 $record('no_test_mail_sink',getenv('AETERNUM_BROWSER_TEST')!=='1'
     && (getenv('AETERNUM_TEST_ACTIVATION_OUTBOX')===false||getenv('AETERNUM_TEST_ACTIVATION_OUTBOX')===''));

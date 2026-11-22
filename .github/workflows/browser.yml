@@ -37,6 +37,7 @@ jobs:
       AETERNUM_INDUSTRIAL_WORLD: e2e-industrial
       AETERNUM_BROWSER_TEST: '1'
       AETERNUM_PUBLIC_REGISTRATION: '1'
+      AETERNUM_LAB_ALLOW_UNVERIFIED_SIGNUP: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -87,7 +88,11 @@ jobs:
             AETERNUM_TEST_TLS_PORT=8778 AETERNUM_TEST_BACKEND_PORT=8767 \
             node tests/browser/tls-proxy.cjs >browser-activation-tls.log 2>&1 &
           activation_tls=$!
-          trap 'kill "$server" "$invited_server" "$tls_server" "$activation_server" "$activation_tls" 2>/dev/null || true; rm -f tests/browser/.e2e-invite-token; rm -rf "$tls_dir" "$activation_dir"' EXIT
+          # In a fourth server, opening public registration without ANY identity
+          # proof MUST fail closed; this does not have the local lab bypass.
+          AETERNUM_LAB_ALLOW_UNVERIFIED_SIGNUP=0 php -S 127.0.0.1:8768 -t public tests/browser/router.php >browser-unsafe-policy.log 2>&1 &
+          unsafe_server=$!
+          trap 'kill "$server" "$invited_server" "$tls_server" "$activation_server" "$activation_tls" "$unsafe_server" 2>/dev/null || true; rm -f tests/browser/.e2e-invite-token; rm -rf "$tls_dir" "$activation_dir"' EXIT
           for n in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8766/play.html >/dev/null; then break; fi
             sleep 1
@@ -128,6 +133,8 @@ jobs:
           tail -n 150 browser-activation.log || true
           echo '=== Mailbox TLS terminator ==='
           tail -n 150 browser-activation-tls.log || true
+          echo '=== Unsafe signup policy refusal server ==='
+          tail -n 150 browser-unsafe-policy.log || true
 
       - name: Preserve Chromium failure evidence
         if: failure()
@@ -144,3 +151,4 @@ jobs:
             browser-tls.log
             browser-activation.log
             browser-activation-tls.log
+            browser-unsafe-policy.log

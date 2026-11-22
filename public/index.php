@@ -17,11 +17,21 @@ try {
             PDO::ATTR_EMULATE_PREPARES=>false
         ]);
         $pdo->exec('SET SESSION innodb_lock_wait_timeout = 3');
+        // Production public signup requires a trusted invitation or mailbox proof.
+        // The legacy unverified path exists ONLY for the isolated browser fixture.
+        $publicEnabled=getenv('AETERNUM_PUBLIC_REGISTRATION')==='1';
+        $identityProofEnabled=getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1'
+            || getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1';
+        $unverifiedLab=getenv('AETERNUM_BROWSER_TEST')==='1'
+            && getenv('AETERNUM_LAB_ALLOW_UNVERIFIED_SIGNUP')==='1'
+            && PHP_SAPI==='cli-server'
+            && ($_SERVER['REMOTE_ADDR']??'')==='127.0.0.1';
+        $publicSignupAllowed=$publicEnabled && ($identityProofEnabled || $unverifiedLab);
         $path=explode('?',$_SERVER['REQUEST_URI'] ?? '',2)[0];
         if ($path==='/v1/public/worlds') {
             if ($_SERVER['REQUEST_METHOD']!=='GET') {
                 $status=405; $body=['error'=>'method_not_allowed'];
-            } elseif (getenv('AETERNUM_PUBLIC_REGISTRATION')!=='1') {
+            } elseif (!$publicSignupAllowed) {
                 $status=404; $body=['error'=>'not_found'];
             } else {
                 $worlds=[];
@@ -39,7 +49,7 @@ try {
             if ($parallelSignup!==false && (!preg_match('/^[1-9][0-9]?$/D',$parallelSignup) || (int)$parallelSignup>32)) throw new RuntimeException('Invalid signup parallel configuration');
             $trustedProxyIps=getenv('AETERNUM_TRUSTED_PROXY_IPS');
             $resolvedPeer=PeerAddressResolver::resolve($_SERVER['REMOTE_ADDR'] ?? '',$_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',$trustedProxyIps===false?'':$trustedProxyIps);
-            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,getenv('AETERNUM_PUBLIC_REGISTRATION')==='1'?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit,$parallelSignup===false?8:(int)$parallelSignup,getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1'))->handle(
+            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,$publicSignupAllowed?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit,$parallelSignup===false?8:(int)$parallelSignup,getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1'))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$resolvedPeer ?? ''
             );
