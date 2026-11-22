@@ -54,15 +54,23 @@ final class PdoTopology
     }
 
     /** Only active members may inspect topology; no foreign-world identifiers leak. */
-    public function neighbors(string $actor,string $from,int $limit=50): array
+    public function neighbors(string $actor,string $from,int $limit=50,?string $after=null): array
     {
         PdoMemberships::validateId($actor);
         PdoMemberships::validateId($from);
         if ($limit<1 || $limit>100) throw new \InvalidArgumentException('Invalid page size');
-        return $this->transaction(function () use ($actor,$from,$limit): array {
+        if ($after!==null) PdoMemberships::validateId($after);
+        return $this->transaction(function () use ($actor,$from,$limit,$after): array {
             if ($this->query('SELECT actor_id FROM engine_memberships WHERE world_id=? AND actor_id=? AND active=1',[$this->world,$actor])->fetchColumn()===false) throw new \DomainException('Access denied');
             if ($this->query('SELECT location_id FROM engine_locations WHERE world_id=? AND location_id=?',[$this->world,$from])->fetchColumn()===false) throw new \DomainException('Unknown location');
-            $rows=$this->query('SELECT to_location,travel_cost FROM engine_location_links WHERE world_id=? AND from_location=? ORDER BY to_location LIMIT '.(int)$limit,[$this->world,$from])->fetchAll(PDO::FETCH_ASSOC);
+            $sql='SELECT to_location,travel_cost FROM engine_location_links WHERE world_id=? AND from_location=?';
+            $params=[$this->world,$from];
+            if ($after!==null) {
+                $sql.=' AND to_location > ?';
+                $params[]=$after;
+            }
+            $sql.=' ORDER BY to_location LIMIT '.(int)$limit;
+            $rows=$this->query($sql,$params)->fetchAll(PDO::FETCH_ASSOC);
             return array_map(static fn(array $r): array => ['location'=>$r['to_location'],'cost'=>(int)$r['travel_cost']],$rows);
         });
     }
