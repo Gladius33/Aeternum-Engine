@@ -73,3 +73,12 @@ check($s['market:count']===1001 && $s['market:offer1000:status']==='open',
     'M03 pure engine accepts 1001 lifetime offers without former market cap');
 check(ScalarMap::decode(ScalarMap::encode($s))==ScalarMap::validate($s),
     'M03 1001 account/offer source snapshot remains serializable for replay');
+
+
+$balanceRow=['stock_units'=>90,'settled_at'=>100,'remainder'=>0,'level_no'=>0];
+$direct=$m03Handler->balanceAtRow($balanceRow,'ore',101);
+check($direct->stock===100 && $direct->capacity===100,
+    'M03 indexed MVCC resource read advances lazy production without expanding world state');
+rejects(fn()=> $m03Handler->balanceAtRow(
+    ['stock_units'=>90,'settled_at'=>100,'remainder'=>0,'level_no'=>999],'ore',100),
+    DomainException::class,'M03 invalid indexed upgrade level is rejected');
