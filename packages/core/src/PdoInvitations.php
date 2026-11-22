@@ -31,9 +31,9 @@ final class PdoInvitations
         if (!$this->pdo->inTransaction()) throw new \LogicException('Invitation claim needs identity transaction');
         if (!preg_match('/^[a-f0-9]{64}$/D',$code)) throw new \InvalidArgumentException('Invalid invitation code');
         $key=hash('sha256',$code);
-        $s=$this->pdo->prepare('SELECT world_id,actor_id,expires_at,revoked FROM engine_signup_invitations WHERE token_hash=? FOR UPDATE');
+        $s=$this->pdo->prepare('SELECT world_id,actor_id,created_at,expires_at,revoked FROM engine_signup_invitations WHERE token_hash=? FOR UPDATE');
         $s->execute([$key]); $row=$s->fetch(PDO::FETCH_ASSOC);
-        if ($row===false || $row['world_id']!==$world || $row['actor_id']!==null || (int)$row['revoked']!==0 || (int)$row['expires_at']<=$this->clock->now())
+        if ($row===false || $row['world_id']!==$world || $row['actor_id']!==null || (int)$row['revoked']!==0 || $this->clock->now()<(int)$row['created_at'] || (int)$row['expires_at']<=$this->clock->now())
             throw new \DomainException('Invitation unavailable');
         $s=$this->pdo->prepare('UPDATE engine_signup_invitations SET actor_id=?,used_at=? WHERE token_hash=? AND actor_id IS NULL');
         $s->execute([$actor,$this->clock->now(),$key]);

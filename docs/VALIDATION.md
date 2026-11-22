@@ -130,3 +130,5 @@ M01 controlled-beta invitation checks: MariaDB tests rejection without code, mal
 
 
 M01 invitation expiry/revocation: integration tests reject 59-second or over-30-day TTL, revoked unused codes, expired unused codes, repeated revocation and identity creation after expiry. Operator CLI tests issue and revoke a concrete code; a previously consumed code remains bound to the original actor for interrupted-provision retry.
+
+Invitation admission also refuses a timestamp earlier than creation (clock rollback); the invitation race worker uses the same logical clock as issuance.
