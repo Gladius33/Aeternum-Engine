@@ -215,7 +215,7 @@ test('real multiplayer transfer and foreign balance denial', async ({browser})=>
         await sender.getByLabel('Owned building ID').fill('sender-mill');
         await sender.getByRole('button',{name:'Inspect building plan'}).click();
         await expect(sender.locator('#building-details')).toContainText('4 grain, 5 wood');
-        await expect(sender.locator('#building-details dd').nth(4)).toHaveText('60');
+        await expect(sender.locator('#building-details dd').nth(5)).toHaveText('60');
         await receiver.getByLabel('Owned building ID').fill('receiver-mill');
         await receiver.getByRole('button',{name:'Inspect building plan'}).click();
         await expect(receiver.locator('#building-details')).toContainText('receiver-mill');
