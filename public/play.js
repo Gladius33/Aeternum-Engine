@@ -30,6 +30,8 @@ function clearMap() {
     document.querySelector('#map-location').value='';
     document.querySelector('#map-destination').value='';
     document.querySelector('#map-route').textContent='';
+    document.querySelector('#building-id').value='';
+    document.querySelector('#building-details').replaceChildren();
 }
 async function loadMap(after=null) {
     const world=balance.elements.world.value;
@@ -80,6 +82,30 @@ async function loadShortestRoute() {
         'No directed route found.':data.route.locations.join(' → ')+' (cost '+data.route.cost+')';
 }
 document.querySelector('#map-route-load').addEventListener('click',()=>run(loadShortestRoute));
+async function loadBuilding() {
+    const world=balance.elements.world.value,id=document.querySelector('#building-id').value.trim();
+    const detail=document.querySelector('#building-details');
+    detail.replaceChildren();
+    if (!world || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)) throw new Error('Choose an owned building ID');
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':');
+    const building=await api(root+'/buildings/'+encodeURIComponent(id));
+    if (world!==balance.elements.world.value) return;
+    const append=(key,value)=>{
+        const dt=document.createElement('dt'),dd=document.createElement('dd');
+        dt.textContent=key;dd.textContent=String(value);detail.append(dt,dd);
+    };
+    append('Building',building.id);
+    append('Type',building.type);
+    append('Territory',building.territory);
+    append('Level',building.level);
+    if (building.next) {
+        append('Next stage duration',building.next.duration);
+        append('Next stage costs',Object.entries(building.next.costs).map(([key,qty])=>qty+' '+key).join(', '));
+        append('Prerequisites',Object.entries(building.next.requires).map(([key,lvl])=>key+' level '+lvl).join(', ')||'None');
+    } else append('Next stage','Complete');
+}
+document.querySelector('#building-load').addEventListener('click',()=>run(loadBuilding));
+
 document.querySelector('#map-links-load').addEventListener('click',()=>run(loadMapLinks));
 function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);

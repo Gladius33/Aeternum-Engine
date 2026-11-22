@@ -212,6 +212,20 @@ test('real multiplayer transfer and foreign balance denial', async ({browser})=>
         await sender.getByLabel('Map destination').fill('hill');
         await sender.getByRole('button',{name:'Find shortest route'}).click();
         await expect(sender.locator('#map-route')).toHaveText('crossroads → hill (cost 3)');
+        await sender.getByLabel('Owned building ID').fill('sender-mill');
+        await sender.getByRole('button',{name:'Inspect building plan'}).click();
+        await expect(sender.locator('#building-details')).toContainText('4 grain, 5 wood');
+        await expect(sender.locator('#building-details dd').nth(4)).toHaveText('60');
+        await receiver.getByLabel('Owned building ID').fill('receiver-mill');
+        await receiver.getByRole('button',{name:'Inspect building plan'}).click();
+        await expect(receiver.locator('#building-details')).toContainText('receiver-mill');
+        const privateOwn=await receiver.request.get(url+'/v1/worlds/e2e-medieval/buildings/sender-mill',{headers:{Authorization:mapToken}});
+        // The token belongs to sender; it may read its own plan.
+        expect(privateOwn.status()).toBe(200);
+        const privateOther=await receiver.request.get(url+'/v1/worlds/e2e-medieval/buildings/receiver-mill',{headers:{Authorization:mapToken}});
+        expect(privateOther.status()).toBe(404);
+        const anonymousBuilding=await receiver.request.get(url+'/v1/worlds/e2e-medieval/buildings/sender-mill');
+        expect(anonymousBuilding.status()).toBe(401);
         const unauthorized=await sender.request.get(url+'/v1/worlds/e2e-industrial/map/territories',{headers:{Authorization:mapToken}});
         expect(unauthorized.status()).toBe(404);
         const anonymous=await sender.request.get(url+'/v1/worlds/e2e-medieval/map/territories');

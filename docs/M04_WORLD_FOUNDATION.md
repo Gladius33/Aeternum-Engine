@@ -92,6 +92,11 @@ chemin lexicalement le plus petit est choisi ; les parcours sont bornés à
 `route: null` lorsqu'aucun chemin n'existe. L'interface affiche le trajet
 et son coût ; **aucun mouvement de troupes n'est déclenché**.
 
+Le client navigateur peut inspecter les coûts et prérequis du prochain
+niveau d'un bâtiment identifié, sans déclencher de dépenses. Le scénario
+Chromium compare les vues de deux vrais joueurs et refuse la lecture d'un
+bâtiment tiers.
+
 ## Sortie de macro NON acquise
 
 Restent à développer les règles typées de bâtiments, la construction

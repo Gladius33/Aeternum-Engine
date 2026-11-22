@@ -80,6 +80,15 @@ jobs:
           $map->assign('east',$sender);
           $map->assign('west',$receiver);
           (new Aeternum\Core\PdoTopology($pdo,'e2e-medieval'))->connect('crossroads','hill',3);
+          $entity->provision('sender-hill','hill',$sender,'settlement');
+          $entity->provision('receiver-ford','ford',$receiver,'settlement');
+          $buildings=new Aeternum\Core\PdoBuildings($pdo,'e2e-medieval');
+          $buildings->define('mill',[
+              ['costs'=>['wood'=>5,'grain'=>4],'duration'=>60,'requires'=>[]],
+              ['costs'=>['wood'=>20],'duration'=>120,'requires'=>['workshop'=>1]]
+          ]);
+          $buildings->establish('sender-mill','east','sender-hill',$sender,'mill');
+          $buildings->establish('receiver-mill','west','receiver-ford',$receiver,'mill');
           PHP
       - name: Run real browser scenarios
         shell: bash

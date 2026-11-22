@@ -22,6 +22,12 @@
 <input id="map-destination" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}">
 <button id="map-route-load" type="button">Find shortest route</button>
 <p id="map-route" role="status"></p>
+<h3>Your buildings</h3>
+<p>Planning preview only. Resource payments and construction actions are not active yet.</p>
+<label for="building-id">Owned building ID</label>
+<input id="building-id" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" maxlength="64">
+<button id="building-load" type="button">Inspect building plan</button>
+<dl id="building-details"></dl>
 <ul id="map-links"></ul>
 </section><button id="market-claim" type="button" hidden>Claim pending escrow refund</button><form id="action"><label>Action <select name="type"><option value="economy.settle">Settle production</option><option value="economy.upgrade">Upgrade production</option><option value="economy.transfer">Transfer resources</option></select></label><fieldset id="transfer-fields" hidden disabled><legend>Transfer details</legend><button id="load-recipients" type="button">Find recipients</button><label>Available recipients <select id="recipient-directory"><option value="">Choose a recipient</option></select></label><p id="recipient-notice" role="status"></p><label>Recipient account <input name="recipient" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_\\-]{0,63}" required></label><label>Units <input name="units" type="number" min="1" max="1000000000000" step="1" required></label></fieldset><button>Submit action</button></form>
 <section id="market-panel"><h2>Market</h2>
