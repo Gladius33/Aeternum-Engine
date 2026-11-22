@@ -1,0 +1,22 @@
+{
+  "engine_api": "1",
+  "id": "sdk-fixture",
+  "version": "1.0.0",
+  "name": "SDK verification fixture only",
+  "resources": [
+    {"id":"amber","initial_stock":90,"capacity":900,"amount":20,"interval_seconds":60}
+  ],
+  "upgrades": [
+    {"resource":"amber","level":1,"cost":30,"duration_seconds":90,"amount":35}
+  ],
+  "components": [
+    {"id":"outpost","fields":{"owner":"string","level":"integer","active":"boolean"}}
+  ],
+  "actions": [
+    {"type":"economy.open","payload":{"account":"string","resource":"string"}},
+    {"type":"economy.upgrade","payload":{"account":"string","resource":"string"}}
+  ],
+  "event_hooks": [
+    {"type":"economy.upgrade.complete","payload":{"account":"string","resource":"string","level":"integer"}}
+  ]
+}

@@ -7,10 +7,17 @@ test('browser can load enrollment and approved worlds over real loopback TLS',as
         expect(new URL(page.url()).protocol).toBe('https:');
         await expect(page.getByRole('heading',{name:'Aeternum',exact:true})).toBeVisible();
         await expect(page.locator('#register')).toBeVisible();
-        await expect(page.locator('#register select option')).toHaveCount(2);
+        const expectedWorldIds=['e2e-medieval','e2e-industrial','e2e-sdk'];
+        for (const worldId of expectedWorldIds) {
+            await expect(page.locator('#register select option').filter({hasText:worldId})).toHaveCount(1);
+        }
         const worlds=await context.request.get('https://127.0.0.1:8777/v1/public/worlds');
         expect(worlds.status()).toBe(200);
-        expect((await worlds.json()).data.worlds).toHaveLength(2);
+        const worldsData=(await worlds.json()).data.worlds;
+        for (const worldId of expectedWorldIds) {
+            expect(worldsData.filter(w=>w.world===worldId)).toHaveLength(1);
+        }
+        expect(new Set(worldsData.map(w=>w.world)).size).toBe(worldsData.length);
         // The proxy MUST discard spoofed client headers and write its observed
         // source address. This diagnostic exists only in a loopback CI router.
         const headers=await context.request.get('https://127.0.0.1:8777/__test/proxy-headers',{

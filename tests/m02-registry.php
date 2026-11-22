@@ -1,0 +1,116 @@
+<?php
+declare(strict_types=1);
+use Aeternum\Core\{GamePackLoader,WorldPackRegistry,PackSdk,ScheduledEvent,Command,ConfiguredWorlds};
+$fixtureRoot=__DIR__.'/fixtures/m02-packs';
+$fixtureBytes=file_get_contents($fixtureRoot.'/sdk-fixture/manifest.json');
+check(is_string($fixtureBytes),'third SDK fixture is present outside games/');
+$fixture=GamePackLoader::load($fixtureBytes);
+check($fixture->id==='sdk-fixture' && $fixture->version==='1.0.0','third independent pack and rules revision load');
+check($fixture->rules()->key===GamePackLoader::load($fixtureBytes)->rules()->key,'same version and artifact produce stable rules');
+$sdk=$fixture->sdk();
+$component=$sdk->component('outpost',['owner'=>'tester','level'=>1,'active'=>true]);
+check($component['level']===1,'SDK validates typed component instance');
+$command=$sdk->command('third-world','sdk-open','economy.open',['account'=>'tester','resource'=>'amber']);
+check($command instanceof Command && $command->type==='economy.open','SDK creates a typed trusted command');
+$event=$sdk->event('third-world','sdk-event','economy.upgrade.complete',120,['account'=>'tester','resource'=>'amber','level'=>1]);
+$runtimeRules=$fixture->rules();
+rejects(fn()=> $runtimeRules->events->resolve(
+    new ScheduledEvent('third-world','wrong-type','economy.upgrade.complete',120,
+        ['account'=>'tester','resource'=>'amber','level'=>'1']),[]),
+    InvalidArgumentException::class,'runtime typed event handler rejects wrong scalar type before mutation');
+rejects(fn()=> $runtimeRules->events->resolve(
+    new ScheduledEvent('third-world','unknown-hook','unknown.event',120,[]),[]),
+    DomainException::class,'runtime typed event handler denies undeclared hooks');
+
+check($event instanceof ScheduledEvent && $event->dueAt===120,'SDK creates a typed event envelope');
+rejects(fn()=> $sdk->component('outpost',['owner'=>'tester','level'=>'1','active'=>true]),InvalidArgumentException::class,'SDK rejects numeric string for integer component');
+rejects(fn()=> $sdk->command('third-world','sdk-bad','economy.open',['account'=>'tester','resource'=>'amber','admin'=>true]),InvalidArgumentException::class,'SDK refuses undeclared action payload fields');
+rejects(fn()=> $sdk->event('third-world','sdk-bad','economy.upgrade.complete',120,['account'=>'tester','resource'=>'amber','level'=>'1']),InvalidArgumentException::class,'SDK rejects incorrectly typed event');
+rejects(fn()=> $sdk->command('third-world','sdk-bad','admin.execute',[]),DomainException::class,'SDK does not invent executable actions');
+$bindings=['registry_api'=>'1','worlds'=>[
+    ['world'=>'third-world','pack'=>'sdk-fixture','version'=>'1.0.0','sha256'=>hash('sha256',$fixtureBytes)],
+]];
+$encode=static fn(array $value):string=>json_encode($value,JSON_THROW_ON_ERROR);
+$worlds=WorldPackRegistry::load($encode($bindings),$fixtureRoot);
+check(count($worlds)===1 && $worlds['third-world']->rules()->key===$fixture->rules()->key,'third pack configures a world without application code changes');
+$two=$bindings;
+$two['worlds'][]=['world'=>'another-world','pack'=>'sdk-fixture','version'=>'1.0.0','sha256'=>hash('sha256',$fixtureBytes)];
+check(count(WorldPackRegistry::load($encode($two),$fixtureRoot))===2,'one immutable pack may configure several isolated worlds');
+$bad=$bindings;$bad['worlds'][]=$bad['worlds'][0];
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),InvalidArgumentException::class,'duplicate world rejected');
+$bad=$bindings;$bad['worlds'][0]['pack']='../reference-medieval';
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),InvalidArgumentException::class,'path traversal rejected');
+$bad=$bindings;$bad['worlds'][0]['sha256']=str_repeat('0',64);
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),DomainException::class,'changed manifest digest refused before use');
+$bad=$bindings;$bad['worlds'][0]['version']='2.0.0';
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),DomainException::class,'wrong pack revision refused');
+$bad=$bindings;$bad['worlds'][0]['extra']=true;
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),InvalidArgumentException::class,'unknown registry fields rejected');
+$bad=$bindings;$bad['worlds'][0]['world']='other/world';
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),InvalidArgumentException::class,'invalid world identifier rejected');
+$bad=$bindings;$bad['registry_api']='2';
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),InvalidArgumentException::class,'incompatible registry API rejected');
+$bad=$bindings;$bad['worlds']=[];
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),InvalidArgumentException::class,'empty registry refused');
+rejects(fn()=>WorldPackRegistry::load('{',$fixtureRoot),JsonException::class,'malformed registry JSON rejected');
+rejects(fn()=>WorldPackRegistry::load(str_repeat('x',WorldPackRegistry::MAX_BYTES+1),$fixtureRoot),InvalidArgumentException::class,'oversize registry rejected');
+$badManifest=json_decode($fixtureBytes,true,32,JSON_THROW_ON_ERROR);
+$badManifest['event_hooks'][0]['payload']['level']='any';
+rejects(fn()=>GamePackLoader::load($encode($badManifest)),InvalidArgumentException::class,'unknown SDK type is rejected');
+$badManifest=json_decode($fixtureBytes,true,32,JSON_THROW_ON_ERROR);
+$badManifest['actions'][]=$badManifest['actions'][0];
+rejects(fn()=>GamePackLoader::load($encode($badManifest)),InvalidArgumentException::class,'duplicate action metadata rejected');
+$badManifest=json_decode($fixtureBytes,true,32,JSON_THROW_ON_ERROR);
+$badManifest['components'][0]['fields']['owner']='php:eval';
+rejects(fn()=>GamePackLoader::load($encode($badManifest)),InvalidArgumentException::class,'manifest executable field type rejected');
+$badManifest=json_decode($fixtureBytes,true,32,JSON_THROW_ON_ERROR);
+$badManifest['unknown']='test';
+rejects(fn()=>GamePackLoader::load($encode($badManifest)),InvalidArgumentException::class,'manifest unknown field rejected with SDK extensions');
+$legacy=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/manifest.json'));
+check($legacy->components===[] && $legacy->actions===[] && $legacy->eventHooks===[],'old API-1 manifest metadata remains optional');
+
+$trustedBytes=file_get_contents(__DIR__.'/../games/reference-medieval/manifest.json');
+$trustedManifest=GamePackLoader::load($trustedBytes);
+$trustedRegistry=json_encode(['registry_api'=>'1','worlds'=>[
+    ['world'=>'new-config-world','pack'=>$trustedManifest->id,
+     'version'=>$trustedManifest->version,'sha256'=>$trustedManifest->digest]
+]],JSON_THROW_ON_ERROR);
+$tmp=tempnam(sys_get_temp_dir(),'aeternum-registry-');
+if ($tmp===false || file_put_contents($tmp,$trustedRegistry)===false) throw new RuntimeException('Test registry file unavailable');
+$oldRegistry=getenv('AETERNUM_WORLD_REGISTRY');
+$oldMedieval=getenv('AETERNUM_MEDIEVAL_WORLD');
+$oldIndustrial=getenv('AETERNUM_INDUSTRIAL_WORLD');
+try {
+    putenv('AETERNUM_MEDIEVAL_WORLD');
+    putenv('AETERNUM_INDUSTRIAL_WORLD');
+    putenv('AETERNUM_WORLD_REGISTRY='.$tmp);
+    check(count(ConfiguredWorlds::load())===1 && ConfiguredWorlds::load()['new-config-world']->id==='reference-medieval',
+        'real configured-world adapter loads operator file and new world');
+    putenv('AETERNUM_MEDIEVAL_WORLD=conflicting-legacy');
+    rejects(fn()=> ConfiguredWorlds::load(),RuntimeException::class,'mixed registry and legacy configuration refused');
+} finally {
+    $restore=static function(string $name,string|false $value):void {
+        putenv($value===false?$name:$name.'='.$value);
+    };
+    $restore('AETERNUM_WORLD_REGISTRY',$oldRegistry);
+    $restore('AETERNUM_MEDIEVAL_WORLD',$oldMedieval);
+    $restore('AETERNUM_INDUSTRIAL_WORLD',$oldIndustrial);
+    unlink($tmp);
+}
+
+
+$nextBytes=file_get_contents($fixtureRoot.'/sdk-fixture/versions/1.1.0/manifest.json');
+$next=GamePackLoader::load($nextBytes);
+check($next->id===$fixture->id && $next->version==='1.1.0' &&
+    $next->rules()->key!==$fixture->rules()->key,'two immutable versions of same pack have distinct rule keys');
+$dual=$bindings;
+$dual['worlds'][]=['world'=>'third-world-next','pack'=>'sdk-fixture','version'=>'1.1.0',
+    'sha256'=>hash('sha256',$nextBytes)];
+$both=WorldPackRegistry::load($encode($dual),$fixtureRoot);
+check(count($both)===2 && $both['third-world']->version==='1.0.0'
+    && $both['third-world-next']->version==='1.1.0',
+    'same pack id loads old and new immutable versions side by side');
+$bad=$dual;
+$bad['worlds'][1]['sha256']=hash('sha256',$fixtureBytes);
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),DomainException::class,
+    'version directory rejects digest substitution with old version bytes');

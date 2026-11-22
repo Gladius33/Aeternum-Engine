@@ -433,7 +433,12 @@ test('public signup provisions real players, supports retry, reconnect and accou
     try {
         await page.goto(url+'/play.html');
         await expect(page.locator('#register')).toBeVisible();
-        await expect(page.locator('#register select option')).toHaveCount(2);
+        // The operator registry may add worlds without modifying this test.
+        // Assert both historical worlds remain present, and the M02 fixture
+        // has been added without affecting either existing configuration.
+        await expect(page.locator('#register select option[value="e2e-medieval"]')).toHaveCount(1);
+        await expect(page.locator('#register select option[value="e2e-industrial"]')).toHaveCount(1);
+        await expect(page.locator('#register select option[value="e2e-sdk"]')).toHaveCount(1);
         await page.getByLabel('New login',{exact:true}).fill('browser-public-first');
         await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
         await page.getByLabel('Confirm new password',{exact:true}).fill(password);
