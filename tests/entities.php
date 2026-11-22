@@ -39,3 +39,20 @@ rejects(fn()=> $b->ownComponent('bob','unit','storage'),DomainException::class,'
 check((new PdoEntities(db(),'entity-A'))->ownComponent('alice','unit','storage')===['capacity'=>100,'enabled'=>true],'component reconnect and canonical retry');
 $b->attach('unit','storage',['capacity'=>200]);
 check($b->ownComponent('bob','unit','storage')===['capacity'=>200],'separate world component');
+
+$topologyA=new \Aeternum\Core\PdoTopology(db(),'entity-A');
+$topologyB=new \Aeternum\Core\PdoTopology(db(),'entity-B');
+$a->addLocation('forest');
+$topologyA->connect('home','forest',3);
+$topologyA->connect('home','forest',3);
+check($topologyA->neighbors('alice','home')===[['location'=>'forest','cost'=>3]],'M04 durable directed route');
+check($topologyA->neighbors('bob','forest')===[],'M04 direction preserved');
+rejects(fn()=> $topologyA->connect('home','forest',4),DomainException::class,'M04 immutable edge cost');
+rejects(fn()=> $topologyA->connect('home','missing',3),DomainException::class,'M04 unknown endpoint');
+rejects(fn()=> $topologyA->connect('home','home',1),InvalidArgumentException::class,'M04 self loop');
+rejects(fn()=> $topologyA->connect('home','forest',0),InvalidArgumentException::class,'M04 zero cost');
+rejects(fn()=> $topologyB->connect('home','forest',3),DomainException::class,'M04 foreign world endpoint');
+check($topologyB->neighbors('bob','home')===[],'M04 topology isolated between worlds');
+(new PdoMemberships(db(),'entity-A'))->revoke('alice');
+rejects(fn()=> $topologyA->neighbors('alice','home'),DomainException::class,'M04 revoked topology read');
+check((new \Aeternum\Core\PdoTopology(db(),'entity-A'))->neighbors('bob','home')===[['location'=>'forest','cost'=>3]],'M04 reconnect persistence');
