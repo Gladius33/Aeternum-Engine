@@ -143,6 +143,24 @@ rotate.addEventListener('submit',e=>{
         showRecoveryCode(data.recoveryCode);
     });
 });
+const passwordChange=document.querySelector('#password-change');
+passwordChange.addEventListener('submit',e=>{
+    e.preventDefault();
+    const f=new FormData(passwordChange);
+    const payload={currentPassword:String(f.get('currentPassword')),newPassword:String(f.get('newPassword'))};
+    const confirm=String(f.get('confirm'));
+    passwordChange.reset();
+    run(async()=>{
+        if (payload.newPassword!==confirm) throw new Error('Passwords do not match');
+        if (payload.currentPassword===payload.newPassword) throw new Error('Choose a different password');
+        const data=await api('/v1/auth/password/change','POST',payload);
+        // The server atomically revokes every bearer for this identity.
+        // Clear local auth and reveal only the newly issued offline code.
+        resetSession();
+        showRecoveryCode(data.recoveryCode);
+        return 'Password changed. All sessions signed out. Save your new recovery code before signing in.';
+    });
+});
 balance.addEventListener('submit',e=>{e.preventDefault();run(refresh);});
 const transferFields=document.querySelector('#transfer-fields');
 const directory=document.querySelector('#recipient-directory'), recipientNotice=document.querySelector('#recipient-notice');
