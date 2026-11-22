@@ -209,6 +209,9 @@ test('real multiplayer transfer and foreign balance denial', async ({browser})=>
         await sender.getByLabel('Map location').fill('crossroads');
         await sender.getByRole('button',{name:'Inspect map routes'}).click();
         await expect(sender.locator('#map-links')).toContainText('crossroads → hill (cost 3)');
+        await sender.getByLabel('Map destination').fill('hill');
+        await sender.getByRole('button',{name:'Find shortest route'}).click();
+        await expect(sender.locator('#map-route')).toHaveText('crossroads → hill (cost 3)');
         const unauthorized=await sender.request.get(url+'/v1/worlds/e2e-industrial/map/territories',{headers:{Authorization:mapToken}});
         expect(unauthorized.status()).toBe(404);
         const anonymous=await sender.request.get(url+'/v1/worlds/e2e-medieval/map/territories');

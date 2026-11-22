@@ -58,6 +58,15 @@ session active et une appartenance au monde configuré, appliquent un quota
 de lecture et n'exposent pas d'API de mutation. L'interface de référence
 permet de visualiser les territoires et les routes, pas de construire.
 
+### Recherche d'itinéraires
+
+La route authentifiée `GET /v1/worlds/{world}/map/routes/{from}/{to}`
+calcule un chemin orienté de coût total minimal. À coût égal, le
+chemin lexicalement le plus petit est choisi ; les parcours sont bornés à
+500 lieux développés et 100 arcs sortants par lieu. L'API retourne
+`route: null` lorsqu'aucun chemin n'existe. L'interface affiche le trajet
+et son coût ; **aucun mouvement de troupes n'est déclenché**.
+
 ## Sortie de macro NON acquise
 
 Restent à développer les règles typées de bâtiments, la construction

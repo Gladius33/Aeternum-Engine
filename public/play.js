@@ -28,6 +28,8 @@ function clearMap() {
     mapList.replaceChildren(); mapLinks.replaceChildren();
     mapAfter=null; mapNext.hidden=true; mapNotice.textContent='';
     document.querySelector('#map-location').value='';
+    document.querySelector('#map-destination').value='';
+    document.querySelector('#map-route').textContent='';
 }
 async function loadMap(after=null) {
     const world=balance.elements.world.value;
@@ -64,6 +66,20 @@ async function loadMapLinks() {
 }
 document.querySelector('#map-load').addEventListener('click',()=>run(()=>loadMap()));
 mapNext.addEventListener('click',()=>{if(mapAfter!==null)run(()=>loadMap(mapAfter));});
+async function loadShortestRoute() {
+    const world=balance.elements.world.value,
+          start=document.querySelector('#map-location').value.trim(),
+          destination=document.querySelector('#map-destination').value.trim();
+    if (!world || ![start,destination].every(id=>/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id))) {
+        throw new Error('Enter valid source and destination locations');
+    }
+    const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/map';
+    const data=await api(root+'/routes/'+encodeURIComponent(start)+'/'+encodeURIComponent(destination));
+    if (world!==balance.elements.world.value) return;
+    document.querySelector('#map-route').textContent=data.route===null?
+        'No directed route found.':data.route.locations.join(' → ')+' (cost '+data.route.cost+')';
+}
+document.querySelector('#map-route-load').addEventListener('click',()=>run(loadShortestRoute));
 document.querySelector('#map-links-load').addEventListener('click',()=>run(loadMapLinks));
 function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);
