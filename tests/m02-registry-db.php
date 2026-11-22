@@ -139,3 +139,32 @@ check(count($apiWorker->processDue($apiRules->events))===1,
     'third pack verified event completes on actual MariaDB after HTTP request');
 check($apiWorker->verifyReplay($apiRules->commands,$apiRules->events)->entries===3,
     'third pack HTTP, provisioning and delayed event replay deterministically');
+
+
+// Live old and new revisions of one ID coexist on different MariaDB worlds.
+// No history rebind, automatic migration, or in-place manifest replacement.
+$futureBytes=file_get_contents($root.'/sdk-fixture/versions/1.1.0/manifest.json');
+$dualConfig=json_encode(['registry_api'=>'1','worlds'=>[
+    ['world'=>'m02-new-world','pack'=>'sdk-fixture','version'=>'1.0.0',
+     'sha256'=>hash('sha256',$bytes)],
+    ['world'=>'m02-future-world','pack'=>'sdk-fixture','version'=>'1.1.0',
+     'sha256'=>hash('sha256',$futureBytes)]
+]],JSON_THROW_ON_ERROR);
+$dualWorlds=WorldPackRegistry::load($dualConfig,$root);
+$futureRules=$dualWorlds['m02-future-world']->rules();
+$futureClock=new FrozenClock(100);
+$futureWorld=new PdoScheduler(db(),'m02-future-world',$futureClock,$futureRules);
+$futureWorld->initialize();
+$futureWorld->execute(
+    $dualWorlds['m02-future-world']->sdk()->command('m02-future-world','open-future','economy.open',
+        ['account'=>'m02-future-account','resource'=>'amber']),
+    $futureRules->commands
+);
+check($futureRules->commands->balanceAt($futureWorld->state(),'m02-future-account','amber',100)->stock===93,
+    'new version initializes distinct production data without mutating old world');
+$originalRules=$dualWorlds['m02-new-world']->rules();
+$originalWorld=new PdoScheduler(db(),'m02-new-world',$clock,$originalRules);
+check($originalWorld->verifyReplay($originalRules->commands,$originalRules->events)->entries===3,
+    'historical populated version still replays after new version is installed');
+check($futureWorld->verifyReplay($futureRules->commands,$futureRules->events)->entries===1,
+    'new rules revision replays independently of historical world');

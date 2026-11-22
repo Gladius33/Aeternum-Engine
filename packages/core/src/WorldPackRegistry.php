@@ -60,9 +60,15 @@ final class WorldPackRegistry
                 || isset($worlds[$world])) {
                 throw new \InvalidArgumentException('Invalid or duplicate world pack binding');
             }
-            // Restrict to a single canonical, non-symlinked local manifest.
-            // The configured root is supplied by trusted server code, not JSON.
-            $expected=$rootDir.DIRECTORY_SEPARATOR.$packId.DIRECTORY_SEPARATOR.'manifest.json';
+            // Immutable version folders permit two revisions of one pack to
+            // serve different pinned worlds without mutating historical bytes.
+            // The original unversioned manifest is preserved for API-1 worlds.
+            // Neither filename nor root can originate from a request.
+            $packDir=$rootDir.DIRECTORY_SEPARATOR.$packId;
+            $versioned=$packDir.DIRECTORY_SEPARATOR.'versions'.DIRECTORY_SEPARATOR.$version.DIRECTORY_SEPARATOR.'manifest.json';
+            $expected=is_dir(dirname($versioned)) || is_link(dirname($versioned))
+                ? $versioned
+                : $packDir.DIRECTORY_SEPARATOR.'manifest.json';
             $resolved=realpath($expected);
             if ($resolved===false || $resolved!==$expected || !is_file($resolved)) {
                 throw new \RuntimeException('Unapproved or missing pack artifact');

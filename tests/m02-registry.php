@@ -97,3 +97,20 @@ try {
     $restore('AETERNUM_INDUSTRIAL_WORLD',$oldIndustrial);
     unlink($tmp);
 }
+
+
+$nextBytes=file_get_contents($fixtureRoot.'/sdk-fixture/versions/1.1.0/manifest.json');
+$next=GamePackLoader::load($nextBytes);
+check($next->id===$fixture->id && $next->version==='1.1.0' &&
+    $next->rules()->key!==$fixture->rules()->key,'two immutable versions of same pack have distinct rule keys');
+$dual=$bindings;
+$dual['worlds'][]=['world'=>'third-world-next','pack'=>'sdk-fixture','version'=>'1.1.0',
+    'sha256'=>hash('sha256',$nextBytes)];
+$both=WorldPackRegistry::load($encode($dual),$fixtureRoot);
+check(count($both)===2 && $both['third-world']->version==='1.0.0'
+    && $both['third-world-next']->version==='1.1.0',
+    'same pack id loads old and new immutable versions side by side');
+$bad=$dual;
+$bad['worlds'][1]['sha256']=hash('sha256',$fixtureBytes);
+rejects(fn()=>WorldPackRegistry::load($encode($bad),$fixtureRoot),DomainException::class,
+    'version directory rejects digest substitution with old version bytes');

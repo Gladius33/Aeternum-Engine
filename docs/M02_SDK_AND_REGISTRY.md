@@ -17,8 +17,12 @@ pack approuvé et d'un monde n'exige pas d'éditer public/index.php.
 ## Installation d'un pack approuvé
 
 L'opérateur place lui-même le manifeste dans games/ID_DU_PACK/manifest.json,
-hors de toute interface d'upload et après revue des données. Les chemins
-symboliques vers un autre fichier et les références ../ sont rejetés.
+hors de toute interface d'upload et après revue des données. Pour installer
+une nouvelle version *sans remplacer l'ancienne*, il utilise
+`games/ID_DU_PACK/versions/VERSION/manifest.json`. Le registre sélectionne
+ce fichier lorsqu'il existe ; les mondes historiques restent reliés aux
+anciens octets. Les chemins symboliques vers un autre fichier et les
+références ../ sont rejetés.
 Le troisième pack utilisé par les tests M02 est situé sous
 tests/fixtures/m02-packs/sdk-fixture/manifest.json : c'est un artefact de
 qualification, non un troisième jeu distribué aux utilisateurs.
