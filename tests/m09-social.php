@@ -16,8 +16,8 @@ $sg=$identities->register('m09-social-guest',$secret);
 $sr=$identities->register('m09-social-race',$secret);
 $ma=new PdoMemberships(db(),$swA);
 $mb=new PdoMemberships(db(),$swB);
-foreach ([$so,$sf,$sg,$sr] as $actor) $ma->grant($actor);
-foreach ([$so,$sf] as $actor) $mb->grant($actor);
+foreach ([$so,$sf,$sg,$sr] as $socialActor) $ma->grant($socialActor);
+foreach ([$so,$sf] as $socialActor) $mb->grant($socialActor);
 $sessions=new PdoSessions(db(),$sc);
 $auth=[
     $so=>'Bearer '.$sessions->login('m09-social-owner',$secret),
