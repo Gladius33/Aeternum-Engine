@@ -91,7 +91,9 @@ final class SocialHttpApi
             sort($wanted);
             if ($keys!==$wanted) return [400,['error'=>'invalid_payload']];
             foreach ($data as $key=>$value) {
-                if (!is_string($key) || (!is_string($value) && !($key==='accept' && is_bool($value))))
+                // No implicit string-to-bool coercion on invitation acceptance.
+                if (!is_string($key) || ($key==='accept'
+                    ? !is_bool($value) : !is_string($value)))
                     return [400,['error'=>'invalid_payload']];
             }
         }
