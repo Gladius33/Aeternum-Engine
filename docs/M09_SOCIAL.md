@@ -87,6 +87,10 @@ est calculé sur l'ensemble des alliances du monde, sans faire confiance à
 une valeur de rang fournie par le client. Les pages ne constituent pas une
 photographie figée si les membres changent pendant la consultation.
 
+Le client HTML/JS propose des boutons de continuation pour les sept projections
+sociales ; les générations de chargement empêchent les anciennes réponses de
+réafficher les données d'une session ou d'un monde devenu inactif.
+
 **Limites à traiter avant clôture M09 :** pagination de la file d'arbitrage opérateur,
 chargées, gestion d'alliances très grandes, audit de la révocation des
 propriétaires et robustesse aux volumes, protections anti-spam plus fines,

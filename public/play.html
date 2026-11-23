@@ -83,10 +83,12 @@
 <button type="submit">Create alliance</button></form>
 <button type="button" id="social-directory-load">Browse alliances</button>
 <ul id="social-directory"></ul>
+<button id="social-directory-next" type="button" hidden>Next alliance page</button>
 <form id="social-detail-form">
 <label for="social-alliance-id">Alliance ID</label><input id="social-alliance-id" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
 <button type="submit">Inspect my alliance</button></form>
 <ul id="social-member-list"></ul>
+<button id="social-members-next" type="button" hidden>More alliance members</button>
 <form id="social-invite-form">
 <label for="social-invite-actor">Invite actor ID</label><input id="social-invite-actor" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
 <button type="submit">Invite player</button></form>
@@ -100,6 +102,7 @@
 <h3>My invitations</h3>
 <button type="button" id="social-inbox-load">Refresh invitations</button>
 <label for="social-inbox">Pending invitations</label><select id="social-inbox"><option value="">No invitation selected</option></select>
+<button id="social-inbox-next" type="button" hidden>Older invitations</button>
 <button type="button" id="social-accept">Accept invitation</button>
 <button type="button" id="social-decline">Decline invitation</button>
 <p id="social-notice" role="status" aria-live="polite"></p>
@@ -120,6 +123,7 @@
 <button id="social-unblock" type="button">Unblock player</button></form>
 <button id="social-blocks-refresh" type="button">Review blocked players</button>
 <ul id="social-block-list"></ul>
+<button id="social-blocks-next" type="button" hidden>More blocked players</button>
 <form id="social-report-form">
 <label for="social-report-id">Message ID to report</label><input id="social-report-id" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
 <label for="social-report-reason">Report reason</label><textarea id="social-report-reason" maxlength="255" minlength="5" rows="2" required></textarea>
@@ -132,6 +136,7 @@
 <h3>Alliance leaderboard</h3>
 <button id="social-leaderboard-refresh" type="button">Show alliance leaderboard</button>
 <ol id="social-leaderboard-list"></ol>
+<button id="social-leaderboard-next" type="button" hidden>Next leaderboard page</button>
 <p id="social-mail-notice" role="status" aria-live="polite"></p>
 </section>
 <section id="market-panel"><h2>Market</h2>

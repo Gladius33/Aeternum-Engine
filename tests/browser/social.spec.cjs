@@ -151,6 +151,12 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
     if (!is_string($from)||!is_string($to)) throw new RuntimeException('Missing browser mail actors');
     $mail=new Aeternum\\Core\\PdoSocialMessages($pdo,'e2e-medieval',new Aeternum\\Core\\SystemClock());
     for($i=0;$i<55;$i++) $mail->send($from,$to,sprintf('browser-page-%03d',$i),'Archived test message '.$i);
+    $alliances=new Aeternum\\Core\\PdoAlliances($pdo,'e2e-medieval',new Aeternum\\Core\\SystemClock());
+    for($i=0;$i<55;$i++) {
+      $id=sprintf('browser-alliance-%03d',$i);
+      $alliances->create($from,$id,'Browser paged alliance '.$i);
+      $alliances->invite($from,$id,$to);
+    }
   `;
   execFileSync('php',['-r',seedPhp],{encoding:'utf8',timeout:30000});
   await member.getByRole('button',{name:'Refresh messages'}).click();
@@ -164,7 +170,23 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   await expect(member.locator('#social-notifications-list li')).toHaveCount(50);
   await expect(member.getByRole('button',{name:'Older notifications'})).toBeVisible();
   await member.getByRole('button',{name:'Older notifications'}).click();
-  await expect(member.locator('#social-notifications-list li')).toHaveCount(57);
+  await expect(member.locator('#social-notifications-list li')).toHaveCount(100);
+  await expect(member.getByRole('button',{name:'Older notifications'})).toBeVisible();
+  await member.getByRole('button',{name:'Older notifications'}).click();
+  await expect(member.locator('#social-notifications-list li')).toHaveCount(112);
   await expect(member.getByRole('button',{name:'Older notifications'})).toBeHidden();
+  await owner.getByRole('button',{name:'Browse alliances'}).click();
+  await expect(owner.locator('#social-directory li')).toHaveCount(50);
+  await expect(owner.getByRole('button',{name:'Next alliance page'})).toBeVisible();
+  await owner.getByRole('button',{name:'Next alliance page'}).click();
+  await expect(owner.locator('#social-directory li')).toHaveCount(56);
+  await expect(owner.getByRole('button',{name:'Next alliance page'})).toBeHidden();
+  await owner.getByRole('button',{name:'Show alliance leaderboard'}).click();
+  await expect(owner.locator('#social-leaderboard-list li')).toHaveCount(50);
+  await expect(owner.getByRole('button',{name:'Next leaderboard page'})).toBeVisible();
+  await owner.getByRole('button',{name:'Next leaderboard page'}).click();
+  await expect(owner.locator('#social-leaderboard-list li')).toHaveCount(56);
+  await member.getByRole('button',{name:'Refresh invitations'}).click();
+  await expect(member.locator('#social-inbox option')).toHaveCount(56);
   await owner.close();await member.close();
 });

@@ -699,14 +699,25 @@ const socialMembers=document.querySelector('#social-member-list');
 const socialInbox=document.querySelector('#social-inbox');
 const socialNotice=document.querySelector('#social-notice');
 let socialMessageAfter=null, socialNotificationAfter=null;
+let socialDirectoryAfter=null, socialRosterAfter=null, socialInviteAfter=null;
+let socialBlocksAfter=null, socialLeaderboardAfter=null;
 let socialMessageGeneration=0, socialNotificationGeneration=0;
+let socialDirectoryGeneration=0, socialRosterGeneration=0, socialInviteGeneration=0;
+let socialBlocksGeneration=0, socialLeaderboardGeneration=0;
 function clearSocial() {
     // Invalidate an outstanding API result when the player switches worlds
     // or signs out; old private pages must never repaint a new session.
     socialMessageAfter=null;socialNotificationAfter=null;
+    socialDirectoryAfter=null;socialRosterAfter=null;socialInviteAfter=null;
+    socialBlocksAfter=null;socialLeaderboardAfter=null;
     ++socialMessageGeneration;++socialNotificationGeneration;
-    document.getElementById('social-messages-next').hidden=true;
-    document.getElementById('social-notifications-next').hidden=true;
+    ++socialDirectoryGeneration;++socialRosterGeneration;++socialInviteGeneration;
+    ++socialBlocksGeneration;++socialLeaderboardGeneration;
+    for (const id of ['social-messages-next','social-notifications-next',
+        'social-directory-next','social-members-next','social-inbox-next',
+        'social-blocks-next','social-leaderboard-next']) {
+        document.getElementById(id).hidden=true;
+    }
     socialDirectory.replaceChildren();
     socialMembers.replaceChildren();
     for (const listId of ['social-messages-list','social-block-list','social-notifications-list','social-leaderboard-list']) {
@@ -735,44 +746,74 @@ function socialActor(id) {
     if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(actor)) throw new Error('Enter a valid actor ID');
     return actor;
 }
-async function socialLoadDirectory() {
-    const root=socialRoot(), world=balance.elements.world.value;
-    const data=await api(root+'/alliances');
-    if (world!==balance.elements.world.value) return;
-    socialDirectory.replaceChildren();
+async function socialLoadDirectory(older=false) {
+    const root=socialRoot(), world=balance.elements.world.value,
+        previous=older?socialDirectoryAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialDirectoryGeneration;
+    const data=await api(root+'/alliances'+(previous===null?'':'/page/'+encodeURIComponent(previous)));
+    if (world!==balance.elements.world.value || generation!==socialDirectoryGeneration) return;
+    if (!older) socialDirectory.replaceChildren();
     for (const alliance of data.alliances) {
         const item=document.createElement('li'),button=document.createElement('button');
-        button.type='button'; button.textContent='Inspect '+alliance.id;
+        button.type='button';button.textContent='Inspect '+alliance.id;
         button.addEventListener('click',()=>run(async()=>{
             document.getElementById('social-alliance-id').value=alliance.id;
             await socialLoadDetail();
         }));
-        // Untrusted alliance names are always text, never HTML.
         item.append(document.createTextNode(alliance.name+' ('+alliance.members+') '),button);
         socialDirectory.append(item);
     }
-    socialNotice.textContent=data.nextAfter===null?'Alliance directory loaded.':'Only the first page of alliances is shown.';
+    socialDirectoryAfter=data.nextAfter;
+    document.getElementById('social-directory-next').hidden=socialDirectoryAfter===null;
+    socialNotice.textContent=socialDirectoryAfter===null?
+        'Alliance directory loaded.':'More alliances available.';
 }
-async function socialLoadDetail() {
-    const root=socialRoot(),world=balance.elements.world.value,id=socialAllianceId();
-    const data=await api(root+'/alliances/'+encodeURIComponent(id));
-    if (world!==balance.elements.world.value || id!==socialAllianceId()) return;
-    socialMembers.replaceChildren();
+async function socialLoadDetail(older=false) {
+    const root=socialRoot(),world=balance.elements.world.value,id=socialAllianceId(),
+        previous=older?socialRosterAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialRosterGeneration;
+    const path='/alliances/'+encodeURIComponent(id)+
+        (previous===null?'':'/members/page/'+encodeURIComponent(previous));
+    const data=await api(root+path);
+    if (world!==balance.elements.world.value || generation!==socialRosterGeneration ||
+        id!==socialAllianceId()) return;
+    if (!older) socialMembers.replaceChildren();
     for (const member of data.members) {
         const item=document.createElement('li');
         item.textContent=member.actor+' — '+member.role;
         socialMembers.append(item);
     }
+    socialRosterAfter=data.nextAfter;
+    document.getElementById('social-members-next').hidden=socialRosterAfter===null;
     socialNotice.textContent=data.name+' — '+data.role;
 }
-async function socialLoadInbox() {
-    const root=socialRoot(),world=balance.elements.world.value;
-    const data=await api(root+'/invitations');
-    if (world!==balance.elements.world.value) return;
-    options(socialInbox,[['','No invitation selected'],...data.invitations.map(invitation=>
-        [invitation.alliance,invitation.name+' — '+invitation.invitedBy])]);
-    socialNotice.textContent=data.invitations.length+' pending invitations.';
+async function socialLoadInbox(older=false) {
+    const root=socialRoot(),world=balance.elements.world.value,
+        previous=older?socialInviteAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialInviteGeneration;
+    const data=await api(root+'/invitations'+
+        (previous===null?'':'/page/'+encodeURIComponent(previous)));
+    if (world!==balance.elements.world.value || generation!==socialInviteGeneration) return;
+    if (!older) options(socialInbox,[['','No invitation selected']]);
+    for (const invitation of data.invitations) {
+        const option=document.createElement('option');
+        option.value=invitation.alliance;
+        option.textContent=invitation.name+' — '+invitation.invitedBy;
+        socialInbox.append(option);
+    }
+    socialInviteAfter=data.nextAfter;
+    document.getElementById('social-inbox-next').hidden=socialInviteAfter===null;
+    socialNotice.textContent=(socialInbox.options.length-1)+' pending invitations loaded.';
 }
+document.getElementById('social-directory-next').addEventListener('click',
+    ()=>run(()=>socialLoadDirectory(true)));
+document.getElementById('social-members-next').addEventListener('click',
+    ()=>run(()=>socialLoadDetail(true)));
+document.getElementById('social-inbox-next').addEventListener('click',
+    ()=>run(()=>socialLoadInbox(true)));
 async function socialAction(path,payload) {
     await api(socialRoot()+path,'POST',payload);
     socialNotice.textContent='Social action confirmed.';
@@ -893,16 +934,24 @@ document.getElementById('social-unblock').addEventListener('click',()=>run(async
     await socialAction('/blocks/remove',{actor:socialActor('social-block-target')});
     await socialRefreshBlocks();await socialRefreshMessages();
 }));
-async function socialRefreshBlocks() {
-    const world=balance.elements.world.value,root=socialRoot();
-    const data=await api(root+'/blocks');
-    if (balance.elements.world.value!==world) return;
+async function socialRefreshBlocks(older=false) {
+    const world=balance.elements.world.value,root=socialRoot(),
+        previous=older?socialBlocksAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialBlocksGeneration;
+    const data=await api(root+'/blocks'+
+        (previous===null?'':'/page/'+encodeURIComponent(previous)));
+    if (balance.elements.world.value!==world || generation!==socialBlocksGeneration) return;
     const list=document.getElementById('social-block-list');
-    list.replaceChildren();
+    if (!older) list.replaceChildren();
     for (const actor of data.actors) {
         const item=document.createElement('li');item.textContent=actor;list.append(item);
     }
+    socialBlocksAfter=data.nextAfter;
+    document.getElementById('social-blocks-next').hidden=socialBlocksAfter===null;
 }
+document.getElementById('social-blocks-next').addEventListener('click',
+    ()=>run(()=>socialRefreshBlocks(true)));
 document.getElementById('social-blocks-refresh').addEventListener('click',()=>run(socialRefreshBlocks));
 document.getElementById('social-report-form').addEventListener('submit',event=>{
     event.preventDefault();run(async()=>{
@@ -961,22 +1010,30 @@ document.getElementById('social-notification-read').addEventListener('click',()=
     await socialAction('/notifications/'+encodeURIComponent(id)+'/read',{});
     await socialRefreshNotifications();
 }));
-async function socialRefreshLeaderboard() {
-    const world=balance.elements.world.value,root=socialRoot();
-    const data=await api(root+'/leaderboard');
-    if (balance.elements.world.value!==world) return;
+async function socialRefreshLeaderboard(older=false) {
+    const world=balance.elements.world.value,root=socialRoot(),
+        previous=older?socialLeaderboardAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialLeaderboardGeneration;
+    const data=await api(root+(previous===null?'/leaderboard':
+        '/leaderboard/page/'+previous.activeMembers+'/'+encodeURIComponent(previous.id)));
+    if (balance.elements.world.value!==world || generation!==socialLeaderboardGeneration) return;
     const list=document.getElementById('social-leaderboard-list');
-    list.replaceChildren();
+    if (!older) list.replaceChildren();
     for (const entry of data.alliances) {
         const item=document.createElement('li');
         item.textContent=entry.name+' — '+entry.activeMembers+' active members';
         list.append(item);
     }
-    document.getElementById('social-mail-notice').textContent=data.truncated?
-        'Only the top 50 alliances are shown.':'Leaderboard loaded.';
+    socialLeaderboardAfter=data.nextAfter;
+    document.getElementById('social-leaderboard-next').hidden=socialLeaderboardAfter===null;
+    document.getElementById('social-mail-notice').textContent=socialLeaderboardAfter===null?
+        'Leaderboard loaded.':'More ranked alliances available.';
 }
 document.getElementById('social-leaderboard-refresh').addEventListener('click',
     ()=>run(socialRefreshLeaderboard));
+document.getElementById('social-leaderboard-next').addEventListener('click',
+    ()=>run(()=>socialRefreshLeaderboard(true)));
 
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
