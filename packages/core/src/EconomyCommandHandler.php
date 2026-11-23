@@ -3,15 +3,17 @@ declare(strict_types=1);
 namespace Aeternum\Core;
 
 /** Reference economy for trusted commands. Authentication/actor ownership belongs to the application adapter. */
-final class EconomyCommandHandler implements CommandHandler
+final class EconomyCommandHandler implements CommandHandler, EconomyGameplayPort
 {
     // No lifetime counter cap: world-scale capacity is enforced by storage and quotas.
     private array $definitions = [];
     private array $upgrades = [];
     private array $buildings = [];
+    /** @var array<string,CommandHandler> */
+    private array $referenceGameplay = [];
 
     /** @param list<ResourceDefinition> $definitions */
-    public function __construct(array $definitions,array $upgrades = [],array $buildings = [],private readonly ?SettlementRules $settlement=null,private readonly ?IndustryRules $industry=null)
+    public function __construct(array $definitions,array $upgrades = [],array $buildings = [],?SettlementRules $settlement=null,?IndustryRules $industry=null,private readonly ?TrustedPackCommands $trustedPackCommands=null)
     {
         if ($definitions === [] || count($definitions)>128 || !array_is_list($definitions)) throw new \InvalidArgumentException('Invalid resource definitions');
         foreach ($definitions as $definition) {
@@ -59,6 +61,19 @@ final class EconomyCommandHandler implements CommandHandler
                 }
             }
         }
+        // Legacy adapters are deliberately registered by the trusted pack
+        // constructor. Generic dispatch itself knows no theme-specific logic.
+        if ($settlement!==null) {
+            $module=new ReferenceSettlementCommand($this,$settlement);
+            $this->referenceGameplay['settlement.feed']=$module;
+            $this->referenceGameplay['settlement.work']=$module;
+        }
+        if ($industry!==null) {
+            $module=new ReferenceIndustryCommand($this,$industry);
+            foreach (['industry.generate','industry.refine','industry.ship'] as $type) {
+                $this->referenceGameplay[$type]=$module;
+            }
+        }
     }
 
     /** Immutable, pinned building costs; null for packs without construction. */
@@ -84,7 +99,7 @@ final class EconomyCommandHandler implements CommandHandler
         return $this->definitions['r:'.$id] ?? throw new \DomainException('Unknown resource');
     }
 
-    private function payload(Command $command,array $keys): array
+    public function payload(Command $command,array $keys): array
     {
         $given = array_keys($command->payload);
         sort($given,SORT_STRING);
@@ -93,7 +108,7 @@ final class EconomyCommandHandler implements CommandHandler
         return $command->payload;
     }
 
-    private function id(mixed $value): string
+    public function id(mixed $value): string
     {
         if (!is_string($value) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/D',$value)) throw new \InvalidArgumentException('Invalid account or resource ID');
         return $value;
@@ -113,7 +128,7 @@ final class EconomyCommandHandler implements CommandHandler
         return new ProductionState($state[$p.'stock'],$definition->capacity,$amount,$definition->interval,$state[$p.'at'],$state[$p.'remainder']);
     }
 
-    private function write(array &$state,string $account,string $resource,ProductionState $balance): void
+    public function write(array &$state,string $account,string $resource,ProductionState $balance): void
     {
         $p = $this->prefix($account,$resource);
         $state[$p.'stock'] = $balance->stock;
@@ -121,7 +136,7 @@ final class EconomyCommandHandler implements CommandHandler
         $state[$p.'remainder'] = $balance->remainder;
     }
 
-    private function settle(array &$state,array &$ledger,string $account,string $resource,int $at): ProductionState
+    public function settle(array &$state,array &$ledger,string $account,string $resource,int $at): ProductionState
     {
         $old = $this->read($state,$account,$resource);
         $new = $old->advanceTo($at);
@@ -452,143 +467,28 @@ final class EconomyCommandHandler implements CommandHandler
         ],$ledger);
     }
 
-    /** Explicit player labor: consume grain to settle population and convert
-     * available labor into wood. Every state change is journaled atomically. */
-    private function settlementAction(Command $command,array $state,int $at): CommandResult
+    /** Player-facing command types are only those with reviewed ownership policy. */
+    public function allowsActorPackCommand(string $type): bool
     {
-        $rules=$this->settlement??throw new \DomainException('Settlement gameplay disabled for pinned pack');
-        $payload=$this->payload($command,['account']);
-        $account=$this->id($payload['account']);
-        $prefix='settlement:'.$account.':';
-        $population=$rules->population($state,$account);
-        $ledger=[];
-        if ($command->type==='settlement.feed') {
-            if ($rules->level($state,$account,$rules->farmType)<1
-                || $population>=$rules->capacity($state,$account)) {
-                throw new \DomainException('Population capacity requires developed farms and housing');
-            }
-            $food=$this->settle($state,$ledger,$account,$rules->foodResource,$at)
-                ->debit($rules->foodPerPerson);
-            $this->write($state,$account,$rules->foodResource,$food);
-            $ledger[]=new ResourceMovement($account,$rules->foodResource,
-                -$rules->foodPerPerson,$food->stock,'settlement_food');
-            $state[$prefix.'population']=$population+1;
-            return new CommandResult($state,[],$ledger);
-        }
-        if ($command->type!=='settlement.work') throw new \DomainException('Unknown settlement command');
-        $lumber=$rules->level($state,$account,$rules->lumberType);
-        if ($population<2 || $lumber<1) throw new \DomainException('Insufficient workforce or workshop');
-        $last=$state[$prefix.'lastWork']??null;
-        if ($last!==null && (!is_int($last) || $last<0 || $last>=$at
-            || $at-$last<$rules->workCooldownSeconds)) {
-            throw new \DomainException('Workforce is resting');
-        }
-        $food=$this->settle($state,$ledger,$account,$rules->foodResource,$at)
-            ->debit($rules->workFoodCost);
-        $wood=$this->settle($state,$ledger,$account,$rules->workResource,$at)
-            ->credit($rules->workGainPerLumber*$lumber);
-        $this->write($state,$account,$rules->foodResource,$food);
-        $this->write($state,$account,$rules->workResource,$wood);
-        $ledger[]=new ResourceMovement($account,$rules->foodResource,
-            -$rules->workFoodCost,$food->stock,'settlement_food');
-        $ledger[]=new ResourceMovement($account,$rules->workResource,
-            $rules->workGainPerLumber*$lumber,$wood->stock,'settlement_work');
-        $state[$prefix.'lastWork']=$at;
-        return new CommandResult($state,[],$ledger);
+        return $this->trustedPackCommands?->allowsActor($type)??false;
     }
 
-    /**
-     * Three industrial operations run entirely inside the standard command
-     * scheduler transaction. Every debit, credit, counter and cooldown shares
-     * the ordinary replayable world state and the durable resource ledger.
-     */
-    private function industryAction(Command $command,array $state,int $at): CommandResult
+    /** @return ?list<string> All actor-owned accounts to verify in SQL. */
+    public function actorPackAccounts(Command $command): ?array
     {
-        $rules=$this->industry??throw new \DomainException('Industrial gameplay disabled for pinned pack');
-        $payload=$this->payload($command,['account']);
-        $account=$this->id($payload['account']);
-        $prefix='industry:'.$account.':';
-        $lastKey=$prefix.'last:'.$command->type;
-        $last=$state[$lastKey]??null;
-        if ($last!==null && (!is_int($last) || $last<0 || $last>$at
-            || $at-$last<$rules->cooldownSeconds)) {
-            throw new \DomainException('Industrial operation on cooldown');
-        }
-        $ledger=[];
-        if ($command->type==='industry.generate') {
-            $plants=$rules->level($state,$account,$rules->generatorType);
-            if ($plants<1) throw new \DomainException('Power plant required');
-            $fuel=$this->settle($state,$ledger,$account,$rules->rawResource,$at)
-                ->debit($rules->fuelCost);
-            $energy=$this->settle($state,$ledger,$account,$rules->energyResource,$at)
-                ->credit($rules->generationPerLevel*$plants);
-            $this->write($state,$account,$rules->rawResource,$fuel);
-            $this->write($state,$account,$rules->energyResource,$energy);
-            $ledger[]=new ResourceMovement($account,$rules->rawResource,
-                -$rules->fuelCost,$fuel->stock,'industry_fuel');
-            $ledger[]=new ResourceMovement($account,$rules->energyResource,
-                $rules->generationPerLevel*$plants,$energy->stock,'industry_generation');
-        } elseif ($command->type==='industry.refine') {
-            $factory=$rules->level($state,$account,$rules->factoryType);
-            if ($factory<1 || $rules->level($state,$account,$rules->warehouseType)<1) {
-                throw new \DomainException('Factory and warehouse required');
-            }
-            $grid=$rules->grid($state,$account);
-            if ($grid['supply']<$grid['load']) throw new \DomainException('Insufficient grid capacity');
-            $rawQty=$rules->rawPerBatch*$factory;
-            $energyQty=$rules->energyPerBatch*$factory;
-            $made=$rules->productPerBatch*$factory;
-            $raw=$this->settle($state,$ledger,$account,$rules->rawResource,$at)->debit($rawQty);
-            $energy=$this->settle($state,$ledger,$account,$rules->energyResource,$at)->debit($energyQty);
-            $product=$this->settle($state,$ledger,$account,$rules->productResource,$at);
-            if ($product->stock+$made>$rules->warehouseCapacity($state,$account)) {
-                throw new \DomainException('Insufficient warehouse capacity');
-            }
-            $product=$product->credit($made);
-            foreach ([
-                [$rules->rawResource,$raw,-$rawQty,'industry_feedstock'],
-                [$rules->energyResource,$energy,-$energyQty,'industry_power'],
-                [$rules->productResource,$product,$made,'industry_manufacture']
-            ] as [$resource,$balance,$delta,$reason]) {
-                $this->write($state,$account,$resource,$balance);
-                $ledger[]=new ResourceMovement($account,$resource,$delta,$balance->stock,$reason);
-            }
-        } elseif ($command->type==='industry.ship') {
-            $terminal=$rules->level($state,$account,$rules->terminalType);
-            if ($terminal<1 || $rules->level($state,$account,$rules->warehouseType)<1) {
-                throw new \DomainException('Freight terminal and warehouse required');
-            }
-            $grid=$rules->grid($state,$account);
-            if ($grid['supply']<$grid['load']) throw new \DomainException('Insufficient grid capacity');
-            $units=$terminal*$rules->shipmentPerLevel;
-            $product=$this->settle($state,$ledger,$account,$rules->productResource,$at)->debit($units);
-            $energy=$this->settle($state,$ledger,$account,$rules->energyResource,$at)
-                ->debit($rules->energyPerShipment*$terminal);
-            $delivered=$rules->delivered($state,$account);
-            if ($delivered>ProductionState::MAX_UNITS-$units) {
-                throw new \DomainException('Delivery counter exhausted');
-            }
-            $this->write($state,$account,$rules->productResource,$product);
-            $this->write($state,$account,$rules->energyResource,$energy);
-            $ledger[]=new ResourceMovement($account,$rules->productResource,
-                -$units,$product->stock,'industry_freight');
-            $ledger[]=new ResourceMovement($account,$rules->energyResource,
-                -$rules->energyPerShipment*$terminal,$energy->stock,'industry_transport');
-            $state[$prefix.'delivered']=$delivered+$units;
-        } else {
-            throw new \DomainException('Unknown industrial command');
-        }
-        $state[$lastKey]=$at;
-        return new CommandResult($state,[],$ledger);
+        return $this->trustedPackCommands?->actorOwnedAccounts($command);
     }
 
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
-        if (in_array($command->type,['industry.generate','industry.refine','industry.ship'],true)) {
-            return $this->industryAction($command,$state,$effectiveAt);
+        // Only explicitly registered, approved PHP handlers may dispatch.
+        // Actor-capable handlers still require PdoScheduler's world-locked
+        // authorization and the HTTP actor-admission allowlist.
+        if ($this->trustedPackCommands?->handles($command->type)) {
+            return $this->trustedPackCommands->execute($command,$state,$effectiveAt);
         }
-        if ($command->type==='settlement.feed' || $command->type==='settlement.work') {
-            return $this->settlementAction($command,$state,$effectiveAt);
+        if (isset($this->referenceGameplay[$command->type])) {
+            return $this->referenceGameplay[$command->type]->apply($command,$state,$effectiveAt);
         }
         if ($command->type==='building.place') return $this->placeBuilding($command,$state);
         if ($command->type==='building.start') return $this->startBuilding($command,$state,$effectiveAt);

@@ -53,7 +53,7 @@ final class GamePackLoader
         if (!$decoded instanceof \stdClass) throw new \InvalidArgumentException('Expected JSON object');
         $fields=get_object_vars($decoded);
         $required=['engine_api','id','version','name','resources','upgrades'];
-        $optional=['components','actions','event_hooks','buildings','settlement','industry'];
+        $optional=['components','actions','event_hooks','buildings','settlement','industry','player_homestead'];
         foreach ($required as $key) if (!array_key_exists($key,$fields)) throw new \InvalidArgumentException('Missing manifest field');
         foreach (array_keys($fields) as $key) if (!in_array($key,$required,true) && !in_array($key,$optional,true)) throw new \InvalidArgumentException('Unexpected manifest field');
         $id=self::string($fields['id'],128);
@@ -122,8 +122,14 @@ final class GamePackLoader
             }
             $industry=IndustryRules::load($fields['industry'],$resources,$buildings);
         }
+        // Generic opt-in: an operator-approved game can grant private
+        // construction territory without enabling medieval/industrial rules.
+        $playerHomestead=$fields['player_homestead']??false;
+        if (!is_bool($playerHomestead) || ($playerHomestead && $buildings===[])) {
+            throw new \InvalidArgumentException('Invalid player homestead policy');
+        }
         // Check cross-references against the exact pack resource definitions.
         new EconomyCommandHandler($resources,$upgrades,$buildings,$settlement,$industry);
-        return new GamePack($id,$version,$name,hash('sha256',$json),$resources,$upgrades,$components,$actions,$hooks,$buildings,$settlement,$industry);
+        return new GamePack($id,$version,$name,hash('sha256',$json),$resources,$upgrades,$components,$actions,$hooks,$buildings,$settlement,$industry,$playerHomestead);
     }
 }

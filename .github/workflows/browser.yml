@@ -124,7 +124,7 @@ jobs:
           registry_dir="$(mktemp -d)"
           php -r '
             $worlds=[];
-            foreach (["e2e-medieval"=>"reference-medieval","e2e-industrial"=>"reference-industrial","e2e-sdk"=>"sdk-fixture","e2e-build"=>"m04-construction-fixture"] as $world=>$id) {
+            foreach (["e2e-medieval"=>"reference-medieval","e2e-industrial"=>"reference-industrial","e2e-sdk"=>"sdk-fixture","e2e-build"=>"m04-construction-fixture","e2e-guild"=>"reference-guild"] as $world=>$id) {
               $manifest="games/".$id."/manifest.json";
               $pack=json_decode(file_get_contents($manifest),true,32,JSON_THROW_ON_ERROR);
               $worlds[]=["world"=>$world,"pack"=>$id,"version"=>$pack["version"],"sha256"=>hash_file("sha256",$manifest)];
@@ -141,6 +141,13 @@ jobs:
           printf '%s\n' 'browser-only test password' | env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
             AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" \
             php bin/provision.php sdk-fixture e2e-sdk browser-sdk
+          # Third, independent commercial-strategy game; no hard-coded
+          # medieval/industrial mechanics and no production endpoints.
+          for login in m14-guild-alice m14-guild-bob; do
+            printf '%s\n' 'browser-only test password' | env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
+              AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" \
+              php bin/provision.php reference-guild e2e-guild "$login"
+          done
           export AETERNUM_E2E_REGISTRY="$registry_dir/worlds.json"
           # Isolate M05 signup tests from legacy browser suites sharing the
           # real per-origin hourly registration quota. Do not bypass limits.

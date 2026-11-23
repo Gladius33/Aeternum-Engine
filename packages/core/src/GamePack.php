@@ -25,6 +25,7 @@ final readonly class GamePack
         public array $buildings=[],
         public ?SettlementRules $settlement=null,
         public ?IndustryRules $industry=null,
+        public bool $playerHomestead=false,
     ) {}
 
     public function sdk(): PackSdk
@@ -32,10 +33,27 @@ final readonly class GamePack
         return new PackSdk($this);
     }
 
-    public function rules(): RuleSet
+    /**
+     * Operator-approved extension objects, not executable names from JSON.
+     * Any opt-in creates a different rules key. No opt-in preserves the
+     * exact old-world key and its deterministic replay implementation.
+     *
+     * @param list<ApprovedPackCommand> $trustedCommands
+     * @param list<ApprovedPackEvent> $trustedEvents
+     */
+    public function rules(array $trustedCommands=[],array $trustedEvents=[]): RuleSet
     {
-        $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings,$this->settlement,$this->industry);
-        $events=new EconomyEventHandler($economy);
+        $extensions=$trustedCommands===[]?null:new TrustedPackCommands($trustedCommands,$this->actions);
+        $rulesDigest=$extensions===null?$this->digest:hash('sha256',
+            "aeternum-trusted-pack-commands-v1\0".$this->digest."\0".$extensions->fingerprint());
+        $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings,$this->settlement,$this->industry,$extensions);
+        $builtinEvents=new EconomyEventHandler($economy);
+        $eventExtensions=$trustedEvents===[]?null:new TrustedPackEvents($trustedEvents,$this->eventHooks,$builtinEvents);
+        if ($eventExtensions!==null) {
+            $rulesDigest=hash('sha256',
+                "aeternum-trusted-pack-events-v1\0".$rulesDigest."\0".$eventExtensions->fingerprint());
+        }
+        $events=$eventExtensions??$builtinEvents;
         // Generic market expiration is a trusted engine event shared by all
         // packs. Typed manifests may add other hooks but cannot redefine the
         // built-in envelope. Old API-1 manifests retain their exact SHA/rules.
@@ -47,7 +65,7 @@ final readonly class GamePack
             }
             $hooks['market.expire']=$builtin;
         }
-        return new RuleSet($this->id,$this->version,$this->digest,$economy,
+        return new RuleSet($this->id,$this->version,$rulesDigest,$economy,
             $hooks===[]?$events:new TypedPackEventHandler($events,$hooks));
     }
 }

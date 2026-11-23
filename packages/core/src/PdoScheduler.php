@@ -178,7 +178,7 @@ final class PdoScheduler
     {
         // A new building requires an InnoDB row in the same world-locked
         // transaction as its journal/state. Never route placement via CAS.
-        if ($command->type==='building.place') return null;
+        if ($command->type==='building.place' || str_starts_with($command->type,'pack.')) return null;
         if ($actor===null || !$handler instanceof EconomyCommandHandler || !$this->hasProjection()) return null;
         try {
             // Speculative authorization is only a precheck; locked commit rechecks.
@@ -549,7 +549,15 @@ final class PdoScheduler
                 $this->assertAccountOwner($command->payload['buyer']??null,$actor);
                 $this->assertAccountOwner($command->payload['seller']??null,null);
                 break;
-            default: throw new \DomainException('Actor command not allowed');
+            default:
+                // Pack extensions are opt-in and verified ONLY inside the
+                // locked command transaction. No speculative execution,
+                // cross-world access, or actor-controlled handler selection.
+                $owned=$this->rules?->commands instanceof EconomyCommandHandler
+                    ? $this->rules->commands->actorPackAccounts($command):null;
+                if ($owned===null) throw new \DomainException('Actor command not allowed');
+                foreach ($owned as $account) $this->assertAccountOwner($account,$actor);
+                break;
         }
     }
 

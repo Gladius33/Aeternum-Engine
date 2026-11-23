@@ -9,6 +9,23 @@ check($medieval->id==='reference-medieval' && $industrial->id==='reference-indus
 check($medieval->digest===hash('sha256',$medievalBytes) && $medieval->rules()->key!==$industrial->rules()->key,'rule key derives from exact artifact bytes and identity');
 check($medieval->rules()->key===GamePackLoader::load($medievalBytes)->rules()->key,'pack identity stable across load');
 check($medieval->rules()->key!==GamePackLoader::load($medievalBytes."\n")->rules()->key,'modified artifact bytes change rule identity');
+// A third non-themed game is an entirely declarative pack: its resource
+// production and building plans need no new engine branches.
+$guild=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-guild/manifest.json'));
+check($guild->id==='reference-guild' && $guild->playerHomestead
+    && count($guild->buildings)===2 && $guild->settlement===null && $guild->industry===null,
+    'M14 third game is data-only and uses generic construction onboarding');
+check(!$medieval->playerHomestead && !$industrial->playerHomestead,
+    'M14 historical manifests keep the original opt-in onboarding behavior');
+$badGuild=json_decode(file_get_contents(__DIR__.'/../games/reference-guild/manifest.json'),true,32,JSON_THROW_ON_ERROR);
+$badGuild['player_homestead']='yes';
+rejects(fn()=>GamePackLoader::load(json_encode($badGuild,JSON_THROW_ON_ERROR)),
+    InvalidArgumentException::class,'M14 homestead policy rejects string truthiness');
+$badGuild['player_homestead']=true;
+$badGuild['buildings']=[];
+rejects(fn()=>GamePackLoader::load(json_encode($badGuild,JSON_THROW_ON_ERROR)),
+    InvalidArgumentException::class,'M14 homestead without building definitions is denied');
+
 $registry = new RuleRegistry();
 $mr=$medieval->rules(); $ir=$industrial->rules(); $registry->register($mr); $registry->register($ir);
 check($registry->get($mr->key)->commands instanceof EconomyCommandHandler,'pack uses shared economy engine, not theme code');
