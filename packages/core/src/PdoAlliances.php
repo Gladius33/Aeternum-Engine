@@ -329,29 +329,47 @@ final class PdoAlliances
      * Each request observes one transactional snapshot. The world boundary and
      * active requester admission are always rechecked.
      */
-    public function leaderboardFor(string $actor): array
+    public function leaderboardFor(string $actor,?int $afterCount=null,?string $afterId=null): array
     {
         $this->id($actor);
-        return $this->transaction(function() use($actor):array {
+        if (($afterCount===null)!==($afterId===null) || ($afterCount!==null && $afterCount<0))
+            throw new \InvalidArgumentException('Invalid leaderboard cursor');
+        if ($afterId!==null) $this->id($afterId);
+        return $this->transaction(function() use($actor,$afterCount,$afterId):array {
             if (!$this->active($actor)) throw new \DomainException('Membership required');
-            $rows=$this->query('SELECT a.alliance_id,a.name,COUNT(wm.actor_id) AS active_members
-                FROM engine_alliances a
-                LEFT JOIN engine_alliance_members m ON m.world_id=a.world_id
-                    AND m.alliance_id=a.alliance_id
-                LEFT JOIN engine_memberships wm ON wm.world_id=m.world_id
-                    AND wm.actor_id=m.actor_id AND wm.active=1
-                WHERE a.world_id=?
-                GROUP BY a.world_id,a.alliance_id,a.name
-                ORDER BY COUNT(wm.actor_id) DESC,a.alliance_id ASC LIMIT 51',
-                [$this->world])->fetchAll(PDO::FETCH_ASSOC);
+            // Compute the ordinal rank across ALL world-scoped alliances before
+            // filtering to the next keyset page; never trust a client rank offset.
+            $query='SELECT ranked.alliance_id,ranked.name,ranked.active_members,ranked.rank_num
+                FROM (
+                    SELECT a.alliance_id,a.name,COUNT(wm.actor_id) AS active_members,
+                        ROW_NUMBER() OVER (ORDER BY COUNT(wm.actor_id) DESC,a.alliance_id ASC) AS rank_num
+                    FROM engine_alliances a
+                    LEFT JOIN engine_alliance_members m ON m.world_id=a.world_id
+                        AND m.alliance_id=a.alliance_id
+                    LEFT JOIN engine_memberships wm ON wm.world_id=m.world_id
+                        AND wm.actor_id=m.actor_id AND wm.active=1
+                    WHERE a.world_id=?
+                    GROUP BY a.world_id,a.alliance_id,a.name
+                ) ranked';
+            $params=[$this->world];
+            if ($afterCount!==null) {
+                $query.=' WHERE (ranked.active_members < ? OR
+                    (ranked.active_members = ? AND ranked.alliance_id > ?))';
+                array_push($params,$afterCount,$afterCount,$afterId);
+            }
+            $query.=' ORDER BY ranked.active_members DESC,ranked.alliance_id ASC LIMIT 51';
+            $rows=$this->query($query,$params)->fetchAll(PDO::FETCH_ASSOC);
             $more=count($rows)>50;
             if ($more) array_pop($rows);
+            $last=$more?$rows[count($rows)-1]:null;
             $ranks=[];
-            foreach ($rows as $index=>$row) {
-                $ranks[]=['rank'=>$index+1,'id'=>$row['alliance_id'],
+            foreach ($rows as $row) {
+                $ranks[]=['rank'=>(int)$row['rank_num'],'id'=>$row['alliance_id'],
                     'name'=>$row['name'],'activeMembers'=>(int)$row['active_members']];
             }
-            return ['alliances'=>$ranks,'truncated'=>$more];
+            return ['alliances'=>$ranks,'truncated'=>$more,
+                'nextAfter'=>$last===null?null:[
+                    'activeMembers'=>(int)$last['active_members'],'id'=>$last['alliance_id']]];
         });
     }
 

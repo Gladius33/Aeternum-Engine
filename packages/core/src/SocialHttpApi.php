@@ -30,6 +30,8 @@ final class SocialHttpApi
         $cursorId=null;
         $afterId=null;
         $memberAfter=null;
+        $rankAfterCount=null;
+        $rankAfterId=null;
         if ($suffix==='alliances') {
             $action=$method==='GET'?'list':($method==='POST'?'create':null);
         } elseif (preg_match('~^alliances/page/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',$suffix,$page)) {
@@ -63,6 +65,14 @@ final class SocialHttpApi
             $action=$method==='POST'?'report':null;
         } elseif ($suffix==='leaderboard') {
             $action=$method==='GET'?'leaderboard':null;
+        } elseif (preg_match(
+            '~^leaderboard/page/(0|[1-9][0-9]{0,18})/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
+            $suffix,$rankPage
+        )) {
+            $action=$method==='GET'?'leaderboard':null;
+            $rankAfterCount=filter_var($rankPage[1],FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);
+            if ($rankAfterCount===false) return [400,['error'=>'invalid_cursor']];
+            $rankAfterId=$rankPage[2];
         } elseif (preg_match('~^notifications/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/read$~D',$suffix,$note)) {
             $action=$method==='POST'?'ack':null;
             $noticeId=$note[1];
@@ -148,7 +158,7 @@ final class SocialHttpApi
                 'notifications'=>$messages->notifications($actor,$cursorTime,$cursorId),
                 'ack'=>$this->mutate(fn()=> $messages->acknowledge($actor,$noticeId)),
                 'report'=>$this->mutate(fn()=> $messages->report($actor,$data['id'],$data['message'],$data['reason'])),
-                'leaderboard'=>$social->leaderboardFor($actor)
+                'leaderboard'=>$social->leaderboardFor($actor,$rankAfterCount,$rankAfterId)
             };
             return [200,['data'=>$result]];
         } catch (\InvalidArgumentException) {

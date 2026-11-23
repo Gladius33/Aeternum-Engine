@@ -53,6 +53,32 @@ use Aeternum\Core\{PdoAlliances,PdoSocialMessages,SocialHttpApi,PdoSessions,Froz
     };
     $directory=$traverse('alliances','alliances',50);
     $invitations=$traverse('invitations','invitations',100);
+    // Rank ties are not a pagination boundary. All alliance IDs must appear
+    // exactly once with their SQL-derived ordinal rank across pages.
+    $cursor=null;$ranked=[];$pages=0;$lastCount=null;$lastId=null;
+    do {
+        $path='leaderboard'.($cursor===null?'':'/page/'.$cursor['activeMembers'].'/'.$cursor['id']);
+        [$status,$answer]=$api->handle('GET',$root.$path,$bearer);
+        check($status===200,'M09 paginated leaderboard accessible to active member');
+        $rows=$answer['data']['alliances'];
+        check(count($rows)<=50,'M09 leaderboard pages bounded to 50');
+        foreach($rows as $row) {
+            check(!isset($ranked[$row['id']]),'M09 ranking page does not repeat alliance ID');
+            check($row['rank']===count($ranked)+1,'M09 rank is computed by SQL, not cursor offset');
+            if($lastCount!==null) check(
+                $row['activeMembers']<$lastCount ||
+                ($row['activeMembers']===$lastCount && strcmp($row['id'],$lastId)>0),
+                'M09 ranked ordering by active members and stable ID ties');
+            $ranked[$row['id']]=$row;
+            $lastCount=$row['activeMembers'];$lastId=$row['id'];
+        }
+        $cursor=$answer['data']['nextAfter'];++$pages;
+        if($pages>10)throw new RuntimeException('M09 ranking page loop');
+    } while($cursor!==null);
+    check($pages>=3 && count($ranked)>=105,'M09 ranked world completely traversed');
+    check($api->handle('GET',$root.'leaderboard/page/9999999999999999999/m09-pages-000',$bearer)[0]===400,
+        'M09 overflowing rank cursor rejected');
+
     for($i=0;$i<105;$i++) {
         $id=sprintf('m09-pages-%03d',$i);
         check(isset($directory[$id]) && isset($invitations[$id]),

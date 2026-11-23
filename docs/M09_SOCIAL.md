@@ -66,7 +66,7 @@ interdite ou conflictuelle 409, une entrée malformée 400.
 | GET `/notifications` et `/notifications/page/{createdAt}/{id}` | Notifications persistantes, pagination descendante de 50 entrées et statut de lecture |
 | POST `/notifications/{id}/read` | `{}` |
 | POST `/reports` | `{"id":"report-id","message":"message-id","reason":"..."}` |
-| GET `/leaderboard` | Jusqu'à 50 alliances classées du monde actif |
+| GET `/leaderboard` et `/leaderboard/page/{activeMembers}/{id}` | Classement par pages de 50, rang calculé par SQL et curseur `nextAfter` |
 
 Les réponses `messages` et `notifications` fournissent `nextAfter` (objet
 `{createdAt, id}` ou `null`). Le client doit reprendre par
@@ -82,7 +82,12 @@ emploient aussi un curseur ID `nextAfter` sans divulguer de comptes étrangers.
 Chaque page répète les contrôles de monde et de rôle ; il ne s'agit pas
 d'une capture figée si les membres changent entre deux requêtes.
 
-**Limites à traiter avant clôture M09 :** pagination du classement et des outils opérateur,
+Le classement utilise le curseur `{activeMembers, id}`. Le rang ordinal
+est calculé sur l'ensemble des alliances du monde, sans faire confiance à
+une valeur de rang fournie par le client. Les pages ne constituent pas une
+photographie figée si les membres changent pendant la consultation.
+
+**Limites à traiter avant clôture M09 :** pagination de la file d'arbitrage opérateur,
 chargées, gestion d'alliances très grandes, audit de la révocation des
 propriétaires et robustesse aux volumes, protections anti-spam plus fines,
 qualifications E2E et restauration sur serveur autorisé. Les autres
