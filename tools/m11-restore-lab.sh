@@ -21,10 +21,20 @@ mode="$(stat -c '%a' "$CREDS")"
 ARCHIVE="$1"
 [[ -f "$ARCHIVE" && ! -L "$ARCHIVE" && "$ARCHIVE" == *.sql.gz ]] ||
   { echo 'Invalid restore archive' >&2; exit 2; }
-(
-  cd "$(dirname "$ARCHIVE")"
-  sha256sum -c -- "$(basename "$ARCHIVE").sha256" >&2
-)
+# Bind the checksum sidecar to the EXACT archive requested. A checksum
+# file naming another valid dump must not authorize importing this archive.
+SIDECAR="$ARCHIVE.sha256"
+[[ -f "$SIDECAR" && ! -L "$SIDECAR" ]] ||
+  { echo 'Missing or unsafe checksum sidecar' >&2; exit 2; }
+EXPECTED_NAME="$(basename "$ARCHIVE")"
+EXPECTED_LINE="$(cat -- "$SIDECAR")"
+EXPECTED_HASH="${EXPECTED_LINE:0:64}"
+[[ "$EXPECTED_HASH" =~ ^[a-fA-F0-9]{64}$ &&
+   "${EXPECTED_LINE:64}" == "  $EXPECTED_NAME" ]] ||
+  { echo 'Checksum sidecar does not name the requested archive' >&2; exit 2; }
+ACTUAL_HASH="$(sha256sum -- "$ARCHIVE")"
+[[ "${ACTUAL_HASH:0:64}" == "$EXPECTED_HASH" ]] ||
+  { echo 'Archive checksum mismatch' >&2; exit 2; }
 gzip -t "$ARCHIVE"
 # SHOW TABLES is an actual DB check: a nonempty target or missing target must
 # fail rather than overwriting anything. The restricted DB name is never
