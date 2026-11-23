@@ -33,3 +33,24 @@ rejects(fn()=> $policy->evaluate(['schemaVersion'=>100,'worlds'=>[]]),
     InvalidArgumentException::class,'M11 unknown alert schema is refused');
 rejects(fn()=> $policy->evaluate($base,0),
     InvalidArgumentException::class,'M11 invalid alert limits are rejected');
+
+$malformed=$base;
+unset($malformed['worlds'][0]['oldestDueSeconds']);
+rejects(fn()=> $policy->evaluate($malformed),
+    InvalidArgumentException::class,'M11 missing lag metric cannot produce false-green status');
+$malformed=$base;
+$malformed['worlds'][0]['dueEvents']='not-a-number';
+rejects(fn()=> $policy->evaluate($malformed),
+    InvalidArgumentException::class,'M11 malformed backlog metric cannot silently cast to zero');
+$malformed=$base;
+$malformed['worlds'][0]['outboxPending']=-1;
+rejects(fn()=> $policy->evaluate($malformed),
+    InvalidArgumentException::class,'M11 negative outbox count is invalid');
+$malformed=$base;
+$malformed['worlds'][0]['outboxPendingCapped']='false';
+rejects(fn()=> $policy->evaluate($malformed),
+    InvalidArgumentException::class,'M11 malformed cap flag is rejected');
+$malformed=$base;
+$malformed['worlds'][0]['oldestDueSeconds']=-5;
+rejects(fn()=> $policy->evaluate($malformed),
+    InvalidArgumentException::class,'M11 negative event age is rejected');
