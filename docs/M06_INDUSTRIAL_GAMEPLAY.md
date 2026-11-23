@@ -1,5 +1,7 @@
 # M06 — Jeu industriel de référence, énergie et logistique
 
+**Mise à jour documentaire M13 :** la [PR #46](https://github.com/Gladius33/Aeternum-Engine/pull/46) a été fusionnée (`45e1247a52d3ca8601804dff43056c26a736c0fc`). Les mentions de « code proposé » ci-dessous décrivent le contexte historique de la validation M06, et ne constituent pas l'état actuel de la branche M13.
+
 **Périmètre normatif :** M06 de `docs/MACRO_ROADMAP_V1.md`, sans modification de `ROADMAP.md`.
 Cette page décrit le code proposé dans la PR #46 ; une macro n'est acceptée
 qu'après CI PHP 8.4/MariaDB/Chromium intégralement verte sur le SHA final,
