@@ -30,7 +30,7 @@ while IFS= read -r -d '' rel; do
   cp -- "$rel" "$STAGE/$rel"
 done < <(git ls-files -z -- LICENSE.md NOTICE README.md composer.json \
   bin/ packages/core/src/ database/migrations/ games/ schemas/ docs/ \
-  public/index.php public/play.html public/play.js public/play.css public/locale.js)
+  public/.htaccess public/index.php public/play.html public/play.js public/play.css public/locale.js)
 mkdir -p "$STAGE/vendor" "$STAGE/public/client-dist"
 cp -- "$ROOT/vendor/autoload.php" "$STAGE/vendor/autoload.php"
 cp -R -- "$ROOT/vendor/composer" "$STAGE/vendor/composer"
