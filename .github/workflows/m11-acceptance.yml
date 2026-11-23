@@ -100,6 +100,11 @@ jobs:
             $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
             if(!$r["healthy"] || !$r["worlds"][0]["initialized"])exit(1);
           ' "$RUNNER_TEMP/m11-status.json"
+          php bin/ops-alerts.php > "$RUNNER_TEMP/m11-alerts.json"
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if($r["requiresAttention"] || $r["alerts"]!==[])exit(1);
+          ' "$RUNNER_TEMP/m11-alerts.json"
           php bin/ops-cron.php > "$RUNNER_TEMP/m11-cron.json"
           php -r '
             $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
