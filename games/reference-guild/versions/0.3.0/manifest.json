@@ -1,0 +1,118 @@
+{
+  "engine_api": "1",
+  "id": "reference-guild",
+  "version": "0.3.0",
+  "name": "Guild Caravans — opt-in novice shield and power eligibility fixture",
+  "resources": [
+    {
+      "id": "silver",
+      "initial_stock": 180,
+      "capacity": 1200,
+      "amount": 8,
+      "interval_seconds": 30
+    },
+    {
+      "id": "grain",
+      "initial_stock": 100,
+      "capacity": 700,
+      "amount": 5,
+      "interval_seconds": 30
+    },
+    {
+      "id": "spice",
+      "initial_stock": 20,
+      "capacity": 500,
+      "amount": 2,
+      "interval_seconds": 45
+    }
+  ],
+  "upgrades": [
+    {
+      "resource": "silver",
+      "level": 1,
+      "cost": 25,
+      "duration_seconds": 3,
+      "amount": 14
+    },
+    {
+      "resource": "grain",
+      "level": 1,
+      "cost": 15,
+      "duration_seconds": 3,
+      "amount": 8
+    }
+  ],
+  "buildings": [
+    {
+      "type": "market_hall",
+      "stages": [
+        {
+          "costs": {
+            "silver": 20,
+            "grain": 8
+          },
+          "duration": 2,
+          "requires": {}
+        }
+      ]
+    },
+    {
+      "type": "caravan_hub",
+      "stages": [
+        {
+          "costs": {
+            "silver": 45,
+            "grain": 15,
+            "spice": 5
+          },
+          "duration": 3,
+          "requires": {
+            "market_hall": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "watchtower",
+      "stages": [
+        {
+          "costs": {
+            "silver": 10,
+            "grain": 5
+          },
+          "duration": 1,
+          "requires": {}
+        }
+      ]
+    }
+  ],
+  "player_homestead": true,
+  "progression": {
+    "building_points": {
+      "market_hall": 12,
+      "caravan_hub": 35
+    },
+    "military_building_points": {
+      "watchtower": 30
+    },
+    "upgrade_points": {
+      "silver": 8,
+      "grain": 4
+    },
+    "trade_points": 6
+  },
+  "actions": [
+    {
+      "type": "pack.guild.challenge",
+      "payload": {
+        "account": "string",
+        "target": "string"
+      }
+    }
+  ],
+  "engagement": {
+    "power_metric": "global",
+    "novice_shield_below": 20,
+    "max_attacker_ratio_percent": 150
+  }
+}

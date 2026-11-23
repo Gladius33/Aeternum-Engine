@@ -10,7 +10,7 @@ use PDO;
 final readonly class ProgressionHttpApi
 {
     /** @param array<string,GamePack> $packs */
-    public function __construct(private PDO $pdo,private Clock $clock,private array $packs) {}
+    public function __construct(private PDO $pdo,private Clock $clock,private array $packs,private array $approvedRules=[]) {}
 
     public function handle(string $method,string $path,string $authorization): array
     {
@@ -32,7 +32,11 @@ final readonly class ProgressionHttpApi
             return [404,['error'=>'not_found']];
         }
         try {
-            $rules=$pack->rules();
+            $rules=$this->approvedRules[$m[1]]??$pack->rules();
+            if (!$rules instanceof RuleSet || $rules->id!==$pack->id
+                || $rules->version!==$pack->version) {
+                throw new \DomainException('Mismatched world scoring rules');
+            }
             $scores=(new PdoScheduler($this->pdo,$m[1],$this->clock,$rules))
                 ->scoreForActor($actor,$m[2],$pack->progression);
             return [200,['data'=>['world'=>$m[1],'account'=>$m[2],

@@ -55,6 +55,7 @@ require __DIR__ . "/m02-registry.php";
 require __DIR__ . "/m14-trusted-commands.php";
 require __DIR__ . "/m14-trusted-events.php";
 require __DIR__ . "/m15-scoring.php";
+require __DIR__ . "/m15-engagement.php";
 require __DIR__ . "/m03-economy.php";
 require __DIR__ . "/m05-medieval-pack.php";
 require __DIR__ . "/m06-industrial-pack.php";

@@ -49,11 +49,40 @@ barter with identical idempotent retry, completed constructions, delayed
 upgrade, stale-event barrier, cross-player authorization, read purity and
 replay consistency.
 
+## Second increment — world-locked power protection (in PR)
+
+An opt-in engagement policy in a newly pinned Guild Caravans 0.3.0
+artifact declares the metric (global or military), the novice shield
+threshold and the maximum permitted attacker-to-target power ratio.
+The ratio uses bounded integer arithmetic only.
+
+A separate, trusted EngagementActorPackCommand contract marks exactly one
+actor-owned source account and a distinct target account in a declared
+pack action schema. PdoScheduler checks active world membership, the
+authenticated source's immutable ownership and the active target
+account's ownership inside the existing InnoDB world transaction.
+It reads BOTH account scores from the same locked canonical world state
+and evaluates the shield and ratio before executing the reviewed handler.
+The default HTTP API returns a generic conflict without disclosing
+an opponent's score.
+
+An opt-in guarded challenge is exercised by unit and real MariaDB tests:
+a novice cannot be targeted, a weaker actor may challenge a stronger
+player, limited power asymmetry is accepted, and an upgrade that makes
+the actor too powerful immediately blocks an otherwise valid request.
+Denied interactions do not alter the authoritative state or journal.
+
+The guard is a *player-interaction eligibility foundation*, not a combat
+engine. Until a separately audited due-time authorization hook exists,
+guarded commands that attempt to schedule delayed side effects are
+rejected, preventing any unreviewed deferred policy bypass. Diplomacy,
+cooldown, warfare state and safe bot policies are still open work.
+
 ## M15 milestones still open
 
-- Engagement protection: power ratios, novice shielding, diplomacy and
-  cooldown integrated into the authoritative transaction. Delayed effects
-  must re-evaluate policy at due time. This increment does not add combat.
+- Expand engagement policy with diplomacy/truce state, bounded cooldown,
+  time-dependent novice protection and revalidation at due-event time.
+  No real combat engine is added by the current engagement foundation.
 - Privacy-safe ranked pages and bounded materialization; no global
   ranking exists yet.
 - Full exact-HEAD CI and broader concurrency, failure and browser tests.

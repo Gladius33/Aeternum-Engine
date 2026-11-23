@@ -13,7 +13,7 @@ final class EconomyCommandHandler implements CommandHandler, EconomyGameplayPort
     private array $referenceGameplay = [];
 
     /** @param list<ResourceDefinition> $definitions */
-    public function __construct(array $definitions,array $upgrades = [],array $buildings = [],?SettlementRules $settlement=null,?IndustryRules $industry=null,private readonly ?TrustedPackCommands $trustedPackCommands=null)
+    public function __construct(array $definitions,array $upgrades = [],array $buildings = [],?SettlementRules $settlement=null,?IndustryRules $industry=null,private readonly ?TrustedPackCommands $trustedPackCommands=null,private readonly ?ScoreRules $scoreRules=null,private readonly ?EngagementRules $engagementRules=null)
     {
         if ($definitions === [] || count($definitions)>128 || !array_is_list($definitions)) throw new \InvalidArgumentException('Invalid resource definitions');
         foreach ($definitions as $definition) {
@@ -465,6 +465,23 @@ final class EconomyCommandHandler implements CommandHandler, EconomyGameplayPort
             new ScheduledEvent($command->worldId,$eventId,'building.complete',$at+$stage['duration'],
                 ['building'=>$id,'account'=>$account,'type'=>$type,'level'=>$level+1])
         ],$ledger);
+    }
+
+    /** Optional signed target policy for an explicitly reviewed player command. */
+    public function engagementTarget(Command $command): ?string
+    {
+        return $this->trustedPackCommands?->engagementTarget($command);
+    }
+
+    /** Called only after transactionally verifying both accounts. */
+    public function assertEngagement(Command $command,array $state,string $source,string $target): void
+    {
+        if ($this->scoreRules===null || $this->engagementRules===null
+            || $this->engagementTarget($command)!==$target) {
+            throw new \DomainException('Engagement not approved for this pinned pack');
+        }
+        (new EngagementGuard($this->scoreRules,$this->engagementRules))
+            ->assertEligible($state,$source,$target);
     }
 
     /** Player-facing command types are only those with reviewed ownership policy. */

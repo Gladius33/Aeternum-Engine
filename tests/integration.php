@@ -169,6 +169,7 @@ require __DIR__ . "/m02-registry-db.php";
 require __DIR__ . "/m14-actor-pack-db.php";
 require __DIR__ . "/m14-events-db.php";
 require __DIR__ . "/m15-scoring-db.php";
+require __DIR__ . "/m15-engagement-db.php";
 require __DIR__ . "/actors.php";
 require __DIR__ . "/entities.php";
 require __DIR__ . "/m04-territories.php";
