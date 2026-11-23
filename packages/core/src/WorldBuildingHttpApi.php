@@ -16,7 +16,8 @@ final class WorldBuildingHttpApi
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/construction/options$~D',
             $path,$match
         )===1;
-        if (!$isOptions && !preg_match(
+        $isProgress=preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/construction/progression$~D',$path,$match)===1;
+        if (!$isOptions && !$isProgress && !preg_match(
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/buildings/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
             $path,$match
         )) return [404,['error'=>'not_found']];
@@ -30,7 +31,7 @@ final class WorldBuildingHttpApi
         }
         try {
             $service=new PdoBuildings($this->pdo,$match[1]);
-            return [200,['data'=>$isOptions?$service->choicesFor($actor):$service->own($actor,$match[2])]];
+            return [200,['data'=>$isOptions?$service->choicesFor($actor):($isProgress?$service->progressionFor($actor):$service->own($actor,$match[2]))]];
         } catch (\DomainException) {
             return [404,['error'=>'not_found']];
         }
