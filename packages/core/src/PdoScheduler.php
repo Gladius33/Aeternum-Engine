@@ -557,6 +557,20 @@ final class PdoScheduler
                     ? $this->rules->commands->actorPackAccounts($command):null;
                 if ($owned===null) throw new \DomainException('Actor command not allowed');
                 foreach ($owned as $account) $this->assertAccountOwner($account,$actor);
+                $diplomacyTarget=$this->rules->commands->diplomacyTarget($command);
+                if ($diplomacyTarget!==null) {
+                    if ($lockedWorld===null || count($owned)!==1
+                        || $owned[0]===$diplomacyTarget) {
+                        throw new \DomainException('Diplomacy requires distinct world-locked accounts');
+                    }
+                    $this->assertAccountOwner($diplomacyTarget,null);
+                    $diplomacyOwner=$this->query('SELECT actor_id FROM engine_account_owners
+                        WHERE world_id=? AND account_id=?',
+                        [$this->worldId,$diplomacyTarget])->fetchColumn();
+                    if ($diplomacyOwner===false || $diplomacyOwner===$actor) {
+                        throw new \DomainException('Diplomacy denied');
+                    }
+                }
                 $target=$this->rules->commands->engagementTarget($command);
                 if ($target!==null) {
                     if ($lockedWorld===null || count($owned)!==1) {
@@ -569,7 +583,7 @@ final class PdoScheduler
                         throw new \DomainException('Engagement denied');
                     }
                     $this->rules->commands->assertEngagement($command,
-                        ScalarMap::decode($lockedWorld['state_json']),$owned[0],$target);
+                        ScalarMap::decode($lockedWorld['state_json']),$owned[0],$target,$this->clock->now());
                 }
                 break;
         }

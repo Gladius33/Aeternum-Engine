@@ -105,3 +105,45 @@ initial query fails closed rather than trying to calculate ranks for an
 unbounded roster; indexed projection and wide-world leaderboards remain
 an explicit future acceptance item. The browser shows only the requester's
 position and the total active player count.
+
+
+## Third increment — optional mutual truce and enforced cooldown
+
+The independent Guild Caravans version 0.4.0 adds two strictly typed
+fields to the engagement policy: integer cooldown_seconds (0..86400)
+and boolean diplomacy_enabled. Previous 0.3.0 rule keys and semantics
+remain identical, and the new manifest has a separate immutable hash.
+
+Each accepted guarded engagement records its source account's last
+successful logical timestamp in canonical world state, inside the
+same transaction as the original command. Both the locked actor
+authorization and the replayable CommandHandler.apply require the
+cooldown to have expired. Duplicate or rejected commands do not
+earn additional scores or advance the cooldown. No frontend clock
+participates.
+
+A *trusted and operator-registered* BilateralTruceCommands module
+provides pack.diplomacy.offer and pack.diplomacy.accept. The first
+player proposes a duration between 60 seconds and seven days; the
+counterparty must affirm it through their independent session before
+the proposal expires. Both roles are checked under the original
+world lock; neither party may impersonate the other or unilaterally
+enforce a pact. Once mutually accepted, the world records a canonical
+symmetric truce expiry. An opt-in EngagementGuard rejects any
+engagement between those players until the expiry is reached,
+independently of the attacker's individual cooldown.
+
+No unreviewed delayed engagement events are permitted; that fail-closed
+restriction is deliberately retained. A full scheduled combat engine
+would need a new authorization decision at event execution time.
+Diplomacy and cooldown do not constitute one.
+
+Real MariaDB acceptance verifies two distinct authenticated players,
+private building-derived scores, live command decisions, proposal-only
+inertness, mutually consented truce, exact expiry, cooldown renewal,
+foreign actor denial and immutable journal replay. Historical
+manifest versions and non-engagement games are not modified.
+
+Remaining work: indexed large-world leaderboards; a full diplomacy
+workflow with alliances/war declarations; specialized concurrent load
+and graceful migrations; and the V1.0 operator sign-offs in #55.

@@ -45,9 +45,10 @@ check($m15Guarded->commands->engagementTarget($cmd)==='defender'
     && $m15Guarded->commands->actorPackAccounts($cmd)===['attacker'],
     'M15 approved handler identifies independent authenticated source and target');
 $m15Guarded->commands->assertEngagement($cmd,$state,'attacker','defender');
-check($m15Guarded->commands->apply($cmd,[] ,100)->state===
-    ['guild:challenge:attacker:defender'=>1],
-    'M15 reviewed engagement command is deterministic and not a combat engine');
+$m15SimResult=$m15Guarded->commands->apply($cmd,$state,100)->state;
+check(($m15SimResult['guild:challenge:attacker:defender']??null)===1
+    && ($m15SimResult['build:max:attacker:watchtower']??null)===1,
+    'M15 reviewed engagement checks the canonical power snapshot during execution and replay');
 rejects(fn()=> $m15FightPack->rules([new class implements EngagementActorPackCommand {
     public function supportedTypes(): array {return ['pack.guild.challenge'];}
     public function codeDigest(): string {return str_repeat('b',64);}
@@ -68,7 +69,7 @@ $scheduled=new class implements EngagementActorPackCommand {
         ]);
     }
 };
-rejects(fn()=> $m15FightPack->rules([$scheduled])->commands->apply($cmd,[],100),
+rejects(fn()=> $m15FightPack->rules([$scheduled])->commands->apply($cmd,$state,100),
     DomainException::class,
     'M15 delayed engagement side effects blocked until due-time re-authorization exists');
 $m15Bad=json_decode($m15FightBytes,false,32,JSON_THROW_ON_ERROR);

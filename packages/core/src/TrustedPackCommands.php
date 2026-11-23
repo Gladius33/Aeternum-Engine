@@ -20,6 +20,8 @@ final class TrustedPackCommands
     private array $actorOwnedFields=[];
     /** @var array<string,string> */
     private array $engagementTargets=[];
+    /** @var array<string,string> */
+    private array $diplomacyTargets=[];
     private string $fingerprint;
 
     /**
@@ -79,6 +81,16 @@ final class TrustedPackCommands
                         }
                         $this->engagementTargets[$type]=$target;
                     }
+                    if ($handler instanceof DiplomacyActorPackCommand) {
+                        $target=$handler->targetAccountField($type);
+                        if (count($owned)!==1 || !is_string($target)
+                            || ($declaredActions[$type]->types[$target]??null)!=='string'
+                            || in_array($target,$owned,true)
+                            || $handler instanceof EngagementActorPackCommand) {
+                            throw new \InvalidArgumentException('Invalid diplomacy target policy');
+                        }
+                        $this->diplomacyTargets[$type]=$target;
+                    }
                 }
                 $identities[$type]=$digest;
             }
@@ -124,6 +136,17 @@ final class TrustedPackCommands
         $account=$command->payload[$field];
         PdoMemberships::validateId($account);
         return $account;
+    }
+
+    /** Target account for mutually acknowledged diplomacy, not engagement. */
+    public function diplomacyTarget(Command $command): ?string
+    {
+        $field=$this->diplomacyTargets[$command->type]??null;
+        if ($field===null) return null;
+        $this->schemas[$command->type]->assertPayload($command->payload);
+        $target=$command->payload[$field];
+        PdoMemberships::validateId($target);
+        return $target;
     }
 
     public function execute(Command $command,array $state,int $effectiveAt): CommandResult
