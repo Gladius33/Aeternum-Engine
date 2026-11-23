@@ -104,6 +104,12 @@ Le client HTML/JS propose des boutons de continuation pour les sept projections
 sociales ; les générations de chargement empêchent les anciennes réponses de
 réafficher les données d'une session ou d'un monde devenu inactif.
 
+Le test de volumétrie `tests/m09-volume.php` crée 105 membres réels dans
+une alliance et 105 blocages, puis vérifie les pages privées de 100
+entrées, l'absence de doublons et un quota HTTP d'écriture de
+30 messages pour une identité supplémentaire, avec rejet de la 31e
+écriture sans effet de bord.
+
 **Limites à traiter avant clôture M09 :** robustesse aux volumes,
 recette de la récupération après révocation, protections anti-spam plus fines,
 qualifications E2E et restauration sur serveur autorisé. Les autres
