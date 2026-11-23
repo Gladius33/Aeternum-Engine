@@ -265,6 +265,56 @@ async function medievalAction(type) {
 document.querySelector('#medieval-check').addEventListener('click',()=>run(reviewMedieval));
 document.querySelector('#medieval-feed').addEventListener('click',()=>run(()=>medievalAction('settlement.feed')));
 document.querySelector('#medieval-work').addEventListener('click',()=>run(()=>medievalAction('settlement.work')));
+const industrialPanel=document.querySelector('#industrial-panel');
+const industrialDetails=document.querySelector('#industrial-details');
+const industrialGoals=document.querySelector('#industrial-goals');
+const industrialVictory=document.querySelector('#industrial-victory');
+function resetIndustrial() {
+    industrialDetails.replaceChildren();industrialGoals.replaceChildren();
+    industrialVictory.textContent='';
+}
+async function reviewIndustrial() {
+    const fields=locationFields();
+    if (!fields.world || !fields.account) throw new Error('Choose a world and account');
+    const root='/v1/worlds/'+encodeURIComponent(fields.world).replaceAll('%3A',':');
+    const data=await api(root+'/industrial/status/'+encodeURIComponent(fields.account));
+    if (JSON.stringify(fields)!==JSON.stringify(locationFields())) return;
+    resetIndustrial();
+    const line=(name,value)=>{
+        const dt=document.createElement('dt'),dd=document.createElement('dd');
+        dt.textContent=name;dd.textContent=String(value);industrialDetails.append(dt,dd);
+    };
+    line('Grid power supply',data.grid.supply);
+    line('Installed power demand',data.grid.load);
+    line('Spare grid power',data.grid.surplus);
+    line('Warehouse goods capacity',data.warehouseCapacity);
+    line('Goods delivered',data.delivery.current+' / '+data.delivery.required);
+    for(const [type,level] of Object.entries(data.victory.buildings)) {
+        const item=document.createElement('li');
+        item.textContent=type+': '+level.current+' / '+level.required;
+        industrialGoals.append(item);
+    }
+    const delivered=document.createElement('li');
+    delivered.textContent='Deliveries: '+data.delivery.current+' / '+data.delivery.required;
+    industrialGoals.append(delivered);
+    for(const [action,at] of Object.entries(data.nextActionAt)) {
+        if(at!==null)line(action+' next available (UTC)',new Date(at*1000).toISOString());
+    }
+    industrialVictory.textContent=data.victory.achieved
+        ? 'VICTORY — Your industrial network has fulfilled all construction and delivery goals!'
+        : 'Build the complete network and dispatch enough goods to win.';
+}
+async function industrialAction(type) {
+    const fields=locationFields();
+    if (!fields.world || !fields.account) throw new Error('Choose a world and account');
+    await submitCommand(fields,type,{account:fields.account});
+    await reviewIndustrial();
+    await refresh();
+}
+document.querySelector('#industrial-check').addEventListener('click',()=>run(reviewIndustrial));
+document.querySelector('#industrial-generate').addEventListener('click',()=>run(()=>industrialAction('industry.generate')));
+document.querySelector('#industrial-refine').addEventListener('click',()=>run(()=>industrialAction('industry.refine')));
+document.querySelector('#industrial-ship').addEventListener('click',()=>run(()=>industrialAction('industry.ship')));
 function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);
     options(balance.elements.account,(w?.accounts??[]).map(a=>[a,a]));
@@ -274,7 +324,9 @@ function selectWorld() {
     clearMarket();
     clearMap();
     resetMedieval();
+    resetIndustrial();
     medievalPanel.hidden=w?.settlementEnabled!==true;
+    industrialPanel.hidden=w?.industryEnabled!==true;
 }
 async function discover() {
     const data=await api('/v1/me/worlds');
@@ -283,7 +335,7 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
-for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account')resetMedieval();});
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){resetMedieval();resetIndustrial();}});
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
