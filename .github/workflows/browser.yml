@@ -129,6 +129,9 @@ jobs:
             $manifest="games/reference-medieval/versions/0.3.0/manifest.json";
             $worlds[]=["world"=>"e2e-medieval-v3","pack"=>"reference-medieval",
                 "version"=>"0.3.0","sha256"=>hash_file("sha256",$manifest)];
+            $manifest="games/reference-industrial/versions/0.3.0/manifest.json";
+            $worlds[]=["world"=>"e2e-industrial-v3","pack"=>"reference-industrial",
+                "version"=>"0.3.0","sha256"=>hash_file("sha256",$manifest)];
             file_put_contents($argv[1],json_encode(["registry_api"=>"1","worlds"=>$worlds],JSON_THROW_ON_ERROR));
           ' "$registry_dir/worlds.json"
           php bin/registry-status.php "$registry_dir/worlds.json" > "$registry_dir/validated.json"
@@ -243,6 +246,7 @@ jobs:
           npx playwright test tests/browser/registry.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/construction.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/medieval.spec.cjs --workers=1 --reporter=github,line
+          npx playwright test tests/browser/industrial.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
         run: |
