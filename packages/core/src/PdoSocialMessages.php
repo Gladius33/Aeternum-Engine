@@ -85,15 +85,28 @@ final class PdoSocialMessages
                 [$this->world,$actor,$target]);
         });
     }
+    /** Keep existing model return type; the HTTP caller uses blocksPageFor. */
     public function blocksFor(string $actor): array
     {
-        return $this->tx(function()use($actor):array {
+        return $this->blocksPageFor($actor)['actors'];
+    }
+
+    /** Bounded list, keyset by blocked actor ID. */
+    public function blocksPageFor(string $actor,?string $after=null): array
+    {
+        if ($after!==null) PdoMemberships::validateId($after);
+        return $this->tx(function()use($actor,$after):array {
             $this->requireActors($actor);
-            return $this->sql('SELECT blocked_actor FROM engine_social_blocks
-                WHERE world_id=? AND actor_id=? ORDER BY blocked_actor LIMIT 101',
-                [$this->world,$actor])->fetchAll(PDO::FETCH_COLUMN);
+            $rows=$this->sql('SELECT blocked_actor FROM engine_social_blocks
+                WHERE world_id=? AND actor_id=? AND blocked_actor>?
+                ORDER BY blocked_actor LIMIT 101',[$this->world,$actor,$after??''])
+                ->fetchAll(PDO::FETCH_COLUMN);
+            $more=count($rows)>100;
+            if ($more) array_pop($rows);
+            return ['actors'=>$rows,'nextAfter'=>$more?$rows[count($rows)-1]:null];
         });
     }
+
     public function send(string $sender,string $recipient,string $messageId,string $body): void
     {
         PdoMemberships::validateId($messageId);

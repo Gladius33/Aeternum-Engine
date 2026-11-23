@@ -205,6 +205,7 @@ require __DIR__ . "/market-http.php";
 require __DIR__ . "/m09-social.php";
 require __DIR__ . "/m09-messages.php";
 require __DIR__ . "/m09-pagination.php";
+require __DIR__ . "/m09-social-pages.php";
 require __DIR__ . "/rate-cleanup.php";
 require __DIR__ . "/maintenance-cli.php";
 require __DIR__ . "/onboarding-status.php";

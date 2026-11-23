@@ -28,14 +28,25 @@ final class SocialHttpApi
         $alliance=null;
         $cursorTime=null;
         $cursorId=null;
+        $afterId=null;
+        $memberAfter=null;
         if ($suffix==='alliances') {
             $action=$method==='GET'?'list':($method==='POST'?'create':null);
+        } elseif (preg_match('~^alliances/page/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',$suffix,$page)) {
+            $action=$method==='GET'?'list':null;
+            $afterId=$page[1];
         } elseif ($suffix==='invitations') {
             $action=$method==='GET'?'inbox':null;
+        } elseif (preg_match('~^invitations/page/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',$suffix,$page)) {
+            $action=$method==='GET'?'inbox':null;
+            $afterId=$page[1];
         } elseif ($suffix==='messages') {
             $action=$method==='GET'?'messages':($method==='POST'?'send':null);
         } elseif ($suffix==='blocks') {
             $action=$method==='GET'?'blocks':($method==='POST'?'block':null);
+        } elseif (preg_match('~^blocks/page/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',$suffix,$page)) {
+            $action=$method==='GET'?'blocks':null;
+            $afterId=$page[1];
         } elseif ($suffix==='blocks/remove') {
             $action=$method==='POST'?'unblock':null;
         } elseif ($suffix==='notifications') {
@@ -55,6 +66,13 @@ final class SocialHttpApi
         } elseif (preg_match('~^notifications/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/read$~D',$suffix,$note)) {
             $action=$method==='POST'?'ack':null;
             $noticeId=$note[1];
+        } elseif (preg_match(
+            '~^alliances/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/members/page/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
+            $suffix,$roster
+        )) {
+            $action=$method==='GET'?'details':null;
+            $alliance=$roster[1];
+            $memberAfter=$roster[2];
         } elseif (preg_match(
             '~^alliances/([A-Za-z0-9][A-Za-z0-9_-]{0,63})(?:/(invite|respond|revoke|role|leave|remove|owner))?$~D',
             $suffix,$resource
@@ -111,9 +129,9 @@ final class SocialHttpApi
             $social=new PdoAlliances($this->pdo,$world,$this->clock);
             $messages=new PdoSocialMessages($this->pdo,$world,$this->clock);
             $result=match($action) {
-                'list'=>$social->listFor($actor),
-                'inbox'=>['invitations'=>$social->invitationsFor($actor)],
-                'details'=>$social->detailsFor($actor,$alliance),
+                'list'=>$social->listFor($actor,50,$afterId),
+                'inbox'=>$social->invitationsPageFor($actor,$afterId),
+                'details'=>$social->detailsFor($actor,$alliance,$memberAfter),
                 'create'=>$this->created($social,$actor,$data),
                 'invite'=>$this->mutate(fn()=> $social->invite($actor,$alliance,$data['actor'])),
                 'respond'=>$this->mutate(fn()=> $social->respond($actor,$alliance,$data['accept'])),
@@ -124,7 +142,7 @@ final class SocialHttpApi
                 'owner'=>$this->mutate(fn()=> $social->transferOwner($actor,$alliance,$data['actor'])),
                 'messages'=>$messages->inbox($actor,$cursorTime,$cursorId),
                 'send'=>$this->mutate(fn()=> $messages->send($actor,$data['recipient'],$data['id'],$data['text'])),
-                'blocks'=>['actors'=>$messages->blocksFor($actor)],
+                'blocks'=>$messages->blocksPageFor($actor,$afterId),
                 'block'=>$this->mutate(fn()=> $messages->block($actor,$data['actor'])),
                 'unblock'=>$this->mutate(fn()=> $messages->unblock($actor,$data['actor'])),
                 'notifications'=>$messages->notifications($actor,$cursorTime,$cursorId),

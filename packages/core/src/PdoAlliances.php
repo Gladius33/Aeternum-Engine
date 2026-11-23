@@ -215,11 +215,12 @@ final class PdoAlliances
         });
     }
 
-    /** Membership directory is visible to current alliance members only. */
-    public function detailsFor(string $actor,string $alliance): array
+    /** Paged private roster: active members only, stable actor-ID ordering. */
+    public function detailsFor(string $actor,string $alliance,?string $after=null): array
     {
         $this->id($actor); $this->id($alliance);
-        return $this->transaction(function() use($actor,$alliance):array {
+        if ($after!==null) $this->id($after);
+        return $this->transaction(function() use($actor,$alliance,$after):array {
             $this->lockAlliance($alliance);
             if (!$this->active($actor) || $this->lockedRole($alliance,$actor)===null)
                 throw new \DomainException('Alliance membership required');
@@ -228,33 +229,48 @@ final class PdoAlliances
             $rows=$this->query('SELECT m.actor_id,m.role FROM engine_alliance_members m
                 JOIN engine_memberships worldmember ON worldmember.world_id=m.world_id
                   AND worldmember.actor_id=m.actor_id AND worldmember.active=1
-                WHERE m.world_id=? AND m.alliance_id=? ORDER BY m.actor_id LIMIT 101',
-                [$this->world,$alliance])->fetchAll(PDO::FETCH_ASSOC);
-            if (count($rows)>100) throw new \DomainException('Alliance member list needs pagination');
+                WHERE m.world_id=? AND m.alliance_id=? AND m.actor_id>?
+                ORDER BY m.actor_id LIMIT 101',
+                [$this->world,$alliance,$after??''])->fetchAll(PDO::FETCH_ASSOC);
+            $more=count($rows)>100;
+            if ($more) array_pop($rows);
+            $last=$more?$rows[count($rows)-1]['actor_id']:null;
             return ['id'=>$alliance,'name'=>$name,'role'=>$this->lockedRole($alliance,$actor),
-                'members'=>array_map(static fn(array $m):array=>['actor'=>$m['actor_id'],'role'=>$m['role']],$rows)];
+                'members'=>array_map(static fn(array $m):array=>['actor'=>$m['actor_id'],'role'=>$m['role']],$rows),
+                'nextAfter'=>$last];
         });
     }
 
-    /** Caller sees exclusively their own pending invitations. */
+    /** Legacy private-inbox model API; the HTTP adapter uses the page object. */
     public function invitationsFor(string $actor): array
     {
+        return $this->invitationsPageFor($actor)['invitations'];
+    }
+
+    /** Non-blocked pending invites, keyset by alliance ID. */
+    public function invitationsPageFor(string $actor,?string $after=null): array
+    {
         $this->id($actor);
-        return $this->transaction(function() use($actor):array {
+        if ($after!==null) $this->id($after);
+        return $this->transaction(function() use($actor,$after):array {
             if (!$this->active($actor)) throw new \DomainException('Membership required');
             $rows=$this->query("SELECT i.alliance_id,a.name,i.invited_by FROM engine_alliance_invites i
                 JOIN engine_alliances a ON a.world_id=i.world_id AND a.alliance_id=i.alliance_id
                 WHERE i.world_id=? AND i.invited_actor=? AND i.status='pending'
+                  AND i.alliance_id>?
                   AND NOT EXISTS (
                     SELECT 1 FROM engine_social_blocks b WHERE b.world_id=i.world_id
                       AND ((b.actor_id=i.invited_actor AND b.blocked_actor=i.invited_by)
                         OR (b.actor_id=i.invited_by AND b.blocked_actor=i.invited_actor))
                   )
-                ORDER BY i.alliance_id LIMIT 101",[$this->world,$actor])->fetchAll(PDO::FETCH_ASSOC);
-            if (count($rows)>100) throw new \DomainException('Invitation inbox needs pagination');
-            return array_map(static fn(array $i):array=>[
+                ORDER BY i.alliance_id LIMIT 101",[$this->world,$actor,$after??''])
+                ->fetchAll(PDO::FETCH_ASSOC);
+            $more=count($rows)>100;
+            if ($more) array_pop($rows);
+            $last=$more?$rows[count($rows)-1]['alliance_id']:null;
+            return ['invitations'=>array_map(static fn(array $i):array=>[
                 'alliance'=>$i['alliance_id'],'name'=>$i['name'],'invitedBy'=>$i['invited_by']
-            ],$rows);
+            ],$rows),'nextAfter'=>$last];
         });
     }
 

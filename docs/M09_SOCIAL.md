@@ -47,9 +47,9 @@ interdite ou conflictuelle 409, une entrée malformée 400.
 
 | Méthode et chemin | Corps JSON strict / réponse |
 | --- | --- |
-| GET `/alliances` | Répertoire public du monde, max. 50 éléments |
+| GET `/alliances` et `/alliances/page/{id}` | Répertoire public du monde, 50 éléments/page, `nextAfter` |
 | POST `/alliances` | `{"id":"my-alliance","name":"Alliance"}` |
-| GET `/alliances/{id}` | Informations privées des membres et rôles |
+| GET `/alliances/{id}` et `/alliances/{id}/members/page/{actor}` | Membres actifs et rôles privés, 100/page, `nextAfter` |
 | POST `/alliances/{id}/invite` | `{"actor":"member-id"}` |
 | POST `/alliances/{id}/respond` | `{"accept":true}` ou `false` |
 | POST `/alliances/{id}/revoke` | `{"actor":"member-id"}` |
@@ -57,10 +57,10 @@ interdite ou conflictuelle 409, une entrée malformée 400.
 | POST `/alliances/{id}/owner` | `{"actor":"member-id"}` |
 | POST `/alliances/{id}/remove` | `{"actor":"member-id"}` |
 | POST `/alliances/{id}/leave` | `{}` |
-| GET `/invitations` | Invitations en attente du seul destinataire |
+| GET `/invitations` et `/invitations/page/{id}` | Invitations du destinataire non bloquées, 100/page, `nextAfter` |
 | GET `/messages` et `/messages/page/{createdAt}/{id}` | Messages privés, pagination descendante de 50 entrées, filtrage de visibilité |
 | POST `/messages` | `{"id":"stable-request-id","recipient":"actor-id","text":"Hello"}` |
-| GET `/blocks` | Joueurs bloqués par cet acteur |
+| GET `/blocks` et `/blocks/page/{actor}` | Joueurs bloqués par cet acteur, 100/page, `nextAfter` |
 | POST `/blocks` | `{"actor":"actor-id"}` |
 | POST `/blocks/remove` | `{"actor":"actor-id"}` |
 | GET `/notifications` et `/notifications/page/{createdAt}/{id}` | Notifications persistantes, pagination descendante de 50 entrées et statut de lecture |
@@ -77,7 +77,12 @@ seconde. Chaque page est une lecture transactionnelle indépendante :
 de nouvelles écritures entre pages ne forment pas un instantané figé.
 Les messages masqués ou bloqués sont exclus avant chaque page.
 
-**Limites à traiter avant clôture M09 :** pagination complète des autres boîtes
+Les répertoires d'alliances, listes de membres, invitations et blocages
+emploient aussi un curseur ID `nextAfter` sans divulguer de comptes étrangers.
+Chaque page répète les contrôles de monde et de rôle ; il ne s'agit pas
+d'une capture figée si les membres changent entre deux requêtes.
+
+**Limites à traiter avant clôture M09 :** pagination du classement et des outils opérateur,
 chargées, gestion d'alliances très grandes, audit de la révocation des
 propriétaires et robustesse aux volumes, protections anti-spam plus fines,
 qualifications E2E et restauration sur serveur autorisé. Les autres
