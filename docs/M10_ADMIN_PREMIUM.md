@@ -19,6 +19,12 @@ Deux rôles s'appliquent seulement à un monde :
 - viewer : status du monde et consultation des actions auditables ;
 - manager : mêmes lectures, appartenance des acteurs et événements TEST.
 
+La commande members fournit des entrées bornées à 50 par page, avec un
+curseur d'identifiant ; identity examine un acteur et ses comptes
+exclusivement dans le monde autorisé, sans divulguer d'autres mondes.
+Les acteurs hérités sans identité applicative restent recensés sans
+fabriquer de login.
+
 Les permissions sont revérifiées en base dans engine_admin_scopes pour
 chaque commande ; aucune session joueur ne peut attribuer un rôle.
 Le provisionnement initial des portées est volontairement hors API et
@@ -85,6 +91,8 @@ opérateur effectivement autorisé :
 
     export AETERNUM_ADMIN_OPERATOR=operateur_local
     php bin/admin-console.php world world-recette
+    php bin/admin-console.php members world-recette
+    php bin/admin-console.php identity world-recette ACTOR_ID
     php bin/admin-console.php audit world-recette
     php bin/admin-console.php membership world-recette ACTOR_ID revoke m10-op-001
     php bin/admin-console.php membership world-recette ACTOR_ID grant m10-op-002

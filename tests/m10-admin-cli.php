@@ -29,6 +29,16 @@ use Aeternum\Core\{PdoAdminConsole,PdoIdentity,FrozenClock,PdoSessions};
     $status=json_decode($out,true,8,JSON_THROW_ON_ERROR);
     check($code===0 && $status['data']['world']===$world,
         'M10 CLI restricted host operator can inspect only assigned world');
+    [$code,$out]=$run(['members',$world],['AETERNUM_ADMIN_OPERATOR'=>'m10-view']);
+    $listed=json_decode($out,true,8,JSON_THROW_ON_ERROR);
+    check($code===0 && count($listed['data']['members'])===2,
+        'M10 local viewer CLI enumerates only its world members');
+    [$code,$out]=$run(['identity',$world,$target],['AETERNUM_ADMIN_OPERATOR'=>'m10-view']);
+    $identified=json_decode($out,true,8,JSON_THROW_ON_ERROR);
+    check($code===0 && $identified['data']['login']==='m10-cosmetic-user',
+        'M10 local viewer CLI inspects actor without disclosing other worlds');
+    [$code,$out]=$run(['identity',$world,'not-present'],[]);
+    check($code===1 && $out==='','M10 CLI does not expose absent-world identities');
     [$code,$out]=$run(['world','m10-console-b'],[]);
     check($code===1 && $out==='','M10 CLI refuses unassigned world inspection');
     [$code,$out]=$run(['world',$world],['AETERNUM_ADMIN_OPERATOR'=>'']);

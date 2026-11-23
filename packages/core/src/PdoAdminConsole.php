@@ -99,6 +99,50 @@ final class PdoAdminConsole
     }
 
     /**
+     * Authenticated console inventory. Legacy world members without an
+     * application identity remain visible with login=null, never inferred.
+     * Cursor is a stable actor ID and never an offset into a mutable list.
+     */
+    public function members(string $operator,?string $after=null): array
+    {
+        if($after!==null)PdoMemberships::validateId($after);
+        return $this->tx(function()use($operator,$after):array {
+            $this->allowed($operator,false);
+            $rows=$this->query('SELECT m.actor_id,i.login,m.active
+                FROM engine_memberships m
+                LEFT JOIN engine_identities i ON i.actor_id=m.actor_id
+                WHERE m.world_id=? AND m.actor_id>?
+                ORDER BY m.actor_id LIMIT 51',
+                [$this->world,$after??''])->fetchAll(PDO::FETCH_ASSOC);
+            $more=count($rows)>50;if($more)array_pop($rows);
+            return ['members'=>array_map(static fn(array $row):array=>[
+                'actor'=>$row['actor_id'],'login'=>$row['login'],
+                'active'=>(int)$row['active']===1
+            ],$rows),'nextAfter'=>$more?$rows[count($rows)-1]['actor_id']:null];
+        });
+    }
+
+    public function identity(string $operator,string $actor): array
+    {
+        PdoMemberships::validateId($actor);
+        return $this->tx(function()use($operator,$actor):array {
+            $this->allowed($operator,false);
+            $row=$this->query('SELECT m.actor_id,i.login,m.active FROM engine_memberships m
+                LEFT JOIN engine_identities i ON i.actor_id=m.actor_id
+                WHERE m.world_id=? AND m.actor_id=?',
+                [$this->world,$actor])->fetch(PDO::FETCH_ASSOC);
+            if($row===false)throw new \DomainException('Identity unavailable in this world');
+            $accounts=$this->query('SELECT account_id FROM engine_account_owners
+                WHERE world_id=? AND actor_id=? ORDER BY account_id LIMIT 101',
+                [$this->world,$actor])->fetchAll(PDO::FETCH_COLUMN);
+            return ['world'=>$this->world,'actor'=>$row['actor_id'],
+                'login'=>$row['login'],'active'=>(int)$row['active']===1,
+                'accounts'=>array_slice($accounts,0,100),
+                'accountsTruncated'=>count($accounts)>100];
+        });
+    }
+
+    /**
      * The identity must already exist. World membership is the only mutable
      * player data here; existing ownership, economy, sessions are preserved.
      */

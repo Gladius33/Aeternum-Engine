@@ -29,6 +29,17 @@ use Aeternum\Core\{PdoScheduler,PdoIdentity,PdoMemberships,PdoSessions,PdoAdminC
     check($status['world']===$world && $status['activeMembers']===2
         && $status['rulesKey']==='legacy',
         'M10 world-scoped viewer sees pinned rules and active member count');
+    $directory=$admin->members('m10-view');
+    check(count($directory['members'])===2 && $directory['nextAfter']===null,
+        'M10 viewer can list only two world-specific memberships');
+    $detail=$admin->identity('m10-view',$actor);
+    check($detail['world']===$world && $detail['login']==='m10-cosmetic-user'
+        && $detail['active']===true && $detail['accounts']===[],
+        'M10 private console inspects existing world identity without cross-world accounts');
+    rejects(fn()=> $foreign->identity('m10-other-manager',$stranger),
+        DomainException::class,'M10 another world cannot disclose an actor absent there');
+    rejects(fn()=> $admin->identity('m10-view','unknown-m10-id'),
+        DomainException::class,'M10 console identity inspection is fail-closed for absent actor');
     rejects(fn()=> $admin->describe('m10-other-manager'),DomainException::class,
         'M10 an operator scoped to a different world cannot inspect this world');
     rejects(fn()=> $admin->membership('m10-view','m10-deny',''.$actor,false),

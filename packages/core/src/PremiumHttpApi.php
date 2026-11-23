@@ -26,13 +26,35 @@ final class PremiumHttpApi
         if($actor===null)return [401,['error'=>'unauthorized']];
         if(!(new PdoRateLimiter($this->pdo,$this->clock))->admit('premium:read:'.$actor,60,60))
             return [429,['error'=>'rate_limited']];
-        $q=$this->pdo->prepare('SELECT 1 FROM engine_memberships
-            WHERE world_id=? AND actor_id=? AND active=1');
-        $q->execute([$world,$actor]);
-        if($q->fetchColumn()===false)return [404,['error'=>'not_found']];
-        return [200,['data'=>[
-            'world'=>$world,'features'=>PdoAdminConsole::cosmeticFor($this->pdo,$world,$actor),
-            'testModeOnly'=>true
-        ]]];
+        // The same shared world lock covers the membership check and the
+        // entitlement snapshot. Trusted admin writes lock this world first,
+        // preventing a revoked actor from racing across the two reads.
+        if($this->pdo->inTransaction())throw new \LogicException('Nested premium read');
+        $this->pdo->beginTransaction();
+        try {
+            $worldRow=$this->pdo->prepare('SELECT world_id FROM engine_worlds
+                WHERE world_id=? LOCK IN SHARE MODE');
+            $worldRow->execute([$world]);
+            if($worldRow->fetchColumn()===false) {
+                $this->pdo->rollBack();
+                return [404,['error'=>'not_found']];
+            }
+            $q=$this->pdo->prepare('SELECT 1 FROM engine_memberships
+                WHERE world_id=? AND actor_id=? AND active=1');
+            $q->execute([$world,$actor]);
+            if($q->fetchColumn()===false) {
+                $this->pdo->rollBack();
+                return [404,['error'=>'not_found']];
+            }
+            $features=PdoAdminConsole::cosmeticFor($this->pdo,$world,$actor);
+            $this->pdo->commit();
+            return [200,['data'=>[
+                'world'=>$world,'features'=>$features,
+                'testModeOnly'=>true
+            ]]];
+        } catch(\Throwable $e) {
+            if($this->pdo->inTransaction())$this->pdo->rollBack();
+            throw $e;
+        }
     }
 }

@@ -22,6 +22,10 @@ try {
     $result=null;
     if($operation==='world' && $argc===3) {
         $result=$service->describe($operator);
+    } elseif($operation==='members' && in_array($argc,[3,4],true)) {
+        $result=$service->members($operator,$argv[3]??null);
+    } elseif($operation==='identity' && $argc===4) {
+        $result=$service->identity($operator,$argv[3]);
     } elseif($operation==='audit' && in_array($argc,[3,4],true)) {
         $result=$service->audit($operator,$argv[3]??null);
     } elseif($operation==='membership' && $argc===6) {
@@ -39,7 +43,7 @@ try {
         $result=['world'=>$world,'event'=>$event,'mode'=>'test','feature'=>$feature,
             'transition'=>$transition,'applied'=>$applied,'replayed'=>!$applied];
     } else {
-        throw new InvalidArgumentException('Usage: php bin/admin-console.php world WORLD | audit WORLD [AFTER_ID] | membership WORLD ACTOR grant|revoke REQUEST_ID | test-event WORLD ACTOR profile_badge|ui_theme grant|revoke EVENT_ID (requires AETERNUM_PAYMENT_MODE=test)');
+        throw new InvalidArgumentException('Usage: php bin/admin-console.php world WORLD | members WORLD [AFTER_ACTOR] | identity WORLD ACTOR | audit WORLD [AFTER_ID] | membership WORLD ACTOR grant|revoke REQUEST_ID | test-event WORLD ACTOR profile_badge|ui_theme grant|revoke EVENT_ID (requires AETERNUM_PAYMENT_MODE=test)');
     }
     echo json_encode(['data'=>$result],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES).PHP_EOL;
 } catch(Throwable $e) {
