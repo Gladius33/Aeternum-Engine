@@ -316,6 +316,134 @@
           "maximum": 1000
         }
       }
+    },
+    "industry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_resource",
+        "energy_resource",
+        "product_resource",
+        "generator_type",
+        "factory_type",
+        "warehouse_type",
+        "terminal_type",
+        "fuel_cost",
+        "generation_per_level",
+        "raw_per_batch",
+        "energy_per_batch",
+        "product_per_batch",
+        "warehouse_per_level",
+        "shipment_per_level",
+        "energy_per_shipment",
+        "power_per_level",
+        "factory_power_draw",
+        "terminal_power_draw",
+        "cooldown_seconds",
+        "delivery_goal",
+        "victory_levels"
+      ],
+      "properties": {
+        "raw_resource": {
+          "$ref": "#/$defs/resourceId"
+        },
+        "energy_resource": {
+          "$ref": "#/$defs/resourceId"
+        },
+        "product_resource": {
+          "$ref": "#/$defs/resourceId"
+        },
+        "generator_type": {
+          "$ref": "#/$defs/resourceId"
+        },
+        "factory_type": {
+          "$ref": "#/$defs/resourceId"
+        },
+        "warehouse_type": {
+          "$ref": "#/$defs/resourceId"
+        },
+        "terminal_type": {
+          "$ref": "#/$defs/resourceId"
+        },
+        "fuel_cost": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "generation_per_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "raw_per_batch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "energy_per_batch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "product_per_batch": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "warehouse_per_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "shipment_per_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "energy_per_shipment": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "power_per_level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "factory_power_draw": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "terminal_power_draw": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "cooldown_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "delivery_goal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "victory_levels": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          }
+        }
+      }
     }
   },
   "$defs": {
@@ -351,5 +479,5 @@
       }
     }
   },
-  "$comment": "The PHP loader additionally enforces exact integer types, byte limits, uniqueness, valid resource references, feasible costs, construction prerequisite references, and contiguous upgrade levels. Optional building definitions are opt-in and immutable under world digest pinning. The optional settlement section defines strictly validated, pinned workforce and victory rules."
+  "$comment": "The PHP loader additionally enforces exact integer types, byte limits, uniqueness, valid resource references, feasible costs, construction prerequisite references, and contiguous upgrade levels. Optional building definitions are opt-in and immutable under world digest pinning. The optional settlement section defines strictly validated, pinned workforce and victory rules. The optional industry section declares server-authoritative energy, manufacturing, storage and freight mechanics."
 }
