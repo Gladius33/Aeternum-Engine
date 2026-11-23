@@ -104,6 +104,34 @@
 <button type="button" id="social-decline">Decline invitation</button>
 <p id="social-notice" role="status" aria-live="polite"></p>
 </section>
+
+<section id="social-mail-panel" aria-labelledby="social-mail-title">
+<h2 id="social-mail-title">Messages and notifications</h2>
+<form id="social-send-form">
+<label for="social-recipient">Recipient actor ID</label><input id="social-recipient" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
+<label for="social-message-text">Private message</label><textarea id="social-message-text" maxlength="2000" rows="3" required></textarea>
+<button type="submit">Send private message</button></form>
+<button id="social-messages-refresh" type="button">Refresh messages</button>
+<ul id="social-messages-list"></ul>
+<form id="social-block-form">
+<label for="social-block-target">Blocked actor ID</label><input id="social-block-target" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
+<button type="submit">Block player</button>
+<button id="social-unblock" type="button">Unblock player</button></form>
+<button id="social-blocks-refresh" type="button">Review blocked players</button>
+<ul id="social-block-list"></ul>
+<form id="social-report-form">
+<label for="social-report-id">Message ID to report</label><input id="social-report-id" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
+<label for="social-report-reason">Report reason</label><textarea id="social-report-reason" maxlength="255" minlength="5" rows="2" required></textarea>
+<button type="submit">Report message</button></form>
+<button id="social-notifications-refresh" type="button">Refresh notifications</button>
+<label for="social-notification-id">Unread notification</label><select id="social-notification-id"><option value="">Select notification</option></select>
+<button id="social-notification-read" type="button">Mark notification read</button>
+<ul id="social-notifications-list"></ul>
+<h3>Alliance leaderboard</h3>
+<button id="social-leaderboard-refresh" type="button">Show alliance leaderboard</button>
+<ol id="social-leaderboard-list"></ol>
+<p id="social-mail-notice" role="status" aria-live="polite"></p>
+</section>
 <section id="market-panel"><h2>Market</h2>
 <form id="market-create"><h3>Publish a barter offer</h3>
 <label for="market-give-resource">Offered resource</label><select id="market-give-resource" name="giveResource" required></select><label for="market-give-units">Offered units</label><input id="market-give-units" name="giveUnits" type="number" min="1" max="1000000000000" step="1" value="1" required>

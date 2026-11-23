@@ -701,6 +701,11 @@ const socialNotice=document.querySelector('#social-notice');
 function clearSocial() {
     socialDirectory.replaceChildren();
     socialMembers.replaceChildren();
+    for (const listId of ['social-messages-list','social-block-list','social-notifications-list','social-leaderboard-list']) {
+        document.getElementById(listId).replaceChildren();
+    }
+    options(document.getElementById('social-notification-id'),[['','Select notification']]);
+    document.getElementById('social-mail-notice').textContent='';
     options(socialInbox,[['','No invitation selected']]);
     socialNotice.textContent='';
     for (const id of ['social-alliance-id','social-invite-actor','social-role-actor']) {
@@ -822,6 +827,113 @@ for (const [selector,accepted] of [['#social-accept',true],['#social-decline',fa
         if (accepted) await socialLoadDetail();
     }));
 }
+
+
+async function socialRefreshMessages() {
+    const world=balance.elements.world.value,root=socialRoot();
+    const data=await api(root+'/messages');
+    if (balance.elements.world.value!==world) return;
+    const list=document.getElementById('social-messages-list');
+    list.replaceChildren();
+    for (const message of data.messages) {
+        const li=document.createElement('li'),report=document.createElement('button');
+        li.append(document.createTextNode(message.from+' — '+message.text+' ('+message.id+') '));
+        report.type='button';report.textContent='Report this message';
+        report.addEventListener('click',()=>{
+            document.getElementById('social-report-id').value=message.id;
+            document.getElementById('social-report-reason').focus();
+        });
+        li.append(report);
+        list.append(li);
+    }
+    document.getElementById('social-mail-notice').textContent=data.truncated?
+        'Only the newest 50 messages are visible.':'Messages loaded.';
+}
+document.getElementById('social-send-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        const recipient=socialActor('social-recipient'),
+            text=document.getElementById('social-message-text').value;
+        const messageId=crypto.randomUUID();
+        await socialAction('/messages',{id:messageId,recipient,text});
+        document.getElementById('social-message-text').value='';
+        document.getElementById('social-mail-notice').textContent='Message sent.';
+    });
+});
+document.getElementById('social-messages-refresh').addEventListener('click',()=>run(socialRefreshMessages));
+document.getElementById('social-block-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        await socialAction('/blocks',{actor:socialActor('social-block-target')});
+        await socialRefreshBlocks();await socialRefreshMessages();
+    });
+});
+document.getElementById('social-unblock').addEventListener('click',()=>run(async()=>{
+    await socialAction('/blocks/remove',{actor:socialActor('social-block-target')});
+    await socialRefreshBlocks();await socialRefreshMessages();
+}));
+async function socialRefreshBlocks() {
+    const world=balance.elements.world.value,root=socialRoot();
+    const data=await api(root+'/blocks');
+    if (balance.elements.world.value!==world) return;
+    const list=document.getElementById('social-block-list');
+    list.replaceChildren();
+    for (const actor of data.actors) {
+        const item=document.createElement('li');item.textContent=actor;list.append(item);
+    }
+}
+document.getElementById('social-blocks-refresh').addEventListener('click',()=>run(socialRefreshBlocks));
+document.getElementById('social-report-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        await socialAction('/reports',{
+            id:crypto.randomUUID(),message:socialActor('social-report-id'),
+            reason:document.getElementById('social-report-reason').value
+        });
+        document.getElementById('social-report-reason').value='';
+        document.getElementById('social-mail-notice').textContent='Report submitted to moderation.';
+    });
+});
+async function socialRefreshNotifications() {
+    const world=balance.elements.world.value,root=socialRoot();
+    const data=await api(root+'/notifications');
+    if (balance.elements.world.value!==world) return;
+    const select=document.getElementById('social-notification-id'),
+        list=document.getElementById('social-notifications-list');
+    list.replaceChildren();
+    const unread=[];
+    for (const notice of data.notifications) {
+        const item=document.createElement('li');
+        item.textContent=notice.kind+' — '+notice.subject+
+            (notice.readAt===null?' (unread)':' (read)');
+        list.append(item);
+        if (notice.readAt===null) unread.push([notice.id,notice.kind+' — '+notice.subject]);
+    }
+    options(select,[['','Select notification'],...unread]);
+    document.getElementById('social-mail-notice').textContent=data.truncated?
+        'Only the newest 50 notifications are visible.':'Notifications loaded.';
+}
+document.getElementById('social-notifications-refresh').addEventListener('click',
+    ()=>run(socialRefreshNotifications));
+document.getElementById('social-notification-read').addEventListener('click',()=>run(async()=>{
+    const id=document.getElementById('social-notification-id').value;
+    if (!id) throw new Error('Select notification');
+    await socialAction('/notifications/'+encodeURIComponent(id)+'/read',{});
+    await socialRefreshNotifications();
+}));
+async function socialRefreshLeaderboard() {
+    const world=balance.elements.world.value,root=socialRoot();
+    const data=await api(root+'/leaderboard');
+    if (balance.elements.world.value!==world) return;
+    const list=document.getElementById('social-leaderboard-list');
+    list.replaceChildren();
+    for (const entry of data.alliances) {
+        const item=document.createElement('li');
+        item.textContent=entry.name+' — '+entry.activeMembers+' active members';
+        list.append(item);
+    }
+    document.getElementById('social-mail-notice').textContent=data.truncated?
+        'Only the top 50 alliances are shown.':'Leaderboard loaded.';
+}
+document.getElementById('social-leaderboard-refresh').addEventListener('click',
+    ()=>run(socialRefreshLeaderboard));
 
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
