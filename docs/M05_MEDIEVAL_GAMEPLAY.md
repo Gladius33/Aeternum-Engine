@@ -21,6 +21,17 @@ Bind a disposable world to pack `reference-medieval`, version `0.2.0` and the **
 
 Authenticated players can request `GET /v1/worlds/{world}/construction/progression` with their bearer session. The response contains only their foundations, current completed levels, pending work, the next immutable stage, missing prerequisite levels, and a read-only `ready` hint. A missing prerequisite reports both `required` and `current` levels; `ready` is never a construction authorization or a stock/affordability guarantee. The command engine remains authoritative for resource debit, prerequisites, and concurrent updates. Results are bounded to 100 owned foundations and protected by the existing session, membership, world isolation and read-rate limit. This is a gameplay planning API, not yet a complete medieval UI or victory evaluator.
 
+## Player onboarding without administration
+
+When a player registers in an approved `reference-medieval` world that
+contains pinned building definitions, the trusted provisioner automatically
+grants their own homestead territory at their existing settlement location
+and installs the immutable world catalog. Each new player's territory is
+their own unique actor ID. Repeated provisioning is idempotent and does not
+silently place or pay for a building. Other worlds and the original unversioned
+medieval pack retain their previous behavior. The existing construction
+choices screen lists these new settlements for the player.
+
 ## Evidence and outstanding work
 
 `tests/m05-medieval-pack.php` exercises manifest loading, deterministic stage prerequisites, malformed-rule rejection and side-by-side version pinning. It runs in `tests/run.php` as part of PHP core CI. The strict JSON schema now documents the existing runtime building extension.
