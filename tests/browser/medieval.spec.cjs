@@ -58,7 +58,11 @@ async function advanceBuilding(page,id,expectedLevel,seconds) {
     const accepted=page.waitForResponse(r=>r.url()===commandUrl
         && r.request().postDataJSON().type==='building.start');
     await page.getByRole('button',{name:'Begin construction'}).click();
-    expect((await accepted).status()).toBe(200);
+    const response=await accepted;
+    // Preserve the server's rejection reason: a 409 can mean insufficient
+    // resources, unmet prerequisites or an already pending construction.
+    // Do not retry blindly: that could conceal a genuine gameplay regression.
+    expect(response.status(),`building ${id} level ${expectedLevel}: ${await response.text()}`).toBe(200);
     await expect(page.locator('#building-details')).toContainText('Construction pending');
     // No test-only timing shortcut: process genuinely due events after the
     // pinned rule's server-clock duration through the production CLI worker.
