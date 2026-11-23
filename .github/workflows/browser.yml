@@ -66,6 +66,9 @@ jobs:
         run: |
           composer dump-autoload --no-interaction
           npm install --no-save --package-lock=false @playwright/test@1.56.1
+          npm ci --prefix client --no-audit --no-fund
+          npm run build --prefix client
+          test -s public/client-dist/aeternum-shell.js
           npx playwright install --with-deps chromium
       - name: Migrate and provision both games
         run: |
@@ -247,6 +250,7 @@ jobs:
           npx playwright test tests/browser/construction.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/medieval.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/industrial.spec.cjs --workers=1 --reporter=github,line
+          npx playwright test tests/browser/locale.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
         run: |

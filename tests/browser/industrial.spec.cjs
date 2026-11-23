@@ -68,6 +68,18 @@ test('M06 two players complete an isolated industrial network and freight victor
     const a=await browser.newPage(),b=await browser.newPage();
     const alice=await register(a,'m06-browser-alice');
     const bob=await register(b,'m06-browser-bob');
+  // Genuine server-backed gameplay action at mobile viewport, not a CSS-only screenshot.
+  await a.setViewportSize({width:375,height:812});
+  await a.getByRole('button',{name:'Review industrial network'}).click();
+  await expect(a.locator('#industrial-details')).toContainText('Grid power supply');
+  const viewport=await a.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));
+  expect(viewport.scroll).toBeLessThanOrEqual(viewport.width);
+  await a.setViewportSize({width:1280,height:800});
+  await expect(a.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Game objectives'})).toBeVisible();
+  await a.getByLabel('Language').selectOption('fr');
+  await expect(a.getByRole('navigation',{name:'Navigation du joueur'}).getByRole('link',{name:'Objectifs de jeu'})).toBeVisible();
+  await expect(a.locator('#industrial-title')).toHaveText('Réseau industriel — tutoriel et objectif');
+  await a.getByLabel('Langue').selectOption('en');
     expect(alice).not.toBe(bob);
     await a.getByRole('button',{name:'Review industrial network'}).click();
     await expect(a.locator('#industrial-details')).toContainText('Goods delivered0 / 45');
@@ -75,7 +87,23 @@ test('M06 two players complete an isolated industrial network and freight victor
         ['power_plant','m06-power'],['steelworks','m06-steel'],
         ['warehouse','m06-store'],['freight_terminal','m06-freight']
     ])await foundation(a,type,id);
-    await foundation(b,'power_plant','m06-b-power');
+    await expect(a.locator('.command-confirmed')).toContainText('Foundation placed');
+    await a.getByLabel('Language').selectOption('fr');
+    await expect(a.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
+    await a.getByLabel('Langue').selectOption('en');
+    // Independent player places a foundation via French UI, then resumes in English.
+    await b.getByLabel('Language').selectOption('fr');
+    const frChoices=b.waitForResponse(r=>r.url().endsWith('/construction/options'));
+    await b.getByRole('button',{name:'Rechercher des sites de construction'}).click();
+    expect((await frChoices).status()).toBe(200);
+    await b.getByLabel('Type de bâtiment',{exact:true}).selectOption('power_plant');
+    await b.getByLabel('Identifiant du nouveau bâtiment (facultatif)').fill('m06-b-power');
+    const frPlaced=b.waitForResponse(r=>r.url()===url&&r.request().postDataJSON().type==='building.place');
+    await b.getByRole('button',{name:'Placer la fondation'}).click();
+    expect((await frPlaced).status()).toBe(200);
+    await expect(b.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
+    await expect(b.locator('#building-details')).toContainText('m06-b-power');
+    await b.getByLabel('Langue').selectOption('en');
     const status=a.waitForRequest(r=>r.url().includes('/industrial/status/'));
     await a.getByRole('button',{name:'Review industrial network'}).click();
     const bearer=(await (await status).allHeaders()).authorization;
@@ -116,6 +144,8 @@ test('M06 two players complete an isolated industrial network and freight victor
     await expect(b.locator('#industrial-victory')).not.toContainText('VICTORY');
     await a.getByRole('button',{name:'Sign out'}).click();
     await expect(a.locator('#login')).toBeVisible();
+    await expect(a.locator('.command-confirmed')).toHaveCount(0);
+    await expect(a.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Sign in'})).toBeVisible();
     await a.getByLabel('Login',{exact:true}).fill('m06-browser-alice');
     await a.getByLabel('Password',{exact:true}).fill(password);
     const authenticated=a.waitForResponse(r=>r.url().endsWith('/v1/auth/login'));

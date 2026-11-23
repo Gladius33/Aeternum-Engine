@@ -327,6 +327,7 @@ function selectWorld() {
     resetIndustrial();
     medievalPanel.hidden=w?.settlementEnabled!==true;
     industrialPanel.hidden=w?.industryEnabled!==true;
+    window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:w?.world??'',account:balance.elements.account.value}}));
 }
 async function discover() {
     const data=await api('/v1/me/worlds');
@@ -335,7 +336,7 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
-for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){resetMedieval();resetIndustrial();}});
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){resetMedieval();resetIndustrial();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
@@ -365,6 +366,9 @@ async function refresh() {
 async function run(work) {
     if (busy) return;
     busy=true;
+    status.textContent='Working…';
+    status.setAttribute('aria-busy','true');
+    window.dispatchEvent(new CustomEvent('aeternum:activity',{detail:{busy:true}}));
     const controls=[...document.querySelectorAll('button, select')];
     controls.forEach(x=>x.disabled=true);
     try { const message=await work(); status.textContent=typeof message==='string'?message:'Success'; }
@@ -372,7 +376,11 @@ async function run(work) {
         if (e.status===401 && token) resetSession();
         status.textContent=e.message || 'Request failed';
     }
-    finally { busy=false; controls.forEach(x=>x.disabled=false); }
+    finally {
+        busy=false; status.removeAttribute('aria-busy');
+        controls.forEach(x=>x.disabled=false);
+        window.dispatchEvent(new CustomEvent('aeternum:activity',{detail:{busy:false}}));
+    }
 }
 login.addEventListener('submit',e=>{
     e.preventDefault();
@@ -542,11 +550,18 @@ action.addEventListener('submit',e=>{
     });
 });
 const retryCommand=document.querySelector('#retry-command');
-function syncPendingRetry() { retryCommand.hidden=pending===null; }
+function syncPendingRetry() {
+    retryCommand.hidden=pending===null;
+    window.dispatchEvent(new CustomEvent('aeternum:retry',{detail:{pending:pending!==null}}));
+}
 async function sendPending() {
     if (!pending) throw new Error('No pending action');
     const saved=pending;
-    try { await api(base({world:saved.world})+'commands','POST',saved.body); pending=null; }
+    try {
+        await api(base({world:saved.world})+'commands','POST',saved.body);
+        pending=null;
+        window.dispatchEvent(new CustomEvent('aeternum:confirmed', {detail:{type:saved.body.type,world:saved.world,id:saved.body.id}}));
+    }
     catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
     finally { syncPendingRetry(); }
 }
@@ -640,6 +655,7 @@ retryCommand.addEventListener('click',()=>run(async()=>{
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
     stock.replaceChildren(); marketClaim.hidden=true; action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; activation.hidden=!activationRequired; activationResend.hidden=!activationRequired; showRecoveryCode(null);
+    window.dispatchEvent(new Event('aeternum:reset'));
 }
 document.querySelector('#logout').addEventListener('click',()=>run(async()=>{
     try { await api('/v1/auth/logout','POST'); }

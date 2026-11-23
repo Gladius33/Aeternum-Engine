@@ -84,12 +84,38 @@ test('M05 two newly registered players complete an isolated browser colony campa
     const a=await browser.newPage(),b=await browser.newPage();
     const alice=await register(a,'m05-browser-alice');
     const bob=await register(b,'m05-browser-bob');
+  // Genuine server-backed gameplay action at mobile viewport, not a CSS-only screenshot.
+  await a.setViewportSize({width:375,height:812});
+  await a.getByRole('button',{name:'Review your colony'}).click();
+  await expect(a.locator('#medieval-details')).toContainText('Residents');
+  const viewport=await a.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));
+  expect(viewport.scroll).toBeLessThanOrEqual(viewport.width);
+  await a.setViewportSize({width:1280,height:800});
+  await expect(a.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Game objectives'})).toBeVisible();
+  await a.getByLabel('Language').selectOption('fr');
+  await expect(a.getByRole('navigation',{name:'Navigation du joueur'}).getByRole('link',{name:'Objectifs de jeu'})).toBeVisible();
+  await expect(a.locator('#medieval-title')).toHaveText('Colonie médiévale — tutoriel et objectif');
+  await a.getByLabel('Langue').selectOption('en');
     expect(alice).not.toBe(bob);
     await a.getByRole('button',{name:'Review your colony'}).click();
     await expect(a.locator('#medieval-details')).toContainText('Residents1 / 1');
     await expect(a.locator('#medieval-victory')).not.toContainText('VICTORY');
     await foundation(a,'lumberyard','m05-wood');
-    await foundation(a,'farm','m05-farm');
+    await expect(a.locator('.command-confirmed')).toContainText('Foundation placed');
+    await a.getByLabel('Language').selectOption('fr');
+    await expect(a.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
+    // Place a real foundation using French UI controls and the original PHP command API.
+    const frChoices=a.waitForResponse(r=>r.url().endsWith('/construction/options'));
+    await a.getByRole('button',{name:'Rechercher des sites de construction'}).click();
+    expect((await frChoices).status()).toBe(200);
+    await a.getByLabel('Type de bâtiment',{exact:true}).selectOption('farm');
+    await a.getByLabel('Identifiant du nouveau bâtiment (facultatif)').fill('m05-farm');
+    const frPlaced=a.waitForResponse(r=>r.url()===commandUrl&&r.request().postDataJSON().type==='building.place');
+    await a.getByRole('button',{name:'Placer la fondation'}).click();
+    expect((await frPlaced).status()).toBe(200);
+    await expect(a.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
+    await expect(a.locator('#building-details')).toContainText('m05-farm');
+    await a.getByLabel('Langue').selectOption('en');
     await foundation(a,'granary','m05-granary');
     await foundation(a,'keep','m05-keep');
     await foundation(b,'farm','m05-b-farm');
@@ -138,6 +164,8 @@ test('M05 two newly registered players complete an isolated browser colony campa
     // Reconnect via the actual login screen, not a retained local session.
     await a.getByRole('button',{name:'Sign out'}).click();
     await expect(a.locator('#login')).toBeVisible();
+    await expect(a.locator('.command-confirmed')).toHaveCount(0);
+    await expect(a.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Sign in'})).toBeVisible();
     await a.getByLabel('Login',{exact:true}).fill('m05-browser-alice');
     await a.getByLabel('Password',{exact:true}).fill(password);
     const login=a.waitForResponse(r=>r.url().endsWith('/v1/auth/login'));

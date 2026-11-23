@@ -4,6 +4,7 @@
 **/node_modules/
 **/vendor/
 /public/build/
+/public/client-dist/
 /apps/web/dist/
 /coverage/
 /.phpunit.cache/

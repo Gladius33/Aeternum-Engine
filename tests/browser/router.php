@@ -6,7 +6,8 @@ if (PHP_SAPI!=='cli-server' || getenv('AETERNUM_BROWSER_TEST')!=='1' || ($_SERVE
     exit;
 }
 $path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
-if (in_array($path,['/play.html','/play.css','/play.js'],true)) return false;
+// Explicit allowlist: never serve source files, credentials or arbitrary paths.
+if (in_array($path,['/play.html','/play.css','/play.js','/locale.js','/client-dist/aeternum-shell.js'],true)) return false;
 // CI-only loopback observer verifies that the TLS proxy strips forged headers.
 if ($path==='/__test/proxy-headers') {
     header('Content-Type: application/json');
