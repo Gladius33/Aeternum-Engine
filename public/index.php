@@ -1,26 +1,17 @@
 <?php
 declare(strict_types=1);
 use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-store');
-header('X-Content-Type-Options: nosniff');
-// Authentication and activation responses must not leak via referrers or framing.
-header('Referrer-Policy: no-referrer');
-header('X-Frame-Options: DENY');
-header('Content-Security-Policy: frame-ancestors \'none\'');
-header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
-// Only advertise HSTS when TLS is actually active at this entry point.
-// Reverse proxies must terminate HTTPS and supply the HTTPS server variable
-// through trusted web-server configuration, never an arbitrary client header.
-if (in_array($_SERVER['HTTPS'] ?? '', ['on', '1'], true)) {
-    header('Strict-Transport-Security: max-age=31536000');
-}
+// The JSON API has a strict, separately testable response policy.
+// Load before Composer: plaintext rejection must also work without database setup.
+require_once __DIR__.'/../packages/core/src/ApiResponseSecurity.php';
+\Aeternum\Core\ApiResponseSecurity::emit(in_array($_SERVER['HTTPS'] ?? '', ['on','1'], true));
 try {
-    require __DIR__.'/../vendor/autoload.php';
-    // Behind a trusted reverse proxy, configure HTTPS at the web server.
+    // Deny plaintext before loading Composer or connecting to a database.
+    // HTTPS comes only from the trusted web server, never X-Forwarded-Proto.
     if (!in_array($_SERVER['HTTPS'] ?? '',['on','1'],true)) {
         $status=403; $body=['error'=>'https_required'];
     } else {
+        require __DIR__.'/../vendor/autoload.php';
         $dsn=getenv('AETERNUM_DSN');
         if (!$dsn) throw new RuntimeException('Missing database configuration');
         $pdo=new PDO($dsn,getenv('AETERNUM_DB_USER') ?: '',getenv('AETERNUM_DB_PASSWORD') ?: '',[

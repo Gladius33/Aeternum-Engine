@@ -4,13 +4,28 @@ A modular engine for persistent multiplayer browser strategy games.
 
 By Sébastien TOUILLEUX · Source Available · ACCL-1.0
 
-## Status — M07 client web en qualification (V1.0 non publiée)
+## Status — M11 integrated; M12 security and resilience in progress (V1.0 not released)
 
-Les macro-itérations **M01 à M06 sont intégrées** sur `main` : inscription et identité, SDK/registre de packs, économie persistante, monde stratégique, jeu médiéval et jeu industriel. **M07 reste en qualification dans la [PR #47](https://github.com/Gladius33/Aeternum-Engine/pull/47)** tant que les tests du SHA exact et les critères fonctionnels ne sont pas tous acceptés. La [feuille de route M01–M13](docs/MACRO_ROADMAP_V1.md) et les exigences normatives [G01–G09](ROADMAP.md) restent applicables ; **la V1.0 n'est pas publiée**.
+Macro-iterations **M01–M11 are merged into main**: identity/onboarding,
+version-pinned packs/SDK, persistent economy and strategic worlds, two reference
+games, Vue client, multiplayer market/social features, simulated administration
+and premium, lab operations/backup/restore. **M12 remains in qualification**
+under [PR #52](https://github.com/Gladius33/Aeternum-Engine/pull/52);
+M13 release acceptance has not started. The
+[macro roadmap](docs/MACRO_ROADMAP_V1.md) and [G01–G09 gates](ROADMAP.md)
+remain authoritative.
 
-Le client actuel donne accès aux comptes, mondes, stocks, production, transferts, marché, cartes, fondations, constructions et objectifs des jeux de référence. Le nouveau module Vue 3 / TypeScript fournit navigation, aide, feedback d'activité, indications de reprise et confirmations, avec une interface bilingue et responsive. Les commandes et l'authentification restent traitées par l'adaptateur navigateur existant et l'API PHP, jamais directement par des contrôles de confiance dans le frontend. Voir [le dossier de qualification M07](docs/M07_WEB_CLIENT.md).
+**This repository is an engine, not two products:** medieval and industrial
+games under games/ are representative packs to validate reuse. Rules and
+handlers must continue moving toward a generic, trusted plug-in boundary;
+existing SettlementRules and IndustryRules in the core are documented
+architectural debt. Optional scoring/protection/bot capabilities are specified
+but **not implemented** in [the extension design](docs/OPTIONAL_GAMEPLAY_MODULES.md).
 
-Les vérifications GitHub Actions sur PHP 8.4, MariaDB et Chromium sont des **preuves de laboratoire**. Aucune publication externe, délivrance de vrais courriels ou recette O2Switch/VPS n'a été exécutée ni autorisée. L'inscription publique doit exiger une invitation ou la vérification d'une adresse : le contournement local de test ne doit jamais être utilisé sur un hébergement accessible.
+CI on PHP 8.4, MariaDB and Chromium is laboratory evidence, not external
+hosting or release certification. Production registration requires approved
+identity proof; never expose local testing bypasses. No real payments, outside
+deployment or public production claim has been approved.
 
 ## Vision
 Theme-agnostic persistent worlds, asynchronous actions, deterministic simulation, lazy resource production, transactional economy, composable entities, versioned game packs, multiplayer social features and scalable shared-hosting-compatible deployment.

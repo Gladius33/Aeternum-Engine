@@ -47,6 +47,8 @@ rejects(fn()=> new ScheduledEvent('world1','x','append',0,['bad'=>[]]), InvalidA
 rejects(fn()=> $queue->processDue($handler,0), InvalidArgumentException::class, 'invalid batch limit rejected');
 require __DIR__ . "/peer-key.php";
 require __DIR__ . "/proxy-peer.php";
+require __DIR__ . "/m12-security-headers.php";
+require __DIR__ . "/m12-strict-json.php";
 require __DIR__ . "/production.php";
 require __DIR__ . "/packs.php";
 require __DIR__ . "/m02-registry.php";

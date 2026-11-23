@@ -7,6 +7,8 @@ $loginPath='/v1/auth/login';
 $credentials=json_encode(['login'=>'test-player','password'=>'correct horse battery staple'],JSON_THROW_ON_ERROR);
 check($authApi->handle('GET',$loginPath,'',$credentials,'192.0.2.1')[0]===405,'auth POST only');
 check($authApi->handle('POST',$loginPath,'','{','192.0.2.1')[0]===400,'malformed JSON rejected');
+check($authApi->handle('POST',$loginPath,'','{"login":"test-player","login":"forged","password":"not-used"}','192.0.2.1')[0]===400,
+    'M12 duplicate credential key rejected before password verification');
 [$status,$body]=$authApi->handle('POST',$loginPath,'',$credentials,'192.0.2.1');
 check($status===200,'HTTP login succeeds');
 $authToken=$body['data']['token'];

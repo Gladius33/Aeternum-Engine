@@ -226,4 +226,5 @@ require __DIR__ . "/m03-cli.php";
 // recovery tests so a deliberate simulated future cannot exhaust their quota.
 require __DIR__ . "/auth-capacity.php";
 require __DIR__ . "/m11-operations.php";
+require __DIR__ . "/m12-capacity.php";
 echo "MariaDB integration checks passed.\n";

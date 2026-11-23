@@ -18,7 +18,12 @@ async function login(page,name) {
     await page.waitForTimeout(65000);
   }
   await expect(page.locator('#game')).toBeVisible();
-  return page.locator('#balance select[name=account]').inputValue();
+  // The shell becomes visible before asynchronous world/account discovery finishes.
+  // Wait for the real server-selected membership, not an empty select value.
+  await expect(page.locator('#balance select[name=world]')).toHaveValue(world);
+  const accountSelect=page.locator('#balance select[name=account]');
+  await expect(accountSelect).toHaveValue(/^[a-f0-9]{64}$/);
+  return accountSelect.inputValue();
 }
 test('M10 cosmetic features are private, simulated and revocable in real Chromium',async({browser})=>{
   test.setTimeout(210000);

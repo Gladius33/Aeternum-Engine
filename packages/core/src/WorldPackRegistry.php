@@ -41,7 +41,7 @@ final class WorldPackRegistry
     public static function load(string $json,string $packsRoot): array
     {
         if ($json==='' || strlen($json)>self::MAX_BYTES) throw new \InvalidArgumentException('Invalid registry size');
-        $root=self::fields(json_decode($json,false,16,JSON_THROW_ON_ERROR),['registry_api','worlds']);
+        $root=self::fields(StrictJson::decode($json,false,16),['registry_api','worlds']);
         if ($root['registry_api']!=='1' || !is_array($root['worlds'])
             || $root['worlds']===[] || count($root['worlds'])>256) {
             throw new \InvalidArgumentException('Unsupported world registry');

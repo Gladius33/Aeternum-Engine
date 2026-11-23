@@ -1,0 +1,41 @@
+name: M12 security and supply-chain
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  defensive-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: Validate PHP boundary syntax
+        run: |
+          php -l packages/core/src/ApiResponseSecurity.php
+          php -l public/index.php
+          php -l tests/m12-security-headers.php
+      - name: Security regression unit tests
+        run: php tests/run.php
+      - name: Deterministic JSON parser fuzz and metamorphic controls
+        run: |
+          php -l tests/m12-json-fuzz.php
+          php tests/m12-json-fuzz.php
+      - name: Live loopback HTTP rejection smoke
+        run: bash tests/m12-http-smoke.sh
+  dependency-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit locked client dependencies, including dev toolchain
+        run: npm audit --prefix client --audit-level=high
+

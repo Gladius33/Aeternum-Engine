@@ -35,7 +35,7 @@ final class AuthHttpApi
         if ($path==='/v1/auth/activation/resend') {
             if (!$this->requireEmailActivation || $this->registrationWorlds===[]) return [404,['error'=>'not_found']];
             if (strlen($body)>4096) return [413,['error'=>'too_large']];
-            try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+            try { $data=StrictJson::decode($body,true,8); }
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
             if (!is_array($data) || count($data)!==3 || !is_string($data['login']??null)
                 || !is_string($data['password']??null) || !is_string($data['email']??null)
@@ -54,7 +54,7 @@ final class AuthHttpApi
         if ($path==='/v1/auth/activate') {
             if (!$this->requireEmailActivation || $this->registrationWorlds===[]) return [404,['error'=>'not_found']];
             if (strlen($body)>4096) return [413,['error'=>'too_large']];
-            try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+            try { $data=StrictJson::decode($body,true,8); }
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
             if (!is_array($data) || count($data)!==3 || !is_string($data['login']??null)
                 || !is_string($data['password']??null) || !is_string($data['code']??null)
@@ -85,7 +85,7 @@ final class AuthHttpApi
         if ($path==='/v1/auth/register') {
             if ($this->registrationWorlds===[]) return [404,['error'=>'not_found']];
             if (strlen($body)>4096) return [413,['error'=>'too_large']];
-            try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+            try { $data=StrictJson::decode($body,true,8); }
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
             if (!is_array($data) || !array_key_exists('login',$data) || !array_key_exists('password',$data)
                 || !array_key_exists('world',$data) || count($data)!==($this->requireInvitation?4:3)+($this->requireEmailActivation?1:0)
@@ -143,7 +143,7 @@ final class AuthHttpApi
         }
         if ($path==='/v1/auth/recover') {
             if (strlen($body)>4096) return [413,['error'=>'too_large']];
-            try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+            try { $data=StrictJson::decode($body,true,8); }
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
             if (!is_array($data) || count($data)!==3
                 || !is_string($data['login']??null) || !is_string($data['code']??null)
@@ -159,7 +159,7 @@ final class AuthHttpApi
             $actor=$sessions->resolve($m[1]);
             if ($actor===null) return [401,['error'=>'unauthorized']];
             if (strlen($body)>4096) return [413,['error'=>'too_large']];
-            try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+            try { $data=StrictJson::decode($body,true,8); }
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
             if (!is_array($data) || count($data)!==2
                 || !is_string($data['currentPassword']??null)
@@ -177,7 +177,7 @@ final class AuthHttpApi
             $actor=$sessions->resolve($m[1]);
             if ($actor===null) return [401,['error'=>'unauthorized']];
             if (strlen($body)>4096) return [413,['error'=>'too_large']];
-            try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+            try { $data=StrictJson::decode($body,true,8); }
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
             if (!is_array($data) || count($data)!==1 || !is_string($data['password']??null)) return [400,['error'=>'invalid_credentials']];
             if (!$rate->admit('auth:verification-global',$this->globalLoginLimit,60)) return [429,['error'=>'rate_limited']];
@@ -186,7 +186,7 @@ final class AuthHttpApi
             return $next===null ? [403,['error'=>'invalid_current_password']] : [200,['data'=>['recoveryCode'=>$next]]];
         }
         if (strlen($body)>4096) return [413,['error'=>'too_large']];
-        try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+        try { $data=StrictJson::decode($body,true,8); }
         catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
         if (!is_array($data)||count($data)!==2||!is_string($data['login']??null)||!is_string($data['password']??null)) return [400,['error'=>'invalid_credentials']];
         $login=$data['login'];

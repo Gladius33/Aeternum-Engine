@@ -90,7 +90,13 @@ final class PdoAlliances
     public function create(string $actor,string $alliance,string $name): void
     {
         $this->id($actor); $this->id($alliance);
-        if (trim($name)==='' || strlen($name)>100) throw new \InvalidArgumentException('Invalid alliance name');
+        // Player-facing identifiers must not contain invisible control or bidi
+        // override characters that can visually impersonate another alliance.
+        // Keep ordinary non-ASCII letters and accents valid.
+        if (trim($name)==='' || strlen($name)>100 || preg_match('//u',$name)!==1
+            || preg_match('/[\\x00-\\x1f\\x7f]/',$name)
+            || preg_match('/[\\x{202A}-\\x{202E}\\x{2066}-\\x{2069}]/u',$name))
+            throw new \InvalidArgumentException('Invalid alliance name');
         $this->transaction(function() use ($actor,$alliance,$name): void {
             // No alliance row exists yet. Serialize creation on the established
             // world row, using the same world-before-membership lock order as
