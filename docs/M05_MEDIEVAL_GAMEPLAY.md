@@ -1,71 +1,104 @@
-# M05 — Medieval settlement progression (work in progress)
+# M05 — Jeu médiéval de référence (version jouable opt-in)
 
-This is **not** a completed playable reference game. The opt-in `reference-medieval@0.2.0` manifest introduces a first declarative construction progression; the original `0.1.0` bytes remain unchanged and worlds remain pinned by their manifest SHA-256.
+## Principe et versionnement
 
-## Progression model
+Le jeu `reference-medieval@0.3.0` est un monde de colonie réellement
+jouable à partir d'une inscription en navigateur. Les anciennes versions
+`0.1.0` et `0.2.0` restent intégralement inchangées. Chaque monde est
+épinglé à un manifeste exact (identifiant, version, SHA-256). Il est
+**interdit de changer un monde existant de version en modifiant son registre** :
+une migration applicative explicite et sa validation seront nécessaires.
 
-| Building | Level 1 (wood/grain; seconds) | Level 2 | Prerequisites |
-| --- | --- | --- | --- |
-| Lumberyard | 12 / 4; 15 | 45 / 12; 45 | Farm 1 for level 2 |
-| Farm | 18 / 8; 20 | 50 / 20; 60 | Lumberyard 1 for level 2 |
-| Granary | 28 / 15; 30 | — | Farm 1 |
-| Keep | 60 / 25; 60 | 120 / 65; 120 | Lumberyard 1 + Farm 1 for level 1; Lumberyard 2 + Farm 2 + Granary 1 for level 2 |
+La V0.3.0 est volontairement accélérée pour la démonstration et la
+qualification en laboratoire, avec ressources initiales et production
+adaptées à un cycle complet en une courte session. Elle ne constitue pas
+un équilibrage commercial définitif.
 
-Costs use the existing atomic construction debit and scheduled worker completion from M04. The keep at level 2 is a **candidate objective**, not yet a server-authoritative win condition. The manifest does not yet attach building levels to population, food consumption, production rates or territorial expansion.
+## Démarrage et tutoriel (sans commandes techniques côté joueur)
 
-## Operator-controlled opt-in
+1. Créer un compte depuis la page web dans un monde approuvé de version
+   `reference-medieval@0.3.0`. Les contrôles d'identité restent ceux de
+   M01 : invitation ou activation email en production, dispense **uniquement**
+   pour le serveur localhost jetable des tests.
+2. Le moteur crée automatiquement un compte de ressources, une entité,
+   un lieu et un territoire `homestead` privés. Il installe les plans
+   typés du monde sans créer un bâtiment fictif ni débiter des unités.
+3. Choisir `Find construction sites`, un terrain et un type. Placer une
+   fondation dans la propriété de son compte, puis `Begin construction`.
+4. Ériger une scierie (`lumberyard`) et une ferme (`farm`), puis utiliser
+   `Feed and welcome one resident` pour développer la population et
+   `Organize lumber work` pour convertir une consommation de grain en
+   production complémentaire de bois. Le moteur applique un temps de repos
+   logique et un plafond physique de stockage.
+5. Développer les bâtiments jusqu'aux niveaux requis, utiliser un grenier
+   (`granary`) pour agrandir la capacité de population et achever le
+   donjon (`keep`) niveau deux.
+6. Consulter `Review your colony`. La victoire n'est annoncée que par
+   une projection serveur de l'état canonique rejouable. Quitter, revenir,
+   constater la même condition de victoire.
 
-Bind a disposable world to pack `reference-medieval`, version `0.2.0` and the **SHA-256 of the exact manifest bytes** in the private registry. Never repoint an existing pinned world to this version in place. Existing `0.1.0` worlds must remain on their original digest. Apply and verify migrations in a disposable MariaDB database before any persistent-world experiment.
+Le processus CLI `bin/worker.php` reste un service d'exploitation exécuté
+par l'hébergeur ou la CI pour achever les événements différés : **le joueur
+n'a jamais à l'exécuter**, ni à envoyer de JSON à l'API.
 
-## Settlement progression preview (M05 incremental)
+## Règles déclaratives et objectif
 
-Authenticated players can request `GET /v1/worlds/{world}/construction/progression` with their bearer session. The response contains only their foundations, current completed levels, pending work, the next immutable stage, missing prerequisite levels, and a read-only `ready` hint. A missing prerequisite reports both `required` and `current` levels; `ready` is never a construction authorization or a stock/affordability guarantee. The command engine remains authoritative for resource debit, prerequisites, and concurrent updates. Results are bounded to 100 owned foundations and protected by the existing session, membership, world isolation and read-rate limit. This is a gameplay planning API, not yet a complete medieval UI or victory evaluator.
+Le manifeste embarque `settlement`, champ opt-in vérifié strictement,
+qui référence des types de bâtiment et ressources du même pack. Dans la
+version de jeu livrée :
+- 1 résident au départ ; 3 places supplémentaires par niveau de ferme et
+  2 par niveau de grenier ;
+- accueillir un résident coûte 4 grains, exige une ferme et de la place ;
+- un chantier de bûcheronnage exige 2 résidents et une scierie de niveau 1,
+  consomme 2 grains, produit 15 bois par niveau de scierie et respecte
+  un repos de 10 secondes ;
+- la victoire demande `lumberyard 2`, `farm 2`, `granary 1`,
+  `keep 2` et **6 résidents**. Le donjon requiert lui-même les chaînes
+  de bâtiments déclarées dans `buildings[].stages[].requires`.
 
-## Player onboarding without administration
+Les coûts de construction, les ressources consommées ou gagnées, les
+reçus de commande, l'horloge logique, la progression démographique et le
+journal sont calculés et stockés atomiquement. Les erreurs de fonds
+insuffisants, temps de repos, capacité et accès à un compte tiers
+n'appliquent aucun mouvement partiel.
 
-When a player registers in an approved `reference-medieval` world that
-contains pinned building definitions, the trusted provisioner automatically
-grants their own homestead territory at their existing settlement location
-and installs the immutable world catalog. Each new player's territory is
-their own unique actor ID. Repeated provisioning is idempotent and does not
-silently place or pay for a building. Other worlds and the original unversioned
-medieval pack retain their previous behavior. The existing construction
-choices screen lists these new settlements for the player.
+Le moteur fournit :
+- `settlement.feed` et `settlement.work` comme commandes authentifiées
+  et idempotentes du même endpoint économique existant ;
+- `GET /v1/worlds/{world}/settlement/status/{account}` comme vue privée
+  du peuplement, des besoins, de la main-d'œuvre et de l'objectif ;
+- les endpoints M04 de terrain, bâtiments, progression, marché et transfert,
+  réutilisés sans mécanisme d'authentification parallèle.
 
-## Colonists, work and victory (opt-in v0.3.0)
+Le nouveau motif de grand livre `settlement_food` exprime une
+consommation ; `settlement_work` exprime un crédit. La migration 025
+élargit l'ENUM existant sans le supprimer. Comme la migration 024, elle
+peut reconstruire une table MariaDB et exige une sauvegarde vérifiée,
+une fenêtre de maintenance et une répétition de restauration sur copie
+avant toute installation persistante.
 
-A new immutable `reference-medieval@0.3.0` pack extends 0.2.0 with a
-strict declarative settlement ruleset. `settlement.feed` consumes four
-units of grain to add one resident, bounded by farms and granaries.
-`settlement.work` consumes two grain and produces 15 wood per
-lumberyard level, requiring two residents and a ten-second logical
-cooldown. The account's stocks, population, ledger, command receipt and
-cooldown are committed atomically. Every rule is pinned by the exact
-manifest digest; 0.1.0 and 0.2.0 cannot invoke these actions.
+## Critères de recette et preuve
 
-The private authenticated `GET /v1/worlds/WORLD/settlement/status/ACCOUNT`
-reports the same account's residents, capacity, labor output and
-server-authoritative win result. Victory needs keep 2, farm 2,
-lumberyard 2, granary 1 and six residents. The server computes it from
-the canonical, replayable world state — never from a browser flag.
+La matrice exhaustive figure dans
+[M05_ACCEPTANCE.md](M05_ACCEPTANCE.md). La suite PHP vérifie
+les invariants de règles, la création idempotente de colonies, les
+débits/crédits de main-d'œuvre, le rejet de comptes étrangers, les
+prérequis, le parcours jusqu'au donjon, les seuils de population,
+la reconnexion et le rejeu déterministe. Le scénario Chromium
+`tests/browser/medieval.spec.cjs` s'inscrit avec deux identités,
+place réellement des fondations, construit, nourrit et fait travailler
+les colons, atteint la victoire avec l'un des joueurs, reste perdant
+avec l'autre, puis confirme la victoire après reconnexion.
 
-The MariaDB suite now exercises a two-colony campaign from empty signup to
-keep level two and population six, including deficits, prerequisites,
-real worker completions, food-for-wood conversion, cooldown, idempotency,
-cross-actor authorization, reconnect, victory and full replay.
+Les CI exigées sont **PHP 8.4**, **MariaDB 11.4** et **Chromium** sur le
+SHA exact de la PR avant fusion. Aucun succès d'un SHA précédent ne
+constitue une preuve pour le SHA final.
 
-## Browser tutorial
+## Limites volontairement reportées
 
-A newly registered player in approved medieval version 0.3.0 sees a
-colony panel with a server-derived population counter and explicit
-victory milestones. The existing foundation screen offers settlement
-construction without any CLI. Player actions `settlement.feed` and
-`settlement.work` reuse the authenticated, idempotent command envelope.
-The displayed victory is the backend's decision, never a browser flag.
-Other games and legacy versions do not show this tutorial.
-
-## Evidence and outstanding work
-
-`tests/m05-medieval-pack.php` exercises manifest loading, deterministic stage prerequisites, malformed-rule rejection and side-by-side version pinning. It runs in `tests/run.php` as part of PHP core CI. The strict JSON schema now documents the existing runtime building extension.
-
-**Not yet proven:** new player settlement provisioning and geography, player-driven building type registration for an approved world, UI onboarding/tutorial, meaningful production/population mechanics, server-authoritative victory objective, full two-player MariaDB and Chromium gameplay, migration rehearsal on populated medieval worlds, and reconnection/replay acceptance. The M05 PR must remain draft until these are implemented and tested; no production deployment is authorized.
+Le client web Vue/TypeScript, l'i18n et l'accessibilité mobile de
+production relèvent de M07. Les réseaux logistiques industriels relèvent
+de M06 ; l'administration et la restauration d'une base persistante réelle
+relèvent de M11 ; la sécurité et les essais de charge de longue durée
+relèvent de M12. Le respect de ces dépendances n'autorise aucune
+publication V1.0 anticipée. Aucun hébergement externe n'a été modifié.
