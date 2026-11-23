@@ -143,6 +143,9 @@ foreach ($freightWorkers as [$proc,$pipes]) {
     elseif ($out==='denied') $freightDenied++;
     else throw new RuntimeException('Unexpected M06 competing delivery outcome: '.$out);
 }
+// Child workers commit at 1056; advance the parent's explicit logical clock
+// before querying the canonical post-race economy.
+$industrialClock->advanceTo(1056);
 check($freightWon===1 && $freightDenied===3,
     'M06 four concurrent PDO deliveries commit exactly one shipment');
 check($industrialStatus->forActor($industrialA,$industrialA)['delivery']['current']===60
