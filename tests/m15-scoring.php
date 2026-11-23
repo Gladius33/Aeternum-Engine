@@ -60,6 +60,7 @@ rejects(fn()=>GamePackLoader::load(json_encode($m15Bad,JSON_THROW_ON_ERROR)),
 $m15Bad=$m15Manifest;$m15Bad['progression']['execute']='code';
 rejects(fn()=>GamePackLoader::load(json_encode($m15Bad,JSON_THROW_ON_ERROR)),
     InvalidArgumentException::class,'M15 manifests cannot inject scoring formula code');
-$m15Bad=$m15Manifest;unset($m15Bad['progression']);
-check(GamePackLoader::load(json_encode($m15Bad,JSON_THROW_ON_ERROR))->progression===null,
+$m15Unscored=json_decode($m15Bytes,false,32,JSON_THROW_ON_ERROR);
+unset($m15Unscored->progression);
+check(GamePackLoader::load(json_encode($m15Unscored,JSON_THROW_ON_ERROR))->progression===null,
     'M15 without progression retains the no-scoring default');
