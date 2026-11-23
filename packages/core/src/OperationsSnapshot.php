@@ -88,7 +88,7 @@ final class OperationsSnapshot
             'pendingOnboarding'=>min($pendingOnboarding,self::CAP),
             'pendingOnboardingCapped'=>$pendingOnboarding>self::CAP,
             'worlds'=>$worlds,
-            'healthy'=>$schemaGood && !in_array(false,array_column($worlds,'initialized'),true)
+            'healthy'=>$schemaGood && $worlds!==[] && !in_array(false,array_column($worlds,'initialized'),true)
         ];
     }
 

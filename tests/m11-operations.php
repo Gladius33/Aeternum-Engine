@@ -34,6 +34,9 @@ use Aeternum\Core\{OperationsSnapshot,OperationsCron,PdoScheduler,PdoMemberships
         && $view['worlds'][0]['dueEvents']===1
         && $view['worlds'][0]['oldestDueSeconds']>0,
         'M11 due job backlog and lag are observed without processing');
+    check($monitor->snapshot([])['healthy']===false
+        && $monitor->snapshot([])['worlds']===[],
+        'M11 no approved worlds is never reported as healthy');
     check($monitor->snapshot(['m11-not-initialized'=>$pack])['healthy']===false,
         'M11 missing approved world is unhealthy and never initialized by monitoring');
     rejects(fn()=> $monitor->snapshot(['bad world id'=>$pack]),
