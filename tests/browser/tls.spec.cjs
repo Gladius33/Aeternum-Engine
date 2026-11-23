@@ -9,7 +9,7 @@ test('browser can load enrollment and approved worlds over real loopback TLS',as
         await expect(page.locator('#register')).toBeVisible();
         const expectedWorldIds=['e2e-medieval','e2e-industrial','e2e-sdk'];
         for (const worldId of expectedWorldIds) {
-            await expect(page.locator('#register select option').filter({hasText:worldId})).toHaveCount(1);
+            await expect(page.locator('#register select option[value="'+worldId+'"]')).toHaveCount(1);
         }
         const worlds=await context.request.get('https://127.0.0.1:8777/v1/public/worlds');
         expect(worlds.status()).toBe(200);
