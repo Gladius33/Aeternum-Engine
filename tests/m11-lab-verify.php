@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require __DIR__.'/db-bootstrap.php';
 use Aeternum\Core\{PdoIdentity,GamePackLoader,PdoScheduler,FrozenClock,OperationsSnapshot};
-if (PHP_SAPI!=='cli' || $argc!==1) exit(2);
+if (PHP_SAPI!=='cli' || $argc!==2 || $argv[1]!=='verified') exit(2);
 // Lab-only: exact schema name, no broad restore DSN accepted.
 $dsn=getenv('AETERNUM_RESTORE_DSN');
 if (!is_string($dsn) || !preg_match('/(?:^|;)dbname=aeternum_restore(?:;|$)/D',$dsn))
