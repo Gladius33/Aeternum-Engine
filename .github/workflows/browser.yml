@@ -256,6 +256,7 @@ jobs:
           printf '%s\n' 'browser-only test password' | php bin/provision.php reference-medieval e2e-medieval browser-social-owner
           printf '%s\n' 'browser-only test password' | php bin/provision.php reference-medieval e2e-medieval browser-social-member
           npx playwright test tests/browser/social.spec.cjs --workers=1 --reporter=github,line
+          npx playwright test tests/browser/premium.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
         run: |

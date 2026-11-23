@@ -21,3 +21,9 @@ button:disabled{cursor:wait;opacity:.7}
 #social-mail-panel textarea{font:inherit;width:100%;max-width:100%;box-sizing:border-box;padding:.6rem;min-height:5rem;color:inherit;background:#1f2937;border:1px solid #64748b;border-radius:.3rem}
 #social-mail-panel textarea:focus-visible{outline:3px solid #fbbf24;outline-offset:2px}
 #social-mail-panel li,#social-panel li{overflow-wrap:anywhere}
+
+/* M10 cosmetics: visual-only, never changes game economy/state rules. */
+.premium-badge{display:inline-block;border:1px solid #cbd5e1;border-radius:999px;padding:.35rem .8rem;font-weight:600;letter-spacing:.01em}
+html.premium-theme #premium-panel{border-color:#a78bfa;background:#312e81}
+html.premium-theme #premium-title{color:#ddd6fe}
+#premium-features li{margin-block:.4rem;overflow-wrap:anywhere}
