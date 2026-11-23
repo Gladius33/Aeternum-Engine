@@ -1,6 +1,6 @@
 const {test,expect}=require('@playwright/test');
 const {execFileSync}=require('node:child_process');
-const origin='http://127.0.0.1:8765';
+const origin='http://127.0.0.1:8769';
 const world='e2e-medieval-v3';
 const password='browser-only test password';
 const commandUrl=origin+'/v1/worlds/'+world+'/economy/commands';
@@ -9,6 +9,8 @@ function executeWorker() {
     const output=execFileSync('php',['bin/worker.php','reference-medieval',world],{
         encoding:'utf8',
         env:{...process.env,AETERNUM_MEDIEVAL_WORLD:'',AETERNUM_INDUSTRIAL_WORLD:'',
+            AETERNUM_DSN:process.env.AETERNUM_E2E_M05_DSN,
+            AETERNUM_DB_USER:'aeternum_m05',AETERNUM_DB_PASSWORD:'test-db-only',
             AETERNUM_WORLD_REGISTRY:process.env.AETERNUM_E2E_REGISTRY},
         timeout:30000
     });
