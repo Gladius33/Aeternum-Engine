@@ -26,6 +26,8 @@ final readonly class GamePack
         public ?SettlementRules $settlement=null,
         public ?IndustryRules $industry=null,
         public bool $playerHomestead=false,
+        public ?ScoreRules $progression=null,
+        public ?EngagementRules $engagement=null,
     ) {}
 
     public function sdk(): PackSdk
@@ -46,7 +48,7 @@ final readonly class GamePack
         $extensions=$trustedCommands===[]?null:new TrustedPackCommands($trustedCommands,$this->actions);
         $rulesDigest=$extensions===null?$this->digest:hash('sha256',
             "aeternum-trusted-pack-commands-v1\0".$this->digest."\0".$extensions->fingerprint());
-        $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings,$this->settlement,$this->industry,$extensions);
+        $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings,$this->settlement,$this->industry,$extensions,$this->progression,$this->engagement);
         $builtinEvents=new EconomyEventHandler($economy);
         $eventExtensions=$trustedEvents===[]?null:new TrustedPackEvents($trustedEvents,$this->eventHooks,$builtinEvents);
         if ($eventExtensions!==null) {

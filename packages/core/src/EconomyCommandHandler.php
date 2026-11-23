@@ -13,7 +13,7 @@ final class EconomyCommandHandler implements CommandHandler, EconomyGameplayPort
     private array $referenceGameplay = [];
 
     /** @param list<ResourceDefinition> $definitions */
-    public function __construct(array $definitions,array $upgrades = [],array $buildings = [],?SettlementRules $settlement=null,?IndustryRules $industry=null,private readonly ?TrustedPackCommands $trustedPackCommands=null)
+    public function __construct(array $definitions,array $upgrades = [],array $buildings = [],?SettlementRules $settlement=null,?IndustryRules $industry=null,private readonly ?TrustedPackCommands $trustedPackCommands=null,private readonly ?ScoreRules $scoreRules=null,private readonly ?EngagementRules $engagementRules=null)
     {
         if ($definitions === [] || count($definitions)>128 || !array_is_list($definitions)) throw new \InvalidArgumentException('Invalid resource definitions');
         foreach ($definitions as $definition) {
@@ -467,6 +467,28 @@ final class EconomyCommandHandler implements CommandHandler, EconomyGameplayPort
         ],$ledger);
     }
 
+    /** Optional signed target policy for an explicitly reviewed player command. */
+    public function diplomacyTarget(Command $command): ?string
+    {
+        return $this->trustedPackCommands?->diplomacyTarget($command);
+    }
+
+    public function engagementTarget(Command $command): ?string
+    {
+        return $this->trustedPackCommands?->engagementTarget($command);
+    }
+
+    /** Called only after transactionally verifying both accounts. */
+    public function assertEngagement(Command $command,array $state,string $source,string $target,int $at): void
+    {
+        if ($this->scoreRules===null || $this->engagementRules===null
+            || $this->engagementTarget($command)!==$target) {
+            throw new \DomainException('Engagement not approved for this pinned pack');
+        }
+        (new EngagementGuard($this->scoreRules,$this->engagementRules))
+            ->assertEligible($state,$source,$target,$at);
+    }
+
     /** Player-facing command types are only those with reviewed ownership policy. */
     public function allowsActorPackCommand(string $type): bool
     {
@@ -485,7 +507,23 @@ final class EconomyCommandHandler implements CommandHandler, EconomyGameplayPort
         // Actor-capable handlers still require PdoScheduler's world-locked
         // authorization and the HTTP actor-admission allowlist.
         if ($this->trustedPackCommands?->handles($command->type)) {
-            return $this->trustedPackCommands->execute($command,$state,$effectiveAt);
+            $target=$this->trustedPackCommands->engagementTarget($command);
+            if ($target===null) {
+                return $this->trustedPackCommands->execute($command,$state,$effectiveAt);
+            }
+            $sources=$this->trustedPackCommands->actorOwnedAccounts($command);
+            if ($sources===null || count($sources)!==1) {
+                throw new \DomainException('Engagement requires an authorized source');
+            }
+            $source=$sources[0];
+            // Pure policy check is repeated here for canonical journal replay.
+            // The PdoScheduler independently verifies world membership and
+            // BOTH account owners under its exclusive InnoDB world lock.
+            $this->assertEngagement($command,$state,$source,$target,$effectiveAt);
+            $result=$this->trustedPackCommands->execute($command,$state,$effectiveAt);
+            $after=(new EngagementGuard($this->scoreRules,$this->engagementRules))
+                ->record($result->state,$source,$effectiveAt);
+            return new CommandResult($after,$result->events,$result->movements);
         }
         if (isset($this->referenceGameplay[$command->type])) {
             return $this->referenceGameplay[$command->type]->apply($command,$state,$effectiveAt);

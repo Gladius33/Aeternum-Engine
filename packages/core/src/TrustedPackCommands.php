@@ -18,6 +18,10 @@ final class TrustedPackCommands
     private array $schemas=[];
     /** @var array<string,list<string>> */
     private array $actorOwnedFields=[];
+    /** @var array<string,string> */
+    private array $engagementTargets=[];
+    /** @var array<string,string> */
+    private array $diplomacyTargets=[];
     private string $fingerprint;
 
     /**
@@ -65,6 +69,28 @@ final class TrustedPackCommands
                         }
                     }
                     $this->actorOwnedFields[$type]=$owned;
+                    if ($handler instanceof EngagementActorPackCommand) {
+                        // A player-to-player interaction must have one
+                        // authenticated source, plus a distinct declared
+                        // string target. Never infer targets from player JSON.
+                        $target=$handler->targetAccountField($type);
+                        if (count($owned)!==1 || !is_string($target)
+                            || ($declaredActions[$type]->types[$target]??null)!=='string'
+                            || in_array($target,$owned,true)) {
+                            throw new \InvalidArgumentException('Invalid engagement target policy');
+                        }
+                        $this->engagementTargets[$type]=$target;
+                    }
+                    if ($handler instanceof DiplomacyActorPackCommand) {
+                        $target=$handler->targetAccountField($type);
+                        if (count($owned)!==1 || !is_string($target)
+                            || ($declaredActions[$type]->types[$target]??null)!=='string'
+                            || in_array($target,$owned,true)
+                            || $handler instanceof EngagementActorPackCommand) {
+                            throw new \InvalidArgumentException('Invalid diplomacy target policy');
+                        }
+                        $this->diplomacyTargets[$type]=$target;
+                    }
                 }
                 $identities[$type]=$digest;
             }
@@ -101,12 +127,40 @@ final class TrustedPackCommands
         return array_values($accounts);
     }
 
+    /** Null for all non-engagement commands, including ordinary private packs. */
+    public function engagementTarget(Command $command): ?string
+    {
+        $field=$this->engagementTargets[$command->type]??null;
+        if ($field===null) return null;
+        $this->schemas[$command->type]->assertPayload($command->payload);
+        $account=$command->payload[$field];
+        PdoMemberships::validateId($account);
+        return $account;
+    }
+
+    /** Target account for mutually acknowledged diplomacy, not engagement. */
+    public function diplomacyTarget(Command $command): ?string
+    {
+        $field=$this->diplomacyTargets[$command->type]??null;
+        if ($field===null) return null;
+        $this->schemas[$command->type]->assertPayload($command->payload);
+        $target=$command->payload[$field];
+        PdoMemberships::validateId($target);
+        return $target;
+    }
+
     public function execute(Command $command,array $state,int $effectiveAt): CommandResult
     {
         $handler=$this->handlers[$command->type]??throw new \DomainException('Unapproved pack command');
         $this->schemas[$command->type]->assertPayload($command->payload);
         // Normal pinned scheduler, receipts and replay remain authoritative.
         // This method is NOT an actor-authorization shortcut.
-        return $handler->apply($command,$state,$effectiveAt);
+        $result=$handler->apply($command,$state,$effectiveAt);
+        // No delayed effects can evade due-time re-evaluation of protection.
+        // Such commands require a separately audited event admission hook.
+        if (isset($this->engagementTargets[$command->type]) && $result->events!==[]) {
+            throw new \DomainException('Delayed engagement effects not yet approved');
+        }
+        return $result;
     }
 }

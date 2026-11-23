@@ -315,6 +315,51 @@ document.querySelector('#industrial-check').addEventListener('click',()=>run(rev
 document.querySelector('#industrial-generate').addEventListener('click',()=>run(()=>industrialAction('industry.generate')));
 document.querySelector('#industrial-refine').addEventListener('click',()=>run(()=>industrialAction('industry.refine')));
 document.querySelector('#industrial-ship').addEventListener('click',()=>run(()=>industrialAction('industry.ship')));
+const progressionPanel=document.querySelector('#progression-panel'),
+      progressionDetails=document.querySelector('#progression-details');
+function resetProgression() {
+    progressionDetails.replaceChildren();
+    document.querySelector('#progression-rank-result').textContent='—';
+}
+async function loadProgression() {
+    const selected=locationFields();
+    if (!selected.world || !selected.account) throw new Error('Select your world and account');
+    const path='/v1/worlds/'+encodeURIComponent(selected.world).replaceAll('%3A',':')
+        +'/progression/'+encodeURIComponent(selected.account);
+    const result=await api(path);
+    if (selected.world!==balance.elements.world.value
+        || selected.account!==balance.elements.account.value) return;
+    resetProgression();
+    for(const [label,key] of [
+        ['Development score','development'],
+        ['Military score','military'],
+        ['Global score','global']
+    ]) {
+        if (!Number.isSafeInteger(result[key]) || result[key]<0) {
+            throw new Error('Invalid authoritative score');
+        }
+        const dt=document.createElement('dt'),dd=document.createElement('dd');
+        dt.textContent=label;
+        dd.textContent=String(result[key]);
+        progressionDetails.append(dt,dd);
+    }
+}
+document.querySelector('#progression-load').addEventListener('click',()=>run(loadProgression));
+document.querySelector('#progression-rank-load').addEventListener('click',()=>run(async()=>{
+    const selected=locationFields();
+    if (!selected.world || !selected.account) throw new Error('Select your world and account');
+    const path='/v1/worlds/'+encodeURIComponent(selected.world).replaceAll('%3A',':')
+        +'/progression/'+encodeURIComponent(selected.account)+'/rank';
+    const data=await api(path);
+    if (selected.world!==balance.elements.world.value
+        || selected.account!==balance.elements.account.value) return;
+    if (!Number.isSafeInteger(data.position) || !Number.isSafeInteger(data.participants)
+        || data.position<1 || data.participants<1 || data.position>data.participants) {
+        throw new Error('Invalid authoritative rank');
+    }
+    document.querySelector('#progression-rank-result').textContent=
+        String(data.position)+' / '+String(data.participants);
+}));
 function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);
     options(balance.elements.account,(w?.accounts??[]).map(a=>[a,a]));
@@ -326,6 +371,8 @@ function selectWorld() {
     clearSocial();
     resetMedieval();
     resetIndustrial();
+    resetProgression();
+    progressionPanel.hidden=w?.progressionEnabled!==true;
     medievalPanel.hidden=w?.settlementEnabled!==true;
     industrialPanel.hidden=w?.industryEnabled!==true;
     window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:w?.world??'',account:balance.elements.account.value}}));
@@ -337,7 +384,7 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
-for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){clearMarketPage();clearMarketHistory();resetMedieval();resetIndustrial();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){clearMarketPage();clearMarketHistory();resetMedieval();resetIndustrial();resetProgression();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();

@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ConfiguredWorlds,TrustedWorldRules,SystemClock,PeerAddressResolver};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ProgressionHttpApi,ConfiguredWorlds,TrustedWorldRules,SystemClock,PeerAddressResolver};
 // The JSON API has a strict, separately testable response policy.
 // Load before Composer: plaintext rejection must also work without database setup.
 require_once __DIR__.'/../packages/core/src/ApiResponseSecurity.php';
@@ -62,6 +62,9 @@ try {
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$resolvedPeer ?? ''
             );
+        } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/progression/')) {
+            [$status,$body]=(new ProgressionHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
+                ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '');
         } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/premium/')) {
             [$status,$body]=(new PremiumHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
                 ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '');

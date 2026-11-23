@@ -472,7 +472,7 @@ final class PdoScheduler
         if ($owner===false || ($actor!==null && $owner!==$actor)) throw new \DomainException('Account access denied');
     }
 
-    private function authorizeActor(string $actor,Command $command): void
+    private function authorizeActor(string $actor,Command $command,?array $lockedWorld=null): void
     {
         $this->assertActiveActor($actor);
         switch ($command->type) {
@@ -557,6 +557,34 @@ final class PdoScheduler
                     ? $this->rules->commands->actorPackAccounts($command):null;
                 if ($owned===null) throw new \DomainException('Actor command not allowed');
                 foreach ($owned as $account) $this->assertAccountOwner($account,$actor);
+                $diplomacyTarget=$this->rules->commands->diplomacyTarget($command);
+                if ($diplomacyTarget!==null) {
+                    if ($lockedWorld===null || count($owned)!==1
+                        || $owned[0]===$diplomacyTarget) {
+                        throw new \DomainException('Diplomacy requires distinct world-locked accounts');
+                    }
+                    $this->assertAccountOwner($diplomacyTarget,null);
+                    $diplomacyOwner=$this->query('SELECT actor_id FROM engine_account_owners
+                        WHERE world_id=? AND account_id=?',
+                        [$this->worldId,$diplomacyTarget])->fetchColumn();
+                    if ($diplomacyOwner===false || $diplomacyOwner===$actor) {
+                        throw new \DomainException('Diplomacy denied');
+                    }
+                }
+                $target=$this->rules->commands->engagementTarget($command);
+                if ($target!==null) {
+                    if ($lockedWorld===null || count($owned)!==1) {
+                        throw new \DomainException('Engagement requires locked world and single source account');
+                    }
+                    $this->assertAccountOwner($target,null);
+                    $targetOwner=$this->query('SELECT actor_id FROM engine_account_owners
+                        WHERE world_id=? AND account_id=?',[$this->worldId,$target])->fetchColumn();
+                    if ($targetOwner===false || $targetOwner===$actor) {
+                        throw new \DomainException('Engagement denied');
+                    }
+                    $this->rules->commands->assertEngagement($command,
+                        ScalarMap::decode($lockedWorld['state_json']),$owned[0],$target,$this->clock->now());
+                }
                 break;
         }
     }
@@ -786,7 +814,7 @@ final class PdoScheduler
             }
             return $this->transaction(function () use ($command,$handler,$actor,$clientRequest,$prepared): CommandReceipt {
                 $world = $this->lockedWorld();
-                if ($actor!==null) $this->authorizeActor($actor,$command);
+                if ($actor!==null) $this->authorizeActor($actor,$command,$world);
                 $payload = ScalarMap::encode($command->payload);
                 $existing = $this->query('SELECT command_type,payload_json,effective_at,result_state_json,scheduled_ids_json,actor_id,client_request_id FROM engine_commands WHERE world_id = ? AND command_id = ?', [$this->worldId,$command->id])->fetch(PDO::FETCH_ASSOC);
                 if ($existing !== false) {
@@ -873,6 +901,73 @@ final class PdoScheduler
             return ['world'=>$this->worldId,'journal'=>(int)$world['journal_sequence'],
                 'balances'=>$balances,'offers'=>$offers,'deferredRefunds'=>$refunds,
                 'projectionVersion'=>1];
+        });
+    }
+
+
+    /**
+     * Private aggregate-only rank; ties share position, opponent identities
+     * and individual scores never leave the SQL transaction.
+     *
+     * @return array{position:int,participants:int}
+     */
+    public function rankForActor(string $actor,string $account,ScoreRules $policy): array
+    {
+        PdoMemberships::validateId($actor);
+        PdoMemberships::validateId($account);
+        if ($this->rules===null || $this->processing) {
+            throw new \DomainException('Ranking requires pinned rules');
+        }
+        return $this->transaction(function () use($actor,$account,$policy): array {
+            $world=$this->lockedWorld();
+            $this->assertActiveActor($actor);
+            $this->assertAccountOwner($account,$actor);
+            $now=$this->clock->now();
+            if ($now<0 || $now<(int)$world['watermark']
+                || $this->query('SELECT event_id FROM engine_events
+                    WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1 FOR UPDATE',
+                    [$this->worldId,$now])->fetchColumn()!==false) {
+                throw new \DomainException('Ranking requires completed due events');
+            }
+            $accounts=$this->query('SELECT o.account_id FROM engine_account_owners o
+                JOIN engine_memberships m ON m.world_id=o.world_id
+                    AND m.actor_id=o.actor_id AND m.active=1
+                WHERE o.world_id=? ORDER BY o.account_id LIMIT 129',
+                [$this->worldId])->fetchAll(PDO::FETCH_COLUMN);
+            return (new ScoreRanker($policy))->rank(
+                ScalarMap::decode($world['state_json']),$accounts,$account);
+        });
+    }
+
+    /**
+     * Own-account, read-only progression projection, calculated from the
+     * world-locked canonical state. No score value is accepted from clients.
+     * The same due-event barrier used by other authoritative projections
+     * prevents reading a state whose due events must first be processed.
+     *
+     * @return array{development:int,military:int,global:int}
+     */
+    public function scoreForActor(string $actor,string $account,ScoreRules $policy): array
+    {
+        PdoMemberships::validateId($actor);
+        PdoMemberships::validateId($account);
+        if ($this->rules===null) throw new \DomainException('Progression requires pinned world rules');
+        if ($this->processing) throw new \LogicException('Reentrant progression read denied');
+        return $this->transaction(function () use($actor,$account,$policy): array {
+            $world=$this->lockedWorld();
+            $this->assertActiveActor($actor);
+            $this->assertAccountOwner($account,$actor);
+            $now=$this->clock->now();
+            if ($now<0 || $now<(int)$world['watermark']) {
+                throw new \DomainException('Progression clock behind world history');
+            }
+            if ($this->query('SELECT event_id FROM engine_events
+                    WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1 FOR UPDATE',
+                    [$this->worldId,$now])->fetchColumn()!==false) {
+                throw new \DomainException('Progression requires processing due events');
+            }
+            return (new ScoreProjector($policy))->forAccount(
+                ScalarMap::decode($world['state_json']),$account);
         });
     }
 
