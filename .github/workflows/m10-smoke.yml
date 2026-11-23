@@ -1,20 +1,14 @@
 name: M10 isolated acceptance
 on:
   pull_request:
-    paths:
-      - 'packages/core/src/PdoAdminConsole.php'
-      - 'packages/core/src/PremiumHttpApi.php'
-      - 'bin/admin-console.php'
-      - 'public/**'
-      - 'tests/m10-*'
-      - 'tests/browser/premium.spec.cjs'
-      - 'database/migrations/031_admin_test_entitlements.sql'
-      - '.github/workflows/m10-smoke.yml'
-      - 'tools/m13-*'
-      - 'tests/m13-*'
-      - 'docs/M13_RELEASE_ACCEPTANCE.md'
-      - '.github/workflows/m13-release.yml'
+  push:
+    branches: [main]
   workflow_dispatch:
+# On release qualification every PR and post-merge HEAD must rerun M10.
+# Cancel obsolete PR attempts while keeping pushed main runs intact.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
