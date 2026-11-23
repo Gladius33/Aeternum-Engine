@@ -69,7 +69,7 @@ check(GamePackLoader::load(json_encode($m15Unscored,JSON_THROW_ON_ERROR))->progr
 $m15Ranker=new \Aeternum\Core\ScoreRanker($m15Pack->progression);
 check($m15Ranker->rank($m15State,['player','other'],'player')===[
     'position'=>1,'participants'=>2
-], 'M15 ranker reveals only the owner's aggregate rank and population');
+], 'M15 ranker exposes only own aggregate rank and participant count');
 $m15Lower=$m15State;
 unset($m15Lower['build:max:player:watchtower']);
 check($m15Ranker->rank($m15Lower,['player','other'],'other')===[
