@@ -92,6 +92,11 @@ est calculé sur l'ensemble des alliances du monde, sans faire confiance à
 une valeur de rang fournie par le client. Les pages ne constituent pas une
 photographie figée si les membres changent pendant la consultation.
 
+La récupération du dirigeant révoqué est déclenchable dans le navigateur,
+mais soumise au contrôle serveur : officier actif, propriétaire historique
+révoqué et écriture d'un audit durable. Une réactivation ultérieure ne
+restaure pas les privilèges antérieurs.
+
 Le client HTML/JS propose des boutons de continuation pour les sept projections
 sociales ; les générations de chargement empêchent les anciennes réponses de
 réafficher les données d'une session ou d'un monde devenu inactif.

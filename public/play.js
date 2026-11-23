@@ -855,6 +855,10 @@ document.querySelector('#social-owner-transfer').addEventListener('click',()=>ru
         {actor:socialActor('social-role-actor')});
     await socialLoadDetail();
 }));
+document.querySelector('#social-owner-recover').addEventListener('click',()=>run(async()=>{
+    await socialAction('/alliances/'+encodeURIComponent(socialAllianceId())+'/recover',{});
+    await socialLoadDetail();
+}));
 document.querySelector('#social-member-remove').addEventListener('click',()=>run(async()=>{
     const alliance=socialAllianceId();
     await socialAction('/alliances/'+encodeURIComponent(alliance)+'/remove',

@@ -165,6 +165,7 @@
     ['Role','Rôle'],
     ['Update role','Modifier le rôle'],
     ['Transfer ownership','Transférer la direction'],
+    ['Recover inactive owner','Remplacer un dirigeant révoqué'],
     ['Remove member','Exclure le membre'],
     ['Leave alliance','Quitter l’alliance'],
     ['My invitations','Mes invitations'],

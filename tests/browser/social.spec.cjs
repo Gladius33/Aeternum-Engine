@@ -188,5 +188,48 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   await expect(owner.locator('#social-leaderboard-list li')).toHaveCount(56);
   await member.getByRole('button',{name:'Refresh invitations'}).click();
   await expect(member.locator('#social-inbox option')).toHaveCount(56);
+  // Full Chromium governance scenario on actual MariaDB:
+  // deny takeover while the owner remains active, recover on trusted world
+  // revocation, then prove old privileges do not return on reactivation.
+  await owner.getByLabel('New alliance ID').fill('browser-recovery');
+  await owner.getByLabel('Alliance name').fill('Governance test alliance');
+  const createdRecovery=owner.waitForResponse(r=>r.url()===root+'/alliances'&&r.request().method()==='POST');
+  await owner.getByRole('button',{name:'Create alliance'}).click();
+  expect((await createdRecovery).status()).toBe(200);
+  await owner.getByLabel('Invite actor ID').fill(memberActor);
+  const invitedRecovery=owner.waitForResponse(r=>r.url()===root+'/alliances/browser-recovery/invite');
+  await owner.getByRole('button',{name:'Invite player'}).click();
+  expect((await invitedRecovery).status()).toBe(200);
+  await member.getByRole('button',{name:'Refresh invitations'}).click();
+  await member.getByLabel('Pending invitations').selectOption('browser-recovery');
+  const acceptedRecovery=member.waitForResponse(r=>r.url()===root+'/alliances/browser-recovery/respond');
+  await member.getByRole('button',{name:'Accept invitation'}).click();
+  expect((await acceptedRecovery).status()).toBe(200);
+  await owner.getByLabel('Member actor ID').fill(memberActor);
+  await owner.getByLabel('Role',{exact:true}).selectOption('officer');
+  const promotedRecovery=owner.waitForResponse(r=>r.url()===root+'/alliances/browser-recovery/role');
+  await owner.getByRole('button',{name:'Update role'}).click();
+  expect((await promotedRecovery).status()).toBe(200);
+  const deniedRecovery=member.waitForResponse(r=>r.url()===root+'/alliances/browser-recovery/recover');
+  await member.getByRole('button',{name:'Recover inactive owner'}).click();
+  expect((await deniedRecovery).status()).toBe(409);
+  const membershipCode=[
+    "require 'vendor/autoload.php';",
+    "$pdo=new PDO(getenv('AETERNUM_DSN'),getenv('AETERNUM_DB_USER'),getenv('AETERNUM_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);",
+    "$q=$pdo->prepare('SELECT actor_id FROM engine_identities WHERE login=?');",
+    "$q->execute(['browser-social-owner']);$id=$q->fetchColumn();",
+    "if(!is_string($id))throw new RuntimeException('Missing original owner');",
+    "(new Aeternum\\Core\\PdoMemberships($pdo,'e2e-medieval'))->ACTION_PLACEHOLDER($id);"
+  ].join('');
+  execFileSync('php',['-r',membershipCode.replace('ACTION_PLACEHOLDER','revoke')],
+    {encoding:'utf8',timeout:15000});
+  const recovered=member.waitForResponse(r=>r.url()===root+'/alliances/browser-recovery/recover');
+  await member.getByRole('button',{name:'Recover inactive owner'}).click();
+  expect((await recovered).status()).toBe(200);
+  await expect(member.locator('#social-member-list')).toContainText(memberActor+' — owner');
+  execFileSync('php',['-r',membershipCode.replace('ACTION_PLACEHOLDER','grant')],
+    {encoding:'utf8',timeout:15000});
+  await owner.getByRole('button',{name:'Inspect my alliance'}).click();
+  await expect(owner.locator('#social-member-list')).toContainText(ownerActor+' — member');
   await owner.close();await member.close();
 });
