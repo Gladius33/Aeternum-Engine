@@ -101,3 +101,11 @@ Confronter les critères ouverts dans `docs/M12_SECURITY.md` à des preuves
 réelles, exécuter la matrice G01–G09, réviser API/SDK/guide utilisateur,
 établir les rapports de charge et de restauration, puis seulement envisager
 un tag V1.0 sous réserve de validation explicite.
+
+## Documents de recette complétés
+
+- [Guide des joueurs M13](M13_PLAYER_GUIDE.md) : parcours médiéval/industriel, multijoueur, sécurité et limites.
+- [Procès-verbal d'acceptation opérateur](M13_RUNBOOK.md) : installation sur base jetable, upgrade, restauration et critères de décision.
+- [Rapport de charge concurrente](M13_CAPACITY_LAB.md) : 400 lectures réelles, résultats datés et limites non certifiées.
+
+La CI M13 vérifie que les liens Markdown locaux de ces guides et de la documentation principale ne sont pas brisés ; ce contrôle de cohérence n'est ni une vérification du contenu juridique ni une validation externe de release.
