@@ -1,0 +1,102 @@
+name: M10 isolated acceptance
+on:
+  pull_request:
+    paths:
+      - 'packages/core/src/PdoAdminConsole.php'
+      - 'packages/core/src/PremiumHttpApi.php'
+      - 'bin/admin-console.php'
+      - 'public/**'
+      - 'tests/m10-*'
+      - 'tests/browser/premium.spec.cjs'
+      - 'database/migrations/031_admin_test_entitlements.sql'
+      - '.github/workflows/m10-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  m10:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-only
+          MARIADB_DATABASE: aeternum_m10
+          MARIADB_USER: aeternum
+          MARIADB_PASSWORD: test-db-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      AETERNUM_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_m10;charset=utf8mb4
+      AETERNUM_DB_USER: aeternum
+      AETERNUM_DB_PASSWORD: test-db-only
+      AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_m10;charset=utf8mb4
+      AETERNUM_TEST_USER: aeternum
+      AETERNUM_TEST_PASSWORD: test-db-only
+      AETERNUM_MEDIEVAL_WORLD: e2e-medieval
+      AETERNUM_BROWSER_TEST: '1'
+      AETERNUM_PUBLIC_REGISTRATION: '1'
+      AETERNUM_LAB_ALLOW_UNVERIFIED_SIGNUP: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install runtime and Chromium
+        run: |
+          composer dump-autoload --no-interaction
+          npm install --no-save --package-lock=false @playwright/test@1.56.1
+          npm ci --prefix client --no-audit --no-fund
+          npm run build --prefix client
+          test -s public/client-dist/aeternum-shell.js
+          npx playwright install --with-deps chromium
+      - name: Migrate parent schemas and exercise isolated M10 MariaDB
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          php bin/migrate.php
+          php -r "require 'tests/db-bootstrap.php'; require 'tests/m10-admin-premium.php'; require 'tests/m10-admin-cli.php'; require 'tests/m10-parallel.php';"
+      - name: Provision two genuine browser identities
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '%s\n' 'browser-only test password' | php bin/provision.php reference-medieval e2e-medieval browser-social-owner
+          printf '%s\n' 'browser-only test password' | php bin/provision.php reference-medieval e2e-medieval browser-social-member
+      - name: Browser proof of TEST-ONLY premium without checkout
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          php -S 127.0.0.1:8765 -t public tests/browser/router.php >m10-server.log 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          for n in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8765/play.html >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail http://127.0.0.1:8765/play.html >/dev/null
+          npx playwright test tests/browser/premium.spec.cjs --workers=1 --reporter=github,line
+      - name: Browser diagnostics
+        if: failure()
+        run: tail -n 100 m10-server.log || true
+      - name: Preserve M10 Chromium failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-chromium-failure
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            m10-server.log
+            test-results/
+            playwright-report/

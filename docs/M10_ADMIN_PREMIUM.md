@@ -147,6 +147,16 @@ bit à bit des tables, accompagnée des projections premium.
 Chromium teste deux sessions de joueur et l'évolution de leurs
 droits après des commandes locales, sans transaction réelle.
 
+## CI dédiée M10
+
+Le workflow m10-smoke.yml charge une base MariaDB 11.4 de recette,
+exécute les seuls tests PHP M10, provisionne deux véritables acteurs
+et lance le scénario premium.spec.cjs dans Chromium. Il permet de
+qualifier le périmètre M10 indépendamment de l'ancien scénario M09,
+sans neutraliser les autres validations. Il ne remplace ni la CI PHP
+globale, ni la CI Browser E2E complète, qui doivent rester requises
+avant une fusion.
+
 ## Critères de sortie encore à acquérir
 
 M10 ne peut être déclarée complète que lorsque la CI PHP 8.4,
