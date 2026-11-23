@@ -47,6 +47,18 @@
 <dl id="building-details"></dl>
 <ul id="map-links"></ul>
 </section><button id="market-claim" type="button" hidden>Claim pending escrow refund</button><form id="action"><label>Action <select name="type"><option value="economy.settle">Settle production</option><option value="economy.upgrade">Upgrade production</option><option value="economy.transfer">Transfer resources</option></select></label><fieldset id="transfer-fields" hidden disabled><legend>Transfer details</legend><button id="load-recipients" type="button">Find recipients</button><label>Available recipients <select id="recipient-directory"><option value="">Choose a recipient</option></select></label><p id="recipient-notice" role="status"></p><label>Recipient account <input name="recipient" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_\\-]{0,63}" required></label><label>Units <input name="units" type="number" min="1" max="1000000000000" step="1" required></label></fieldset><button>Submit action</button></form>
+<section id="medieval-panel" aria-labelledby="medieval-title" hidden>
+<h2 id="medieval-title">Medieval colony — tutorial and goal</h2>
+<p id="medieval-help">Start with a lumberyard, then a farm. Build a granary and keep, improve lumberyard and farm to level 2, and grow six residents to win.</p>
+<button id="medieval-check" type="button">Review your colony</button>
+<dl id="medieval-details"></dl>
+<h3>Settlement actions</h3>
+<button id="medieval-feed" type="button">Feed and welcome one resident</button>
+<button id="medieval-work" type="button">Organize lumber work</button>
+<h3>Victory milestones</h3>
+<ul id="medieval-goals"></ul>
+<p id="medieval-victory" role="status" aria-live="polite"></p>
+</section>
 <section id="market-panel"><h2>Market</h2>
 <form id="market-create"><h3>Publish a barter offer</h3>
 <label for="market-give-resource">Offered resource</label><select id="market-give-resource" name="giveResource" required></select><label for="market-give-units">Offered units</label><input id="market-give-units" name="giveUnits" type="number" min="1" max="1000000000000" step="1" value="1" required>

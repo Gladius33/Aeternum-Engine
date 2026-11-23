@@ -188,6 +188,8 @@ require __DIR__ . "/auth-http.php";
 require __DIR__ . "/auth-global.php";
 require __DIR__ . "/economy-http.php";
 require __DIR__ . "/provisioning.php";
+require __DIR__ . "/m05-colony-onboarding.php";
+require __DIR__ . "/m05-full-gameplay.php";
 require __DIR__ . "/onboarding.php";
 require __DIR__ . "/recovery.php";
 require __DIR__ . "/password-change.php";

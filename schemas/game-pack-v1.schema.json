@@ -159,6 +159,163 @@
           }
         }
       }
+    },
+    "buildings": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "stages"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+          },
+          "stages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "costs",
+                "duration",
+                "requires"
+              ],
+              "properties": {
+                "costs": {
+                  "type": "object",
+                  "minProperties": 1,
+                  "maxProperties": 16,
+                  "propertyNames": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+                  },
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000000000
+                  }
+                },
+                "duration": {
+                  "$ref": "#/$defs/interval"
+                },
+                "requires": {
+                  "type": "object",
+                  "maxProperties": 16,
+                  "propertyNames": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+                  },
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "settlement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "food_resource",
+        "work_resource",
+        "farm_type",
+        "lumber_type",
+        "housing_type",
+        "population_start",
+        "population_per_farm",
+        "population_per_housing",
+        "food_per_person",
+        "work_food_cost",
+        "work_gain_per_lumber",
+        "work_cooldown_seconds",
+        "victory_levels",
+        "victory_population"
+      ],
+      "properties": {
+        "food_resource": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+        },
+        "work_resource": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+        },
+        "farm_type": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+        },
+        "lumber_type": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+        },
+        "housing_type": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+        },
+        "population_start": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "population_per_farm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "population_per_housing": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "food_per_person": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "work_food_cost": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "work_gain_per_lumber": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "work_cooldown_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "victory_levels": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          }
+        },
+        "victory_population": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
     }
   },
   "$defs": {
@@ -194,5 +351,5 @@
       }
     }
   },
-  "$comment": "The PHP loader additionally enforces exact integer types, byte limits, names without control characters, initial_stock <= capacity, unique resource IDs, valid references, feasible costs, contiguous upgrade levels and strictly increasing production. Optional typed SDK metadata is declarative and cannot execute arbitrary scripts."
+  "$comment": "The PHP loader additionally enforces exact integer types, byte limits, uniqueness, valid resource references, feasible costs, construction prerequisite references, and contiguous upgrade levels. Optional building definitions are opt-in and immutable under world digest pinning. The optional settlement section defines strictly validated, pinned workforce and victory rules."
 }

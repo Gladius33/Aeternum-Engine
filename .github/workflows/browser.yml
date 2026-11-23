@@ -29,6 +29,20 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
+      mariadb_m05:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-only
+          MARIADB_DATABASE: aeternum_e2e_m05
+          MARIADB_USER: aeternum_m05
+          MARIADB_PASSWORD: test-db-only
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     env:
       AETERNUM_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_e2e;charset=utf8mb4
       AETERNUM_DB_USER: aeternum
@@ -112,6 +126,9 @@ jobs:
               $pack=json_decode(file_get_contents($manifest),true,32,JSON_THROW_ON_ERROR);
               $worlds[]=["world"=>$world,"pack"=>$id,"version"=>$pack["version"],"sha256"=>hash_file("sha256",$manifest)];
             }
+            $manifest="games/reference-medieval/versions/0.3.0/manifest.json";
+            $worlds[]=["world"=>"e2e-medieval-v3","pack"=>"reference-medieval",
+                "version"=>"0.3.0","sha256"=>hash_file("sha256",$manifest)];
             file_put_contents($argv[1],json_encode(["registry_api"=>"1","worlds"=>$worlds],JSON_THROW_ON_ERROR));
           ' "$registry_dir/worlds.json"
           php bin/registry-status.php "$registry_dir/worlds.json" > "$registry_dir/validated.json"
@@ -119,6 +136,11 @@ jobs:
             AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" \
             php bin/provision.php sdk-fixture e2e-sdk browser-sdk
           export AETERNUM_E2E_REGISTRY="$registry_dir/worlds.json"
+          # Isolate M05 signup tests from legacy browser suites sharing the
+          # real per-origin hourly registration quota. Do not bypass limits.
+          export AETERNUM_E2E_M05_DSN="mysql:host=127.0.0.1;port=3307;dbname=aeternum_e2e_m05;charset=utf8mb4"
+          AETERNUM_DSN="$AETERNUM_E2E_M05_DSN" AETERNUM_DB_USER=aeternum_m05 AETERNUM_DB_PASSWORD=test-db-only \
+            php bin/migrate.php
           printf '%s\n' 'browser-only test password' | env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
             AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" \
             php bin/provision.php m04-construction-fixture e2e-build browser-build-one
@@ -159,6 +181,11 @@ jobs:
             AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" AETERNUM_TRUSTED_PROXY_IPS=127.0.0.1 \
             php -S 127.0.0.1:8765 -t public tests/browser/router.php >browser-server.log 2>&1 &
           server=$!
+          env -u AETERNUM_MEDIEVAL_WORLD -u AETERNUM_INDUSTRIAL_WORLD \
+            AETERNUM_DSN="$AETERNUM_E2E_M05_DSN" AETERNUM_DB_USER=aeternum_m05 \
+            AETERNUM_DB_PASSWORD=test-db-only AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json" \
+            php -S 127.0.0.1:8769 -t public tests/browser/router.php >browser-medieval.log 2>&1 &
+          medieval_server=$!
           AETERNUM_TEST_TLS_KEY="$tls_dir/key.pem" AETERNUM_TEST_TLS_CERT="$tls_dir/cert.pem" \
             node tests/browser/tls-proxy.cjs >browser-tls.log 2>&1 &
           tls_server=$!
@@ -180,7 +207,7 @@ jobs:
           # proof MUST fail closed; this does not have the local lab bypass.
           AETERNUM_LAB_ALLOW_UNVERIFIED_SIGNUP=0 php -S 127.0.0.1:8768 -t public tests/browser/router.php >browser-unsafe-policy.log 2>&1 &
           unsafe_server=$!
-          trap 'kill "$server" "$invited_server" "$tls_server" "$activation_server" "$activation_tls" "$unsafe_server" 2>/dev/null || true; rm -f tests/browser/.e2e-invite-token; rm -rf "$tls_dir" "$activation_dir" "$registry_dir"' EXIT
+          trap 'kill "$server" "$invited_server" "$tls_server" "$activation_server" "$activation_tls" "$unsafe_server" "$medieval_server" 2>/dev/null || true; rm -f tests/browser/.e2e-invite-token; rm -rf "$tls_dir" "$activation_dir" "$registry_dir"' EXIT
           for n in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8766/play.html >/dev/null; then break; fi
             sleep 1
@@ -191,6 +218,11 @@ jobs:
             sleep 1
           done
           curl --fail http://127.0.0.1:8765/play.html >/dev/null
+          for n in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8769/play.html >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail http://127.0.0.1:8769/play.html >/dev/null
           for n in {1..30}; do
             if curl --fail --silent --cacert "$tls_dir/cert.pem" https://127.0.0.1:8777/play.html >/dev/null; then break; fi
             sleep 1
@@ -210,11 +242,14 @@ jobs:
             npx playwright test tests/browser/activation.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/registry.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/construction.spec.cjs --workers=1 --reporter=github,line
+          npx playwright test tests/browser/medieval.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
         run: |
           echo '=== Public server ==='
           tail -n 150 browser-server.log || true
+          echo '=== M05 separate colony server ==='
+          tail -n 150 browser-medieval.log || true
           echo '=== Invitation server ==='
           tail -n 150 browser-invited.log || true
           echo '=== Loopback TLS terminator ==='
@@ -237,6 +272,7 @@ jobs:
             test-results/
             playwright-report/
             browser-server.log
+            browser-medieval.log
             browser-invited.log
             browser-tls.log
             browser-activation.log

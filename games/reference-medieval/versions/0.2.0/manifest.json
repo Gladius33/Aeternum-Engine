@@ -1,0 +1,136 @@
+{
+  "engine_api": "1",
+  "id": "reference-medieval",
+  "version": "0.2.0",
+  "name": "Feudal settlements — playable progression candidate",
+  "resources": [
+    {
+      "id": "wood",
+      "initial_stock": 100,
+      "capacity": 1000,
+      "amount": 30,
+      "interval_seconds": 60
+    },
+    {
+      "id": "grain",
+      "initial_stock": 50,
+      "capacity": 500,
+      "amount": 12,
+      "interval_seconds": 60
+    }
+  ],
+  "upgrades": [
+    {
+      "resource": "wood",
+      "level": 1,
+      "cost": 40,
+      "duration_seconds": 120,
+      "amount": 50
+    },
+    {
+      "resource": "wood",
+      "level": 2,
+      "cost": 90,
+      "duration_seconds": 240,
+      "amount": 80
+    },
+    {
+      "resource": "grain",
+      "level": 1,
+      "cost": 25,
+      "duration_seconds": 60,
+      "amount": 20
+    }
+  ],
+  "buildings": [
+    {
+      "type": "lumberyard",
+      "stages": [
+        {
+          "costs": {
+            "wood": 12,
+            "grain": 4
+          },
+          "duration": 15,
+          "requires": {}
+        },
+        {
+          "costs": {
+            "wood": 45,
+            "grain": 12
+          },
+          "duration": 45,
+          "requires": {
+            "farm": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "farm",
+      "stages": [
+        {
+          "costs": {
+            "wood": 18,
+            "grain": 8
+          },
+          "duration": 20,
+          "requires": {}
+        },
+        {
+          "costs": {
+            "wood": 50,
+            "grain": 20
+          },
+          "duration": 60,
+          "requires": {
+            "lumberyard": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "granary",
+      "stages": [
+        {
+          "costs": {
+            "wood": 28,
+            "grain": 15
+          },
+          "duration": 30,
+          "requires": {
+            "farm": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "keep",
+      "stages": [
+        {
+          "costs": {
+            "wood": 60,
+            "grain": 25
+          },
+          "duration": 60,
+          "requires": {
+            "lumberyard": 1,
+            "farm": 1
+          }
+        },
+        {
+          "costs": {
+            "wood": 120,
+            "grain": 65
+          },
+          "duration": 120,
+          "requires": {
+            "granary": 1,
+            "lumberyard": 2,
+            "farm": 2
+          }
+        }
+      ]
+    }
+  ]
+}
