@@ -10,7 +10,7 @@ use PDO;
  */
 final class PdoAlliances
 {
-    public function __construct(private readonly PDO $pdo, private readonly string $world)
+    public function __construct(private readonly PDO $pdo, private readonly string $world, private readonly ?Clock $clock=null)
     {
         if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D', $world)) {
             throw new \InvalidArgumentException('Invalid world');
@@ -61,6 +61,16 @@ final class PdoAlliances
         }
     }
 
+    /** Notification is part of the same membership/invitation transaction. */
+    private function notify(string $recipient,string $kind,string $subject): void
+    {
+        $now=($this->clock??new SystemClock())->now();
+        if ($now<0) throw new \DomainException('Invalid clock');
+        $this->query('INSERT INTO engine_social_notifications
+            (world_id,notification_id,actor_id,kind,subject_id,created_at)
+            VALUES (?,?,?,?,?,?)',[$this->world,bin2hex(random_bytes(32)),$recipient,$kind,$subject,$now]);
+    }
+
     private function lockAlliance(string $alliance): void
     {
         if ($this->query('SELECT 1 FROM engine_alliances WHERE world_id=? AND alliance_id=? FOR UPDATE',
@@ -98,11 +108,16 @@ final class PdoAlliances
                 throw new \DomainException('Invitation denied');
             }
             if ($this->lockedRole($alliance,$target)!==null) throw new \DomainException('Already member');
+            $previous=$this->query('SELECT status FROM engine_alliance_invites
+                WHERE world_id=? AND alliance_id=? AND invited_actor=? FOR UPDATE',
+                [$this->world,$alliance,$target])->fetchColumn();
+            if ($previous==='pending') return; // A retry does not emit another notification.
             $this->query("INSERT INTO engine_alliance_invites(world_id,alliance_id,invited_actor,invited_by,status)
                 VALUES (?,?,?,?,'pending') ON DUPLICATE KEY UPDATE
                 invited_by=IF(status IN ('revoked','declined','accepted'),VALUES(invited_by),invited_by),
                 status=IF(status IN ('revoked','declined','accepted'),'pending',status)",
                 [$this->world,$alliance,$target,$actor]);
+            $this->notify($target,'invitation',$alliance);
         });
     }
 
@@ -112,17 +127,20 @@ final class PdoAlliances
         $this->transaction(function() use ($actor,$alliance,$accept): void {
             $this->lockAlliance($alliance);
             if (!$this->active($actor)) throw new \DomainException('Membership required');
-            $invite=$this->query('SELECT status FROM engine_alliance_invites
+            $invite=$this->query('SELECT status,invited_by FROM engine_alliance_invites
                 WHERE world_id=? AND alliance_id=? AND invited_actor=? FOR UPDATE',
-                [$this->world,$alliance,$actor])->fetchColumn();
-            if ($invite==='accepted' && $accept && $this->lockedRole($alliance,$actor)!==null) return;
-            if ($invite!=='pending') throw new \DomainException('Invitation unavailable');
+                [$this->world,$alliance,$actor])->fetch(PDO::FETCH_ASSOC);
+            if ($invite!==false && $invite['status']==='accepted' && $accept
+                && $this->lockedRole($alliance,$actor)!==null) return;
+            if ($invite===false || $invite['status']!=='pending')
+                throw new \DomainException('Invitation unavailable');
             if ($accept) {
                 $this->query("INSERT INTO engine_alliance_members(world_id,alliance_id,actor_id,role)
                     VALUES (?,?,?,'member')",[$this->world,$alliance,$actor]);
             }
             $this->query('UPDATE engine_alliance_invites SET status=? WHERE world_id=? AND alliance_id=? AND invited_actor=?',
                 [$accept?'accepted':'declined',$this->world,$alliance,$actor]);
+            if ($accept) $this->notify($invite['invited_by'],'invitation_accepted',$alliance);
         });
     }
 
