@@ -30,6 +30,14 @@
   **not** a claim of exhaustive parser testing, concurrency qualification,
   penetration testing or M12 release readiness.
 
+## Player-facing social input hardening (CI pending)
+- Alliance creation rejects malformed UTF-8, C0/DEL control characters,
+  and Unicode bidi embedding/override/isolate controls. Ordinary accented
+  names remain accepted by the validation policy.
+- MariaDB-integrated HTTP/model regressions verify rejection before a name
+  can be persisted. This does not replace a complete output-encoding/XSS
+  audit of every web client rendering context.
+
 ## Supply-chain finding and correction pending CI
 - The first npm advisory scan identified GHSA-g2v6-rqmx-r4w6 (high, Vue
   server-renderer transitive chain) in the previously pinned Vue 3.5.24.
