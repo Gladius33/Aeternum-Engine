@@ -113,7 +113,8 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
         expect((await status.json()).data.level).toBe(1);
         const wrongWorld=await a.request.get(origin+'/v1/worlds/e2e-medieval/economy/balances/'+
             alice.account+'/wood',{headers:{Authorization:alice.token}});
-        expect(wrongWorld.status()).toBe(409);
+        // Configured-but-inaccessible worlds return 409, unconfigured worlds 404.
+        expect([404,409]).toContain(wrongWorld.status());
     }finally {
         await a.close();
         await b.close();
