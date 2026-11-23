@@ -227,4 +227,5 @@ require __DIR__ . "/m03-cli.php";
 require __DIR__ . "/auth-capacity.php";
 require __DIR__ . "/m11-operations.php";
 require __DIR__ . "/m12-capacity.php";
+require __DIR__ . "/m13-capacity.php";
 echo "MariaDB integration checks passed.\n";

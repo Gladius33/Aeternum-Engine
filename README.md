@@ -4,14 +4,13 @@ A modular engine for persistent multiplayer browser strategy games.
 
 By Sébastien TOUILLEUX · Source Available · ACCL-1.0
 
-## Status — M11 integrated; M12 security and resilience in progress (V1.0 not released)
+## Status — M12 hardening merged, M13 release qualification started (V1.0 not released)
 
 Macro-iterations **M01–M11 are merged into main**: identity/onboarding,
 version-pinned packs/SDK, persistent economy and strategic worlds, two reference
 games, Vue client, multiplayer market/social features, simulated administration
-and premium, lab operations/backup/restore. **M12 remains in qualification**
-under [PR #52](https://github.com/Gladius33/Aeternum-Engine/pull/52);
-M13 release acceptance has not started. The
+and premium, lab operations/backup/restore. **M12 hardening code was merged** in [PR #52](https://github.com/Gladius33/Aeternum-Engine/pull/52), with residual qualification still open.
+**M13 release acceptance is now in progress**; see [release evidence and mandatory gates](docs/M13_RELEASE_ACCEPTANCE.md). No V1.0 tag or release was approved. The
 [macro roadmap](docs/MACRO_ROADMAP_V1.md) and [G01–G09 gates](ROADMAP.md)
 remain authoritative.
 
@@ -35,6 +34,9 @@ Implemented laboratory stack: PHP 8.4, MariaDB/InnoDB, REST, bounded CRON/CLI an
 ## Run the prototype tests
 
 PHP 8.4 is required. Run `php tests/run.php` for dependency-free core regressions. For the MariaDB integration, concurrency and browser suites, consult [persistence](docs/PERSISTENCE.md), the GitHub Actions workflows and the tests in the selected commit. These are not installation instructions for a publicly accessible game. Do not put database credentials, activation tokens or recovery codes into logs.
+
+## V1.0 release candidate documentation (M13, not yet approved)
+[Player guide](docs/M13_PLAYER_GUIDE.md) · [Operator acceptance runbook](docs/M13_RUNBOOK.md) · [Measured concurrent load baseline](docs/M13_CAPACITY_LAB.md) · [G01–G09 acceptance](docs/M13_RELEASE_ACCEPTANCE.md).
 
 ## Documentation
 [Architecture](docs/ARCHITECTURE.md) · [ADRs](docs/adr/DECISIONS.md) · [Validation](docs/VALIDATION.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md).

@@ -1,4 +1,4 @@
-# M12 — security/resilience/capacity qualification (IN PROGRESS)
+# M12 — hardening code merged; final qualification remains OPEN
 
 ## First real increment
 - JSON-only response policy uses immutable reusable headers for all API routes,
@@ -64,3 +64,7 @@
 
 Optional scoring, combat protection and bot capabilities are documented in
 [OPTIONAL_GAMEPLAY_MODULES.md](OPTIONAL_GAMEPLAY_MODULES.md), **not implemented**.
+
+## After PR #52 merge
+
+Merged into `main` as `b9b7c2ca878d4b8b785753b4d9e691d29ca8fabd` following five successful PR workflows on `a8de29fb5bf98b76cbbeb8202a2c6dc03203ea35`. Outstanding security, load, recovery and staging checks remain open and are tracked in [M13 release acceptance](M13_RELEASE_ACCEPTANCE.md); merger is **not** a V1.0 security sign-off.

@@ -1,4 +1,6 @@
-# M10 — Administration par monde et premium strictement simulé (en cours)
+# M10 — Administration par monde et premium strictement simulé (historique de qualification)
+
+**Mise à jour documentaire M13 :** la [PR #50](https://github.com/Gladius33/Aeternum-Engine/pull/50) a été fusionnée (`494a8d482f112bcbb074bb841bfe388f6f731140`). Les avertissements « PR en brouillon » et « aucun merge » qui suivent sont des descriptions de l'étape de développement M10 ; la qualification finale G07 reste à confirmer dans M13.
 
 **Statut : PR #50 en brouillon ; aucune fusion.** Le périmètre normatif
 demeure M10 (G05/G07) dans MACRO_ROADMAP_V1.md et ROADMAP.md.
