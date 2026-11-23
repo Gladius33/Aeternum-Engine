@@ -33,3 +33,11 @@ DDL may commit implicitly, a failed upgrade requires restoration of the
 PHP 8.4, MariaDB, concurrent accepts/claims, legacy migration and Chromium
 E2E must all pass on the exact release SHA. External O2Switch/VPS tests
 and V1.0 certification are separate acceptance gates.
+
+## Browser controls
+
+A player can select exact give/want resource filters and browse the market
+with a stable filter for each cursor page. The history panel is loaded only on
+demand, is account-scoped, and clears its private contents on account/world
+switch or logout. Missing history is displayed without fabricating receipts.
+Translations are provided in the existing English/French catalogue.

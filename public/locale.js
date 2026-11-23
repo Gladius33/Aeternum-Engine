@@ -67,6 +67,18 @@
     ['Requested units','Quantité demandée'],
     ['Optional expiry (seconds from now)','Expiration facultative (secondes à compter de maintenant)'],
     ['Create offer','Créer l’offre'], ['Reload market','Actualiser le marché'],
+    ['Filter market offers','Filtrer les offres du marché'],
+    ['Search offered resource','Ressource proposée recherchée'],
+    ['Search requested resource','Ressource demandée recherchée'],
+    ['Search offers','Rechercher des offres'], ['All resources','Toutes les ressources'],
+    ['My trade history','Mon historique des échanges'],
+    ['Completed, cancelled and expired trades from your selected account.','Échanges conclus, annulés et expirés pour le compte sélectionné.'],
+    ['Load my trade history','Charger mon historique'],
+    ['Next history page','Page suivante de l’historique'],
+    ['Private account history.','Historique privé du compte.'],
+    ['No completed trades.','Aucun échange clôturé.'],
+    ['Search changed. Reload market offers.','Recherche modifiée. Actualisez les offres du marché.'],
+    ['Select both resource filters or neither.','Sélectionnez les deux filtres de ressources ou aucun.'],
     ['Next market page','Page suivante du marché'], ['Open offers','Offres ouvertes'],
     ['Choose an offer','Choisir une offre'], ['Accept selected offer','Accepter l’offre choisie'],
     ['Cancel selected offer','Annuler l’offre choisie'], ['No open offers.','Aucune offre ouverte.'],
@@ -169,7 +181,7 @@
       if (root.querySelectorAll) elements.push(...root.querySelectorAll(translatable));
       // Protect user-controlled account IDs, resource IDs, and map/market list items.
       // Only the known empty-value placeholders and fixed action choices may be translated.
-      elements.push(...document.querySelectorAll('#recipient-directory option[value=""], #market-offer option[value=""], #owned-building-list option[value=""], #action select[name="type"] option'));
+      elements.push(...document.querySelectorAll('#recipient-directory option[value=""], #market-offer option[value=""], #market-filter-give option[value=""], #market-filter-want option[value=""], #owned-building-list option[value=""], #action select[name="type"] option'));
       for (const element of elements) {
         for (const node of element.childNodes) {
           if (node.nodeType === Node.TEXT_NODE) {
