@@ -26,6 +26,36 @@ Historic rule identities must remain stable for every pinned legacy world.
   stable identities, absence-by-default, duplicate and invalid registration
   rejections. Its test is part of the normal PHP core CI.
 
+## Second increment — actor-authorized extension admission (in PR)
+
+The distinct ActorPackCommand interface opts one *reviewed* PHP handler
+into player admission with a **non-empty set of owner-account field names**.
+TrustedPackCommands validates the action payload schema and these
+account-ID fields before dispatch; arbitrary trusted modules without the
+new interface **remain private to operator calls**.
+
+EconomyHttpApi only allows actor-approved pack.module.action types when
+the server has constructed an exact pack/rules binding. New actions use
+an additional per-actor write quota; the existing session and world
+identity rules are unchanged. PdoScheduler verifies active world
+membership AND every declared account's immutable ownership under its
+world-locked MariaDB transaction. The speculative optimistic fast path
+is explicitly disabled for custom handlers, so they cannot execute
+before a locked authorization check.
+
+The new MariaDB test runs a third pack against the real HTTP dispatcher
+with two authenticated independent actors, checks matching receipts,
+idempotent retry, malformed schema, foreign account access, cross-world
+access, membership revocation and deterministic canonical journal replay.
+No new SQL migration is needed.
+
+This is an **explicit trusted-server composition**, not yet a plugin
+installer or a new public endpoint automatically reachable through
+ConfiguredWorlds. The actor handler remains trusted code and MUST not
+introduce undeclared cross-account effects or out-of-transaction side
+effects. A real production composition registry and release proof
+are separate M14 work.
+
 ## Critical limitations of this first increment
 
 This is for **operator-side trusted calls only**. EconomyHttpApi and the

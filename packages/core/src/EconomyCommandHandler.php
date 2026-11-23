@@ -582,6 +582,18 @@ final class EconomyCommandHandler implements CommandHandler
         return new CommandResult($state,[],$ledger);
     }
 
+    /** Player-facing command types are only those with reviewed ownership policy. */
+    public function allowsActorPackCommand(string $type): bool
+    {
+        return $this->trustedPackCommands?->allowsActor($type)??false;
+    }
+
+    /** @return ?list<string> All actor-owned accounts to verify in SQL. */
+    public function actorPackAccounts(Command $command): ?array
+    {
+        return $this->trustedPackCommands?->actorOwnedAccounts($command);
+    }
+
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
         // Only trusted operator-bound PHP objects may handle this namespace.

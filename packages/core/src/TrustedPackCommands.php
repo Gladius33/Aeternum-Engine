@@ -15,6 +15,8 @@ final class TrustedPackCommands
     private array $handlers=[];
     /** @var array<string,PackFields> */
     private array $schemas=[];
+    /** @var array<string,list<string>> */
+    private array $actorOwnedFields=[];
     private string $fingerprint;
 
     /**
@@ -48,6 +50,21 @@ final class TrustedPackCommands
                 }
                 $this->handlers[$type]=$handler;
                 $this->schemas[$type]=$declaredActions[$type];
+                // Player admission is a separate explicit privilege. Trusted
+                // operator-side handlers stay private unless opted in.
+                if ($handler instanceof ActorPackCommand) {
+                    $owned=$handler->ownedAccountFields($type);
+                    if (!is_array($owned) || !array_is_list($owned)
+                        || $owned===[] || count($owned)>8 || count(array_unique($owned))!==count($owned)) {
+                        throw new \InvalidArgumentException('Invalid actor account ownership policy');
+                    }
+                    foreach ($owned as $field) {
+                        if (!is_string($field) || ($declaredActions[$type]->types[$field]??null)!=='string') {
+                            throw new \InvalidArgumentException('Actor policy must name declared string fields');
+                        }
+                    }
+                    $this->actorOwnedFields[$type]=$owned;
+                }
                 $identities[$type]=$digest;
             }
         }
@@ -58,6 +75,30 @@ final class TrustedPackCommands
     public function fingerprint(): string { return $this->fingerprint; }
 
     public function handles(string $type): bool { return isset($this->handlers[$type]); }
+
+    /** False unless the application operator approved an actor-capable handler. */
+    public function allowsActor(string $type): bool
+    {
+        return isset($this->actorOwnedFields[$type]);
+    }
+
+    /**
+     * @return ?list<string> Owner accounts to check under the world lock.
+     * Null means there is no approved actor policy for this command.
+     */
+    public function actorOwnedAccounts(Command $command): ?array
+    {
+        $fields=$this->actorOwnedFields[$command->type]??null;
+        if ($fields===null) return null;
+        $this->schemas[$command->type]->assertPayload($command->payload);
+        $accounts=[];
+        foreach ($fields as $field) {
+            $account=$command->payload[$field];
+            PdoMemberships::validateId($account);
+            $accounts[$account]=$account;
+        }
+        return array_values($accounts);
+    }
 
     public function execute(Command $command,array $state,int $effectiveAt): CommandResult
     {

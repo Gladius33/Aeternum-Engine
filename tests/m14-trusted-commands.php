@@ -65,3 +65,42 @@ rejects(fn()=> $m14Pack->rules([$m14Approved('pack.guild.research','unversioned'
     'M14 unpinned executable handler rejected');
 rejects(fn()=> $m14Pack->rules([new stdClass()]),InvalidArgumentException::class,
     'M14 command requires a reviewed handler contract');
+
+// A trusted operator-only module is not automatically accessible to players.
+check(!$active->commands->allowsActorPackCommand('pack.guild.research'),
+    'M14 trusted internal plugin never auto-enables player admission');
+$actorModule=new class implements \Aeternum\Core\ActorPackCommand {
+    public function supportedTypes(): array { return ['pack.guild.research']; }
+    public function codeDigest(): string { return str_repeat('c',64); }
+    public function ownedAccountFields(string $type): array { return ['account']; }
+    public function apply(Command $command,array $state,int $at): CommandResult {
+        $state['research:'.$command->payload['account']]=$command->payload['units'];
+        return new CommandResult($state);
+    }
+};
+$actorRules=$m14Pack->rules([$actorModule]);
+check($actorRules->commands->allowsActorPackCommand('pack.guild.research'),
+    'M14 separately approved actor-policy opt-in enables the exact action');
+check($actorRules->commands->actorPackAccounts($cmd)===['person1'],
+    'M14 actor ownership declarations resolve only typed account IDs');
+rejects(fn()=> $actorRules->commands->actorPackAccounts(new Command('third-world','bad',
+    'pack.guild.research',['account'=>'bad-id$','units'=>2])),InvalidArgumentException::class,
+    'M14 invalid account identifier is rejected before database lookup');
+$badActor=static fn(array $fields):\Aeternum\Core\ActorPackCommand =>
+    new class($fields) implements \Aeternum\Core\ActorPackCommand {
+        public function __construct(private array $fields) {}
+        public function supportedTypes(): array { return ['pack.guild.research']; }
+        public function codeDigest(): string { return str_repeat('d',64); }
+        public function ownedAccountFields(string $type): array { return $this->fields; }
+        public function apply(Command $command,array $state,int $at): CommandResult {
+            return new CommandResult($state);
+        }
+    };
+rejects(fn()=> $m14Pack->rules([$badActor([])]),InvalidArgumentException::class,
+    'M14 empty actor ownership policy rejected');
+rejects(fn()=> $m14Pack->rules([$badActor(['account','account'])]),InvalidArgumentException::class,
+    'M14 duplicate account ownership field rejected');
+rejects(fn()=> $m14Pack->rules([$badActor(['units'])]),InvalidArgumentException::class,
+    'M14 policy cannot masquerade an integer as an account identifier');
+rejects(fn()=> $m14Pack->rules([$badActor(['invented'])]),InvalidArgumentException::class,
+    'M14 undeclared ownership field rejected');
