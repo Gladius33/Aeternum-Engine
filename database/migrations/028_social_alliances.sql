@@ -22,7 +22,7 @@ CREATE TABLE engine_alliance_members (
 ) ENGINE=InnoDB;
 CREATE TABLE engine_alliance_invites (
  world_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
- alliance_id VARCHAR(64) CHARACTER ascii COLLATE ascii_bin NOT NULL,
+ alliance_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  invited_actor VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  invited_by VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  status VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'pending',
