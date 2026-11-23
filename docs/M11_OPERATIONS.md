@@ -73,6 +73,7 @@ Depuis une crontab privée, sous un compte restreint :
 
     php /chemin/prive/aeternum/bin/ops-cron.php
     php /chemin/prive/aeternum/bin/ops-status.php
+    php /chemin/prive/aeternum/bin/ops-alerts.php
 
 La commande CRON prend un verrou MariaDB GET_LOCK dérivé du nom de la base, et la concurrence rend skipped=already_running sans mutation. Une terminaison brutale de la connexion relâche le verrou serveur. Seuls les mondes approuvés existants sont traités ; limite de 16 mondes et 50 événements par monde, budget coopératif de 9 s par défaut, limite de 15 s dans le service. Les délais de verrou SQL, les interruptions et les E/S peuvent dépasser ce budget ; limiter aussi la durée au niveau de la crontab. Chaque purge est bornée à 100 éléments : sessions expirées, buckets anciens, invitations inutilisées, activations non confirmées. Les invitations consommées et journaux utiles au replay restent intacts. Conserver un NTP synchronisé : une horloge reculant sous le plancher du rate limiter provoque un refus contrôlé.
 
