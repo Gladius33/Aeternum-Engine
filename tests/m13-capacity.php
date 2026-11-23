@@ -64,10 +64,13 @@ declare(strict_types=1);
         // Reap any worker still running after an exception rather than leave
         // background processes modifying later fixture assumptions.
         foreach ($children as [$proc,$pipes]) {
+            // proc_close() invalidates the resource on successful workers.
+            // Only unreaped children need signalling and closing here.
+            if (!is_resource($proc)) continue;
             $status=proc_get_status($proc);
             if ($status['running']) proc_terminate($proc,9);
             foreach ([1,2] as $fd) if (is_resource($pipes[$fd])) fclose($pipes[$fd]);
-            if ($status['running']) proc_close($proc);
+            proc_close($proc);
         }
     }
 })();
