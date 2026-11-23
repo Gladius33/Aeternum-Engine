@@ -27,3 +27,37 @@ rejects(fn()=>GamePackLoader::load($ambiguous),JsonException::class,
     'M12 approved pack loading rejects ambiguous top-level rule identity');
 rejects(fn()=>WorldPackRegistry::load('{"registry_api":"1","registry_api":"1","worlds":[]}',__DIR__.'/fixtures/m02-packs'),
     JsonException::class,'M12 world registry rejects ambiguous configuration');
+
+// Deterministic property corpus: escaped aliases must collide at any nesting level,
+// whereas identical names in sibling objects are independent. No random seed or
+// external fuzzer is required to reproduce a failing case in CI.
+$aliases=[
+    ['plain'=>'a','escaped'=>'\u0061'],
+    ['plain'=>'slash/name','escaped'=>'slash\/name'],
+    ['plain'=>'é','escaped'=>'\u00e9'],
+    ['plain'=>'𝄞','escaped'=>'\ud834\udd1e'],
+    ['plain'=>'quote"key','escaped'=>'quote\"key'],
+    ['plain'=>'back\\slash','escaped'=>'back\\slash'],
+];
+$propertyCases=0;
+foreach ($aliases as $alias) {
+    $plain=json_encode($alias['plain'],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+    $escaped='"'.$alias['escaped'].'"';
+    // Check that the fixture itself represents the same decoded JSON key.
+    check(json_decode($plain,true,8,JSON_THROW_ON_ERROR)===json_decode($escaped,true,8,JSON_THROW_ON_ERROR),
+        'M12 escaped alias fixture decodes to identical key');
+    foreach ([0,1,2,3] as $nesting) {
+        $duplicate='{'.$plain.':1,'.$escaped.':2}';
+        $distinct='[{'.$plain.':1},{'.$escaped.':2}]';
+        for ($n=0;$n<$nesting;$n++) {
+            $duplicate='{"container":['.$duplicate.']}';
+            $distinct='{"container":['.$distinct.']}';
+        }
+        rejects(fn()=>StrictJson::decode($duplicate,true,16),JsonException::class,
+            'M12 property corpus rejects escaped alias at every nesting level');
+        check(StrictJson::decode($distinct,true,16)!==null,
+            'M12 property corpus accepts repeated keys in distinct objects');
+        $propertyCases+=2;
+    }
+}
+check($propertyCases===48,'M12 deterministic Unicode/escape/nesting property corpus completed');
