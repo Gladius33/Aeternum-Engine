@@ -1,0 +1,31 @@
+name: M13 release readiness contract
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: Assert manifest contract rejects missing evidence
+        run: |
+          php -l tools/m13-release-gate.php
+          php -l tests/m13-release-gate.php
+          php tests/m13-release-gate.php
+      - name: Check V1.0 remains blocked without acceptance
+        run: |
+          php tools/m13-release-gate.php > "$RUNNER_TEMP/m13.json"
+          php -r '$j=json_decode(file_get_contents($argv[1]),true,16,JSON_THROW_ON_ERROR); if ($j["metadata_complete"]!==false) exit(1); echo "PASS V1.0 is blocked pending release evidence";' "$RUNNER_TEMP/m13.json"
+          set +e
+          php tools/m13-release-gate.php --enforce > /dev/null
+          status=$?
+          set -e
+          test "$status" -eq 2

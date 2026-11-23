@@ -1,0 +1,57 @@
+{
+  "schema": "aeternum-m13-v1",
+  "release": "1.0.0",
+  "candidate_sha": null,
+  "gates": {
+    "G01": {
+      "result": "pending",
+      "evidence": []
+    },
+    "G02": {
+      "result": "pending",
+      "evidence": []
+    },
+    "G03": {
+      "result": "pending",
+      "evidence": []
+    },
+    "G04": {
+      "result": "pending",
+      "evidence": []
+    },
+    "G05": {
+      "result": "pending",
+      "evidence": []
+    },
+    "G06": {
+      "result": "pending",
+      "evidence": []
+    },
+    "G07": {
+      "result": "pending",
+      "evidence": []
+    },
+    "G08": {
+      "result": "pending",
+      "evidence": []
+    },
+    "G09": {
+      "result": "pending",
+      "evidence": []
+    }
+  },
+  "checks": {
+    "security_review": false,
+    "recovery_replay": false,
+    "load_limits": false,
+    "migration_compatibility": false,
+    "two_full_games": false,
+    "restore_drill": false,
+    "authorized_staging": false
+  },
+  "signoff": {
+    "operator": null,
+    "sha": null,
+    "at": null
+  }
+}
