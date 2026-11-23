@@ -68,7 +68,7 @@ async function changePasswordInBrowser(page,current,next,expectedStatus) {
 }
 
 async function marketPage(page) {
-    const received=page.waitForResponse(r=>r.url().endsWith('/economy/market') && r.request().method()==='GET',{timeout:15000});
+    const received=page.waitForResponse(r=>(r.url().endsWith('/economy/market') || r.url().includes('/economy/market/search/')) && r.request().method()==='GET',{timeout:15000});
     await page.getByRole('button',{name:'Reload market',exact:true}).click();
     const response=await received;
     expect(response.status()).toBe(200);
