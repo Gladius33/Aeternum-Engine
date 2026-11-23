@@ -28,7 +28,7 @@ final class PlayerDiscoveryApi
             $query->execute([$world,$actor]);
             $accounts=$query->fetchAll(PDO::FETCH_COLUMN);
             if (!$accounts) continue;
-            $worlds[]=['world'=>$world,'pack'=>$pack->id,'name'=>$pack->name,'settlementEnabled'=>$pack->settlement!==null,'accounts'=>array_slice($accounts,0,100),'truncated'=>count($accounts)>100,'resources'=>array_map(static fn($r)=>$r->id,array_values($pack->resources))];
+            $worlds[]=['world'=>$world,'pack'=>$pack->id,'name'=>$pack->name,'settlementEnabled'=>$pack->settlement!==null,'industryEnabled'=>$pack->industry!==null,'accounts'=>array_slice($accounts,0,100),'truncated'=>count($accounts)>100,'resources'=>array_map(static fn($r)=>$r->id,array_values($pack->resources))];
         }
         return [200,['data'=>['worlds'=>$worlds]]];
     }
