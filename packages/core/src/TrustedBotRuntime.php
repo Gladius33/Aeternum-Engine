@@ -3,8 +3,8 @@ declare(strict_types=1);
 namespace Aeternum\Core;
 
 /**
- * Explicitly operator-controlled automated actor tick: one read + at most
- * one command, both through EconomyHttpApi using a normal actor session.
+ * Explicitly operator-controlled automated actor tick: up to two reads
+ * (own receipt and overview) and at most one command through EconomyHttpApi.
  *
  * This is NOT a sandbox for user-uploaded scripts or a bot account manager.
  */
@@ -37,6 +37,17 @@ final readonly class TrustedBotRuntime
         if ($now<0) throw new \DomainException('Invalid logical bot clock');
         $tick=intdiv($now,self::TICK_SECONDS);
         $prefix='/v1/worlds/'.$world.'/economy/';
+        // Check durable command identity before choosing from mutable state.
+        // Survives restarts and strategy changes; preserves same-tick quotas.
+        $commandId='bot-'.hash('sha256',implode("\0",[
+            $world,$account,$resource,(string)$tick
+        ]));
+        [$receiptCode,]=$this->api->handle('GET',
+            $prefix.'bot-receipts/'.$account.'/'.$resource.'/'.$commandId,$bearer);
+        if ($receiptCode===200) {
+            return ['status'=>'submitted','code'=>200,'commandId'=>$commandId];
+        }
+        if ($receiptCode!==404) return ['status'=>'blocked','code'=>$receiptCode];
         [$readCode,$read]=$this->api->handle('GET',
             $prefix.'overview/'.$account.'/'.$resource,$bearer);
         if ($readCode!==200) return ['status'=>'blocked','code'=>$readCode];
@@ -46,11 +57,7 @@ final readonly class TrustedBotRuntime
             || $plan->payload['resource']!==$resource) {
             throw new \DomainException('Bot attempted foreign or unapproved action');
         }
-        // Replay-stable ID does NOT include strategy code. A changed strategy
-        // during one tick cannot obtain a second command id to bypass quotas.
-        $commandId='bot-'.hash('sha256',implode("\0",[
-            $world,$account,$resource,(string)$tick
-        ]));
+        // Concurrent runners share this ID: the journal deduplicates their POST.
         [$code,]=$this->api->handle('POST',$prefix.'commands',$bearer,
             json_encode([
                 'id'=>$commandId,

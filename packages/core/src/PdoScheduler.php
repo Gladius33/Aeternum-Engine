@@ -971,6 +971,49 @@ final class PdoScheduler
         });
     }
 
+
+    /**
+     * Durable bot command receipt, scoped to an authenticated actor, their
+     * account and resource. World locking serializes it with command inserts.
+     * No private world snapshot or another actor's receipt is ever returned.
+     */
+    public function botReceiptForActor(
+        string $actor,string $account,string $resource,string $requestId
+    ): ?ActorReceipt {
+        PdoMemberships::validateId($actor);
+        PdoMemberships::validateId($account);
+        PdoMemberships::validateId($resource);
+        if (!preg_match('/^bot-[a-f0-9]{64}$/D',$requestId)) {
+            throw new \InvalidArgumentException('Invalid bot receipt identifier');
+        }
+        if ($this->rules===null || $this->processing) {
+            throw new \DomainException('Bot receipt read requires pinned rules');
+        }
+        return $this->transaction(function () use (
+            $actor,$account,$resource,$requestId
+        ): ?ActorReceipt {
+            $this->lockedWorld();
+            $this->assertActiveActor($actor);
+            $this->assertAccountOwner($account,$actor);
+            $scoped='actor:'.hash('sha256',
+                json_encode([$actor,$requestId],JSON_THROW_ON_ERROR));
+            $row=$this->query('SELECT command_type,payload_json,effective_at,scheduled_ids_json
+                FROM engine_commands WHERE world_id=? AND command_id=?
+                    AND actor_id=? AND client_request_id=?',
+                [$this->worldId,$scoped,$actor,$requestId])->fetch(PDO::FETCH_ASSOC);
+            if ($row===false) return null;
+            $payload=ScalarMap::decode($row['payload_json']);
+            if (!in_array($row['command_type'],['economy.settle','economy.upgrade'],true)
+                || count($payload)!==2
+                || ($payload['account']??null)!==$account
+                || ($payload['resource']??null)!==$resource) {
+                return null;
+            }
+            return new ActorReceipt($requestId,(int)$row['effective_at'],
+                json_decode($row['scheduled_ids_json'],true,512,JSON_THROW_ON_ERROR));
+        });
+    }
+
     public function state(): array
     {
         $json = $this->query('SELECT state_json FROM engine_worlds WHERE world_id = ? AND rules_key = ?', [$this->worldId,$this->rulesKey()])->fetchColumn();
