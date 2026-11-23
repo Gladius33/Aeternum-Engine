@@ -34,6 +34,7 @@
     }
     const label = document.getElementById('locale-label');
     if (label) label.textContent = messages[locale].language;
+    window.dispatchEvent(new CustomEvent('aeternum:localechange', {detail:{locale}}));
     return true;
   }
   const select = document.getElementById('locale-select');
