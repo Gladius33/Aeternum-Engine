@@ -8,7 +8,7 @@ final class EconomyHttpApi
     public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly array $rules) {}
     public function handle(string $method,string $path,string $authorization,string $body=''): array
     {
-        if (!preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/economy/(commands|market(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?|(?:balances|overview)/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/([A-Za-z0-9][A-Za-z0-9_-]{0,63})|market/search/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/([A-Za-z0-9][A-Za-z0-9_-]{0,63})(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?)$~D',$path,$m)) return [404,['error'=>'not_found']];
+        if (!preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/economy/(commands|market(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?|(?:balances|overview)/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/([A-Za-z0-9][A-Za-z0-9_-]{0,63})|market/search/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/([A-Za-z0-9][A-Za-z0-9_-]{0,63})(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?)$~D',$path,$m,PREG_UNMATCHED_AS_NULL)) return [404,['error'=>'not_found']];
         $command=$m[2]==='commands';
         if ($method!==($command?'POST':'GET')) return [405,['error'=>'method_not_allowed']];
         if (!preg_match('/^Bearer ([a-f0-9]{64})$/D',$authorization,$token)) return [401,['error'=>'unauthorized']];
