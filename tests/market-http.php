@@ -36,6 +36,9 @@ check($mhCreated[0]===200 && $mhPost('seller','create','market.create',$mhTerms)
 $mhPage=$mhGet('buyer');
 check($mhPage[0]===200 && $mhPage[1]['data']===['offers'=>[['id'=>'offer-a','seller'=>'seller','giveResource'=>'ore','wantResource'=>'coin','giveUnits'=>15,'wantUnits'=>10]],'nextAfter'=>null],'market HTTP public terms only');
 check($mhGet('buyer','market/offer-a')[1]['data']['offers']===[],'market HTTP cursor excludes previous offer');
+check($mhGet('buyer','market/search/ore/coin')[1]['data']['offers'][0]['id']==='offer-a','market HTTP search matches resource pair');
+check($mhGet('buyer','market/search/coin/ore')[1]['data']['offers']===[],'market HTTP search excludes reverse pair');
+check($mhGet('buyer','market/search/ore/coin/offer-a')[1]['data']['offers']===[],'market HTTP filtered cursor is exclusive');
 $mhMembers->revoke($mhActors['seller']);
 check($mhGet('buyer')[1]['data']['offers']===[],'market HTTP hides revoked seller');
 check($mhGet('seller')[0]===409,'market HTTP denies revoked member');

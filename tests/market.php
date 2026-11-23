@@ -64,6 +64,10 @@ foreach (['p2'=>'s','p1'=>'s','p3'=>'o'] as $offer=>$seller) {
     $market->executeForActor($seller==='s'?'seller':'other',$marketCmd('create-'.$offer,'create',['offer'=>$offer,'seller'=>$seller,'giveResource'=>'ore','giveUnits'=>1,'wantResource'=>'coin','wantUnits'=>1]),$marketEcon);
 }
 $beforeView=$market->state();
+check(array_column($market->marketForActor('buyer',null,2,'ore','coin')['offers'],'id')===['p1','p2'],'market filtered pagination first page');
+check(array_column($market->marketForActor('buyer','p2',2,'ore','coin')['offers'],'id')===['p3'],'market filtered pagination second page');
+check($market->marketForActor('buyer',null,2,'coin','ore')['offers']===[],'market filter excludes reversed pair');
+rejects(fn()=> $market->marketForActor('buyer',null,2,'invalid:resource'),InvalidArgumentException::class,'market filter rejects malformed resource');
 $pageOne=$market->marketForActor('buyer',null,2);
 check(array_column($pageOne['offers'],'id')===['p1','p2'] && $pageOne['nextAfter']==='p2','market view stable first page');
 $pageTwo=$market->marketForActor('buyer',$pageOne['nextAfter'],2);

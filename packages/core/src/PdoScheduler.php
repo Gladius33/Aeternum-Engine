@@ -554,13 +554,15 @@ final class PdoScheduler
     }
 
     /** Read committed market terms only, never private world state. */
-    public function marketForActor(string $actor,?string $after=null,int $limit=50): array
+    public function marketForActor(string $actor,?string $after=null,int $limit=50,?string $give=null,?string $want=null): array
     {
         PdoMemberships::validateId($actor);
         MarketProjection::validatePage($after,$limit);
+        MarketProjection::validateResourceFilter($give);
+        MarketProjection::validateResourceFilter($want);
         if ($this->rules===null || !$this->rules->commands instanceof EconomyCommandHandler) throw new \DomainException('Market requires pinned economy rules');
         if ($this->processing) throw new \LogicException('Reentrant mutation prohibited');
-        return $this->transaction(function () use ($actor,$after,$limit): array {
+        return $this->transaction(function () use ($actor,$after,$limit,$give,$want): array {
             if ($this->hasProjection()) {
                 // Normal SQL listing is an MVCC read; it does not lock the
                 // entire world or enumerate full JSON state. Only the initial
@@ -582,7 +584,7 @@ final class PdoScheduler
                 if ($now<0 || $now<(int)$row['watermark']) {
                     throw new \DomainException('Clock precedes committed logical time');
                 }
-                return (new PdoEconomyProjection($this->pdo,$this->worldId))->marketPage($after,$limit,$now);
+                return (new PdoEconomyProjection($this->pdo,$this->worldId))->marketPage($after,$limit,$now,$give,$want);
             }
             $world=$this->lockedWorld();
             $this->assertActiveActor($actor);
@@ -591,7 +593,7 @@ final class PdoScheduler
             if ($accounts===[]) return ['offers'=>[],'nextAfter'=>null];
             $slots=implode(',',array_fill(0,count($accounts),'?'));
             $active=$this->query('SELECT o.account_id FROM engine_account_owners o JOIN engine_memberships m ON m.world_id=o.world_id AND m.actor_id=o.actor_id WHERE o.world_id=? AND m.active=1 AND o.account_id IN ('.$slots.')',[$this->worldId,...$accounts])->fetchAll(PDO::FETCH_COLUMN);
-            return MarketProjection::page($offers,$active,$after,$limit);
+            return MarketProjection::page($offers,$active,$after,$limit,$give,$want);
         });
     }
 

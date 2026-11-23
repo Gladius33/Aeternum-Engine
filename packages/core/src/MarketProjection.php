@@ -12,6 +12,13 @@ final class MarketProjection
         }
     }
 
+    public static function validateResourceFilter(?string $resource): void
+    {
+        if ($resource!==null && !preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/D',$resource)) {
+            throw new \InvalidArgumentException('Invalid market resource filter');
+        }
+    }
+
     public static function openOffers(array $state): array
     {
         $offers=[];
@@ -35,14 +42,16 @@ final class MarketProjection
         return $offers;
     }
 
-    public static function page(array $offers,array $activeAccounts,?string $after=null,int $limit=50): array
+    public static function page(array $offers,array $activeAccounts,?string $after=null,int $limit=50,?string $give=null,?string $want=null): array
     {
         self::validatePage($after,$limit);
+        self::validateResourceFilter($give);
+        self::validateResourceFilter($want);
         $active=[];
         foreach ($activeAccounts as $account) $active['a:'.$account]=true;
         $page=[];
         foreach ($offers as $offer) {
-            if (($after!==null && strcmp($offer['id'],$after)<=0) || !isset($active['a:'.$offer['seller']])) continue;
+            if (($after!==null && strcmp($offer['id'],$after)<=0) || !isset($active['a:'.$offer['seller']]) || ($give!==null && $offer['giveResource']!==$give) || ($want!==null && $offer['wantResource']!==$want)) continue;
             $page[]=$offer;
             if (count($page)>$limit) break;
         }
