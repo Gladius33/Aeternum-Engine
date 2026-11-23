@@ -158,4 +158,34 @@ check($ri->fetchColumn()==='accepted',
 check($sget($sr,$swA,'alliances/racecrew')[0]===200,
     'M09 committed concurrent membership is visible after reconnect');
 
+$createContenders=[$so,$sf,$sg,$sr];
+$createProcesses=[];
+foreach($createContenders as $contender) {
+    $env=getenv();
+    $env['AETERNUM_M09_ACTION']='create';
+    $child=proc_open([PHP_BINARY,__DIR__.'/m09-social-worker.php',$swA,'shared-create-race',$contender],
+        [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$streams,null,$env);
+    if (!is_resource($child)) throw new RuntimeException('M09 rival creator worker unavailable');
+    $createProcesses[]=[$child,$streams];
+}
+foreach ($createProcesses as [, $streams]) { fwrite($streams[0],"go\n"); fclose($streams[0]); }
+$created=0;$denied=0;
+foreach ($createProcesses as [$proc,$streams]) {
+    $output=trim((string)stream_get_contents($streams[1]));
+    $error=trim((string)stream_get_contents($streams[2]));
+    fclose($streams[1]);fclose($streams[2]);
+    if(proc_close($proc)!==0) throw new RuntimeException('M09 rival create worker: '.$error);
+    if($output==='created') ++$created;
+    elseif($output==='denied') ++$denied;
+    else throw new RuntimeException('Unexpected rival creation worker response: '.$output);
+}
+check($created===1 && $denied===3,
+    'M09 four independent rival founders commit exactly one creation');
+$creatorCount=db()->prepare('SELECT COUNT(*) FROM engine_alliance_members
+    WHERE world_id=? AND alliance_id=? AND role=?');
+$creatorCount->execute([$swA,'shared-create-race','owner']);
+check((int)$creatorCount->fetchColumn()===1,
+    'M09 rival creation retains one authoritative alliance owner');
+
+
 })();
