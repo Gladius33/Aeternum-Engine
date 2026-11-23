@@ -9,7 +9,7 @@ cleanup() {
   rm -rf "$tmp"
 }
 trap cleanup EXIT
-php -S "127.0.0.1:$port" -t public public/index.php >"$tmp/server.log" 2>&1 &
+php -S "127.0.0.1:$port" -t "$PWD/public" "$PWD/public/index.php" >"$tmp/server.log" 2>&1 &
 server_pid=$!
 ready=0
 for i in $(seq 1 40); do
@@ -21,7 +21,7 @@ test "$ready" -eq 1
 for route in /v1/auth/login /v1/worlds/example/economy/commands /v1/public/worlds; do
   curl -sS --max-time 5 -D "$tmp/headers" -o "$tmp/body" -X POST "http://127.0.0.1:$port$route"
   status="$(head -n 1 "$tmp/headers")"
-  [[ "$status" == *" 403 "* ]] || { echo "Expected HTTP 403: $status" >&2; exit 1; }
+  [[ "$status" == *" 403 "* ]] || { echo "Expected HTTP 403: $status" >&2; cat "$tmp/server.log" >&2; exit 1; }
   grep -Fxq '{"error":"https_required"}' "$tmp/body"
   grep -Eiq '^cache-control: no-store, private' "$tmp/headers"
   grep -Eiq '^x-content-type-options: nosniff' "$tmp/headers"
