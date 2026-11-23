@@ -44,7 +44,7 @@ $cmd=new Command('m15-simulation','challenge1','pack.guild.challenge',
 check($m15Guarded->commands->engagementTarget($cmd)==='defender'
     && $m15Guarded->commands->actorPackAccounts($cmd)===['attacker'],
     'M15 approved handler identifies independent authenticated source and target');
-$m15Guarded->commands->assertEngagement($cmd,$state,'attacker','defender');
+$m15Guarded->commands->assertEngagement($cmd,$state,'attacker','defender',100);
 $m15SimResult=$m15Guarded->commands->apply($cmd,$state,100)->state;
 check(($m15SimResult['guild:challenge:attacker:defender']??null)===1
     && ($m15SimResult['build:max:attacker:watchtower']??null)===1,
