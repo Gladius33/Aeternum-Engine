@@ -16,15 +16,19 @@ final class WorldBuildingHttpApi
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/settlement/status/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
             $path,$match
         )===1;
-        $isOptions=!$isStatus && preg_match(
+        $isIndustry=preg_match(
+            '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/industrial/status/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
+            $path,$match
+        )===1;
+        $isOptions=!$isStatus && !$isIndustry && preg_match(
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/construction/options$~D',
             $path,$match
         )===1;
         $isProgress=false;
-        if (!$isOptions && !$isStatus) {
+        if (!$isOptions && !$isStatus && !$isIndustry) {
             $isProgress=preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/construction/progression$~D',$path,$match)===1;
         }
-        if (!$isStatus && !$isOptions && !$isProgress && !preg_match(
+        if (!$isStatus && !$isIndustry && !$isOptions && !$isProgress && !preg_match(
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/buildings/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
             $path,$match
         )) return [404,['error'=>'not_found']];
@@ -41,6 +45,12 @@ final class WorldBuildingHttpApi
                 $pack=$this->worlds[$match[1]];
                 if (!$pack instanceof GamePack || $pack->settlement===null) return [404,['error'=>'not_found']];
                 return [200,['data'=>(new PdoSettlementStatus($this->pdo,$match[1],$pack->rules(),$pack->settlement))
+                    ->forActor($actor,$match[2])]];
+            }
+            if ($isIndustry) {
+                $pack=$this->worlds[$match[1]];
+                if (!$pack instanceof GamePack || $pack->industry===null) return [404,['error'=>'not_found']];
+                return [200,['data'=>(new PdoIndustryStatus($this->pdo,$match[1],$pack->rules(),$pack->industry))
                     ->forActor($actor,$match[2])]];
             }
             $service=new PdoBuildings($this->pdo,$match[1]);
