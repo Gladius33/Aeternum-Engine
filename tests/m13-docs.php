@@ -28,8 +28,8 @@ foreach ($docs as $relative) {
     echo "PASS M13 documentation: $relative\n";
 }
 $manifest=json_decode(file_get_contents($repo.'/docs/release-evidence-v1.json'),true,16,JSON_THROW_ON_ERROR);
-if (($manifest['candidate_sha']??'NOT_NULL')!==null
-    || ($manifest['signoff']['operator']??'NOT_NULL')!==null
+if (!array_key_exists('candidate_sha',$manifest) || $manifest['candidate_sha']!==null
+    || !array_key_exists('operator',$manifest['signoff']??[]) || $manifest['signoff']['operator']!==null
     || count($manifest['gates']??[])!==9
     || in_array(true,$manifest['checks']??[],true))
     throw new RuntimeException('Committed template must remain explicitly non-authorizing');
