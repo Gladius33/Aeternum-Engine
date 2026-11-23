@@ -155,5 +155,30 @@ $freightAfter=$industrialStore->state();
 check($industrialStore->verifyReplay($industrialRules->commands,$industrialRules->events)->entries>=20
     && $industrialStore->state()===$freightAfter,
     'M06 contended freight remains deterministic after journal replay');
+// Negative energy/capacity scenarios are evaluated by the SAME trusted engine
+// against intentionally corrupted copies of state. No test stock injection is
+// committed, and unsuccessful actions must never mutate the canonical world.
+$blackout=$freightAfter;
+$blackout['build:max:'.$industrialA.':power_plant']=0;
+rejects(fn()=> $industrialRules->commands->apply(new Command(
+    $industrialWorld,'m06-blackout','industry.refine',['account'=>$industrialA]),
+    $blackout,1056),DomainException::class,
+    'M06 insufficient grid capacity blocks manufacturing');
+$warehouseFull=$freightAfter;
+$warehouseFull['econ:'.$industrialA.':goods:stock']=120;
+rejects(fn()=> $industrialRules->commands->apply(new Command(
+    $industrialWorld,'m06-full-storage','industry.refine',['account'=>$industrialA]),
+    $warehouseFull,1056),DomainException::class,
+    'M06 full warehouse rejects excess production before credit');
+$powerEmpty=$freightAfter;
+$powerEmpty['econ:'.$industrialA.':energy:stock']=0;
+$powerEmpty['econ:'.$industrialA.':energy:at']=1056;
+$powerEmpty['econ:'.$industrialA.':energy:remainder']=0;
+rejects(fn()=> $industrialRules->commands->apply(new Command(
+    $industrialWorld,'m06-empty-power','industry.ship',['account'=>$industrialA]),
+    $powerEmpty,1056),DomainException::class,
+    'M06 freight refuses insufficient energy inventory');
+check($industrialStore->state()===$freightAfter,
+    'M06 rejected grid, warehouse and energy operations never change durable state');
 unset($industrialCommand,$industrialPlace,$industrialStart,$industrialAdvance,$industrialStore,
     $industrialBuildings,$industrialStatus,$industrialApi,$industrialProvision,$industrialIds);
