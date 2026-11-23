@@ -92,7 +92,7 @@ use Aeternum\Core\{Command,CommandResult,EconomyHttpApi,EngagementActorPackComma
         'M15 server blocks stronger actor targeting a weaker player after upgrade');
     check($send($tokenB,'m15-bob-target-self','pack.guild.challenge',
         ['account'=>$bob,'target'=>$bob])===409,
-        'M15 policy refuses targeting a player's own account');
+        'M15 policy refuses targeting an account owned by the actor');
     $state=$scheduler->state();
     check(($state['guild:challenge:'.$alice.':'.$bob]??null)===2,
         'M15 refused engagement does not change authorized challenge count');
