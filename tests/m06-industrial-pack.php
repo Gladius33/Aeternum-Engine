@@ -34,3 +34,32 @@ $bad=json_decode($progressBytes,false,32,JSON_THROW_ON_ERROR);
 $bad->buildings[0]->stages[0]->duration=0;
 rejects(fn()=>GamePackLoader::load(json_encode($bad,JSON_THROW_ON_ERROR)),
     InvalidArgumentException::class,'M06 zero-duration construction rejected');
+
+$campaignBytes=file_get_contents($root.'/reference-industrial/versions/0.3.0/manifest.json');
+$campaign=GamePackLoader::load($campaignBytes);
+check($campaign->version==='0.3.0' && $campaign->industry!==null
+    && $campaign->industry->deliveryGoal===45
+    && $progress->industry===null && $legacy->industry===null,
+    'M06 0.3.0 enables immutable industry rules without changing historical packs');
+check($campaign->rules()->key!==$progress->rules()->key
+    && count($campaign->resources)===3,
+    'M06 industry rules and new goods resource are pinned independently');
+$bad=json_decode($campaignBytes,false,32,JSON_THROW_ON_ERROR);
+$bad->industry->energy_resource='coal';
+rejects(fn()=>GamePackLoader::load(json_encode($bad,JSON_THROW_ON_ERROR)),
+    InvalidArgumentException::class,'M06 unknown electrical resource rejected');
+$bad=json_decode($campaignBytes,false,32,JSON_THROW_ON_ERROR);
+$bad->industry->delivery_goal=0;
+rejects(fn()=>GamePackLoader::load(json_encode($bad,JSON_THROW_ON_ERROR)),
+    InvalidArgumentException::class,'M06 invalid delivery goal rejected');
+$bad=json_decode($campaignBytes,false,32,JSON_THROW_ON_ERROR);
+$bad->industry->warehouse_per_level=600;
+rejects(fn()=>GamePackLoader::load(json_encode($bad,JSON_THROW_ON_ERROR)),
+    InvalidArgumentException::class,'M06 impossible warehouse bound rejected');
+$bad=json_decode($campaignBytes,false,32,JSON_THROW_ON_ERROR);
+$bad->industry->victory_levels->freight_terminal=2;
+rejects(fn()=>GamePackLoader::load(json_encode($bad,JSON_THROW_ON_ERROR)),
+    InvalidArgumentException::class,'M06 unattainable terminal level rejected');
+rejects(fn()=> $legacy->rules()->commands->apply(
+    new \Aeternum\Core\Command('old-industry','unapproved-action','industry.ship',['account'=>'player']),[],100
+),DomainException::class,'M06 old pinned industrial worlds reject all new logistics commands');
