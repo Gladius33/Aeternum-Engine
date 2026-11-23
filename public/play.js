@@ -323,6 +323,7 @@ function selectWorld() {
     clearRecipients();
     clearMarket();
     clearMap();
+    clearSocial();
     resetMedieval();
     resetIndustrial();
     medievalPanel.hidden=w?.settlementEnabled!==true;
@@ -692,6 +693,352 @@ retryCommand.addEventListener('click',()=>run(async()=>{
     stock.replaceChildren();
     clearMarketPage('Saved action confirmed. Reload stock and offers.');
 }));
+
+const socialDirectory=document.querySelector('#social-directory');
+const socialMembers=document.querySelector('#social-member-list');
+const socialInbox=document.querySelector('#social-inbox');
+const socialNotice=document.querySelector('#social-notice');
+let socialMessageAfter=null, socialNotificationAfter=null;
+let socialDirectoryAfter=null, socialRosterAfter=null, socialInviteAfter=null;
+let socialBlocksAfter=null, socialLeaderboardAfter=null;
+let socialMessageGeneration=0, socialNotificationGeneration=0;
+let socialDirectoryGeneration=0, socialRosterGeneration=0, socialInviteGeneration=0;
+let socialBlocksGeneration=0, socialLeaderboardGeneration=0;
+function clearSocial() {
+    // Invalidate an outstanding API result when the player switches worlds
+    // or signs out; old private pages must never repaint a new session.
+    socialMessageAfter=null;socialNotificationAfter=null;
+    socialDirectoryAfter=null;socialRosterAfter=null;socialInviteAfter=null;
+    socialBlocksAfter=null;socialLeaderboardAfter=null;
+    ++socialMessageGeneration;++socialNotificationGeneration;
+    ++socialDirectoryGeneration;++socialRosterGeneration;++socialInviteGeneration;
+    ++socialBlocksGeneration;++socialLeaderboardGeneration;
+    for (const id of ['social-messages-next','social-notifications-next',
+        'social-directory-next','social-members-next','social-inbox-next',
+        'social-blocks-next','social-leaderboard-next']) {
+        document.getElementById(id).hidden=true;
+    }
+    socialDirectory.replaceChildren();
+    socialMembers.replaceChildren();
+    for (const listId of ['social-messages-list','social-block-list','social-notifications-list','social-leaderboard-list']) {
+        document.getElementById(listId).replaceChildren();
+    }
+    options(document.getElementById('social-notification-id'),[['','Select notification']]);
+    document.getElementById('social-mail-notice').textContent='';
+    options(socialInbox,[['','No invitation selected']]);
+    socialNotice.textContent='';
+    for (const id of ['social-alliance-id','social-invite-actor','social-role-actor']) {
+        document.getElementById(id).value='';
+    }
+}
+function socialRoot() {
+    const world=balance.elements.world.value;
+    if (!world) throw new Error('Choose a world first');
+    return '/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/social';
+}
+function socialAllianceId() {
+    const id=document.querySelector('#social-alliance-id').value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)) throw new Error('Enter a valid alliance ID');
+    return id;
+}
+function socialActor(id) {
+    const actor=document.getElementById(id).value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(actor)) throw new Error('Enter a valid actor ID');
+    return actor;
+}
+async function socialLoadDirectory(older=false) {
+    const root=socialRoot(), world=balance.elements.world.value,
+        previous=older?socialDirectoryAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialDirectoryGeneration;
+    const data=await api(root+'/alliances'+(previous===null?'':'/page/'+encodeURIComponent(previous)));
+    if (world!==balance.elements.world.value || generation!==socialDirectoryGeneration) return;
+    if (!older) socialDirectory.replaceChildren();
+    for (const alliance of data.alliances) {
+        const item=document.createElement('li'),button=document.createElement('button');
+        button.type='button';button.textContent='Inspect '+alliance.id;
+        button.addEventListener('click',()=>run(async()=>{
+            document.getElementById('social-alliance-id').value=alliance.id;
+            await socialLoadDetail();
+        }));
+        item.append(document.createTextNode(alliance.name+' ('+alliance.members+') '),button);
+        socialDirectory.append(item);
+    }
+    socialDirectoryAfter=data.nextAfter;
+    document.getElementById('social-directory-next').hidden=socialDirectoryAfter===null;
+    socialNotice.textContent=socialDirectoryAfter===null?
+        'Alliance directory loaded.':'More alliances available.';
+}
+async function socialLoadDetail(older=false) {
+    const root=socialRoot(),world=balance.elements.world.value,id=socialAllianceId(),
+        previous=older?socialRosterAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialRosterGeneration;
+    const path='/alliances/'+encodeURIComponent(id)+
+        (previous===null?'':'/members/page/'+encodeURIComponent(previous));
+    const data=await api(root+path);
+    if (world!==balance.elements.world.value || generation!==socialRosterGeneration ||
+        id!==socialAllianceId()) return;
+    if (!older) socialMembers.replaceChildren();
+    for (const member of data.members) {
+        const item=document.createElement('li');
+        item.textContent=member.actor+' — '+member.role;
+        socialMembers.append(item);
+    }
+    socialRosterAfter=data.nextAfter;
+    document.getElementById('social-members-next').hidden=socialRosterAfter===null;
+    socialNotice.textContent=data.name+' — '+data.role;
+}
+async function socialLoadInbox(older=false) {
+    const root=socialRoot(),world=balance.elements.world.value,
+        previous=older?socialInviteAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialInviteGeneration;
+    const data=await api(root+'/invitations'+
+        (previous===null?'':'/page/'+encodeURIComponent(previous)));
+    if (world!==balance.elements.world.value || generation!==socialInviteGeneration) return;
+    if (!older) options(socialInbox,[['','No invitation selected']]);
+    for (const invitation of data.invitations) {
+        const option=document.createElement('option');
+        option.value=invitation.alliance;
+        option.textContent=invitation.name+' — '+invitation.invitedBy;
+        socialInbox.append(option);
+    }
+    socialInviteAfter=data.nextAfter;
+    document.getElementById('social-inbox-next').hidden=socialInviteAfter===null;
+    socialNotice.textContent=(socialInbox.options.length-1)+' pending invitations loaded.';
+}
+document.getElementById('social-directory-next').addEventListener('click',
+    ()=>run(()=>socialLoadDirectory(true)));
+document.getElementById('social-members-next').addEventListener('click',
+    ()=>run(()=>socialLoadDetail(true)));
+document.getElementById('social-inbox-next').addEventListener('click',
+    ()=>run(()=>socialLoadInbox(true)));
+async function socialAction(path,payload) {
+    await api(socialRoot()+path,'POST',payload);
+    socialNotice.textContent='Social action confirmed.';
+}
+document.querySelector('#social-directory-load').addEventListener('click',()=>run(socialLoadDirectory));
+document.querySelector('#social-inbox-load').addEventListener('click',()=>run(socialLoadInbox));
+document.querySelector('#social-detail-form').addEventListener('submit',event=>{
+    event.preventDefault();run(socialLoadDetail);
+});
+document.querySelector('#social-create').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        const id=document.getElementById('social-new-id').value.trim(),
+              name=document.getElementById('social-new-name').value.trim();
+        await socialAction('/alliances',{id,name});
+        document.getElementById('social-alliance-id').value=id;
+        await socialLoadDirectory();
+        await socialLoadDetail();
+    });
+});
+document.querySelector('#social-invite-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        await socialAction('/alliances/'+encodeURIComponent(socialAllianceId())+'/invite',
+            {actor:socialActor('social-invite-actor')});
+        await socialLoadDetail();
+    });
+});
+document.querySelector('#social-role-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        const alliance=socialAllianceId();
+        await socialAction('/alliances/'+encodeURIComponent(alliance)+'/role',{
+            actor:socialActor('social-role-actor'),role:document.getElementById('social-role-choice').value
+        });
+        await socialLoadDetail();
+    });
+});
+document.querySelector('#social-owner-transfer').addEventListener('click',()=>run(async()=>{
+    const alliance=socialAllianceId();
+    await socialAction('/alliances/'+encodeURIComponent(alliance)+'/owner',
+        {actor:socialActor('social-role-actor')});
+    await socialLoadDetail();
+}));
+document.querySelector('#social-owner-recover').addEventListener('click',()=>run(async()=>{
+    await socialAction('/alliances/'+encodeURIComponent(socialAllianceId())+'/recover',{});
+    await socialLoadDetail();
+}));
+document.querySelector('#social-member-remove').addEventListener('click',()=>run(async()=>{
+    const alliance=socialAllianceId();
+    await socialAction('/alliances/'+encodeURIComponent(alliance)+'/remove',
+        {actor:socialActor('social-role-actor')});
+    await socialLoadDetail();
+}));
+document.querySelector('#social-leave').addEventListener('click',()=>run(async()=>{
+    const alliance=socialAllianceId();
+    await socialAction('/alliances/'+encodeURIComponent(alliance)+'/leave',{});
+    socialMembers.replaceChildren();
+}));
+for (const [selector,accepted] of [['#social-accept',true],['#social-decline',false]]) {
+    document.querySelector(selector).addEventListener('click',()=>run(async()=>{
+        const alliance=socialInbox.value;
+        if (!alliance) throw new Error('Select an invitation');
+        await socialAction('/alliances/'+encodeURIComponent(alliance)+'/respond',{accept:accepted});
+        if (accepted) document.getElementById('social-alliance-id').value=alliance;
+        await socialLoadInbox();
+        if (accepted) await socialLoadDetail();
+    }));
+}
+
+
+async function socialRefreshMessages(older=false) {
+    const world=balance.elements.world.value,root=socialRoot(),
+        previous=older?socialMessageAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialMessageGeneration;
+    const nextButton=document.getElementById('social-messages-next');
+    nextButton.disabled=true;
+    try {
+        const path=previous===null?'/messages':
+            '/messages/page/'+previous.createdAt+'/'+encodeURIComponent(previous.id);
+        const data=await api(root+path);
+        if (balance.elements.world.value!==world || generation!==socialMessageGeneration) return;
+        const list=document.getElementById('social-messages-list');
+        if (!older) list.replaceChildren();
+        for (const message of data.messages) {
+            const li=document.createElement('li'),report=document.createElement('button');
+            li.append(document.createTextNode(message.from+' — '+message.text+' ('+message.id+') '));
+            report.type='button';report.textContent='Report this message';
+            report.addEventListener('click',()=>{
+                document.getElementById('social-report-id').value=message.id;
+                document.getElementById('social-report-reason').focus();
+            });
+            li.append(report);
+            list.append(li);
+        }
+        socialMessageAfter=data.nextAfter;
+        nextButton.hidden=socialMessageAfter===null;
+        document.getElementById('social-mail-notice').textContent=socialMessageAfter===null?
+            'All visible messages loaded.':'Older messages available.';
+    } finally {
+        if (generation===socialMessageGeneration) nextButton.disabled=false;
+    }
+}
+document.getElementById('social-messages-next').addEventListener('click',
+    ()=>run(()=>socialRefreshMessages(true)));
+document.getElementById('social-send-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        const recipient=socialActor('social-recipient'),
+            text=document.getElementById('social-message-text').value;
+        const messageId=crypto.randomUUID();
+        await socialAction('/messages',{id:messageId,recipient,text});
+        document.getElementById('social-message-text').value='';
+        document.getElementById('social-mail-notice').textContent='Message sent.';
+    });
+});
+document.getElementById('social-messages-refresh').addEventListener('click',()=>run(socialRefreshMessages));
+document.getElementById('social-block-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        await socialAction('/blocks',{actor:socialActor('social-block-target')});
+        await socialRefreshBlocks();await socialRefreshMessages();
+    });
+});
+document.getElementById('social-unblock').addEventListener('click',()=>run(async()=>{
+    await socialAction('/blocks/remove',{actor:socialActor('social-block-target')});
+    await socialRefreshBlocks();await socialRefreshMessages();
+}));
+async function socialRefreshBlocks(older=false) {
+    const world=balance.elements.world.value,root=socialRoot(),
+        previous=older?socialBlocksAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialBlocksGeneration;
+    const data=await api(root+'/blocks'+
+        (previous===null?'':'/page/'+encodeURIComponent(previous)));
+    if (balance.elements.world.value!==world || generation!==socialBlocksGeneration) return;
+    const list=document.getElementById('social-block-list');
+    if (!older) list.replaceChildren();
+    for (const actor of data.actors) {
+        const item=document.createElement('li');item.textContent=actor;list.append(item);
+    }
+    socialBlocksAfter=data.nextAfter;
+    document.getElementById('social-blocks-next').hidden=socialBlocksAfter===null;
+}
+document.getElementById('social-blocks-next').addEventListener('click',
+    ()=>run(()=>socialRefreshBlocks(true)));
+document.getElementById('social-blocks-refresh').addEventListener('click',()=>run(socialRefreshBlocks));
+document.getElementById('social-report-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        await socialAction('/reports',{
+            id:crypto.randomUUID(),message:socialActor('social-report-id'),
+            reason:document.getElementById('social-report-reason').value
+        });
+        document.getElementById('social-report-reason').value='';
+        document.getElementById('social-mail-notice').textContent='Report submitted to moderation.';
+    });
+});
+async function socialRefreshNotifications(older=false) {
+    const world=balance.elements.world.value,root=socialRoot(),
+        previous=older?socialNotificationAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialNotificationGeneration;
+    const nextButton=document.getElementById('social-notifications-next');
+    nextButton.disabled=true;
+    try {
+        const path=previous===null?'/notifications':
+            '/notifications/page/'+previous.createdAt+'/'+encodeURIComponent(previous.id);
+        const data=await api(root+path);
+        if (balance.elements.world.value!==world || generation!==socialNotificationGeneration) return;
+        const select=document.getElementById('social-notification-id'),
+            list=document.getElementById('social-notifications-list');
+        if (!older) {
+            list.replaceChildren();
+            options(select,[['','Select notification']]);
+        }
+        for (const notice of data.notifications) {
+            const item=document.createElement('li');
+            item.textContent=notice.kind+' — '+notice.subject+
+                (notice.readAt===null?' (unread)':' (read)');
+            list.append(item);
+            if (notice.readAt===null) {
+                const option=document.createElement('option');
+                option.value=notice.id;option.textContent=notice.kind+' — '+notice.subject;
+                select.append(option);
+            }
+        }
+        socialNotificationAfter=data.nextAfter;
+        nextButton.hidden=socialNotificationAfter===null;
+        document.getElementById('social-mail-notice').textContent=socialNotificationAfter===null?
+            'All notifications loaded.':'Older notifications available.';
+    } finally {
+        if (generation===socialNotificationGeneration) nextButton.disabled=false;
+    }
+}
+document.getElementById('social-notifications-next').addEventListener('click',
+    ()=>run(()=>socialRefreshNotifications(true)));
+document.getElementById('social-notifications-refresh').addEventListener('click',
+    ()=>run(socialRefreshNotifications));
+document.getElementById('social-notification-read').addEventListener('click',()=>run(async()=>{
+    const id=document.getElementById('social-notification-id').value;
+    if (!id) throw new Error('Select notification');
+    await socialAction('/notifications/'+encodeURIComponent(id)+'/read',{});
+    await socialRefreshNotifications();
+}));
+async function socialRefreshLeaderboard(older=false) {
+    const world=balance.elements.world.value,root=socialRoot(),
+        previous=older?socialLeaderboardAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialLeaderboardGeneration;
+    const data=await api(root+(previous===null?'/leaderboard':
+        '/leaderboard/page/'+previous.activeMembers+'/'+encodeURIComponent(previous.id)));
+    if (balance.elements.world.value!==world || generation!==socialLeaderboardGeneration) return;
+    const list=document.getElementById('social-leaderboard-list');
+    if (!older) list.replaceChildren();
+    for (const entry of data.alliances) {
+        const item=document.createElement('li');
+        item.textContent=entry.name+' — '+entry.activeMembers+' active members';
+        list.append(item);
+    }
+    socialLeaderboardAfter=data.nextAfter;
+    document.getElementById('social-leaderboard-next').hidden=socialLeaderboardAfter===null;
+    document.getElementById('social-mail-notice').textContent=socialLeaderboardAfter===null?
+        'Leaderboard loaded.':'More ranked alliances available.';
+}
+document.getElementById('social-leaderboard-refresh').addEventListener('click',
+    ()=>run(socialRefreshLeaderboard));
+document.getElementById('social-leaderboard-next').addEventListener('click',
+    ()=>run(()=>socialRefreshLeaderboard(true)));
+
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
     stock.replaceChildren(); marketClaim.hidden=true; action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; activation.hidden=!activationRequired; activationResend.hidden=!activationRequired; showRecoveryCode(null);
