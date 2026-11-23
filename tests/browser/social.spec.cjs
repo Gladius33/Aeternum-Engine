@@ -107,7 +107,10 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   expect((await hidden).status()).toBe(200);
   await expect(member.locator('#social-messages-list li')).toHaveCount(0);
   await member.getByRole('button',{name:'Show alliance leaderboard'}).click();
-  await expect(member.locator('#social-leaderboard-list')).toContainText('browser-crew');
+  // The leaderboard renders the user-visible alliance name, not its internal ID.
+  // Preserve the XSS regression check for the escaped, literal alliance name.
+  await expect(member.locator('#social-leaderboard-list')).toContainText('<img src=x onerror=alert(1)>');
+  await expect(member.locator('#social-leaderboard-list img')).toHaveCount(0);
   await owner.getByRole('button',{name:'Inspect my alliance'}).click();
   await expect(owner.locator('#social-member-list')).toContainText(memberActor);
   await owner.getByLabel('Member actor ID').fill(memberActor);
