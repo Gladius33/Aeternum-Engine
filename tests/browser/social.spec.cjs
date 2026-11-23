@@ -120,14 +120,12 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   await owner.getByRole('button',{name:'Transfer ownership'}).click();
   expect((await transferred).status()).toBe(200);
   await expect(owner.locator('#social-member-list')).toContainText(memberActor+' — owner');
-  let memberBearer;
-  member.on('request',request=>{
-    if(request.url()===root+'/alliances/browser-crew'&&request.method()==='GET')
-      memberBearer=request.headers().authorization;
-  });
+  const privateRequest=member.waitForRequest(request=>
+    request.url()===root+'/alliances/browser-crew'&&request.method()==='GET');
   await member.getByRole('button',{name:'Inspect my alliance'}).click();
   await expect(member.locator('#social-member-list')).toContainText(memberActor+' — owner');
-  // Exercise the real authenticated server with a valid bearer from Chromium.
+  // allHeaders includes authorization even where the compact projection omits it.
+  const memberBearer=(await (await privateRequest).allHeaders()).authorization;
   expect(memberBearer).toMatch(/^Bearer [a-f0-9]{64}$/);
   const foreign=await member.request.get(origin+'/v1/worlds/e2e-industrial/social/alliances',
     {headers:{Authorization:memberBearer}});
