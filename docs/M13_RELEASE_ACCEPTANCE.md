@@ -62,6 +62,21 @@ pas les URLs à distance, ne remplace pas une revue humaine et ne certifie
 jamais la sécurité par lui-même. Les fixtures synthétiques de test ne
 constituent jamais des preuves de release.
 
+## Épreuve de charge concurrente reproductible (CI MariaDB)
+
+`tests/m13-capacity.php` lance **quatre processus PHP réels et quatre
+connexions MariaDB** derrière une barrière de départ commune. Chacun effectue
+50 lectures du marché et 50 lectures de solde sur le jeu de données préexistant
+de 1 001 offres et 1 002 soldes. Le total est de **400 lectures autorisées**,
+avec vérification des résultats, zéro erreur et temps de réponse p95 par type.
+
+La CI consigne `M13_CAPACITY_JSON` avec le nombre de workers, les mesures,
+le temps total et les limites de régression très larges (p95 3 000 ms,
+temps mur 90 s). Le scénario ne réalise pas d'écritures, ne mesure pas les
+connexions externes et ne certifie **ni une charge utilisateur en production,
+ni le nombre maximal de joueurs simultanés**. Il complète sans remplacer
+une qualification à paliers, incluant saturation, écritures et restauration.
+
 ## Reste à faire
 
 Confronter les critères ouverts dans `docs/M12_SECURITY.md` à des preuves
