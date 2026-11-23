@@ -30,4 +30,4 @@ rejects(fn()=>GamePackLoader::load(json_encode($invalid,JSON_THROW_ON_ERROR)),
 $invalid=json_decode($newBytes,true,32,JSON_THROW_ON_ERROR);
 $invalid['buildings'][0]['stages'][0]['costs']['iron']=1;
 rejects(fn()=>GamePackLoader::load(json_encode($invalid,JSON_THROW_ON_ERROR)),
-    DomainException::class,'M05 settlement cannot spend an undeclared resource');
+    LogicException::class,'M05 settlement cannot spend an undeclared resource');
