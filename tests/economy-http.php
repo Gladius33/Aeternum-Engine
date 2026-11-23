@@ -13,6 +13,11 @@ $ep='/v1/worlds/'.$ew.'/economy/';
 $eh='Bearer '.$et;
 $eb=json_encode(['id'=>'open','type'=>'economy.open','payload'=>['account'=>'mine','resource'=>'wood']],JSON_THROW_ON_ERROR);
 check($ea->handle('POST',$ep.'commands','',$eb)[0]===401,'economy HTTP auth required');
+
+$ambiguousCommand='{"id":"m12-forged","type":"economy.open","payload":{"account":"mine","account":"target","resource":"wood"}}';
+check($ea->handle('POST',$ep.'commands',$eh,$ambiguousCommand)[0]===400,
+    'M12 nested duplicate economy actor/account keys are rejected before write');
+
 [$st,$br]=$ea->handle('POST',$ep.'commands',$eh,$eb);
 check($st===200,'economy HTTP command');
 check($ea->handle('POST',$ep.'commands',$eh,$eb)[1]==$br,'economy HTTP retry');

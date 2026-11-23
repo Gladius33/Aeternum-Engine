@@ -25,6 +25,14 @@
   transitive entities 7.0.1. Do not declare remediation complete until npm
   audit, npm ci/build and browser E2E all pass on the **same new SHA**.
 
+## Bounded disposable MariaDB read-capacity baseline
+- Repeat 100 authorized paginated market reads and 100 authorized stock reads
+  over M03's actual 1001-offer, 1002-resource database fixture.
+- Report sample count, separate market/balance p95 and total wall time in CI.
+  A broad 1000ms p95 and 30s wall-time guard catches pathological regression
+  but is **not** a production latency SLA or maximum concurrent user claim.
+- Negative MariaDB HTTP case denies nested duplicate account keys before writes.
+
 ## Not yet passed
 - Complete authorization/authentication/CSRF/CSP/chat/market security audit.
 - Reproducible fuzzing, concurrent races, replay and crash-recovery validation.
