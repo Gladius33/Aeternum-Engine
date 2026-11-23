@@ -17,6 +17,10 @@ Costs use the existing atomic construction debit and scheduled worker completion
 
 Bind a disposable world to pack `reference-medieval`, version `0.2.0` and the **SHA-256 of the exact manifest bytes** in the private registry. Never repoint an existing pinned world to this version in place. Existing `0.1.0` worlds must remain on their original digest. Apply and verify migrations in a disposable MariaDB database before any persistent-world experiment.
 
+## Settlement progression preview (M05 incremental)
+
+Authenticated players can request `GET /v1/worlds/{world}/construction/progression` with their bearer session. The response contains only their foundations, current completed levels, pending work, the next immutable stage, missing prerequisite levels, and a read-only `ready` hint. A missing prerequisite reports both `required` and `current` levels; `ready` is never a construction authorization or a stock/affordability guarantee. The command engine remains authoritative for resource debit, prerequisites, and concurrent updates. Results are bounded to 100 owned foundations and protected by the existing session, membership, world isolation and read-rate limit. This is a gameplay planning API, not yet a complete medieval UI or victory evaluator.
+
 ## Evidence and outstanding work
 
 `tests/m05-medieval-pack.php` exercises manifest loading, deterministic stage prerequisites, malformed-rule rejection and side-by-side version pinning. It runs in `tests/run.php` as part of PHP core CI. The strict JSON schema now documents the existing runtime building extension.
