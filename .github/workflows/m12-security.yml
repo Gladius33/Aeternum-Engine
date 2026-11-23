@@ -22,6 +22,10 @@ jobs:
           php -l tests/m12-security-headers.php
       - name: Security regression unit tests
         run: php tests/run.php
+      - name: Deterministic JSON parser fuzz and metamorphic controls
+        run: |
+          php -l tests/m12-json-fuzz.php
+          php tests/m12-json-fuzz.php
       - name: Live loopback HTTP rejection smoke
         run: bash tests/m12-http-smoke.sh
   dependency-audit:
