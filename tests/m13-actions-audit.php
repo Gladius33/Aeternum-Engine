@@ -7,8 +7,8 @@ function m13ActionCheck(bool $ok,string $name): void {
 }
 $sha=str_repeat('a',40);
 $other=str_repeat('b',40);
-$make=static fn(string $name,int $id,string $result='success',string $head=$sha):array=>[
-    'name'=>$name,'id'=>$id,'head_sha'=>$head,'event'=>'pull_request',
+$make=static fn(string $name,int $id,string $result='success',?string $head=null):array=>[
+    'name'=>$name,'id'=>$id,'head_sha'=>$head??$sha,'event'=>'pull_request',
     'status'=>'completed','conclusion'=>$result
 ];
 $all=[];
