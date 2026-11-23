@@ -36,7 +36,7 @@ final class PdoAlliances
 
     private function active(string $actor): bool
     {
-        return $this->query('SELECT 1 FROM engine_memberships WHERE world_id=? AND actor_id=? AND active=1',
+        return $this->query('SELECT 1 FROM engine_memberships WHERE world_id=? AND actor_id=? AND active=1 FOR UPDATE',
             [$this->world,$actor])->fetchColumn()!==false;
     }
 
@@ -75,6 +75,12 @@ final class PdoAlliances
         if (trim($name)==='' || strlen($name)>100) throw new \InvalidArgumentException('Invalid alliance name');
         $this->transaction(function() use ($actor,$alliance,$name): void {
             if (!$this->active($actor)) throw new \DomainException('Membership required');
+            $old=$this->query('SELECT name,created_by FROM engine_alliances WHERE world_id=? AND alliance_id=? FOR UPDATE',
+                [$this->world,$alliance])->fetch(PDO::FETCH_ASSOC);
+            if ($old!==false) {
+                if ($old['name']!==$name || $old['created_by']!==$actor) throw new \DomainException('Alliance ID already used');
+                return; // Identical retry must not create a second alliance.
+            }
             $this->query('INSERT INTO engine_alliances(world_id,alliance_id,name,created_by) VALUES (?,?,?,?)',
                 [$this->world,$alliance,$name,$actor]);
             $this->query("INSERT INTO engine_alliance_members(world_id,alliance_id,actor_id,role) VALUES (?,?,?,'owner')",
@@ -94,8 +100,8 @@ final class PdoAlliances
             if ($this->lockedRole($alliance,$target)!==null) throw new \DomainException('Already member');
             $this->query("INSERT INTO engine_alliance_invites(world_id,alliance_id,invited_actor,invited_by,status)
                 VALUES (?,?,?,?,'pending') ON DUPLICATE KEY UPDATE
-                invited_by=IF(status IN ('revoked','declined'),VALUES(invited_by),invited_by),
-                status=IF(status IN ('revoked','declined'),'pending',status)",
+                invited_by=IF(status IN ('revoked','declined','accepted'),VALUES(invited_by),invited_by),
+                status=IF(status IN ('revoked','declined','accepted'),'pending',status)",
                 [$this->world,$alliance,$target,$actor]);
         });
     }
@@ -148,4 +154,116 @@ final class PdoAlliances
                 [$role,$this->world,$alliance,$target]);
         });
     }
+    /** Bounded, world-scoped alliance directory for an active world member. */
+    public function listFor(string $actor, int $limit=50, ?string $after=null): array
+    {
+        $this->id($actor);
+        if ($after!==null) $this->id($after);
+        if ($limit<1 || $limit>100) throw new \InvalidArgumentException('Invalid page size');
+        return $this->transaction(function() use ($actor,$limit,$after): array {
+            if (!$this->active($actor)) throw new \DomainException('Membership required');
+            $rows=$this->query('SELECT a.alliance_id,a.name,COUNT(m.actor_id) AS member_count
+                FROM engine_alliances a LEFT JOIN engine_alliance_members m
+                ON m.world_id=a.world_id AND m.alliance_id=a.alliance_id
+                WHERE a.world_id=? AND a.alliance_id>?
+                GROUP BY a.world_id,a.alliance_id,a.name
+                ORDER BY a.alliance_id LIMIT '.($limit+1),[$this->world,$after??''])
+                ->fetchAll(PDO::FETCH_ASSOC);
+            $hasMore=count($rows)>$limit;
+            if ($hasMore) array_pop($rows);
+            $list=array_map(static fn(array $row):array=>[
+                'id'=>$row['alliance_id'],'name'=>$row['name'],'members'=>(int)$row['member_count']
+            ],$rows);
+            return ['alliances'=>$list,'nextAfter'=>$hasMore?$list[count($list)-1]['id']:null];
+        });
+    }
+
+    /** Membership directory is visible to current alliance members only. */
+    public function detailsFor(string $actor,string $alliance): array
+    {
+        $this->id($actor); $this->id($alliance);
+        return $this->transaction(function() use($actor,$alliance):array {
+            $this->lockAlliance($alliance);
+            if (!$this->active($actor) || $this->lockedRole($alliance,$actor)===null)
+                throw new \DomainException('Alliance membership required');
+            $name=$this->query('SELECT name FROM engine_alliances WHERE world_id=? AND alliance_id=?',
+                [$this->world,$alliance])->fetchColumn();
+            $rows=$this->query('SELECT m.actor_id,m.role FROM engine_alliance_members m
+                JOIN engine_memberships worldmember ON worldmember.world_id=m.world_id
+                  AND worldmember.actor_id=m.actor_id AND worldmember.active=1
+                WHERE m.world_id=? AND m.alliance_id=? ORDER BY m.actor_id LIMIT 101',
+                [$this->world,$alliance])->fetchAll(PDO::FETCH_ASSOC);
+            if (count($rows)>100) throw new \DomainException('Alliance member list needs pagination');
+            return ['id'=>$alliance,'name'=>$name,'role'=>$this->lockedRole($alliance,$actor),
+                'members'=>array_map(static fn(array $m):array=>['actor'=>$m['actor_id'],'role'=>$m['role']],$rows)];
+        });
+    }
+
+    /** Caller sees exclusively their own pending invitations. */
+    public function invitationsFor(string $actor): array
+    {
+        $this->id($actor);
+        return $this->transaction(function() use($actor):array {
+            if (!$this->active($actor)) throw new \DomainException('Membership required');
+            $rows=$this->query("SELECT i.alliance_id,a.name,i.invited_by FROM engine_alliance_invites i
+                JOIN engine_alliances a ON a.world_id=i.world_id AND a.alliance_id=i.alliance_id
+                WHERE i.world_id=? AND i.invited_actor=? AND i.status='pending'
+                ORDER BY i.alliance_id LIMIT 101",[$this->world,$actor])->fetchAll(PDO::FETCH_ASSOC);
+            if (count($rows)>100) throw new \DomainException('Invitation inbox needs pagination');
+            return array_map(static fn(array $i):array=>[
+                'alliance'=>$i['alliance_id'],'name'=>$i['name'],'invitedBy'=>$i['invited_by']
+            ],$rows);
+        });
+    }
+
+    /** Member can leave; owner must transfer ownership before leaving. */
+    public function leave(string $actor,string $alliance): void
+    {
+        $this->id($actor); $this->id($alliance);
+        $this->transaction(function() use($actor,$alliance):void {
+            $this->lockAlliance($alliance);
+            if (!$this->active($actor)) throw new \DomainException('Membership required');
+            $role=$this->lockedRole($alliance,$actor);
+            if ($role==='owner') throw new \DomainException('Owner must transfer first');
+            if ($role===null) return; // Idempotent repeated leave.
+            $this->query('DELETE FROM engine_alliance_members WHERE world_id=? AND alliance_id=? AND actor_id=?',
+                [$this->world,$alliance,$actor]);
+        });
+    }
+
+    /** The owner can remove anyone except themselves; officers may remove members. */
+    public function remove(string $actor,string $alliance,string $target): void
+    {
+        $this->id($actor); $this->id($alliance); $this->id($target);
+        $this->transaction(function() use($actor,$alliance,$target):void {
+            $this->lockAlliance($alliance);
+            if (!$this->active($actor)) throw new \DomainException('Membership required');
+            $role=$this->lockedRole($alliance,$actor);
+            $targetRole=$this->lockedRole($alliance,$target);
+            if (!($role==='owner' && in_array($targetRole,['member','officer'],true))
+                && !($role==='officer' && $targetRole==='member')) {
+                throw new \DomainException('Removal denied');
+            }
+            $this->query('DELETE FROM engine_alliance_members WHERE world_id=? AND alliance_id=? AND actor_id=?',
+                [$this->world,$alliance,$target]);
+        });
+    }
+
+    /** Atomic, serialized ownership handover. No alliance may have two owners. */
+    public function transferOwner(string $actor,string $alliance,string $target): void
+    {
+        $this->id($actor); $this->id($alliance); $this->id($target);
+        $this->transaction(function() use($actor,$alliance,$target):void {
+            $this->lockAlliance($alliance);
+            if (!$this->active($actor) || !$this->active($target)
+                || $this->lockedRole($alliance,$actor)!=='owner'
+                || !in_array($this->lockedRole($alliance,$target),['officer','member'],true))
+                throw new \DomainException('Ownership transfer denied');
+            $this->query("UPDATE engine_alliance_members SET role='member'
+                WHERE world_id=? AND alliance_id=? AND actor_id=?",[$this->world,$alliance,$actor]);
+            $this->query("UPDATE engine_alliance_members SET role='owner'
+                WHERE world_id=? AND alliance_id=? AND actor_id=?",[$this->world,$alliance,$target]);
+        });
+    }
+
 }
