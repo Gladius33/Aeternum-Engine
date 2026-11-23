@@ -74,9 +74,31 @@ foreach ($pack->resources as $resource) {
         throw new RuntimeException('Restored relational stock differs for '.$resource->id);
     }
 }
+// Validate the public social projections after an actual SQL dump/restore,
+// in addition to the existing all-table row fingerprints and legacy replay.
+$socialOwner=$identity->authenticate('m09-social-owner','M09 isolated disposable testing password');
+$socialRecipient=$identity->authenticate('m09-social-officer','M09 isolated disposable testing password');
+if ($socialOwner===null || $socialRecipient===null)
+    throw new RuntimeException('M09 restored identities unavailable');
+foreach (['m09-social-a','m09-social-b'] as $socialWorld) {
+    $sourceRank=(new \Aeternum\Core\PdoAlliances($src,$socialWorld))->leaderboardFor($socialOwner);
+    $restoredRank=(new \Aeternum\Core\PdoAlliances($dst,$socialWorld))->leaderboardFor($socialOwner);
+    if ($sourceRank!==$restoredRank || $sourceRank['alliances']===[])
+        throw new RuntimeException('M09 ranking diverged after restore for '.$socialWorld);
+}
+$sourceMessages=new \Aeternum\Core\PdoSocialMessages($src,'m09-social-a',new FrozenClock(5200));
+$restoredMessages=new \Aeternum\Core\PdoSocialMessages($dst,'m09-social-a',new FrozenClock(5200));
+if ($sourceMessages->inbox($socialRecipient)!==$restoredMessages->inbox($socialRecipient)
+    || $sourceMessages->notifications($socialRecipient)!==$restoredMessages->notifications($socialRecipient))
+    throw new RuntimeException('M09 messaging or notification replay after restore differs');
+$auditCount=$dst->query("SELECT COUNT(*) FROM engine_social_moderation_audit
+    WHERE world_id='m09-social-a'")->fetchColumn();
+if ((int)$auditCount!==2) throw new RuntimeException('M09 moderation audits lost on restore');
+
 echo json_encode([
     'restoreVerified'=>true,'tablesCompared'=>count($tables),
     'rowsFingerprinted'=>$rowsChecked,
     'legacyActorLogin'=>true,'journalReplayEntries'=>$replay->entries,'escrowOfferRestored'=>true,
+    'socialRankingsRestored'=>true,'socialMailRestored'=>true,'moderationAuditsRestored'=>true,
     'scope'=>'isolated disposable DB; no host production restore'
 ],JSON_THROW_ON_ERROR|JSON_PRETTY_PRINT).PHP_EOL;
