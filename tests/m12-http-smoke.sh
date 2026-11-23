@@ -31,4 +31,22 @@ for route in /v1/auth/login /v1/worlds/example/economy/commands /v1/public/world
     echo "Cleartext response must not advertise HSTS" >&2; exit 1
   fi
 done
-echo 'PASS M12 live plaintext-denial and security header smoke'
+# Client-supplied proxy/TLS headers are never evidence of a trusted HTTPS
+# transport. Check every public entry route and reject spoofed HTTPS claims
+# before autoload/database access, even if a reverse proxy is misconfigured.
+for route in /v1/auth/login /v1/public/worlds /v1/worlds/example/economy/commands /v1/worlds/example/social/alliances; do
+  curl -sS --max-time 5 -D "$tmp/headers" -o "$tmp/body" -X POST \
+    -H 'X-Forwarded-Proto: https' \
+    -H 'Forwarded: for=127.0.0.1;proto=https' \
+    -H 'X-Forwarded-Ssl: on' \
+    -H 'X-Url-Scheme: https' \
+    -H 'Front-End-Https: on' \
+    "http://127.0.0.1:$port$route"
+  status="$(head -n 1 "$tmp/headers")"
+  [[ "$status" == *" 403 "* ]] || { echo "Spoofed HTTPS accepted on $route: $status" >&2; exit 1; }
+  grep -Fxq '{"error":"https_required"}' "$tmp/body"
+  if grep -Eiq '^strict-transport-security:' "$tmp/headers"; then
+    echo "Spoofed HTTPS must not enable HSTS on $route" >&2; exit 1
+  fi
+done
+echo 'PASS M12 live plaintext-denial, proxy-spoof rejection and security header smoke'
