@@ -31,3 +31,20 @@ $invalid=json_decode($newBytes,true,32,JSON_THROW_ON_ERROR);
 $invalid['buildings'][0]['stages'][0]['costs']['iron']=1;
 rejects(fn()=>GamePackLoader::load(json_encode($invalid,JSON_THROW_ON_ERROR)),
     LogicException::class,'M05 settlement cannot spend an undeclared resource');
+
+$completeBytes=file_get_contents($root.'/reference-medieval/versions/0.3.0/manifest.json');
+$completePack=GamePackLoader::load($completeBytes);
+check($completePack->version==='0.3.0' && $completePack->settlement!==null
+    && $old->settlement===null && $new->settlement===null,
+    'M05 separate opt-in 0.3.0 manifest pins workforce rules without mutating older worlds');
+check($completePack->settlement->victoryPopulation===6
+    && $completePack->settlement->victoryLevels['keep']===2,
+    'M05 declarative server-side medieval victory threshold');
+$invalid=json_decode($completeBytes,false,32,JSON_THROW_ON_ERROR);
+$invalid->settlement->victory_levels->keep=3;
+rejects(fn()=>GamePackLoader::load(json_encode($invalid,JSON_THROW_ON_ERROR)),
+    InvalidArgumentException::class,'M05 rejects unreachable keep objective');
+$invalid=json_decode($completeBytes,false,32,JSON_THROW_ON_ERROR);
+$invalid->settlement->work_resource='grain';
+rejects(fn()=>GamePackLoader::load(json_encode($invalid,JSON_THROW_ON_ERROR)),
+    InvalidArgumentException::class,'M05 refuses gain and food resource alias');

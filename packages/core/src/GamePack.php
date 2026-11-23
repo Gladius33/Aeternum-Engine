@@ -23,6 +23,7 @@ final readonly class GamePack
         public array $actions=[],
         public array $eventHooks=[],
         public array $buildings=[],
+        public ?SettlementRules $settlement=null,
     ) {}
 
     public function sdk(): PackSdk
@@ -32,7 +33,7 @@ final readonly class GamePack
 
     public function rules(): RuleSet
     {
-        $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings);
+        $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings,$this->settlement);
         $events=new EconomyEventHandler($economy);
         // Generic market expiration is a trusted engine event shared by all
         // packs. Typed manifests may add other hooks but cannot redefine the

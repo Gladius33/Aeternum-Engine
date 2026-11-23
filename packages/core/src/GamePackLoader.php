@@ -53,7 +53,7 @@ final class GamePackLoader
         if (!$decoded instanceof \stdClass) throw new \InvalidArgumentException('Expected JSON object');
         $fields=get_object_vars($decoded);
         $required=['engine_api','id','version','name','resources','upgrades'];
-        $optional=['components','actions','event_hooks','buildings'];
+        $optional=['components','actions','event_hooks','buildings','settlement'];
         foreach ($required as $key) if (!array_key_exists($key,$fields)) throw new \InvalidArgumentException('Missing manifest field');
         foreach (array_keys($fields) as $key) if (!in_array($key,$required,true) && !in_array($key,$optional,true)) throw new \InvalidArgumentException('Unexpected manifest field');
         $id=self::string($fields['id'],128);
@@ -107,8 +107,14 @@ final class GamePackLoader
             }
             $buildings[$type]=BuildStages::normalize($stages);
         }
+        // Additional opt-in settlement mechanics are fully data-only.
+        $settlement=null;
+        if (array_key_exists('settlement',$fields)) {
+            if (!$fields['settlement'] instanceof \stdClass) throw new \InvalidArgumentException('Invalid settlement section');
+            $settlement=SettlementRules::load($fields['settlement'],$resources,$buildings);
+        }
         // Check cross-references against the exact pack resource definitions.
-        new EconomyCommandHandler($resources,$upgrades,$buildings);
-        return new GamePack($id,$version,$name,hash('sha256',$json),$resources,$upgrades,$components,$actions,$hooks,$buildings);
+        new EconomyCommandHandler($resources,$upgrades,$buildings,$settlement);
+        return new GamePack($id,$version,$name,hash('sha256',$json),$resources,$upgrades,$components,$actions,$hooks,$buildings,$settlement);
     }
 }
