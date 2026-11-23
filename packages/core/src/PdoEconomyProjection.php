@@ -194,17 +194,25 @@ final class PdoEconomyProjection
     }
 
     /** Read-only per-page SQL listing. Caller enforces actor's active membership. */
-    public function marketPage(?string $after,int $limit,int $now): array
+    public function marketPage(?string $after,int $limit,int $now,?string $give=null,?string $want=null): array
     {
         MarketProjection::validatePage($after,$limit);
-        $q=$this->pdo->prepare('SELECT o.offer_id, o.seller_id, o.give_resource, o.want_resource,
+        MarketProjection::validateResourceFilter($give);
+        MarketProjection::validateResourceFilter($want);
+        $sql='SELECT o.offer_id, o.seller_id, o.give_resource, o.want_resource,
                 o.give_units, o.want_units
             FROM engine_market_offers o
             JOIN engine_account_owners own ON own.world_id=o.world_id AND own.account_id=o.seller_id
             JOIN engine_memberships m ON m.world_id=own.world_id AND m.actor_id=own.actor_id AND m.active=1
             WHERE o.world_id=? AND o.status=? AND o.offer_id>?
-              AND (o.expires_at IS NULL OR o.expires_at>?) ORDER BY o.offer_id LIMIT '.($limit+1));
-        $q->execute([$this->worldId,'open',$after??'',$now]);
+              AND (o.expires_at IS NULL OR o.expires_at>?)';
+        $args=[$this->worldId,'open',$after??'',$now];
+        // Separate prepared SQL shapes permit MariaDB to use the resource
+        // composite index; nullable OR predicates defeat selective scans.
+        if ($give!==null) { $sql.=' AND o.give_resource=?'; $args[]=$give; }
+        if ($want!==null) { $sql.=' AND o.want_resource=?'; $args[]=$want; }
+        $q=$this->pdo->prepare($sql.' ORDER BY o.offer_id LIMIT '.($limit+1));
+        $q->execute($args);
         $rows=$q->fetchAll(PDO::FETCH_ASSOC);
         $more=count($rows)>$limit;
         if ($more) array_pop($rows);
@@ -216,5 +224,34 @@ final class PdoEconomyProjection
             ];
         }
         return ['offers'=>$offers,'nextAfter'=>$more?$offers[count($offers)-1]['id']:null];
+    }
+    /**
+     * Committed private history, including closed and expired escrows.
+     * Membership and account ownership are checked by PdoScheduler.
+     */
+    public function historyPage(string $account,?string $after=null,int $limit=50): array
+    {
+        MarketProjection::validatePage($after,$limit);
+        MarketProjection::validateResourceFilter($account);
+        $q=$this->pdo->prepare('SELECT offer_id,seller_id,buyer_id,status,
+                give_resource,want_resource,give_units,want_units
+            FROM engine_market_offers
+            WHERE world_id=? AND status IN (?,?,?) AND (seller_id=? OR buyer_id=?)
+              AND offer_id>?
+            ORDER BY offer_id LIMIT '.($limit+1));
+        $q->execute([$this->worldId,'filled','cancelled','expired',$account,$account,$after??'']);
+        $rows=$q->fetchAll(PDO::FETCH_ASSOC);
+        $more=count($rows)>$limit;
+        if ($more) array_pop($rows);
+        $history=[];
+        foreach ($rows as $row) {
+            $history[]=[
+                'id'=>$row['offer_id'],'seller'=>$row['seller_id'],'buyer'=>$row['buyer_id'],
+                'status'=>$row['status'],'giveResource'=>$row['give_resource'],
+                'wantResource'=>$row['want_resource'],'giveUnits'=>(int)$row['give_units'],
+                'wantUnits'=>(int)$row['want_units']
+            ];
+        }
+        return ['transactions'=>$history,'nextAfter'=>$more?$history[count($history)-1]['id']:null];
     }
 }

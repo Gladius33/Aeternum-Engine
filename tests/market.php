@@ -57,6 +57,24 @@ check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='mar
 check((int)db()->query("SELECT SUM(delta_units) FROM engine_resource_ledger WHERE world_id='market-test' AND resource_id='ore'")->fetchColumn()===300,'market ledger conserves ore after all offers close');
 check((int)db()->query("SELECT SUM(delta_units) FROM engine_resource_ledger WHERE world_id='market-test' AND resource_id='coin'")->fetchColumn()===300,'market ledger conserves payment resource');
 check($market->verifyReplay($marketEcon,$marketRules->events)->entries===12,'market replay verifies all committed transitions');
+$historyBefore=$market->state();
+$buyerHistory=$market->marketHistoryForActor('buyer','b');
+check(array_column($buyerHistory['transactions'],'id')===['first','race']
+    && array_column($buyerHistory['transactions'],'status')===['filled','filled'],
+    'M08 buyer history includes only personally executed trades');
+$sellerHistory=$market->marketHistoryForActor('seller','s');
+check(array_column($sellerHistory['transactions'],'id')===['cancel','first','race']
+    && array_column($sellerHistory['transactions'],'status')===['cancelled','filled','filled'],
+    'M08 seller history includes cancellations and settlements');
+check($market->marketHistoryForActor('seller','s','first')['transactions'][0]['id']==='race',
+    'M08 history cursor excludes prior transaction');
+check($market->marketHistoryForActor('seller','s',null,2)['nextAfter']==='first',
+    'M08 history pagination is bounded');
+rejects(fn()=> $market->marketHistoryForActor('other','s'),DomainException::class,
+    'M08 cross-owner history forbidden');
+rejects(fn()=> $market->marketHistoryForActor('seller','s','bad:cursor'),InvalidArgumentException::class,
+    'M08 invalid history cursor rejected');
+check($market->state()===$historyBefore,'M08 history leaves canonical state untouched');
 
 // A committed market view must be bounded, world scoped, and membership filtered.
 check($market->marketForActor('buyer')===['offers'=>[],'nextAfter'=>null],'market view omits filled and cancelled offers');
@@ -64,6 +82,10 @@ foreach (['p2'=>'s','p1'=>'s','p3'=>'o'] as $offer=>$seller) {
     $market->executeForActor($seller==='s'?'seller':'other',$marketCmd('create-'.$offer,'create',['offer'=>$offer,'seller'=>$seller,'giveResource'=>'ore','giveUnits'=>1,'wantResource'=>'coin','wantUnits'=>1]),$marketEcon);
 }
 $beforeView=$market->state();
+check(array_column($market->marketForActor('buyer',null,2,'ore','coin')['offers'],'id')===['p1','p2'],'market filtered pagination first page');
+check(array_column($market->marketForActor('buyer','p2',2,'ore','coin')['offers'],'id')===['p3'],'market filtered pagination second page');
+check($market->marketForActor('buyer',null,2,'coin','ore')['offers']===[],'market filter excludes reversed pair');
+rejects(fn()=> $market->marketForActor('buyer',null,2,'invalid:resource'),InvalidArgumentException::class,'market filter rejects malformed resource');
 $pageOne=$market->marketForActor('buyer',null,2);
 check(array_column($pageOne['offers'],'id')===['p1','p2'] && $pageOne['nextAfter']==='p2','market view stable first page');
 $pageTwo=$market->marketForActor('buyer',$pageOne['nextAfter'],2);

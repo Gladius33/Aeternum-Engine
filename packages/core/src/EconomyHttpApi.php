@@ -8,7 +8,7 @@ final class EconomyHttpApi
     public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly array $rules) {}
     public function handle(string $method,string $path,string $authorization,string $body=''): array
     {
-        if (!preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/economy/(commands|market(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?|(?:balances|overview)/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))$~D',$path,$m)) return [404,['error'=>'not_found']];
+        if (!preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/economy/(commands|market(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?|(?:balances|overview)/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/([A-Za-z0-9][A-Za-z0-9_-]{0,63})|market/search/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/([A-Za-z0-9][A-Za-z0-9_-]{0,63})(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?|market/history/([A-Za-z0-9][A-Za-z0-9_-]{0,63})(?:/([A-Za-z0-9][A-Za-z0-9_-]{0,63}))?)$~D',$path,$m,PREG_UNMATCHED_AS_NULL)) return [404,['error'=>'not_found']];
         $command=$m[2]==='commands';
         if ($method!==($command?'POST':'GET')) return [405,['error'=>'method_not_allowed']];
         if (!preg_match('/^Bearer ([a-f0-9]{64})$/D',$authorization,$token)) return [401,['error'=>'unauthorized']];
@@ -20,7 +20,8 @@ final class EconomyHttpApi
         if (!$rules instanceof RuleSet || !$rules->commands instanceof EconomyCommandHandler) return [404,['error'=>'not_found']];
         $scheduler=new PdoScheduler($this->pdo,$m[1],$this->clock,$rules);
         try {
-            if (str_starts_with($m[2],'market')) return [200,['data'=>$scheduler->marketForActor($actor,$m[3]??null)]];
+            if (str_starts_with($m[2],'market/history/')) return [200,['data'=>$scheduler->marketHistoryForActor($actor,$m[9],$m[10]??null)]];
+            if (str_starts_with($m[2],'market')) return [200,['data'=>$scheduler->marketForActor($actor,$m[8]??$m[3]??null,50,$m[6]??null,$m[7]??null)]];
             if (!$command) return [200,['data'=>str_starts_with($m[2],'overview/')?$scheduler->overviewForActor($actor,$m[4],$m[5],$rules->commands):$scheduler->balanceForActor($actor,$m[4],$m[5],$rules->commands)]];
             if (strlen($body)>8192) return [413,['error'=>'too_large']];
             $data=json_decode($body,false,8,JSON_THROW_ON_ERROR);

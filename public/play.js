@@ -336,7 +336,7 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
-for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){resetMedieval();resetIndustrial();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){clearMarketPage();clearMarketHistory();resetMedieval();resetIndustrial();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
@@ -576,7 +576,33 @@ async function submitCommand(f,type,payload) {
     await sendPending();
 }
 const marketCreate=document.querySelector('#market-create'), marketChoice=document.querySelector('#market-offer'), marketNext=document.querySelector('#market-next'), marketNotice=document.querySelector('#market-notice');
-let marketOffers=[], marketAfter=null;
+const marketFilterGive=document.querySelector('#market-filter-give'),marketFilterWant=document.querySelector('#market-filter-want');
+const marketHistoryList=document.querySelector('#market-history-list'),marketHistoryNext=document.querySelector('#market-history-next'),marketHistoryNotice=document.querySelector('#market-history-notice');
+let marketOffers=[], marketAfter=null, historyAfter=null;
+function clearMarketHistory(message='') {
+    marketHistoryList.replaceChildren();
+    historyAfter=null;marketHistoryNext.hidden=true;
+    marketHistoryNotice.textContent=message;
+}
+async function loadMarketHistory(after=null) {
+    const f=locationFields();
+    clearMarketHistory();
+    if (!f.world || !f.account) throw new Error('Choose a world and account');
+    const path='market/history/'+encodeURIComponent(f.account)+(after===null?'':'/'+encodeURIComponent(after));
+    const data=await api(base(f)+path);
+    if (f.world!==balance.elements.world.value || f.account!==balance.elements.account.value) return;
+    for(const trade of data.transactions) {
+        const item=document.createElement('li');
+        const counterparty=trade.seller===f.account?(trade.buyer??'—'):trade.seller;
+        item.textContent=trade.id+' — '+trade.status+' — '+trade.giveUnits+' '+trade.giveResource+
+            ' for '+trade.wantUnits+' '+trade.wantResource+' — '+counterparty;
+        marketHistoryList.append(item);
+    }
+    historyAfter=data.nextAfter;
+    marketHistoryNext.hidden=historyAfter===null;
+    marketHistoryNotice.textContent=data.transactions.length?'Private account history.':'No completed trades.';
+}
+
 function clearMarketPage(message='') {
     marketOffers=[]; marketAfter=null;
     options(marketChoice,[['','Choose an offer']]);
@@ -592,13 +618,20 @@ function clearMarket() {
     marketCreate.elements.giveUnits.value='1';
     marketCreate.elements.wantUnits.value='1';
     marketCreate.elements.expirySeconds.value='';
+    options(marketFilterGive,[['','All resources'],...resources]);
+    options(marketFilterWant,[['','All resources'],...resources]);
     clearMarketPage();
+    clearMarketHistory();
 }
 async function loadMarket(after=null) {
     const f=locationFields();
     clearMarketPage();
     if (!f.world) throw new Error('Choose a world first');
-    const data=await api(base(f)+'market'+(after===null?'':'/'+encodeURIComponent(after)));
+    const give=marketFilterGive.value,want=marketFilterWant.value;
+    if ((give==='')!==(want==='')) throw new Error('Select both resource filters or neither.');
+    const path=give?'market/search/'+encodeURIComponent(give)+'/'+encodeURIComponent(want):'market';
+    const data=await api(base(f)+path+(after===null?'':'/'+encodeURIComponent(after)));
+    if (f.world!==balance.elements.world.value || f.account!==balance.elements.account.value) return;
     marketOffers=data.offers; marketAfter=data.nextAfter;
     options(marketChoice,[['','Choose an offer'],...marketOffers.map(o=>[o.id,o.seller+': '+o.giveUnits+' '+o.giveResource+' for '+o.wantUnits+' '+o.wantResource])]);
     marketNext.hidden=marketAfter===null;
@@ -608,6 +641,7 @@ function marketChanged() {
     stock.replaceChildren();
     marketClaim.hidden=true;
     clearMarketPage('Market changed. Reload offers to see the current market.');
+    clearMarketHistory();
 }
 function validMarketUnits(value) { return Number.isSafeInteger(value) && value>=1 && value<=1000000000000; }
 marketCreate.addEventListener('submit',e=>{
@@ -644,6 +678,12 @@ marketClaim.addEventListener('click',()=>run(async()=>{
     marketClaim.hidden=true;stock.replaceChildren();
 }));
 document.querySelector('#market-load').addEventListener('click',()=>run(()=>loadMarket()));
+document.querySelector('#market-search').addEventListener('click',()=>run(()=>loadMarket()));
+for(const select of [marketFilterGive,marketFilterWant]) {
+    select.addEventListener('change',()=>clearMarketPage('Search changed. Reload market offers.'));
+}
+document.querySelector('#market-history-load').addEventListener('click',()=>run(()=>loadMarketHistory()));
+marketHistoryNext.addEventListener('click',()=>{if(historyAfter!==null)run(()=>loadMarketHistory(historyAfter));});
 marketNext.addEventListener('click',()=>{ if (marketAfter!==null) run(()=>loadMarket(marketAfter)); });
 document.querySelector('#market-accept').addEventListener('click',()=>run(()=>selectedMarketCommand('market.accept')));
 document.querySelector('#market-cancel').addEventListener('click',()=>run(()=>selectedMarketCommand('market.cancel')));

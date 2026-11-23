@@ -68,7 +68,7 @@ async function changePasswordInBrowser(page,current,next,expectedStatus) {
 }
 
 async function marketPage(page) {
-    const received=page.waitForResponse(r=>r.url().endsWith('/economy/market') && r.request().method()==='GET',{timeout:15000});
+    const received=page.waitForResponse(r=>(r.url().endsWith('/economy/market') || r.url().includes('/economy/market/search/')) && r.request().method()==='GET',{timeout:15000});
     await page.getByRole('button',{name:'Reload market',exact:true}).click();
     const response=await received;
     expect(response.status()).toBe(200);
@@ -127,6 +127,10 @@ async function industrialMarketSmoke(page) {
     expect((await marketPage(page)).offers).toEqual([]);
     await expect(page.locator('#market-next')).toBeHidden();
     await expect(page.locator('#market-notice')).toHaveText('No open offers.');
+    const historyResponse=page.waitForResponse(r=>r.url().includes('/economy/market/history/') && r.request().method()==='GET',{timeout:15000});
+    await page.getByRole('button',{name:'Load my trade history'}).click();
+    expect((await historyResponse).status()).toBe(200);
+    await expect(page.locator('#market-history-list')).toContainText('cancelled');
 }
 
 
@@ -164,8 +168,38 @@ test('two real browser players settle a persisted market barter exactly once',as
         await buyer.getByLabel('Open offers',{exact:true}).selectOption(created.body.id);
         await buyer.getByRole('button',{name:'Cancel selected offer'}).click();
         await expect(buyer.locator('#status')).toHaveText('Select the seller account to cancel');
+        await buyer.getByLabel('Search offered resource',{exact:true}).selectOption('wood');
+        await buyer.getByLabel('Search requested resource',{exact:true}).selectOption('wood');
+        const noMatch=buyer.waitForResponse(r=>r.url().includes('/economy/market/search/wood/wood'),{timeout:15000});
+        await buyer.getByRole('button',{name:'Search offers'}).click();
+        expect((await noMatch).status()).toBe(200);
+        await expect(buyer.locator('#market-offer option')).toHaveCount(1);
+        await buyer.getByLabel('Search requested resource',{exact:true}).selectOption('grain');
+        const match=buyer.waitForResponse(r=>r.url().includes('/economy/market/search/wood/grain'),{timeout:15000});
+        await buyer.getByRole('button',{name:'Search offers'}).click();
+        const filterResponse=await match;
+        expect(filterResponse.status()).toBe(200);
+        expect((await filterResponse.json()).data.offers[0].id).toBe(created.body.id);
+        await buyer.getByLabel('Open offers',{exact:true}).selectOption(created.body.id);
         const accepted=await marketCommand(buyer,'Accept selected offer','market.accept');
         expect(accepted.body.payload).toEqual({offer:created.body.id,seller:sellerAccount,buyer:buyerAccount});
+        const historyUrl=url+'/v1/worlds/'+scenario.world+'/economy/market/history/';
+        const privateBuyer=await buyer.request.get(historyUrl+buyerAccount,{headers:{Authorization:accepted.authorization}});
+        expect(privateBuyer.status()).toBe(200);
+        expect((await privateBuyer.json()).data.transactions).toEqual([
+            {id:created.body.id,seller:sellerAccount,buyer:buyerAccount,status:'filled',
+             giveResource:'wood',wantResource:'grain',giveUnits:5,wantUnits:3}
+        ]);
+        const forbidden=await buyer.request.get(historyUrl+sellerAccount,{headers:{Authorization:accepted.authorization}});
+        expect(forbidden.status()).toBe(409);
+        const sellerHistory=await seller.request.get(historyUrl+sellerAccount,{headers:{Authorization:created.authorization}});
+        expect(sellerHistory.status()).toBe(200);
+        expect((await sellerHistory.json()).data.transactions[0].id).toBe(created.body.id);
+        const historyLoad=buyer.waitForResponse(r=>r.url().includes('/economy/market/history/') && r.request().method()==='GET',{timeout:15000});
+        await buyer.getByRole('button',{name:'Load my trade history'}).click();
+        expect((await historyLoad).status()).toBe(200);
+        await expect(buyer.locator('#market-history-list')).toContainText('filled');
+        await expect(buyer.locator('#market-history-list')).toContainText(created.body.id);
         const retry=await buyer.request.post(url+'/v1/worlds/'+scenario.world+'/economy/commands',{headers:{Authorization:accepted.authorization},data:accepted.body});
         expect(retry.status()).toBe(200);
         expect((await retry.json()).data).toEqual(accepted.receipt);
@@ -182,6 +216,8 @@ test('two real browser players settle a persisted market barter exactly once',as
         expect(afterSeller.stock).toBeGreaterThanOrEqual(beforeSeller.stock+3);
         await signIn(buyer,{...scenario,login:'browser-medieval-receiver'});
         expect((await marketPage(buyer)).offers).toEqual([]);
+        await buyer.getByRole('button',{name:'Load my trade history'}).click();
+        await expect(buyer.locator('#market-history-list')).toContainText(created.body.id);
     } finally {
         await sellerContext.close();
         await buyerContext.close();

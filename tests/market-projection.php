@@ -21,3 +21,17 @@ rejects(fn()=>MarketProjection::page($projected,['s'],null,0),InvalidArgumentExc
 rejects(fn()=>MarketProjection::page($projected,['s'],'bad:cursor',2),InvalidArgumentException::class,'market projection rejects invalid cursor');
 $malformed=$marketFixture; unset($malformed['market:z:giveUnits']);
 rejects(fn()=>MarketProjection::openOffers($malformed),LogicException::class,'market projection fails closed on malformed stored offer');
+
+$marketFixture['market:cancelled:buyer']=null;
+$privateHistory=MarketProjection::history($marketFixture,'s',null,1);
+check(array_column($privateHistory['transactions'],'id')===['cancelled']
+    && $privateHistory['nextAfter']==='cancelled',
+    'M08 legacy private history paginates settled and cancelled records');
+check(array_column(MarketProjection::history($marketFixture,'s','cancelled',2)['transactions'],'id')===['closed'],
+    'M08 legacy private history uses exclusive cursor');
+check(array_column(MarketProjection::history($marketFixture,'private')['transactions'],'id')===['closed'],
+    'M08 legacy buyer history excludes seller-only cancellation');
+check(MarketProjection::history($marketFixture,'unrelated')['transactions']===[],
+    'M08 legacy account filter cannot reveal unrelated offers');
+rejects(fn()=>MarketProjection::history($marketFixture,'s','invalid:cursor'),
+    InvalidArgumentException::class,'M08 legacy private history rejects invalid cursor');

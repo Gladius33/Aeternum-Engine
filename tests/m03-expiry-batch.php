@@ -27,6 +27,8 @@ for($i=0;$i<10;$i++) {
 check($store->balanceForActor('batch-seller','batch-account','ore',$economy)->stock===20,
     'M03 ten future escrow offers reserve ten units before expiry');
 $clock->advanceTo(120);
+check($store->marketForActor('batch-seller')['offers']===[],
+    'M08 SQL market never advertises elapsed offers while expiry worker is pending');
 check(count($store->processDue($rules->events,3,10000))===3,
     'M03 capped expiry worker commits exactly three deterministic events');
 check((int)db()->query("SELECT COUNT(*) FROM engine_events WHERE world_id='m03-expiry-batch' AND completed=0")->fetchColumn()===7,
@@ -41,5 +43,13 @@ check($store->balanceForActor('batch-seller','batch-account','ore',$economy)->st
     'M03 batch escrow return never breaches resource capacity');
 check($store->marketForActor('batch-seller')['offers']===[],
     'M03 ten expired offers disappear from indexed market');
+$expiredHistory=$store->marketHistoryForActor('batch-seller','batch-account',null,3);
+check(array_column($expiredHistory['transactions'],'id')===['batch-0','batch-1','batch-2']
+    && $expiredHistory['nextAfter']==='batch-2',
+    'M08 private expiry history returns bounded first page');
+check(array_column($store->marketHistoryForActor('batch-seller','batch-account','batch-2',3)['transactions'],'id')
+    ===['batch-3','batch-4','batch-5'],'M08 expiry history advances exclusive cursor');
+check((int)db()->query("SELECT COUNT(*) FROM engine_market_offers WHERE world_id='m03-expiry-batch' AND status='expired'")->fetchColumn()===10,
+    'M08 all ten terminal expirations durably indexed after worker recovery');
 check($store->verifyReplay($economy,$rules->events)->entries===22,
     'M03 batched expiry journal and ledger replay after reconnect');

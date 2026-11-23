@@ -78,8 +78,20 @@
 <label for="market-want-resource">Requested resource</label><select id="market-want-resource" name="wantResource" required></select><label for="market-want-units">Requested units</label><input id="market-want-units" name="wantUnits" type="number" min="1" max="1000000000000" step="1" value="1" required>
 <label for="market-expire-seconds">Optional expiry (seconds from now)</label><input id="market-expire-seconds" name="expirySeconds" type="number" min="1" max="2592000" step="1" placeholder="Never expires">
 <button>Create offer</button></form>
+<fieldset id="market-search-fields"><legend>Filter market offers</legend>
+<label for="market-filter-give">Search offered resource</label><select id="market-filter-give"></select>
+<label for="market-filter-want">Search requested resource</label><select id="market-filter-want"></select>
+<button id="market-search" type="button">Search offers</button>
+</fieldset>
 <button id="market-load" type="button">Reload market</button><button id="market-next" type="button" hidden>Next market page</button>
 <label for="market-offer">Open offers</label><select id="market-offer"><option value="">Choose an offer</option></select>
 <button id="market-accept" type="button">Accept selected offer</button><button id="market-cancel" type="button">Cancel selected offer</button><p id="market-notice" role="status"></p>
+<section id="market-history-panel" aria-labelledby="market-history-title">
+<h3 id="market-history-title">My trade history</h3>
+<p>Completed, cancelled and expired trades from your selected account.</p>
+<button id="market-history-load" type="button">Load my trade history</button>
+<button id="market-history-next" type="button" hidden>Next history page</button>
+<ul id="market-history-list"></ul><p id="market-history-notice" role="status"></p>
+</section>
 </section></section>
 <p id="status" role="status" aria-live="polite"></p></main></body></html>
