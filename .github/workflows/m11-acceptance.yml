@@ -159,6 +159,15 @@ jobs:
                 GRANT ALL PRIVILEGES ON aeternum_restore.* TO 'aeternum'@'%'; FLUSH PRIVILEGES;"
           export M11_RESTORE_DISPOSABLE=YES
           export M11_RESTORE_DATABASE=aeternum_restore
+          # A checksum sidecar referring to a different legitimate archive
+          # must NOT authorize restoration of the requested archive.
+          cp "$archive.sha256" "$RUNNER_TEMP/m11-original-checksum"
+          sed 's/  aeternum-/  other-aeternum-/' "$RUNNER_TEMP/m11-original-checksum" > "$archive.sha256"
+          if bash tools/m11-restore-lab.sh "$archive" >/dev/null 2>&1; then
+            echo 'Mismatched checksum archive name unexpectedly accepted' >&2
+            exit 1
+          fi
+          cp "$RUNNER_TEMP/m11-original-checksum" "$archive.sha256"
           bash tools/m11-restore-lab.sh "$archive" > "$RUNNER_TEMP/m11-restore-summary.json"
           php tests/m11-lab-verify.php verified > "$RUNNER_TEMP/m11-proof.json"
           # Second restore must be refused: never modify a populated target.
