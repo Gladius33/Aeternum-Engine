@@ -16,7 +16,10 @@ final class WorldBuildingHttpApi
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/construction/options$~D',
             $path,$match
         )===1;
-        $isProgress=preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/construction/progression$~D',$path,$match)===1;
+        $isProgress=false;
+        if (!$isOptions) {
+            $isProgress=preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/construction/progression$~D',$path,$match)===1;
+        }
         if (!$isOptions && !$isProgress && !preg_match(
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/buildings/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
             $path,$match
