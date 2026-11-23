@@ -106,6 +106,33 @@
     ['Your colony is progressing. Complete all milestones to win.','Votre colonie progresse. Terminez tous les objectifs pour gagner.'],
     ['VICTORY — Your industrial network has fulfilled all construction and delivery goals!','VICTOIRE — Votre réseau industriel a atteint tous les objectifs de construction et de livraison !'],
     ['Build the complete network and dispatch enough goods to win.','Construisez tout le réseau et livrez suffisamment de marchandises pour gagner.'],
+    ['Enter a valid map location','Saisissez un lieu valide sur la carte'],
+    ['Enter valid source and destination locations','Saisissez un lieu de départ et une destination valides'],
+    ['Only the first 100 owned sites or buildings are shown.','Seuls les 100 premiers sites ou bâtiments possédés sont affichés.'],
+    ['No owned matching territory and entity.','Aucun territoire et aucune entité correspondants ne vous appartiennent.'],
+    ['No operator-approved building types in this world.','Aucun type de bâtiment n’est autorisé par l’opérateur dans ce monde.'],
+    ['Choose a site and building type; placement is free, construction stages consume resources.','Choisissez un site et un type de bâtiment. La fondation est gratuite, mais les étapes de construction consomment des ressources.'],
+    ['Choose an owned site and approved building type','Choisissez un site possédé et un type de bâtiment autorisé'],
+    ['Invalid building identifier','Identifiant de bâtiment invalide'],
+    ['Choose an owned building ID','Choisissez l’identifiant d’un de vos bâtiments'],
+    ['Select a building belonging to the refund account','Choisissez un bâtiment appartenant au compte destinataire du remboursement'],
+    ['Choose a pending building and its funding account','Choisissez une construction en attente et son compte de financement'],
+    ['Choose an eligible building and its funding account','Choisissez un bâtiment admissible et son compte de financement'],
+    ['Choose a world and account','Choisissez un monde et un compte'],
+    ['Check your email for the activation code, then enter it below.','Consultez votre messagerie et saisissez ci-dessous le code d’activation.'],
+    ['If the details match a pending player, a replacement activation code has been sent.','Si les renseignements correspondent à un compte en attente, un nouveau code d’activation a été envoyé.'],
+    ['Password reset. Sign in with the replacement password.','Mot de passe réinitialisé. Connectez-vous avec le nouveau mot de passe.'],
+    ['Password changed. All sessions signed out. Save your new recovery code before signing in.','Mot de passe modifié. Toutes les sessions ont été fermées. Conservez le nouveau code de récupération avant de vous reconnecter.'],
+    ['First 100 recipients shown. Enter another account ID manually.','Les 100 premiers destinataires sont affichés. Saisissez manuellement un autre identifiant de compte.'],
+    ['Choose a recipient or enter an account ID manually.','Choisissez un destinataire ou saisissez manuellement un identifiant de compte.'],
+    ['No recipients found.','Aucun destinataire trouvé.'],
+    ['Retry the previous action with identical fields first.','Réessayez d’abord la commande précédente avec les mêmes paramètres.'],
+    ['Choose an offer to accept, or cancel your own offer.','Choisissez une offre à accepter ou annulez votre propre offre.'],
+    ['Select the seller account to cancel','Choisissez le compte vendeur pour annuler'],
+    ['Choose a world, account and resource','Choisissez un monde, un compte et une ressource'],
+    ['Start with a lumberyard, then a farm. Build a granary and keep, improve lumberyard and farm to level 2, and grow six residents to win.','Commencez par une exploitation forestière, puis une ferme. Construisez un grenier et un donjon, améliorez l’exploitation forestière et la ferme au niveau 2, puis accueillez six habitants pour gagner.'],
+    ['Build a power plant and steelworks, add a warehouse, upgrade them to level 2 and construct a freight terminal. Generate grid energy from steel, manufacture goods using your electricity reserve, then deliver 45 goods to win. Operations obey network power and storage limits.','Construisez une centrale électrique et une aciérie, puis un entrepôt. Améliorez les installations au niveau 2 et construisez un terminal de fret. Produisez de l’électricité, fabriquez des marchandises grâce à votre réserve énergétique et livrez-en 45 pour gagner. Les opérations respectent les limites électriques et de stockage.'],
+    ['Store this recovery code offline now; it will not be shown again:','Conservez immédiatement ce code de récupération hors ligne ; il ne sera plus affiché :'],
     ['Never expires','Sans expiration']
   ];
   const toFr = new Map(entries), toEn = new Map(entries.map(([a,b])=>[b,a]));
@@ -118,7 +145,17 @@
     const trimmed = value.trim();
     if (!trimmed) return value;
     const english = toEn.get(trimmed) || trimmed;
-    const translated = locale === 'fr' ? (toFr.get(english) || english) : english;
+    let translated = locale === 'fr' ? (toFr.get(english) || english) : english;
+    // Variable suffixes such as the one-time recovery code remain byte-for-byte unchanged.
+    if (translated === trimmed) {
+      const source = locale === 'fr' ? toFr : toEn;
+      for (const [prefix,replacement] of source) {
+        if (trimmed.startsWith(prefix + ' ')) {
+          translated = replacement + trimmed.slice(prefix.length);
+          break;
+        }
+      }
+    }
     if (translated === trimmed) return value;
     const at = value.indexOf(trimmed);
     return value.slice(0, at) + translated + value.slice(at + trimmed.length);
@@ -131,7 +168,6 @@
       if (root.nodeType === Node.ELEMENT_NODE && root.matches(translatable)) elements.push(root);
       if (root.querySelectorAll) elements.push(...root.querySelectorAll(translatable));
       for (const element of elements) {
-        if (element.closest('#recovery-secret')) continue;
         for (const node of element.childNodes) {
           if (node.nodeType === Node.TEXT_NODE) {
             const value = convert(node.nodeValue, current);
