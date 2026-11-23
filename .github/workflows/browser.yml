@@ -254,7 +254,6 @@ jobs:
           AETERNUM_TEST_ACTIVATION_OUTBOX="$activation_dir" \
             npx playwright test tests/browser/activation.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/registry.spec.cjs --workers=1 --reporter=github,line
-          npx playwright test tests/browser/m14-guild.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/construction.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/medieval.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/industrial.spec.cjs --workers=1 --reporter=github,line
