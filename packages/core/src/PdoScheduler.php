@@ -481,6 +481,8 @@ final class PdoScheduler
             case 'economy.upgrade':
             case 'market.claim':
             case 'building.claim':
+            case 'settlement.feed':
+            case 'settlement.work':
                 $this->assertAccountOwner($command->payload['account']??null,$actor);
                 break;
             case 'economy.transfer':
