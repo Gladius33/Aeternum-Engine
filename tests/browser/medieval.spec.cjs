@@ -84,6 +84,11 @@ test('M05 two newly registered players complete an isolated browser colony campa
     const a=await browser.newPage(),b=await browser.newPage();
     const alice=await register(a,'m05-browser-alice');
     const bob=await register(b,'m05-browser-bob');
+  await expect(a.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Game objectives'})).toBeVisible();
+  await a.getByLabel('Language').selectOption('fr');
+  await expect(a.getByRole('navigation',{name:'Navigation du joueur'}).getByRole('link',{name:'Objectifs de jeu'})).toBeVisible();
+  await expect(a.locator('#medieval-title')).toHaveText('Colonie médiévale — tutoriel et objectif');
+  await a.getByLabel('Langue').selectOption('en');
     expect(alice).not.toBe(bob);
     await a.getByRole('button',{name:'Review your colony'}).click();
     await expect(a.locator('#medieval-details')).toContainText('Residents1 / 1');

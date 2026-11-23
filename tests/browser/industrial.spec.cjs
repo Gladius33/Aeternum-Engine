@@ -68,6 +68,11 @@ test('M06 two players complete an isolated industrial network and freight victor
     const a=await browser.newPage(),b=await browser.newPage();
     const alice=await register(a,'m06-browser-alice');
     const bob=await register(b,'m06-browser-bob');
+  await expect(a.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Game objectives'})).toBeVisible();
+  await a.getByLabel('Language').selectOption('fr');
+  await expect(a.getByRole('navigation',{name:'Navigation du joueur'}).getByRole('link',{name:'Objectifs de jeu'})).toBeVisible();
+  await expect(a.locator('#industrial-title')).toHaveText('Réseau industriel — tutoriel et objectif');
+  await a.getByLabel('Langue').selectOption('en');
     expect(alice).not.toBe(bob);
     await a.getByRole('button',{name:'Review industrial network'}).click();
     await expect(a.locator('#industrial-details')).toContainText('Goods delivered0 / 45');
