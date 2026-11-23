@@ -25,9 +25,11 @@ concurrence et sécurité), et non à la simple création d'une PR.
   identiques est un no-op ; les invitations `pending` sont stables ; un
   `message_id` répété avec contenu identique ne crée ni deuxième message
   ni deuxième notification ; un rejeu conflictuel est refusé.
-- **Blocages :** tous deux peuvent bloquer la conversation. Envoyer alors
-  est refusé, les anciens messages provenant de l'acteur bloqué ne figurent
-  plus dans sa boîte de réception ; un déblocage ne détruit pas ces messages.
+- **Blocages :** tous deux peuvent bloquer la conversation. Envoyer
+  des messages ou inviter le joueur bloqué est refusé ; les invitations
+  antérieures sont masquées et ne peuvent être acceptées pendant le blocage.
+  Les anciens messages sont masqués du destinataire qui a bloqué l'émetteur ;
+  un déblocage ne détruit ni les messages ni les invitations en attente.
 - **Notifications :** message, invitation et invitation acceptée sont écrits
   dans la transaction de l'événement pertinent. Leur accusé de lecture est
   privé et idempotent.
