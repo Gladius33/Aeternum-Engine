@@ -13,17 +13,24 @@ final class TrustedWorldRules
     /**
      * @param array<string,GamePack> $worldPacks
      * @param array<string,list<ApprovedPackCommand>> $approvedPerWorld
+     * @param array<string,list<ApprovedPackEvent>> $approvedEventsPerWorld
      * @return array<string,RuleSet>
      */
-    public static function bind(array $worldPacks,array $approvedPerWorld=[]): array
+    public static function bind(array $worldPacks,array $approvedPerWorld=[],array $approvedEventsPerWorld=[]): array
     {
-        if (count($worldPacks)>512 || count($approvedPerWorld)>512) {
+        if (count($worldPacks)>512 || count($approvedPerWorld)>512 || count($approvedEventsPerWorld)>512) {
             throw new \InvalidArgumentException('Invalid approved world set');
         }
         foreach ($approvedPerWorld as $world=>$handlers) {
             if (!is_string($world) || !array_key_exists($world,$worldPacks)
                 || !is_array($handlers) || !array_is_list($handlers)) {
                 throw new \InvalidArgumentException('Handler binding targets an unknown or invalid world');
+            }
+        }
+        foreach ($approvedEventsPerWorld as $world=>$handlers) {
+            if (!is_string($world) || !array_key_exists($world,$worldPacks)
+                || !is_array($handlers) || !array_is_list($handlers)) {
+                throw new \InvalidArgumentException('Event handler binding targets an unknown or invalid world');
             }
         }
         $rules=[];
@@ -33,7 +40,7 @@ final class TrustedWorldRules
                 || !$pack instanceof GamePack) {
                 throw new \InvalidArgumentException('Invalid trusted world binding');
             }
-            $rules[$world]=$pack->rules($approvedPerWorld[$world]??[]);
+            $rules[$world]=$pack->rules($approvedPerWorld[$world]??[],$approvedEventsPerWorld[$world]??[]);
         }
         return $rules;
     }

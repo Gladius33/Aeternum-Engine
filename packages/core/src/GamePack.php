@@ -38,14 +38,21 @@ final readonly class GamePack
      * exact old-world key and its deterministic replay implementation.
      *
      * @param list<ApprovedPackCommand> $trustedCommands
+     * @param list<ApprovedPackEvent> $trustedEvents
      */
-    public function rules(array $trustedCommands=[]): RuleSet
+    public function rules(array $trustedCommands=[],array $trustedEvents=[]): RuleSet
     {
         $extensions=$trustedCommands===[]?null:new TrustedPackCommands($trustedCommands,$this->actions);
         $rulesDigest=$extensions===null?$this->digest:hash('sha256',
             "aeternum-trusted-pack-commands-v1\0".$this->digest."\0".$extensions->fingerprint());
         $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings,$this->settlement,$this->industry,$extensions);
-        $events=new EconomyEventHandler($economy);
+        $builtinEvents=new EconomyEventHandler($economy);
+        $eventExtensions=$trustedEvents===[]?null:new TrustedPackEvents($trustedEvents,$this->eventHooks,$builtinEvents);
+        if ($eventExtensions!==null) {
+            $rulesDigest=hash('sha256',
+                "aeternum-trusted-pack-events-v1\0".$rulesDigest."\0".$eventExtensions->fingerprint());
+        }
+        $events=$eventExtensions??$builtinEvents;
         // Generic market expiration is a trusted engine event shared by all
         // packs. Typed manifests may add other hooks but cannot redefine the
         // built-in envelope. Old API-1 manifests retain their exact SHA/rules.

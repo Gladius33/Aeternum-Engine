@@ -78,6 +78,30 @@ extended command, worker entry, wrong-default-rule denial and journal
 replay. This is not yet an external plugin installation facility or
 deployment validation.
 
+## Fourth increment — approved delayed event handlers (in PR)
+
+ApprovedPackEvent and TrustedPackEvents provide an explicitly registered
+trusted event adapter. Every custom event type must be in the
+pack.module.event namespace AND declared in the immutable pack event-hooks
+schema; duplicate, reserved, undeclared or unpinned event handlers are
+rejected. Existing built-in event handlers remain the fallback.
+
+GamePack::rules($commands,$events) accepts separate reviewed command
+and event implementations. Event fingerprints are composed into the
+existing pinned rule identity using a separate domain separator;
+no-extensions and command-only callers retain their previous keys.
+
+TrustedWorldRules::bind() can bind event adapters on a per-world basis.
+Every event continues to execute under the canonical PdoScheduler world
+lock, journal, retry and deterministic replay. The added tests verify
+event schema rejections, code-digest pinning, per-world isolation,
+delayed scheduling through real authenticated HTTP, exact due-time
+execution via the production WorldWorker, no second award after retry,
+and full MariaDB replay.
+
+Only trusted PHP code can implement these handlers. No manifest path or
+user-controlled class can be evaluated by the event dispatcher.
+
 ## Current security and product limitations
 
 General trusted handlers remain operator-only. ActorPackCommand handlers
@@ -103,7 +127,8 @@ No M14 release, M13 V1.0 certification, external staging or payment.
 3. Complete actor-scoped security coverage with more complex multi-account
    action policies, concurrency and replay tests under real MariaDB; verify
    that all extension side effects remain within trusted transaction rules.
-4. Introduce typed event extensions and replay-safe worker scheduling.
+4. Expand typed event extension coverage to crash/recovery races, bounded
+   worker budgets and legacy-to-extended world migrations.
 5. Prove a third fully playable pack through PHP 8.4, MariaDB concurrency
    and live Chromium without new theme branches in the core.
 6. Retain older immutable pack versions and provide compatibility/rollback.
