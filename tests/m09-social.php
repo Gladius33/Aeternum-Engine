@@ -2,6 +2,7 @@
 declare(strict_types=1);
 use Aeternum\Core\{PdoAlliances,SocialHttpApi,PdoMemberships,PdoIdentity,PdoScheduler,PdoSessions,FrozenClock};
 
+(static function(): void {
 // Exercise real 028 tables on two persistent worlds and independently
 // authenticated identities. Never rely on test HTTP mocks or in-memory state.
 $swA='m09-social-a'; $swB='m09-social-b';
@@ -156,3 +157,5 @@ check($ri->fetchColumn()==='accepted',
     'M09 invitation remains accepted after concurrent retries');
 check($sget($sr,$swA,'alliances/racecrew')[0]===200,
     'M09 committed concurrent membership is visible after reconnect');
+
+})();
