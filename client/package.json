@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "npm run typecheck && esbuild src/main.ts --bundle --platform=browser --format=iife --target=es2020 --outfile=../public/client-dist/aeternum-shell.js --minify"
+    "build": "npm run typecheck && esbuild src/main.ts --bundle --platform=browser --format=iife --target=es2020 --outfile=../public/client-dist/aeternum-shell.js --minify",
+    "test": "node --test tests/*.cjs"
   },
   "dependencies": {
     "vue": "3.5.24"

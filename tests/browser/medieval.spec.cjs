@@ -147,6 +147,8 @@ test('M05 two newly registered players complete an isolated browser colony campa
     // Reconnect via the actual login screen, not a retained local session.
     await a.getByRole('button',{name:'Sign out'}).click();
     await expect(a.locator('#login')).toBeVisible();
+    await expect(a.locator('.command-confirmed')).toHaveCount(0);
+    await expect(a.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Sign in'})).toBeVisible();
     await a.getByLabel('Login',{exact:true}).fill('m05-browser-alice');
     await a.getByLabel('Password',{exact:true}).fill(password);
     const login=a.waitForResponse(r=>r.url().endsWith('/v1/auth/login'));

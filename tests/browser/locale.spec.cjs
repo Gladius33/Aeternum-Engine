@@ -11,8 +11,16 @@ test('M07: language selection updates accessible headings without changing accou
   await expect(page.locator('#login h2')).toHaveText('Connexion');
   await expect(page.locator('#map-title')).toHaveText('Carte du monde');
   await expect(login).toHaveValue('local-user');
+  await page.evaluate(()=>{
+    document.querySelector('#market-notice').textContent='No open offers.';
+    const item=document.createElement('li');item.textContent='player-private-123';
+    document.querySelector('#map-territories').append(item);
+  });
+  await expect(page.locator('#market-notice')).toHaveText('Aucune offre ouverte.');
+  await expect(page.locator('#map-territories li')).toHaveText('player-private-123');
   await page.getByLabel('Langue').selectOption('en');
   await expect(page.locator('#login h2')).toHaveText('Sign in');
+  await expect(page.locator('#market-notice')).toHaveText('No open offers.');
   await expect(page.locator('html')).toHaveAttribute('lang','en');
 });
 

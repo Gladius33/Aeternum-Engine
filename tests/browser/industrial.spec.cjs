@@ -125,6 +125,8 @@ test('M06 two players complete an isolated industrial network and freight victor
     await expect(b.locator('#industrial-victory')).not.toContainText('VICTORY');
     await a.getByRole('button',{name:'Sign out'}).click();
     await expect(a.locator('#login')).toBeVisible();
+    await expect(a.locator('.command-confirmed')).toHaveCount(0);
+    await expect(a.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Sign in'})).toBeVisible();
     await a.getByLabel('Login',{exact:true}).fill('m06-browser-alice');
     await a.getByLabel('Password',{exact:true}).fill(password);
     const authenticated=a.waitForResponse(r=>r.url().endsWith('/v1/auth/login'));
