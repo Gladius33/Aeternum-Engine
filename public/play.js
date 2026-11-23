@@ -698,7 +698,15 @@ const socialDirectory=document.querySelector('#social-directory');
 const socialMembers=document.querySelector('#social-member-list');
 const socialInbox=document.querySelector('#social-inbox');
 const socialNotice=document.querySelector('#social-notice');
+let socialMessageAfter=null, socialNotificationAfter=null;
+let socialMessageGeneration=0, socialNotificationGeneration=0;
 function clearSocial() {
+    // Invalidate an outstanding API result when the player switches worlds
+    // or signs out; old private pages must never repaint a new session.
+    socialMessageAfter=null;socialNotificationAfter=null;
+    ++socialMessageGeneration;++socialNotificationGeneration;
+    document.getElementById('social-messages-next').hidden=true;
+    document.getElementById('social-notifications-next').hidden=true;
     socialDirectory.replaceChildren();
     socialMembers.replaceChildren();
     for (const listId of ['social-messages-list','social-block-list','social-notifications-list','social-leaderboard-list']) {
@@ -829,26 +837,41 @@ for (const [selector,accepted] of [['#social-accept',true],['#social-decline',fa
 }
 
 
-async function socialRefreshMessages() {
-    const world=balance.elements.world.value,root=socialRoot();
-    const data=await api(root+'/messages');
-    if (balance.elements.world.value!==world) return;
-    const list=document.getElementById('social-messages-list');
-    list.replaceChildren();
-    for (const message of data.messages) {
-        const li=document.createElement('li'),report=document.createElement('button');
-        li.append(document.createTextNode(message.from+' — '+message.text+' ('+message.id+') '));
-        report.type='button';report.textContent='Report this message';
-        report.addEventListener('click',()=>{
-            document.getElementById('social-report-id').value=message.id;
-            document.getElementById('social-report-reason').focus();
-        });
-        li.append(report);
-        list.append(li);
+async function socialRefreshMessages(older=false) {
+    const world=balance.elements.world.value,root=socialRoot(),
+        previous=older?socialMessageAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialMessageGeneration;
+    const nextButton=document.getElementById('social-messages-next');
+    nextButton.disabled=true;
+    try {
+        const path=previous===null?'/messages':
+            '/messages/page/'+previous.createdAt+'/'+encodeURIComponent(previous.id);
+        const data=await api(root+path);
+        if (balance.elements.world.value!==world || generation!==socialMessageGeneration) return;
+        const list=document.getElementById('social-messages-list');
+        if (!older) list.replaceChildren();
+        for (const message of data.messages) {
+            const li=document.createElement('li'),report=document.createElement('button');
+            li.append(document.createTextNode(message.from+' — '+message.text+' ('+message.id+') '));
+            report.type='button';report.textContent='Report this message';
+            report.addEventListener('click',()=>{
+                document.getElementById('social-report-id').value=message.id;
+                document.getElementById('social-report-reason').focus();
+            });
+            li.append(report);
+            list.append(li);
+        }
+        socialMessageAfter=data.nextAfter;
+        nextButton.hidden=socialMessageAfter===null;
+        document.getElementById('social-mail-notice').textContent=socialMessageAfter===null?
+            'All visible messages loaded.':'Older messages available.';
+    } finally {
+        if (generation===socialMessageGeneration) nextButton.disabled=false;
     }
-    document.getElementById('social-mail-notice').textContent=data.truncated?
-        'Only the newest 50 messages are visible.':'Messages loaded.';
 }
+document.getElementById('social-messages-next').addEventListener('click',
+    ()=>run(()=>socialRefreshMessages(true)));
 document.getElementById('social-send-form').addEventListener('submit',event=>{
     event.preventDefault();run(async()=>{
         const recipient=socialActor('social-recipient'),
@@ -891,25 +914,45 @@ document.getElementById('social-report-form').addEventListener('submit',event=>{
         document.getElementById('social-mail-notice').textContent='Report submitted to moderation.';
     });
 });
-async function socialRefreshNotifications() {
-    const world=balance.elements.world.value,root=socialRoot();
-    const data=await api(root+'/notifications');
-    if (balance.elements.world.value!==world) return;
-    const select=document.getElementById('social-notification-id'),
-        list=document.getElementById('social-notifications-list');
-    list.replaceChildren();
-    const unread=[];
-    for (const notice of data.notifications) {
-        const item=document.createElement('li');
-        item.textContent=notice.kind+' — '+notice.subject+
-            (notice.readAt===null?' (unread)':' (read)');
-        list.append(item);
-        if (notice.readAt===null) unread.push([notice.id,notice.kind+' — '+notice.subject]);
+async function socialRefreshNotifications(older=false) {
+    const world=balance.elements.world.value,root=socialRoot(),
+        previous=older?socialNotificationAfter:null;
+    if (older && previous===null) return;
+    const generation=++socialNotificationGeneration;
+    const nextButton=document.getElementById('social-notifications-next');
+    nextButton.disabled=true;
+    try {
+        const path=previous===null?'/notifications':
+            '/notifications/page/'+previous.createdAt+'/'+encodeURIComponent(previous.id);
+        const data=await api(root+path);
+        if (balance.elements.world.value!==world || generation!==socialNotificationGeneration) return;
+        const select=document.getElementById('social-notification-id'),
+            list=document.getElementById('social-notifications-list');
+        if (!older) {
+            list.replaceChildren();
+            options(select,[['','Select notification']]);
+        }
+        for (const notice of data.notifications) {
+            const item=document.createElement('li');
+            item.textContent=notice.kind+' — '+notice.subject+
+                (notice.readAt===null?' (unread)':' (read)');
+            list.append(item);
+            if (notice.readAt===null) {
+                const option=document.createElement('option');
+                option.value=notice.id;option.textContent=notice.kind+' — '+notice.subject;
+                select.append(option);
+            }
+        }
+        socialNotificationAfter=data.nextAfter;
+        nextButton.hidden=socialNotificationAfter===null;
+        document.getElementById('social-mail-notice').textContent=socialNotificationAfter===null?
+            'All notifications loaded.':'Older notifications available.';
+    } finally {
+        if (generation===socialNotificationGeneration) nextButton.disabled=false;
     }
-    options(select,[['','Select notification'],...unread]);
-    document.getElementById('social-mail-notice').textContent=data.truncated?
-        'Only the newest 50 notifications are visible.':'Notifications loaded.';
 }
+document.getElementById('social-notifications-next').addEventListener('click',
+    ()=>run(()=>socialRefreshNotifications(true)));
 document.getElementById('social-notifications-refresh').addEventListener('click',
     ()=>run(socialRefreshNotifications));
 document.getElementById('social-notification-read').addEventListener('click',()=>run(async()=>{

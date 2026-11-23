@@ -137,5 +137,34 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   await signin(owner,'browser-social-owner');
   await owner.getByRole('button',{name:'Browse alliances'}).click();
   await expect(owner.locator('#social-directory')).toContainText('browser-crew');
+  // Populate the same real MariaDB through the social model, not a mocked
+  // HTTP response. The browser must traverse 55 messages / notifications
+  // using the authenticated cursor API and show each record exactly once.
+  const seedPhp=`
+    require 'vendor/autoload.php';
+    $pdo=new PDO(getenv('AETERNUM_DSN'),getenv('AETERNUM_DB_USER'),getenv('AETERNUM_DB_PASSWORD'),[
+      PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false
+    ]);
+    $q=$pdo->prepare('SELECT actor_id FROM engine_identities WHERE login=?');
+    $q->execute(['browser-social-owner']);$from=$q->fetchColumn();
+    $q->execute(['browser-social-member']);$to=$q->fetchColumn();
+    if (!is_string($from)||!is_string($to)) throw new RuntimeException('Missing browser mail actors');
+    $mail=new Aeternum\\Core\\PdoSocialMessages($pdo,'e2e-medieval',new Aeternum\\Core\\SystemClock());
+    for($i=0;$i<55;$i++) $mail->send($from,$to,sprintf('browser-page-%03d',$i),'Archived test message '.$i);
+  `;
+  execFileSync('php',['-r',seedPhp],{encoding:'utf8',timeout:30000});
+  await member.getByRole('button',{name:'Refresh messages'}).click();
+  await expect(member.locator('#social-messages-list li')).toHaveCount(50);
+  await expect(member.getByRole('button',{name:'Older messages'})).toBeVisible();
+  await member.getByRole('button',{name:'Older messages'}).click();
+  await expect(member.locator('#social-messages-list li')).toHaveCount(55);
+  await expect(member.locator('#social-messages-list')).toContainText('Archived test message 0');
+  await expect(member.getByRole('button',{name:'Older messages'})).toBeHidden();
+  await member.getByRole('button',{name:'Refresh notifications'}).click();
+  await expect(member.locator('#social-notifications-list li')).toHaveCount(50);
+  await expect(member.getByRole('button',{name:'Older notifications'})).toBeVisible();
+  await member.getByRole('button',{name:'Older notifications'}).click();
+  await expect(member.locator('#social-notifications-list li')).toHaveCount(57);
+  await expect(member.getByRole('button',{name:'Older notifications'})).toBeHidden();
   await owner.close();await member.close();
 });
