@@ -19,6 +19,49 @@ final class MarketProjection
         }
     }
 
+    /**
+     * Account-scoped terminal barter history for legacy JSON worlds.
+     * The order is by immutable offer identifier, never an invented date.
+     */
+    public static function history(array $state,string $account,?string $after=null,int $limit=50): array
+    {
+        self::validatePage($after,$limit);
+        self::validateResourceFilter($account);
+        $items=[];
+        foreach ($state as $key=>$status) {
+            if (!in_array($status,['filled','cancelled','expired'],true)
+                || !preg_match('/^market:([A-Za-z0-9][A-Za-z0-9_-]{0,63}):status$/D',(string)$key,$m)) continue;
+            $p='market:'.$m[1].':';
+            $seller=$state[$p.'seller']??null;
+            $buyer=$state[$p.'buyer']??null;
+            if ($seller!==$account && $buyer!==$account) continue;
+            $offer=['id'=>$m[1],'seller'=>$seller,'buyer'=>$buyer,'status'=>$status];
+            foreach (['giveResource','wantResource'] as $field) {
+                $v=$state[$p.$field]??null;
+                if (!is_string($v) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/D',$v)) {
+                    throw new \LogicException('Invalid historical resource');
+                }
+                $offer[$field]=$v;
+            }
+            foreach (['giveUnits','wantUnits'] as $field) {
+                $v=$state[$p.$field]??null;
+                if (!is_int($v) || $v<1 || $v>1000000000000) throw new \LogicException('Invalid historical units');
+                $offer[$field]=$v;
+            }
+            $items[]=$offer;
+        }
+        usort($items,static fn(array $a,array $b): int=>strcmp($a['id'],$b['id']));
+        $page=[];
+        foreach ($items as $offer) {
+            if ($after!==null && strcmp($offer['id'],$after)<=0) continue;
+            $page[]=$offer;
+            if (count($page)>$limit) break;
+        }
+        $more=count($page)>$limit;
+        if ($more) array_pop($page);
+        return ['transactions'=>$page,'nextAfter'=>$more?$page[count($page)-1]['id']:null];
+    }
+
     public static function openOffers(array $state): array
     {
         $offers=[];

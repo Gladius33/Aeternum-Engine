@@ -597,6 +597,42 @@ final class PdoScheduler
         });
     }
 
+    /** Own-account, read-only terminal history. Does not alter replay state. */
+    public function marketHistoryForActor(string $actor,string $account,?string $after=null,int $limit=50): array
+    {
+        PdoMemberships::validateId($actor);
+        PdoMemberships::validateId($account);
+        MarketProjection::validatePage($after,$limit);
+        if ($this->rules===null || !$this->rules->commands instanceof EconomyCommandHandler) {
+            throw new \DomainException('Market requires pinned economy rules');
+        }
+        if ($this->processing) throw new \LogicException('Reentrant history prohibited');
+        return $this->transaction(function () use ($actor,$account,$after,$limit): array {
+            if ($this->hasProjection()) {
+                $row=$this->query('SELECT rules_key,economy_projection_version,watermark
+                    FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetch(PDO::FETCH_ASSOC);
+                if ($row===false || $row['rules_key']!==$this->rulesKey()) {
+                    throw new \DomainException('World not initialized or rules mismatch');
+                }
+                $this->assertActiveActor($actor);
+                $this->assertAccountOwner($account,$actor);
+                if ((int)$row['economy_projection_version']===0) {
+                    $this->lockedWorld();
+                } elseif ((int)$row['economy_projection_version']!==1) {
+                    throw new \UnexpectedValueException('Invalid projection version');
+                }
+                if ($this->clock->now()<(int)$row['watermark']) {
+                    throw new \DomainException('Clock precedes committed logical time');
+                }
+                return (new PdoEconomyProjection($this->pdo,$this->worldId))->historyPage($account,$after,$limit);
+            }
+            $world=$this->lockedWorld();
+            $this->assertActiveActor($actor);
+            $this->assertAccountOwner($account,$actor);
+            return MarketProjection::history(ScalarMap::decode($world['state_json']),$account,$after,$limit);
+        });
+    }
+
     /** Own-account projection, guarded by the due-event barrier. */
     public function balanceForActor(string $actor,string $account,string $resource,EconomyCommandHandler $handler): ProductionState
     {

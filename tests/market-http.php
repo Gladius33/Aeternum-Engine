@@ -36,7 +36,8 @@ check($mhCreated[0]===200 && $mhPost('seller','create','market.create',$mhTerms)
 $mhPage=$mhGet('buyer');
 check($mhPage[0]===200 && $mhPage[1]['data']===['offers'=>[['id'=>'offer-a','seller'=>'seller','giveResource'=>'ore','wantResource'=>'coin','giveUnits'=>15,'wantUnits'=>10]],'nextAfter'=>null],'market HTTP public terms only');
 check($mhGet('buyer','market/offer-a')[1]['data']['offers']===[],'market HTTP cursor excludes previous offer');
-check($mhGet('buyer','market/search/ore/coin')[1]['data']['offers'][0]['id']==='offer-a','market HTTP search matches resource pair');
+$mhSearch=$mhGet('buyer','market/search/ore/coin');
+check($mhSearch[0]===200 && ($mhSearch[1]['data']['offers'][0]['id']??null)==='offer-a','market HTTP search matches resource pair');
 check($mhGet('buyer','market/search/coin/ore')[1]['data']['offers']===[],'market HTTP search excludes reverse pair');
 check($mhGet('buyer','market/search/ore/coin/offer-a')[1]['data']['offers']===[],'market HTTP filtered cursor is exclusive');
 $mhMembers->revoke($mhActors['seller']);
@@ -49,6 +50,15 @@ check($mhAccepted[0]===200 && $mhPost('buyer','accept','market.accept',$mhAccept
 check($mhPost('buyer','accept-other','market.accept',$mhAccept)[0]===409,'market HTTP refuses double acceptance');
 check($mhGet('buyer','balances/buyer/ore')[1]['data']->stock===115 && $mhGet('seller','balances/seller/coin')[1]['data']->stock===110,'market HTTP committed balances');
 check($mhGet('buyer')[1]['data']['offers']===[],'market HTTP hides filled offer');
+$mhHistory=$mhGet('buyer','market/history/buyer');
+check($mhHistory[0]===200 && ($mhHistory[1]['data']['transactions'][0]['status']??null)==='filled'
+    && $mhHistory[1]['data']['transactions'][0]['buyer']==='buyer','M08 HTTP buyer sees settled exchange');
+check($mhGet('seller','market/history/seller')[1]['data']['transactions'][0]['id']==='offer-a',
+    'M08 HTTP seller sees settled exchange');
+check($mhGet('buyer','market/history/seller')[0]===409,'M08 HTTP denies foreign history');
+check($mhApi->handle('GET',$mhBase.'market/history/buyer','')[0]===401,'M08 history requires session');
+check($mhApi->handle('POST',$mhBase.'market/history/buyer',$mhHeaders['buyer'])[0]===405,
+    'M08 history refuses mutation over GET route');
 $mhTerms['offer']='offer-b';
 check($mhPost('seller','create-b','market.create',$mhTerms)[0]===200,'market HTTP second offer');
 $mhCancel=['offer'=>'offer-b','seller'=>'seller'];
@@ -56,6 +66,12 @@ check($mhPost('buyer','foreign-cancel','market.cancel',$mhCancel)[0]===409,'mark
 $mhCancelled=$mhPost('seller','cancel','market.cancel',$mhCancel);
 check($mhCancelled[0]===200 && $mhPost('seller','cancel','market.cancel',$mhCancel)==$mhCancelled,'market HTTP cancel and retry');
 check($mhGet('seller','balances/seller/ore')[1]['data']->stock===85,'market HTTP exact returned stock');
+check(array_column($mhGet('seller','market/history/seller')[1]['data']['transactions'],'status')===['filled','cancelled'],
+    'M08 HTTP history exposes all own terminal trades');
+check($mhGet('seller','market/history/seller/offer-a')[1]['data']['transactions'][0]['id']==='offer-b',
+    'M08 HTTP history uses exclusive cursor');
+check(array_column($mhGet('buyer','market/history/buyer')[1]['data']['transactions'],'id')===['offer-a'],
+    'M08 buyer cannot see seller-only cancellation');
 $mhMembers->grant($mhActors['outsider']); $mhMembers->assign('outsider',$mhActors['outsider']);
 for ($n=0;$n<20;$n++) {
     if ($mhPost('outsider','missing-'.$n,'market.cancel',['offer'=>'missing','seller'=>'outsider'])[0]!==409) throw new RuntimeException('Market quota denied early');

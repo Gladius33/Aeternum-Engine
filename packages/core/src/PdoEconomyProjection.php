@@ -221,4 +221,33 @@ final class PdoEconomyProjection
         }
         return ['offers'=>$offers,'nextAfter'=>$more?$offers[count($offers)-1]['id']:null];
     }
+    /**
+     * Committed private history, including closed and expired escrows.
+     * Membership and account ownership are checked by PdoScheduler.
+     */
+    public function historyPage(string $account,?string $after=null,int $limit=50): array
+    {
+        MarketProjection::validatePage($after,$limit);
+        MarketProjection::validateResourceFilter($account);
+        $q=$this->pdo->prepare('SELECT offer_id,seller_id,buyer_id,status,
+                give_resource,want_resource,give_units,want_units
+            FROM engine_market_offers
+            WHERE world_id=? AND status IN (?,?,?) AND (seller_id=? OR buyer_id=?)
+              AND offer_id>?
+            ORDER BY offer_id LIMIT '.($limit+1));
+        $q->execute([$this->worldId,'filled','cancelled','expired',$account,$account,$after??'']);
+        $rows=$q->fetchAll(PDO::FETCH_ASSOC);
+        $more=count($rows)>$limit;
+        if ($more) array_pop($rows);
+        $history=[];
+        foreach ($rows as $row) {
+            $history[]=[
+                'id'=>$row['offer_id'],'seller'=>$row['seller_id'],'buyer'=>$row['buyer_id'],
+                'status'=>$row['status'],'giveResource'=>$row['give_resource'],
+                'wantResource'=>$row['want_resource'],'giveUnits'=>(int)$row['give_units'],
+                'wantUnits'=>(int)$row['want_units']
+            ];
+        }
+        return ['transactions'=>$history,'nextAfter'=>$more?$history[count($history)-1]['id']:null];
+    }
 }
