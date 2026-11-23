@@ -225,4 +225,5 @@ require __DIR__ . "/m03-cli.php";
 // Run the high-watermark authenticated hash stress AFTER all lower fixed-clock
 // recovery tests so a deliberate simulated future cannot exhaust their quota.
 require __DIR__ . "/auth-capacity.php";
+require __DIR__ . "/m11-operations.php";
 echo "MariaDB integration checks passed.\n";
