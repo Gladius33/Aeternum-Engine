@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+const {execFileSync}=require('node:child_process');
 const origin='http://127.0.0.1:8765';
 const pass='browser-only test password';
 const world='e2e-medieval';
@@ -75,7 +76,10 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   await member.getByLabel('Report reason').fill('Unwanted contact in this test');
   const reported=member.waitForResponse(r=>r.url()===root+'/reports');
   await member.getByRole('button',{name:'Report message'}).click();
-  expect((await reported).status()).toBe(200);
+  const reportResponse=await reported;
+  expect(reportResponse.status()).toBe(200);
+  const reportId=reportResponse.request().postDataJSON().id;
+  expect(reportId).toMatch(/^[0-9a-f-]{36}$/);
   await member.getByLabel('Blocked actor ID').fill(ownerActor);
   const blocked=member.waitForResponse(r=>r.url()===root+'/blocks'&&r.request().method()==='POST');
   await member.getByRole('button',{name:'Block player'}).click();
@@ -86,6 +90,19 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   await member.getByRole('button',{name:'Unblock player'}).click();
   expect((await unblocked).status()).toBe(200);
   await expect(member.locator('#social-messages-list')).toContainText(mailId);
+  // Real operator-only CLI processes the report against the same CI MariaDB
+  // used by the browser API. No public admin endpoint or mock is introduced.
+  const adjudication=execFileSync('php',
+    ['bin/social-moderate.php',world,reportId,'hide'],{
+      input:'Verified prohibited message in isolated browser test\\n',encoding:'utf8',
+      env:{...process.env,AETERNUM_SOCIAL_MODERATOR:'ci-browser-operator'},
+      timeout:15000
+    });
+  expect(JSON.parse(adjudication).reviewed).toBe(true);
+  const hidden=member.waitForResponse(r=>r.url()===root+'/messages'&&r.request().method()==='GET');
+  await member.getByRole('button',{name:'Refresh messages'}).click();
+  expect((await hidden).status()).toBe(200);
+  await expect(member.locator('#social-messages-list li')).toHaveCount(0);
   await member.getByRole('button',{name:'Show alliance leaderboard'}).click();
   await expect(member.locator('#social-leaderboard-list')).toContainText('browser-crew');
   await owner.getByRole('button',{name:'Inspect my alliance'}).click();
