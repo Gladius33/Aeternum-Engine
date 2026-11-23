@@ -42,7 +42,7 @@ for ($i=0;$i<512;$i++) {
 }
 $aliases=[
     ['a','\u0061'],['slash/name','slash\/name'],['é','\u00e9'],
-    ['𝄞','\ud834\udd1e'],['quote"key','quote\"key'],['back\slash','back\\slash'],
+    ['𝄞','\ud834\udd1e'],['quote"key','quote\"key'],['back\\slash','back\\\\slash'],
     ['0','\u0030'],["line\nkey",'line\nkey']
 ];
 $duplicateRejected=0;
