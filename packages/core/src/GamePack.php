@@ -25,6 +25,7 @@ final readonly class GamePack
         public array $buildings=[],
         public ?SettlementRules $settlement=null,
         public ?IndustryRules $industry=null,
+        public bool $playerHomestead=false,
     ) {}
 
     public function sdk(): PackSdk

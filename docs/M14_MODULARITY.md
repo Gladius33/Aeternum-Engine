@@ -102,6 +102,44 @@ and full MariaDB replay.
 Only trusted PHP code can implement these handlers. No manifest path or
 user-controlled class can be evaluated by the event dispatcher.
 
+## Fifth increment — thematic module extraction and third data-only game
+
+**Reference implementations extracted from generic economic dispatch:**
+ReferenceSettlementCommand and ReferenceIndustryCommand are distinct,
+trusted command adapters. EconomyGameplayPort provides the existing
+canonical resource settlement/ledger operations. EconomyCommandHandler
+now dispatches through a fixed, constructor-registered compatibility
+map and contains no settlement/industrial action implementation.
+The old command names, serialized state keys, durable journal format
+and unchanged manifest/rule identity remain supported. These
+historical adapters are not dynamically loaded from JSON.
+
+**Third game:** games/reference-guild/manifest.json defines
+Guild Caravans with silver, grain, spice, two construction facilities,
+resource-production upgrades and ordinary market/barter progression.
+Its boolean player_homestead flag enables the *generic* automatic
+grant of an owned construction plot, without turning on either
+medieval settlement or industrial mechanics. Omitted flag defaults
+to false, preserving existing historical worlds. Values other than
+JSON booleans, or a homestead with no construction definitions,
+are rejected at manifest validation.
+
+In Browser E2E, two provisioned, separately authenticated guild
+players interact through the real HTML client. One places and
+completes both construction facilities using the production worker;
+a second player is denied control of the first player's building.
+A persisted guild barter is executed and retried without duplicate
+settlement, and the first player upgrades silver production through
+a genuine delayed engine event. Cross-world read access is refused.
+This verifies a complete small *trade/construction/progression
+campaign*, not a general victory-points module (reserved for M15).
+
+The third pack provides **no new PHP branch for its identity** inside
+the economic command dispatcher. It deliberately relies on existing
+generic resource/market/construction APIs; the existing browser
+client provides its interface. This is a playable reference campaign,
+not a polished commercial release.
+
 ## Current security and product limitations
 
 General trusted handlers remain operator-only. ActorPackCommand handlers
@@ -119,8 +157,8 @@ No M14 release, M13 V1.0 certification, external staging or payment.
 
 ## M14 criteria still to develop and prove
 
-1. Extract the hard-coded settlement/industry behaviors from mandatory
-   core paths, using approved adapters with a replay-compatible migration.
+1. Sustain the extracted settlement/industry compatibility adapters with
+   immutable historical pack keys and longer-term modular module boundaries.
 2. Extend the operator-owned world composition API into the full deployment
    bootstrap path for HTTP, provisioning and workers, retaining identical
    pinned identities and refusing unapproved updates.
@@ -129,8 +167,8 @@ No M14 release, M13 V1.0 certification, external staging or payment.
    that all extension side effects remain within trusted transaction rules.
 4. Expand typed event extension coverage to crash/recovery races, bounded
    worker budgets and legacy-to-extended world migrations.
-5. Prove a third fully playable pack through PHP 8.4, MariaDB concurrency
-   and live Chromium without new theme branches in the core.
+5. Extend the third Guild Caravans browser campaign to richer gameplay
+   and automated server-authoritative victory criteria before commercial use.
 6. Retain older immutable pack versions and provide compatibility/rollback.
 7. Full CI green for the exact final SHA before considering a merge.
 

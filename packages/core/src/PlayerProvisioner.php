@@ -34,7 +34,7 @@ final class PlayerProvisioner
         // settlement location and territory. Existing 0.1.0/0.2.0 worlds remain
         // untouched. Retries recheck immutable rows under the world lock.
         // No foundation or construction cost is silently created or paid.
-        if ($pack->settlement!==null || $pack->industry!==null) {
+        if ($pack->settlement!==null || $pack->industry!==null || $pack->playerHomestead) {
             $territories=new PdoTerritories($this->pdo,$world);
             $territories->define($actor,$actor,'homestead');
             $territories->assign($actor,$actor);

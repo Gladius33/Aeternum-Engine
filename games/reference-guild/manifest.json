@@ -1,0 +1,77 @@
+{
+  "engine_api": "1",
+  "id": "reference-guild",
+  "version": "0.1.0",
+  "name": "Guild caravans — construct trade routes and exchange goods",
+  "resources": [
+    {
+      "id": "silver",
+      "initial_stock": 180,
+      "capacity": 1200,
+      "amount": 8,
+      "interval_seconds": 30
+    },
+    {
+      "id": "grain",
+      "initial_stock": 100,
+      "capacity": 700,
+      "amount": 5,
+      "interval_seconds": 30
+    },
+    {
+      "id": "spice",
+      "initial_stock": 20,
+      "capacity": 500,
+      "amount": 2,
+      "interval_seconds": 45
+    }
+  ],
+  "upgrades": [
+    {
+      "resource": "silver",
+      "level": 1,
+      "cost": 25,
+      "duration_seconds": 3,
+      "amount": 14
+    },
+    {
+      "resource": "grain",
+      "level": 1,
+      "cost": 15,
+      "duration_seconds": 3,
+      "amount": 8
+    }
+  ],
+  "buildings": [
+    {
+      "type": "market_hall",
+      "stages": [
+        {
+          "costs": {
+            "silver": 20,
+            "grain": 8
+          },
+          "duration": 2,
+          "requires": {}
+        }
+      ]
+    },
+    {
+      "type": "caravan_hub",
+      "stages": [
+        {
+          "costs": {
+            "silver": 45,
+            "grain": 15,
+            "spice": 5
+          },
+          "duration": 3,
+          "requires": {
+            "market_hall": 1
+          }
+        }
+      ]
+    }
+  ],
+  "player_homestead": true
+}
