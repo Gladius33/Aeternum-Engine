@@ -119,4 +119,21 @@ use Aeternum\Core\{PdoScheduler,PdoIdentity,PdoMemberships,PdoSessions,PdoAdminC
         ===['profile_badge'],'M10 same event ID is safely namespaced per world');
     check($api->handle('GET',$url,$token)[1]['data']['features']===['ui_theme'],
         'M10 second-world test event never changes first-world entitlement');
+    // Out-of-band trusted revocation of a scope must take effect before any
+    // further write; query scopes with a shared lock to serialize in-flight
+    // commands against such privilege updates.
+    $scope=$pdo->prepare('UPDATE engine_admin_scopes SET active=? WHERE world_id=? AND operator_id=?');
+    $scope->execute([0,$world,'m10-manager']);
+    rejects(fn()=> $admin->testPayment('m10-manager','m10-suspended',$actor,'ui_theme','grant'),
+        DomainException::class,'M10 suspended host manager cannot produce a new TEST event');
+    rejects(fn()=> $admin->membership('m10-manager','m10-suspended-identity',$stranger,false),
+        DomainException::class,'M10 suspended host manager cannot revoke a member');
+    $audit=$pdo->prepare('SELECT COUNT(*) FROM engine_admin_audit WHERE world_id=? AND request_id=?');
+    $audit->execute([$world,'m10-suspended']);
+    check((int)$audit->fetchColumn()===0,
+        'M10 denied operator action emits no audit pretending to be committed');
+    $scope->execute([1,$world,'m10-manager']);
+    check($admin->describe('m10-manager')['world']===$world,
+        'M10 trusted operator scope reactivation restores only its original world');
+
 })();

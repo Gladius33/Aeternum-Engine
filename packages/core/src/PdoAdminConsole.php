@@ -48,7 +48,7 @@ final class PdoAdminConsole
     {
         PdoMemberships::validateId($operator);
         $role=$this->query('SELECT role FROM engine_admin_scopes
-            WHERE world_id=? AND operator_id=? AND active=1',
+            WHERE world_id=? AND operator_id=? AND active=1 LOCK IN SHARE MODE',
             [$this->world,$operator])->fetchColumn();
         if($role===false || ($write && $role!=='manager'))
             throw new \DomainException('Operator not authorized for this world');

@@ -25,6 +25,12 @@ exclusivement dans le monde autorisé, sans divulguer d'autres mondes.
 Les acteurs hérités sans identité applicative restent recensés sans
 fabriquer de login.
 
+La vérification de rôle conserve un verrou partagé sur la ligne de
+permission pendant la transaction ; une révocation SQL de cette portée
+attend la fin de l'opération déjà autorisée, et les opérations suivantes
+sont refusées. Le test M10 contrôle explicitement le refus après
+suspension et l'absence d'effet de bord.
+
 Les permissions sont revérifiées en base dans engine_admin_scopes pour
 chaque commande ; aucune session joueur ne peut attribuer un rôle.
 Le provisionnement initial des portées est volontairement hors API et
