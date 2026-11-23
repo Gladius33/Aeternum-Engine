@@ -105,6 +105,27 @@ jobs:
             $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
             if($r["requiresAttention"] || $r["alerts"]!==[])exit(1);
           ' "$RUNNER_TEMP/m11-alerts.json"
+          # Real least-privilege runtime: read/write rows but never DDL.
+          MYSQL_PWD=test-root-only mariadb --host=127.0.0.1 --user=root \
+            -e "CREATE USER IF NOT EXISTS 'aeternum_m11_app'@'%' IDENTIFIED BY 'ci-m11-app-only';
+                GRANT SELECT, INSERT, UPDATE, DELETE ON aeternum_m11.* TO 'aeternum_m11_app'@'%';
+                FLUSH PRIVILEGES;"
+          AETERNUM_DB_USER=aeternum_m11_app AETERNUM_DB_PASSWORD=ci-m11-app-only \
+            php bin/ops-status.php > "$RUNNER_TEMP/m11-least-privilege-status.json"
+          AETERNUM_DB_USER=aeternum_m11_app AETERNUM_DB_PASSWORD=ci-m11-app-only \
+            php -r '
+              $db=new PDO(getenv("AETERNUM_DSN"),getenv("AETERNUM_DB_USER"),getenv("AETERNUM_DB_PASSWORD"),[
+                PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false
+              ]);
+              try { $db->exec("CREATE TABLE m11_forbidden_ddl (id INT)"); exit(1); }
+              catch (PDOException $e) { if($e->getCode()!=="42000")exit(1); }
+            '
+          AETERNUM_DB_USER=aeternum_m11_app AETERNUM_DB_PASSWORD=ci-m11-app-only \
+            php bin/ops-cron.php > "$RUNNER_TEMP/m11-least-privilege-cron.json"
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if($r["skipped"]!==null || !is_array($r["cleanup"]))exit(1);
+          ' "$RUNNER_TEMP/m11-least-privilege-cron.json"
           php bin/ops-cron.php > "$RUNNER_TEMP/m11-cron.json"
           php -r '
             $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
