@@ -94,6 +94,10 @@ test('M05 two newly registered players complete an isolated browser colony campa
     await expect(a.locator('#medieval-details')).toContainText('Residents1 / 1');
     await expect(a.locator('#medieval-victory')).not.toContainText('VICTORY');
     await foundation(a,'lumberyard','m05-wood');
+    await expect(a.locator('.command-confirmed')).toContainText('Foundation placed');
+    await a.getByLabel('Language').selectOption('fr');
+    await expect(a.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
+    await a.getByLabel('Langue').selectOption('en');
     await foundation(a,'farm','m05-farm');
     await foundation(a,'granary','m05-granary');
     await foundation(a,'keep','m05-keep');

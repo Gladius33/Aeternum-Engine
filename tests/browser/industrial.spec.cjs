@@ -80,6 +80,10 @@ test('M06 two players complete an isolated industrial network and freight victor
         ['power_plant','m06-power'],['steelworks','m06-steel'],
         ['warehouse','m06-store'],['freight_terminal','m06-freight']
     ])await foundation(a,type,id);
+    await expect(a.locator('.command-confirmed')).toContainText('Foundation placed');
+    await a.getByLabel('Language').selectOption('fr');
+    await expect(a.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
+    await a.getByLabel('Langue').selectOption('en');
     await foundation(b,'power_plant','m06-b-power');
     const status=a.waitForRequest(r=>r.url().includes('/industrial/status/'));
     await a.getByRole('button',{name:'Review industrial network'}).click();

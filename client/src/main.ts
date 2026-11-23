@@ -1,5 +1,6 @@
 import {createApp, h, onBeforeUnmount, onMounted, ref} from 'vue';
 import {languageOf, translate, type Language, type MessageKey} from './messages';
+import {actionLabel} from './command-labels';
 
 type Context = {world?:string; account?:string};
 type Receipt = {type?:string; world?:string; id?:string};
@@ -106,7 +107,7 @@ const Shell = {
         ]),
         busy.value ? h('p',{class:'loading-indicator',role:'status','aria-live':'polite'},text('loading')) : null,
         hasPending.value ? h('p',{class:'pending-warning',role:'status'},text('pending')) : null,
-        receipt.value ? h('p',{class:'command-confirmed',role:'status'},text('confirmed')+': '+receipt.value.type) : null,
+        receipt.value ? h('p',{class:'command-confirmed',role:'status'},text('confirmed')+': '+actionLabel(locale.value, receipt.value.type ?? '')) : null,
         !connected.value ? h('p',{class:'connection-alert',role:'alert'},text('offline'))
           : networkChanged.value ? h('p',{class:'connection-restored',role:'status'},text('online')) : null
       ]);
