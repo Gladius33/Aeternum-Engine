@@ -26,6 +26,8 @@ final class SocialHttpApi
         [$world,$suffix]=[$match[1],$match[2]];
         $action=null;
         $alliance=null;
+        $cursorTime=null;
+        $cursorId=null;
         if ($suffix==='alliances') {
             $action=$method==='GET'?'list':($method==='POST'?'create':null);
         } elseif ($suffix==='invitations') {
@@ -38,6 +40,14 @@ final class SocialHttpApi
             $action=$method==='POST'?'unblock':null;
         } elseif ($suffix==='notifications') {
             $action=$method==='GET'?'notifications':null;
+        } elseif (preg_match(
+            '~^(messages|notifications)/page/(0|[1-9][0-9]{0,18})/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
+            $suffix,$page
+        )) {
+            $action=$method==='GET'?$page[1]:null;
+            $cursorTime=filter_var($page[2],FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);
+            if ($cursorTime===false) return [400,['error'=>'invalid_cursor']];
+            $cursorId=$page[3];
         } elseif ($suffix==='reports') {
             $action=$method==='POST'?'report':null;
         } elseif ($suffix==='leaderboard') {
@@ -112,12 +122,12 @@ final class SocialHttpApi
                 'leave'=>$this->mutate(fn()=> $social->leave($actor,$alliance)),
                 'remove'=>$this->mutate(fn()=> $social->remove($actor,$alliance,$data['actor'])),
                 'owner'=>$this->mutate(fn()=> $social->transferOwner($actor,$alliance,$data['actor'])),
-                'messages'=>$messages->inbox($actor),
+                'messages'=>$messages->inbox($actor,$cursorTime,$cursorId),
                 'send'=>$this->mutate(fn()=> $messages->send($actor,$data['recipient'],$data['id'],$data['text'])),
                 'blocks'=>['actors'=>$messages->blocksFor($actor)],
                 'block'=>$this->mutate(fn()=> $messages->block($actor,$data['actor'])),
                 'unblock'=>$this->mutate(fn()=> $messages->unblock($actor,$data['actor'])),
-                'notifications'=>$messages->notifications($actor),
+                'notifications'=>$messages->notifications($actor,$cursorTime,$cursorId),
                 'ack'=>$this->mutate(fn()=> $messages->acknowledge($actor,$noticeId)),
                 'report'=>$this->mutate(fn()=> $messages->report($actor,$data['id'],$data['message'],$data['reason'])),
                 'leaderboard'=>$social->leaderboardFor($actor)

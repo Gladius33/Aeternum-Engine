@@ -58,17 +58,26 @@ interdite ou conflictuelle 409, une entrée malformée 400.
 | POST `/alliances/{id}/remove` | `{"actor":"member-id"}` |
 | POST `/alliances/{id}/leave` | `{}` |
 | GET `/invitations` | Invitations en attente du seul destinataire |
-| GET `/messages` | 50 messages privés récents, visibilité filtrée |
+| GET `/messages` et `/messages/page/{createdAt}/{id}` | Messages privés, pagination descendante de 50 entrées, filtrage de visibilité |
 | POST `/messages` | `{"id":"stable-request-id","recipient":"actor-id","text":"Hello"}` |
 | GET `/blocks` | Joueurs bloqués par cet acteur |
 | POST `/blocks` | `{"actor":"actor-id"}` |
 | POST `/blocks/remove` | `{"actor":"actor-id"}` |
-| GET `/notifications` | 50 notifications récentes, statut de lecture |
+| GET `/notifications` et `/notifications/page/{createdAt}/{id}` | Notifications persistantes, pagination descendante de 50 entrées et statut de lecture |
 | POST `/notifications/{id}/read` | `{}` |
 | POST `/reports` | `{"id":"report-id","message":"message-id","reason":"..."}` |
 | GET `/leaderboard` | Jusqu'à 50 alliances classées du monde actif |
 
-**Limites à traiter avant clôture M09 :** pagination complète des boîtes
+Les réponses `messages` et `notifications` fournissent `nextAfter` (objet
+`{createdAt, id}` ou `null`). Le client doit reprendre par
+`/page/{createdAt}/{id}` jusqu'à `null`, sans inclure l'acteur dans l'URL.
+La pagination est indexée par le couple (horodatage, identifiant) pour
+éviter les doublons même lorsque plusieurs messages partagent la même
+seconde. Chaque page est une lecture transactionnelle indépendante :
+de nouvelles écritures entre pages ne forment pas un instantané figé.
+Les messages masqués ou bloqués sont exclus avant chaque page.
+
+**Limites à traiter avant clôture M09 :** pagination complète des autres boîtes
 chargées, gestion d'alliances très grandes, audit de la révocation des
 propriétaires et robustesse aux volumes, protections anti-spam plus fines,
 qualifications E2E et restauration sur serveur autorisé. Les autres

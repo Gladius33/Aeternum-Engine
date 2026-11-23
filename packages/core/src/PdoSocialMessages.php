@@ -122,43 +122,79 @@ final class PdoSocialMessages
                 VALUES (?,?,?,?,?,?)',[$this->world,$notice,$recipient,'message',$messageId,$now]);
         });
     }
-    public function inbox(string $actor): array
+    /**
+     * Cursor is the last visible (timestamp, ID) pair, ordered newest first.
+     * Both values are required together; the database filters authorization
+     * and hidden/blocked messages BEFORE applying the keyset boundary.
+     */
+    private function validateInboxCursor(?int $beforeTime, ?string $beforeId): void
     {
-        return $this->tx(function()use($actor):array {
+        if (($beforeTime===null)!==($beforeId===null))
+            throw new \InvalidArgumentException('Incomplete inbox cursor');
+        if ($beforeTime!==null) {
+            if ($beforeTime<0) throw new \InvalidArgumentException('Negative cursor timestamp');
+            PdoMemberships::validateId($beforeId);
+        }
+    }
+
+    public function inbox(string $actor, ?int $beforeTime=null, ?string $beforeId=null): array
+    {
+        $this->validateInboxCursor($beforeTime,$beforeId);
+        return $this->tx(function()use($actor,$beforeTime,$beforeId):array {
             $this->requireActors($actor);
-            $rows=$this->sql('SELECT m.message_id,m.sender_actor,m.body,m.created_at
+            $params=[$this->world,$actor,$actor];
+            $query='SELECT m.message_id,m.sender_actor,m.body,m.created_at
                 FROM engine_social_messages m WHERE m.world_id=? AND m.recipient_actor=?
                   AND m.hidden=0 AND NOT EXISTS (
                     SELECT 1 FROM engine_social_blocks b
                     WHERE b.world_id=m.world_id AND b.actor_id=? AND b.blocked_actor=m.sender_actor
-                  )
-                ORDER BY m.created_at DESC,m.message_id DESC LIMIT 51',
-                [$this->world,$actor,$actor])->fetchAll(PDO::FETCH_ASSOC);
+                  )';
+            if ($beforeTime!==null) {
+                $query.=' AND (m.created_at < ? OR (m.created_at = ? AND m.message_id < ?))';
+                array_push($params,$beforeTime,$beforeTime,$beforeId);
+            }
+            $query.=' ORDER BY m.created_at DESC,m.message_id DESC LIMIT 51';
+            $rows=$this->sql($query,$params)->fetchAll(PDO::FETCH_ASSOC);
             $more=count($rows)>50;
             if ($more) array_pop($rows);
+            $last=$more?$rows[count($rows)-1]:null;
             return ['messages'=>array_map(static fn(array $m):array=>[
                 'id'=>$m['message_id'],'from'=>$m['sender_actor'],'text'=>$m['body'],
                 'createdAt'=>(int)$m['created_at']
-            ],$rows),'truncated'=>$more];
+            ],$rows),'truncated'=>$more,
+                'nextAfter'=>$last===null?null:[
+                    'createdAt'=>(int)$last['created_at'],'id'=>$last['message_id']]];
         });
     }
-    public function notifications(string $actor): array
+
+    public function notifications(string $actor, ?int $beforeTime=null, ?string $beforeId=null): array
     {
-        return $this->tx(function() use($actor):array {
+        $this->validateInboxCursor($beforeTime,$beforeId);
+        return $this->tx(function() use($actor,$beforeTime,$beforeId):array {
             $this->requireActors($actor);
-            $rows=$this->sql('SELECT notification_id,kind,subject_id,created_at,read_at
-                FROM engine_social_notifications WHERE world_id=? AND actor_id=?
-                ORDER BY created_at DESC,notification_id DESC LIMIT 51',
-                [$this->world,$actor])->fetchAll(PDO::FETCH_ASSOC);
+            $params=[$this->world,$actor];
+            $query='SELECT notification_id,kind,subject_id,created_at,read_at
+                FROM engine_social_notifications
+                WHERE world_id=? AND actor_id=?';
+            if ($beforeTime!==null) {
+                $query.=' AND (created_at < ? OR (created_at = ? AND notification_id < ?))';
+                array_push($params,$beforeTime,$beforeTime,$beforeId);
+            }
+            $query.=' ORDER BY created_at DESC,notification_id DESC LIMIT 51';
+            $rows=$this->sql($query,$params)->fetchAll(PDO::FETCH_ASSOC);
             $more=count($rows)>50;
             if ($more) array_pop($rows);
+            $last=$more?$rows[count($rows)-1]:null;
             return ['notifications'=>array_map(static fn(array $n):array=>[
                 'id'=>$n['notification_id'],'kind'=>$n['kind'],'subject'=>$n['subject_id'],
                 'createdAt'=>(int)$n['created_at'],
                 'readAt'=>$n['read_at']===null?null:(int)$n['read_at']
-            ],$rows),'truncated'=>$more];
+            ],$rows),'truncated'=>$more,
+                'nextAfter'=>$last===null?null:[
+                    'createdAt'=>(int)$last['created_at'],'id'=>$last['notification_id']]];
         });
     }
+
     public function acknowledge(string $actor,string $id): void
     {
         PdoMemberships::validateId($id);
