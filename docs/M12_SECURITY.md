@@ -17,6 +17,19 @@
 - Regression covers nested objects, escaped braces, generated duplicate corpus,
   rejected ambiguous pack identity and a real MariaDB-auth HTTP negative case.
 
+## Deterministic JSON property/fuzz coverage (CI pending)
+- Run `php tests/m12-json-fuzz.php`; fixed PRNG seed `0x12A37E`, no network,
+  database, external fuzzer or dependency installation.
+- 512 generated valid documents must decode identically to native PHP in both
+  object and associative modes.
+- 1,024 Unicode/escape-equivalent duplicate object keys must be rejected;
+  1,024 sibling-object controls with identical names must remain valid.
+- 13 malformed or excessive-depth inputs and a long escaped string exercise
+  native grammar and lexical boundary handling.
+- CI executes this harness separately. This is bounded deterministic fuzzing,
+  **not** a claim of exhaustive parser testing, concurrency qualification,
+  penetration testing or M12 release readiness.
+
 ## Supply-chain finding and correction pending CI
 - The first npm advisory scan identified GHSA-g2v6-rqmx-r4w6 (high, Vue
   server-renderer transitive chain) in the previously pinned Vue 3.5.24.
