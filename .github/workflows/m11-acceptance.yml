@@ -58,6 +58,10 @@ jobs:
           npm ci --prefix client --no-audit --no-fund
           npm run build --prefix client
           bash tests/m11-package.sh
+      - name: Install MariaDB client for least-privilege and restore drills
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y mariadb-client
       - name: Fresh empty schema then real nonempty pre-031 upgrade
         shell: bash
         run: |
@@ -135,8 +139,6 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y mariadb-client
           cat > "$RUNNER_TEMP/m11-client.cnf" <<'OPT'
           [client]
           host=127.0.0.1
