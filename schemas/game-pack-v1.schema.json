@@ -173,7 +173,7 @@
         "properties": {
           "type": {
             "type": "string",
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
           },
           "stages": {
             "type": "array",
@@ -193,7 +193,7 @@
                   "minProperties": 1,
                   "maxProperties": 16,
                   "propertyNames": {
-                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
                   },
                   "additionalProperties": {
                     "type": "integer",
@@ -208,7 +208,7 @@
                   "type": "object",
                   "maxProperties": 16,
                   "propertyNames": {
-                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
                   },
                   "additionalProperties": {
                     "type": "integer",
