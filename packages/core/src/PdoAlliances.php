@@ -61,6 +61,14 @@ final class PdoAlliances
         }
     }
 
+    /** Bidirectional blocking also prevents alliance invitations. */
+    private function blocked(string $sender,string $target): bool
+    {
+        return $this->query('SELECT 1 FROM engine_social_blocks WHERE world_id=?
+            AND ((actor_id=? AND blocked_actor=?) OR (actor_id=? AND blocked_actor=?))
+            LIMIT 1',[$this->world,$sender,$target,$target,$sender])->fetchColumn()!==false;
+    }
+
     /** Notification is part of the same membership/invitation transaction. */
     private function notify(string $recipient,string $kind,string $subject): void
     {
@@ -114,6 +122,7 @@ final class PdoAlliances
                 throw new \DomainException('Invitation denied');
             }
             if ($this->lockedRole($alliance,$target)!==null) throw new \DomainException('Already member');
+            if ($this->blocked($actor,$target)) throw new \DomainException('Contact blocked');
             $previous=$this->query('SELECT status FROM engine_alliance_invites
                 WHERE world_id=? AND alliance_id=? AND invited_actor=? FOR UPDATE',
                 [$this->world,$alliance,$target])->fetchColumn();
@@ -140,6 +149,8 @@ final class PdoAlliances
                 && $this->lockedRole($alliance,$actor)!==null) return;
             if ($invite===false || $invite['status']!=='pending')
                 throw new \DomainException('Invitation unavailable');
+            if ($accept && $this->blocked($actor,$invite['invited_by']))
+                throw new \DomainException('Contact blocked');
             if ($accept) {
                 $this->query("INSERT INTO engine_alliance_members(world_id,alliance_id,actor_id,role)
                     VALUES (?,?,?,'member')",[$this->world,$alliance,$actor]);
@@ -186,9 +197,11 @@ final class PdoAlliances
         if ($limit<1 || $limit>100) throw new \InvalidArgumentException('Invalid page size');
         return $this->transaction(function() use ($actor,$limit,$after): array {
             if (!$this->active($actor)) throw new \DomainException('Membership required');
-            $rows=$this->query('SELECT a.alliance_id,a.name,COUNT(m.actor_id) AS member_count
+            $rows=$this->query('SELECT a.alliance_id,a.name,COUNT(wm.actor_id) AS member_count
                 FROM engine_alliances a LEFT JOIN engine_alliance_members m
                 ON m.world_id=a.world_id AND m.alliance_id=a.alliance_id
+                LEFT JOIN engine_memberships wm ON wm.world_id=m.world_id
+                    AND wm.actor_id=m.actor_id AND wm.active=1
                 WHERE a.world_id=? AND a.alliance_id>?
                 GROUP BY a.world_id,a.alliance_id,a.name
                 ORDER BY a.alliance_id LIMIT '.($limit+1),[$this->world,$after??''])
@@ -232,6 +245,11 @@ final class PdoAlliances
             $rows=$this->query("SELECT i.alliance_id,a.name,i.invited_by FROM engine_alliance_invites i
                 JOIN engine_alliances a ON a.world_id=i.world_id AND a.alliance_id=i.alliance_id
                 WHERE i.world_id=? AND i.invited_actor=? AND i.status='pending'
+                  AND NOT EXISTS (
+                    SELECT 1 FROM engine_social_blocks b WHERE b.world_id=i.world_id
+                      AND ((b.actor_id=i.invited_actor AND b.blocked_actor=i.invited_by)
+                        OR (b.actor_id=i.invited_by AND b.blocked_actor=i.invited_actor))
+                  )
                 ORDER BY i.alliance_id LIMIT 101",[$this->world,$actor])->fetchAll(PDO::FETCH_ASSOC);
             if (count($rows)>100) throw new \DomainException('Invitation inbox needs pagination');
             return array_map(static fn(array $i):array=>[
