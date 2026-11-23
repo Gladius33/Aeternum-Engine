@@ -74,6 +74,12 @@ check($spost($sg,$swA,'alliances/crew/respond',['accept'=>true])[0]===409,
     'M09 uninvited actor cannot self-admit');
 check($spost($sf,$swB,'alliances/crew/respond',['accept'=>true])[0]===409,
     'M09 invitation cannot cross worlds');
+check($sapi->handle('POST',$surl($swA,'alliances/crew/respond'),$auth[$sf],
+    '{"accept":"true"}')[0]===400,
+    'M09 cannot coerce string accept into boolean');
+check($sapi->handle('POST',$surl($swA,'alliances/crew/respond'),$auth[$sf],
+    '{"accept":1}')[0]===400,
+    'M09 cannot coerce integer accept into boolean');
 check($spost($sf,$swA,'alliances/crew/respond',['accept'=>true])[0]===200,
     'M09 invited actor can accept');
 check($spost($sf,$swA,'alliances/crew/respond',['accept'=>true])[0]===200,
