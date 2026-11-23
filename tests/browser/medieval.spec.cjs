@@ -104,8 +104,18 @@ test('M05 two newly registered players complete an isolated browser colony campa
     await expect(a.locator('.command-confirmed')).toContainText('Foundation placed');
     await a.getByLabel('Language').selectOption('fr');
     await expect(a.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
+    // Place a real foundation using French UI controls and the original PHP command API.
+    const frChoices=a.waitForResponse(r=>r.url().endsWith('/construction/options'));
+    await a.getByRole('button',{name:'Rechercher des sites de construction'}).click();
+    expect((await frChoices).status()).toBe(200);
+    await a.getByLabel('Type de bâtiment',{exact:true}).selectOption('farm');
+    await a.getByLabel('Identifiant du nouveau bâtiment (facultatif)').fill('m05-farm');
+    const frPlaced=a.waitForResponse(r=>r.url()===commandUrl&&r.request().postDataJSON().type==='building.place');
+    await a.getByRole('button',{name:'Placer la fondation'}).click();
+    expect((await frPlaced).status()).toBe(200);
+    await expect(a.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
+    await expect(a.locator('#building-details')).toContainText('m05-farm');
     await a.getByLabel('Langue').selectOption('en');
-    await foundation(a,'farm','m05-farm');
     await foundation(a,'granary','m05-granary');
     await foundation(a,'keep','m05-keep');
     await foundation(b,'farm','m05-b-farm');

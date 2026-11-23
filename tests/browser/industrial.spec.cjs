@@ -91,7 +91,19 @@ test('M06 two players complete an isolated industrial network and freight victor
     await a.getByLabel('Language').selectOption('fr');
     await expect(a.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
     await a.getByLabel('Langue').selectOption('en');
-    await foundation(b,'power_plant','m06-b-power');
+    // Independent player places a foundation via French UI, then resumes in English.
+    await b.getByLabel('Language').selectOption('fr');
+    const frChoices=b.waitForResponse(r=>r.url().endsWith('/construction/options'));
+    await b.getByRole('button',{name:'Rechercher des sites de construction'}).click();
+    expect((await frChoices).status()).toBe(200);
+    await b.getByLabel('Type de bâtiment',{exact:true}).selectOption('power_plant');
+    await b.getByLabel('Identifiant du nouveau bâtiment (facultatif)').fill('m06-b-power');
+    const frPlaced=b.waitForResponse(r=>r.url()===url&&r.request().postDataJSON().type==='building.place');
+    await b.getByRole('button',{name:'Placer la fondation'}).click();
+    expect((await frPlaced).status()).toBe(200);
+    await expect(b.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
+    await expect(b.locator('#building-details')).toContainText('m06-b-power');
+    await b.getByLabel('Langue').selectOption('en');
     const status=a.waitForRequest(r=>r.url().includes('/industrial/status/'));
     await a.getByRole('button',{name:'Review industrial network'}).click();
     const bearer=(await (await status).allHeaders()).authorization;
