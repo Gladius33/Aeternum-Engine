@@ -53,9 +53,10 @@ final class SocialHttpApi
         $data=[];
         if ($isWrite) {
             if (strlen($body)>4096) return [413,['error'=>'too_large']];
-            try { $data=json_decode($body,true,8,JSON_THROW_ON_ERROR); }
+            try { $decoded=json_decode($body,false,8,JSON_THROW_ON_ERROR); }
             catch (\JsonException) { return [400,['error'=>'invalid_json']]; }
-            if (!is_array($data) || array_is_list($data)) return [400,['error'=>'invalid_payload']];
+            if (!is_object($decoded)) return [400,['error'=>'invalid_payload']];
+            $data=(array)$decoded;
         }
         $expected=match($action) {
             'create'=>['id','name'],
