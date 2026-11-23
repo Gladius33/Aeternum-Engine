@@ -64,8 +64,11 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   await member.getByRole('button',{name:'Refresh notifications'}).click();
   await expect(member.locator('#social-notifications-list')).toContainText(mailId+' (unread)');
   const choices=member.locator('#social-notification-id option');
-  await expect(choices).toHaveCount(2);
-  const notificationId=await choices.nth(1).getAttribute('value');
+  // Invitation and direct-message notifications coexist; select the message
+  // by its durable subject instead of assuming an inbox ordering/count.
+  await expect(choices).toHaveCount(3);
+  const notificationId=await choices.filter({hasText:'message — '+mailId}).getAttribute('value');
+  expect(notificationId).toBeTruthy();
   await member.getByLabel('Unread notification').selectOption(notificationId);
   const read=member.waitForResponse(r=>r.url()===root+'/notifications/'+notificationId+'/read');
   await member.getByRole('button',{name:'Mark notification read'}).click();
