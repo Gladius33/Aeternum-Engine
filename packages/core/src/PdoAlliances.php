@@ -300,7 +300,7 @@ final class PdoAlliances
         $this->id($actor);
         return $this->transaction(function() use($actor):array {
             if (!$this->active($actor)) throw new \DomainException('Membership required');
-            $rows=$this->query('SELECT a.alliance_id,a.name,COUNT(m.actor_id) AS active_members
+            $rows=$this->query('SELECT a.alliance_id,a.name,COUNT(wm.actor_id) AS active_members
                 FROM engine_alliances a
                 LEFT JOIN engine_alliance_members m ON m.world_id=a.world_id
                     AND m.alliance_id=a.alliance_id
