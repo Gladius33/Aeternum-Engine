@@ -136,6 +136,55 @@ final class PdoBuildings
         });
     }
 
+    /**
+     * Read-only settlement progression for one actor. All levels and prerequisites
+     * come from the same locked world snapshot; no foreign building is disclosed.
+     * The preview is advisory: the command engine rechecks requirements on write.
+     */
+    public function progressionFor(string $actor): array
+    {
+        PdoMemberships::validateId($actor);
+        return $this->locked(function (string $rules) use ($actor): array {
+            if ($this->sql('SELECT actor_id FROM engine_memberships WHERE world_id=? AND actor_id=? AND active=1',
+                [$this->world,$actor])->fetchColumn()===false) throw new \DomainException('Access denied');
+            $rows=$this->sql('SELECT b.building_id,b.building_type,t.stages_json FROM engine_buildings b
+                JOIN engine_building_types t ON t.world_id=b.world_id AND t.building_type=b.building_type
+                WHERE b.world_id=? AND b.actor_id=? AND t.rules_key=?
+                ORDER BY b.building_id LIMIT 101',[$this->world,$actor,$rules])->fetchAll(PDO::FETCH_ASSOC);
+            if (count($rows)>100) throw new \DomainException('Settlement too large for preview');
+            $json=$this->sql('SELECT state_json FROM engine_worlds WHERE world_id=?',[$this->world])->fetchColumn();
+            if ($json===false) throw new \LogicException('Missing world state');
+            $state=ScalarMap::decode($json);
+            $levels=[];$buildings=[];
+            foreach ($rows as $row) {
+                $id=$row['building_id'];$type=$row['building_type'];
+                $level=$state['build:'.$id.':level']??0;
+                if (!is_int($level) || $level<0 || $level>16) throw new \UnexpectedValueException('Invalid building level');
+                $pending=$state['build:'.$id.':pending']??null;
+                if ($pending!==null && (!is_string($pending) || !preg_match('/^build:[a-f0-9]{64}$/D',$pending))) {
+                    throw new \UnexpectedValueException('Invalid building pending event');
+                }
+                $levels[$type]=max($levels[$type]??0,$level);
+                $buildings[]=['id'=>$id,'type'=>$type,'level'=>$level,'pending'=>$pending,
+                    'stages'=>BuildStages::normalize(json_decode($row['stages_json'],true,16,JSON_THROW_ON_ERROR))];
+            }
+            $result=[];
+            foreach ($buildings as $building) {
+                $next=$building['stages'][$building['level']]??null;
+                $missing=[];
+                if ($next!==null) foreach ($next['requires'] as $type=>$required) {
+                    $actual=$levels[$type]??0;
+                    if ($actual<$required) $missing[$type]=['required'=>$required,'current'=>$actual];
+                }
+                $result[]=['id'=>$building['id'],'type'=>$building['type'],
+                    'level'=>$building['level'],'pending'=>$building['pending'],
+                    'complete'=>$next===null,'ready'=>$next!==null && $building['pending']===null && $missing===[],
+                    'missing'=>$missing,'next'=>$next];
+            }
+            return ['buildings'=>$result,'levels'=>$levels];
+        });
+    }
+
     /** Own building and next immutable cost schedule; no other actor's site. */
     public function own(string $actor,string $id): array
     {
