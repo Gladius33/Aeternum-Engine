@@ -323,6 +323,7 @@ function selectWorld() {
     clearRecipients();
     clearMarket();
     clearMap();
+    clearSocial();
     resetMedieval();
     resetIndustrial();
     medievalPanel.hidden=w?.settlementEnabled!==true;
@@ -692,6 +693,136 @@ retryCommand.addEventListener('click',()=>run(async()=>{
     stock.replaceChildren();
     clearMarketPage('Saved action confirmed. Reload stock and offers.');
 }));
+
+const socialDirectory=document.querySelector('#social-directory');
+const socialMembers=document.querySelector('#social-member-list');
+const socialInbox=document.querySelector('#social-inbox');
+const socialNotice=document.querySelector('#social-notice');
+function clearSocial() {
+    socialDirectory.replaceChildren();
+    socialMembers.replaceChildren();
+    options(socialInbox,[['','No invitation selected']]);
+    socialNotice.textContent='';
+    for (const id of ['social-alliance-id','social-invite-actor','social-role-actor']) {
+        document.getElementById(id).value='';
+    }
+}
+function socialRoot() {
+    const world=balance.elements.world.value;
+    if (!world) throw new Error('Choose a world first');
+    return '/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/social';
+}
+function socialAllianceId() {
+    const id=document.querySelector('#social-alliance-id').value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(id)) throw new Error('Enter a valid alliance ID');
+    return id;
+}
+function socialActor(id) {
+    const actor=document.getElementById(id).value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(actor)) throw new Error('Enter a valid actor ID');
+    return actor;
+}
+async function socialLoadDirectory() {
+    const root=socialRoot(), world=balance.elements.world.value;
+    const data=await api(root+'/alliances');
+    if (world!==balance.elements.world.value) return;
+    socialDirectory.replaceChildren();
+    for (const alliance of data.alliances) {
+        const item=document.createElement('li'),button=document.createElement('button');
+        button.type='button'; button.textContent='Inspect '+alliance.id;
+        button.addEventListener('click',()=>run(async()=>{
+            document.getElementById('social-alliance-id').value=alliance.id;
+            await socialLoadDetail();
+        }));
+        // Untrusted alliance names are always text, never HTML.
+        item.append(document.createTextNode(alliance.name+' ('+alliance.members+') '),button);
+        socialDirectory.append(item);
+    }
+    socialNotice.textContent=data.nextAfter===null?'Alliance directory loaded.':'Only the first page of alliances is shown.';
+}
+async function socialLoadDetail() {
+    const root=socialRoot(),world=balance.elements.world.value,id=socialAllianceId();
+    const data=await api(root+'/alliances/'+encodeURIComponent(id));
+    if (world!==balance.elements.world.value || id!==socialAllianceId()) return;
+    socialMembers.replaceChildren();
+    for (const member of data.members) {
+        const item=document.createElement('li');
+        item.textContent=member.actor+' — '+member.role;
+        socialMembers.append(item);
+    }
+    socialNotice.textContent=data.name+' — '+data.role;
+}
+async function socialLoadInbox() {
+    const root=socialRoot(),world=balance.elements.world.value;
+    const data=await api(root+'/invitations');
+    if (world!==balance.elements.world.value) return;
+    options(socialInbox,[['','No invitation selected'],...data.invitations.map(invitation=>
+        [invitation.alliance,invitation.name+' — '+invitation.invitedBy])]);
+    socialNotice.textContent=data.invitations.length+' pending invitations.';
+}
+async function socialAction(path,payload) {
+    await api(socialRoot()+path,'POST',payload);
+    socialNotice.textContent='Social action confirmed.';
+}
+document.querySelector('#social-directory-load').addEventListener('click',()=>run(socialLoadDirectory));
+document.querySelector('#social-inbox-load').addEventListener('click',()=>run(socialLoadInbox));
+document.querySelector('#social-detail-form').addEventListener('submit',event=>{
+    event.preventDefault();run(socialLoadDetail);
+});
+document.querySelector('#social-create').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        const id=document.getElementById('social-new-id').value.trim(),
+              name=document.getElementById('social-new-name').value.trim();
+        await socialAction('/alliances',{id,name});
+        document.getElementById('social-alliance-id').value=id;
+        await socialLoadDirectory();
+        await socialLoadDetail();
+    });
+});
+document.querySelector('#social-invite-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        await socialAction('/alliances/'+encodeURIComponent(socialAllianceId())+'/invite',
+            {actor:socialActor('social-invite-actor')});
+        await socialLoadDetail();
+    });
+});
+document.querySelector('#social-role-form').addEventListener('submit',event=>{
+    event.preventDefault();run(async()=>{
+        const alliance=socialAllianceId();
+        await socialAction('/alliances/'+encodeURIComponent(alliance)+'/role',{
+            actor:socialActor('social-role-actor'),role:document.getElementById('social-role-choice').value
+        });
+        await socialLoadDetail();
+    });
+});
+document.querySelector('#social-owner-transfer').addEventListener('click',()=>run(async()=>{
+    const alliance=socialAllianceId();
+    await socialAction('/alliances/'+encodeURIComponent(alliance)+'/owner',
+        {actor:socialActor('social-role-actor')});
+    await socialLoadDetail();
+}));
+document.querySelector('#social-member-remove').addEventListener('click',()=>run(async()=>{
+    const alliance=socialAllianceId();
+    await socialAction('/alliances/'+encodeURIComponent(alliance)+'/remove',
+        {actor:socialActor('social-role-actor')});
+    await socialLoadDetail();
+}));
+document.querySelector('#social-leave').addEventListener('click',()=>run(async()=>{
+    const alliance=socialAllianceId();
+    await socialAction('/alliances/'+encodeURIComponent(alliance)+'/leave',{});
+    socialMembers.replaceChildren();
+}));
+for (const [selector,accepted] of [['#social-accept',true],['#social-decline',false]]) {
+    document.querySelector(selector).addEventListener('click',()=>run(async()=>{
+        const alliance=socialInbox.value;
+        if (!alliance) throw new Error('Select an invitation');
+        await socialAction('/alliances/'+encodeURIComponent(alliance)+'/respond',{accept:accepted});
+        if (accepted) document.getElementById('social-alliance-id').value=alliance;
+        await socialLoadInbox();
+        if (accepted) await socialLoadDetail();
+    }));
+}
+
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
     stock.replaceChildren(); marketClaim.hidden=true; action.reset(); syncTransferFields(); game.hidden=true; login.hidden=false; recovery.hidden=false; registration.hidden=joinableWorlds.length===0; activation.hidden=!activationRequired; activationResend.hidden=!activationRequired; showRecoveryCode(null);

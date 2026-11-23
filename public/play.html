@@ -72,6 +72,38 @@
 <ul id="industrial-goals"></ul>
 <p id="industrial-victory" role="status" aria-live="polite"></p>
 </section>
+
+<section id="social-panel" aria-labelledby="social-title">
+<h2 id="social-title">Alliances</h2>
+<p>Alliances and invitations belong to the selected world. Actor IDs are not account passwords.</p>
+<form id="social-create">
+<h3>Found an alliance</h3>
+<label for="social-new-id">New alliance ID</label><input id="social-new-id" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
+<label for="social-new-name">Alliance name</label><input id="social-new-name" maxlength="100" required>
+<button type="submit">Create alliance</button></form>
+<button type="button" id="social-directory-load">Browse alliances</button>
+<ul id="social-directory"></ul>
+<form id="social-detail-form">
+<label for="social-alliance-id">Alliance ID</label><input id="social-alliance-id" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
+<button type="submit">Inspect my alliance</button></form>
+<ul id="social-member-list"></ul>
+<form id="social-invite-form">
+<label for="social-invite-actor">Invite actor ID</label><input id="social-invite-actor" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
+<button type="submit">Invite player</button></form>
+<form id="social-role-form">
+<label for="social-role-actor">Member actor ID</label><input id="social-role-actor" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
+<label for="social-role-choice">Role</label><select id="social-role-choice"><option value="member">Member</option><option value="officer">Officer</option></select>
+<button type="submit">Update role</button>
+<button type="button" id="social-owner-transfer">Transfer ownership</button>
+<button type="button" id="social-member-remove">Remove member</button></form>
+<button type="button" id="social-leave">Leave alliance</button>
+<h3>My invitations</h3>
+<button type="button" id="social-inbox-load">Refresh invitations</button>
+<label for="social-inbox">Pending invitations</label><select id="social-inbox"><option value="">No invitation selected</option></select>
+<button type="button" id="social-accept">Accept invitation</button>
+<button type="button" id="social-decline">Decline invitation</button>
+<p id="social-notice" role="status" aria-live="polite"></p>
+</section>
 <section id="market-panel"><h2>Market</h2>
 <form id="market-create"><h3>Publish a barter offer</h3>
 <label for="market-give-resource">Offered resource</label><select id="market-give-resource" name="giveResource" required></select><label for="market-give-units">Offered units</label><input id="market-give-units" name="giveUnits" type="number" min="1" max="1000000000000" step="1" value="1" required>

@@ -88,7 +88,7 @@ const Shell = {
       const links: {href:string;label:MessageKey}[] = authenticated.value
         ? [{href:'#balance',label:'economy'}, {href:'#world-map',label:'map'},
            ...(medieval.value || industrial.value ? [{href:medieval.value?'#medieval-panel':'#industrial-panel',label:'game' as const}] : []),
-           {href:'#market-panel',label:'market'}]
+           {href:'#market-panel',label:'market'}, {href:'#social-panel',label:'social'}]
         : [{href:'#login',label:'home'}];
       return h('div', {class:'vue-shell-inner', 'data-client':'vue-typescript'}, [
         h('a', {class:'skip-link', href:'#main-content'}, text('skip')),
