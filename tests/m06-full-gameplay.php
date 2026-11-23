@@ -123,5 +123,34 @@ check($industrialApi->handle('GET','/v1/worlds/'.$industrialWorld.'/industrial/s
     && $industrialApi->handle('GET',$industrialUri,'')[0]===401
     && $industrialApi->handle('POST',$industrialUri,'Bearer '.$industrialToken)[0]===405,
     'M06 industrial status enforces actor scope, authentication and read-only contract');
+// Four distinct requests concurrently compete for the same bounded inventory
+// and one cooldown slot. Exactly one shipment can cross the InnoDB barrier.
+$freightWorkers=[];
+for ($i=0;$i<4;$i++) {
+    $proc=proc_open([PHP_BINARY,__DIR__.'/m06-freight-worker.php',(string)$i,$industrialA],
+        [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+    if (!is_resource($proc)) throw new RuntimeException('M06 freight worker unavailable');
+    fclose($pipes[0]);
+    $freightWorkers[]=[$proc,$pipes];
+}
+$freightWon=0;$freightDenied=0;
+foreach ($freightWorkers as [$proc,$pipes]) {
+    $out=trim(stream_get_contents($pipes[1]));
+    $err=stream_get_contents($pipes[2]);
+    fclose($pipes[1]);fclose($pipes[2]);
+    if (proc_close($proc)!==0) throw new RuntimeException('M06 freight worker failed: '.$err);
+    if ($out==='won') $freightWon++;
+    elseif ($out==='denied') $freightDenied++;
+    else throw new RuntimeException('Unexpected M06 competing delivery outcome: '.$out);
+}
+check($freightWon===1 && $freightDenied===3,
+    'M06 four concurrent PDO deliveries commit exactly one shipment');
+check($industrialStatus->forActor($industrialA,$industrialA)['delivery']['current']===60
+    && $industrialStore->balanceForActor($industrialA,$industrialA,'goods',$industrialRules->commands)->stock===20,
+    'M06 concurrent freight charges only one goods inventory debit');
+$freightAfter=$industrialStore->state();
+check($industrialStore->verifyReplay($industrialRules->commands,$industrialRules->events)->entries>=20
+    && $industrialStore->state()===$freightAfter,
+    'M06 contended freight remains deterministic after journal replay');
 unset($industrialCommand,$industrialPlace,$industrialStart,$industrialAdvance,$industrialStore,
     $industrialBuildings,$industrialStatus,$industrialApi,$industrialProvision,$industrialIds);
