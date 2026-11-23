@@ -128,7 +128,7 @@ jobs:
           test -s "$archive"
           MYSQL_PWD=test-root-only mariadb --host=127.0.0.1 --user=root \
             -e "CREATE DATABASE aeternum_restore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-                GRANT SELECT ON aeternum_restore.* TO 'aeternum'@'%'; FLUSH PRIVILEGES;"
+                GRANT ALL PRIVILEGES ON aeternum_restore.* TO 'aeternum'@'%'; FLUSH PRIVILEGES;"
           export M11_RESTORE_DISPOSABLE=YES
           export M11_RESTORE_DATABASE=aeternum_restore
           bash tools/m11-restore-lab.sh "$archive" > "$RUNNER_TEMP/m11-restore-summary.json"
@@ -148,6 +148,10 @@ jobs:
             $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
             if(!$r["verified"] || $r["tables"]<30 || !$r["restoredOpsStatus"])exit(1);
           ' "$RUNNER_TEMP/m11-proof.json"
+          mkdir -p m11-evidence
+          cp "$RUNNER_TEMP/m11-proof.json" m11-evidence/restore.json
+          cp "$RUNNER_TEMP/m11-status.json" m11-evidence/status.json
+          cp "$RUNNER_TEMP/m11-cron.json" m11-evidence/cron.json
           cat "$RUNNER_TEMP/m11-proof.json"
       - name: Store sanitized M11 acceptance evidence
         if: always()
@@ -157,4 +161,4 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
           path: |
-            /tmp/nonexistent-m11-placeholder
+            m11-evidence/*.json
