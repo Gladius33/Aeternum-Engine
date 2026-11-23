@@ -238,7 +238,7 @@
       if (root.querySelectorAll) elements.push(...root.querySelectorAll(translatable));
       // Protect user-controlled account IDs, resource IDs, and map/market list items.
       // Only the known empty-value placeholders and fixed action choices may be translated.
-      elements.push(...document.querySelectorAll('#recipient-directory option[value=""], #market-offer option[value=""], #market-filter-give option[value=""], #market-filter-want option[value=""], #owned-building-list option[value=""], #action select[name="type"] option'));
+      elements.push(...document.querySelectorAll('#social-inbox option[value=""], #social-notification-id option[value=""], #recipient-directory option[value=""], #market-offer option[value=""], #market-filter-give option[value=""], #market-filter-want option[value=""], #owned-building-list option[value=""], #action select[name="type"] option'));
       for (const element of elements) {
         for (const node of element.childNodes) {
           if (node.nodeType === Node.TEXT_NODE) {
