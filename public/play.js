@@ -336,7 +336,7 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
-for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){resetMedieval();resetIndustrial();}});
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){resetMedieval();resetIndustrial();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();

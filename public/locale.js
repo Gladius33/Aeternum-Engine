@@ -136,7 +136,7 @@
     ['Never expires','Sans expiration']
   ];
   const toFr = new Map(entries), toEn = new Map(entries.map(([a,b])=>[b,a]));
-  const translatable = 'h1,h2,h3,h4,button,label,legend,p,summary,dt,li,option';
+  const translatable = 'h1,h2,h3,h4,button,label,legend,p,summary,dt';
   const select = document.getElementById('locale-select');
   if (!select) return;
   let current = 'en';
@@ -167,6 +167,9 @@
       const elements = [];
       if (root.nodeType === Node.ELEMENT_NODE && root.matches(translatable)) elements.push(root);
       if (root.querySelectorAll) elements.push(...root.querySelectorAll(translatable));
+      // Protect user-controlled account IDs, resource IDs, and map/market list items.
+      // Only the known empty-value placeholders and fixed action choices may be translated.
+      elements.push(...document.querySelectorAll('#recipient-directory option[value=""], #market-offer option[value=""], #owned-building-list option[value=""], #action select[name="type"] option'));
       for (const element of elements) {
         for (const node of element.childNodes) {
           if (node.nodeType === Node.TEXT_NODE) {

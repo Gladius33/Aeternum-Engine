@@ -68,6 +68,13 @@ test('M06 two players complete an isolated industrial network and freight victor
     const a=await browser.newPage(),b=await browser.newPage();
     const alice=await register(a,'m06-browser-alice');
     const bob=await register(b,'m06-browser-bob');
+  // Genuine server-backed gameplay action at mobile viewport, not a CSS-only screenshot.
+  await a.setViewportSize({width:375,height:812});
+  await a.getByRole('button',{name:'Review industrial network'}).click();
+  await expect(a.locator('#industrial-details')).toContainText('Grid power supply');
+  const viewport=await a.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));
+  expect(viewport.scroll).toBeLessThanOrEqual(viewport.width);
+  await a.setViewportSize({width:1280,height:800});
   await expect(a.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Game objectives'})).toBeVisible();
   await a.getByLabel('Language').selectOption('fr');
   await expect(a.getByRole('navigation',{name:'Navigation du joueur'}).getByRole('link',{name:'Objectifs de jeu'})).toBeVisible();
