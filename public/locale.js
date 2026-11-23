@@ -148,12 +148,12 @@
     let translated = locale === 'fr' ? (toFr.get(english) || english) : english;
     // Variable suffixes such as the one-time recovery code remain byte-for-byte unchanged.
     if (translated === trimmed) {
-      const source = locale === 'fr' ? toFr : toEn;
-      for (const [prefix,replacement] of source) {
-        if (trimmed.startsWith(prefix + ' ')) {
-          translated = replacement + trimmed.slice(prefix.length);
-          break;
-        }
+      const recoveryPrefix = 'Store this recovery code offline now; it will not be shown again:';
+      const frenchPrefix = toFr.get(recoveryPrefix);
+      const prefix = locale === 'fr' ? recoveryPrefix : frenchPrefix;
+      const replacement = locale === 'fr' ? frenchPrefix : recoveryPrefix;
+      if (prefix && replacement && trimmed.startsWith(prefix + ' ')) {
+        translated = replacement + trimmed.slice(prefix.length);
       }
     }
     if (translated === trimmed) return value;
