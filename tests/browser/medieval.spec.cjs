@@ -4,7 +4,7 @@ const origin='http://127.0.0.1:8769';
 const world='e2e-medieval-v3';
 const password='browser-only test password';
 const commandUrl=origin+'/v1/worlds/'+world+'/economy/commands';
-function executeWorker() {
+function executeWorker(minimumProcessed=1) {
     expect(process.env.AETERNUM_E2E_REGISTRY).toBeTruthy();
     const output=execFileSync('php',['bin/worker.php','reference-medieval',world],{
         encoding:'utf8',
@@ -14,7 +14,7 @@ function executeWorker() {
             AETERNUM_WORLD_REGISTRY:process.env.AETERNUM_E2E_REGISTRY},
         timeout:30000
     });
-    expect(JSON.parse(output).processed).toBeGreaterThanOrEqual(1);
+    expect(JSON.parse(output).processed).toBeGreaterThanOrEqual(minimumProcessed);
 }
 async function register(page,login) {
     await page.goto(origin+'/play.html');
@@ -58,7 +58,11 @@ async function advanceBuilding(page,id,expectedLevel,seconds) {
     const accepted=page.waitForResponse(r=>r.url()===commandUrl
         && r.request().postDataJSON().type==='building.start');
     await page.getByRole('button',{name:'Begin construction'}).click();
-    expect((await accepted).status()).toBe(200);
+    const response=await accepted;
+    // Preserve the server's rejection reason: a 409 can mean insufficient
+    // resources, unmet prerequisites or an already pending construction.
+    // Do not retry blindly: that could conceal a genuine gameplay regression.
+    expect(response.status(),`building ${id} level ${expectedLevel}: ${await response.text()}`).toBe(200);
     await expect(page.locator('#building-details')).toContainText('Construction pending');
     // No test-only timing shortcut: process genuinely due events after the
     // pinned rule's server-clock duration through the production CLI worker.
@@ -110,6 +114,14 @@ test('M05 two newly registered players complete an isolated browser colony campa
     await advanceBuilding(a,'m05-farm',2,14);
     await advanceBuilding(a,'m05-granary',1,12);
     await advanceBuilding(a,'m05-keep',1,16);
+    // The full construction chain spends 333 wood while the initial stock is
+    // only 180. Permit another genuine 20-second production interval and
+    // process it with the production worker before funding the final keep.
+    // This is part of the economic campaign, not a test-only stock injection.
+    await a.waitForTimeout(22000);
+    // Lazy resource accrual needs elapsed time, not a scheduled event.
+    // A worker with zero due events is a valid no-op at this point.
+    executeWorker(0);
     await advanceBuilding(a,'m05-keep',2,20);
     await a.getByRole('button',{name:'Review your colony'}).click();
     await expect(a.locator('#medieval-victory')).not.toContainText('VICTORY');

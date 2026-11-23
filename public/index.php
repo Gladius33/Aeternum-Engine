@@ -71,7 +71,7 @@ try {
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$resolvedPeer ?? ''
             );
-        } elseif (str_starts_with($path,'/v1/worlds/') && (str_contains($path,'/buildings/') || str_contains($path,'/construction/') || str_contains($path,'/settlement/'))) {
+        } elseif (str_starts_with($path,'/v1/worlds/') && (str_contains($path,'/buildings/') || str_contains($path,'/construction/') || str_contains($path,'/settlement/') || str_contains($path,'/industrial/'))) {
             [$status,$body]=(new WorldBuildingHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? ''
             );

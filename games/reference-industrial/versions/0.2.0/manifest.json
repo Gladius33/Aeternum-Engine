@@ -1,0 +1,131 @@
+{
+  "engine_api": "1",
+  "id": "reference-industrial",
+  "version": "0.2.0",
+  "name": "Industrial networks — infrastructure progression candidate",
+  "resources": [
+    {
+      "id": "steel",
+      "initial_stock": 200,
+      "capacity": 2000,
+      "amount": 75,
+      "interval_seconds": 60
+    },
+    {
+      "id": "energy",
+      "initial_stock": 500,
+      "capacity": 5000,
+      "amount": 200,
+      "interval_seconds": 120
+    }
+  ],
+  "upgrades": [
+    {
+      "resource": "steel",
+      "level": 1,
+      "cost": 120,
+      "duration_seconds": 180,
+      "amount": 110
+    },
+    {
+      "resource": "energy",
+      "level": 1,
+      "cost": 300,
+      "duration_seconds": 300,
+      "amount": 320
+    }
+  ],
+  "buildings": [
+    {
+      "type": "power_plant",
+      "stages": [
+        {
+          "costs": {
+            "steel": 30,
+            "energy": 80
+          },
+          "duration": 30,
+          "requires": {}
+        },
+        {
+          "costs": {
+            "steel": 140,
+            "energy": 280
+          },
+          "duration": 90,
+          "requires": {
+            "warehouse": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "steelworks",
+      "stages": [
+        {
+          "costs": {
+            "steel": 50,
+            "energy": 120
+          },
+          "duration": 45,
+          "requires": {
+            "power_plant": 1
+          }
+        },
+        {
+          "costs": {
+            "steel": 200,
+            "energy": 450
+          },
+          "duration": 120,
+          "requires": {
+            "power_plant": 2,
+            "warehouse": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "warehouse",
+      "stages": [
+        {
+          "costs": {
+            "steel": 40,
+            "energy": 60
+          },
+          "duration": 35,
+          "requires": {
+            "power_plant": 1
+          }
+        },
+        {
+          "costs": {
+            "steel": 120,
+            "energy": 160
+          },
+          "duration": 90,
+          "requires": {
+            "steelworks": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "freight_terminal",
+      "stages": [
+        {
+          "costs": {
+            "steel": 160,
+            "energy": 300
+          },
+          "duration": 120,
+          "requires": {
+            "steelworks": 2,
+            "warehouse": 2,
+            "power_plant": 2
+          }
+        }
+      ]
+    }
+  ]
+}

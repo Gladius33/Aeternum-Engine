@@ -59,6 +59,19 @@
 <ul id="medieval-goals"></ul>
 <p id="medieval-victory" role="status" aria-live="polite"></p>
 </section>
+<section id="industrial-panel" aria-labelledby="industrial-title" hidden>
+<h2 id="industrial-title">Industrial network — tutorial and victory goal</h2>
+<p>Build a power plant and steelworks, add a warehouse, upgrade them to level 2 and construct a freight terminal. Generate grid energy from steel, manufacture goods using your electricity reserve, then deliver 45 goods to win. Operations obey network power and storage limits.</p>
+<button id="industrial-check" type="button">Review industrial network</button>
+<dl id="industrial-details"></dl>
+<h3>Industrial operations</h3>
+<button id="industrial-generate" type="button">Generate grid electricity</button>
+<button id="industrial-refine" type="button">Manufacture goods</button>
+<button id="industrial-ship" type="button">Dispatch freight</button>
+<h3>Delivery and construction objectives</h3>
+<ul id="industrial-goals"></ul>
+<p id="industrial-victory" role="status" aria-live="polite"></p>
+</section>
 <section id="market-panel"><h2>Market</h2>
 <form id="market-create"><h3>Publish a barter offer</h3>
 <label for="market-give-resource">Offered resource</label><select id="market-give-resource" name="giveResource" required></select><label for="market-give-units">Offered units</label><input id="market-give-units" name="giveUnits" type="number" min="1" max="1000000000000" step="1" value="1" required>
