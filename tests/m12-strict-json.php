@@ -37,7 +37,7 @@ $aliases=[
     ['plain'=>'é','escaped'=>'\u00e9'],
     ['plain'=>'𝄞','escaped'=>'\ud834\udd1e'],
     ['plain'=>'quote"key','escaped'=>'quote\"key'],
-    ['plain'=>'back\\slash','escaped'=>'back\\slash'],
+    ['plain'=>'back\\slash','escaped'=>'back\\\\slash'],
 ];
 $propertyCases=0;
 foreach ($aliases as $alias) {
