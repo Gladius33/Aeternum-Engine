@@ -30,6 +30,21 @@ final class SocialHttpApi
             $action=$method==='GET'?'list':($method==='POST'?'create':null);
         } elseif ($suffix==='invitations') {
             $action=$method==='GET'?'inbox':null;
+        } elseif ($suffix==='messages') {
+            $action=$method==='GET'?'messages':($method==='POST'?'send':null);
+        } elseif ($suffix==='blocks') {
+            $action=$method==='GET'?'blocks':($method==='POST'?'block':null);
+        } elseif ($suffix==='blocks/remove') {
+            $action=$method==='POST'?'unblock':null;
+        } elseif ($suffix==='notifications') {
+            $action=$method==='GET'?'notifications':null;
+        } elseif ($suffix==='reports') {
+            $action=$method==='POST'?'report':null;
+        } elseif ($suffix==='leaderboard') {
+            $action=$method==='GET'?'leaderboard':null;
+        } elseif (preg_match('~^notifications/([A-Za-z0-9][A-Za-z0-9_-]{0,63})/read$~D',$suffix,$note)) {
+            $action=$method==='POST'?'ack':null;
+            $noticeId=$note[1];
         } elseif (preg_match(
             '~^alliances/([A-Za-z0-9][A-Za-z0-9_-]{0,63})(?:/(invite|respond|revoke|role|leave|remove|owner))?$~D',
             $suffix,$resource
@@ -64,6 +79,9 @@ final class SocialHttpApi
             'respond'=>['accept'],
             'role'=>['actor','role'],
             'owner'=>['actor'],
+            'send'=>['id','recipient','text'],
+            'block','unblock'=>['actor'],
+            'report'=>['id','message','reason'],
             default=>[]
         };
         if ($isWrite) {
@@ -79,6 +97,7 @@ final class SocialHttpApi
         }
         try {
             $social=new PdoAlliances($this->pdo,$world);
+            $messages=new PdoSocialMessages($this->pdo,$world,$this->clock);
             $result=match($action) {
                 'list'=>$social->listFor($actor),
                 'inbox'=>['invitations'=>$social->invitationsFor($actor)],
@@ -90,7 +109,16 @@ final class SocialHttpApi
                 'role'=>$this->mutate(fn()=> $social->setRole($actor,$alliance,$data['actor'],$data['role'])),
                 'leave'=>$this->mutate(fn()=> $social->leave($actor,$alliance)),
                 'remove'=>$this->mutate(fn()=> $social->remove($actor,$alliance,$data['actor'])),
-                'owner'=>$this->mutate(fn()=> $social->transferOwner($actor,$alliance,$data['actor']))
+                'owner'=>$this->mutate(fn()=> $social->transferOwner($actor,$alliance,$data['actor'])),
+                'messages'=>$messages->inbox($actor),
+                'send'=>$this->mutate(fn()=> $messages->send($actor,$data['recipient'],$data['id'],$data['text'])),
+                'blocks'=>['actors'=>$messages->blocksFor($actor)],
+                'block'=>$this->mutate(fn()=> $messages->block($actor,$data['actor'])),
+                'unblock'=>$this->mutate(fn()=> $messages->unblock($actor,$data['actor'])),
+                'notifications'=>$messages->notifications($actor),
+                'ack'=>$this->mutate(fn()=> $messages->acknowledge($actor,$noticeId)),
+                'report'=>$this->mutate(fn()=> $messages->report($actor,$data['id'],$data['message'],$data['reason'])),
+                'leaderboard'=>$social->leaderboardFor($actor)
             };
             return [200,['data'=>$result]];
         } catch (\InvalidArgumentException) {
