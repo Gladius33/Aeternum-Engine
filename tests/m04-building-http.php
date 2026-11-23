@@ -60,6 +60,26 @@ check($progressCode===200 && count($progressBody['data']['buildings'])===1
     && $progressBody['data']['buildings'][0]['ready']===true
     && $progressBody['data']['buildings'][0]['missing']===[],
  'M05 authorized progression returns actionable stage readiness');
+// A corrupt journal projection must never masquerade as a completed settlement.
+$originalState=db()->query("SELECT state_json FROM engine_worlds WHERE world_id='entity-A'")->fetchColumn();
+check(is_string($originalState),'M05 persisted world snapshot is available for corruption tests');
+$writeState=db()->prepare('UPDATE engine_worlds SET state_json=? WHERE world_id=?');
+try {
+    $corrupt=\Aeternum\Core\ScalarMap::decode($originalState);
+    $corrupt['build:building-api-site:level']=2;
+    $writeState->execute([\Aeternum\Core\ScalarMap::encode($corrupt),'entity-A']);
+    rejects(fn()=>$buildingFixture->progressionFor($buildingActor),
+        UnexpectedValueException::class,'M05 progression rejects levels beyond pinned catalog');
+    $corrupt['build:building-api-site:level']=1;
+    $corrupt['build:building-api-site:pending']='build:'.str_repeat('a',64);
+    $writeState->execute([\Aeternum\Core\ScalarMap::encode($corrupt),'entity-A']);
+    rejects(fn()=>$buildingFixture->progressionFor($buildingActor),
+        UnexpectedValueException::class,'M05 progression rejects pending work on a max-level building');
+} finally {
+    $writeState->execute([$originalState,'entity-A']);
+}
+check($buildingFixture->progressionFor($buildingActor)['buildings'][0]['ready']===true,
+    'M05 snapshot restored after negative progression tests');
 check($buildingApi->handle('GET','/v1/worlds/entity-B/construction/progression',$authBuilding)[0]===404,
  'M05 progression rejects cross-world access');
 check($buildingApi->handle('GET','/v1/worlds/entity-B/construction/options',$authBuilding)[0]===404,
