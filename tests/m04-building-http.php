@@ -49,6 +49,19 @@ check(in_array([
     'id'=>'building-api-site','type'=>'api-workshop','territory'=>'building-api-plot'
 ],$optionsBody['data']['buildings'],true),
  'M04 choice discovery lists own building IDs');
+$progressPath='/v1/worlds/entity-A/construction/progression';
+check($buildingApi->handle('GET',$progressPath,'')[0]===401,
+ 'M05 settlement progression denies anonymous access');
+check($buildingApi->handle('POST',$progressPath,$authBuilding)[0]===405,
+ 'M05 settlement progression is read-only');
+[$progressCode,$progressBody]=$buildingApi->handle('GET',$progressPath,$authBuilding);
+check($progressCode===200 && count($progressBody['data']['buildings'])===1
+    && $progressBody['data']['buildings'][0]['id']==='building-api-site'
+    && $progressBody['data']['buildings'][0]['ready']===true
+    && $progressBody['data']['buildings'][0]['missing']===[],
+ 'M05 authorized progression returns actionable stage readiness');
+check($buildingApi->handle('GET','/v1/worlds/entity-B/construction/progression',$authBuilding)[0]===404,
+ 'M05 progression rejects cross-world access');
 check($buildingApi->handle('GET','/v1/worlds/entity-B/construction/options',$authBuilding)[0]===404,
  'M04 site discovery cannot cross world');
 
@@ -69,6 +82,8 @@ check($buildingApi->handle('GET','/v1/worlds/unknown/buildings/building-api-site
 (new PdoMemberships(db(),'entity-A'))->revoke($buildingActor);
 check($buildingApi->handle('GET',$buildingPath,$authBuilding)[0]===404,
  'M04 building GET denies revoked actor membership');
+check($buildingApi->handle('GET',$progressPath,$authBuilding)[0]===404,
+ 'M05 progression denies revoked actor membership');
 (new PdoSessions(db(),$buildingClock))->revoke($tokenBuilding);
 check($buildingApi->handle('GET',$buildingPath,$authBuilding)[0]===401,
  'M04 building GET rejects revoked session');
