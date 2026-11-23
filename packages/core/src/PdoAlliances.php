@@ -72,7 +72,7 @@ final class PdoAlliances
     public function create(string $actor,string $alliance,string $name): void
     {
         $this->id($actor); $this->id($alliance);
-        if (trim($name)==='' || mb_strlen($name)>100) throw new \InvalidArgumentException('Invalid alliance name');
+        if (trim($name)==='' || strlen($name)>100) throw new \InvalidArgumentException('Invalid alliance name');
         $this->transaction(function() use ($actor,$alliance,$name): void {
             if (!$this->active($actor)) throw new \DomainException('Membership required');
             $this->query('INSERT INTO engine_alliances(world_id,alliance_id,name,created_by) VALUES (?,?,?,?)',
