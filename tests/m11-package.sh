@@ -15,6 +15,7 @@ grep -qx 'aeternum/public/index.php' "$OUT/files.txt"
 grep -qx 'aeternum/public/.htaccess' "$OUT/files.txt"
 grep -qx 'aeternum/public/client-dist/aeternum-shell.js' "$OUT/files.txt"
 grep -qx 'aeternum/bin/ops-cron.php' "$OUT/files.txt"
+grep -qx 'aeternum/bin/ops-alerts.php' "$OUT/files.txt"
 grep -qx 'aeternum/database/migrations/031_admin_test_entitlements.sql' "$OUT/files.txt"
 grep -qx 'aeternum/LICENSE.md' "$OUT/files.txt"
 if grep -E '(^|/)(tests|\.git|\.github|node_modules|client)/|(^|/)\.env|\.pem$|\.key$|\.sql\.gz$' "$OUT/files.txt"; then
