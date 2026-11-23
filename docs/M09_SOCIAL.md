@@ -10,6 +10,10 @@ concurrence et sécurité), et non à la simple création d'une PR.
   `owner/officer/member` et les invitations, avec clé de monde dans chaque
   clé primaire et étrangère. Les mutations sérialisent leurs transitions sous
   verrou de l'alliance ; les membres du monde sont revérifiés sous verrou.
+- `030_social_governance.sql` crée le journal durable de récupération
+  transactionnelle d'une alliance dont le propriétaire a été révoqué du
+  monde. Seul un officier actif peut reprendre la direction ; réactiver
+  l'ancien propriétaire ne rétablit jamais automatiquement ses droits.
 - `029_social_messaging.sql` ajoute messages privés, blocages, rapports,
   notifications persistantes avec `read_at`, ainsi qu'un journal d'arbitrage
   opérateur. Aucune de ces tables ne remplace les comptes, ressources, reçus,
@@ -55,6 +59,7 @@ interdite ou conflictuelle 409, une entrée malformée 400.
 | POST `/alliances/{id}/revoke` | `{"actor":"member-id"}` |
 | POST `/alliances/{id}/role` | `{"actor":"member-id","role":"officer"}` |
 | POST `/alliances/{id}/owner` | `{"actor":"member-id"}` |
+| POST `/alliances/{id}/recover` | `{}` ; récupération si ancien propriétaire révoqué, audit privé |
 | POST `/alliances/{id}/remove` | `{"actor":"member-id"}` |
 | POST `/alliances/{id}/leave` | `{}` |
 | GET `/invitations` et `/invitations/page/{id}` | Invitations du destinataire non bloquées, 100/page, `nextAfter` |
@@ -91,8 +96,8 @@ Le client HTML/JS propose des boutons de continuation pour les sept projections
 sociales ; les générations de chargement empêchent les anciennes réponses de
 réafficher les données d'une session ou d'un monde devenu inactif.
 
-**Limites à traiter avant clôture M09 :** gestion d'alliances très grandes, audit de la révocation des
-propriétaires et robustesse aux volumes, protections anti-spam plus fines,
+**Limites à traiter avant clôture M09 :** robustesse aux volumes,
+recette de la récupération après révocation, protections anti-spam plus fines,
 qualifications E2E et restauration sur serveur autorisé. Les autres
 contraintes G01–G09 de la roadmap restent inchangées.
 
@@ -144,7 +149,7 @@ concerné dans la boîte du destinataire sans le détruire.
    relecture d'un journal économique historique. Ne jamais appliquer M09
    directement à la seule copie des données réelles.
 3. Après validation et en fenêtre de maintenance, exécuter le migrateur
-   vérifiant les empreintes des fichiers 028 et 029 une seule fois
+   vérifiant les empreintes des fichiers 028, 029 et 030 une seule fois
    (`php bin/migrate.php` avec la configuration autorisée). Vérifier la
    liste et les tables créées, les accès intermondes et un parcours complet
    multi-joueurs.

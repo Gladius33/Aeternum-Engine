@@ -325,6 +325,45 @@ final class PdoAlliances
     }
 
     /**
+     * Recover an alliance from a revoked owner. This locks the world before
+     * the alliance, sharing the membership grant/revoke lock order.
+     * A resumed old owner is an ordinary member, not a second owner.
+     */
+    public function recoverRevokedOwner(string $actor,string $alliance): void
+    {
+        $this->id($actor);$this->id($alliance);
+        $this->transaction(function()use($actor,$alliance):void {
+            if($this->query('SELECT world_id FROM engine_worlds WHERE world_id=? FOR UPDATE',
+                [$this->world])->fetchColumn()===false)
+                throw new \DomainException('World unavailable');
+            $this->lockAlliance($alliance);
+            if(!$this->active($actor)) throw new \DomainException('Membership required');
+            $role=$this->lockedRole($alliance,$actor);
+            if($role==='owner') return; // Exact replay by current recovered owner.
+            if($role!=='officer') throw new \DomainException('Officer required');
+            $owners=$this->query("SELECT actor_id FROM engine_alliance_members
+                WHERE world_id=? AND alliance_id=? AND role='owner' FOR UPDATE",
+                [$this->world,$alliance])->fetchAll(PDO::FETCH_COLUMN);
+            if(count($owners)!==1) throw new \DomainException('Ambiguous owner');
+            $previous=$owners[0];
+            if($this->active($previous))
+                throw new \DomainException('Current owner active');
+            $this->query("UPDATE engine_alliance_members SET role='member'
+                WHERE world_id=? AND alliance_id=? AND actor_id=?",
+                [$this->world,$alliance,$previous]);
+            $this->query("UPDATE engine_alliance_members SET role='owner'
+                WHERE world_id=? AND alliance_id=? AND actor_id=?",
+                [$this->world,$alliance,$actor]);
+            $now=($this->clock??new SystemClock())->now();
+            if($now<0) throw new \DomainException('Invalid clock');
+            $this->query('INSERT INTO engine_alliance_owner_recoveries
+                (world_id,recovery_id,alliance_id,old_owner,new_owner,created_at)
+                VALUES (?,?,?,?,?,?)',
+                [$this->world,bin2hex(random_bytes(32)),$alliance,$previous,$actor,$now]);
+        });
+    }
+
+    /**
      * Deterministic active-member rankings, independent of the economy journal.
      * Each request observes one transactional snapshot. The world boundary and
      * active requester admission are always rechecked.

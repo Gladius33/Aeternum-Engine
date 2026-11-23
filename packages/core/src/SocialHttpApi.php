@@ -84,7 +84,7 @@ final class SocialHttpApi
             $alliance=$roster[1];
             $memberAfter=$roster[2];
         } elseif (preg_match(
-            '~^alliances/([A-Za-z0-9][A-Za-z0-9_-]{0,63})(?:/(invite|respond|revoke|role|leave|remove|owner))?$~D',
+            '~^alliances/([A-Za-z0-9][A-Za-z0-9_-]{0,63})(?:/(invite|respond|revoke|role|leave|remove|owner|recover))?$~D',
             $suffix,$resource
         )) {
             $alliance=$resource[1];
@@ -150,6 +150,7 @@ final class SocialHttpApi
                 'leave'=>$this->mutate(fn()=> $social->leave($actor,$alliance)),
                 'remove'=>$this->mutate(fn()=> $social->remove($actor,$alliance,$data['actor'])),
                 'owner'=>$this->mutate(fn()=> $social->transferOwner($actor,$alliance,$data['actor'])),
+                'recover'=>$this->mutate(fn()=> $social->recoverRevokedOwner($actor,$alliance)),
                 'messages'=>$messages->inbox($actor,$cursorTime,$cursorId),
                 'send'=>$this->mutate(fn()=> $messages->send($actor,$data['recipient'],$data['id'],$data['text'])),
                 'blocks'=>$messages->blocksPageFor($actor,$afterId),

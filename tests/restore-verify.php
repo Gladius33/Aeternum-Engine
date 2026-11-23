@@ -93,12 +93,16 @@ if ($sourceMessages->inbox($socialRecipient)!==$restoredMessages->inbox($socialR
     throw new RuntimeException('M09 messaging or notification replay after restore differs');
 $auditCount=$dst->query("SELECT COUNT(*) FROM engine_social_moderation_audit
     WHERE world_id='m09-social-a'")->fetchColumn();
-if ((int)$auditCount!==2) throw new RuntimeException('M09 moderation audits lost on restore');
+if ((int)$auditCount!==3) throw new RuntimeException('M09 moderation audits lost on restore');
+$governanceAudit=$dst->query("SELECT old_owner,new_owner FROM engine_alliance_owner_recoveries
+    WHERE world_id='m09-social-a'")->fetchAll(PDO::FETCH_ASSOC);
+if ($governanceAudit!==[['old_owner'=>$socialOwner,'new_owner'=>$socialRecipient]])
+    throw new RuntimeException('M09 governance recovery audit lost after restore');
 
 echo json_encode([
     'restoreVerified'=>true,'tablesCompared'=>count($tables),
     'rowsFingerprinted'=>$rowsChecked,
     'legacyActorLogin'=>true,'journalReplayEntries'=>$replay->entries,'escrowOfferRestored'=>true,
-    'socialRankingsRestored'=>true,'socialMailRestored'=>true,'moderationAuditsRestored'=>true,
+    'socialRankingsRestored'=>true,'socialMailRestored'=>true,'moderationAuditsRestored'=>true,'governanceAuditRestored'=>true,
     'scope'=>'isolated disposable DB; no host production restore'
 ],JSON_THROW_ON_ERROR|JSON_PRETTY_PRINT).PHP_EOL;
