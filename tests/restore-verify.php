@@ -104,10 +104,27 @@ if (count($governanceAudit)!==2 ||
         [$socialRecipient,$identity->authenticate('m09-social-guest','M09 isolated disposable testing password')],true))
     throw new RuntimeException('M09 concurrent governance recovery audit lost after restore');
 
+// Test-only M10 grants and scoped operator audit must survive dump/restore.
+$m10Actor=$identity->authenticate('m10-cosmetic-user','M10 isolated testing password');
+if($m10Actor===null)throw new RuntimeException('M10 restored identity missing');
+foreach(['m10-console-a','m10-console-b'] as $m10World) {
+    $before=\Aeternum\Core\PdoAdminConsole::cosmeticFor($src,$m10World,$m10Actor);
+    $after=\Aeternum\Core\PdoAdminConsole::cosmeticFor($dst,$m10World,$m10Actor);
+    if($before!==$after)throw new RuntimeException('M10 entitlements diverged after restore');
+    $audit=$dst->prepare('SELECT COUNT(*) FROM engine_admin_audit WHERE world_id=?');
+    $audit->execute([$m10World]);
+    if((int)$audit->fetchColumn()<1)throw new RuntimeException('M10 audit lost after restore');
+}
+$verified=new \Aeternum\Core\PdoAdminConsole($dst,'m10-console-a',new FrozenClock(9100));
+if($verified->testPayment('m10-manager','m10-event-1',$m10Actor,'profile_badge','grant')!==false)
+    throw new RuntimeException('M10 restored replay duplicated a test event');
+if(\Aeternum\Core\PdoAdminConsole::cosmeticFor($dst,'m10-console-a',$m10Actor)
+    !==\Aeternum\Core\PdoAdminConsole::cosmeticFor($src,'m10-console-a',$m10Actor))
+    throw new RuntimeException('M10 restored replay changed newer rights');
 echo json_encode([
     'restoreVerified'=>true,'tablesCompared'=>count($tables),
     'rowsFingerprinted'=>$rowsChecked,
     'legacyActorLogin'=>true,'journalReplayEntries'=>$replay->entries,'escrowOfferRestored'=>true,
-    'socialRankingsRestored'=>true,'socialMailRestored'=>true,'moderationAuditsRestored'=>true,'governanceAuditRestored'=>true,
+    'socialRankingsRestored'=>true,'socialMailRestored'=>true,'moderationAuditsRestored'=>true,'governanceAuditRestored'=>true,'m10OperatorAuditRestored'=>true,'m10TestEntitlementsRestored'=>true,
     'scope'=>'isolated disposable DB; no host production restore'
 ],JSON_THROW_ON_ERROR|JSON_PRETTY_PRINT).PHP_EOL;

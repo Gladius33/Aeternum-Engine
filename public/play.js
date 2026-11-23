@@ -705,6 +705,7 @@ let socialMessageGeneration=0, socialNotificationGeneration=0;
 let socialDirectoryGeneration=0, socialRosterGeneration=0, socialInviteGeneration=0;
 let socialBlocksGeneration=0, socialLeaderboardGeneration=0;
 function clearSocial() {
+    clearPremium();
     // Invalidate an outstanding API result when the player switches worlds
     // or signs out; old private pages must never repaint a new session.
     socialMessageAfter=null;socialNotificationAfter=null;
@@ -1038,6 +1039,38 @@ document.getElementById('social-leaderboard-refresh').addEventListener('click',
     ()=>run(socialRefreshLeaderboard));
 document.getElementById('social-leaderboard-next').addEventListener('click',
     ()=>run(()=>socialRefreshLeaderboard(true)));
+
+// M10: user-scoped cosmetic projection. Never trust claims, payment events,
+// checkout requests or operator identifiers from the browser.
+let premiumGeneration=0;
+function clearPremium() {
+    ++premiumGeneration;
+    document.getElementById('premium-features').replaceChildren();
+    document.getElementById('premium-badge').hidden=true;
+    document.documentElement.classList.remove('premium-theme');
+    document.getElementById('premium-notice').textContent='';
+}
+async function refreshPremium() {
+    const world=balance.elements.world.value;
+    if(!world) throw new Error('Choose a world first');
+    const generation=++premiumGeneration;
+    const data=await api('/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/premium/me');
+    if(generation!==premiumGeneration || world!==balance.elements.world.value)return;
+    const features=document.getElementById('premium-features');
+    features.replaceChildren();
+    const allowed=['profile_badge','ui_theme'];
+    const found=Array.isArray(data.features)?data.features.filter(x=>allowed.includes(x)):[];
+    for(const feature of found) {
+        const item=document.createElement('li');
+        item.textContent=feature==='profile_badge'?'Supporter badge (test only)':'Alternative theme (test only)';
+        features.append(item);
+    }
+    document.getElementById('premium-badge').hidden=!found.includes('profile_badge');
+    document.documentElement.classList.toggle('premium-theme',found.includes('ui_theme'));
+    document.getElementById('premium-notice').textContent=found.length===0?
+        'No cosmetic extras active.':'Cosmetic extras loaded (test only).';
+}
+document.getElementById('premium-refresh').addEventListener('click',()=>run(refreshPremium));
 
 function resetSession() {
     token=null; pending=null; syncPendingRetry(); worlds=[]; options(balance.elements.world,[]); selectWorld();
