@@ -32,9 +32,19 @@ final readonly class GamePack
         return new PackSdk($this);
     }
 
-    public function rules(): RuleSet
+    /**
+     * Operator-approved extension objects, not executable names from JSON.
+     * Any opt-in creates a different rules key. No opt-in preserves the
+     * exact old-world key and its deterministic replay implementation.
+     *
+     * @param list<ApprovedPackCommand> $trustedCommands
+     */
+    public function rules(array $trustedCommands=[]): RuleSet
     {
-        $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings,$this->settlement,$this->industry);
+        $extensions=$trustedCommands===[]?null:new TrustedPackCommands($trustedCommands,$this->actions);
+        $rulesDigest=$extensions===null?$this->digest:hash('sha256',
+            "aeternum-trusted-pack-commands-v1\0".$this->digest."\0".$extensions->fingerprint());
+        $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings,$this->settlement,$this->industry,$extensions);
         $events=new EconomyEventHandler($economy);
         // Generic market expiration is a trusted engine event shared by all
         // packs. Typed manifests may add other hooks but cannot redefine the
@@ -47,7 +57,7 @@ final readonly class GamePack
             }
             $hooks['market.expire']=$builtin;
         }
-        return new RuleSet($this->id,$this->version,$this->digest,$economy,
+        return new RuleSet($this->id,$this->version,$rulesDigest,$economy,
             $hooks===[]?$events:new TypedPackEventHandler($events,$hooks));
     }
 }

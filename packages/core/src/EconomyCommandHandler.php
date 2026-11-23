@@ -11,7 +11,7 @@ final class EconomyCommandHandler implements CommandHandler
     private array $buildings = [];
 
     /** @param list<ResourceDefinition> $definitions */
-    public function __construct(array $definitions,array $upgrades = [],array $buildings = [],private readonly ?SettlementRules $settlement=null,private readonly ?IndustryRules $industry=null)
+    public function __construct(array $definitions,array $upgrades = [],array $buildings = [],private readonly ?SettlementRules $settlement=null,private readonly ?IndustryRules $industry=null,private readonly ?TrustedPackCommands $trustedPackCommands=null)
     {
         if ($definitions === [] || count($definitions)>128 || !array_is_list($definitions)) throw new \InvalidArgumentException('Invalid resource definitions');
         foreach ($definitions as $definition) {
@@ -584,6 +584,11 @@ final class EconomyCommandHandler implements CommandHandler
 
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
+        // Only trusted operator-bound PHP objects may handle this namespace.
+        // HTTP and actor intake remain closed until separately authorized.
+        if ($this->trustedPackCommands?->handles($command->type)) {
+            return $this->trustedPackCommands->execute($command,$state,$effectiveAt);
+        }
         if (in_array($command->type,['industry.generate','industry.refine','industry.ship'],true)) {
             return $this->industryAction($command,$state,$effectiveAt);
         }
