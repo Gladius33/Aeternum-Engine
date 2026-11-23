@@ -27,14 +27,27 @@ final class OperationsAlerts
                 $alerts[]=['code'=>'world_uninitialized','world'=>$world];
                 continue;
             }
-            if (($row['dueEventsCapped']??false)===true ||
-                (int)($row['dueEvents']??0)>=$dueLimit)
+            // Never turn a malformed or incomplete monitoring snapshot into
+            // a reassuring green result. Validate numeric values before use:
+            // casts such as (int)'broken' would silently turn an outage into 0.
+            foreach (['dueEvents','outboxPending'] as $metric) {
+                if (!isset($row[$metric]) || !is_int($row[$metric]) || $row[$metric]<0)
+                    throw new \InvalidArgumentException('Invalid monitoring counter');
+            }
+            foreach (['dueEventsCapped','outboxPendingCapped'] as $flag) {
+                if (!isset($row[$flag]) || !is_bool($row[$flag]))
+                    throw new \InvalidArgumentException('Invalid monitoring cap flag');
+            }
+            if (!array_key_exists('oldestDueSeconds',$row) ||
+                ($row['oldestDueSeconds']!==null &&
+                (!is_int($row['oldestDueSeconds']) || $row['oldestDueSeconds']<0)))
+                throw new \InvalidArgumentException('Invalid monitoring event age');
+            if ($row['dueEventsCapped'] || $row['dueEvents'] >= $dueLimit)
                 $alerts[]=['code'=>'event_backlog','world'=>$world];
             if ($row['oldestDueSeconds']!==null &&
-                (int)$row['oldestDueSeconds'] >= $ageLimit)
+                $row['oldestDueSeconds'] >= $ageLimit)
                 $alerts[]=['code'=>'event_lag','world'=>$world];
-            if (($row['outboxPendingCapped']??false)===true ||
-                (int)($row['outboxPending']??0)>=$outboxLimit)
+            if ($row['outboxPendingCapped'] || $row['outboxPending'] >= $outboxLimit)
                 $alerts[]=['code'=>'outbox_backlog','world'=>$world];
         }
         return ['schemaVersion'=>1,'requiresAttention'=>$alerts!==[],'alerts'=>$alerts];
