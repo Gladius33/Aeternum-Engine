@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -71,6 +71,9 @@ try {
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$resolvedPeer ?? ''
             );
+        } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/premium/')) {
+            [$status,$body]=(new PremiumHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
+                ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '');
         } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/social/')) {
             [$status,$body]=(new SocialHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
                 ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
