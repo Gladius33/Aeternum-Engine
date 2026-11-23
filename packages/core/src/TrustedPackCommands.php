@@ -6,8 +6,9 @@ namespace Aeternum\Core;
  * Immutable operator-created routing table for trusted pack commands.
  * Nothing here loads or interprets executable code from a game manifest.
  *
- * Initial M14 support is for trusted internal invocations only. Public
- * and actor admission remain rejected by existing API and SQL guards.
+ * Actor admission is a distinct opt-in contract: only ActorPackCommand
+ * instances pass the world-locked ownership checks in PdoScheduler.
+ * All other handlers remain operator-only.
  */
 final class TrustedPackCommands
 {

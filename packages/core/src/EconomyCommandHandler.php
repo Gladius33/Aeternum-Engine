@@ -596,8 +596,9 @@ final class EconomyCommandHandler implements CommandHandler
 
     public function apply(Command $command,array $state,int $effectiveAt): CommandResult
     {
-        // Only trusted operator-bound PHP objects may handle this namespace.
-        // HTTP and actor intake remain closed until separately authorized.
+        // Only explicitly registered, approved PHP handlers may dispatch.
+        // Actor-capable handlers still require PdoScheduler's world-locked
+        // authorization and the HTTP actor-admission allowlist.
         if ($this->trustedPackCommands?->handles($command->type)) {
             return $this->trustedPackCommands->execute($command,$state,$effectiveAt);
         }

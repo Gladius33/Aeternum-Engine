@@ -120,3 +120,6 @@ rejects(fn()=> \Aeternum\Core\TrustedWorldRules::bind(
 rejects(fn()=> \Aeternum\Core\TrustedWorldRules::bind(
     ['plain-world'=>$m14Pack],['plain-world'=>['untrusted PHP class path']]
 ),InvalidArgumentException::class,'M14 world binding cannot instantiate a handler by name');
+
+check(\Aeternum\Core\TrustedWorldRules::bind([])===[],
+    'M14 unconfigured installation retains empty-world discovery semantics');

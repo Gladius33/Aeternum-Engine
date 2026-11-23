@@ -17,7 +17,7 @@ final class TrustedWorldRules
      */
     public static function bind(array $worldPacks,array $approvedPerWorld=[]): array
     {
-        if ($worldPacks===[] || count($worldPacks)>512 || count($approvedPerWorld)>512) {
+        if (count($worldPacks)>512 || count($approvedPerWorld)>512) {
             throw new \InvalidArgumentException('Invalid approved world set');
         }
         foreach ($approvedPerWorld as $world=>$handlers) {

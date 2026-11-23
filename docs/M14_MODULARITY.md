@@ -78,14 +78,17 @@ extended command, worker entry, wrong-default-rule denial and journal
 replay. This is not yet an external plugin installation facility or
 deployment validation.
 
-## Critical limitations of this first increment
+## Current security and product limitations
 
-This is for **operator-side trusted calls only**. EconomyHttpApi and the
-actor-authorization switch inside PdoScheduler still deny custom commands:
-this deliberately prevents a new actor-permission bypass. The fixture is
-NOT yet a third playable game. No executable PHP is selected or loaded
-by user-authored JSON, and registering a code digest is not a substitute
-for independently verifying the deployed handler bytes.
+General trusted handlers remain operator-only. ActorPackCommand handlers
+are admitted only when explicitly composed into the selected world, their
+payload is declared in the immutable pack, and account ownership is
+verified transactionally. The third-pack HTTP/MariaDB tests establish a
+working secure integration seam, **not a third commercially playable game**.
+The production front controller deliberately binds no custom handlers.
+No executable PHP is selected or loaded by user-authored JSON, and
+registering a handler digest is not a substitute for independently
+verifying the deployed bytes.
 
 No legacy gameplay has been modified or migrated in this increment.
 No M14 release, M13 V1.0 certification, external staging or payment.
@@ -94,11 +97,12 @@ No M14 release, M13 V1.0 certification, external staging or payment.
 
 1. Extract the hard-coded settlement/industry behaviors from mandatory
    core paths, using approved adapters with a replay-compatible migration.
-2. Bind reviewed module implementations to an operator-controlled registry,
-   never to arbitrary HTTP fields, manifest paths or dynamic uploads.
-3. Introduce a separately audited, strictly actor-scoped admission path
-   for pack actions: world, account, authorization, quotas, version pins,
-   transactions and idempotent receipts checked atomically.
+2. Extend the operator-owned world composition API into the full deployment
+   bootstrap path for HTTP, provisioning and workers, retaining identical
+   pinned identities and refusing unapproved updates.
+3. Complete actor-scoped security coverage with more complex multi-account
+   action policies, concurrency and replay tests under real MariaDB; verify
+   that all extension side effects remain within trusted transaction rules.
 4. Introduce typed event extensions and replay-safe worker scheduling.
 5. Prove a third fully playable pack through PHP 8.4, MariaDB concurrency
    and live Chromium without new theme branches in the core.
@@ -107,3 +111,5 @@ No M14 release, M13 V1.0 certification, external staging or payment.
 
 Preserve ACCL-1.0, author attribution, existing persistence invariants
 and the release gate in issue #55.
+
+Operator composition accepts empty world sets during initial installation; this is regression-tested to preserve pre-M14 behavior.
