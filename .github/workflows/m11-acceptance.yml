@@ -1,17 +1,13 @@
 name: M11 isolated operations acceptance
 on:
   pull_request:
-    paths:
-      - 'packages/core/src/Operations*.php'
-      - 'bin/ops-*.php'
-      - 'tools/m11-*.sh'
-      - 'tests/m11-*'
-      - 'tests/integration.php'
-      - 'docs/M11_OPERATIONS.md'
-      - '.github/workflows/m11-acceptance.yml'
   push:
     branches: [main]
   workflow_dispatch:
+# No M13 release head may skip M11 restoration and operations checks.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
