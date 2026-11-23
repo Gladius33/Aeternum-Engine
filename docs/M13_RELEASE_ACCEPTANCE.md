@@ -109,3 +109,7 @@ un tag V1.0 sous réserve de validation explicite.
 - [Rapport de charge concurrente](M13_CAPACITY_LAB.md) : 400 lectures réelles, résultats datés et limites non certifiées.
 
 La CI M13 vérifie que les liens Markdown locaux de ces guides et de la documentation principale ne sont pas brisés ; ce contrôle de cohérence n'est ni une vérification du contenu juridique ni une validation externe de release.
+
+## Licence et attribution contrôlées
+
+Le test `tests/m13-license.php` vérifie en CI que les octets de la licence ACCL-1.0 approuvée restent identiques au Git blob `131bbd75621360f0875b2ad5bad063b370531bf4`, et que NOTICE ainsi que l'interface joueur conservent l'attribution obligatoire et son lien de licence. Ce contrôle protège d'une modification involontaire : il ne remplace ni une revue juridique indépendante, ni une autorisation de modifier les conditions.
