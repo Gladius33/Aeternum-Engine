@@ -94,10 +94,15 @@ if ($sourceMessages->inbox($socialRecipient)!==$restoredMessages->inbox($socialR
 $auditCount=$dst->query("SELECT COUNT(*) FROM engine_social_moderation_audit
     WHERE world_id='m09-social-a'")->fetchColumn();
 if ((int)$auditCount!==3) throw new RuntimeException('M09 moderation audits lost on restore');
-$governanceAudit=$dst->query("SELECT old_owner,new_owner FROM engine_alliance_owner_recoveries
-    WHERE world_id='m09-social-a'")->fetchAll(PDO::FETCH_ASSOC);
-if ($governanceAudit!==[['old_owner'=>$socialOwner,'new_owner'=>$socialRecipient]])
-    throw new RuntimeException('M09 governance recovery audit lost after restore');
+$governanceAudit=$dst->query("SELECT alliance_id,old_owner,new_owner FROM engine_alliance_owner_recoveries
+    WHERE world_id='m09-social-a' ORDER BY alliance_id")->fetchAll(PDO::FETCH_ASSOC);
+if (count($governanceAudit)!==2 ||
+    $governanceAudit[0]!==['alliance_id'=>'m09-recovery','old_owner'=>$socialOwner,'new_owner'=>$socialRecipient] ||
+    $governanceAudit[1]['alliance_id']!=='m09-recovery-race' ||
+    $governanceAudit[1]['old_owner']!==$socialOwner ||
+    !in_array($governanceAudit[1]['new_owner'],
+        [$socialRecipient,$identity->authenticate('m09-social-guest','M09 isolated disposable testing password')],true))
+    throw new RuntimeException('M09 concurrent governance recovery audit lost after restore');
 
 echo json_encode([
     'restoreVerified'=>true,'tablesCompared'=>count($tables),

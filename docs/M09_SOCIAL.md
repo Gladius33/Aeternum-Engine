@@ -95,7 +95,10 @@ photographie figée si les membres changent pendant la consultation.
 La récupération du dirigeant révoqué est déclenchable dans le navigateur,
 mais soumise au contrôle serveur : officier actif, propriétaire historique
 révoqué et écriture d'un audit durable. Une réactivation ultérieure ne
-restaure pas les privilèges antérieurs.
+restaure pas les privilèges antérieurs. Le test d'intégration lance
+deux processus MariaDB indépendants qui tentent simultanément une
+récupération : seul un officier gagne, une seule ligne de journal est
+insérée et le propriétaire historique réactivé reste simple membre.
 
 Le client HTML/JS propose des boutons de continuation pour les sept projections
 sociales ; les générations de chargement empêchent les anciennes réponses de
