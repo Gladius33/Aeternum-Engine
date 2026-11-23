@@ -104,3 +104,19 @@ rejects(fn()=> $m14Pack->rules([$badActor(['units'])]),InvalidArgumentException:
     'M14 policy cannot masquerade an integer as an account identifier');
 rejects(fn()=> $m14Pack->rules([$badActor(['invented'])]),InvalidArgumentException::class,
     'M14 undeclared ownership field rejected');
+
+// Operator-side per-world composition is explicit and fail closed. A pack
+// listed in the registry never gains a module just because another world did.
+$worldBindings=\Aeternum\Core\TrustedWorldRules::bind(
+    ['guild-world'=>$m14Pack,'plain-world'=>$m14Pack],
+    ['guild-world'=>[$actorModule]]
+);
+check($worldBindings['guild-world']->key===$actorRules->key
+    && $worldBindings['plain-world']->key===$historical->key,
+    'M14 approved module binds only to the explicitly selected world');
+rejects(fn()=> \Aeternum\Core\TrustedWorldRules::bind(
+    ['plain-world'=>$m14Pack],['rogue-world'=>[$actorModule]]
+),InvalidArgumentException::class,'M14 operator cannot bind a module to an unknown world');
+rejects(fn()=> \Aeternum\Core\TrustedWorldRules::bind(
+    ['plain-world'=>$m14Pack],['plain-world'=>['untrusted PHP class path']]
+),InvalidArgumentException::class,'M14 world binding cannot instantiate a handler by name');

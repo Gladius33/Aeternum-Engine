@@ -2,6 +2,9 @@
 declare(strict_types=1);
 use Aeternum\Core\{ActorPackCommand,Command,CommandResult,EconomyHttpApi,GamePackLoader,PdoScheduler,PdoMemberships,PdoIdentity,PdoSessions,PlayerProvisioner,FrozenClock};
 
+// Keep temporary PDO handles and fixture objects local to this suite.
+(static function(): void {
+
 // A third, deliberately non-medieval/non-industrial pack with a reviewed
 // gameplay action is admitted over the REAL authenticated HTTP and MariaDB
 // paths. It may never borrow another player's account or another world's
@@ -105,3 +108,37 @@ check($m14Api->handle('POST',$m14Path,$m14BearerB,
     'M14 independent authorized player remains functional after revocation');
 check($m14Scheduler->verifyReplay($m14Rules->commands,$m14Rules->events)->entries===4,
     'M14 multi-actor history replays after rejected and authorized attempts');
+
+// Operator-approved rules must also work with the stock provisioning path,
+// not merely a manually inserted account. The worker must receive the same
+// pinned rules instead of silently reloading an incompatible default.
+$m14ProvisionWorld='m14-approved-world';
+$m14Catalog=\Aeternum\Core\TrustedWorldRules::bind(
+    [$m14ProvisionWorld=>$m14Pack],[$m14ProvisionWorld=>[$m14Module]]
+);
+$m14ProvisionRules=$m14Catalog[$m14ProvisionWorld];
+$m14C=(new PdoIdentity(db()))->register('m14-charlie','m14 laboratory long password charlie');
+(new PlayerProvisioner(db(),$m14Clock))->provision(
+    $m14ProvisionWorld,$m14C,$m14Pack,$m14ProvisionRules);
+$m14TokenC=(new PdoSessions(db(),$m14Clock))->login('m14-charlie','m14 laboratory long password charlie');
+check(is_string($m14TokenC) && strlen($m14TokenC)===64,
+    'M14 trusted operator provisions a complete actor with extended pinned rules');
+$m14ProvisionApi=new EconomyHttpApi(db(),$m14Clock,$m14Catalog);
+[$m14Status,$m14Result]=$m14ProvisionApi->handle('POST',
+    '/v1/worlds/'.$m14ProvisionWorld.'/economy/commands','Bearer '.$m14TokenC,
+    $m14Body('m14-provision-research',$m14C,4));
+check($m14Status===200
+    && (new PdoScheduler(db(),$m14ProvisionWorld,$m14Clock,$m14ProvisionRules))
+        ->state()['pack:guild:'.$m14C]===4,
+    'M14 operator-registered game pack can accept real player action after provisioning');
+$m14Runtime=new \Aeternum\Core\WorldWorker(db(),$m14Clock);
+check($m14Runtime->run($m14ProvisionWorld,$m14Pack,5,1000,$m14ProvisionRules)===[],
+    'M14 worker uses operator-approved rules to open a pinned extended world');
+rejects(fn()=> $m14Runtime->run($m14ProvisionWorld,$m14Pack,5,1000),
+    DomainException::class,
+    'M14 worker refuses historical default rules for an extended pinned world');
+check((new PdoScheduler(db(),$m14ProvisionWorld,$m14Clock,$m14ProvisionRules))
+    ->verifyReplay($m14ProvisionRules->commands,$m14ProvisionRules->events)->entries===2,
+    'M14 expanded operator-registry world replays onboarding and custom progression');
+
+})();

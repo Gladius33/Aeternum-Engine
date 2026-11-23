@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ConfiguredWorlds,TrustedWorldRules,SystemClock,PeerAddressResolver};
 // The JSON API has a strict, separately testable response policy.
 // Load before Composer: plaintext rejection must also work without database setup.
 require_once __DIR__.'/../packages/core/src/ApiResponseSecurity.php';
@@ -79,8 +79,7 @@ try {
             );
         } elseif ($path==='/v1/me/worlds' || preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/recipients$~D',$path,$recipientMatch) || preg_match('~^/v1/worlds/[^/]+/economy/~',$path)) {
             $packs=ConfiguredWorlds::load();
-            $rules=[];
-            foreach ($packs as $world=>$pack) $rules[$world]=$pack->rules();
+            $rules=TrustedWorldRules::bind($packs);
             if ($path==='/v1/me/worlds' || !empty($recipientMatch)) {
                 [$status,$body]=(new PlayerDiscoveryApi($pdo,new SystemClock(),$packs))->handle($_SERVER['REQUEST_METHOD'] ?? '',$_SERVER['HTTP_AUTHORIZATION'] ?? '',$recipientMatch[1] ?? null);
             } else {

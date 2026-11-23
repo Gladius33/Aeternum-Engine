@@ -56,6 +56,28 @@ introduce undeclared cross-account effects or out-of-transaction side
 effects. A real production composition registry and release proof
 are separate M14 work.
 
+## Third increment — operator-controlled world composition
+
+TrustedWorldRules::bind() joins a strict, already approved map of
+GamePack worlds with explicit, already instantiated PHP modules. Unknown
+world IDs, unreviewed string references and malformed handler lists are
+rejected. A module enabled for one world is **not automatically enabled**
+for a different world using the same game pack.
+
+The production front controller now uses this composition root with an
+empty extension map. This is intentionally **behavior-preserving**: no
+pack module becomes public until the application operator explicitly
+provides the reviewed PHP objects through trusted server composition.
+PlayerProvisioner and WorldWorker accept an optional RuleSet from that
+trusted composition, require matching pack ID/version, and still depend
+on PdoScheduler's immutable world rules-key comparison. Their default
+call paths remain unchanged.
+
+MariaDB CI covers actual operator-side player provision, authenticated
+extended command, worker entry, wrong-default-rule denial and journal
+replay. This is not yet an external plugin installation facility or
+deployment validation.
+
 ## Critical limitations of this first increment
 
 This is for **operator-side trusted calls only**. EconomyHttpApi and the

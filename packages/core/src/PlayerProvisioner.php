@@ -7,13 +7,18 @@ use PDO;
 final class PlayerProvisioner
 {
     public function __construct(private readonly PDO $pdo,private readonly Clock $clock) {}
-    public function provision(string $world,string $actor,GamePack $pack): void
+    public function provision(string $world,string $actor,GamePack $pack,?RuleSet $approvedRules=null): void
     {
         PdoMemberships::validateId($actor);
         $s=$this->pdo->prepare('SELECT actor_id FROM engine_identities WHERE actor_id=?');
         $s->execute([$actor]);
         if ($s->fetchColumn()===false) throw new \DomainException('Unknown identity');
-        $rules=$pack->rules();
+        // Optional reviewed rules must come from a trusted operator-built
+        // registry, never from a request or a data-only pack manifest.
+        $rules=$approvedRules??$pack->rules();
+        if ($rules->id!==$pack->id || $rules->version!==$pack->version) {
+            throw new \InvalidArgumentException('Approved world rules do not match pinned pack');
+        }
         $scheduler=new PdoScheduler($this->pdo,$world,$this->clock,$rules);
         $scheduler->initialize();
         $members=new PdoMemberships($this->pdo,$world);
