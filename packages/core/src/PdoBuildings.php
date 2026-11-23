@@ -164,9 +164,14 @@ final class PdoBuildings
                 if ($pending!==null && (!is_string($pending) || !preg_match('/^build:[a-f0-9]{64}$/D',$pending))) {
                     throw new \UnexpectedValueException('Invalid building pending event');
                 }
+                $stages=BuildStages::normalize(json_decode($row['stages_json'],true,16,JSON_THROW_ON_ERROR));
+                if ($level>count($stages)) throw new \UnexpectedValueException('Building level exceeds its pinned stages');
+                if ($pending!==null && $level===count($stages)) {
+                    throw new \UnexpectedValueException('Completed building cannot have pending construction');
+                }
                 $levels[$type]=max($levels[$type]??0,$level);
                 $buildings[]=['id'=>$id,'type'=>$type,'level'=>$level,'pending'=>$pending,
-                    'stages'=>BuildStages::normalize(json_decode($row['stages_json'],true,16,JSON_THROW_ON_ERROR))];
+                    'stages'=>$stages];
             }
             $result=[];
             foreach ($buildings as $building) {
