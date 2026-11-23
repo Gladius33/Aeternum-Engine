@@ -133,8 +133,13 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   const foreign=await member.request.get(origin+'/v1/worlds/e2e-industrial/social/alliances',
     {headers:{Authorization:memberBearer}});
   expect(foreign.status()).toBe(404);
+  const departed=owner.waitForResponse(r=>r.url()===root+'/alliances/browser-crew/leave'
+    &&r.request().method()==='POST');
   await owner.getByRole('button',{name:'Leave alliance'}).click();
-  await expect(owner.locator('#social-member-list')).toHaveCount(0);
+  expect((await departed).status()).toBe(200);
+  // The persistent <ul> container is part of the page; leaving removes
+  // rendered roster <li> entries, not the list element itself.
+  await expect(owner.locator('#social-member-list li')).toHaveCount(0);
   await owner.getByRole('button',{name:'Sign out',exact:true}).click();
   await expect(owner.locator('#login')).toBeVisible();
   await signin(owner,'browser-social-owner');
