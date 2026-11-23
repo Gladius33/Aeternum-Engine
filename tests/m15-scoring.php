@@ -64,3 +64,20 @@ $m15Unscored=json_decode($m15Bytes,false,32,JSON_THROW_ON_ERROR);
 unset($m15Unscored->progression);
 check(GamePackLoader::load(json_encode($m15Unscored,JSON_THROW_ON_ERROR))->progression===null,
     'M15 without progression retains the no-scoring default');
+
+// Privacy-preserving, bounded private ranking. Shared scores share ranks.
+$m15Ranker=new \Aeternum\Core\ScoreRanker($m15Pack->progression);
+check($m15Ranker->rank($m15State,['player','other'],'player')===[
+    'position'=>1,'participants'=>2
+], 'M15 ranker reveals only the owner's aggregate rank and population');
+$m15Lower=$m15State;
+unset($m15Lower['build:max:player:watchtower']);
+check($m15Ranker->rank($m15Lower,['player','other'],'other')===[
+    'position'=>2,'participants'=>2
+], 'M15 deterministic ranks compare server scores without opponent details');
+rejects(fn()=> $m15Ranker->rank($m15State,['player','other'],'stranger'),
+    DomainException::class,'M15 absent account cannot request a world rank');
+rejects(fn()=> $m15Ranker->rank($m15State,['player','player'],'player'),
+    InvalidArgumentException::class,'M15 duplicate active accounts cannot distort ranking population');
+rejects(fn()=> $m15Ranker->rank($m15State,array_map(fn($i)=>'p'.$i,range(1,129)),'p1'),
+    DomainException::class,'M15 ranking caps active population and CPU work');

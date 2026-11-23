@@ -892,6 +892,40 @@ final class PdoScheduler
 
 
     /**
+     * Private aggregate-only rank; ties share position, opponent identities
+     * and individual scores never leave the SQL transaction.
+     *
+     * @return array{position:int,participants:int}
+     */
+    public function rankForActor(string $actor,string $account,ScoreRules $policy): array
+    {
+        PdoMemberships::validateId($actor);
+        PdoMemberships::validateId($account);
+        if ($this->rules===null || $this->processing) {
+            throw new \DomainException('Ranking requires pinned rules');
+        }
+        return $this->transaction(function () use($actor,$account,$policy): array {
+            $world=$this->lockedWorld();
+            $this->assertActiveActor($actor);
+            $this->assertAccountOwner($account,$actor);
+            $now=$this->clock->now();
+            if ($now<0 || $now<(int)$world['watermark']
+                || $this->query('SELECT event_id FROM engine_events
+                    WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1 FOR UPDATE',
+                    [$this->worldId,$now])->fetchColumn()!==false) {
+                throw new \DomainException('Ranking requires completed due events');
+            }
+            $accounts=$this->query('SELECT o.account_id FROM engine_account_owners o
+                JOIN engine_memberships m ON m.world_id=o.world_id
+                    AND m.actor_id=o.actor_id AND m.active=1
+                WHERE o.world_id=? ORDER BY o.account_id LIMIT 129',
+                [$this->worldId])->fetchAll(PDO::FETCH_COLUMN);
+            return (new ScoreRanker($policy))->rank(
+                ScalarMap::decode($world['state_json']),$accounts,$account);
+        });
+    }
+
+    /**
      * Own-account, read-only progression projection, calculated from the
      * world-locked canonical state. No score value is accepted from clients.
      * The same due-event barrier used by other authoritative projections

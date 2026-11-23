@@ -15,7 +15,7 @@ final readonly class ProgressionHttpApi
     public function handle(string $method,string $path,string $authorization): array
     {
         if (!preg_match(
-            '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/progression/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
+            '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/progression/([A-Za-z0-9][A-Za-z0-9_-]{0,63})(/rank)?$~D',
             $path,$m
         )) return [404,['error'=>'not_found']];
         if ($method!=='GET') return [405,['error'=>'method_not_allowed']];
@@ -24,7 +24,10 @@ final readonly class ProgressionHttpApi
         }
         $actor=(new PdoSessions($this->pdo,$this->clock))->resolve($token[1]);
         if ($actor===null) return [401,['error'=>'unauthorized']];
-        if (!(new PdoRateLimiter($this->pdo,$this->clock))->admit('progression-read:'.$actor,60,60)) {
+        $rank=($m[3]??'')==='/rank';
+        if (!(new PdoRateLimiter($this->pdo,$this->clock))->admit(
+            $rank?'progression-rank:'.$actor:'progression-read:'.$actor,
+            $rank?12:60,60)) {
             return [429,['error'=>'rate_limited']];
         }
         $pack=$this->packs[$m[1]]??null;
@@ -37,8 +40,12 @@ final readonly class ProgressionHttpApi
                 || $rules->version!==$pack->version) {
                 throw new \DomainException('Mismatched world scoring rules');
             }
-            $scores=(new PdoScheduler($this->pdo,$m[1],$this->clock,$rules))
-                ->scoreForActor($actor,$m[2],$pack->progression);
+            $scheduler=new PdoScheduler($this->pdo,$m[1],$this->clock,$rules);
+            if ($rank) {
+                return [200,['data'=>$scheduler->rankForActor(
+                    $actor,$m[2],$pack->progression)]];
+            }
+            $scores=$scheduler->scoreForActor($actor,$m[2],$pack->progression);
             return [200,['data'=>['world'=>$m[1],'account'=>$m[2],
                 'development'=>$scores['development'],
                 'military'=>$scores['military'],

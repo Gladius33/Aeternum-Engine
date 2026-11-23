@@ -27,10 +27,18 @@ use Aeternum\Core\{Command,EconomyHttpApi,FrozenClock,GamePackLoader,PdoIdentity
     $scorePath=static fn(string $account):string=>'/v1/worlds/'.$world.'/progression/'.$account;
     $read=static fn(string $token,string $account):array=>
         $scores->handle('GET',$scorePath($account),'Bearer '.$token);
+    $rankPath=static fn(string $account):string=>$scorePath($account).'/rank';
+    $rank=static fn(string $token,string $account):array=>
+        $scores->handle('GET',$rankPath($account),'Bearer '.$token);
     $initial=$read($tokenA,$alice);
     check($initial[0]===200 && $initial[1]['data']['global']===0
         && $initial[1]['data']['military']===0,
         'M15 newly provisioned guild player starts at zero earned score');
+    check($rank($tokenA,$alice)[1]['data']===['position'=>1,'participants'=>2]
+        && $rank($tokenB,$bob)[1]['data']===['position'=>1,'participants'=>2],
+        'M15 equal-score players share the first private rank');
+    check($scores->handle('GET',$rankPath($bob),'Bearer '.$tokenA)[0]===404,
+        'M15 private ranking does not expose another player account');
     check($scores->handle('GET',$scorePath($bob),'Bearer '.$tokenA)[0]===404,
         'M15 foreign player score is never revealed');
     check($scores->handle('GET',$scorePath($alice),'')[0]===401
@@ -102,6 +110,9 @@ use Aeternum\Core\{Command,EconomyHttpApi,FrozenClock,GamePackLoader,PdoIdentity
     check(count($worker->run($world,$pack,10,1000))===1,
         'M15 upgrade gains points only after its scheduled completion');
     $final=$read($tokenA,$alice);
+    check($rank($tokenA,$alice)[1]['data']===['position'=>1,'participants'=>2]
+        && $rank($tokenB,$bob)[1]['data']===['position'=>2,'participants'=>2],
+        'M15 completed actions update the private world ranking');
     check($final[1]['data']['development']===26
         && $final[1]['data']['military']===30
         && $final[1]['data']['global']===56,

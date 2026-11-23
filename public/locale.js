@@ -9,6 +9,8 @@
     ['Player progression','Progression du joueur'],
     ['Scores are verified against the server\'s committed world state, not the browser.','Les scores proviennent de l’état du monde validé par le serveur, et non du navigateur.'],
     ['Review my score','Consulter mon score'],
+    ['Review my rank','Consulter mon classement'],
+    ['Your rank (position / active players)','Votre classement (position / joueurs actifs)'],
     ['Development score','Score de développement'], ['Military score','Score militaire'], ['Global score','Score global'], ['Market','Marché'],
     ['Industrial network — tutorial and victory goal','Réseau industriel — tutoriel et objectif'],
     ['Medieval colony — tutorial and goal','Colonie médiévale — tutoriel et objectif'],

@@ -319,6 +319,7 @@ const progressionPanel=document.querySelector('#progression-panel'),
       progressionDetails=document.querySelector('#progression-details');
 function resetProgression() {
     progressionDetails.replaceChildren();
+    document.querySelector('#progression-rank-result').textContent='—';
 }
 async function loadProgression() {
     const selected=locationFields();
@@ -344,6 +345,21 @@ async function loadProgression() {
     }
 }
 document.querySelector('#progression-load').addEventListener('click',()=>run(loadProgression));
+document.querySelector('#progression-rank-load').addEventListener('click',()=>run(async()=>{
+    const selected=locationFields();
+    if (!selected.world || !selected.account) throw new Error('Select your world and account');
+    const path='/v1/worlds/'+encodeURIComponent(selected.world).replaceAll('%3A',':')
+        +'/progression/'+encodeURIComponent(selected.account)+'/rank';
+    const data=await api(path);
+    if (selected.world!==balance.elements.world.value
+        || selected.account!==balance.elements.account.value) return;
+    if (!Number.isSafeInteger(data.position) || !Number.isSafeInteger(data.participants)
+        || data.position<1 || data.participants<1 || data.position>data.participants) {
+        throw new Error('Invalid authoritative rank');
+    }
+    document.querySelector('#progression-rank-result').textContent=
+        String(data.position)+' / '+String(data.participants);
+}));
 function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);
     options(balance.elements.account,(w?.accounts??[]).map(a=>[a,a]));

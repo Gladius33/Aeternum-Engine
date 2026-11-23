@@ -30,9 +30,16 @@ test('M15 authoritative guild scores: two browser actors, idempotent trade and d
         const alice=await enter(a,'m15-score-alice');
         const bob=await enter(b,'m15-score-bob');
         expect(alice.account).not.toBe(bob.account);
+        await a.getByRole('button',{name:'Review my rank'}).click();
+        await b.getByRole('button',{name:'Review my rank'}).click();
+        await expect(a.locator('#progression-rank-result')).toHaveText('1 / 2');
+        await expect(b.locator('#progression-rank-result')).toHaveText('1 / 2');
         const blocked=await b.request.get(origin+'/v1/worlds/'+world+'/progression/'+alice.account,
             {headers:{Authorization:bob.auth}});
         expect(blocked.status()).toBe(404);
+        const blockedRank=await b.request.get(origin+'/v1/worlds/'+world
+            +'/progression/'+alice.account+'/rank',{headers:{Authorization:bob.auth}});
+        expect(blockedRank.status()).toBe(404);
         const mutation=await a.request.post(origin+'/v1/worlds/'+world+'/progression/'+alice.account,
             {headers:{Authorization:alice.auth},data:{global:100000000}});
         expect(mutation.status()).toBe(405);
@@ -72,6 +79,10 @@ test('M15 authoritative guild scores: two browser actors, idempotent trade and d
         await expect(a.locator('#progression-details dd').nth(2)).toHaveText('14');
         await b.getByRole('button',{name:'Review my score'}).click();
         await expect(b.locator('#progression-details dd').nth(2)).toHaveText('6');
+        await a.getByRole('button',{name:'Review my rank'}).click();
+        await b.getByRole('button',{name:'Review my rank'}).click();
+        await expect(a.locator('#progression-rank-result')).toHaveText('1 / 2');
+        await expect(b.locator('#progression-rank-result')).toHaveText('2 / 2');
     } finally {
         await a.close();await b.close();
     }

@@ -89,3 +89,19 @@ cooldown, warfare state and safe bot policies are still open work.
 - Validation of all relevant criteria before declaring M15 complete.
 
 M16 bot runtime and publication V1.0 qualification remain separate.
+
+## Additional private rank projection (in PR)
+
+ScoreRanker supports a bounded participant roster (maximum 128 active
+accounts), competition ties, and a result containing only the requester's
+rank and aggregate active participant count. The complete opponent roster
+and score totals remain inside the world-locked MariaDB transaction.
+
+    GET /v1/worlds/{world}/progression/{account}/rank
+
+An independently rate-limited 12 requests/minute actor endpoint performs
+no write and gives no public account enumeration. For larger worlds this
+initial query fails closed rather than trying to calculate ranks for an
+unbounded roster; indexed projection and wide-world leaderboards remain
+an explicit future acceptance item. The browser shows only the requester's
+position and the total active player count.
