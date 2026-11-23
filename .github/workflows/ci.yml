@@ -33,6 +33,7 @@ jobs:
           npm run build --prefix client
           npm test --prefix client
           test -s public/client-dist/aeternum-shell.js
+          bash tests/m11-package.sh
 
   mariadb:
     runs-on: ubuntu-24.04
