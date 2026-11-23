@@ -35,6 +35,9 @@ Implemented laboratory stack: PHP 8.4, MariaDB/InnoDB, REST, bounded CRON/CLI an
 
 PHP 8.4 is required. Run `php tests/run.php` for dependency-free core regressions. For the MariaDB integration, concurrency and browser suites, consult [persistence](docs/PERSISTENCE.md), the GitHub Actions workflows and the tests in the selected commit. These are not installation instructions for a publicly accessible game. Do not put database credentials, activation tokens or recovery codes into logs.
 
+## V1.0 release candidate documentation (M13, not yet approved)
+[Player guide](docs/M13_PLAYER_GUIDE.md) · [Operator acceptance runbook](docs/M13_RUNBOOK.md) · [Measured concurrent load baseline](docs/M13_CAPACITY_LAB.md) · [G01–G09 acceptance](docs/M13_RELEASE_ACCEPTANCE.md).
+
 ## Documentation
 [Architecture](docs/ARCHITECTURE.md) · [ADRs](docs/adr/DECISIONS.md) · [Validation](docs/VALIDATION.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md).
 
