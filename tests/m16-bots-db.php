@@ -25,8 +25,28 @@ use Aeternum\Core\{ActorReceipt,ApprovedBotStrategy,BotPlan,EconomyHttpApi,Froze
         'M16 bot and human have separate genuine authenticated actor sessions');
     $rules=$pack->rules();
     $api=new EconomyHttpApi($pdo,$clock,[$world=>$rules]);
-    $runner=new TrustedBotRuntime($api,$clock);
     $strategy=new ResourceUpgradeBot();
+    $policyFileDigest=hash_file('sha256',__FILE__);
+    $approvedSources=[$strategy->codeDigest(),$policyFileDigest];
+    $runner=new TrustedBotRuntime($api,$clock,$approvedSources);
+    check((new TrustedBotRuntime($api,$clock,[]))->tick(
+        $world,$actor,'silver','Bearer '.$botToken,$strategy,false
+    )===['status'=>'paused'],
+        'M16 an unconfigured runtime remains paused without an approved strategy');
+    rejects(fn()=>(new TrustedBotRuntime($api,$clock,[]))->tick(
+        $world,$actor,'silver','Bearer '.$botToken,$strategy,true
+    ),DomainException::class,'M16 activation requires explicitly approved strategy digest');
+    rejects(fn()=>new TrustedBotRuntime($api,$clock,['not-a-sha256']),
+        InvalidArgumentException::class,'M16 reject malformed trusted strategy registry');
+    $spoofed=new class implements ApprovedBotStrategy {
+        public function codeDigest():string {return str_repeat('a',64);}
+        public function choose(array $overview,string $account,string $resource,int $logicalTick): ?BotPlan {
+            return new BotPlan('economy.settle',['account'=>$account,'resource'=>$resource]);
+        }
+    };
+    rejects(fn()=>(new TrustedBotRuntime($api,$clock,[str_repeat('a',64)]))
+        ->tick($world,$actor,'silver','Bearer '.$botToken,$spoofed,true),
+        DomainException::class,'M16 a strategy cannot spoof the reviewed digest of its actual PHP source');
     $scheduler=new PdoScheduler($pdo,$world,$clock,$rules);
     $before=$scheduler->state();
     check($runner->tick($world,$actor,'silver','Bearer '.$botToken,$strategy,false)
@@ -39,9 +59,9 @@ use Aeternum\Core\{ActorReceipt,ApprovedBotStrategy,BotPlan,EconomyHttpApi,Froze
     $repeat=$runner->tick($world,$actor,'silver','Bearer '.$botToken,$strategy,true);
     check($repeat===$first && $scheduler->pendingCount()===1,
         'M16 repeated tick has a stable command id and does not enqueue duplicate events');
-    $restarted=new TrustedBotRuntime($api,$clock);
+    $restarted=new TrustedBotRuntime($api,$clock,$approvedSources);
     $changedPolicy=new class implements ApprovedBotStrategy {
-        public function codeDigest(): string {return str_repeat('a',64);}
+        public function codeDigest(): string {return hash_file('sha256',__FILE__);}
         public function choose(array $overview,string $account,string $resource,int $logicalTick): ?BotPlan {
             throw new \LogicException('A committed tick must never recalculate its strategy');
         }

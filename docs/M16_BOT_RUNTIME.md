@@ -7,8 +7,13 @@ masquerade as human participants or bypass security/quotas.
 ## First increment: bounded authenticated economic actions
 
 - ApprovedBotStrategy is an operator-reviewed PHP strategy, not a name or
-  executable path parsed from a manifest. codeDigest() is a mandatory
-  lowercase SHA-256 identity for reviewed code.
+  executable path parsed from a manifest. The runtime requires an explicit
+  list of approved lowercase SHA-256 source-file digests, rejects empty
+  registries when enabled, and independently hashes the PHP strategy class
+  file at invocation. A strategy's own codeDigest() claim cannot grant access.
+  Operator approval must pin an audited release artifact, not a hash
+  computed blindly from user-provided content. Transitive dependencies and
+  configuration require independent release review.
 - BotPlan permits only economy.settle or economy.upgrade and exactly the
   bot's own account/resource in the payload. Combat, transfer, social
   interactions and premium endpoints are not eligible.
@@ -36,7 +41,8 @@ masquerade as human participants or bypass security/quotas.
 ## Acceptance and planned hardening
 
 Unit tests check strict action schema, malformed overviews, reviewed
-code digest, cost-aware upgrade selection and no privilege expansion.
+source digest, cost-aware upgrade selection and no privilege expansion.
+MariaDB tests also reject a missing operator allowlist and a spoofed digest.
 
 Real MariaDB tests create separately authenticated bot and human actors,
 prove paused-by-default has no mutations, permitted upgrade scheduling,

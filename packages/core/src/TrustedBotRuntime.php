@@ -12,7 +12,26 @@ final readonly class TrustedBotRuntime
 {
     public const TICK_SECONDS=60;
 
-    public function __construct(private EconomyHttpApi $api,private Clock $clock) {}
+    /** @var array<string,true> Reviewed SHA-256 digests accepted by the operator. */
+    private array $approvedSources;
+
+    /** @param list<string> $approvedSourceDigests */
+    public function __construct(
+        private EconomyHttpApi $api,private Clock $clock,array $approvedSourceDigests
+    ) {
+        if (!array_is_list($approvedSourceDigests) || count($approvedSourceDigests)>64) {
+            throw new \InvalidArgumentException('Invalid approved bot strategy registry');
+        }
+        $sources=[];
+        foreach ($approvedSourceDigests as $digest) {
+            if (!is_string($digest) || !preg_match('/^[a-f0-9]{64}$/D',$digest)
+                || isset($sources[$digest])) {
+                throw new \InvalidArgumentException('Invalid or duplicate approved strategy SHA-256');
+            }
+            $sources[$digest]=true;
+        }
+        $this->approvedSources=$sources;
+    }
 
     /**
      * @return array{status:string,code?:int,commandId?:string}
@@ -30,8 +49,18 @@ final readonly class TrustedBotRuntime
         if (!preg_match('/^Bearer [a-f0-9]{64}$/D',$bearer)) {
             throw new \DomainException('Missing bot actor session');
         }
-        if (!preg_match('/^[a-f0-9]{64}$/D',$strategy->codeDigest())) {
-            throw new \InvalidArgumentException('Unpinned bot strategy');
+        $digest=$strategy->codeDigest();
+        if (!preg_match('/^[a-f0-9]{64}$/D',$digest)
+            || !isset($this->approvedSources[$digest])) {
+            throw new \DomainException('Bot strategy source not approved by operator');
+        }
+        // A strategy cannot approve itself by merely claiming a trusted hash:
+        // independently hash the PHP class file actually loaded into this process.
+        $source=(new \ReflectionClass($strategy))->getFileName();
+        $actual=is_string($source) && is_file($source)
+            ? hash_file('sha256',$source) : false;
+        if (!is_string($actual) || !hash_equals($digest,$actual)) {
+            throw new \DomainException('Bot strategy source differs from reviewed digest');
         }
         $now=$this->clock->now();
         if ($now<0) throw new \DomainException('Invalid logical bot clock');
