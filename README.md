@@ -4,18 +4,18 @@ A modular engine for persistent multiplayer browser strategy games.
 
 By Sébastien TOUILLEUX · Source Available · ACCL-1.0
 
-## Status — M01 public onboarding in qualification (not released)
+## Status — M07 client web en qualification (V1.0 non publiée)
 
-The current `main` branch contains the historical prototype and the V1.0 macro roadmap. Public onboarding is under active development in [PR #41](https://github.com/Gladius33/Aeternum-Engine/pull/41); **the PR is not merged, M01 is not accepted, and V1.0 is not available**. See [the 13 macro-iterations](docs/MACRO_ROADMAP_V1.md) and the normative [G01–G09 acceptance criteria](ROADMAP.md). Do not assume that features described below exist on `main` until the PR is merged.
+Les macro-itérations **M01 à M06 sont intégrées** sur `main` : inscription et identité, SDK/registre de packs, économie persistante, monde stratégique, jeu médiéval et jeu industriel. **M07 reste en qualification dans la [PR #47](https://github.com/Gladius33/Aeternum-Engine/pull/47)** tant que les tests du SHA exact et les critères fonctionnels ne sont pas tous acceptés. La [feuille de route M01–M13](docs/MACRO_ROADMAP_V1.md) et les exigences normatives [G01–G09](ROADMAP.md) restent applicables ; **la V1.0 n'est pas publiée**.
 
-On the M01 development branch, the reference browser client supports signup, approved-world selection, login, production, reconnect, password rotation, one-use recovery and logout. Persistent MariaDB registration provisions the player and initial resources transactionally with idempotent recovery. Invitation and optional email-activation flows, hashed activation tokens, bounded admission and concurrency controls, and operator diagnostics are implemented. **Open HTTP registration without an invitation or verified mailbox is rejected**; test-only bypasses and the local mail sink must never be enabled on a host. No real email delivery or external deployment has been verified.
+Le client actuel donne accès aux comptes, mondes, stocks, production, transferts, marché, cartes, fondations, constructions et objectifs des jeux de référence. Le nouveau module Vue 3 / TypeScript fournit navigation, aide, feedback d'activité, indications de reprise et confirmations, avec une interface bilingue et responsive. Les commandes et l'authentification restent traitées par l'adaptateur navigateur existant et l'API PHP, jamais directement par des contrôles de confiance dans le frontend. Voir [le dossier de qualification M07](docs/M07_WEB_CLIENT.md).
 
-The branch's PHP 8.4/MariaDB tests include concurrent signup and a dump/restore into a separate schema; Chromium exercises real local browser flows, including loopback TLS. These prove laboratory behavior only. Real TLS/proxy ingress, mailbox delivery, host capacity, off-instance recovery and operator acceptance remain outstanding. The [M01 operator checklist](docs/M01_OPERATOR_ACCEPTANCE.md) is available on the development branch and is not deployment authorization. **Do not merge or deploy M01 solely because its CI is green.**
+Les vérifications GitHub Actions sur PHP 8.4, MariaDB et Chromium sont des **preuves de laboratoire**. Aucune publication externe, délivrance de vrais courriels ou recette O2Switch/VPS n'a été exécutée ni autorisée. L'inscription publique doit exiger une invitation ou la vérification d'une adresse : le contournement local de test ne doit jamais être utilisé sur un hébergement accessible.
 
 ## Vision
 Theme-agnostic persistent worlds, asynchronous actions, deterministic simulation, lazy resource production, transactional economy, composable entities, versioned game packs, multiplayer social features and scalable shared-hosting-compatible deployment.
 
-Planned stack: PHP 8.4, Laravel, Vue/TypeScript, MariaDB/InnoDB, REST and bounded CRON/CLI. The core does not depend on Laravel.
+Implemented laboratory stack: PHP 8.4, MariaDB/InnoDB, REST, bounded CRON/CLI and a progressively enhanced Vue 3/TypeScript browser client. Laravel remains a possible future adapter; the engine does not depend on it.
 
 ## Run the prototype tests
 
@@ -35,6 +35,6 @@ The binding French [LICENSE.md](LICENSE.md) prevails over this informational sum
 Copyright © 2026 Sébastien TOUILLEUX. All rights not expressly granted are reserved.
 
 
-## Packs et mondes configurables (M02 en développement)
+## Packs et mondes configurables (M02 intégrée)
 
 Le registre de mondes approuvés et le SDK déclaratif à schémas typés sont documentés dans [docs/M02_SDK_AND_REGISTRY.md](docs/M02_SDK_AND_REGISTRY.md). Les mondes historiques restent épinglés aux octets exacts de leurs règles ; aucune migration silencieuse n'est autorisée. La validation d'une PR ne vaut pas recette de production.
