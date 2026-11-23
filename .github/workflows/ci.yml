@@ -29,14 +29,10 @@ jobs:
           node-version: '22'
       - name: Type-check and bundle Vue/TypeScript client
         run: |
-          npm install --prefix client --no-audit --no-fund
+          npm ci --prefix client --no-audit --no-fund
           npm run build --prefix client
           test -s public/client-dist/aeternum-shell.js
-      - name: Emit temporary npm lockfile evidence for deterministic M07 packaging
-        run: |
-          echo AETERNUM_LOCK_BEGIN
-          cat client/package-lock.json
-          echo AETERNUM_LOCK_END
+
   mariadb:
     runs-on: ubuntu-24.04
     timeout-minutes: 18
