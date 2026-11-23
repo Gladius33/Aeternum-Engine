@@ -210,6 +210,7 @@ require __DIR__ . "/m09-moderator-pages.php";
 require __DIR__ . "/m09-governance.php";
 require __DIR__ . "/m09-volume.php";
 require __DIR__ . "/m10-admin-premium.php";
+require __DIR__ . "/m10-admin-cli.php";
 require __DIR__ . "/rate-cleanup.php";
 require __DIR__ . "/maintenance-cli.php";
 require __DIR__ . "/onboarding-status.php";
