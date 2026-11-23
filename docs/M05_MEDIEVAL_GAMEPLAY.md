@@ -54,6 +54,16 @@ keep level two and population six, including deficits, prerequisites,
 real worker completions, food-for-wood conversion, cooldown, idempotency,
 cross-actor authorization, reconnect, victory and full replay.
 
+## Browser tutorial
+
+A newly registered player in approved medieval version 0.3.0 sees a
+colony panel with a server-derived population counter and explicit
+victory milestones. The existing foundation screen offers settlement
+construction without any CLI. Player actions `settlement.feed` and
+`settlement.work` reuse the authenticated, idempotent command envelope.
+The displayed victory is the backend's decision, never a browser flag.
+Other games and legacy versions do not show this tutorial.
+
 ## Evidence and outstanding work
 
 `tests/m05-medieval-pack.php` exercises manifest loading, deterministic stage prerequisites, malformed-rule rejection and side-by-side version pinning. It runs in `tests/run.php` as part of PHP core CI. The strict JSON schema now documents the existing runtime building extension.

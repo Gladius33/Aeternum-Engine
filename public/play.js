@@ -218,6 +218,53 @@ document.querySelector('#building-start').addEventListener('click',()=>run(async
 
 
 document.querySelector('#map-links-load').addEventListener('click',()=>run(loadMapLinks));
+const medievalPanel=document.querySelector('#medieval-panel');
+const medievalDetails=document.querySelector('#medieval-details');
+const medievalGoals=document.querySelector('#medieval-goals');
+const medievalVictory=document.querySelector('#medieval-victory');
+function resetMedieval() {
+    medievalDetails.replaceChildren();medievalGoals.replaceChildren();
+    medievalVictory.textContent='';
+}
+async function reviewMedieval() {
+    const fields=locationFields();
+    if (!fields.world || !fields.account) throw new Error('Choose a world and account');
+    const root='/v1/worlds/'+encodeURIComponent(fields.world).replaceAll('%3A',':');
+    const data=await api(root+'/settlement/status/'+encodeURIComponent(fields.account));
+    if (JSON.stringify(fields)!==JSON.stringify(locationFields())) return;
+    resetMedieval();
+    const line=(name,value)=>{
+        const dt=document.createElement('dt'),dd=document.createElement('dd');
+        dt.textContent=name;dd.textContent=String(value);medievalDetails.append(dt,dd);
+    };
+    line('Residents',data.population+' / '+data.capacity);
+    line('Available workers',data.workers);
+    line('Grain per new resident',data.foodCost);
+    line('Grain per lumber shift',data.workFoodCost);
+    line('Wood per lumber shift',data.workYield);
+    if(data.nextWorkAt!==null)line('Next shift (UTC)',new Date(data.nextWorkAt*1000).toISOString());
+    for(const [type,levels] of Object.entries(data.victory.buildings)) {
+        const item=document.createElement('li');
+        item.textContent=type+': '+levels.current+' / '+levels.required;
+        medievalGoals.append(item);
+    }
+    const population=document.createElement('li');
+    population.textContent='Residents: '+data.population+' / '+data.victory.populationRequired;
+    medievalGoals.append(population);
+    medievalVictory.textContent=data.victory.achieved
+        ? 'VICTORY — Your medieval colony has fulfilled every objective!'
+        : 'Your colony is progressing. Complete all milestones to win.';
+}
+async function medievalAction(type) {
+    const fields=locationFields();
+    if (!fields.world || !fields.account) throw new Error('Choose a world and account');
+    await submitCommand(fields,type,{account:fields.account});
+    await reviewMedieval();
+    await refresh();
+}
+document.querySelector('#medieval-check').addEventListener('click',()=>run(reviewMedieval));
+document.querySelector('#medieval-feed').addEventListener('click',()=>run(()=>medievalAction('settlement.feed')));
+document.querySelector('#medieval-work').addEventListener('click',()=>run(()=>medievalAction('settlement.work')));
 function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);
     options(balance.elements.account,(w?.accounts??[]).map(a=>[a,a]));
@@ -226,6 +273,8 @@ function selectWorld() {
     clearRecipients();
     clearMarket();
     clearMap();
+    resetMedieval();
+    medievalPanel.hidden=w?.settlementEnabled!==true;
 }
 async function discover() {
     const data=await api('/v1/me/worlds');
@@ -234,7 +283,7 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
-for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;});
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account')resetMedieval();});
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
