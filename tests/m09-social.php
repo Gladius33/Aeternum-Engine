@@ -121,6 +121,12 @@ $owners=array_values(array_filter($detail[1]['data']['members'],
 check($detail[0]===200 && count($owners)===1 && $owners[0]['actor']===$sf,
     'M09 single owner retained after handover and member departure');
 $ma->revoke($sf);
+$ranking=$sget($so,$swA,'leaderboard');
+$rankedCrew=array_values(array_filter($ranking[1]['data']['alliances'],
+    static fn(array $entry):bool=>$entry['id']==='crew'));
+check($ranking[0]===200 && count($rankedCrew)===1
+    && $rankedCrew[0]['activeMembers']===1,
+    'M09 leaderboard excludes revoked world members from reported active count');
 check($sget($sf,$swA,'alliances/crew')[0]===404
     && $spost($sf,$swA,'alliances/crew/invite',['actor'=>$so])[0]===409,
     'M09 revoked world membership disables old bearer social privileges');
