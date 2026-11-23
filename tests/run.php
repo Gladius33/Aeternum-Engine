@@ -55,4 +55,5 @@ require __DIR__ . "/m05-medieval-pack.php";
 require __DIR__ . "/m06-industrial-pack.php";
 require __DIR__ . "/m03-typed-market.php";
 require __DIR__ . "/market-projection.php";
+require __DIR__ . "/m11-alerts.php";
 echo "All regression checks passed.\n";

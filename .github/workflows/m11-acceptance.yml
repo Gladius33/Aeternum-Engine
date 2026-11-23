@@ -1,0 +1,201 @@
+name: M11 isolated operations acceptance
+on:
+  pull_request:
+    paths:
+      - 'packages/core/src/Operations*.php'
+      - 'bin/ops-*.php'
+      - 'tools/m11-*.sh'
+      - 'tests/m11-*'
+      - 'tests/integration.php'
+      - 'docs/M11_OPERATIONS.md'
+      - '.github/workflows/m11-acceptance.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  m11-lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-only
+          MARIADB_DATABASE: aeternum_m11
+          MARIADB_USER: aeternum
+          MARIADB_PASSWORD: test-db-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      AETERNUM_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_m11;charset=utf8mb4
+      AETERNUM_DB_USER: aeternum
+      AETERNUM_DB_PASSWORD: test-db-only
+      AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_m11;charset=utf8mb4
+      AETERNUM_TEST_USER: aeternum
+      AETERNUM_TEST_PASSWORD: test-db-only
+      AETERNUM_RESTORE_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_restore;charset=utf8mb4
+      AETERNUM_MEDIEVAL_WORLD: m11-lab-world
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build PHP autoloader and client for offline package
+        run: |
+          composer dump-autoload --no-interaction
+          npm ci --prefix client --no-audit --no-fund
+          npm run build --prefix client
+          bash tests/m11-package.sh
+      - name: Install MariaDB client for least-privilege and restore drills
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y mariadb-client
+      - name: Fresh empty schema then real nonempty pre-031 upgrade
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/m11-old-migrations"
+          for f in database/migrations/*.sql; do
+            [[ "$(basename "$f")" == 031_* ]] && continue
+            cp "$f" "$RUNNER_TEMP/m11-old-migrations/"
+          done
+          php -r '
+            require "vendor/autoload.php";
+            $pdo=new PDO(getenv("AETERNUM_DSN"),getenv("AETERNUM_DB_USER"),getenv("AETERNUM_DB_PASSWORD"),[
+              PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false
+            ]);
+            $result=(new Aeternum\Core\MigrationRunner($pdo))->run($argv[1]);
+            if(count($result)!==30)exit(1);
+          ' "$RUNNER_TEMP/m11-old-migrations"
+          printf '%s\n' 'm11-lab-isolated-password' |
+            php bin/provision.php reference-medieval m11-lab-world m11-lab-player > "$RUNNER_TEMP/m11-provision.json"
+          if php bin/ops-status.php > "$RUNNER_TEMP/m11-pre-upgrade.json"; then
+            echo 'Pre-upgrade status unexpectedly healthy with migration 031 missing' >&2
+            exit 1
+          fi
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if($r["healthy"] || $r["migrations"]["verified"])exit(1);
+          ' "$RUNNER_TEMP/m11-pre-upgrade.json"
+          php bin/migrate.php > "$RUNNER_TEMP/m11-upgrade.json"
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if($r["applied"]!==["031_admin_test_entitlements.sql"])exit(1);
+          ' "$RUNNER_TEMP/m11-upgrade.json"
+          php bin/migrate.php > "$RUNNER_TEMP/m11-idempotent.json"
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if($r["applied"]!==[])exit(1);
+          ' "$RUNNER_TEMP/m11-idempotent.json"
+          php bin/ops-status.php > "$RUNNER_TEMP/m11-status.json"
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if(!$r["healthy"] || !$r["worlds"][0]["initialized"])exit(1);
+          ' "$RUNNER_TEMP/m11-status.json"
+          php bin/ops-alerts.php > "$RUNNER_TEMP/m11-alerts.json"
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if($r["requiresAttention"] || $r["alerts"]!==[])exit(1);
+          ' "$RUNNER_TEMP/m11-alerts.json"
+          # Real least-privilege runtime: read/write rows but never DDL.
+          MYSQL_PWD=test-root-only mariadb --host=127.0.0.1 --user=root \
+            -e "CREATE USER IF NOT EXISTS 'aeternum_m11_app'@'%' IDENTIFIED BY 'ci-m11-app-only';
+                GRANT SELECT, INSERT, UPDATE, DELETE ON aeternum_m11.* TO 'aeternum_m11_app'@'%';
+                FLUSH PRIVILEGES;"
+          AETERNUM_DB_USER=aeternum_m11_app AETERNUM_DB_PASSWORD=ci-m11-app-only \
+            php bin/ops-status.php > "$RUNNER_TEMP/m11-least-privilege-status.json"
+          AETERNUM_DB_USER=aeternum_m11_app AETERNUM_DB_PASSWORD=ci-m11-app-only \
+            php -r '
+              $db=new PDO(getenv("AETERNUM_DSN"),getenv("AETERNUM_DB_USER"),getenv("AETERNUM_DB_PASSWORD"),[
+                PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false
+              ]);
+              try { $db->exec("CREATE TABLE m11_forbidden_ddl (id INT)"); exit(1); }
+              catch (PDOException $e) { if($e->getCode()!=="42000")exit(1); }
+            '
+          AETERNUM_DB_USER=aeternum_m11_app AETERNUM_DB_PASSWORD=ci-m11-app-only \
+            php bin/ops-cron.php > "$RUNNER_TEMP/m11-least-privilege-cron.json"
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if($r["skipped"]!==null || !is_array($r["cleanup"]))exit(1);
+          ' "$RUNNER_TEMP/m11-least-privilege-cron.json"
+          php bin/ops-cron.php > "$RUNNER_TEMP/m11-cron.json"
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if($r["skipped"]!==null || $r["worlds"][0]["processed"]!==0 || !is_array($r["cleanup"]))exit(1);
+          ' "$RUNNER_TEMP/m11-cron.json"
+      - name: Real off-webroot backup and empty separate database restore
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cat > "$RUNNER_TEMP/m11-client.cnf" <<'OPT'
+          [client]
+          host=127.0.0.1
+          port=3306
+          user=aeternum
+          password=test-db-only
+          OPT
+          chmod 600 "$RUNNER_TEMP/m11-client.cnf"
+          export M11_CREDENTIALS_FILE="$RUNNER_TEMP/m11-client.cnf"
+          export M11_SOURCE_DATABASE=aeternum_m11
+          export M11_BACKUP_APPROVED=YES
+          mkdir -p "$RUNNER_TEMP/m11-private-backups"
+          bash tools/m11-backup.sh "$RUNNER_TEMP/m11-private-backups" > "$RUNNER_TEMP/m11-backup-summary.json"
+          archive="$(find "$RUNNER_TEMP/m11-private-backups" -maxdepth 1 -name '*.sql.gz' -type f -print -quit)"
+          test -s "$archive"
+          MYSQL_PWD=test-root-only mariadb --host=127.0.0.1 --user=root \
+            -e "CREATE DATABASE aeternum_restore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+                GRANT ALL PRIVILEGES ON aeternum_restore.* TO 'aeternum'@'%'; FLUSH PRIVILEGES;"
+          export M11_RESTORE_DISPOSABLE=YES
+          export M11_RESTORE_DATABASE=aeternum_restore
+          # A checksum sidecar referring to a different legitimate archive
+          # must NOT authorize restoration of the requested archive.
+          cp "$archive.sha256" "$RUNNER_TEMP/m11-original-checksum"
+          sed 's/  aeternum-/  other-aeternum-/' "$RUNNER_TEMP/m11-original-checksum" > "$archive.sha256"
+          if bash tools/m11-restore-lab.sh "$archive" >/dev/null 2>&1; then
+            echo 'Mismatched checksum archive name unexpectedly accepted' >&2
+            exit 1
+          fi
+          cp "$RUNNER_TEMP/m11-original-checksum" "$archive.sha256"
+          bash tools/m11-restore-lab.sh "$archive" > "$RUNNER_TEMP/m11-restore-summary.json"
+          php tests/m11-lab-verify.php verified > "$RUNNER_TEMP/m11-proof.json"
+          # Second restore must be refused: never modify a populated target.
+          if bash tools/m11-restore-lab.sh "$archive" >/dev/null 2>&1; then
+            echo 'Restoration into nonempty database unexpectedly permitted' >&2
+            exit 1
+          fi
+          # Bad backup data must never pass the checksum gate.
+          echo 'tampered' >> "$archive"
+          if bash tools/m11-restore-lab.sh "$archive" >/dev/null 2>&1; then
+            echo 'Tampered backup unexpectedly accepted' >&2
+            exit 1
+          fi
+          php -r '
+            $r=json_decode(file_get_contents($argv[1]),true,8,JSON_THROW_ON_ERROR);
+            if(!$r["verified"] || $r["tables"]<30 || !$r["restoredOpsStatus"])exit(1);
+          ' "$RUNNER_TEMP/m11-proof.json"
+          mkdir -p m11-evidence
+          cp "$RUNNER_TEMP/m11-proof.json" m11-evidence/restore.json
+          cp "$RUNNER_TEMP/m11-status.json" m11-evidence/status.json
+          cp "$RUNNER_TEMP/m11-cron.json" m11-evidence/cron.json
+          cat "$RUNNER_TEMP/m11-proof.json"
+      - name: Store sanitized M11 acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m11-lab-evidence
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            m11-evidence/*.json
