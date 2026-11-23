@@ -876,6 +876,39 @@ final class PdoScheduler
         });
     }
 
+
+    /**
+     * Own-account, read-only progression projection, calculated from the
+     * world-locked canonical state. No score value is accepted from clients.
+     * The same due-event barrier used by other authoritative projections
+     * prevents reading a state whose due events must first be processed.
+     *
+     * @return array{development:int,military:int,global:int}
+     */
+    public function scoreForActor(string $actor,string $account,ScoreRules $policy): array
+    {
+        PdoMemberships::validateId($actor);
+        PdoMemberships::validateId($account);
+        if ($this->rules===null) throw new \DomainException('Progression requires pinned world rules');
+        if ($this->processing) throw new \LogicException('Reentrant progression read denied');
+        return $this->transaction(function () use($actor,$account,$policy): array {
+            $world=$this->lockedWorld();
+            $this->assertActiveActor($actor);
+            $this->assertAccountOwner($account,$actor);
+            $now=$this->clock->now();
+            if ($now<0 || $now<(int)$world['watermark']) {
+                throw new \DomainException('Progression clock behind world history');
+            }
+            if ($this->query('SELECT event_id FROM engine_events
+                    WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1 FOR UPDATE',
+                    [$this->worldId,$now])->fetchColumn()!==false) {
+                throw new \DomainException('Progression requires processing due events');
+            }
+            return (new ScoreProjector($policy))->forAccount(
+                ScalarMap::decode($world['state_json']),$account);
+        });
+    }
+
     public function state(): array
     {
         $json = $this->query('SELECT state_json FROM engine_worlds WHERE world_id = ? AND rules_key = ?', [$this->worldId,$this->rulesKey()])->fetchColumn();

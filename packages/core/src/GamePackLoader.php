@@ -53,7 +53,7 @@ final class GamePackLoader
         if (!$decoded instanceof \stdClass) throw new \InvalidArgumentException('Expected JSON object');
         $fields=get_object_vars($decoded);
         $required=['engine_api','id','version','name','resources','upgrades'];
-        $optional=['components','actions','event_hooks','buildings','settlement','industry','player_homestead'];
+        $optional=['components','actions','event_hooks','buildings','settlement','industry','player_homestead','progression'];
         foreach ($required as $key) if (!array_key_exists($key,$fields)) throw new \InvalidArgumentException('Missing manifest field');
         foreach (array_keys($fields) as $key) if (!in_array($key,$required,true) && !in_array($key,$optional,true)) throw new \InvalidArgumentException('Unexpected manifest field');
         $id=self::string($fields['id'],128);
@@ -128,8 +128,15 @@ final class GamePackLoader
         if (!is_bool($playerHomestead) || ($playerHomestead && $buildings===[])) {
             throw new \InvalidArgumentException('Invalid player homestead policy');
         }
+        $progression=null;
+        if (array_key_exists('progression',$fields)) {
+            if (!$fields['progression'] instanceof \stdClass) {
+                throw new \InvalidArgumentException('Invalid progression rules');
+            }
+            $progression=ScoreRules::load($fields['progression'],$resources,$buildings);
+        }
         // Check cross-references against the exact pack resource definitions.
         new EconomyCommandHandler($resources,$upgrades,$buildings,$settlement,$industry);
-        return new GamePack($id,$version,$name,hash('sha256',$json),$resources,$upgrades,$components,$actions,$hooks,$buildings,$settlement,$industry,$playerHomestead);
+        return new GamePack($id,$version,$name,hash('sha256',$json),$resources,$upgrades,$components,$actions,$hooks,$buildings,$settlement,$industry,$playerHomestead,$progression);
     }
 }
