@@ -266,4 +266,35 @@ final class PdoAlliances
         });
     }
 
+    /**
+     * Deterministic active-member rankings, independent of the economy journal.
+     * Each request observes one transactional snapshot. The world boundary and
+     * active requester admission are always rechecked.
+     */
+    public function leaderboardFor(string $actor): array
+    {
+        $this->id($actor);
+        return $this->transaction(function() use($actor):array {
+            if (!$this->active($actor)) throw new \DomainException('Membership required');
+            $rows=$this->query('SELECT a.alliance_id,a.name,COUNT(m.actor_id) AS active_members
+                FROM engine_alliances a
+                LEFT JOIN engine_alliance_members m ON m.world_id=a.world_id
+                    AND m.alliance_id=a.alliance_id
+                LEFT JOIN engine_memberships wm ON wm.world_id=m.world_id
+                    AND wm.actor_id=m.actor_id AND wm.active=1
+                WHERE a.world_id=?
+                GROUP BY a.world_id,a.alliance_id,a.name
+                ORDER BY COUNT(wm.actor_id) DESC,a.alliance_id ASC LIMIT 51',
+                [$this->world])->fetchAll(PDO::FETCH_ASSOC);
+            $more=count($rows)>50;
+            if ($more) array_pop($rows);
+            $ranks=[];
+            foreach ($rows as $index=>$row) {
+                $ranks[]=['rank'=>$index+1,'id'=>$row['alliance_id'],
+                    'name'=>$row['name'],'activeMembers'=>(int)$row['active_members']];
+            }
+            return ['alliances'=>$ranks,'truncated'=>$more];
+        });
+    }
+
 }
