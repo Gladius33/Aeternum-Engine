@@ -49,7 +49,7 @@ final class GamePackLoader
     public static function load(string $json): GamePack
     {
         if ($json==='' || strlen($json)>self::MAX_BYTES) throw new \InvalidArgumentException('Manifest size out of bounds');
-        $decoded=json_decode($json,false,32,JSON_THROW_ON_ERROR);
+        $decoded=StrictJson::decode($json,false,32);
         if (!$decoded instanceof \stdClass) throw new \InvalidArgumentException('Expected JSON object');
         $fields=get_object_vars($decoded);
         $required=['engine_api','id','version','name','resources','upgrades'];

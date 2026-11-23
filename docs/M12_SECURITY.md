@@ -8,6 +8,15 @@
 - Unit regression covers safe header names/values and TLS policy.
 - Separate CI checks pinned npm dependencies including development toolchain.
 
+## Second security hardening increment
+- StrictJson validates UTF-8, JSON syntax and depth using the native PHP parser,
+  then performs a bounded second lexical pass rejecting duplicate keys even when
+  the duplicate has a different Unicode escape spelling.
+- Public auth, social, economy payloads and trusted pack/world manifests share
+  the same fail-closed parser. Existing API error responses remain 400 invalid_json.
+- Regression covers nested objects, escaped braces, generated duplicate corpus,
+  rejected ambiguous pack identity and a real MariaDB-auth HTTP negative case.
+
 ## Not yet passed
 - Complete authorization/authentication/CSRF/CSP/chat/market security audit.
 - Reproducible fuzzing, concurrent races, replay and crash-recovery validation.
