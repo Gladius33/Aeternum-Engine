@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,ConfiguredWorlds,SystemClock,PeerAddressResolver};
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -71,6 +71,10 @@ try {
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$resolvedPeer ?? ''
             );
+        } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/social/')) {
+            [$status,$body]=(new SocialHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
+                ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
+                    file_get_contents('php://input',false,null,0,4097) ?: '');
         } elseif (str_starts_with($path,'/v1/worlds/') && (str_contains($path,'/buildings/') || str_contains($path,'/construction/') || str_contains($path,'/settlement/') || str_contains($path,'/industrial/'))) {
             [$status,$body]=(new WorldBuildingHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? ''
@@ -100,7 +104,7 @@ try {
         }
     }
     if ($status===401) header('WWW-Authenticate: Bearer');
-    if ($status===405) header('Allow: '.((str_starts_with($path ?? '','/v1/auth/') || str_ends_with($path ?? '','/economy/commands')) ? 'POST' : 'GET'));
+    if ($status===405) header('Allow: '.(str_contains($path ?? '','/social/') ? 'GET, POST' : ((str_starts_with($path ?? '','/v1/auth/') || str_ends_with($path ?? '','/economy/commands')) ? 'POST' : 'GET')));
     http_response_code($status);
     echo json_encode($body,JSON_THROW_ON_ERROR);
 } catch (Throwable) {
