@@ -1,0 +1,93 @@
+name: M15 progression browser acceptance
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  guild:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: m15-test-root
+          MARIADB_DATABASE: aeternum_e2e
+          MARIADB_USER: aeternum
+          MARIADB_PASSWORD: test-db-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      AETERNUM_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_e2e;charset=utf8mb4
+      AETERNUM_DB_USER: aeternum
+      AETERNUM_DB_PASSWORD: test-db-only
+      AETERNUM_BROWSER_TEST: '1'
+      AETERNUM_PUBLIC_REGISTRATION: '1'
+      AETERNUM_LAB_ALLOW_UNVERIFIED_SIGNUP: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install laboratory dependencies
+        run: |
+          set -Eeuo pipefail
+          composer dump-autoload --no-interaction
+          npm install --no-save --package-lock=false @playwright/test@1.56.1
+          npm ci --prefix client --no-audit --no-fund
+          npm run build --prefix client
+          npx playwright install --with-deps chromium
+      - name: Run third-pack gameplay and privacy checks
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          php bin/migrate.php
+          registry_dir="$(mktemp -d)"
+          server=''
+          trap 'if [[ -n "$server" ]]; then kill "$server" 2>/dev/null || true; fi; rm -rf "$registry_dir"' EXIT
+          php -r '
+            $path="games/reference-guild/versions/0.2.0/manifest.json";
+            $m=json_decode(file_get_contents($path),true,32,JSON_THROW_ON_ERROR);
+            $registry=["registry_api"=>"1","worlds"=>[["world"=>"e2e-guild-scored",
+              "pack"=>$m["id"],"version"=>$m["version"],"sha256"=>hash_file("sha256",$path)]]];
+            file_put_contents($argv[1],json_encode($registry,JSON_THROW_ON_ERROR));
+          ' "$registry_dir/worlds.json"
+          export AETERNUM_WORLD_REGISTRY="$registry_dir/worlds.json"
+          export AETERNUM_E2E_REGISTRY="$registry_dir/worlds.json"
+          php bin/registry-status.php "$registry_dir/worlds.json" > "$registry_dir/validation.json"
+          for login in m15-score-alice m15-score-bob; do
+            printf '%s\n' 'browser-only test password' | php bin/provision.php reference-guild e2e-guild-scored "$login"
+          done
+          php -S 127.0.0.1:8765 -t public tests/browser/router.php > m15-progression-server.log 2>&1 &
+          server=$!
+          for n in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8765/play.html >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail http://127.0.0.1:8765/play.html >/dev/null
+          npx playwright test tests/browser/m15-progression.spec.cjs --workers=1 --reporter=github,line
+      - name: Preserve failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m15-progression-failure
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            m15-progression-server.log
+            test-results/

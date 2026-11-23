@@ -5,7 +5,11 @@
   const entries = [
     ['Language','Langue'], ['Sign in','Connexion'], ['Sign out','Déconnexion'],
     ['Create a player','Créer un joueur'], ['Recover an account','Récupérer un compte'],
-    ['Settlement','Colonie'], ['World map','Carte du monde'], ['Market','Marché'],
+    ['Settlement','Colonie'], ['World map','Carte du monde'],
+    ['Player progression','Progression du joueur'],
+    ['Scores are verified against the server\'s committed world state, not the browser.','Les scores proviennent de l’état du monde validé par le serveur, et non du navigateur.'],
+    ['Review my score','Consulter mon score'],
+    ['Development score','Score de développement'], ['Military score','Score militaire'], ['Global score','Score global'], ['Market','Marché'],
     ['Industrial network — tutorial and victory goal','Réseau industriel — tutoriel et objectif'],
     ['Medieval colony — tutorial and goal','Colonie médiévale — tutoriel et objectif'],
     ['Reference economy client · create a player or sign in','Client de jeu · créez un joueur ou connectez-vous'],
