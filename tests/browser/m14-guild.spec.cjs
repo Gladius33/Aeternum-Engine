@@ -31,7 +31,7 @@ async function signIn(page,login){
     await expect(page.locator('#balance select[name=world]')).toHaveValue(world);
     const account=await page.locator('#balance select[name=account]').inputValue();
     expect(account).toMatch(/^[a-z0-9_-]{1,64}$/);
-    await page.getByLabel('Resource',{exact:true}).selectOption('spice');
+    await page.locator('#balance select[name=resource]').selectOption('spice');
     const req=page.waitForRequest(r=>r.url().includes('/economy/overview/'));
     await page.getByRole('button',{name:'Refresh stock'}).click();
     const token=(await (await req).allHeaders()).authorization;
