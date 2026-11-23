@@ -73,7 +73,7 @@ check($m14Ok===200 && ($m14Scheduler->state()['pack:guild:'.$m14A]??null)===3,
     'M14 authorized actor commits third-pack command under world lock');
 [$m14Again,$m14Duplicate]=$m14Api->handle('POST',$m14Path,$m14BearerA,
     $m14Body('m14-research-1',$m14A,3));
-check($m14Again===200 && $m14Receipt===$m14Duplicate
+check($m14Again===200 && json_encode($m14Receipt,JSON_THROW_ON_ERROR)===json_encode($m14Duplicate,JSON_THROW_ON_ERROR)
     && $m14Scheduler->state()['pack:guild:'.$m14A]===3,
     'M14 same actor request id is replayed without duplicate mutation');
 check($m14Api->handle('POST',$m14Path,$m14BearerA,
