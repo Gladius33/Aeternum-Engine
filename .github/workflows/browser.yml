@@ -251,6 +251,11 @@ jobs:
           npx playwright test tests/browser/medieval.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/industrial.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/locale.spec.cjs --workers=1 --reporter=github,line
+          # Dedicated M09 identities are provisioned only after the earlier
+          # browser scenarios, so their multiplayer fixture counts stay stable.
+          printf '%s\\n' 'browser-only test password' | php bin/provision.php reference-medieval e2e-medieval browser-social-owner
+          printf '%s\\n' 'browser-only test password' | php bin/provision.php reference-medieval e2e-medieval browser-social-member
+          npx playwright test tests/browser/social.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
         if: failure()
         run: |
