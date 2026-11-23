@@ -202,6 +202,7 @@ require __DIR__ . "/invite-cli.php";
 require __DIR__ . "/world-worker.php";
 require __DIR__.'/player-discovery.php';
 require __DIR__ . "/market-http.php";
+require __DIR__ . "/m09-social.php";
 require __DIR__ . "/rate-cleanup.php";
 require __DIR__ . "/maintenance-cli.php";
 require __DIR__ . "/onboarding-status.php";
