@@ -47,6 +47,12 @@ check($sapi->handle('POST',$surl($swA,'alliances'),$auth[$so],'[]')[0]===400,
 check($sapi->handle('POST',$surl($swA,'alliances'),$auth[$so],
     '{"id":"crew","name":"Crew","actor":"spoof"}')[0]===400,
     'M09 caller actor spoofing payload cannot pass strict schema');
+check($spost($so,$swA,'alliances',['id'=>'control-name','name'=>"Crew\nOverride"])[0]===400,
+    'M12 alliance names reject embedded control characters before persistence');
+check($spost($so,$swA,'alliances',['id'=>'bidi-name','name'=>"Crew\u{202E}"])[0]===400,
+    'M12 alliance names reject Unicode bidi-override spoofing');
+rejects(fn()=> (new PdoAlliances(db(),$swA,$sc))->create($so,'invalid-utf8',"\xC3\x28"),
+    InvalidArgumentException::class,'M12 alliance model rejects malformed UTF-8 outside HTTP');
 check($spost($so,$swA,'alliances',['id'=>'crew','name'=>'Crew'])[0]===200,
     'M09 authenticated alliance creation');
 check($spost($so,$swA,'alliances',['id'=>'crew','name'=>'Crew'])[0]===200,
