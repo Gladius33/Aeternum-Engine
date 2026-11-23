@@ -4,7 +4,7 @@ const origin='http://127.0.0.1:8769';
 const world='e2e-medieval-v3';
 const password='browser-only test password';
 const commandUrl=origin+'/v1/worlds/'+world+'/economy/commands';
-function executeWorker() {
+function executeWorker(minimumProcessed=1) {
     expect(process.env.AETERNUM_E2E_REGISTRY).toBeTruthy();
     const output=execFileSync('php',['bin/worker.php','reference-medieval',world],{
         encoding:'utf8',
@@ -14,7 +14,7 @@ function executeWorker() {
             AETERNUM_WORLD_REGISTRY:process.env.AETERNUM_E2E_REGISTRY},
         timeout:30000
     });
-    expect(JSON.parse(output).processed).toBeGreaterThanOrEqual(1);
+    expect(JSON.parse(output).processed).toBeGreaterThanOrEqual(minimumProcessed);
 }
 async function register(page,login) {
     await page.goto(origin+'/play.html');
@@ -119,7 +119,9 @@ test('M05 two newly registered players complete an isolated browser colony campa
     // process it with the production worker before funding the final keep.
     // This is part of the economic campaign, not a test-only stock injection.
     await a.waitForTimeout(22000);
-    executeWorker();
+    // Lazy resource accrual needs elapsed time, not a scheduled event.
+    // A worker with zero due events is a valid no-op at this point.
+    executeWorker(0);
     await advanceBuilding(a,'m05-keep',2,20);
     await a.getByRole('button',{name:'Review your colony'}).click();
     await expect(a.locator('#medieval-victory')).not.toContainText('VICTORY');
