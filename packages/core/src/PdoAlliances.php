@@ -84,6 +84,12 @@ final class PdoAlliances
         $this->id($actor); $this->id($alliance);
         if (trim($name)==='' || strlen($name)>100) throw new \InvalidArgumentException('Invalid alliance name');
         $this->transaction(function() use ($actor,$alliance,$name): void {
+            // No alliance row exists yet. Serialize creation on the established
+            // world row, using the same world-before-membership lock order as
+            // administrative grant/revoke and player provisioning.
+            if ($this->query('SELECT world_id FROM engine_worlds WHERE world_id=? FOR UPDATE',
+                [$this->world])->fetchColumn()===false)
+                throw new \DomainException('World unavailable');
             if (!$this->active($actor)) throw new \DomainException('Membership required');
             $old=$this->query('SELECT name,created_by FROM engine_alliances WHERE world_id=? AND alliance_id=? FOR UPDATE',
                 [$this->world,$alliance])->fetch(PDO::FETCH_ASSOC);
