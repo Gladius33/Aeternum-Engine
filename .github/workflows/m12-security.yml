@@ -38,12 +38,10 @@ jobs:
       - name: Propose Vue security lockfile remediation in diagnostic logs
         if: failure()
         run: |
-          npm install --prefix client --package-lock-only --ignore-scripts --no-audit --no-fund vue@3.5.46
+          npm install --prefix client --save-exact --package-lock-only --ignore-scripts --no-audit --no-fund vue@3.5.46
           node <<'NODE'
           const lock=require('./client/package-lock.json');
-          const keep=Object.fromEntries(Object.entries(lock.packages).filter(([k]) =>
-            k==='' || k==='node_modules/vue' || k.startsWith('node_modules/@vue/')));
-          console.log('M12_RESOLVED_LOCK_CANDIDATE_START');
-          console.log(JSON.stringify(keep,null,2));
-          console.log('M12_RESOLVED_LOCK_CANDIDATE_END');
+          console.log('M12_FULL_LOCK_START');
+          console.log(JSON.stringify(lock));
+          console.log('M12_FULL_LOCK_END');
           NODE

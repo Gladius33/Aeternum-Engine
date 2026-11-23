@@ -6,11 +6,12 @@ use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMa
 require_once __DIR__.'/../packages/core/src/ApiResponseSecurity.php';
 \Aeternum\Core\ApiResponseSecurity::emit(in_array($_SERVER['HTTPS'] ?? '', ['on','1'], true));
 try {
-    require __DIR__.'/../vendor/autoload.php';
-    // Behind a trusted reverse proxy, configure HTTPS at the web server.
+    // Deny plaintext before loading Composer or connecting to a database.
+    // HTTPS comes only from the trusted web server, never X-Forwarded-Proto.
     if (!in_array($_SERVER['HTTPS'] ?? '',['on','1'],true)) {
         $status=403; $body=['error'=>'https_required'];
     } else {
+        require __DIR__.'/../vendor/autoload.php';
         $dsn=getenv('AETERNUM_DSN');
         if (!$dsn) throw new RuntimeException('Missing database configuration');
         $pdo=new PDO($dsn,getenv('AETERNUM_DB_USER') ?: '',getenv('AETERNUM_DB_PASSWORD') ?: '',[
