@@ -16,7 +16,7 @@ final class WorldBuildingHttpApi
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/settlement/status/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
             $path,$match
         )===1;
-        $isIndustry=preg_match(
+        $isIndustry=!$isStatus && preg_match(
             '~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/industrial/status/([A-Za-z0-9][A-Za-z0-9_-]{0,63})$~D',
             $path,$match
         )===1;
