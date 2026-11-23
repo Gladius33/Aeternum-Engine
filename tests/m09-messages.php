@@ -107,6 +107,68 @@ use Aeternum\Core\{PdoIdentity,PdoSessions,PdoSocialMessages,SocialHttpApi,Froze
     $rankingRepeat=$http->handle('GET',$prefix.'leaderboard',$ownerBearer);
     check($ranking[1]['data']===$rankingRepeat[1]['data'],
         'M09 leaderboard has deterministic ordering on unchanged persistent data');
+    $moderator=new \Aeternum\Core\PdoSocialModerator($pdo,$world,$clock);
+    $queue=$moderator->openReports();
+    check(count($queue['reports'])===1 && $queue['reports'][0]['report_id']==='m09-report',
+        'M09 operator-only report queue is durable and bounded');
+    check($http->handle('GET',$prefix.'operator/reports',$ownerBearer)[0]===404,
+        'M09 moderation queue has no public player HTTP endpoint');
+    rejects(fn()=> $moderator->review('ci-operator','m09-report','delete','Invalid action'),
+        InvalidArgumentException::class,'M09 invalid operator action rejected');
+    rejects(fn()=> $moderator->review('ci-operator','missing-report','hide','No report'),
+        DomainException::class,'M09 operator cannot fabricate a report');
+    $moderator->review('ci-operator','m09-report','hide','Verified abusive mail');
+    $moderator->review('ci-operator','m09-report','hide','Verified abusive mail');
+    rejects(fn()=> $moderator->review('ci-operator','m09-report','dismiss','Conflicting action'),
+        DomainException::class,'M09 immutable moderation decision cannot be reversed silently');
+    rejects(fn()=> $moderator->review('other-operator','m09-report','hide','Verified abusive mail'),
+        DomainException::class,'M09 moderation replay cannot change operator identity');
+    check($model->inbox($recipient)['messages']===[],
+        'M09 approved concealment hides reported message from recipient inbox');
+    $audit=$pdo->prepare('SELECT operator_id,action,reason FROM engine_social_moderation_audit
+        WHERE world_id=? AND report_id=?');
+    $audit->execute([$world,'m09-report']);
+    check($audit->fetchAll(PDO::FETCH_ASSOC)===[[
+        'operator_id'=>'ci-operator','action'=>'hide','reason'=>'Verified abusive mail'
+    ]],'M09 moderation records one immutable attribution and justification');
+    check($moderator->openReports()['reports']===[],
+        'M09 resolved report disappears from operator queue');
+    $model->send($owner,$recipient,'m09-safe-mail','Legitimate informational message');
+    $model->report($recipient,'m09-dismiss-report','m09-safe-mail','Review needed');
+    // Test the separately permissioned CLI against the real disposable DB.
+    $cliEnv=getenv();
+    $cliEnv['AETERNUM_DSN']=getenv('AETERNUM_TEST_DSN');
+    $cliEnv['AETERNUM_DB_USER']=getenv('AETERNUM_TEST_USER') ?: '';
+    $cliEnv['AETERNUM_DB_PASSWORD']=getenv('AETERNUM_TEST_PASSWORD') ?: '';
+    $cliEnv['AETERNUM_SOCIAL_MODERATOR']='';
+    $cli=(static function(array $args,array $env,?string $input=null):array {
+        $proc=proc_open(array_merge([PHP_BINARY,__DIR__.'/../bin/social-moderate.php'],$args),
+            [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,null,$env);
+        if(!is_resource($proc)) throw new RuntimeException('M09 operator CLI unavailable');
+        if($input!==null) fwrite($pipes[0],$input);
+        fclose($pipes[0]);
+        $stdout=stream_get_contents($pipes[1]);$stderr=stream_get_contents($pipes[2]);
+        fclose($pipes[1]);fclose($pipes[2]);
+        return [proc_close($proc),$stdout,$stderr];
+    });
+    [$exit]=$cli([$world,'queue'],$cliEnv);
+    check($exit===1,'M09 CLI refuses operator identity missing in configuration');
+    $cliEnv['AETERNUM_SOCIAL_MODERATOR']='ci-console-operator';
+    [$exit,$stdout,$stderr]=$cli([$world,'queue'],$cliEnv);
+    $listed=json_decode($stdout,true,8,JSON_THROW_ON_ERROR);
+    check($exit===0 && $stderr==='' && count($listed['reports'])===1 &&
+        $listed['reports'][0]['report_id']==='m09-dismiss-report',
+        'M09 trusted operator CLI lists pending abusive-content reports');
+    [$exit,$stdout,$stderr]=$cli([$world,'m09-dismiss-report','dismiss'],$cliEnv,"Content is permitted\n");
+    check($exit===0 && $stderr==='' &&
+        json_decode($stdout,true,8,JSON_THROW_ON_ERROR)['reviewed']===true,
+        'M09 restricted CLI can dismiss a report with durable audit');
+    check(count($model->inbox($recipient)['messages'])===1,
+        'M09 dismissed report preserves allowed private message');
+    $audit->execute([$world,'m09-dismiss-report']);
+    check($audit->fetch(PDO::FETCH_ASSOC)===[
+        'operator_id'=>'ci-console-operator','action'=>'dismiss','reason'=>'Content is permitted'
+    ],'M09 CLI audit records operator and adjudication reason');
     (new PdoMemberships($pdo,$world))->revoke($recipient);
     check($http->handle('GET',$prefix.'messages',$recipientBearer)[0]===404
         && $http->handle('GET',$prefix.'notifications',$recipientBearer)[0]===404,
