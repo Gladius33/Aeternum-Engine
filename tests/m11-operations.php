@@ -77,6 +77,43 @@ use Aeternum\Core\{OperationsSnapshot,OperationsCron,PdoScheduler,PdoMemberships
         $holder->prepare('SELECT RELEASE_LOCK(?)')->execute([$name]);
         $holder=null;
     }
+    // Crash recovery: another real PHP process acquires this same advisory
+    // lock, then is killed with SIGKILL while no release path can run.
+    $child=proc_open([PHP_BINARY,__DIR__.'/m11-crash-worker.php',$name],
+        [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+    if (!is_resource($child)) throw new RuntimeException('M11 lock worker unavailable');
+    $killed=false;
+    try {
+        fclose($pipes[0]);
+        stream_set_timeout($pipes[1],5);
+        $ready=trim((string)fgets($pipes[1]));
+        check($ready==='LOCKED','M11 independent process acquired CRON lock before crash');
+        $during=$service->run([$world=>$pack],1,100,9000);
+        check($during['skipped']==='already_running',
+            'M11 active external process blocks duplicate CRON execution');
+        proc_terminate($child,9);
+        $killed=true;
+    } finally {
+        if (!$killed) proc_terminate($child,9);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        proc_close($child);
+    }
+    $probe=db();
+    $lockRecovered=false;
+    for ($attempt=0;$attempt<30;$attempt++) {
+        $s=$probe->prepare('SELECT GET_LOCK(?,0)');
+        $s->execute([$name]);
+        if ((int)$s->fetchColumn()===1) {
+            $lockRecovered=true;
+            $probe->prepare('SELECT RELEASE_LOCK(?)')->execute([$name]);
+            break;
+        }
+        usleep(100000);
+    }
+    check($lockRecovered,'M11 SIGKILL closes MariaDB connection and releases advisory lock');
+    check((new PdoScheduler(db(),$world,$clock,$rules))->pendingCount()===1,
+        'M11 killed worker never touched the durable due event');
     $first=$service->run([$world=>$pack],1,100,9000);
     check($first['skipped']===null && $first['worlds'][0]['processed']===1
         && $first['maintenanceDeferred']===false
