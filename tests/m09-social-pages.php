@@ -86,7 +86,7 @@ use Aeternum\Core\{PdoAlliances,PdoSocialMessages,SocialHttpApi,PdoSessions,Froz
     }
     check(count($invitations)>=105,'M09 no 100-entry lifetime invitation cap');
     $crew=$api->handle('GET',$root.'alliances/crew',$bearer);
-    check($crew[0]===200 && isset($crew[1]['data']['nextAfter']),
+    check($crew[0]===200 && array_key_exists('nextAfter',$crew[1]['data']),
         'M09 private roster advertises a stable continuation field');
     $first=$crew[1]['data']['members'][0]['actor'];
     $roster=$api->handle('GET',$root.'alliances/crew/members/page/'.$first,$bearer);
