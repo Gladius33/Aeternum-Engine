@@ -7,15 +7,21 @@ async function signin(page,login) {
   await page.goto(origin+'/play.html');
   await page.getByLabel('Login',{exact:true}).fill(login);
   await page.getByLabel('Password',{exact:true}).fill(pass);
-  const loginResponse=page.waitForResponse(response=>response.url().endsWith('/v1/auth/login'));
-  await page.getByRole('button',{name:'Sign in',exact:true}).click();
-  expect((await loginResponse).status()).toBe(200);
+  for(let attempt=0;attempt<3;attempt++) {
+    const loginResponse=page.waitForResponse(response=>response.url().endsWith('/v1/auth/login'));
+    await page.getByRole('button',{name:'Sign in',exact:true}).click();
+    const response=await loginResponse;
+    if(response.status()===200)break;
+    expect(response.status()).toBe(429);
+    if(attempt===2)throw new Error('M09 browser login quota exhausted');
+    await page.waitForTimeout(65000);
+  }
   await expect(page.locator('#game')).toBeVisible();
   await expect(page.locator('#balance select[name=world]')).toHaveValue(world);
   return page.locator('#balance select[name=account]').inputValue();
 }
 test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout',async({browser})=>{
-  test.setTimeout(120000);
+  test.setTimeout(240000);
   const owner=await browser.newPage(),member=await browser.newPage();
   const ownerActor=await signin(owner,'browser-social-owner');
   const memberActor=await signin(member,'browser-social-member');
@@ -53,16 +59,18 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   await owner.getByRole('button',{name:'Transfer ownership'}).click();
   expect((await transferred).status()).toBe(200);
   await expect(owner.locator('#social-member-list')).toContainText(memberActor+' — owner');
+  let memberBearer;
+  member.on('request',request=>{
+    if(request.url()===root+'/alliances/browser-crew'&&request.method()==='GET')
+      memberBearer=request.headers().authorization;
+  });
   await member.getByRole('button',{name:'Inspect my alliance'}).click();
   await expect(member.locator('#social-member-list')).toContainText(memberActor+' — owner');
-  // Cross-world identity isolation cannot be circumvented with a valid bearer.
-  const authHeaders=await member.evaluate(async()=>{
-    // The application never saves the token in localStorage; obtain the bearer
-    // from the actual subsequent authenticated fetch, in Chromium only.
-    const initialFetch=window.fetch;
-    return typeof initialFetch==='function'?true:false;
-  });
-  expect(authHeaders).toBe(true);
+  // Exercise the real authenticated server with a valid bearer from Chromium.
+  expect(memberBearer).toMatch(/^Bearer [a-f0-9]{64}$/);
+  const foreign=await member.request.get(origin+'/v1/worlds/e2e-industrial/social/alliances',
+    {headers:{Authorization:memberBearer}});
+  expect(foreign.status()).toBe(404);
   await owner.getByRole('button',{name:'Leave alliance'}).click();
   await expect(owner.locator('#social-member-list')).toHaveCount(0);
   await owner.getByRole('button',{name:'Sign out',exact:true}).click();
