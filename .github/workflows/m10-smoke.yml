@@ -10,6 +10,10 @@ on:
       - 'tests/browser/premium.spec.cjs'
       - 'database/migrations/031_admin_test_entitlements.sql'
       - '.github/workflows/m10-smoke.yml'
+      - 'tools/m13-*'
+      - 'tests/m13-*'
+      - 'docs/M13_RELEASE_ACCEPTANCE.md'
+      - '.github/workflows/m13-release.yml'
   workflow_dispatch:
 permissions:
   contents: read
