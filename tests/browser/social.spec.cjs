@@ -85,12 +85,12 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   expect(reportId).toMatch(/^[0-9a-f-]{36}$/);
   await member.getByLabel('Blocked actor ID').fill(ownerActor);
   const blocked=member.waitForResponse(r=>r.url()===root+'/blocks'&&r.request().method()==='POST');
-  await member.getByRole('button',{name:'Block player'}).click();
+  await member.getByRole('button',{name:'Block player',exact:true}).click();
   expect((await blocked).status()).toBe(200);
   await expect(member.locator('#social-messages-list li')).toHaveCount(0);
   await expect(member.locator('#social-block-list')).toContainText(ownerActor);
   const unblocked=member.waitForResponse(r=>r.url()===root+'/blocks/remove');
-  await member.getByRole('button',{name:'Unblock player'}).click();
+  await member.getByRole('button',{name:'Unblock player',exact:true}).click();
   expect((await unblocked).status()).toBe(200);
   await expect(member.locator('#social-messages-list')).toContainText(mailId);
   // Real operator-only CLI processes the report against the same CI MariaDB
