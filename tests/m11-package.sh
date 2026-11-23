@@ -12,6 +12,7 @@ archive="$(find "$OUT" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
 (cd "$OUT" && sha256sum -c "$(basename "$archive").sha256")
 tar -tzf "$archive" > "$OUT/files.txt"
 grep -qx 'aeternum/public/index.php' "$OUT/files.txt"
+grep -qx 'aeternum/public/.htaccess' "$OUT/files.txt"
 grep -qx 'aeternum/public/client-dist/aeternum-shell.js' "$OUT/files.txt"
 grep -qx 'aeternum/bin/ops-cron.php' "$OUT/files.txt"
 grep -qx 'aeternum/database/migrations/031_admin_test_entitlements.sql' "$OUT/files.txt"
