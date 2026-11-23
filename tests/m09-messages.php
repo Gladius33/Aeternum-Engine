@@ -39,11 +39,13 @@ use Aeternum\Core\{PdoIdentity,PdoSessions,PdoSocialMessages,SocialHttpApi,Froze
     check($foreign->inbox($recipient)['messages']===[],
         'M09 message cannot leak to second world with identical actor');
     $initialNotices=$model->notifications($recipient)['notifications'];
-    check(count($initialNotices)===1 && $initialNotices[0]['kind']==='message'
-        && $initialNotices[0]['readAt']===null,
+    $messageNotices=array_values(array_filter($initialNotices,
+        static fn(array $n):bool=>$n['kind']==='message'));
+    check(count($messageNotices)===1 && $messageNotices[0]['readAt']===null,
         'M09 new message commits exactly one unread notification');
     $model->send($owner,$recipient,'m09-hi','Hello from the alliance');
-    check(count($model->notifications($recipient)['notifications'])===1,
+    check(count(array_filter($model->notifications($recipient)['notifications'],
+        static fn(array $n):bool=>$n['kind']==='message'))===1,
         'M09 same message ID and payload are idempotent including notification');
     rejects(fn()=> $model->send($owner,$recipient,'m09-hi','Tampered duplicate'),
         DomainException::class,'M09 same message ID with different payload fails closed');
@@ -63,14 +65,16 @@ use Aeternum\Core\{PdoIdentity,PdoSessions,PdoSocialMessages,SocialHttpApi,Froze
         'M09 sender private inbox cannot reveal outgoing recipient mail');
     check($http->handle('GET',$prefix.'messages',$recipientBearer)[0]===200,
         'M09 authorized recipient HTTP inbox available after reconnect');
-    $nid=$initialNotices[0]['id'];
+    $nid=$messageNotices[0]['id'];
     rejects(fn()=> $model->acknowledge($owner,$nid),
         DomainException::class,'M09 actor cannot acknowledge foreign notification');
     $ack=$http->handle('POST',$prefix.'notifications/'.$nid.'/read',$recipientBearer,'{}');
-    check($ack[0]===200 && $model->notifications($recipient)['notifications'][0]['readAt']===5200,
+    check($ack[0]===200 && array_values(array_filter($model->notifications($recipient)['notifications'],
+            static fn(array $n):bool=>$n['kind']==='message'))[0]['readAt']===5200,
         'M09 recipient acknowledges durable notification exactly once');
     $model->acknowledge($recipient,$nid);
-    check($model->notifications($recipient)['notifications'][0]['readAt']===5200,
+    check(array_values(array_filter($model->notifications($recipient)['notifications'],
+            static fn(array $n):bool=>$n['kind']==='message'))[0]['readAt']===5200,
         'M09 notification acknowledgement retry preserves original timestamp');
     check($http->handle('POST',$prefix.'blocks',$recipientBearer,
         '{"actor":"'.$owner.'"}')[0]===200,

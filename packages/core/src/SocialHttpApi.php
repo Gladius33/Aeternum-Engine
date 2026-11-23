@@ -96,7 +96,7 @@ final class SocialHttpApi
             }
         }
         try {
-            $social=new PdoAlliances($this->pdo,$world);
+            $social=new PdoAlliances($this->pdo,$world,$this->clock);
             $messages=new PdoSocialMessages($this->pdo,$world,$this->clock);
             $result=match($action) {
                 'list'=>$social->listFor($actor),
