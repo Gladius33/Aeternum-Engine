@@ -127,3 +127,8 @@ $legacyPlay=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-
 rejects(fn()=> $legacyPlay->rules()->commands->apply(
     new Command('old-medieval','no-colony-action','settlement.feed',['account'=>'old']),[],0
 ),DomainException::class,'M05 older pinned world cannot invoke unpinned population mechanics');
+
+// Keep the long-lived integration runner below MariaDB's connection ceiling.
+// Anonymous PDO clients already expire; these fixtures own explicit clients.
+unset($advance,$start,$place,$playCommand,$playIdentities,$provision,
+    $playStore,$playBuildings,$playStatus,$api);

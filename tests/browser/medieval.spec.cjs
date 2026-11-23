@@ -21,9 +21,17 @@ async function register(page,login) {
     await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
     await page.getByLabel('Confirm new password',{exact:true}).fill(password);
     await page.getByLabel('World to join',{exact:true}).selectOption(world);
-    const reply=page.waitForResponse(r=>r.url().endsWith('/v1/auth/register')&&r.request().method()==='POST');
-    await page.getByRole('button',{name:'Create player',exact:true}).click();
-    expect((await reply).status()).toBe(201);
+    // Other browser suites share the genuine per-peer auth quota. Respect
+    // each rejected window rather than disabling the limiter for this test.
+    for(let attempt=0;attempt<3;attempt++) {
+        const reply=page.waitForResponse(r=>r.url().endsWith('/v1/auth/register')&&r.request().method()==='POST');
+        await page.getByRole('button',{name:'Create player',exact:true}).click();
+        const response=await reply;
+        if(response.status()===201)break;
+        expect(response.status()).toBe(429);
+        if(attempt===2)throw new Error('M05 signup quota exhausted after three windows');
+        await page.waitForTimeout(65000);
+    }
     await expect(page.locator('#game')).toBeVisible();
     await expect(page.locator('#medieval-panel')).toBeVisible();
     await expect(page.locator('#balance select[name=world]')).toHaveValue(world);

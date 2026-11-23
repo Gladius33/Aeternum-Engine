@@ -38,3 +38,7 @@ $legacyUser=$colonyIdentity->register('m05-legacy-player','legacy onboarding pas
 $colonyProvisioner->provision('m05-colony-legacy',$legacyUser,$legacyPack);
 check((int)db()->query("SELECT COUNT(*) FROM engine_territories WHERE world_id='m05-colony-legacy'")->fetchColumn()===0,
     'M05 legacy medieval world never acquires new geography implicitly');
+
+// Included fixtures run in one global PHP scope. Release their PDO handles
+// before the independent M03 process/connection stress suite.
+unset($colonyIdentity,$colonyProvisioner,$colonySites);
