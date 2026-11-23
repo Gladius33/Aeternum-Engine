@@ -74,7 +74,7 @@
     ['No directed route found.','Aucun trajet orienté trouvé.'],
     ['Territories in this world.','Territoires de ce monde.'],
     ['No territories on this page.','Aucun territoire sur cette page.'],
-    ['Success','Succès'], ['Request failed','Échec de la requête'],
+    ['Working…','Traitement en cours…'], ['Success','Succès'], ['Request failed','Échec de la requête'],
     ['Passwords do not match','Les mots de passe ne correspondent pas'],
     ['Choose a different password','Choisissez un autre mot de passe'],
     ['Invalid transfer','Transfert invalide'], ['Invalid market terms','Conditions de marché invalides'],
