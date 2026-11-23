@@ -114,6 +114,12 @@ test('M05 two newly registered players complete an isolated browser colony campa
     await advanceBuilding(a,'m05-farm',2,14);
     await advanceBuilding(a,'m05-granary',1,12);
     await advanceBuilding(a,'m05-keep',1,16);
+    // The full construction chain spends 333 wood while the initial stock is
+    // only 180. Permit another genuine 20-second production interval and
+    // process it with the production worker before funding the final keep.
+    // This is part of the economic campaign, not a test-only stock injection.
+    await a.waitForTimeout(22000);
+    executeWorker();
     await advanceBuilding(a,'m05-keep',2,20);
     await a.getByRole('button',{name:'Review your colony'}).click();
     await expect(a.locator('#medieval-victory')).not.toContainText('VICTORY');
