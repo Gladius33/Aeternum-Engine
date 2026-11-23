@@ -76,17 +76,29 @@ use Aeternum\Core\{PdoIdentity,PdoSessions,PdoSocialMessages,SocialHttpApi,Froze
     check(array_values(array_filter($model->notifications($recipient)['notifications'],
             static fn(array $n):bool=>$n['kind']==='message'))[0]['readAt']===5200,
         'M09 notification acknowledgement retry preserves original timestamp');
+    $alliances=new \Aeternum\Core\PdoAlliances($pdo,$world,$clock);
+    $alliances->invite($owner,'racecrew',$recipient);
+    check(count($alliances->invitationsFor($recipient))===1,
+        'M09 invitation is visible before sender is blocked');
     check($http->handle('POST',$prefix.'blocks',$recipientBearer,
         '{"actor":"'.$owner.'"}')[0]===200,
         'M09 recipient can block harassing actor by authenticated request');
     check($model->blocksFor($recipient)===[$owner],
         'M09 blocked actor set persists with world isolation');
+    rejects(fn()=> $alliances->invite($owner,'racecrew',$recipient),
+        DomainException::class,'M09 blocked actor cannot retry invitations');
+    rejects(fn()=> $alliances->respond($recipient,'racecrew',true),
+        DomainException::class,'M09 blocked pending invitation cannot be accepted');
+    check($alliances->invitationsFor($recipient)===[],
+        'M09 blocked pending invitations disappear from private inbox');
     rejects(fn()=> $model->send($owner,$recipient,'m09-blocked','Should fail'),
         DomainException::class,'M09 block forbids new message before notification creation');
     check($model->inbox($recipient)['messages']===[],
         'M09 blocking hides preexisting mail from blocked sender');
     $model->unblock($recipient,$owner);
     $model->unblock($recipient,$owner);
+    check(count($alliances->invitationsFor($recipient))===1,
+        'M09 unblocking restores durable pending invitation');
     check(count($model->inbox($recipient)['messages'])===1,
         'M09 unblocking is idempotent and does not delete mail');
     $model->block($owner,$recipient);
