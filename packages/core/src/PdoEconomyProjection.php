@@ -199,16 +199,20 @@ final class PdoEconomyProjection
         MarketProjection::validatePage($after,$limit);
         MarketProjection::validateResourceFilter($give);
         MarketProjection::validateResourceFilter($want);
-        $q=$this->pdo->prepare('SELECT o.offer_id, o.seller_id, o.give_resource, o.want_resource,
+        $sql='SELECT o.offer_id, o.seller_id, o.give_resource, o.want_resource,
                 o.give_units, o.want_units
             FROM engine_market_offers o
             JOIN engine_account_owners own ON own.world_id=o.world_id AND own.account_id=o.seller_id
             JOIN engine_memberships m ON m.world_id=own.world_id AND m.actor_id=own.actor_id AND m.active=1
             WHERE o.world_id=? AND o.status=? AND o.offer_id>?
-              AND (o.expires_at IS NULL OR o.expires_at>?)
-              AND (? IS NULL OR o.give_resource=?) AND (? IS NULL OR o.want_resource=?)
-            ORDER BY o.offer_id LIMIT '.($limit+1));
-        $q->execute([$this->worldId,'open',$after??'',$now,$give,$give,$want,$want]);
+              AND (o.expires_at IS NULL OR o.expires_at>?)';
+        $args=[$this->worldId,'open',$after??'',$now];
+        // Separate prepared SQL shapes permit MariaDB to use the resource
+        // composite index; nullable OR predicates defeat selective scans.
+        if ($give!==null) { $sql.=' AND o.give_resource=?'; $args[]=$give; }
+        if ($want!==null) { $sql.=' AND o.want_resource=?'; $args[]=$want; }
+        $q=$this->pdo->prepare($sql.' ORDER BY o.offer_id LIMIT '.($limit+1));
+        $q->execute($args);
         $rows=$q->fetchAll(PDO::FETCH_ASSOC);
         $more=count($rows)>$limit;
         if ($more) array_pop($rows);

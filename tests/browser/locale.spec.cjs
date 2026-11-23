@@ -17,10 +17,13 @@ test('M07: language selection updates accessible headings without changing accou
     document.querySelector('#map-territories').append(item);
   });
   await expect(page.locator('#market-notice')).toHaveText('Aucune offre ouverte.');
+  await expect(page.locator('#market-history-title')).toHaveText('Mon historique des échanges');
+  await expect(page.getByLabel('Ressource proposée recherchée')).toHaveCount(1);
   await expect(page.locator('#map-territories li')).toHaveText('player-private-123');
   await page.getByLabel('Langue').selectOption('en');
   await expect(page.locator('#login h2')).toHaveText('Sign in');
   await expect(page.locator('#market-notice')).toHaveText('No open offers.');
+  await expect(page.locator('#market-history-title')).toHaveText('My trade history');
   await expect(page.locator('html')).toHaveAttribute('lang','en');
 });
 

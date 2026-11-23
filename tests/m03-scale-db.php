@@ -42,6 +42,17 @@ do {
 check(count($listed)===1001 && count(array_unique($listed))===1001 &&
     $listed[0]==='o0000' && $listed[1000]==='o1000',
     'M03 SQL keyset pagination traverses 1001 offers without duplicate or lifetime truncation');
+$filtered=[];
+$cursor=null;
+do {
+    $page=$scale->marketForActor('scale-reader',$cursor,50,'ore','coin');
+    foreach($page['offers'] as $offer) $filtered[]=$offer['id'];
+    $cursor=$page['nextAfter'];
+    if(count($filtered)>1100) throw new RuntimeException('M08 filtered cursor cycle');
+} while($cursor!==null);
+check($filtered===$listed,'M08 filtered indexed cursor traverses 1001 offers with exact order and no loss');
+check($scale->marketForActor('scale-reader',null,50,'coin','ore')['offers']===[],
+    'M08 reverse pair search prunes entire thousand-offer dataset');
 $stock=(int)db()->query("SELECT stock_units FROM engine_economy_balances WHERE world_id='m03-scale-world' AND account_id='warehouse' AND resource_id='ore'")->fetchColumn();
 check($stock===999,'M03 escrow reserves exactly 1001 physical units in relational stock');
 check((int)db()->query("SELECT COUNT(*) FROM engine_commands WHERE world_id='m03-scale-world'")->fetchColumn()===1003,
