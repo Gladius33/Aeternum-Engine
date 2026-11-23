@@ -35,13 +35,3 @@ jobs:
       - name: Audit locked client dependencies, including dev toolchain
         run: npm audit --prefix client --audit-level=high
 
-      - name: Propose Vue security lockfile remediation in diagnostic logs
-        if: failure()
-        run: |
-          npm install --prefix client --save-exact --package-lock-only --ignore-scripts --no-audit --no-fund vue@3.5.46
-          node <<'NODE'
-          const lock=require('./client/package-lock.json');
-          console.log('M12_FULL_LOCK_START');
-          console.log(JSON.stringify(lock));
-          console.log('M12_FULL_LOCK_END');
-          NODE
