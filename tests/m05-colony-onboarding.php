@@ -2,7 +2,7 @@
 declare(strict_types=1);
 use Aeternum\Core\{GamePackLoader,PdoIdentity,PdoMemberships,PdoBuildings,PdoTerritories,
     PlayerProvisioner,PdoScheduler,FrozenClock};
-$colonyPack=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/versions/0.2.0/manifest.json'));
+$colonyPack=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/versions/0.3.0/manifest.json'));
 $colonyWorld='m05-colony-onboarding';
 $colonyClock=new FrozenClock(2000);
 $colonyIdentity=new PdoIdentity(db());
@@ -33,6 +33,11 @@ check(count($colonySites->choicesFor($colonyBob)['sites'])===1,
 (new PdoMemberships(db(),$colonyWorld))->grant($colonyAlice);
 check((new PdoBuildings(db(),$colonyWorld))->choicesFor($colonyAlice)['sites']===$colonyA['sites'],
     'M05 reconnect after membership restoration preserves colony topology');
+$middlePack=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/versions/0.2.0/manifest.json'));
+$middleUser=$colonyIdentity->register('m05-middle-player','middle onboarding password');
+$colonyProvisioner->provision('m05-colony-middle',$middleUser,$middlePack);
+check((int)db()->query("SELECT COUNT(*) FROM engine_territories WHERE world_id='m05-colony-middle'")->fetchColumn()===0,
+    'M05 opt-in v0.2.0 historical behavior is unchanged by newer colony provisioning');
 $legacyPack=GamePackLoader::load(file_get_contents(__DIR__.'/../games/reference-medieval/manifest.json'));
 $legacyUser=$colonyIdentity->register('m05-legacy-player','legacy onboarding password');
 $colonyProvisioner->provision('m05-colony-legacy',$legacyUser,$legacyPack);

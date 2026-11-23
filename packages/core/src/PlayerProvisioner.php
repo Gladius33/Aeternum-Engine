@@ -26,10 +26,10 @@ final class PlayerProvisioner
             $scheduler->executeForActor($actor,new Command($world,'provision:'.$resource->id,'economy.open',['account'=>$actor,'resource'=>$resource->id]),$rules->commands);
         }
         // Opt-in medieval worlds give each newly registered player a private
-        // settlement location and territory. Existing 0.1.0 worlds remain
+        // settlement location and territory. Existing 0.1.0/0.2.0 worlds remain
         // untouched. Retries recheck immutable rows under the world lock.
         // No foundation or construction cost is silently created or paid.
-        if ($pack->id==='reference-medieval' && $pack->buildings!==[]) {
+        if ($pack->id==='reference-medieval' && $pack->settlement!==null) {
             $territories=new PdoTerritories($this->pdo,$world);
             $territories->define($actor,$actor,'homestead');
             $territories->assign($actor,$actor);
