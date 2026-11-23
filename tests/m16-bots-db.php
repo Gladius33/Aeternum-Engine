@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{EconomyHttpApi,FrozenClock,GamePackLoader,PdoIdentity,
-    PdoScheduler,PdoSessions,PlayerProvisioner,ResourceUpgradeBot,
-    TrustedBotRuntime,WorldWorker};
+use Aeternum\Core\{ActorReceipt,ApprovedBotStrategy,BotPlan,EconomyHttpApi,FrozenClock,
+    GamePackLoader,PdoIdentity,PdoScheduler,PdoSessions,PlayerProvisioner,
+    ResourceUpgradeBot,TrustedBotRuntime,WorldWorker};
 
 // An operator-controlled bot has NO privileged SQL mutation path. It uses
 // a normal authenticated account, the same HTTP limits and journal receipts.
@@ -39,6 +39,25 @@ use Aeternum\Core\{EconomyHttpApi,FrozenClock,GamePackLoader,PdoIdentity,
     $repeat=$runner->tick($world,$actor,'silver','Bearer '.$botToken,$strategy,true);
     check($repeat===$first && $scheduler->pendingCount()===1,
         'M16 repeated tick has a stable command id and does not enqueue duplicate events');
+    $restarted=new TrustedBotRuntime($api,$clock);
+    $changedPolicy=new class implements ApprovedBotStrategy {
+        public function codeDigest(): string {return str_repeat('a',64);}
+        public function choose(array $overview,string $account,string $resource,int $logicalTick): ?BotPlan {
+            throw new \LogicException('A committed tick must never recalculate its strategy');
+        }
+    };
+    check($restarted->tick($world,$actor,'silver','Bearer '.$botToken,
+        $changedPolicy,true)===$first && $scheduler->pendingCount()===1,
+        'M16 restart and reviewed policy change use the committed first-tick receipt');
+    $receiptPath='/v1/worlds/'.$world.'/economy/bot-receipts/'.$actor.'/silver/'.$first['commandId'];
+    [$receiptCode,$receiptData]=$api->handle('GET',$receiptPath,'Bearer '.$botToken);
+    check($receiptCode===200 && $receiptData['data'] instanceof ActorReceipt
+        && $receiptData['data']->requestId===$first['commandId']
+        && $receiptData['data']->effectiveAt===21000
+        && $receiptData['data']->scheduledIds!==[],
+        'M16 bot receipt is durable and contains only its own actor receipt');
+    [$denied,]=$api->handle('GET',$receiptPath,'Bearer '.$humanToken);
+    check($denied===409,'M16 foreign actors cannot inspect bot receipts');
     $foreign=$runner->tick($world,$actor,'silver','Bearer '.$humanToken,$strategy,true);
     check($foreign['status']==='blocked' && $foreign['code']===409,
         'M16 a different human token cannot operate the bot-owned resource account');

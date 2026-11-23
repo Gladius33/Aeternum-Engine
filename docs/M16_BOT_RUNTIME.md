@@ -17,13 +17,18 @@ masquerade as human participants or bypass security/quotas.
   overview, not the world state, SQL or a private projection.
 - TrustedBotRuntime defaults to PAUSED. The operator must explicitly
   enable each tick and provide a valid normal Bearer session.
-- The runtime invokes the unchanged EconomyHttpApi for **one GET** and
-  **at most one POST per tick**, so it passes through exactly the
-  human authentication, rate limits, due-event barriers, account ownership,
-  pinned world rules, transaction locks, receipts, and replay.
+- The runtime uses authenticated EconomyHttpApi requests: **at most two GETs**
+  (own durable receipt, then economy overview only if no receipt exists)
+  and **at most one POST per tick**. The receipt route enforces session,
+  world rules, account ownership and transaction locking. It exposes only
+  the own actor command receipt, never another account or world snapshot.
+  Normal rate limits, due-event barriers and replay still apply.
 - A 60-second logical tick gives a stable deterministic command ID
-  derived from world, account, resource and period. A strategy/code
-  change within one period cannot bypass idempotent command IDs.
+  derived from world, account, resource and period. The durable receipt is
+  consulted before recalculating a plan from a changing overview. This
+  guarantees that sequential retries after restart or code changes cannot
+  submit a second or conflicting action in the same period. Concurrent
+  runners remain bounded by the same database command-identity constraint.
 - A foreign human session or revoked bot session cannot act as the
   bot's account. No API exposes a bot control or grants elevated privileges.
 - The sample is entirely deterministic without LLM/network calls.
@@ -35,7 +40,8 @@ code digest, cost-aware upgrade selection and no privilege expansion.
 
 Real MariaDB tests create separately authenticated bot and human actors,
 prove paused-by-default has no mutations, permitted upgrade scheduling,
-same-tick idempotence, foreign actor rejection, due-time worker execution,
+same-tick idempotence across process restarts and strategy changes,
+receipt privacy, foreign actor rejection, due-time worker execution,
 next-tick action selection and deterministic canonical replay.
 
 Before shipping a bot population manager, the operator MUST additionally
