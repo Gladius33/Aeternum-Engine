@@ -32,6 +32,28 @@ silently place or pay for a building. Other worlds and the original unversioned
 medieval pack retain their previous behavior. The existing construction
 choices screen lists these new settlements for the player.
 
+## Colonists, work and victory (opt-in v0.3.0)
+
+A new immutable `reference-medieval@0.3.0` pack extends 0.2.0 with a
+strict declarative settlement ruleset. `settlement.feed` consumes four
+units of grain to add one resident, bounded by farms and granaries.
+`settlement.work` consumes two grain and produces 15 wood per
+lumberyard level, requiring two residents and a ten-second logical
+cooldown. The account's stocks, population, ledger, command receipt and
+cooldown are committed atomically. Every rule is pinned by the exact
+manifest digest; 0.1.0 and 0.2.0 cannot invoke these actions.
+
+The private authenticated `GET /v1/worlds/WORLD/settlement/status/ACCOUNT`
+reports the same account's residents, capacity, labor output and
+server-authoritative win result. Victory needs keep 2, farm 2,
+lumberyard 2, granary 1 and six residents. The server computes it from
+the canonical, replayable world state — never from a browser flag.
+
+The MariaDB suite now exercises a two-colony campaign from empty signup to
+keep level two and population six, including deficits, prerequisites,
+real worker completions, food-for-wood conversion, cooldown, idempotency,
+cross-actor authorization, reconnect, victory and full replay.
+
 ## Evidence and outstanding work
 
 `tests/m05-medieval-pack.php` exercises manifest loading, deterministic stage prerequisites, malformed-rule rejection and side-by-side version pinning. It runs in `tests/run.php` as part of PHP core CI. The strict JSON schema now documents the existing runtime building extension.
