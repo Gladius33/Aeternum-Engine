@@ -23,6 +23,8 @@ jobs:
           php -l tools/m13-actions-audit.php
           php -l tests/m13-actions-audit.php
           php tests/m13-actions-audit.php
+          php -l tests/m13-docs.php
+          php tests/m13-docs.php
       - name: Check V1.0 remains blocked without acceptance
         run: |
           php tools/m13-release-gate.php > "$RUNNER_TEMP/m13.json"
