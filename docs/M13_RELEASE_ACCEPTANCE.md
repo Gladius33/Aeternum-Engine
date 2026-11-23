@@ -41,6 +41,24 @@ des fonctionnalités ni les tests intermédiaires déjà exécutés.
 - Vérifier licence et attribution ; approbation opérateur liée au SHA du
   candidat. Aucun vrai paiement ni publication sans autorisation.
 
+## Vérification externe des CI sur le SHA exact
+
+La commande `php tools/m13-actions-audit.php SHA_COMPLET` interroge
+directement l'API GitHub Actions publique du dépôt (optionnellement avec
+`GITHUB_TOKEN` privé). Elle exige six workflows distincts : PHP Core,
+Chromium E2E, M10, M11, M12 et le contrat M13, tous terminés avec
+`conclusion=success` sur **le même SHA**, sans emprunter de preuves à
+un commit antérieur. Toute exécution manquante, annulée, défaillante ou
+encore en cours entraîne un code de sortie 2, une erreur de collecte
+entraîne 1. Ne jamais recopier de jeton dans un fichier ou un journal.
+
+Cette vérification doit être exécutée **après la fin des CI** : elle ne
+doit pas exiger que sa propre exécution encore en cours soit verte.
+Le déclencheur M10 couvre désormais les fichiers M13 afin de fournir
+une preuve isolée sur chaque changement de qualification. Une preuve
+CI positive ne remplace ni l'audit des vulnérabilités, ni l'exercice
+de restauration, ni la recette externe autorisée.
+
 ## Contrôle de cohérence des preuves
 
 ```bash
