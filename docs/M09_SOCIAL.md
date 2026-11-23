@@ -91,8 +91,7 @@ Le client HTML/JS propose des boutons de continuation pour les sept projections
 sociales ; les générations de chargement empêchent les anciennes réponses de
 réafficher les données d'une session ou d'un monde devenu inactif.
 
-**Limites à traiter avant clôture M09 :** pagination de la file d'arbitrage opérateur,
-chargées, gestion d'alliances très grandes, audit de la révocation des
+**Limites à traiter avant clôture M09 :** gestion d'alliances très grandes, audit de la révocation des
 propriétaires et robustesse aux volumes, protections anti-spam plus fines,
 qualifications E2E et restauration sur serveur autorisé. Les autres
 contraintes G01–G09 de la roadmap restent inchangées.
@@ -113,11 +112,20 @@ de base de données hors dépôt :
 ```sh
 export AETERNUM_SOCIAL_MODERATOR=operator_recette
 php bin/social-moderate.php demo-world queue
+# Pour la page suivante, utiliser les deux champs nextAfter de la réponse :
+php bin/social-moderate.php demo-world queue 5200 report-050
 printf '%s\n' 'Contenu analysé et non conforme' |
   php bin/social-moderate.php demo-world report-id hide
 printf '%s\n' 'Contenu jugé conforme' |
   php bin/social-moderate.php demo-world second-report dismiss
 ```
+
+La commande `queue` retourne au maximum 50 signalements ouverts et un
+`nextAfter` (objet `{createdAt, id}` ou `null`). Le mode
+`queue {createdAt} {id}` donne accès à la page suivante. L'ordre
+ascendant associe horodatage et identifiant pour gérer plusieurs
+signalements déposés dans la même seconde. Chaque page est cohérente à
+l'instant de sa lecture, mais ne constitue pas un instantané immuable.
 
 La consultation révèle des contenus privés et doit rester dans un terminal
 contrôlé. L'arbitrage est transactionnel, ne peut être changé silencieusement

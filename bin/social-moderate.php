@@ -5,8 +5,8 @@ declare(strict_types=1);
 use Aeternum\Core\{PdoSocialModerator,SystemClock};
 require __DIR__.'/../vendor/autoload.php';
 try {
-    if (PHP_SAPI!=='cli' || !in_array($argc,[3,4],true))
-        throw new \InvalidArgumentException('Usage: php bin/social-moderate.php WORLD queue|REPORT [hide|dismiss]');
+    if (PHP_SAPI!=='cli' || !in_array($argc,[3,4,5],true))
+        throw new \InvalidArgumentException('Usage: php bin/social-moderate.php WORLD queue [afterTime afterId] | WORLD REPORT hide|dismiss');
     [$script,$world,$report]=$argv;
     if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$world))
         throw new \InvalidArgumentException('Invalid world');
@@ -21,8 +21,17 @@ try {
         PDO::ATTR_EMULATE_PREPARES=>false
     ]);
     $moderation=new PdoSocialModerator($pdo,$world,new SystemClock());
-    if ($report==='queue' && $argc===3) {
-        $result=$moderation->openReports();
+    if ($report==='queue' && in_array($argc,[3,5],true)) {
+        $afterTime=null;$afterId=null;
+        if ($argc===5) {
+            if (!preg_match('/^(0|[1-9][0-9]{0,18})$/D',$argv[3]))
+                throw new \InvalidArgumentException('Invalid cursor time');
+            $afterTime=filter_var($argv[3],FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);
+            if ($afterTime===false)
+                throw new \InvalidArgumentException('Cursor time outside integer range');
+            $afterId=$argv[4];
+        }
+        $result=$moderation->openReports(50,$afterTime,$afterId);
         echo json_encode($result,JSON_THROW_ON_ERROR)."\n";
         exit(0);
     }

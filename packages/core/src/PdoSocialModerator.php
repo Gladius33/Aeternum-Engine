@@ -67,18 +67,37 @@ final class PdoSocialModerator
             throw $e;
         }
     }
-    /** Operator-only, bounded report queue. Never exposed as a player route. */
-    public function openReports(int $limit=50): array
+    /**
+     * Read-only operator report queue. Cursor uses the ascending timestamp
+     * and ID pair; pages exclude decisions already committed by review().
+     */
+    public function openReports(int $limit=50,?int $afterTime=null,?string $afterId=null): array
     {
         if ($limit<1 || $limit>100) throw new \InvalidArgumentException('Invalid page size');
-        $rows=$this->query("SELECT r.report_id,r.reporter_actor,r.message_id,r.reason,r.created_at,
+        if (($afterTime===null)!==($afterId===null))
+            throw new \InvalidArgumentException('Incomplete report cursor');
+        if ($afterTime!==null) {
+            if ($afterTime<0) throw new \InvalidArgumentException('Negative report timestamp');
+            PdoMemberships::validateId($afterId);
+        }
+        $sql="SELECT r.report_id,r.reporter_actor,r.message_id,r.reason,r.created_at,
                 m.body,m.sender_actor,m.recipient_actor
             FROM engine_social_reports r
             JOIN engine_social_messages m ON m.world_id=r.world_id AND m.message_id=r.message_id
-            WHERE r.world_id=? AND r.status='open'
-            ORDER BY r.created_at,r.report_id LIMIT ".($limit+1),[$this->world])->fetchAll(PDO::FETCH_ASSOC);
+            WHERE r.world_id=? AND r.status='open'";
+        $args=[$this->world];
+        if($afterTime!==null) {
+            $sql.=' AND (r.created_at > ? OR (r.created_at = ? AND r.report_id > ?))';
+            array_push($args,$afterTime,$afterTime,$afterId);
+        }
+        $sql.=' ORDER BY r.created_at,r.report_id LIMIT '.($limit+1);
+        $rows=$this->query($sql,$args)->fetchAll(PDO::FETCH_ASSOC);
         $more=count($rows)>$limit;
-        if ($more) array_pop($rows);
-        return ['reports'=>$rows,'truncated'=>$more];
+        if($more) array_pop($rows);
+        $last=$more?$rows[count($rows)-1]:null;
+        return ['reports'=>$rows,'truncated'=>$more,
+            'nextAfter'=>$last===null?null:[
+                'createdAt'=>(int)$last['created_at'],'id'=>$last['report_id']
+            ]];
     }
 }
