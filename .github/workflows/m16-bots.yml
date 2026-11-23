@@ -1,0 +1,51 @@
+name: M16 isolated bot acceptance
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  bots:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: m16-ci-root-only
+          MARIADB_DATABASE: aeternum_m16_lab
+          MARIADB_USER: m16_test
+          MARIADB_PASSWORD: m16-test-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_m16_lab;charset=utf8mb4
+      AETERNUM_TEST_USER: m16_test
+      AETERNUM_TEST_PASSWORD: m16-test-only
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          coverage: none
+      - name: Syntax and standalone database acceptance
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          php -l tests/m16-acceptance.php
+          php -l tests/m16-bots.php
+          php -l tests/m16-bots-db.php
+          php -l packages/core/src/TrustedBotRuntime.php
+          php -l packages/core/src/EconomyHttpApi.php
+          php -l packages/core/src/PdoScheduler.php
+          php tests/m16-acceptance.php
