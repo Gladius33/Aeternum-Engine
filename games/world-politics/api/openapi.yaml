@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: World Politics Headless API
-  version: 0.1.0-prototype
+  version: 0.2.0-headless-prototype
   description: |
     Experimental, transport-neutral contract, not a deployed HTTP server.
     Do not expose until server-side authentication, MariaDB, durable receipts
@@ -30,6 +30,32 @@ paths:
           content:
             application/json:
               schema: { type: object, additionalProperties: true }
+        '404':
+          $ref: '#/components/responses/notFound'
+  /worlds/{world}/countries/{country}/politics/person-template:
+    get:
+      operationId: readCharacterFormTemplate
+      tags: [Politics]
+      description: >
+        Backend-only schema metadata for both quick and detailed character
+        entry; clients choose how to render it. No graphic elements are served.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+      responses:
+        '200':
+          description: Versioned field groups, requirements and generic avatar marker
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [schema_version, avatar, modes, sections, fields]
+                properties:
+                  schema_version: { type: string }
+                  avatar: { type: object, additionalProperties: true }
+                  modes: { type: object, additionalProperties: true }
+                  sections: { type: array, items: { type: object, additionalProperties: true } }
+                  fields: { type: object, additionalProperties: true }
         '404':
           $ref: '#/components/responses/notFound'
   /worlds/{world}/countries/{country}/politics/people/{personId}:
@@ -68,7 +94,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/FictionalPerson' }
+            schema: { $ref: '#/components/schemas/CharacterCreate' }
       responses:
         '201':
           description: Fictional person created in the scenario
@@ -228,6 +254,92 @@ components:
           type: array
           maxItems: 100
           items: { $ref: '#/components/schemas/ProgrammeMeasure' }
+    CharacterCreate:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: { $ref: '#/components/schemas/Identifier' }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        mode: { type: string, enum: [quick, detailed], default: quick }
+        kind: { type: string, const: fictional }
+        country: { type: string, pattern: '^[A-Z]{2}      allOf:
+        - $ref: '#/components/schemas/Person'
+        - type: object
+          properties:
+            kind: { const: fictional }
+            as_of: { type: 'null' }
+            sources: { type: array, maxItems: 0 }
+    Problem:
+      type: object
+      required: [type, status, code]
+      properties:
+        type: { type: string }
+        status: { type: integer }
+        code: { type: string }
+  responses:
+    notFound:
+      description: Missing or inaccessible resource
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    forbidden:
+      description: Insufficient ability for the operation
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    conflict:
+      description: Conflicting request or state
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    precondition:
+      description: Missing or stale state precondition
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    invalid:
+      description: Invalid request
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+ }
+        biography: { type: string, maxLength: 2000, default: '' }
+        avatar: { type: string, const: generic-v1 }
+        profile:
+          $ref: '#/components/schemas/CharacterProfile'
+        programme:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, domain, proposal]
+            properties:
+              id: { $ref: '#/components/schemas/Identifier' }
+              domain: { $ref: '#/components/schemas/Identifier' }
+              proposal: { type: string, minLength: 1, maxLength: 1000 }
+              sources: { type: array, maxItems: 0, default: [] }
+    CharacterProfile:
+      type: object
+      additionalProperties: false
+      properties:
+        birth_date: { type: string, format: date }
+        birth_place: { type: string, maxLength: 160 }
+        personal_statement: { type: string, maxLength: 2000 }
+        party: { type: string, maxLength: 160 }
+        orientation: { type: string, maxLength: 160 }
+        education: { $ref: '#/components/schemas/ProfileTextList' }
+        languages: { $ref: '#/components/schemas/ProfileTextList' }
+        professional_history: { $ref: '#/components/schemas/ProfileTextList' }
+        public_service: { $ref: '#/components/schemas/ProfileTextList' }
+        expertise: { $ref: '#/components/schemas/ProfileTextList' }
+        political_history: { $ref: '#/components/schemas/ProfileTextList' }
+        policy_priorities: { $ref: '#/components/schemas/ProfileTextList' }
+    ProfileTextList:
+      type: array
+      maxItems: 24
+      items: { type: string, maxLength: 300 }
     FictionalPerson:
       allOf:
         - $ref: '#/components/schemas/Person'
