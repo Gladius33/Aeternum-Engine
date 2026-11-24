@@ -53,6 +53,8 @@ jobs:
         run: php tests/wp12-economic-domain.php
       - name: Offline and rights-aware World Bank data importer WP14
         run: php tests/wp14-worldbank-import.php
+      - name: Trusted diplomacy to economy causal bridge WP15
+        run: php tests/wp15-diplomacy-economic-bridge.php
       - name: Constitutional domain and country selection WP05
         run: php tests/wp05-institutions.php
 
