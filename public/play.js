@@ -630,7 +630,7 @@ async function sendPending() {
     try {
         await api(base({world:saved.world})+'commands','POST',saved.body);
         pending=null;
-        window.dispatchEvent(new CustomEvent('aeternum:confirmed', {detail:{type:saved.body.type,world:saved.world,id:saved.body.id}}));
+        window.dispatchEvent(new CustomEvent('aeternum:confirmed', {detail:{type:saved.body.type,world:saved.world,account:saved.account,id:saved.body.id}}));
     }
     catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
     finally { syncPendingRetry(); }
@@ -640,7 +640,7 @@ async function submitCommand(f,type,payload) {
     if (pending && pending.signature!==signature) throw new Error('Retry the previous action with identical fields first.');
     if (!pending) {
         const id=crypto.randomUUID();
-        pending={world:f.world,signature,body:{id,type,payload:type==='market.create'?{...payload,offer:id}:payload}};
+        pending={world:f.world,account:f.account,signature,body:{id,type,payload:type==='market.create'?{...payload,offer:id}:payload}};
     }
     syncPendingRetry();
     await sendPending();
