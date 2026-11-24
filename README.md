@@ -55,3 +55,6 @@ Copyright © 2026 Sébastien TOUILLEUX. All rights not expressly granted are res
 ## Packs et mondes configurables (M02 intégrée)
 
 Le registre de mondes approuvés et le SDK déclaratif à schémas typés sont documentés dans [docs/M02_SDK_AND_REGISTRY.md](docs/M02_SDK_AND_REGISTRY.md). Les mondes historiques restent épinglés aux octets exacts de leurs règles ; aucune migration silencieuse n'est autorisée. La validation d'une PR ne vaut pas recette de production.
+
+## Laboratoire local trois jeux (G08)
+[Installation locale privée avec Docker Compose, comptes de démonstration et worker](docs/G08-LOCAL-PLAYTEST.md). Cette configuration n'est pas destinée à la production.

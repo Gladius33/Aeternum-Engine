@@ -1,0 +1,16 @@
+.git
+**/node_modules
+vendor
+public/client-dist
+.env
+.env.*
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.log
+backups
+browser-captures
+test-results

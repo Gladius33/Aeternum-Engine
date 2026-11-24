@@ -43,3 +43,20 @@ html[data-game-presentation=play] #world-scene{margin:.5rem 0}
 .game-ui-stage .scene-district{box-shadow:0 5px 20px #0007,inset 0 0 15px #0004}
 @media(max-width:1100px){.game-ui-layout{grid-template-columns:minmax(100px,125px) minmax(0,1fr)}}
 @media(max-width:640px){.game-ui-layout{grid-template-columns:1fr}#world-scene .game-ui-nav-button span{font-size:.7rem}}
+
+/* G08: scene-first layout. Classic mode retains the complete reference client. */
+html[data-game-presentation=play] #world-scene [data-workspace-panel]{display:none}
+html[data-game-presentation=play] #world-scene[data-workspace=holdings] [data-workspace-panel=holdings],
+html[data-game-presentation=play] #world-scene[data-workspace=construction] [data-workspace-panel=construction],
+html[data-game-presentation=play] #world-scene[data-workspace=reserves] [data-workspace-panel=reserves],
+html[data-game-presentation=play] #world-scene[data-workspace=objectives] [data-workspace-panel=objectives],
+html[data-game-presentation=play] #world-scene[data-workspace=market] [data-workspace-panel=market],
+html[data-game-presentation=play] #world-scene[data-workspace=activity] [data-workspace-panel=activity]{display:revert}
+html[data-game-presentation=play] #world-scene[data-workspace=holdings] .scene-holdings{display:grid}
+html[data-game-presentation=play] #world-scene .scene-workspace{grid-template-columns:minmax(0,1fr)}
+html[data-game-presentation=play] #world-scene:is([data-workspace=domain],[data-workspace=atlas]) .game-ui-lower{display:none}
+html[data-game-presentation=play] #world-scene .scene-resource-strip{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+html[data-game-presentation=play] #world-scene .game-ui-layout{grid-template-columns:132px minmax(0,1fr) 190px}
+html[data-game-presentation=play] #world-scene .game-ui-side .scene-toolbar{gap:.18rem}
+@media(max-width:1000px){html[data-game-presentation=play] #world-scene .game-ui-layout{grid-template-columns:100px minmax(0,1fr)}}
+@media(max-width:640px){html[data-game-presentation=play] #world-scene .game-ui-layout{grid-template-columns:1fr}html[data-game-presentation=play] #world-scene .scene-resource-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}

@@ -1,0 +1,44 @@
+name: G08 private local playtest
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build isolated stack and real browser
+        run: |
+          docker compose -f compose.lab.yml up -d --build
+          npm install --no-save --package-lock=false @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+          for n in {1..60}; do
+            if curl -kfSs https://127.0.0.1:8443/play.html >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -kfSs https://127.0.0.1:8443/play.html >/dev/null
+      - name: Three actual game domains with independent automatic worker
+        run: npx playwright test tests/browser/local-lab.spec.cjs --workers=1 --reporter=github,line
+      - name: Preserve graphical evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g08-local-game-screenshots
+          path: browser-captures/*.png
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Stop isolated stack
+        if: always()
+        run: |
+          docker compose -f compose.lab.yml logs --tail=40
+          docker compose -f compose.lab.yml down -v
