@@ -79,7 +79,7 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 .library-copy{display:grid;gap:.55rem;padding:1.15rem;flex:1}
 .library-copy small{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:#c7ae79}
 .library-copy strong{font:600 clamp(1.2rem,2.2vw,1.7rem) Georgia,serif}
-.library-copy p{font-size:.88rem;line-height:1.5;color:#d5e0e0;margin:0 0 .4rem}
+.library-description{font-size:.88rem;line-height:1.5;color:#d5e0e0;margin:0 0 .4rem}
 .library-cta{display:block;margin-top:auto;padding:.65rem .8rem;border:1px solid #c7ae79;border-radius:6px;color:#f1d69f;text-align:center;font-weight:600}
 .library-card[aria-pressed=true] .library-cta{background:#e6c582;color:#18272c}
 .library-profiles{display:flex;gap:.5rem;margin:.5rem 0}
@@ -113,5 +113,11 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 #world-scene .scene-first-mission button{background:var(--ui-accent);color:#192628;border:0;font-weight:700}
 .player-first.in-game #world-scene .scene-reference-optional{display:none}
 @media(max-width:1050px){.player-first.in-game #world-scene .game-ui-layout{grid-template-columns:110px minmax(0,1fr)}}
-@media(max-width:640px){.game-library-grid{grid-template-columns:1fr}.library-card{flex-direction:row;align-items:stretch}.library-art{width:40%;aspect-ratio:auto;align-self:stretch}.library-art svg{object-fit:cover;height:100%}.library-copy{padding:.75rem}.library-copy strong{font-size:1.15rem}.library-copy p{font-size:.78rem}.player-first.in-game #world-scene .game-ui-layout{grid-template-columns:1fr}.player-first.in-game #world-scene .game-ui-nav-button{padding:.35rem .15rem;font-size:.72rem}.player-first.in-game #world-scene .scene-catalogue{grid-template-columns:repeat(2,minmax(0,1fr))}.player-first.in-game #world-scene .scene-catalogue-card svg{height:95px}}
+@media(max-width:640px){.game-library-grid{grid-template-columns:1fr}.library-card{flex-direction:row;align-items:stretch}.library-art{width:40%;aspect-ratio:auto;align-self:stretch}.library-art svg{object-fit:cover;height:100%}.library-copy{padding:.75rem}.library-copy strong{font-size:1.15rem}.library-description{font-size:.78rem}.player-first.in-game #world-scene .game-ui-layout{grid-template-columns:1fr}.player-first.in-game #world-scene .game-ui-nav-button{padding:.35rem .15rem;font-size:.72rem}.player-first.in-game #world-scene .scene-catalogue{grid-template-columns:repeat(2,minmax(0,1fr))}.player-first.in-game #world-scene .scene-catalogue-card svg{height:95px}}
 @media(prefers-reduced-motion:reduce){.library-card{transition:none}.library-card:hover{transform:none}}
+
+.player-first:not(.in-game) .player-nav,.player-first:not(.in-game) .player-guide{display:none}
+.player-first.in-game.library-chosen #world-scene .game-ui-diagnostic,.player-first.in-game.library-chosen #game>.game-ui-legacy:not([open]){display:none}
+.player-first.in-game.library-chosen #world-scene .game-ui-selectors label:has([data-game-context=resource]){display:none}
+.player-first.in-game.library-chosen #world-scene .game-ui-context{justify-content:flex-end}
+.player-first.in-game.library-chosen #world-scene .scene-bot-roster{order:9}
