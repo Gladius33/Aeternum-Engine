@@ -24,6 +24,11 @@ final class PdoEconomicStore
         $this->pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES,false);
     }
 
+    public function principalId():string
+    {
+        return $this->principal->actorId();
+    }
+
     /** Trusted administrative initialization only. */
     public function seed(WorldEconomicSimulation $simulation):void
     {
