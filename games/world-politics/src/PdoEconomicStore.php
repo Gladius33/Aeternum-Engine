@@ -46,7 +46,12 @@ final class PdoEconomicStore
     /** Trusted administrative initialization only. */
     public function seed(WorldEconomicSimulation $simulation):void
     {
-        $snapshot=$simulation->snapshot();
+         $this->pdo->beginTransaction();
+        try {
+            WorldMutationFence::admit(
+                $this->pdo,$snapshot['world_id'],$this->principal->actorId(),'bootstrap'
+            );
+       $snapshot=$simulation->snapshot();
         $verified=WorldEconomicSimulation::fromSnapshot(
             $snapshot,$this->actors,$this->references
         );
@@ -57,6 +62,11 @@ final class PdoEconomicStore
             $snapshot['world_id'],self::json($snapshot),$verified->hash(),
             $this->references->hash(),$this->actors->hash()
         ]);
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
     }
 
     /** @return array{state:array<string,mixed>,etag:string,revision:int} */

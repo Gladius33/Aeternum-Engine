@@ -28,13 +28,23 @@ final class PdoPoliticalStore
     /** Trusted administrative bootstrap only; reject existing worlds. */
     public function seed(PoliticalRoster $roster): void
     {
-        $snapshot=$roster->snapshot();
+         $this->pdo->beginTransaction();
+        try {
+            WorldMutationFence::admit(
+                $this->pdo,$roster->worldId,$this->authorizer->actorId(),'bootstrap'
+            );
+       $snapshot=$roster->snapshot();
         $statement=$this->pdo->prepare(
             'INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)'
         );
         $statement->execute([
             $roster->worldId,$roster->countryCode,self::encode($snapshot),$roster->snapshotHash()
         ]);
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
     }
 
     /** @return array{state:array<string,mixed>,etag:string,revision:int} */

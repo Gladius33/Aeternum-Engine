@@ -37,7 +37,12 @@ final class PdoDiplomaticStore
     /** Trusted scenario bootstrap, not a player command. */
     public function seed(DiplomaticSimulation $sim):void
     {
-        $snapshot=$sim->snapshot();
+         $this->pdo->beginTransaction();
+        try {
+            WorldMutationFence::admit(
+                $this->pdo,$snapshot['world_id'],$this->principal->actorId(),'bootstrap'
+            );
+       $snapshot=$sim->snapshot();
         if (!hash_equals($snapshot['actors_sha'],$this->actors->hash())) {
             throw new \DomainException('Pinned geopolitical registry mismatch');
         }
@@ -47,6 +52,11 @@ final class PdoDiplomaticStore
         $stmt->execute([
             $snapshot['world_id'],self::json($snapshot),$sim->hash(),$this->actors->hash()
         ]);
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
     }
 
     /** @return array{state:array<string,mixed>,etag:string,revision:int} */

@@ -49,6 +49,9 @@ final class PdoFrenchSocialStore
         }
         $this->pdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->pdo,$world,$this->principal->actorId(),'bootstrap'
+            );
             $snapshot=$social->snapshot();
             if ($snapshot['history']!==[]) {
                 throw new \DomainException('Seed must start without historical social reports');

@@ -36,7 +36,12 @@ final class PdoFrenchConstitutionalStore
 
     public function seed(FrenchConstitutionalCrisis $sim):void
     {
-        $state=$sim->snapshot();
+         $this->pdo->beginTransaction();
+        try {
+            WorldMutationFence::admit(
+                $this->pdo,$state['world_id'],$this->principal->actorId(),'bootstrap'
+            );
+       $state=$sim->snapshot();
         $this->assertCalendarIdentity($state['world_id']);
         $this->pdo->prepare(
             'INSERT INTO wp_fr_constitutional_states
@@ -46,6 +51,11 @@ final class PdoFrenchConstitutionalStore
             $state['world_id'],self::json($state),$sim->hash(),
             $this->sittingCalendar===null?0:1
         ]);
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
     }
 
     /** @return array{state:array<string,mixed>,etag:string,revision:int} */
