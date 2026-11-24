@@ -143,7 +143,7 @@ final class WorldPoliticsApi
                 $person = PoliticalProfileTemplate::normalizeFictional($draft, $country);
                 $roster->addPerson($person);
                 $status = 201;
-                $result = ['person_id' => $payload['id']];
+                $result = ['person_id' => $person['id']];
             } elseif ($ability === 'initialize_scenario') {
                 self::exactFields($payload, ['person_id']);
                 $roster->setHeadOfState(self::str($payload['person_id']));
