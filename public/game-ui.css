@@ -129,3 +129,29 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 .player-first.in-game.library-chosen .scene-hud .scene-stat[data-stat=stock],.player-first.in-game.library-chosen .scene-hud .scene-stat[data-stat=yield],.player-first.in-game.library-chosen .scene-hud .scene-stat[data-stat=interval]{display:none}
 .player-first.in-game.library-chosen .game-ui-side .scene-toolbar button:is([data-label=build],[data-label=production],[data-label=trade]){display:none}
 @media(max-width:640px){.player-first.in-game #world-scene .game-ui-introduction .scene-first-mission{grid-template-columns:1fr;gap:.25rem}.game-ui-introduction .scene-first-mission button{grid-column:1;grid-row:auto;max-width:none;width:100%}}
+
+/* G10 visual inspection: compact launcher and a scene-first playfield.
+   The old controls are still available via the explicit classic client. */
+.player-first:not(.in-game)>.locale-switch{display:flex;align-items:center;gap:.8rem;max-width:15rem}
+.player-first:not(.in-game)>.locale-switch label{white-space:nowrap}
+.player-first:not(.in-game) #recover{max-width:420px}
+.player-first:not(.in-game) #recover:not([hidden]){margin-top:.5rem}
+.library-description{display:block;line-height:1.5;color:#d5e0e0}
+.player-first.in-game.library-chosen #world-scene .game-ui-layout{grid-template-columns:minmax(100px,130px) minmax(0,1fr) minmax(165px,190px)}
+.player-first.in-game.library-chosen #world-scene .game-ui-stage>.scene-toolbar{display:none}
+.player-first.in-game.library-chosen #world-scene[data-workspace=atlas] .game-ui-stage>.scene-toolbar{display:flex}
+.player-first.in-game.library-chosen #world-scene .game-ui-stage>.scene-caption:not(:first-of-type){display:none}
+.player-first.in-game.library-chosen #world-scene .scene-reading[data-stale=false]{display:none}
+.player-first.in-game.library-chosen #world-scene .scene-district-bar button[data-label=atlasView],.player-first.in-game.library-chosen #world-scene .scene-district-bar button[data-label=district]{display:none}
+.player-first.in-game.library-chosen #world-scene .scene-district-bar{margin:.2rem 0 .4rem}
+.player-first.in-game.library-chosen #world-scene .scene-district-bar .scene-button{padding:.4rem .65rem;min-height:38px;font-size:.78rem}
+.player-first.in-game.library-chosen #world-scene .scene-hud{margin:.2rem 0;gap:.3rem}
+.player-first.in-game.library-chosen #world-scene .scene-stat{padding:.35rem .6rem}
+.player-first.in-game.library-chosen #world-scene .scene-hud .scene-bot-roster{background:none;padding:.15rem .5rem;border-color:#ffffff20}
+.player-first.in-game.library-chosen #world-scene .game-ui-status:empty{display:none}
+.player-first.in-game.library-chosen #world-scene .scene-inspector:has(.scene-selection:empty){display:none}
+.player-first.in-game.library-chosen #world-scene .scene-district{background:#23382e}
+.player-first.in-game.library-chosen #world-scene .scene-catalogue-card[aria-pressed=true]{outline:2px solid var(--ui-accent);background:var(--ui-surface)}
+.player-first.in-game.library-chosen #world-scene [data-label=place],.player-first.in-game.library-chosen #world-scene [data-label=startStage]{background:var(--ui-accent);color:#172529;font-weight:700;border:0}
+@media(max-width:1000px){.player-first.in-game.library-chosen #world-scene .game-ui-layout{grid-template-columns:minmax(90px,112px) minmax(0,1fr)}}
+@media(max-width:640px){.player-first.in-game.library-chosen #world-scene .game-ui-layout{grid-template-columns:1fr}.player-first.in-game.library-chosen #world-scene .scene-district{aspect-ratio:360/490}.player-first.in-game.library-chosen #world-scene .game-ui-stage{grid-row:1}.player-first.in-game.library-chosen #world-scene .game-ui-nav{grid-row:2}.player-first.in-game.library-chosen #world-scene .game-ui-side{grid-row:3}}
