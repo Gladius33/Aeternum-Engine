@@ -1409,7 +1409,7 @@
         if(economicJournal.record(d,context)){lastEconomicEvent={id:d.id,type:d.type};selectedOperationId=d.id;}
         if(d.type==='building.place')referenceInput.value='';campaignStale=true;rankReading=null;reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load]'))b.disabled=false;}});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();renderSound();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load]'))b.disabled=false;}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();if(!classic&&!districtMode&&selected?.type==='territory')centerAtlas(selected.id);});
     document.getElementById('map-location').addEventListener('input',updateSelection);

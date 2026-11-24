@@ -9,7 +9,9 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
         try{
             const page=await context.newPage();
             const artResponse=page.waitForResponse(r=>r.url()===origin+'/living-art.js');
+            const audioResponse=page.waitForResponse(r=>r.url()===origin+'/game-audio.js');
             await page.goto(origin+'/play.html');
+            expect((await audioResponse).status()).toBe(200);
             expect((await artResponse).status(),'G13 asset must be served by the actual lab image').toBe(200);
             await expect.poll(()=>page.evaluate(()=>typeof window.AeternumLivingArt?.site)).toBe('function');
             await expect(page.locator('[data-choose-game]')).toHaveCount(3);
@@ -38,6 +40,29 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('[data-bot-name]')).toHaveCount(10);
             await page.locator('[data-bot-count="10"]').click();
             await expect(page.locator('#game-library')).toBeHidden();
+            // G20: real Web Audio requires a player gesture, and the mixer
+            // is purely client-side; it cannot submit economic commands.
+            const sound=page.locator('.sound-panel');
+            await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+            await expect(sound).toHaveAttribute('data-audio-enabled','false');
+            await sound.locator('summary').click();
+            let audioCommands=0;
+            const audioRequest=r=>{if(r.method()==='POST'&&r.url().includes('/economy/commands'))audioCommands++;};
+            page.on('request',audioRequest);
+            try{
+                await sound.locator('[data-audio-toggle]').click();
+                await expect(sound).toHaveAttribute('data-audio-enabled','true',{timeout:10000});
+                await sound.locator('[data-audio-volume=music]').fill('20');
+                await expect(sound.locator('[data-audio-volume=music]')).toHaveValue('20');
+                await sound.locator('[data-audio-volume=ambience]').fill('0');
+                await expect(sound.locator('[data-audio-volume=ambience]')).toHaveValue('0');
+                await sound.locator('[data-audio-volume=effects]').fill('85');
+                await expect(sound.locator('[data-audio-volume=effects]')).toHaveValue('85');
+                await sound.locator('[data-audio-toggle]').click();
+                await expect(sound).toHaveAttribute('data-audio-enabled','false');
+                expect(audioCommands).toBe(0);
+            }finally{page.off('request',audioRequest);}
+            await sound.locator('summary').click();
             await expect(page.locator('[data-mission-step=place]')).toBeVisible();
             await expect(page.locator('#world-scene .game-ui-stage > .scene-toolbar')).toBeHidden();
             await expect(page.locator('#world-scene [data-landscape='+pack+']')).toBeAttached();
