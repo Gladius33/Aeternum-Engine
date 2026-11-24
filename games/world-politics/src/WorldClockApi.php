@@ -63,7 +63,11 @@ final class WorldClockApi
             if ($reason==='No world clock') return self::problem(404,'not_found');
             if ($reason==='Trusted world clock service required'
                 || $reason==='Mismatch between clock and verified domain principals') {
-                return self::problem(403,'forbidden');
+                // Conceal inaccessible world identifiers on read, without
+                // weakening the explicit denial of privileged POST actions.
+                return $method==='GET'
+                    ? self::problem(404,'not_found')
+                    : self::problem(403,'forbidden');
             }
             if ($reason==='Stale world clock precondition') {
                 return self::problem(412,'stale_precondition');
