@@ -1,96 +1,129 @@
-# World Politics — HEADLESS BACKEND & REST API CONTRACT (24 November 2026)
+# World Politics — back-end exclusivement, contrat REST (24 novembre 2026)
 
-## Binding scope (NO UI)
+## Règles de séparation, sans exception
 
-**Only backend development is authorized for now.** Aeternum Engine is a
-theme-neutral engine whose frontend templates are actively changing. World
-Politics must not depend on, import, style or modify its existing client or
-templates. No Vue, HTML, image asset, CSS, screenshot, or browser E2E work for
-World Politics until the user approves integration with the eventual generic
-template system.
+- World Politics est un **jeu distinct**, Aeternum est un moteur de jeux générique.
+- **NE JAMAIS fusionner le jeu ni cette branche dans main d'Aeternum.**
+- La branche du jeu n'est qu'un espace provisoire jusqu'à son dépôt dédié.
+- **Aucun graphique**, aucune interface Vue/HTML/CSS, aucune dépendance aux
+  templates génériques d'Aeternum tant qu'ils ne sont pas stabilisés.
+- Le navigateur, Android, iOS et un éventuel logiciel de bureau consommeront
+  la **même API RESTful JSON versionnée**, sans règles métier dans les clients.
 
-World Politics remains in an **isolated game branch**; **NEVER MERGE INTO
-AETERNUM MAIN**. The game will move to its own repository. The reusable engine
-will later be an explicitly pinned dependency or integration boundary.
+## Travail réellement présent dans la branche
 
-## Client-independent architecture
+| Domaine | Implémentation |
+| --- | --- |
+| Profils politiques | PoliticalRoster.php |
+| Création rapide / détaillée (formulaire décrit en JSON) | PoliticalProfileTemplate.php |
+| Contrat API en mémoire, pour comparaison | WorldPoliticsApi.php |
+| Stockage MariaDB / InnoDB transactionnel | PdoPoliticalStore.php |
+| REST adossé à MariaDB, transport non exposé | PdoWorldPoliticsApi.php |
+| Migration SQL du jeu, indépendante du noyau | games/world-politics/database/001_rosters.sql |
+| Contrat OpenAPI 3.1 | games/world-politics/api/openapi.yaml |
+| Tests PHP et MariaDB | tests/wp01-*.php à tests/wp04-rest-db.php |
 
-Web, Android/iOS and possible desktop clients will all use the **same**
-versioned RESTful service, with HTTPS + JSON and independent authentication.
+Les profils de la base de code actuelle sont des **fixtures synthétiques**.
+Aucun import réel de personnalités politiques, aucun calcul économique et
+aucune IA politique n'ont été intégrés à ce stade.
 
-- Domain: nation, identity, government, parliament, constitution, policies,
-  public finances, population, defence, diplomacy, international
-  organizations, religion, civil society and strategic political events.
-- Reference datasets: immutable versioned observations with source URL,
-  publication date, observation date, unit, licenses, coverage and quality;
-  never silently mutate ongoing campaigns.
-- Simulation: signed-off ruleset version, world-scoped actor commands, pending
-  events, deterministic order, idempotency and replayable receipts.
-- AI: autonomous actor plans use the same server-authorized command boundary
-  and world rules as humans, never privileged SQL state mutation.
-- Transport: REST resource representations (JSON), HTTP method/status
-  semantics, pagination, schema/version compatibility, error contract and
-  idempotency. An optional event feed can be added later without introducing
-  gameplay logic into clients.
-- Persistence: transactional InnoDB world state, journal and outbox, plus
-  read projections and source registry. *Not yet implemented for this game*.
-- Security: server-authenticated principals, per-world/country/office policy,
-  no client-declared role authority, rate limits, input bounds and audit.
-  Mobile/public browser tokens must not silently gain administrative rights.
+## Éditeur de personnages pour les futurs clients
 
-## Current WP01 prototype: in-memory contract adapter ONLY
+Le serveur publie une spécification de champs pour que les interfaces
+mobile, bureau et navigateur puissent être construites **plus tard** sans
+dupliquer les règles de validation.
 
-The isolated classes:
-- \`games/world-politics/src/PoliticalRoster.php\` (pure domain),
-- \`games/world-politics/src/WorldPoliticsApi.php\` (transport-neutral REST contract).
+- Mode **rapide** : seul le **nom** est nécessaire ; le serveur produit un
+  identifiant stable associé à l'acteur, au monde et à la commande.
+- Mode **détaillé** : les mêmes rubriques qu'une fiche biographique réelle :
+  présentation, date et lieu de naissance, études, diplômes, parcours
+  professionnel, fonctions publiques, parti, courant revendiqué, mandats,
+  expertise, langues, priorités et mesures programmatiques.
+- Toutes les rubriques autres que le nom sont **facultatives**.
+- L'avatar est, pour cette première version, **toujours** \`generic-v1\`.
+  Aucune image n'est chargée ni générée par le back-end.
+- Les profils réels sont importables uniquement par une filière de curation
+  de confiance, avec dates et sources vérifiables. Un client ne peut pas
+  déclarer son personnage fictif comme étant une personne réelle.
+- Les propositions et les biographies fictives ne deviennent jamais des
+  déclarations authentiques d'une personnalité réelle.
 
-REST-shaped endpoints defined in the prototype:
+### Métadonnées pour les formulaires
 
-| Method | Endpoint | Purpose | Privilege |
-| --- | --- | --- | --- |
-| GET | /api/v1/worlds/{world}/countries/{ISO2}/politics | Read a national roster and cabinet snapshot | read |
-| GET | /api/v1/worlds/{world}/countries/{ISO2}/politics/people/{id} | Read one political person | read |
-| POST | /api/v1/worlds/{world}/countries/{ISO2}/politics/people | Register **fictional** person only | create_fictional_person |
-| POST | /api/v1/worlds/{world}/countries/{ISO2}/politics/head-of-state | Initialize an alternate presidency | initialize_scenario |
-| POST | /api/v1/worlds/{world}/countries/{ISO2}/politics/nominations | Propose an appointment | nominate |
-| POST | /api/v1/worlds/{world}/countries/{ISO2}/politics/nominations/{office}/resolution | Resolve a proposal | resolve_nomination |
+\`GET /api/v1/worlds/{world}/countries/{ISO2}/politics/person-template\`
 
-The endpoint method is intended to be called by a future trusted HTTP
-adapter; **it is not a public route or running HTTP service**. The
-\`PoliticsAuthorizer\` interface is supplied by trusted server-side session
-admission. Each POST requires \`Idempotency-Key\` and matching \`If-Match\`
-from the last GET/POST ETag. This prototype uses *process-local*
-idempotency receipts and in-memory state, NOT crash-safe durable receipts.
+Cette ressource fournit un contrat décrivant deux modes de saisie, des
+sections, des contraintes et des libellés français. **Ce n'est pas un
+formulaire HTML** ; les clients en feront ce qu'ils veulent ultérieurement.
 
-Unapproved real-world profiles cannot be injected by a public client.
-Approved real-world datasets must use a separate trusted curation pipeline.
+### Exemple de création immédiate
 
-Errors use JSON problem responses with stable codes. A read-denied world is
-concealed as 404, while a forbidden mutation returns 403. Commands must be
-re-authorized inside the eventual durable transaction, not merely by the
-transport adapter.
+\`POST /api/v1/worlds/{world}/countries/FR/politics/people\`
 
-## Important limitations and acceptance blockers
+\`\`\`json
+{"name":"Camille Moreau","mode":"quick"}
+\`\`\`
 
-- No persisted state, official Aeternum command journal or worker.
-- No live HTTP server, no token parsing/auth provider, no rate-limits.
-- No actual country-specific nomination-law enforcement.
-- No real-world personality import or macroeconomic simulation.
-- No production authorization proof, backup/restore or concurrency tests.
-- No frontend, no mobile client, no generic engine UI adapter.
+Un programme détaillé peut être fourni dès la création, ou laissé vide.
+Une fonctionnalité d'édition ultérieure, réservée au créateur authentifié,
+reste à développer : le modèle actuel ne doit pas laisser un autre joueur
+modifier un personnage fictif existant.
 
-**Do not deploy this prototype** or claim that its API is production-ready.
+### Autres endpoints
 
-## Next backend-only milestones
+- GET national roster et GET fiche \`/people/{id}\`;
+- POST initialisation d'une présidence alternative ;
+- POST nomination proposée ;
+- POST résolution (acceptation/refus) de la nomination.
 
-1. Transactional SQL repositories, world/country/actor ownership, persistent
-   scoped idempotency receipts and append-only event/audit journal.
-2. Trusted auth session bridge and write admission under InnoDB locks,
-   verified cross-world isolation, rate limits and safe error handling.
-3. Source registries & importers with immutable snapshots and provenance.
-4. Country-specific constitutional action policies and government nomination
-   workflow, conflict/rejection and deterministic time.
-5. Government/political-party AI that submits ordinary authorized commands.
-6. Full MariaDB and REST integration tests, property/concurrency/fault tests,
-   CI proofs, OpenAPI 3.1 schemas and version-compatibility fixtures.
-7. Client-facing graphical integration **only with explicit future approval**.
+Tous les POST utilisent \`Idempotency-Key\` et \`If-Match\` (ETag fort).
+Le stockage durable verrouille la ligne nationale, revalide l'autorisation
+de l'acteur fourni côté serveur, conserve l'état, les reçus de commande et
+les événements append-only dans **une seule transaction**.
+Les accusés de réception restent disponibles après reconnexion ou reprise
+du processus. Les tests négatifs couvrent les divergences d'état et les
+accès intermondes.
+
+## Ne pas exposer en production pour le moment
+
+Le service REST durable est un **adaptateur applicatif**, non un point
+d'entrée HTTP actif. Il n'implémente ni validation de véritables jetons,
+ni contrôles de sessions Aeternum, ni politiques constitutionnelles
+nationales, ni limitation des requêtes, ni autorisation fine de propriété
+des personnages. L'identité et les autorisations du \`PoliticsAuthorizer\`
+proviennent encore d'un composant injectable pour les tests.
+
+Une mise en production nécessite d'abord un adaptateur d'authentification
+fiable, l'autorisation des fonctions/nomination, les sauvegardes et
+migrations, le contrôle de charge, le rejeu d'événements et des tests de
+concurrence multi-acteurs.
+
+Le prototype historique \`WorldPoliticsApi.php\` reste **en mémoire**
+et ne doit pas être confondu avec \`PdoWorldPoliticsApi.php\`.
+
+## Validation continue
+
+Le workflow \`.github/workflows/world-politics.yml\` exécute :
+- les régressions de domaine et du contrat REST ;
+- les profils rapides/détaillés et tests de provenance ;
+- une véritable MariaDB isolée avec transactions, reprise, journal,
+  conflits, contrôle d'accès et appels API de bout en bout.
+
+Le passage en CI ne constitue **pas** une homologation de production ni
+une autorisation de fusion dans le moteur générique.
+
+## Étapes suivantes — exclusivement back-end
+
+1. Distinguer définitivement \`person_id\` et identité de compte ;
+   rattacher et autoriser les créations/modifications de profils fictifs.
+2. Intégrer l'authentification/les capacités de jeu d'Aeternum à travers
+   un adaptateur stable, sans importer le frontend.
+3. Importer les données publiques réelles, historisées, avec provenance,
+   autorisations de réutilisation et versions de scénario immuables.
+4. Formaliser les constitutions nationales, nominations, votes et crises
+   institutionnelles dans le moteur d'événements versionné.
+5. Économie, défense, conscription, mobilisation, alliances, diplomatie,
+   religions et IA gouvernementales respectant les commandes autorisées.
+6. Tests avancés de replay, de concurrence et de charge avant tout client.
+
+Consulter \`docs/WORLD_POLITICS.md\` pour le périmètre de serious game.
