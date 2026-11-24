@@ -62,6 +62,8 @@ jobs:
         run: php tests/wp05-institutions.php
       - name: France Article 49.3 legal workflow WP19
         run: php tests/wp19-france-49-3.php
+      - name: France Article 49.1 confidence and 49.2 spontaneous censure WP22
+        run: php tests/wp22-france-49-1-49-2.php
       - name: Sectoral social and economic reaction WP20
         run: php tests/wp20-france-social.php
 
