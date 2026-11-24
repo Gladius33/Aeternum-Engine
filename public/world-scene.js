@@ -925,12 +925,24 @@
         constructionPoll=setTimeout(async()=>{
             constructionPoll=null;
             if(rootGame.hidden||document.hidden)return;
-            if(!busy)await run(async()=>{await readStages();await readInventory();if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();});
-            scheduleConstructionPoll();
+            try{
+                if(!busy)await run(async()=>{
+                    await readStages();
+                    // Avoid repeatedly fetching every reserve and campaign
+                    // while nothing changed. Refresh them once completion is
+                    // observed from the authoritative progression endpoint.
+                    if(![...details.values()].some(d=>d.pending!=null)){
+                        await readInventory();
+                        if(theme==='medieval')await reviewMedieval();
+                        else if(theme==='industrial')await reviewIndustrial();
+                    }
+                });
+            }finally{scheduleConstructionPoll();}
         },5000);
     }
     on('building',scheduleConstructionPoll);on('reset',scheduleConstructionPoll);
     on('context',scheduleConstructionPoll);
+    on('activity',d=>{if(!d.busy)scheduleConstructionPoll();});
     document.addEventListener('visibilitychange',scheduleConstructionPoll);
     refreshShell();render();
 })();
