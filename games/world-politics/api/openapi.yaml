@@ -21,6 +21,8 @@ tags:
     description: Provenance-aware economic reference and hypothetical effects
   - name: WorldClock
     description: Authoritative resumable coordination of simulated world day
+  - name: FrenchConstitution
+    description: France Article 49(3), parliamentary censure and Article 50, modelled separately from regime collapse
 paths:
   /worlds/{world}/diplomacy:
     get:
@@ -860,6 +862,171 @@ paths:
         '422': { $ref: '#/components/responses/invalid' }
         '428': { $ref: '#/components/responses/missingPrecondition' }
 
+  /worlds/{world}/france/constitution:
+    get:
+      operationId: readFrenchConstitutionalScenario
+      tags: [FrenchConstitution]
+      description: Read parliamentary session, legal 49.3 acts, motions and government responsibility.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Verified and journaled game constitutional aggregate
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/constitution/engagements:
+    post:
+      operationId: engageFrenchGovernmentResponsibility49_3
+      tags: [FrenchConstitution]
+      description: >
+        The verified prime minister may engage responsibility after proven
+        Council of Ministers deliberation. Finance/social-finance exempt from
+        the one ordinary text per session limitation. Bill classification,
+        office and timestamp are verified by the server.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [bill_id, category, at]
+              properties:
+                bill_id: { $ref: '#/components/schemas/Identifier' }
+                category:
+                  type: string
+                  enum: [finance, social_security_finance, ordinary]
+                at: { type: string, format: date-time }
+      responses:
+        '202': { description: Responsibility engaged, opens exact 24-hour censure filing window }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/motions:
+    post:
+      operationId: fileFrenchGovernmentCensure
+      tags: [FrenchConstitution]
+      description: >
+        Actual verified parliamentary signatures, at least one tenth of all
+        Assembly members, are obtained from the server clerk, never from JSON.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [motion_id, at]
+              properties:
+                motion_id: { $ref: '#/components/schemas/Identifier' }
+                at: { type: string, format: date-time }
+      responses:
+        '202': { description: Properly signed motion filed during constitutional period }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/motions/{motionId}/votes:
+    post:
+      operationId: voteFrenchGovernmentCensure
+      tags: [FrenchConstitution]
+      description: >
+        The verified roll call may be voted 48 hours or more after filing.
+        Only yes votes count. Absolute majority of Assembly members triggers
+        Article 50 government resignation, not French regime change.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/motionId'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [at]
+              properties:
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Censure vote recorded; possible Article 50 resignation obligation }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/clock:
+    post:
+      operationId: advanceFrenchParliamentaryProcedure
+      tags: [FrenchConstitution]
+      description: >
+        Trusted constitutional scheduler. Closes 24-hour filing windows; any
+        pending censure ballot stays pending until a verified vote occurs.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [at]
+              properties:
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Legal parliamentary deadlines advanced }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/sessions:
+    post:
+      operationId: openFrenchParliamentarySession
+      tags: [FrenchConstitution]
+      description: >
+        Trusted parliamentary calendar only. A new session refreshes ordinary
+        49.3 quota, but does not appoint a replacement government.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [session_id, at]
+              properties:
+                session_id: { $ref: '#/components/schemas/Identifier' }
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Session rollover with parliamentary quota reset }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -867,6 +1034,11 @@ components:
       scheme: bearer
       description: Authentication gateway reserved; no production token verifier implemented.
   parameters:
+    motionId:
+      name: motionId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
     policyId:
       name: policyId
       in: path
