@@ -42,6 +42,8 @@
     Object.assign(locales.fr,{collect:'Récolter la production',upgradeResource:'Améliorer la production',resourceLevel:'Niveau de production',selectResource:'Sélectionner la ressource',unknownStock:'Lire la réserve',maxLevel:'Niveau maximal',refreshReserves:'Actualiser les réserves',pendingUpgrade:'Amélioration en cours',lastKnown:'Dernier relevé',confirmedAction:'Action confirmée',terrainDetail:'Paysage illustré'});
     Object.assign(locales.en,{districtZoomIn:'Zoom domain in',districtZoomOut:'Zoom domain out',districtReset:'Reset domain camera',cameraHelp:'Drag empty terrain to pan; use +, −, arrows or Home with the map focused.',chooseBuild:'Choose construction plot',recentAction:'Latest confirmed activity',showBuild:'Open construction catalogue'});
     Object.assign(locales.fr,{districtZoomIn:'Agrandir le domaine',districtZoomOut:'Réduire le domaine',districtReset:'Recentrer le domaine',cameraHelp:'Glissez sur le terrain pour déplacer la vue ; utilisez +, −, les flèches ou Début lorsque la carte est sélectionnée.',chooseBuild:'Choisir la parcelle',recentAction:'Dernière activité confirmée',showBuild:'Ouvrir le catalogue'});
+    Object.assign(locales.en,{botOpponents:'Automated opponents',botReady:'Ready',botActive:'Active',botBlocked:'Blocked',botIdle:'Idle',botRefresh:'Refresh opponents',botBuilt:'Built structures',botBuilder:'Builder',botProducer:'Producer',botMerchant:'Merchant',botBalanced:'Balanced',botStale:'Last report is stale'});
+    Object.assign(locales.fr,{botOpponents:'Adversaires automatisés',botReady:'Prêt',botActive:'Actif',botBlocked:'Bloqué',botIdle:'En attente',botRefresh:'Actualiser les adversaires',botBuilt:'Bâtiments achevés',botBuilder:'Bâtisseur',botProducer:'Producteur',botMerchant:'Marchand',botBalanced:'Équilibré',botStale:'Dernier relevé ancien'});
     const lang=()=>document.getElementById('locale-select').value==='fr'?'fr':'en';
     const t=k=>locales[lang()][k];
     const palettes={
@@ -305,8 +307,34 @@
         const form=document.getElementById('action');
         form.elements.type.value=type;form.elements.type.dispatchEvent(new Event('change'));form.requestSubmit();
     }
+    let botReport=null,botExpanded=false;
+    async function readBotRoster(){
+        const world=locationFields().world;
+        if(!['lab-medieval','lab-industrial','lab-guild'].includes(world))return;
+        try{
+            const response=await fetch('/lab-bots/roster.json',{cache:'no-store'});
+            if(!response.ok)return;
+            const data=await response.json(),rows=data.worlds?.[world];
+            if(locationFields().world!==world||data.version!==1||!Array.isArray(rows)||rows.length!==10)return;
+            if(!rows.every(b=>/^Bot \d{2}$/.test(b.name)&&['builder','producer','merchant','balanced'].includes(b.profile)&&['ready','active','blocked','idle'].includes(b.status)&&Number.isSafeInteger(b.built)&&b.built>=0))return;
+            botReport={world,updatedAt:data.updatedAt,rows};renderHud();
+        }catch{/* Missing lab roster is not a gameplay error. */}
+    }
     function renderHud(){
         hud.replaceChildren();
+        if(botReport?.world===locationFields().world){
+            const roster=html('details',hud,'scene-bot-roster');roster.open=botExpanded;
+            roster.addEventListener('toggle',()=>{botExpanded=roster.open;});
+            const title=html('summary',roster,'',botReport.rows.length+' · '+t('botOpponents'));title.dataset.botCount=String(botReport.rows.length);
+            if(Date.now()/1000-botReport.updatedAt>90)html('small',roster,'',t('botStale'));
+            button(roster,'botRefresh',()=>run(readBotRoster));
+            for(const b of botReport.rows){
+                const row=html('div',roster,'scene-bot-row');row.dataset.botName=b.name;row.dataset.botStatus=b.status;row.dataset.botBuilt=String(b.built);
+                html('strong',row,'',b.name+' · '+t('bot'+b.profile[0].toUpperCase()+b.profile.slice(1)));
+                html('span',row,'',t('bot'+b.status[0].toUpperCase()+b.status.slice(1))+' · '+t('botBuilt')+': '+b.built);
+                if(b.lastAction&&actionLabels[b.lastAction])html('small',row,'',actionLabels[b.lastAction][lang()==='fr'?1:0]);
+            }
+        }
         const resourceStrip=html('div',hud,'scene-resource-strip');
         const current=locationFields().resource;
         for(const option of [...balance.elements.resource.options].slice(0,16)){
@@ -607,7 +635,7 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';receipts=[];territories.clear();buildings.clear();details.clear();links.clear();route=[];selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';receipts=[];territories.clear();buildings.clear();details.clear();links.clear();route=[];selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();route=[];selected=null;}for(const n of d.territories)territories.set(n.id,n);render();});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];render();});
@@ -683,7 +711,7 @@
         legacySummary.textContent=detailLabel;legacyLink.textContent=detailLabel;
         exit.textContent=lang()==='fr'?'Déconnexion':'Leave game';
     }
-    async function loadInitialScene(){await loadMap();await readStages();districtMode=true;render();await readInventory();if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();}
+    async function loadInitialScene(){await loadMap();await readStages();districtMode=true;render();await readInventory();if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();await readBotRoster();}
     let initialLoad=false;
     on('context',()=>{refreshShell();if(!classic)revealPanel('domain');initialLoad=!classic&&Boolean(locationFields().world);});
     on('activity',d=>{

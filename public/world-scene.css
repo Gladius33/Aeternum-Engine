@@ -110,3 +110,8 @@ main:has(#game:not([hidden])){max-width:78rem}
 .district-receipt{animation:district-receipt-in .35s ease-out;pointer-events:none}
 @keyframes district-receipt-in{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.district-receipt{animation:none}}
+
+.scene-bot-roster{grid-column:1/-1;border:1px solid #80948b66;border-radius:.4rem;padding:.4rem;background:#17272b}
+.scene-bot-roster summary{cursor:pointer;color:#e8d9ae;font-weight:600}
+.scene-bot-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.25rem;padding:.3rem;border-bottom:1px solid #ffffff20;font-size:.8rem}
+.scene-bot-row small{grid-column:1/-1;color:#b7c8bc}

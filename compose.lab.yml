@@ -30,12 +30,17 @@ services:
   init:
     <<: *runtime
     command: ['sh','lab/init.sh']
+    volumes:
+      - bot-secrets:/var/lib/aeternum-bot-secrets
+      - bot-public:/var/lib/aeternum-bot-public
     depends_on:
       db:
         condition: service_healthy
   web:
     <<: *runtime
     command: ['sh','lab/web.sh']
+    volumes:
+      - bot-public:/opt/aeternum/public/lab-bots:ro
     ports:
       - '127.0.0.1:8443:443'
     depends_on:
@@ -48,5 +53,17 @@ services:
     depends_on:
       init:
         condition: service_completed_successfully
+  bots:
+    <<: *runtime
+    command: ['php','lab/bots.php','run']
+    restart: on-failure
+    volumes:
+      - bot-secrets:/var/lib/aeternum-bot-secrets:ro
+      - bot-public:/var/lib/aeternum-bot-public
+    depends_on:
+      init:
+        condition: service_completed_successfully
 volumes:
   lab-db:
+  bot-secrets:
+  bot-public:
