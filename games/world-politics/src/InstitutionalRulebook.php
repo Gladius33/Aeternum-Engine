@@ -15,7 +15,7 @@ final class InstitutionalRulebook
     {
         return match ($country) {
             'FR' => [
-                'country'=>'FR','version'=>'fr-1958-wp05-0.1',
+                'country'=>'FR','version'=>'fr-1958-wp05-0.2',
                 'system'=>'semi_presidential_republic',
                 'head_of_state'=>'president',
                 'head_of_government'=>'prime_minister',
@@ -26,11 +26,11 @@ final class InstitutionalRulebook
                 'dissolution'=>[
                     'role'=>'president','mode'=>'consultations_required',
                     'election_min_days'=>20,'election_max_days'=>40,
-                    'no_repeat_dissolution_days'=>365,
+                    'no_repeat_after_elections_years'=>1,
                 ],
             ],
             'DE' => [
-                'country'=>'DE','version'=>'de-gg-wp05-0.1',
+                'country'=>'DE','version'=>'de-gg-wp05-0.2',
                 'system'=>'federal_parliamentary_republic',
                 'head_of_state'=>'federal_president',
                 'head_of_government'=>'federal_chancellor',
@@ -41,7 +41,7 @@ final class InstitutionalRulebook
                 'dissolution'=>['mode'=>'conditional_unimplemented'],
             ],
             'US' => [
-                'country'=>'US','version'=>'us-constitution-wp05-0.1',
+                'country'=>'US','version'=>'us-constitution-wp05-0.2',
                 'system'=>'federal_presidential_republic',
                 'head_of_state'=>'president',
                 'head_of_government'=>'president',

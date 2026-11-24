@@ -30,6 +30,8 @@ final class InstitutionalSimulation
             'legislature'=>'sitting',
             'election'=>null,
             'last_dissolution'=>null,
+            'last_election'=>null,
+            'consultations'=>[],
             'bills'=>[],
             'agenda'=>[],
             'events'=>[],
@@ -41,7 +43,7 @@ final class InstitutionalSimulation
     public static function restore(array $state):self
     {
         $expected=['world_id','country_code','ruleset','day','legislature','election',
-          'last_dissolution','bills','agenda','events','constitutional_breaches'];
+          'last_dissolution','last_election','consultations','bills','agenda','events','constitutional_breaches'];
         $keys=array_keys($state);sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
         $self=new self($state['world_id'],$state['country_code'],$state['day']);
@@ -49,7 +51,7 @@ final class InstitutionalSimulation
             throw new \DomainException('Ruleset mismatch: never silently migrate worlds');
         }
         if (!in_array($state['legislature'],['sitting','dissolved'],true)
-            || !is_array($state['bills']) || !is_array($state['agenda']) || !is_array($state['events'])
+            || !is_array($state['consultations']) || !is_array($state['bills']) || !is_array($state['agenda']) || !is_array($state['events'])
             || !is_int($state['constitutional_breaches']) || $state['constitutional_breaches']<0) {
             throw new \InvalidArgumentException('Invalid institutional snapshot');
         }
@@ -57,6 +59,14 @@ final class InstitutionalSimulation
             !is_array($state['election'])
             || !isset($state['election']['earliest'],$state['election']['deadline'])
         )) throw new \InvalidArgumentException('Invalid election window');
+        if ($state['last_election']!==null) self::day($state['last_election']);
+        foreach ($state['consultations'] as $office=>$consultedOn) {
+            if (!in_array($office,['prime_minister','assembly_speaker','senate_speaker'],true)
+                || !is_string($consultedOn)) {
+                throw new \InvalidArgumentException('Invalid recorded consultation');
+            }
+            self::day($consultedOn);
+        }
         foreach ($state['agenda'] as $event) {
             if (!is_array($event) || !isset($event['id'],$event['on'],$event['kind'])) {
                 throw new \InvalidArgumentException('Invalid pending institutional event');
@@ -83,7 +93,15 @@ final class InstitutionalSimulation
         if (!is_string($role) || !preg_match('/^[a-z][a-z0-9_]{0,63}$/D',$role)) {
             throw new \InvalidArgumentException('Unknown actor role');
         }
-        if ($action==='submit_bill') {
+        if ($action==='record_consultation') {
+            self::keys($input,[]);
+            if ($this->state['country_code']!=='FR'
+                || !in_array($role,['prime_minister','assembly_speaker','senate_speaker'],true)) {
+                throw new \DomainException('Role cannot record this consultation');
+            }
+            $this->state['consultations'][$role]=$day;
+            $result=['consulted_institution'=>$role,'consulted_on'=>$day];
+        } elseif ($action==='submit_bill') {
             self::keys($input,['title']);
             if (!in_array($role,$rules['bill_proposers'],true)) {
                 throw new \DomainException('Role cannot introduce legislation in this country');
@@ -102,25 +120,32 @@ final class InstitutionalSimulation
             $this->enqueue($commandId.'-debate','bill_debate_open',self::plus($day,7));
             $result=['bill_id'=>$commandId,'status'=>'filed','earliest_debate'=>self::plus($day,7)];
         } elseif ($action==='dissolve_lower_house') {
-            self::keys($input,['consultations_recorded']);
+            self::keys($input,[]);
             if ($rules['dissolution']['mode']!=='consultations_required'
                 || $role!==($rules['dissolution']['role']??null)) {
                 throw new \DomainException('No ordinary dissolution power for that institution');
             }
-            if ($input['consultations_recorded']!==true) {
-                throw new \DomainException('Mandatory consultations not recorded');
+            foreach (['prime_minister','assembly_speaker','senate_speaker'] as $office) {
+                $consultedOn=$this->state['consultations'][$office]??null;
+                if ($consultedOn===null || $consultedOn>$day
+                    || self::difference($consultedOn,$day)>30) {
+                    throw new \DomainException('Constitutional consultation is missing or stale');
+                }
             }
             if ($this->state['legislature']!=='sitting') {
                 throw new \DomainException('Legislature already dissolved');
             }
-            $last=$this->state['last_dissolution'];
-            if ($last!==null && self::difference($last,$day)<365) {
-                throw new \DomainException('Repeat dissolution restricted');
+            // French Article 12: the one-year bar runs from the following
+            // elections, not from the earlier date of dissolution.
+            $lastElection=$this->state['last_election'];
+            if ($lastElection!==null && $day<self::plusYears($lastElection,1)) {
+                throw new \DomainException('Dissolution too soon after legislative elections');
             }
             $earliest=self::plus($day,$rules['dissolution']['election_min_days']);
             $deadline=self::plus($day,$rules['dissolution']['election_max_days']);
             $this->state['legislature']='dissolved';
             $this->state['last_dissolution']=$day;
+            $this->state['consultations']=[];
             $this->state['election']=[
                 'earliest'=>$earliest,'deadline'=>$deadline,'status'=>'scheduled',
             ];
@@ -141,6 +166,7 @@ final class InstitutionalSimulation
             // Results/seats cannot be fabricated before electoral simulation.
             $this->state['election']['status']='voting_recorded_results_pending';
             $this->state['legislature']='sitting';
+            $this->state['last_election']=$day;
             $result=['status'=>'voting_recorded_results_pending','on'=>$day];
         } else {
             // Refuse bypasses: "cancel elections" cannot masquerade as a legal
@@ -239,6 +265,11 @@ final class InstitutionalSimulation
     {
         return (new \DateTimeImmutable($day,new \DateTimeZone('UTC')))
             ->modify('+'.$days.' days')->format('Y-m-d');
+    }
+    private static function plusYears(string $day,int $years):string
+    {
+        return (new \DateTimeImmutable($day,new \DateTimeZone('UTC')))
+            ->modify('+'.$years.' year')->format('Y-m-d');
     }
     private static function difference(string $a,string $b):int
     {
