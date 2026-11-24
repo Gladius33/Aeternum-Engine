@@ -22,6 +22,8 @@
     Object.assign(locales.fr,{foundation:'Fondation',planned:'Stade non vérifié',ready:'Stade achevé',startStage:'Lancer le stade sélectionné',cancelStage:'Annuler le stade sélectionné',stockSync:'Lire la réserve',campaignSync:'Lire la campagne',reserve:'Réserve / capacité',yield:'Production par cycle',cycle:'Cycle (s)',snapshot:'Dernier relevé du serveur',stale:'Actualiser après une action',residents:'Habitants',workers:'Travailleurs',power:'Réseau : offre / charge',freight:'Biens livrés',score:'Score global',feed:'Accueillir un habitant',work:'Organiser la coupe',generate:'Produire de l’énergie',refine:'Transformer les biens',ship:'Expédier les biens',marketSync:'Consulter les offres',marketCount:'Offres sur la page chargée',costs:'Coût du prochain stade',noSnapshot:'Aucun relevé',owned:'Possédé',more:'Autres bâtiments dans la liste'});
     Object.assign(locales.en,{allStocks:'Read all reserves',allStages:'Read all building stages',workshop:'Construction workshop',plot:'Owned construction plot',place:'Establish foundation',pick:'Select a building type',noSite:'No approved construction plot',noTypes:'No approved types loaded',prerequisite:'Missing prerequisites',eligible:'Prerequisites met; funding still required',complete:'All stages complete',objectives:'Campaign milestones',achieved:'Objective achieved',activity:'Confirmed actions in this session',emptyActivity:'No actions confirmed',tradeBoard:'Trade board',noOffers:'No offers loaded',acceptTrade:'Accept barter',cancelTrade:'Withdraw offer',moreOffers:'More offers available in market',inventory:'Resource reserves',inventoryNote:'Sequential server readings, not a single atomic snapshot',unknownReading:'Not loaded',remaining:'Estimated stage time',awaitWorker:'Awaiting worker / refresh',buildHere:'Build on this plot',moreResources:'First 16 resources shown',receipt:'Server confirmed'});
     Object.assign(locales.fr,{allStocks:'Lire toutes les réserves',allStages:'Lire tous les stades',workshop:'Atelier de construction',plot:'Parcelle de construction possédée',place:'Établir la fondation',pick:'Choisir un type de bâtiment',noSite:'Aucune parcelle de construction autorisée',noTypes:'Aucun type autorisé chargé',prerequisite:'Prérequis manquants',eligible:'Prérequis satisfaits ; financement encore nécessaire',complete:'Tous les stades achevés',objectives:'Objectifs de campagne',achieved:'Objectif atteint',activity:'Actions confirmées de cette session',emptyActivity:'Aucune action confirmée',tradeBoard:'Place de marché',noOffers:'Aucune offre chargée',acceptTrade:'Accepter le troc',cancelTrade:'Retirer l’offre',moreOffers:'Autres offres disponibles dans le marché',inventory:'Réserves de ressources',inventoryNote:'Relevés successifs du serveur, non atomiques',unknownReading:'Non chargé',remaining:'Temps estimé du stade',awaitWorker:'En attente du worker / actualisation',buildHere:'Construire sur cette parcelle',moreResources:'16 premières ressources affichées',receipt:'Confirmé par le serveur'});
+    Object.assign(locales.en,{plotId:'Optional foundation reference',yourHomestead:'Your homestead',occupiedHomestead:'Occupied homestead',unclaimedHomestead:'Unclaimed homestead',yourTerritory:'Your territory',occupiedTerritory:'Occupied territory',unclaimedTerritory:'Unclaimed territory',choosePlot:'Choose a plot',blueprint:'Architecture preview'});
+    Object.assign(locales.fr,{plotId:'Référence facultative de la fondation',yourHomestead:'Votre domaine',occupiedHomestead:'Domaine occupé',unclaimedHomestead:'Domaine libre',yourTerritory:'Votre territoire',occupiedTerritory:'Territoire occupé',unclaimedTerritory:'Territoire libre',choosePlot:'Choisir une parcelle',blueprint:'Aperçu architectural'});
     const lang=()=>document.getElementById('locale-select').value==='fr'?'fr':'en';
     const t=k=>locales[lang()][k];
     const palettes={
@@ -130,12 +132,14 @@
     const plotSelect=html('select',workshop.body,'scene-plot');plotSelect.id='scene-plot';
     plotSelect.addEventListener('change',()=>{chosenSite=plotSelect.value;renderWorkspace();});
     const catalogueList=html('div',workshop.body,'scene-catalogue');
+    const referenceLabel=html('label',workshop.body,'scene-caption');referenceLabel.htmlFor='scene-foundation-reference';
+    const referenceInput=html('input',workshop.body,'scene-plot');referenceInput.id='scene-foundation-reference';referenceInput.maxLength=64;referenceInput.autocomplete='off';
     const place=button(workshop.body,'place',()=>{
         if(busy||!chosenSite||!chosenType)return;
         const site=document.getElementById('foundation-site'),type=document.getElementById('foundation-type');
         if(![...site.options].some(o=>o.value===chosenSite)||![...type.options].some(o=>o.value===chosenType))return;
         site.value=chosenSite;type.value=chosenType;
-        document.getElementById('foundation-id').value='';
+        document.getElementById('foundation-id').value=referenceInput.value.trim();
         document.getElementById('foundation-place').click();
     });
     const tradeList=html('div',tradeBlock.body,'scene-trade-list');
@@ -156,14 +160,21 @@
     }
     function setLocation(id){if(selected?.type==='territory'){document.getElementById(id).value=territories.get(selected.id).location;updateSelection();}}
     function inspectBuilding(id){if(!buildings.has(id))return;document.getElementById('building-id').value=id;document.getElementById('building-load').click();jump('building-details');}
+    const narrow=window.matchMedia('(max-width:640px)');
+    const isTechnicalId=value=>/^[a-f0-9]{32,64}$/i.test(value);
+    function locationName(n){
+        if(!isTechnicalId(n.location))return n.location;
+        const own=n.control==='own',occupied=n.control==='occupied';
+        return t(n.kind==='homestead'?(own?'yourHomestead':occupied?'occupiedHomestead':'unclaimedHomestead'):(own?'yourTerritory':occupied?'occupiedTerritory':'unclaimedTerritory'))+' · '+n.location.slice(0,6);
+    }
     function updateSelection(){
         const territory=selected?.type==='territory'?territories.get(selected.id):null;
         const building=selected?.type==='building'?buildings.get(selected.id):null;
         const d=building?details.get(building.id):null;
-        selection.textContent=territory?territory.location:building?building.id:t('choose');
+        selection.textContent=territory?locationName(territory):building?building.id:t('choose');
         stageStart.hidden=!(d&&currentBuilding?.id===d.id&&d.account===locationFields().account&&d.pending===null&&d.next);
         stageCancel.hidden=!(d&&currentBuilding?.id===d.id&&d.account===locationFields().account&&d.pending!==null);
-        info.textContent=territory?[territory.id,territory.kind,territory.control].join(' · '):building?building.type+' · '+(d?t('level')+' '+d.level+(d.pending?' · '+t('pending'):''):t('unknown')):'';
+        info.textContent=territory?[territory.kind,territory.control,territory.id].join(' · '):building?building.type+' · '+(d?t('level')+' '+d.level+(d.pending?' · '+t('pending'):''):t('unknown')):'';
         if(d?.next)info.textContent+=' · '+t('costs')+': '+Object.entries(d.next.costs).map(([k,v])=>v+' '+k).join(', ');
         origin.hidden=destination.hidden=connection.hidden=!territory;inspect.hidden=!building;
         buildHere.hidden=!territory||!catalogue.sites.some(s=>s.territory_id===territory.id);
@@ -317,10 +328,10 @@
         }
         if(inventory.size)html('p',inventoryBlock.body,'scene-caption',t('inventoryNote'));
         if(balance.elements.resource.options.length>16)html('p',inventoryBlock.body,'scene-caption',t('moreResources'));
-        plotLabel.textContent=t('plot');
+        plotLabel.textContent=t('plot');referenceLabel.textContent=t('plotId');
         plotSelect.replaceChildren();
         const addPlot=(value,label)=>{const o=document.createElement('option');o.value=value;o.textContent=label;plotSelect.append(o);};
-        addPlot('',t('noSite'));
+        addPlot('',t(catalogue.sites.length?'choosePlot':'noSite'));
         for(const site of catalogue.sites)addPlot(site.territory_id+'|'+site.entity_id,site.location_id+' · '+site.territory_id);
         if(!catalogue.sites.some(s=>s.territory_id+'|'+s.entity_id===chosenSite))chosenSite=catalogue.sites.length===1?catalogue.sites[0].territory_id+'|'+catalogue.sites[0].entity_id:'';
         plotSelect.value=chosenSite;
@@ -332,6 +343,7 @@
             const icon=el('svg',{viewBox:'0 0 120 96','aria-hidden':'true'},card);
             model(el('g',{transform:'translate(60 73) scale(.8)'},icon),type.id,{level:1,pending:null});
             html('strong',card,'',type.id);
+            html('small',card,'',t('blueprint'));
             html('small',card,'',Object.entries(type.first.costs).map(([k,v])=>v+' '+k).join(' · '));
             html('small',card,'',String(type.first.duration)+' s');
             card.addEventListener('click',()=>{if(!busy){chosenType=type.id;renderWorkspace();}});
@@ -374,7 +386,7 @@
         workspace.querySelectorAll('[data-label]').forEach(b=>b.textContent=t(b.dataset.label));
     }
     function tile(g,x,y,territory,index){
-        const p=palettes[theme],a=el('g',{transform:'translate('+x+' '+y+')',tabindex:0,role:'button','aria-label':territory.location+' · '+territory.kind,'data-territory':territory.id,'aria-pressed':'false',class:'scene-territory'},g);
+        const p=palettes[theme],a=el('g',{transform:'translate('+x+' '+y+')',tabindex:0,role:'button','aria-label':locationName(territory)+' · '+territory.kind,'data-territory':territory.id,'aria-pressed':'false',class:'scene-territory'},g);
         el('title',{},a,territory.id+' · '+territory.location+' · '+territory.kind+' · '+territory.control);
         poly(a,'-115,0 0,49 115,0 115,14 0,63 -115,14',p[0],'#111e22');
         poly(a,'-115,0 0,-49 115,0 0,49',p[1],'#233b39');
@@ -391,7 +403,7 @@
         });
         if(owned.length>3)el('text',{x:75,y:35,fill:'#fff','font-size':11},a,'+'+(owned.length-3));
         rect(a,-100,51,200,35,'#15232bea',{rx:7,stroke:'#ffffff35'});
-        el('text',{x:0,y:66,'text-anchor':'middle',class:'scene-node-label'},a,territory.location.length>26?territory.location.slice(0,24)+'…':territory.location);
+        el('text',{x:0,y:66,'text-anchor':'middle',class:'scene-node-label'},a,locationName(territory).length>28?locationName(territory).slice(0,26)+'…':locationName(territory));
         el('text',{x:0,y:79,'text-anchor':'middle',class:'scene-node-meta'},a,territory.kind+' · '+territory.control);
         a.addEventListener('click',()=>select('territory',territory.id));
         a.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select('territory',territory.id);}});
@@ -407,18 +419,28 @@
         host.querySelectorAll('[data-label]').forEach(b=>b.textContent=t(b.dataset.label));
         svg.setAttribute('aria-label',t(theme));
         svg.replaceChildren(); holdingList.replaceChildren();
-        const nodes=[...territories.values()],cols=Math.min(3,Math.max(1,Math.ceil(Math.sqrt(nodes.length))));
-        extent={w:900,h:Math.max(460,Math.ceil(nodes.length/cols)*170+120)};
-        const p=palettes[theme],defs=el('defs',{},svg),gradient=el('linearGradient',{id:'scene-bg',x2:'0',y2:'1'},defs);
+        const nodes=[...territories.values()],cols=narrow.matches?1:Math.min(3,Math.max(1,nodes.length));
+        const rows=Math.max(1,Math.ceil(nodes.length/cols));
+        extent={w:narrow.matches?340:Math.max(440,cols*270+60),h:Math.max(narrow.matches?310:300,rows*155+90)};
+        // Initial viewport fits the first two rows; larger worlds remain pannable.
+        if(rows>2&&camera.z===1)camera.z=Math.min(3,extent.h/(2*155+90));
+        const p=palettes[theme],defs=el('defs',{},svg),gradient=el('linearGradient',{id:'scene-bg',x1:'0%',y1:'0%',x2:'100%',y2:'100%'},defs);
         el('stop',{offset:'0%','stop-color':p[5]},gradient);el('stop',{offset:'100%','stop-color':p[0]},gradient);
         rect(svg,0,0,extent.w,extent.h,'url(#scene-bg)');
-        for(let i=0;i<extent.h/27;i++)path(svg,'M0 '+(i*27)+' Q225 '+(i*27-45)+' 450 '+(i*27)+' T900 '+(i*27),'none',{stroke:p[2],'stroke-opacity':.09,'stroke-width':1});
+        for(let i=0;i<extent.h/22+3;i++){
+            const y=i*22-30;
+            path(svg,'M0 '+y+' Q'+extent.w*.25+' '+(y-35)+' '+extent.w*.5+' '+y+' T'+extent.w+' '+y,'none',{stroke:p[2],'stroke-opacity':.15,'stroke-width':1});
+        }
+        const border=el('g',{'aria-hidden':'true','pointer-events':'none'},svg);
+        for(const [x,y,dx,dy] of [[12,12,1,1],[extent.w-12,12,-1,1],[12,extent.h-12,1,-1],[extent.w-12,extent.h-12,-1,-1]]){
+            line(border,x,y,x+dx*24,y,p[2],2);line(border,x,y,x,y+dy*24,p[2],2);
+        }
         const positions=new Map();
-        nodes.forEach((n,i)=>{const x=450+((i%cols)-(cols-1)/2)*270,y=110+Math.floor(i/cols)*170;positions.set(n.location,{x,y});});
+        nodes.forEach((n,i)=>{const x=extent.w/2+((i%cols)-(cols-1)/2)*270,y=(extent.h-rows*155)/2+65+Math.floor(i/cols)*155;positions.set(n.location,{x,y});});
         for(const [from,neighbors] of links)for(const n of neighbors){const a=positions.get(from),b=positions.get(n.location);if(!a||!b)continue;const l=line(svg,a.x,a.y,b.x,b.y,p[2],5);l.setAttribute('stroke-dasharray','7 5');el('title',{},l,from+' → '+n.location+' · '+n.cost);}
         for(let i=1;i<route.length;i++){const a=positions.get(route[i-1]),b=positions.get(route[i]);if(a&&b){const road=line(svg,a.x,a.y,b.x,b.y,'#ffe095',8);road.setAttribute('class','scene-confirmed-route');}}
         nodes.forEach((n,i)=>{const q=positions.get(n.location);tile(svg,q.x,q.y,n,i);});
-        if(!nodes.length)el('text',{x:450,y:220,'text-anchor':'middle',class:'scene-empty'},svg,t('empty'));
+        if(!nodes.length){const label=el('text',{x:extent.w/2,y:extent.h/2-8,'text-anchor':'middle',class:'scene-empty'},svg);const words=t('empty').split(' ');const split=Math.ceil(words.length/2);el('tspan',{x:extent.w/2,dy:0},label,words.slice(0,split).join(' '));el('tspan',{x:extent.w/2,dy:20},label,words.slice(split).join(' '));}
         if(!buildings.size)html('p',holdingList,'scene-caption',t('none'));
         for(const b of buildings.values()){
             const card=html('button',holdingList,'scene-holding');card.type='button';card.dataset.building=b.id;
@@ -435,7 +457,7 @@
         renderWorkspace();view();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';offers=[];offerMore=false;chosenOffer='';receipts=[];territories.clear();buildings.clear();details.clear();links.clear();route=[];selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';offers=[];offerMore=false;chosenOffer='';receipts=[];territories.clear();buildings.clear();details.clear();links.clear();route=[];selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();route=[];selected=null;}for(const n of d.territories)territories.set(n.id,n);render();});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];render();});
@@ -444,10 +466,11 @@
     on('reserve',d=>{reading=d;stale=false;renderHud();});
     on('campaign',d=>{campaign=d;renderHud();renderWorkspace();});
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();});
-    on('confirmed',d=>{reading=null;campaign=null;marketReading=null;inventory.clear();offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();});
+    on('confirmed',d=>{if(d.type==='building.place')referenceInput.value='';reading=null;campaign=null;marketReading=null;inventory.clear();offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();});
     on('resource-change',()=>{reading=null;renderHud();});
     on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));if(!d.busy)updateSelection();});
     document.getElementById('locale-select').addEventListener('change',render);
+    narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();});
     document.getElementById('map-location').addEventListener('input',updateSelection);
     document.getElementById('map-destination').addEventListener('input',updateSelection);
     render();

@@ -46,11 +46,11 @@ async function build(page,id,type,seconds){
     const site=page.waitForResponse(r=>r.url().endsWith('/construction/options'));
     await page.getByRole('button',{name:'Find construction sites'}).click();
     expect((await site).status()).toBe(200);
-    await page.getByLabel('Building type',{exact:true}).selectOption(type);
-    await page.getByLabel('New building identifier (optional)').fill(id);
+    await page.locator('#world-scene [data-catalogue="'+type+'"]').click();
+    await page.locator('#scene-foundation-reference').fill(id);
     const placed=page.waitForResponse(r=>r.url()===url
         && r.request().postDataJSON().type==='building.place');
-    await page.getByRole('button',{name:'Place foundation'}).click();
+    await page.locator('#world-scene [data-label=place]').click();
     expect((await placed).status()).toBe(200);
     await page.getByLabel('Owned building ID').fill(id);
     await page.getByRole('button',{name:'Inspect building plan'}).click();

@@ -68,3 +68,14 @@ main:has(#game:not([hidden])){max-width:78rem}
 .scene-receipt-mark{color:#bce8b5}.scene-receipt small{grid-column:2}
 #world-scene[aria-busy=true] .scene-catalogue-card,#world-scene[aria-busy=true] .scene-offer{cursor:wait}
 @media(max-width:640px){.scene-workspace{grid-template-columns:1fr}.scene-catalogue{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* G03 visual review: fill the actual viewport, and avoid raw identifiers as headings. */
+.scene-atlas{height:clamp(290px,36vw,450px);background:var(--scene-surface)}
+.scene-node-label{font-size:13px}
+.scene-node-meta{font-size:11px}
+.scene-empty{font-size:13px}
+.scene-inspector .scene-info{overflow-wrap:anywhere;font-size:.78rem}
+.scene-selection{font-size:1rem}
+.scene-holdings{grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr))}
+.scene-holding svg{height:135px}
+@media(max-width:640px){.scene-atlas{height:360px}.scene-holdings{grid-template-columns:repeat(2,minmax(0,1fr))}.scene-holding svg{height:105px}}
