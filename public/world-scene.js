@@ -1402,7 +1402,7 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{atlasGate.invalidate();districtGate.invalidate();holdingGate.invalidate();botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');audio.reset();audio.setTheme(theme);soundVisibility();soundSeen.clear();soundVictory=false;reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{resetTutorial();atlasGate.invalidate();districtGate.invalidate();holdingGate.invalidate();botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');audio.reset();audio.setTheme(theme);soundVisibility();soundSeen.clear();soundVictory=false;reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();clearAtlasRoute();selected=null;}for(const n of d.territories)territories.set(n.id,n);render();queueMicrotask(renderAtlasPanel);});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];routeCost=d?.cost??null;routeRead=true;render();});
@@ -1417,10 +1417,11 @@
         const context={...locationFields(),theme};
         if(d.world!==context.world||d.account!==context.account)return;
         soundReceipt(d);
+        if(window.AeternumTutorial.tracks[theme]?.some(l=>l.kind==='receipt'&&l.target===d.type))tutorialReceipts.add(d.type);
         if(economicJournal.record(d,context)){lastEconomicEvent={id:d.id,type:d.type};selectedOperationId=d.id;}
         if(d.type==='building.place')referenceInput.value='';campaignStale=true;rankReading=null;reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();renderSound();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load]'))b.disabled=false;}});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();renderSound();renderTutorial();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load]'))b.disabled=false;}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();if(!classic&&!districtMode&&selected?.type==='territory')centerAtlas(selected.id);});
     document.getElementById('map-location').addEventListener('input',updateSelection);
@@ -1476,8 +1477,122 @@
     const missionGo=html('button',mission,'scene-button');missionGo.type='button';missionGo.dataset.firstMission='true';
     let missionAction=null;
     missionGo.addEventListener('click',()=>{if(!busy)missionAction?.();});
+    // Optional, non-blocking apprenticeship. Explicit navigation only;
+    // neither opening a lesson nor following its shortcut issues a command.
+    const tutorial=html('details',host,'tutorial-panel');tutorial.hidden=true;
+    const tutorialSummary=html('summary',tutorial,'tutorial-summary');
+    const tutorialTitle=html('strong',tutorialSummary,'');
+    const tutorialCount=html('span',tutorialSummary,'tutorial-count');
+    const tutorialBody=html('section',tutorial,'tutorial-body');
+    const tutorialIntro=html('p',tutorialBody,'tutorial-note');
+    const tutorialMeter=html('progress',tutorialBody,'scene-meter tutorial-progress');
+    const tutorialList=html('ol',tutorialBody,'tutorial-list');
+    const tutorialDetail=html('article',tutorialBody,'tutorial-detail');
+    const tutorialArt=el('svg',{viewBox:'0 0 320 120','aria-hidden':'true',class:'tutorial-art'},tutorialDetail);
+    const tutorialContent=html('div',tutorialDetail,'tutorial-content');
+    const tutorialState=html('small',tutorialContent,'tutorial-state');
+    const tutorialLessonTitle=html('h4',tutorialContent,'');
+    const tutorialText=html('p',tutorialContent,'');
+    const tutorialTip=html('p',tutorialContent,'tutorial-tip');
+    const tutorialHint=html('p',tutorialContent,'tutorial-note');
+    const tutorialGo=html('button',tutorialContent,'scene-button');tutorialGo.type='button';tutorialGo.dataset.tutorialGo='true';
+    const tutorialNav=html('div',tutorialBody,'tutorial-navigation');
+    const tutorialPrev=html('button',tutorialNav,'scene-button');tutorialPrev.type='button';tutorialPrev.dataset.tutorialPrevious='true';
+    const tutorialNext=html('button',tutorialNav,'scene-button');tutorialNext.type='button';tutorialNext.dataset.tutorialNext='true';
+    const tutorialFollow=html('button',tutorialNav,'scene-button');tutorialFollow.type='button';tutorialFollow.dataset.tutorialFollow='true';
+    const tutorialScope=html('p',tutorialBody,'tutorial-note');
+    const tutorialReceipts=new Set();
+    let tutorialIndex=null,tutorialProjection=null,tutorialArtKey=null;
+    const tutorialPosition=()=>tutorialIndex??(tutorialProjection?.next===-1?Math.max(0,tutorialProjection.total-1):Math.max(0,tutorialProjection?.next??0));
+    const tutorialLesson=()=>tutorialProjection?.rows[tutorialPosition()]??null;
+    function resetTutorial(){
+        tutorialReceipts.clear();tutorialIndex=null;tutorialProjection=null;tutorialArtKey=null;
+        tutorial.open=false;tutorialArt.replaceChildren();tutorialList.replaceChildren();tutorial.hidden=true;
+    }
+    function tutorialBuilding(type){
+        return [...buildings.values()].filter(b=>b.type===type).sort((a,b)=>(details.get(b.id)?.level??-1)-(details.get(a.id)?.level??-1))[0];
+    }
+    function tutorialNavigate(lesson){
+        if(busy||!lesson)return;
+        if(lesson.kind==='building'){
+            if(lesson.state==='unknown'&&!stagesKnown){run(readStages);return;}
+            const b=tutorialBuilding(lesson.target);
+            if(b){districtId=b.territory;showDistrict(true);select('building',b.id);return;}
+            if(catalogue.types.some(t=>t.id===lesson.target)){
+                chosenType=lesson.target;
+                if(!chosenSite&&catalogue.sites.length===1){const site=catalogue.sites[0];chosenSite=site.territory_id+'|'+site.entity_id;}
+                renderWorkspace();focusNode(workshop.root);
+            }
+            return;
+        }
+        if(lesson.target==='market.create'){focusNode(tradeBlock.root);document.getElementById('market-load').click();return;}
+        const key={'settlement.feed':'feed','settlement.work':'work','industry.generate':'generate','industry.refine':'refine','industry.ship':'ship'}[lesson.target];
+        if(!key)return;
+        showDistrict(true);
+        playActions.scrollIntoView({block:'nearest'});
+        const target=playGrid.querySelector('[data-domain-action='+key+']');
+        if(target&&!target.disabled)target.focus({preventScroll:true});
+    }
+    tutorialGo.addEventListener('click',()=>tutorialNavigate(tutorialLesson()));
+    tutorialPrev.addEventListener('click',()=>{if(!tutorialProjection)return;tutorialIndex=Math.max(0,tutorialPosition()-1);renderTutorial();});
+    tutorialNext.addEventListener('click',()=>{if(!tutorialProjection)return;tutorialIndex=Math.min(tutorialProjection.total-1,tutorialPosition()+1);renderTutorial();});
+    tutorialFollow.addEventListener('click',()=>{tutorialIndex=null;renderTutorial();});
+    tutorial.addEventListener('toggle',()=>{if(tutorial.open)renderTutorial();});
+    function renderTutorial(){
+        tutorial.hidden=classic||!selectedGame||theme==='neutral';
+        if(tutorial.hidden)return;
+        const language=lang()==='fr'?'fr':'en',strings=window.AeternumTutorial.messages[language];
+        const projection=window.AeternumTutorial.project(theme,{known:stagesKnown,holdings:[...buildings.values()].map(b=>({type:b.type,level:details.get(b.id)?.level,pending:Boolean(details.get(b.id)?.pending)})),confirmed:[...tutorialReceipts]});
+        tutorialProjection=projection;
+        tutorialTitle.textContent=strings.heading;
+        tutorialCount.textContent=projection.done+' / '+projection.total;
+        tutorial.dataset.tutorialDone=String(projection.done);
+        tutorial.dataset.tutorialTotal=String(projection.total);
+        tutorial.dataset.tutorialFinished=String(projection.finished);
+        if(!tutorial.open)return;
+        tutorialIntro.textContent=projection.finished?strings.finished:strings.intro;
+        tutorialMeter.max=Math.max(1,projection.total);tutorialMeter.value=projection.done;
+        tutorialMeter.setAttribute('aria-label',strings.summary);
+        tutorialScope.textContent=strings.scope;
+        const index=tutorialIndex??(projection.next===-1?Math.max(0,projection.total-1):projection.next);
+        const lesson=projection.rows[index];
+        if(!lesson)return;
+        tutorial.dataset.tutorialLesson=lesson.id;
+        tutorialDetail.dataset.lessonState=lesson.state;
+        const activeId=document.activeElement?.dataset?.tutorialSelect;
+        tutorialList.replaceChildren();
+        for(let i=0;i<projection.rows.length;i++){
+            const row=projection.rows[i],item=html('li',tutorialList,'tutorial-list-item');
+            const control=html('button',item,'tutorial-lesson-button');
+            control.type='button';control.dataset.tutorialSelect=row.id;control.dataset.lessonState=row.state;
+            control.setAttribute('aria-pressed',String(index===i));
+            html('span',control,'tutorial-lesson-number',String(i+1));
+            html('span',control,'tutorial-lesson-label',row.copy[language][0]);
+            html('small',control,'tutorial-lesson-status',strings[row.state]);
+            control.addEventListener('click',()=>{tutorialIndex=i;renderTutorial();});
+            if(activeId===row.id)control.focus({preventScroll:true});
+        }
+        const artKey=JSON.stringify([theme,lesson.id,lesson.state]);
+        if(artKey!==tutorialArtKey){
+            tutorialArt.replaceChildren();window.AeternumLivingArt.chapterLandscape(tutorialArt,theme,lesson.id);
+            // An illustration of the lesson's target, not another owned holding.
+            if(lesson.kind==='receipt')window.AeternumLivingArt.event(el('g',{transform:'translate(160 76) scale(1.1)'},tutorialArt),lesson.target);
+            else model(el('g',{transform:'translate(160 100) scale(1.12)'},tutorialArt),lesson.art,{level:lesson.state==='complete'?1:0,pending:lesson.state==='pending'?{}:null});
+            tutorialArtKey=artKey;
+        }
+        tutorialState.textContent=strings[lesson.state];tutorialLessonTitle.textContent=lesson.copy[language][0];
+        tutorialText.textContent=lesson.copy[language][1];tutorialTip.textContent=lesson.copy[language][2];
+        const unavailable=lesson.kind==='building'&&stagesKnown&&!tutorialBuilding(lesson.target)&&!catalogue.types.some(t=>t.id===lesson.target);
+        tutorialHint.textContent=unavailable?strings.unsupported:lesson.kind==='receipt'?strings.actionHint:lesson.state==='pending'?strings.waitHint:strings.buildHint;
+        tutorialGo.textContent=lesson.kind==='building'&&lesson.state==='unknown'&&!stagesKnown?strings.refresh:lesson.state==='complete'?strings.review:strings.go;
+        tutorialGo.disabled=busy||unavailable;
+        tutorialPrev.textContent=strings.previous;tutorialPrev.disabled=index===0;
+        tutorialNext.textContent=strings.next;tutorialNext.disabled=index>=projection.total-1;
+        tutorialFollow.textContent=strings.follow;tutorialFollow.disabled=tutorialIndex===null;
+    }
     function renderMission(){
         const french=lang()==='fr',pick=(en,fr)=>french?fr:en;
+        renderTutorial();
         mission.hidden=classic||theme==='neutral';
         if(mission.hidden)return;
         missionKicker.textContent=pick('Your next step','Votre prochain objectif');
@@ -1514,7 +1629,7 @@
         missionGo.disabled=busy||(!building&&!type);
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
-        slots:{introduction:[mission],resources:[hud],context:[contextControls,soundPanel],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,ambiencePanel,districtCommand,architecturalInspector,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        slots:{introduction:[mission,tutorial],resources:[hud],context:[contextControls,soundPanel],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,ambiencePanel,districtCommand,architecturalInspector,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
         actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>{focusNode(objectiveBlock.root);if(theme==='guild'&&!busy&&!document.getElementById('progression-panel').hidden)document.getElementById('progression-load').click();},market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
@@ -1542,7 +1657,7 @@
         ui.setStatus(ok?'':(lang()==='fr'?'Action non terminée : ':'Action not completed: ')+friendly);
         if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
-    on('reset',()=>{audio.reset();soundSeen.clear();soundVictory=false;initialLoad=false;lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;livingScene.hidden=true;ui.setStatus('');});
+    on('reset',()=>{resetTutorial();audio.reset();soundSeen.clear();soundVictory=false;initialLoad=false;lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;livingScene.hidden=true;ui.setStatus('');});
     document.getElementById('locale-select').addEventListener('change',refreshShell);
     for(const key of Object.keys(mirrors))balance.elements[key].addEventListener('change',syncMirrors);
     // Existing Vue navigation opens the relevant advanced controls when requested.
