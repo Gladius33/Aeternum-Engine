@@ -19,6 +19,8 @@ tags:
     description: Source-pinned multilateral membership and voting procedures
   - name: Economy
     description: Provenance-aware economic reference and hypothetical effects
+  - name: WorldClock
+    description: Authoritative resumable coordination of simulated world day
 paths:
   /worlds/{world}/diplomacy:
     get:
@@ -796,6 +798,66 @@ paths:
         '422': { $ref: '#/components/responses/invalid' }
         '428': { $ref: '#/components/responses/missingPrecondition' }
 
+  /worlds/{world}/clock:
+    get:
+      operationId: readAuthoritativeWorldClock
+      tags: [WorldClock]
+      description: >
+        Read committed date and any pending cross-domain advance. A pending
+        tick is NOT presented as a coherent new game day. Privileged verified
+        server identity required in this experimental adapter.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Coherent or advancing world day and strong ETag
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorldClockState' }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/clock/advances:
+    post:
+      operationId: advanceAuthoritativeWorldClock
+      tags: [WorldClock]
+      description: >
+        Trusted server-only clock tick. Advances organizations, diplomacy and
+        economic aggregates through separately committed idempotent commands.
+        The persistent pending intent is resumed after a crash; the final
+        committed_day changes only when all three aggregates reach target.
+        A single tick is limited to 366 game days. National institutions
+        and cross-domain policy resolution require later integration.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200':
+          description: All three world domain clocks coherently advanced
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '404': { $ref: '#/components/responses/notFound' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -836,6 +898,20 @@ components:
       schema: { type: string }
       description: Strong ETag precondition for state-changing commands.
   schemas:
+    WorldClockState:
+      type: object
+      required: [world_id,committed_day,pending_day,status,revision,completed_subsystems,coherent]
+      properties:
+        world_id: { $ref: '#/components/schemas/Identifier' }
+        committed_day: { type: string, format: date }
+        pending_day: { type: [string, 'null'], format: date }
+        status: { type: string, enum: [coherent, advancing] }
+        revision: { type: integer, minimum: 0 }
+        completed_subsystems:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [organizations, diplomacy, economy] }
+        coherent: { type: boolean }
     Identifier:
       type: string
       pattern: '^[a-z][a-z0-9_-]{0,63}$'
