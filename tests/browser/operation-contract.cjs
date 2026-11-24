@@ -1,0 +1,46 @@
+// G17 original scenes and context-bound confirmed-receipt journal.
+'use strict';
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {runInNewContext}=require('node:vm');
+const path=require('node:path');
+const doc={createElementNS(ns,tag){return {tag,attrs:{},children:[],setAttribute(k,v){this.attrs[k]=String(v)},append(n){this.children.push(n)}}}};
+const window={};
+runInNewContext(readFileSync(path.join(__dirname,'../../public/living-art.js'),'utf8'),{window,document:doc});
+const art=window.AeternumLivingArt,walk=n=>[n,...n.children.flatMap(walk)];
+let count=0;
+for(const [type,meta] of Object.entries(art.eventTypes)){
+    const root=doc.createElementNS('','svg');
+    assert.ok(art.operationScene(root,type));
+    const all=walk(root),scene=root.children[0];
+    assert.equal(scene.attrs['data-operation-scene'],type);
+    assert.equal(scene.attrs['data-operation-theme'],meta.theme);
+    assert.equal(scene.attrs['aria-hidden'],'true');
+    assert.equal(scene.attrs['pointer-events'],'none');
+    assert.ok(all.length<250);
+    assert.ok(all.some(n=>n.attrs.class?.includes('operation-motion')));
+    assert.ok(!all.some(n=>Object.values(n.attrs).some(v=>/NaN|Infinity|undefined/.test(v))));
+    const ids=all.flatMap(n=>n.attrs.id?[n.attrs.id]:[]);
+    for(const n of all)for(const v of Object.values(n.attrs))if(v.startsWith('url(#'))assert.ok(ids.includes(v.slice(5,-1)));
+    count++;
+}
+assert.equal(count,8);
+const root=doc.createElementNS('','svg');
+assert.equal(art.operationScene(root,'building.start'),false);
+assert.equal(root.children.length,0);
+const ctx={world:'one',account:'alice',theme:'medieval'},base={...ctx,type:'settlement.work'},journal=art.economicJournal(3);
+assert.equal(journal.record({...base,id:'1'},ctx),true);
+assert.equal(journal.record({...base,id:'1'},ctx),false);
+assert.equal(journal.record({...base,id:'2',account:'bob'},ctx),false);
+assert.equal(journal.record({...base,id:'3',world:'two'},ctx),false);
+assert.equal(journal.record({...base,id:'4',type:'market.create'},ctx),false);
+assert.equal(journal.record({...base,id:'4',type:'building.start'},ctx),false);
+for(let i=5;i<10;i++)assert.ok(journal.record({...base,id:String(i)},ctx));
+assert.equal(journal.entries().map(x=>x.id).join(','),'9,8,7');
+assert.equal(journal.record({...base,id:'1'},ctx),false);
+journal.entries().pop();
+assert.equal(journal.entries().length,3);
+journal.reset();
+assert.equal(journal.entries().length,0);
+assert.ok(journal.record({...base,id:'1'},ctx));
+console.log('G17: 8 SVG operation scenes, journal scope, deduplication, capacity and reset passed.');

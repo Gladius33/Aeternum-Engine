@@ -34,6 +34,7 @@ jobs:
           npm test --prefix client
           node tests/browser/architecture-contract.cjs
           node tests/browser/atmosphere-contract.cjs
+          node tests/browser/operation-contract.cjs
           test -s public/client-dist/aeternum-shell.js
           composer dump-autoload --no-interaction
           bash tests/m11-package.sh

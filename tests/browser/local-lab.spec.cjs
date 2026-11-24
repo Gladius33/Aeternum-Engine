@@ -151,8 +151,30 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(living).toHaveAttribute('data-activity',actionType);
             await expect(living.locator('[data-living-event]')).toHaveCount(1);
             await expect(page.locator('.scene-district [data-living-event="'+actionType+'"]')).toHaveCount(1);
+            const operation=page.locator('.operation-panel');
+            await expect(operation).toBeVisible();
+            await expect(operation).toHaveAttribute('data-operation-type',actionType);
+            await expect(operation.locator('[data-operation-scene="'+actionType+'"]')).toHaveCount(1);
+            const opHistory=operation.locator('[data-operation-history]');
+            await expect(opHistory.locator('option')).toHaveCount(pack==='medieval'?2:1);
+            let replayRequests=0;
+            const countReplay=r=>{if(r.method()==='POST'&&r.url().includes('/economy/commands'))replayRequests++;};
+            page.on('request',countReplay);
+            try{
+                if(pack==='medieval'){
+                    await opHistory.selectOption('1');
+                    await expect(operation).toHaveAttribute('data-operation-type','settlement.feed');
+                    await opHistory.selectOption('0');
+                }
+                await operation.locator('[data-operation-replay]').click();
+                await expect(operation.locator('[data-operation-scene="'+actionType+'"]')).toHaveCount(1);
+                await captureScene(page,'g17-'+pack+'-confirmed-operation');
+                expect(replayRequests).toBe(0);
+            }finally{page.off('request',countReplay);}
+
             await page.emulateMedia({reducedMotion:'reduce'});
             await expect(living.locator('.living-art-motion').first()).toHaveCSS('animation-name','none');
+            await expect(operation.locator('.operation-motion').first()).toHaveCSS('animation-name','none');
             await captureScene(page,'g13-'+pack+'-living-economy');
             await page.emulateMedia({reducedMotion:'no-preference'});
             await captureScene(page,'local-'+pack+'-productive-domain');

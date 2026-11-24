@@ -365,6 +365,46 @@
     const livingEvent=html('p',livingText,'living-economy-event');livingEvent.setAttribute('aria-live','polite');
     const livingMetrics=html('div',livingText,'living-economy-metrics');
     let renderedEventId=null;
+    const economicJournal=window.AeternumLivingArt.economicJournal(8);
+    let selectedOperationId=null,renderedOperationId=null;
+    const operationPanel=html('section',livingScene,'operation-panel');operationPanel.hidden=true;
+    operationPanel.setAttribute('aria-labelledby','operation-title');
+    const operationHead=html('div',operationPanel,'operation-head');
+    const operationTitle=html('h4',operationHead,'');operationTitle.id='operation-title';
+    const operationReplay=html('button',operationHead,'operation-replay');operationReplay.type='button';operationReplay.dataset.operationReplay='true';
+    const operationView=el('svg',{viewBox:'0 0 320 170',role:'img',class:'operation-view'},operationPanel);
+    const operationNote=html('p',operationPanel,'operation-note');
+    const operationHistoryLabel=html('label',operationPanel,'operation-history');
+    const operationHistoryTitle=html('span',operationHistoryLabel,'');
+    const operationHistory=html('select',operationHistoryLabel,'');operationHistory.dataset.operationHistory='true';
+    operationReplay.addEventListener('click',()=>{renderedOperationId=null;renderOperation();});
+    operationHistory.addEventListener('change',()=>{
+        const entry=economicJournal.entries()[Number(operationHistory.value)];
+        if(entry){selectedOperationId=entry.id;renderOperation();}
+    });
+    function renderOperation(){
+        const rows=economicJournal.entries(),fr=lang()==='fr',label=(en,frText)=>fr?frText:en;
+        operationPanel.hidden=!rows.length;
+        if(!rows.length){selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();return;}
+        const index=Math.max(0,rows.findIndex(e=>e.id===selectedOperationId)),entry=rows[index];
+        selectedOperationId=entry.id;
+        const title=actionLabels[entry.type]?.[fr?1:0]??t('receipt');
+        operationTitle.textContent=title;
+        operationReplay.textContent=label('Replay illustration','Rejouer la scène');
+        operationReplay.setAttribute('aria-label',label('Replay illustration only','Rejouer uniquement la scène'));
+        operationView.setAttribute('aria-label',title+' · '+label('Illustrated receipt','Confirmation illustrée'));
+        operationPanel.dataset.operationType=entry.type;
+        operationNote.textContent=label('Illustration of a confirmed account action, not a live shipment or production timer. Replay has no economic effect.','Illustration d’une action confirmée du compte, non d’un transport en direct ou d’un cycle de production. La relecture est sans effet économique.');
+        operationHistoryTitle.textContent=label('Confirmed actions this session (latest eight)','Actions confirmées cette session (huit dernières)');
+        operationHistory.replaceChildren();
+        for(let i=0;i<rows.length;i++){const option=html('option',operationHistory,'',(i===0?label('Latest · ','Dernière · '):i+1+' · ')+(actionLabels[rows[i].type]?.[fr?1:0]??t('receipt')));option.value=String(i);}
+        operationHistory.value=String(index);
+        if(renderedOperationId!==entry.id){
+            operationView.replaceChildren();
+            window.AeternumLivingArt.operationScene(operationView,entry.type);
+            renderedOperationId=entry.id;
+        }
+    }
     function renderLivingScene(){
         livingScene.hidden=classic||!selectedGame||!districtMode||theme==='neutral'||!districtId;
         if(livingScene.hidden)return;
@@ -397,6 +437,7 @@
             metric('own-offers',label('Your offers on this page','Vos offres sur cette page'),offers.filter(o=>o.seller===locationFields().account).length);
         }
         if(!livingMetrics.childElementCount)html('span',livingMetrics,'living-economy-scope',label('Waiting for a server reading.','En attente d’un relevé serveur.'));
+        renderOperation();
     }
     const nav=html('div',host,'scene-toolbar');
     const jump=id=>{const node=document.getElementById(id);if(node&&!node.hidden){const legacy=node.closest('.game-ui-legacy');if(legacy)legacy.open=true;node.scrollIntoView({block:'start'});const focus=node.querySelector('button:not([hidden]),input,select');focus?.focus({preventScroll:true});}};
@@ -1103,7 +1144,7 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';receipts=[];lastEconomicEvent=null;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();clearAtlasRoute();selected=null;}for(const n of d.territories)territories.set(n.id,n);render();queueMicrotask(renderAtlasPanel);});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];routeCost=d?.cost??null;routeRead=true;render();});
@@ -1112,7 +1153,11 @@
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
     on('campaign',d=>{campaign=d;renderHud();renderWorkspace();renderDistrict();});
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();renderDistrict();updateSelection();});
-    on('confirmed',d=>{if(d.world===locationFields().world&&Object.hasOwn(window.AeternumLivingArt.eventTypes,d.type)&&lastEconomicEvent?.id!==d.id)lastEconomicEvent={id:d.id,type:d.type};if(d.type==='building.place')referenceInput.value='';reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
+    on('confirmed',d=>{
+        const context={...locationFields(),theme};
+        if(d.world!==context.world||d.account!==context.account)return;
+        if(economicJournal.record(d,context)){lastEconomicEvent={id:d.id,type:d.type};selectedOperationId=d.id;}
+        if(d.type==='building.place')referenceInput.value='';reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
     on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();}});
     document.getElementById('locale-select').addEventListener('change',render);
@@ -1236,7 +1281,7 @@
         ui.setStatus(ok?'':(lang()==='fr'?'Action non terminée : ':'Action not completed: ')+friendly);
         if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
-    on('reset',()=>{initialLoad=false;lastEconomicEvent=null;livingScene.hidden=true;ui.setStatus('');});
+    on('reset',()=>{initialLoad=false;lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;livingScene.hidden=true;ui.setStatus('');});
     document.getElementById('locale-select').addEventListener('change',refreshShell);
     for(const key of Object.keys(mirrors))balance.elements[key].addEventListener('change',syncMirrors);
     // Existing Vue navigation opens the relevant advanced controls when requested.
