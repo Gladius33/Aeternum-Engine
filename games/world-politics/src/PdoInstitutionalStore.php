@@ -31,6 +31,12 @@ final class PdoInstitutionalStore
         $this->pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES,false);
     }
 
+    /** Server-verified identity used by the global institutional clock. */
+    public function principalId():string
+    {
+        return $this->auth->actorId();
+    }
+
     /** Trusted scenario bootstrap. Both roster and reviewed rules must exist. */
     public function seed(InstitutionalSimulation $simulation):void
     {
