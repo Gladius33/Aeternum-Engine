@@ -31,13 +31,14 @@ final class PdoFrenchSittingCalendarStore
 
     public function seed(FrenchSittingCalendar $calendar):void
     {
+        $world=$calendar->snapshot()['world_id'];
  
         $this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$world,$this->authority->actorId(),'bootstrap'
             );
-       $world=$calendar->snapshot()['world_id'];
+
         $this->check($world,'fr.calendar.bootstrap');
         $q=$this->pdo->prepare(
             'INSERT INTO wp_fr_sitting_calendars

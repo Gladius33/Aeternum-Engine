@@ -46,13 +46,14 @@ final class PdoEconomicStore
     /** Trusted administrative initialization only. */
     public function seed(WorldEconomicSimulation $simulation):void
     {
+        $snapshot=$simulation->snapshot();
  
         $this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$snapshot['world_id'],$this->principal->actorId(),'bootstrap'
             );
-       $snapshot=$simulation->snapshot();
+
         $verified=WorldEconomicSimulation::fromSnapshot(
             $snapshot,$this->actors,$this->references
         );

@@ -41,13 +41,14 @@ final class PdoInstitutionalStore
     /** Trusted scenario bootstrap. Both roster and reviewed rules must exist. */
     public function seed(InstitutionalSimulation $simulation):void
     {
+        $state=$simulation->snapshot();
  
         $this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$state['world_id'],$this->auth->actorId(),'bootstrap'
             );
-       $state=$simulation->snapshot();
+
         $this->pdo->prepare(
             'INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)'
         )->execute([

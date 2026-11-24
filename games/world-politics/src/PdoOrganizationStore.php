@@ -38,13 +38,14 @@ final class PdoOrganizationStore
 
     public function seed(OrganizationSimulation $sim):void
     {
+        $state=$sim->snapshot();
  
         $this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$state['world_id'],$this->principal->actorId(),'bootstrap'
             );
-       $state=$sim->snapshot();
+
         $validated=OrganizationSimulation::fromSnapshot($state,$this->actors,$this->charters);
         $stmt=$this->pdo->prepare(
             'INSERT INTO wp_organization_states(world_id,state_json,state_sha,actors_sha,charters_sha,revision) VALUES(?,?,?,?,?,0)'
