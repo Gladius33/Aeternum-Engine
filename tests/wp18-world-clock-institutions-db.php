@@ -39,6 +39,7 @@ $connect=static fn():PDO=>new PDO($dsn,$user,$password,[
 ]);
 $pdo=$connect();
 foreach ([
+    'wp_world_clock_fr_parliament_steps','wp_world_clock_fr_parliament',
     'wp_world_clock_country_steps','wp_world_clock_countries',
     'wp_world_clock_steps','wp_world_clock',
     'wp_institutional_journal','wp_institutional_receipts','wp_institutional_states',
@@ -52,7 +53,7 @@ foreach ([
     '001_rosters.sql','002_institutions.sql','003_diplomacy.sql',
     '004_organizations.sql','005_economic_policies.sql',
     '006_diplomatic_outbox.sql','007_world_clock.sql',
-    '008_world_clock_countries.sql'
+    '008_world_clock_countries.sql','011_fr_parliament_world_clock.sql'
 ] as $filename) {
     $sql=preg_replace('/^\s*--[^\n]*$/m','',
         file_get_contents(__DIR__.'/../games/world-politics/database/'.$filename)
