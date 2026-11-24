@@ -103,6 +103,9 @@ final class SanctionsOutboxDispatcher
             throw new \UnexpectedValueException('Source event is not an authorized sanctions proposal');
         }
 
+        // Re-evaluate the sender's grant even when returning old receipts.
+        $this->economy->assertBridgeCountryGrant($world,$envelope['from']);
+
         if ($row['status']==='delivered') {
             if (!is_string($row['assumptions_sha'])
                 || !hash_equals($row['assumptions_sha'],$assumptionsSha)

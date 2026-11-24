@@ -29,6 +29,19 @@ final class PdoEconomicStore
         return $this->principal->actorId();
     }
 
+    /** Verify delegated country authority before dispatch or receipt replay. */
+    public function assertBridgeCountryGrant(string $world,string $actor):void
+    {
+        $this->readAllowed($world);
+        $reference=$this->actors->get($actor);
+        if ($reference['kind']!=='state'
+            || !$this->principal->allows($world,$actor,'economy.propose')
+            || ($reference['controller']==='ai_only'
+                && !$this->principal->allows($world,$actor,'economy.ai_controller'))) {
+            throw new \DomainException('Bridge is not delegated to issue this country proposal');
+        }
+    }
+
     /** Trusted administrative initialization only. */
     public function seed(WorldEconomicSimulation $simulation):void
     {

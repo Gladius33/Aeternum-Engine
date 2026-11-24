@@ -71,12 +71,13 @@ $dipUser=new class implements DiplomaticPrincipal {
     }
 };
 $bridgeWorker=new class implements EconomicPolicyPrincipal {
+    public bool $allowFrance=true;
     public function actorId():string{return 'verified-outbox-scheduler';}
     public function allows(string $world,string $actor,string $ability):bool {
         if ($world!=='world-sanctions')return false;
         if ($actor===$this->actorId()
             && in_array($ability,['economy.read','economy.bridge_dispatch'],true)) return true;
-        return $actor==='state_fr' && $ability==='economy.propose';
+        return $this->allowFrance && $actor==='state_fr' && $ability==='economy.propose';
     }
     public function legalApproval(string $world,string $actor,string $operation):bool{return false;}
 };
@@ -151,6 +152,10 @@ wp16($wpEcon['state']['policies'][$result['policy_id']]['status']==='proposed'
     'outbox cannot authorize sanctions or calculate loss automatically');
 wp16($dispatcher->deliver('world-sanctions',$event,$assumptions)===$result,
     'same outbox event is replayable without duplicate economic policy');
+$bridgeWorker->allowFrance=false;
+wp16reject(fn()=>$dispatcher->deliver('world-sanctions',$event,$assumptions),
+    'revoked country delegation cannot read an old delivered sanctions receipt');
+$bridgeWorker->allowFrance=true;
 $changed=$assumptions;$changed['effect_bps']=2000;
 wp16reject(fn()=>$dispatcher->deliver('world-sanctions',$event,$changed),
     'delivered event cannot change its original economic assumptions');
