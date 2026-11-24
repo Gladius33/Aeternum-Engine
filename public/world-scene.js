@@ -1410,6 +1410,7 @@
     on('building',d=>{buildings.set(d.id,d);details.set(d.id,d);render();});
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
     on('campaign',d=>{if(d.kind==='progression'){scoreReading=d.data;if(theme==='guild')campaign=d;}else {campaign=d;const won=d.data?.victory?.achieved===true;if(won&&!soundVictory&&campaignStale)audio.cue('campaign.victory');soundVictory=won;}campaignStale=false;renderHud();renderWorkspace();renderDistrict();});
+    on('social-contact',d=>{if(classic||busy||d.world!==locationFields().world||!['message','block'].includes(d.kind)||typeof d.actor!=='string')return;relationsTab=d.kind==='message'?'messages':'safety';renderRelations();focusNode(relationsBlock.root);const input=document.getElementById(d.kind==='message'?'social-recipient':'social-block-target');input.value=d.actor;input.focus({preventScroll:true});});
     on('rank',d=>{const f=locationFields();if(d.world!==f.world||d.account!==f.account)return;rankReading=d.data;renderWorkspace();});
     on('trade-history',d=>{const f=locationFields();if(d.transactions!==null&&(d.world!==f.world||d.account!==f.account))return;tradeHistory=d.transactions;tradeHistoryMore=d.more===true;renderCommerce();});
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();renderDistrict();updateSelection();});
@@ -1503,10 +1504,11 @@
         const status=document.getElementById('social-mail-notice');root.append(status);
         mail.hidden=true;
         add('messages',inbox);add('safety',safety);add('standing',standing);
+        for(const [section,en,frText] of [[inbox,'Messages and notifications','Messages et notifications'],[safety,'Player safety','Protection des joueurs'],[standing,'Alliance leaderboard','Classement des alliances']]){const heading=document.createElement('h2');heading.dataset.relationsEn=en;heading.dataset.relationsFr=frText;section.prepend(heading);}
         // Keep the original report flow: a message can open moderation with
         // the exact selected message ID, not a guessed or retyped identifier.
         inbox.addEventListener('click',e=>{
-            if(e.target.closest('#social-messages-list button')){
+            if(e.target.closest('[data-social-report]')){
                 relationsTab='safety';renderRelations();
                 document.getElementById('social-report-reason').focus();
             }
@@ -1529,6 +1531,7 @@
             button.textContent=names[key];button.setAttribute('aria-pressed',String(relationsTab===key));
             button.disabled=busy;relationViews.get(key).hidden=relationsTab!==key;
         }
+        for(const heading of relationsBlock.body.querySelectorAll('[data-relations-en]'))heading.textContent=fr?heading.dataset.relationsFr:heading.dataset.relationsEn;
         for(const option of document.getElementById('social-role-choice').options){
             option.textContent=option.value==='officer'?label('Officer','Officier'):label('Member','Membre');
         }

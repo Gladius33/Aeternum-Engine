@@ -772,6 +772,28 @@ const socialDirectory=document.querySelector('#social-directory');
 const socialMembers=document.querySelector('#social-member-list');
 const socialInbox=document.querySelector('#social-inbox');
 const socialNotice=document.querySelector('#social-notice');
+const socialModern=new URLSearchParams(location.search).get('view')!=='classic';
+const socialFrench=()=>document.documentElement.lang==='fr';
+function socialCopy(node,en,fr){
+    if(!socialModern){node.textContent=en;return node;}
+    node.dataset.socialEn=en;node.dataset.socialFr=fr;
+    node.textContent=socialFrench()?fr:en;return node;
+}
+function socialSpan(parent,en,fr){
+    const span=document.createElement('span');socialCopy(span,en,fr);parent.append(span);return span;
+}
+function socialRole(role){return ({owner:['owner','propriétaire'],officer:['officer','officier'],member:['member','membre']})[role]??['unknown role','rôle inconnu'];}
+function socialKind(kind){return ({message:['message','message'],invitation:['invitation','invitation'],invitation_accepted:['invitation accepted','invitation acceptée']})[kind]??['notification','notification'];}
+function socialContact(parent,actor,kind){
+    if(!socialModern)return;
+    const button=document.createElement('button');button.type='button';button.dataset.socialContact=kind;
+    socialCopy(button,kind==='message'?'Write to this player':'Block this player',kind==='message'?'Écrire à ce joueur':'Bloquer ce joueur');
+    button.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('aeternum:social-contact',{detail:{actor,kind,world:balance.elements.world.value}})));
+    parent.append(button);
+}
+window.addEventListener('aeternum:localechange',()=>{
+    for(const n of document.querySelectorAll('[data-social-en][data-social-fr]'))n.textContent=socialFrench()?n.dataset.socialFr:n.dataset.socialEn;
+});
 let socialMessageAfter=null, socialNotificationAfter=null;
 let socialDirectoryAfter=null, socialRosterAfter=null, socialInviteAfter=null;
 let socialBlocksAfter=null, socialLeaderboardAfter=null;
@@ -802,7 +824,7 @@ function clearSocial() {
     document.getElementById('social-mail-notice').textContent='';
     options(socialInbox,[['','No invitation selected']]);
     socialNotice.textContent='';
-    for (const id of ['social-alliance-id','social-invite-actor','social-role-actor']) {
+    for (const id of ['social-alliance-id','social-invite-actor','social-role-actor','social-new-id','social-new-name','social-recipient','social-message-text','social-block-target','social-report-id','social-report-reason']) {
         document.getElementById(id).value='';
     }
 }
@@ -831,12 +853,13 @@ async function socialLoadDirectory(older=false) {
     if (!older) socialDirectory.replaceChildren();
     for (const alliance of data.alliances) {
         const item=document.createElement('li'),button=document.createElement('button');
-        button.type='button';button.textContent='Inspect '+alliance.id;
+        button.type='button';socialCopy(button,'Inspect '+alliance.id,'Consulter '+alliance.id);
         button.addEventListener('click',()=>run(async()=>{
             document.getElementById('social-alliance-id').value=alliance.id;
             await socialLoadDetail();
         }));
         item.append(document.createTextNode(alliance.name+' ('+alliance.members+') '),button);
+        item.dataset.socialAlliance=alliance.id;
         socialDirectory.append(item);
     }
     socialDirectoryAfter=data.nextAfter;
@@ -857,12 +880,14 @@ async function socialLoadDetail(older=false) {
     if (!older) socialMembers.replaceChildren();
     for (const member of data.members) {
         const item=document.createElement('li');
-        item.textContent=member.actor+' — '+member.role;
+        if(socialModern){item.append(document.createTextNode(member.actor+' — '));socialSpan(item,...socialRole(member.role));socialContact(item,member.actor,'message');}
+        else item.textContent=member.actor+' — '+member.role;
         socialMembers.append(item);
     }
     socialRosterAfter=data.nextAfter;
     document.getElementById('social-members-next').hidden=socialRosterAfter===null;
-    socialNotice.textContent=data.name+' — '+data.role;
+    if(socialModern){socialNotice.replaceChildren(document.createTextNode(data.name+' — '));socialSpan(socialNotice,...socialRole(data.role));}
+    else socialNotice.textContent=data.name+' — '+data.role;
 }
 async function socialLoadInbox(older=false) {
     const root=socialRoot(),world=balance.elements.world.value,
@@ -881,7 +906,8 @@ async function socialLoadInbox(older=false) {
     }
     socialInviteAfter=data.nextAfter;
     document.getElementById('social-inbox-next').hidden=socialInviteAfter===null;
-    socialNotice.textContent=(socialInbox.options.length-1)+' pending invitations loaded.';
+    if(socialModern){const n=socialInbox.options.length-1;socialNotice.replaceChildren();socialSpan(socialNotice,n+' pending invitations loaded.',n+' invitation(s) en attente chargée(s).');}
+    else socialNotice.textContent=(socialInbox.options.length-1)+' pending invitations loaded.';
 }
 document.getElementById('social-directory-next').addEventListener('click',
     ()=>run(()=>socialLoadDirectory(true)));
@@ -974,12 +1000,13 @@ async function socialRefreshMessages(older=false) {
         for (const message of data.messages) {
             const li=document.createElement('li'),report=document.createElement('button');
             li.append(document.createTextNode(message.from+' — '+message.text+' ('+message.id+') '));
-            report.type='button';report.textContent='Report this message';
+            report.type='button';report.dataset.socialReport='true';report.textContent='Report this message';
             report.addEventListener('click',()=>{
                 document.getElementById('social-report-id').value=message.id;
                 document.getElementById('social-report-reason').focus();
             });
             li.append(report);
+            socialContact(li,message.from,'message');socialContact(li,message.from,'block');
             list.append(li);
         }
         socialMessageAfter=data.nextAfter;
@@ -1062,12 +1089,12 @@ async function socialRefreshNotifications(older=false) {
         }
         for (const notice of data.notifications) {
             const item=document.createElement('li');
-            item.textContent=notice.kind+' — '+notice.subject+
-                (notice.readAt===null?' (unread)':' (read)');
+            if(socialModern){socialSpan(item,...socialKind(notice.kind));item.append(document.createTextNode(' — '+notice.subject));socialSpan(item,notice.readAt===null?' (unread)':' (read)',notice.readAt===null?' (non lue)':' (lue)');}
+            else item.textContent=notice.kind+' — '+notice.subject+(notice.readAt===null?' (unread)':' (read)');
             list.append(item);
             if (notice.readAt===null) {
                 const option=document.createElement('option');
-                option.value=notice.id;option.textContent=notice.kind+' — '+notice.subject;
+                option.value=notice.id;const names=socialKind(notice.kind);socialCopy(option,notice.kind+' — '+notice.subject,names[1]+' — '+notice.subject);
                 select.append(option);
             }
         }
@@ -1101,7 +1128,8 @@ async function socialRefreshLeaderboard(older=false) {
     if (!older) list.replaceChildren();
     for (const entry of data.alliances) {
         const item=document.createElement('li');
-        item.textContent=entry.name+' — '+entry.activeMembers+' active members';
+        if(socialModern){item.append(document.createTextNode(entry.name+' — '));socialSpan(item,entry.activeMembers+' active members',entry.activeMembers+' membre(s) actif(s)');}
+        else item.textContent=entry.name+' — '+entry.activeMembers+' active members';
         list.append(item);
     }
     socialLeaderboardAfter=data.nextAfter;
