@@ -236,19 +236,19 @@
         playTitle.textContent=label('Make your domain prosper','Faites prospérer votre domaine');
         playGrid.replaceChildren();
         const built=id=>[...buildings.values()].some(b=>b.type===id&&(details.get(b.id)?.level??0)>0);
-        const add=(key,name,description,art,available,fn)=>{
+        const add=(key,name,description,art,available,fn,reason)=>{
             const card=html('button',playGrid,'domain-action');card.type='button';card.dataset.domainAction=key;
             const graphic=el('svg',{viewBox:'0 0 110 92','aria-hidden':'true'},card);
             model(el('g',{transform:'translate(55 70) scale(.84)'},graphic),art,{level:1,pending:null});
             const copy=html('span',card,'domain-action-copy');
             html('strong',copy,'',name);html('small',copy,'',description);
-            html('span',copy,'domain-action-state',available?label('Open action','Agir'):label('Build the required structure first','Construisez d’abord le bâtiment requis'));
+            html('span',copy,'domain-action-state',available?label('Open action','Agir'):(reason??label('Build the required structure first','Construisez d’abord le bâtiment requis')));
             card.disabled=busy||!available;card.addEventListener('click',()=>{if(!busy&&available)fn();});
         };
         const click=id=>()=>document.getElementById(id).click();
         if(theme==='medieval'){
-            add('work',label('Harvest timber','Récolter du bois'),label('Assign a lumber shift to your available workers.','Confiez une coupe à vos travailleurs disponibles.'),'lumberyard',built('lumberyard'),click('medieval-work'));
-            add('feed',label('Welcome a resident','Accueillir un habitant'),label('Spend food to grow your village within its housing capacity.','Utilisez des céréales pour agrandir votre population.'),'farm',built('farm'),click('medieval-feed'));
+            add('work',label('Harvest timber','Récolter du bois'),label('Assign a lumber shift to your available workers.','Confiez une coupe à vos travailleurs disponibles.'),'lumberyard',built('lumberyard')&&campaign?.kind==='medieval'&&campaign.data.workers>0,click('medieval-work'),built('lumberyard')?label('Welcome a second resident first','Accueillez d’abord un deuxième habitant'):null);
+            add('feed',label('Welcome a resident','Accueillir un habitant'),label('Spend food to grow your village within its housing capacity.','Utilisez des céréales pour agrandir votre population.'),'farm',built('farm')&&campaign?.kind==='medieval'&&campaign.data.population<campaign.data.capacity,click('medieval-feed'),built('farm')?label('No housing capacity available','Capacité d’accueil insuffisante'):null);
         }else if(theme==='industrial'){
             add('generate',label('Generate energy','Produire de l’énergie'),label('Convert raw materials into electricity.','Transformez vos matières premières en électricité.'),'power_plant',built('power_plant'),click('industrial-generate'));
             add('refine',label('Manufacture goods','Fabriquer des marchandises'),label('Use your factory, power and storage capacity.','Utilisez votre usine, votre énergie et vos capacités de stockage.'),'steelworks',built('steelworks')&&built('warehouse'),click('industrial-refine'));
