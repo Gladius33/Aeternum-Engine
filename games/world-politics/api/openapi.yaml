@@ -15,6 +15,8 @@ tags:
     description: World-scoped political identity and cabinet state
   - name: Diplomacy
     description: Headless persistent international actor interactions
+  - name: Organizations
+    description: Source-pinned multilateral membership and voting procedures
 paths:
   /worlds/{world}/diplomacy:
     get:
@@ -451,6 +453,176 @@ paths:
         '409': { $ref: '#/components/responses/conflict' }
         '412': { $ref: '#/components/responses/precondition' }
         '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/organizations:
+    get:
+      tags: [Organizations]
+      operationId: listWorldOrganizations
+      description: Read source-pinned charter definitions and current memberships.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Fictional or carefully curated international organizations
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/organizations/{organization}:
+    get:
+      tags: [Organizations]
+      operationId: readWorldOrganization
+      description: Read the current membership, applications and withdrawal notices.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+      responses:
+        '200':
+          description: Organization with membership history
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/organizations/{organization}/applications:
+    post:
+      tags: [Organizations]
+      operationId: requestOrganizationMembership
+      description: A membership application is a request, not immediate accession.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [applicant]
+              properties:
+                applicant: { $ref: '#/components/schemas/GeopoliticalActorId' }
+      responses:
+        '202': { description: Membership application opened for member-state vote }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/organizations/{organization}/votes:
+    post:
+      tags: [Organizations]
+      operationId: voteOnOrganizationMembership
+      description: Authorized state vote; votes by AI-only states require trusted AI identity.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [voter, application_id, approve]
+              properties:
+                voter: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                application_id: { $ref: '#/components/schemas/Identifier' }
+                approve: { type: boolean }
+      responses:
+        '200': { description: Vote recorded without immediate treaty accession }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/organizations/{organization}/formalizations:
+    post:
+      tags: [Organizations]
+      operationId: formalizeOrganizationMembership
+      description: Trusted service only; approval threshold and ratification delay must be satisfied.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [application_id]
+              properties:
+                application_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200': { description: Membership formally entered into world state }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/organizations/{organization}/withdrawals:
+    post:
+      tags: [Organizations]
+      operationId: requestOrganizationWithdrawal
+      description: Withdrawal takes effect only after the organization-specific notice.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [actor]
+              properties:
+                actor: { $ref: '#/components/schemas/GeopoliticalActorId' }
+      responses:
+        '202': { description: Withdrawal notice accepted but membership remains active }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/organizations/clock:
+    post:
+      tags: [Organizations]
+      operationId: advanceOrganizationWorldClock
+      description: Trusted simulation service only; applies due withdrawal notices.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200': { description: Game clock advanced and due notices handled }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -458,6 +630,11 @@ components:
       scheme: bearer
       description: Authentication gateway reserved; no production token verifier implemented.
   parameters:
+    organization:
+      name: organization
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
     world:
       name: world
       in: path
