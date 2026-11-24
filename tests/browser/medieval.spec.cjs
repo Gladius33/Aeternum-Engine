@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+const {captureScene}=require('./visual-capture.cjs');
 const {execFileSync}=require('node:child_process');
 const origin='http://127.0.0.1:8769';
 const world='e2e-medieval-v3';
@@ -45,11 +46,11 @@ async function foundation(page,type,id) {
     await page.getByRole('button',{name:'Find construction sites'}).click();
     expect((await request).status()).toBe(200);
     await expect(page.locator('#foundation-site option')).toHaveCount(1);
-    await page.getByLabel('Building type',{exact:true}).selectOption(type);
-    await page.getByLabel('New building identifier (optional)').fill(id);
+    await page.locator('#world-scene [data-catalogue="'+type+'"]').click();
+    await page.locator('#scene-foundation-reference').fill(id);
     const placed=page.waitForResponse(r=>r.url()===commandUrl
         && r.request().postDataJSON().type==='building.place');
-    await page.getByRole('button',{name:'Place foundation'}).click();
+    await page.locator('#world-scene [data-label=place]').click();
     expect((await placed).status()).toBe(200);
     await expect(page.locator('#building-details')).toContainText(id);
 }
@@ -174,6 +175,14 @@ test('M05 two newly registered players complete an isolated browser colony campa
     for(let i=0;i<4;i++) await settle(a,'settlement.feed');
     await expect(a.locator('#medieval-details')).toContainText('Residents6 / 9');
     await expect(a.locator('#medieval-victory')).toContainText('VICTORY');
+    await a.locator('#world-scene [data-label=allStages]').click();
+    await expect(a.locator('#status')).toHaveText('Success');
+    await a.locator('#world-scene [data-label=allStocks]').click();
+    await expect(a.locator('#status')).toHaveText('Success');
+    await expect(a.locator('[data-reserve]').first()).toBeVisible();
+    await expect(a.locator('[data-objective][data-achieved=false]')).toHaveCount(0);
+    await expect(a.locator('[data-building=m05-keep]')).toHaveAttribute('data-level','2');
+    await captureScene(a,'medieval-victory');
     await b.getByRole('button',{name:'Review your colony'}).click();
     await expect(b.locator('#medieval-victory')).not.toContainText('VICTORY');
     await expect(b.locator('#medieval-details')).toContainText('Residents1 / 1');

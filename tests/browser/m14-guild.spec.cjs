@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+const {captureScene}=require('./visual-capture.cjs');
 const {execFileSync}=require('node:child_process');
 
 const origin='http://127.0.0.1:8765';
@@ -45,11 +46,11 @@ async function build(page,id,type,seconds){
     const site=page.waitForResponse(r=>r.url().endsWith('/construction/options'));
     await page.getByRole('button',{name:'Find construction sites'}).click();
     expect((await site).status()).toBe(200);
-    await page.getByLabel('Building type',{exact:true}).selectOption(type);
-    await page.getByLabel('New building identifier (optional)').fill(id);
+    await page.locator('#world-scene [data-catalogue="'+type+'"]').click();
+    await page.locator('#scene-foundation-reference').fill(id);
     const placed=page.waitForResponse(r=>r.url()===url
         && r.request().postDataJSON().type==='building.place');
-    await page.getByRole('button',{name:'Place foundation'}).click();
+    await page.locator('#world-scene [data-label=place]').click();
     expect((await placed).status()).toBe(200);
     await page.getByLabel('Owned building ID').fill(id);
     await page.getByRole('button',{name:'Inspect building plan'}).click();
@@ -112,9 +113,10 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
         const offer=sale.request().postDataJSON();
         await b.locator('#world-scene [data-label=marketSync]').click();
         await expect(b.locator('[data-stat=market] strong')).toHaveText('1');
-        await b.locator('#market-offer').selectOption(offer.payload.offer);
+        await b.locator('[data-offer]').filter({hasText:'3 spice'}).click();
+        await captureScene(b,'guild-open-barter');
         const purchasing=b.waitForResponse(r=>r.url()===url&&r.request().postDataJSON()?.type==='market.accept');
-        await b.locator('#market-accept').click();
+        await b.locator('#world-scene [data-label=acceptTrade]').click();
         const settled=await purchasing;
         const purchase=settled.request().postDataJSON();
         expect(settled.status(),await settled.text()).toBe(200);
@@ -136,6 +138,13 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
             {headers:{Authorization:alice.token}});
         expect(status.status()).toBe(200);
         expect((await status.json()).data.level).toBe(1);
+    await a.locator('#world-scene [data-label=allStages]').click();
+    await expect(a.locator('#status')).toHaveText('Success');
+    await a.locator('#world-scene [data-label=allStocks]').click();
+    await expect(a.locator('#status')).toHaveText('Success');
+    await expect(a.locator('[data-reserve]').first()).toBeVisible();
+        await expect(a.locator('[data-building=m14-guild-caravan]')).toHaveAttribute('data-stage','built');
+        await captureScene(a,'guild-developed-holdings');
         const wrongWorld=await a.request.get(origin+'/v1/worlds/e2e-medieval/economy/balances/'+
             alice.account+'/wood',{headers:{Authorization:alice.token}});
         // Configured-but-inaccessible worlds return 409, unconfigured worlds 404.
