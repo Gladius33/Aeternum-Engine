@@ -60,3 +60,58 @@ html[data-game-presentation=play] #world-scene .game-ui-layout{grid-template-col
 html[data-game-presentation=play] #world-scene .game-ui-side .scene-toolbar{gap:.18rem}
 @media(max-width:1000px){html[data-game-presentation=play] #world-scene .game-ui-layout{grid-template-columns:100px minmax(0,1fr)}}
 @media(max-width:640px){html[data-game-presentation=play] #world-scene .game-ui-layout{grid-template-columns:1fr}html[data-game-presentation=play] #world-scene .scene-resource-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* G10: a game library and a readable play-first shell; classic diagnostics unchanged. */
+.player-first:not(.in-game){max-width:1120px;padding:clamp(16px,4vw,48px);margin:0 auto}
+.player-first:not(.in-game)>h1{font:700 clamp(2.2rem,5vw,4rem) Georgia,serif;letter-spacing:.12em;color:#f0d9a1;margin:1rem 0 .3rem}
+.player-first:not(.in-game)>h1~p:first-of-type{display:none}
+body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 0,#32463e 0,#182831 37%,#0c141b 78%);min-height:100vh}
+#game-library{border:0;padding:0;margin:2rem 0 1rem}
+#library-title{font:500 clamp(1.5rem,4vw,2.5rem) Georgia,serif;color:#f7ebd0;margin:0}
+#game-library>p{color:#b9c8cd;line-height:1.6}
+.game-library-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(.7rem,2vw,1.3rem)}
+.library-card{display:flex;flex-direction:column;text-align:left;width:100%;padding:0;margin:0;border:1px solid #72857c;border-radius:14px;overflow:hidden;background:#172a30;color:#f7ebd0;box-shadow:0 12px 30px #0004;transition:transform .18s,border-color .18s}
+.library-card:hover,.library-card[aria-pressed=true]{border-color:#f0cb80;transform:translateY(-3px);box-shadow:0 10px 36px #0007}
+.library-art{display:block;width:100%;aspect-ratio:2;background:linear-gradient(#9eada1,#d5c9a2);overflow:hidden}
+[data-choose-game=industrial] .library-art{background:linear-gradient(#657d8b,#c5c5ad)}
+[data-choose-game=guild] .library-art{background:linear-gradient(#ad7771,#f3cf92)}
+.library-art svg{width:100%;height:100%;display:block}
+.library-copy{display:grid;gap:.55rem;padding:1.15rem;flex:1}
+.library-copy small{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:#c7ae79}
+.library-copy strong{font:600 clamp(1.2rem,2.2vw,1.7rem) Georgia,serif}
+.library-copy p{font-size:.88rem;line-height:1.5;color:#d5e0e0;margin:0 0 .4rem}
+.library-cta{display:block;margin-top:auto;padding:.65rem .8rem;border:1px solid #c7ae79;border-radius:6px;color:#f1d69f;text-align:center;font-weight:600}
+.library-card[aria-pressed=true] .library-cta{background:#e6c582;color:#18272c}
+.library-profiles{display:flex;gap:.5rem;margin:.5rem 0}
+.library-profiles button,.library-change{background:#25383e;color:#e6dcc2;border:1px solid #83958f;border-radius:6px;padding:.55rem 1.1rem}
+.library-profiles button[aria-pressed=true]{background:#e6c582;color:#15252b}
+.player-first:not(.in-game) #login{max-width:420px;border:1px solid #8d9e8a66;background:#16262de8;border-radius:12px;padding:1.25rem;margin:1rem 0}
+.player-first #login input{background:#0e1d24;color:#fff;border:1px solid #758987;border-radius:6px}
+.player-first #login button{background:#e5c681;color:#17242a;border:0;border-radius:6px;font-weight:700;width:100%;margin-top:.5rem}
+.library-login-profile label:has(input[name=login]){display:none}
+.player-first.library-chosen:not(.in-game) #recover{display:none}
+.player-first.in-game>h1,.player-first.in-game>p:not(#status):not(#recovery-secret){display:none}
+.player-first.in-game .player-nav,.player-first.in-game .player-guide{display:none}
+.player-first.in-game #world-scene{border:0;border-radius:12px;padding:clamp(.5rem,1.2vw,1rem)}
+.player-first.in-game #world-scene .game-ui-mast{border:0;box-shadow:none;background:none;padding:.35rem .5rem}
+.player-first.in-game #world-scene .game-ui-selectors label:has([data-game-context=world]):has(select:only-child),.player-first.in-game #world-scene .game-ui-selectors label:has([data-game-context=account]){font-size:.7rem}
+.player-first.in-game #world-scene .game-ui-layout{grid-template-columns:minmax(120px,150px) minmax(0,1fr) minmax(200px,235px);gap:.8rem}
+.player-first.in-game #world-scene .game-ui-nav{border:0;background:#101b2080;padding:.5rem}
+.player-first.in-game #world-scene .game-ui-nav-button{background:transparent;border:0;border-bottom:1px solid #ffffff14;font-size:.88rem;padding:.7rem .5rem}
+.player-first.in-game #world-scene .game-ui-nav-button[aria-pressed=true]{background:var(--ui-surface);box-shadow:inset 3px 0 var(--ui-accent)}
+.player-first.in-game #world-scene .scene-catalogue{grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:.8rem}
+.player-first.in-game #world-scene .scene-catalogue-card{padding:.8rem;gap:.5rem;border-radius:9px}
+.player-first.in-game #world-scene .scene-catalogue-card svg{height:115px}
+.player-first.in-game #world-scene .scene-workshop{padding:1rem}
+.player-first.in-game #world-scene .scene-district{border:0;box-shadow:0 8px 25px #0005}
+.player-first.in-game #world-scene .game-ui-side{background:#101e24b8;border-color:#ffffff20}
+.player-first.in-game #world-scene .scene-inspector{border:0;padding:.4rem}
+.player-first.in-game #world-scene .scene-first-mission{border:1px solid var(--ui-accent);border-radius:9px;background:linear-gradient(120deg,var(--ui-surface),var(--ui-bg));padding:.9rem;display:grid;gap:.35rem;margin-bottom:.55rem}
+.scene-first-mission strong{color:var(--ui-accent);font-size:.74rem;text-transform:uppercase;letter-spacing:.09em}
+.scene-first-mission h3{font:600 1.15rem Georgia,serif;margin:.15rem 0}
+.scene-first-mission p{font-size:.84rem;line-height:1.45;margin:.2rem 0;color:var(--ui-muted)}
+#world-scene .scene-first-mission button{background:var(--ui-accent);color:#192628;border:0;font-weight:700}
+.player-first.in-game #world-scene .scene-reference-optional{display:none}
+@media(max-width:1050px){.player-first.in-game #world-scene .game-ui-layout{grid-template-columns:110px minmax(0,1fr)}}
+@media(max-width:640px){.game-library-grid{grid-template-columns:1fr}.library-card{flex-direction:row;align-items:stretch}.library-art{width:40%;aspect-ratio:auto;align-self:stretch}.library-art svg{object-fit:cover;height:100%}.library-copy{padding:.75rem}.library-copy strong{font-size:1.15rem}.library-copy p{font-size:.78rem}.player-first.in-game #world-scene .game-ui-layout{grid-template-columns:1fr}.player-first.in-game #world-scene .game-ui-nav-button{padding:.35rem .15rem;font-size:.72rem}.player-first.in-game #world-scene .scene-catalogue{grid-template-columns:repeat(2,minmax(0,1fr))}.player-first.in-game #world-scene .scene-catalogue-card svg{height:95px}}
+@media(prefers-reduced-motion:reduce){.library-card{transition:none}.library-card:hover{transform:none}}
