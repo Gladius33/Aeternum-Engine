@@ -169,7 +169,7 @@
     plotSelect.addEventListener('change',()=>{chosenSite=plotSelect.value;renderWorkspace();});
     const catalogueList=html('div',workshop.body,'scene-catalogue');
     const referenceLabel=html('label',workshop.body,'scene-caption');referenceLabel.htmlFor='scene-foundation-reference';
-    const referenceInput=html('input',workshop.body,'scene-plot');referenceInput.id='scene-foundation-reference';referenceInput.maxLength=64;referenceInput.autocomplete='off';
+    const referenceInput=html('input',workshop.body,'scene-plot');referenceInput.id='scene-foundation-reference';referenceInput.maxLength=64;referenceInput.autocomplete='off';referenceInput.classList.add('scene-reference-optional');referenceLabel.classList.add('scene-reference-optional');
     const place=button(workshop.body,'place',()=>{
         if(busy||!chosenSite||!chosenType)return;
         const site=document.getElementById('foundation-site'),type=document.getElementById('foundation-type');
@@ -446,6 +446,7 @@
             html('small',row,'',t('receipt'));
         }
         workspace.querySelectorAll('[data-label]').forEach(b=>b.textContent=t(b.dataset.label));
+        renderMission();
     }
     // Large illustrated district. No fake structures or invented simulation entities.
     // Display positions are presentation slots, not server world coordinates.
@@ -500,7 +501,7 @@
         districtPrev.hidden=districtNext.hidden=!districtMode||ids.length<2;
         pagePrev.hidden=pageNext.hidden=true;
         districtZoomIn.hidden=districtZoomOut.hidden=districtReset.hidden=!districtMode;
-        districtCaption.textContent=t('districtNote')+' · '+t('cameraHelp');
+        districtCaption.textContent=classic?t('districtNote')+' · '+t('cameraHelp'):(lang()==='fr'?'Cliquez sur un bâtiment pour agir. Glissez pour explorer.':'Select a building to act. Drag to explore.');
         if(!districtMode)return;
         if(!ids.includes(districtId)){districtId=ids[0]??'';districtPage=0;}
         const mobile=narrow.matches,w=mobile?360:900,h=mobile?650:510,limit=mobile?4:6;
@@ -646,7 +647,7 @@
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();});
     on('confirmed',d=>{if(d.type==='building.place')referenceInput.value='';reading=null;campaign=null;marketReading=null;inventory.clear();offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));if(!d.busy)updateSelection();});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));if(!d.busy){updateSelection();renderMission();}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();});
     document.getElementById('map-location').addEventListener('input',updateSelection);
@@ -686,6 +687,7 @@
                 select.append(n);
             });
             select.value=original.value;select.disabled=busy;
+            select.parentElement.hidden=Boolean(selectedGame&&key!=='resource'&&original.options.length<=1);
         }
     }
     const panels=new Map([['holdings',holdingList],['construction',workshop.root],['reserves',inventoryBlock.root],['objectives',objectiveBlock.root],['market',tradeBlock.root],['activity',receiptBlock.root]]);
@@ -694,8 +696,48 @@
     function revealPanel(key){host.dataset.workspace=key;for(const button of host.querySelectorAll('[data-game-nav]'))button.setAttribute('aria-pressed',String(button.dataset.gameNav===key));}
     const focusNode=n=>{const key=n.dataset.workspacePanel;if(key&&!classic)revealPanel(key);n.scrollIntoView({block:'nearest'});n.querySelector('button:not([hidden]),select,input')?.focus({preventScroll:true});};
     const showDistrict=mode=>{if(!classic)revealPanel(mode?'domain':'atlas');districtMode=mode;districtPage=0;domainCamera.reset();render();focusNode(districtBar);};
+    // The next step is derived from server-confirmed construction state, not a local tutorial counter.
+    const mission=html('div',host,'scene-first-mission');mission.hidden=classic;
+    mission.setAttribute('aria-label','First objective');
+    const missionKicker=html('strong',mission,''),missionTitle=html('h3',mission,''),missionCopy=html('p',mission,'');
+    const missionGo=html('button',mission,'scene-button');missionGo.type='button';missionGo.dataset.firstMission='true';
+    let missionAction=null;
+    missionGo.addEventListener('click',()=>{if(!busy)missionAction?.();});
+    function renderMission(){
+        const french=lang()==='fr',pick=(en,fr)=>french?fr:en;
+        mission.hidden=classic||theme==='neutral';
+        if(mission.hidden)return;
+        missionKicker.textContent=pick('Your next step','Votre prochain objectif');
+        const first={medieval:'lumberyard',industrial:'power_plant',guild:'market_hall'}[theme];
+        const type=catalogue.types.find(x=>x.id===first);
+        const building=[...buildings.values()].find(x=>x.type===first);
+        const detail=building?details.get(building.id):null;
+        let title,copy,cta,step;
+        if(!building){
+            step='place';title=pick('Found your first building','Fondez votre premier bâtiment');
+            copy=pick('Start with a ','Commencez par : ')+displayName(first)+pick('. Choose a plot and confirm the plan.','. Choisissez une parcelle et confirmez le projet.');
+            cta=pick('Choose a building','Choisir le bâtiment');
+            missionAction=()=>{if(type)chosenType=type.id;if(!chosenSite&&catalogue.sites.length===1){const site=catalogue.sites[0];chosenSite=site.territory_id+'|'+site.entity_id;}renderWorkspace();focusNode(workshop.root);};
+        }else if(!detail||detail.level===0&&!detail.pending){
+            step='start';title=pick('Start the construction','Lancez le chantier');
+            copy=pick('Your plot is ready. Select the building and start the work to make it productive.','Votre parcelle est prête. Sélectionnez le bâtiment puis lancez les travaux pour le rendre productif.');
+            cta=pick('Inspect the building','Voir le chantier');
+            missionAction=()=>{districtId=building.territory;showDistrict(true);select('building',building.id);};
+        }else if(detail.pending){
+            step='pending';title=pick('Construction in progress','Travaux en cours');
+            copy=pick('The worker completes construction on the server. Refresh to see the latest confirmed progress.','Les travaux se terminent sur le serveur. Actualisez pour consulter leur avancement réel.');
+            cta=pick('Check construction','Vérifier les travaux');missionAction=()=>run(readStages);
+        }else{
+            step='next';title=pick('Your first building is ready','Votre premier bâtiment est prêt');
+            const next={medieval:pick('Build a farm and grow your village.','Construisez une ferme et développez votre village.'),industrial:pick('Expand your power and production network.','Développez votre réseau énergétique et productif.'),guild:pick('Visit the market and publish your first exchange.','Visitez le marché et publiez votre premier échange.')}[theme];
+            copy=next;cta=theme==='guild'?pick('Open the market','Ouvrir le marché'):pick('View campaign','Voir la campagne');
+            missionAction=()=>theme==='guild'?focusNode(tradeBlock.root):focusNode(objectiveBlock.root);
+        }
+        mission.dataset.missionStep=step;missionTitle.textContent=title;missionCopy.textContent=copy;missionGo.textContent=cta;
+        missionGo.disabled=busy||(!building&&!type);
+    }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
-        slots:{resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,hint,toolbar],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        slots:{resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,hint,toolbar],side:[mission,panel,nav],lower:[holdingTitle,holdingList,workspace]},
         actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>focusNode(tradeBlock.root),activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
@@ -709,7 +751,7 @@
         ui.update(window.AeternumUIProfiles[theme],lang());syncMirrors();
         const detailLabel=lang()==='fr'?'Commandes détaillées':'Detailed controls';
         legacySummary.textContent=detailLabel;legacyLink.textContent=detailLabel;
-        exit.textContent=lang()==='fr'?'Déconnexion':'Leave game';
+        exit.textContent=lang()==='fr'?'Changer de jeu':'Change game';
     }
     async function loadInitialScene(){await loadMap();await readStages();districtMode=true;render();await readInventory();if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();await readBotRoster();}
     let initialLoad=false;
