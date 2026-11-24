@@ -378,6 +378,7 @@ document.querySelector('#progression-rank-load').addEventListener('click',()=>ru
     }
     document.querySelector('#progression-rank-result').textContent=
         String(data.position)+' / '+String(data.participants);
+    window.dispatchEvent(new CustomEvent('aeternum:rank',{detail:{world:selected.world,account:selected.account,data}}));
 }));
 function selectWorld() {
     const w=worlds.find(w=>w.world===balance.elements.world.value);

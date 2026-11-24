@@ -1,0 +1,40 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {runInNewContext}=require('node:vm');
+const path=require('node:path');
+const doc={createElementNS(ns,tag){return{tag,attrs:{},children:[],setAttribute(k,v){this.attrs[k]=String(v)},append(n){this.children.push(n)}}}};
+const window={};
+runInNewContext(readFileSync(path.join(__dirname,'../../public/living-art.js'),'utf8'),{window,document:doc});
+const art=window.AeternumLivingArt,walk=n=>[n,...n.children.flatMap(walk)];
+const levels=(...pairs)=>Object.fromEntries(pairs.map(([name,current,required])=>[name,{current,required}]));
+const medieval={population:2,victory:{achieved:false,populationRequired:6,buildings:levels(['lumberyard',1,2],['farm',2,2],['granary',0,1],['keep',0,2])}};
+const industrial={delivery:{current:45,required:45},victory:{achieved:true,buildings:levels(['power_plant',2,2],['warehouse',2,2],['steelworks',2,2],['freight_terminal',1,1])}};
+let m=art.campaignChapters('medieval',medieval);
+assert.equal(m.chapters.length,3);
+assert.equal(m.chapters.flatMap(c=>c.goals).length,5);
+assert.equal(m.chapters[0].complete,1);
+assert.equal(m.victory,false);
+let i=art.campaignChapters('industrial',industrial);
+assert.equal(i.chapters.length,3);
+assert.ok(i.chapters.every(c=>c.state==='complete'));
+assert.equal(i.victory,true);
+// Server victory, not inferred victory from local arithmetic.
+assert.equal(art.campaignChapters('industrial',{...industrial,victory:{...industrial.victory,achieved:false}}).victory,false);
+assert.equal(art.campaignChapters('medieval',null).chapters.length,0);
+let g=art.campaignChapters('guild',null,{market_hall:1,caravan_hub:0});
+assert.equal(g.guide,true);
+assert.equal(g.victory,null);
+assert.equal(g.chapters[0].state,'complete');
+assert.equal(g.chapters[1].state,'incomplete');
+assert.ok(art.campaignChapters('guild',null).chapters.every(c=>c.state==='unknown'));
+assert.equal(art.campaignChapters('guild',null,{market_hall:NaN,caravan_hub:-1}).chapters[0].state,'unknown');
+const extra=art.campaignChapters('medieval',{...medieval,victory:{...medieval.victory,buildings:{...medieval.victory.buildings,watchtower:{current:0,required:2}}}});
+assert.equal(extra.chapters[3].key,'additional');
+for(const [theme,projection] of [['medieval',m],['industrial',i],['guild',g]])for(const chapter of projection.chapters){
+    const root=doc.createElementNS('','svg');assert.ok(art.chapterLandscape(root,theme,chapter.key));
+    assert.equal(root.children[0].attrs['data-chapter-landscape'],chapter.key);
+    assert.ok(walk(root).length<100);
+    assert.ok(!walk(root).some(n=>Object.values(n.attrs).some(v=>/NaN|Infinity|undefined/.test(v))));
+}
+console.log('G19: eight chapter illustrations, exact server goals, victory authority, unknown states and additional objectives passed.');

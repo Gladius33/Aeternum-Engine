@@ -285,6 +285,30 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             expect((await historyResponse).status()).toBe(200);
             await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await captureScene(page,'g18-'+pack+'-commerce');
+            // G19: navigate the real campaign, refresh its authoritative
+            // projection and use a chapter shortcut without issuing a command.
+            await page.locator('[data-game-nav=objectives]').click();
+            await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+            const chronicle=page.locator('.campaign-chronicle');
+            await expect(chronicle).toBeVisible();
+            await expect(chronicle.locator('[data-chapter]')).toHaveCount(pack==='guild'?2:3);
+            const refreshPath=pack==='medieval'?'/settlement/status/':pack==='industrial'?'/industrial/status/':'/construction/progression';
+            const refreshed=page.waitForResponse(r=>r.url().includes(refreshPath));
+            await chronicle.locator('[data-campaign-refresh]').click();
+            expect((await refreshed).status()).toBe(200);
+            await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+            const firstGoal=chronicle.locator('[data-chapter-goal='+type+']');
+            await expect(firstGoal.locator('strong')).toHaveText(pack==='guild'?'1 / 1':'1 / 2');
+            await expect(firstGoal).toHaveAttribute('data-goal-state',pack==='guild'?'complete':'incomplete');
+            if(pack==='medieval')await expect(chronicle.locator('[data-chapter-goal=population] strong')).toHaveText('2 / 6');
+            if(pack==='industrial')await expect(chronicle.locator('[data-chapter-goal=delivery] strong')).toHaveText('0 / 45');
+            if(pack==='guild')await expect(chronicle.locator('[data-campaign-victory]')).toHaveAttribute('data-campaign-victory','unknown');
+            await captureScene(page,'g19-'+pack+'-campaign');
+            const shortcut=pack==='medieval'?'granary':pack==='industrial'?'warehouse':'caravan_hub';
+            await chronicle.locator('[data-chapter-action='+shortcut+']').click();
+            await expect(page.locator('[data-workspace-panel=construction]')).toBeVisible();
+            await expect(page.locator('[data-catalogue='+shortcut+']')).toHaveAttribute('aria-pressed','true');
+
             await page.locator('[data-game-nav=construction]').click();
             await captureScene(page,'local-'+pack+'-construction');
             expect((await context.request.get(origin+'/v1/public/worlds')).status()).toBe(404);

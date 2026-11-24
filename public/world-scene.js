@@ -58,6 +58,7 @@
     const header=html('div',host,'scene-header'),title=html('h3',header,'scene-title'),summary=html('p',header,'scene-summary');
     const hud=html('div',host,'scene-hud');
     let reading=null,campaign=null,marketReading=null,stale=false,lastEconomicEvent=null;
+    let stagesKnown=false,scoreReading=null,rankReading=null,campaignStale=false;
     let inventory=new Map(),catalogue={sites:[],types:[]},chosenSite='',chosenType='',offers=[],offerMore=false,chosenOffer='',receipts=[];
     const actionLabels={
         'building.place':['Foundation established','Fondation établie'],
@@ -106,7 +107,7 @@
             const old=details.get(stage.id);
             next.set(stage.id,{...b,...(old?.level===stage.level&&old?.pending===stage.pending?old:{}),...stage});
         }
-        details=next;render();
+        details=next;stagesKnown=true;render();
         // A selected building's command form must follow real worker completion.
         const updated=currentBuilding?next.get(currentBuilding.id):null;
         if(updated&&currentBuilding.account===f.account&&(updated.level!==currentBuilding.level||Boolean(updated.pending)!==Boolean(currentBuilding.pending)))await loadBuilding();
@@ -444,7 +445,7 @@
     button(nav,'build',()=>classic?jump('foundation-panel'):focusNode(workshop.root));
     button(nav,'production',()=>classic?jump('action'):focusNode(inventoryBlock.root));
     button(nav,'trade',()=>classic?jump('market-panel'):focusNode(tradeBlock.root));
-    const goals=button(nav,'goals',()=>classic||theme==='guild'?jump(theme==='medieval'?'medieval-panel':theme==='industrial'?'industrial-panel':'progression-panel'):focusNode(objectiveBlock.root));
+    const goals=button(nav,'goals',()=>classic?jump(theme==='medieval'?'medieval-panel':theme==='industrial'?'industrial-panel':'progression-panel'):focusNode(objectiveBlock.root));
     const operations=[
         ['medieval','feed','medieval-feed'],['medieval','work','medieval-work'],
         ['industrial','generate','industrial-generate'],['industrial','refine','industrial-refine'],['industrial','ship','industrial-ship']
@@ -822,6 +823,98 @@
         const stamp=html('p',hud,'scene-reading',stale?t('stale'):t('snapshot'));
         stamp.dataset.stale=String(stale);
     }
+    const chapterCopy={
+        'medieval-foundation':['I · The first settlement','I · Les premières fondations','Establish the fields and timber supply that sustain your domain.','Établissez les cultures et l’approvisionnement en bois du domaine.','lumberyard'],
+        'medieval-community':['II · A growing community','II · Une communauté grandissante','Provide storage and welcome the population required by the realm.','Développez les réserves et accueillez la population requise.','granary'],
+        'medieval-stronghold':['III · The stronghold','III · La place forte','Raise your keep to the level required by the campaign.','Élevez votre donjon au niveau exigé par la campagne.','keep'],
+        'industrial-foundation':['I · The power network','I · Le réseau énergétique','Build the energy and storage infrastructure.','Développez les infrastructures d’énergie et de stockage.','power_plant'],
+        'industrial-manufacture':['II · The manufacturing frontier','II · La frontière productive','Expand the factory network to its required capacity.','Développez le réseau industriel selon les objectifs fixés.','steelworks'],
+        'industrial-freight':['III · The freight corridor','III · Le corridor logistique','Complete the terminal and meet the delivery target.','Achevez le terminal et atteignez l’objectif de livraison.','freight_terminal'],
+        'guild-foundation':['I · The trading house','I · La maison de commerce','Open a market hall to begin your trading enterprise.','Ouvrez une halle pour lancer votre entreprise marchande.','market_hall'],
+        'guild-caravan':['II · The caravan routes','II · Les routes caravanières','Establish a caravan hub and expand your trading estate.','Établissez un relais caravanier et développez votre domaine commercial.','caravan_hub'],
+        additional:['Further objectives','Objectifs complémentaires','Complete the remaining requirements recorded by the server.','Remplissez les autres exigences enregistrées par le serveur.',null]
+    };
+    function renderChronicle(){
+        const root=objectiveBlock.body,fr=lang()==='fr',label=(en,f)=>fr?f:en;
+        const journal=html('section',root,'campaign-chronicle');
+        journal.setAttribute('aria-label',label('Campaign chronicle','Chronique de campagne'));
+        const guild=theme==='guild';
+        const holdings={};
+        if(guild&&stagesKnown)for(const key of ['market_hall','caravan_hub']){
+            const own=[...buildings.values()].filter(b=>b.type===key);
+            holdings[key]=own.every(b=>Number.isSafeInteger(details.get(b.id)?.level))?Math.max(0,...own.map(b=>details.get(b.id).level)):null;
+        }
+        const projection=window.AeternumLivingArt.campaignChapters(theme,campaign?.kind===theme?campaign.data:null,guild&&stagesKnown?holdings:null);
+        const header=html('div',journal,'campaign-heading');
+        html('h4',header,'',guild?label('Merchant chronicle','Chronique marchande'):label('Campaign chronicle','Chronique de campagne'));
+        const refresh=html('button',header,'scene-button');refresh.type='button';refresh.dataset.campaignRefresh='true';
+        refresh.textContent=label('Refresh campaign','Actualiser la campagne');refresh.disabled=busy;
+        refresh.addEventListener('click',()=>run(async()=>{
+            await readStages();
+            if(theme==='medieval')await reviewMedieval();
+            else if(theme==='industrial')await reviewIndustrial();
+            else if(!document.getElementById('progression-panel').hidden)await loadProgression();
+        }));
+        html('p',journal,'campaign-note',guild?label('Suggested milestones, not an official victory campaign. No additional rewards are granted.','Jalons suggérés, sans condition de victoire officielle ni récompense supplémentaire.'):label('Chapters group the existing server victory objectives. Artwork illustrates goals; no new rules or rewards.','Les chapitres regroupent les objectifs de victoire existants du serveur. Le décor illustre les objectifs ; aucune règle ni récompense ajoutée.'));
+        if(campaignStale)html('p',journal,'campaign-note',label('Last reading; refresh after your latest action.','Dernier relevé ; actualisez après votre dernière action.'));
+        const all=projection.chapters.flatMap(ch=>ch.goals),done=all.filter(g=>g.state==='complete').length;
+        const summary=html('div',journal,'campaign-summary');
+        summary.dataset.campaignVictory=projection.victory===null?'unknown':String(projection.victory);
+        html('strong',summary,'',projection.victory===true?label('Campaign victory confirmed','Victoire de campagne confirmée'):all.length?done+' / '+all.length+' '+label('objectives complete','objectifs achevés'):label('Awaiting server reading','En attente du relevé serveur'));
+        if(all.length){
+            const meter=html('progress',summary,'scene-meter');meter.max=all.length;meter.value=done;
+            meter.setAttribute('aria-label',label('Completed objectives','Objectifs achevés'));
+        }
+        const active=projection.chapters.find(ch=>ch.state!=='complete')?.key;
+        for(const ch of projection.chapters){
+            const copy=chapterCopy[ch.key]??chapterCopy.additional;
+            const card=html('article',journal,'campaign-chapter');card.dataset.chapter=ch.key;card.dataset.chapterState=ch.state;
+            if(ch.key===active)card.dataset.chapterNext='true';
+            const image=el('svg',{viewBox:'0 0 320 120','aria-hidden':'true',class:'campaign-art'},card);
+            window.AeternumLivingArt.chapterLandscape(image,theme,ch.key);
+            // A blueprint, explicitly not a claim that the target building exists.
+            if(copy[4])model(el('g',{transform:'translate(160 100) scale(1.12)'},image),copy[4],{level:ch.state==='complete'?1:0,pending:null});
+            const body=html('div',card,'campaign-chapter-body');
+            html('small',body,'campaign-chapter-state',ch.state==='complete'?label('Completed','Achevé'):ch.state==='unknown'?label('Not verified','Non vérifié'):label('In progress','En cours'));
+            html('h5',body,'',copy[fr?1:0]);html('p',body,'',copy[fr?3:2]);
+            for(const g of ch.goals){
+                const row=html('div',body,'campaign-goal');row.dataset.chapterGoal=g.key;row.dataset.goalState=g.state;
+                const title=g.kind==='population'?t('residents'):g.kind==='delivery'?t('freight'):displayName(g.key);
+                html('span',row,'',title);html('strong',row,'',String(g.current??'—')+' / '+g.required);
+                const meter=html('progress',row,'scene-meter');meter.max=g.required;
+                if(g.current!==null)meter.value=Math.min(g.current,g.required);
+                meter.setAttribute('aria-label',title);
+                if(g.state==='incomplete'){
+                    const go=html('button',row,'scene-button');go.type='button';go.dataset.chapterAction=g.key;
+                    go.textContent=g.kind==='building'?label('Inspect or build','Examiner ou construire'):label('Open domain actions','Ouvrir les actions du domaine');
+                    go.disabled=busy;
+                    go.addEventListener('click',()=>{
+                        if(busy)return;
+                        if(g.kind!=='building'){showDistrict(true);focusNode(playActions);return;}
+                        const b=[...buildings.values()].filter(b=>b.type===g.key).sort((a,b)=>(details.get(b.id)?.level??-1)-(details.get(a.id)?.level??-1))[0];
+                        if(b){districtId=b.territory;showDistrict(true);select('building',b.id);}
+                        else if(catalogue.types.some(x=>x.id===g.key)){chosenType=g.key;renderWorkspace();focusNode(workshop.root);}
+                    });
+                    if(g.kind==='building'&&![...buildings.values()].some(b=>b.type===g.key)&&!catalogue.types.some(x=>x.id===g.key))go.disabled=true;
+                }
+            }
+        }
+        if(guild){
+            const score=html('section',journal,'campaign-score');
+            html('h5',score,'',label('Guild standing','Rang de la guilde'));
+            const enabled=!document.getElementById('progression-panel').hidden;
+            if(!enabled){html('p',score,'campaign-note',label('Scores are not enabled in this world.','Les scores ne sont pas activés dans ce monde.'));return;}
+            const values=html('div',score,'campaign-score-values');
+            for(const [key,en,frText] of [['development','Development','Développement'],['military','Military','Militaire'],['global','Global','Total']]){
+                const row=html('span',values,'commerce-reading');row.dataset.campaignScore=key;
+                html('small',row,'',label(en,frText));html('strong',row,'',String(scoreReading?.[key]??'—'));
+            }
+            const rank=html('p',score,'campaign-note',label('Rank: ','Rang : ')+(rankReading?rankReading.position+' / '+rankReading.participants:'—'));
+            rank.dataset.campaignRank='true';
+            const load=html('button',score,'scene-button');load.type='button';load.dataset.campaignRankLoad='true';load.textContent=label('Read rank','Consulter le rang');load.disabled=busy;
+            load.addEventListener('click',()=>document.getElementById('progression-rank-load').click());
+        }
+    }
     function renderWorkspace(){
         for(const [block,key] of [[inventoryBlock,'inventory'],[workshop,'workshop'],[objectiveBlock,'objectives'],[tradeBlock,'tradeBoard'],[receiptBlock,'activity']])block.title.textContent=t(key);
         inventoryBlock.body.replaceChildren();
@@ -859,8 +952,9 @@
         }
         place.textContent=t('place');place.hidden=!chosenSite||!chosenType||!catalogue.types.some(x=>x.id===chosenType);
         objectiveBlock.body.replaceChildren();
-        objectiveBlock.root.hidden=theme!=='medieval'&&theme!=='industrial';
-        if(!campaign||!['medieval','industrial'].includes(campaign.kind))html('p',objectiveBlock.body,'scene-caption',t('unknownReading'));
+        objectiveBlock.root.hidden=theme==='neutral'||(classic&&theme==='guild');
+        if(!classic&&theme!=='neutral')renderChronicle();
+        if(!campaign||!['medieval','industrial'].includes(campaign.kind)){if(classic)html('p',objectiveBlock.body,'scene-caption',t('unknownReading'));}
         else {
             const data=campaign.data;
             const rows=Object.entries(data.victory.buildings).map(([name,v])=>[name,v.current,v.required]);
@@ -1247,23 +1341,24 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();clearAtlasRoute();selected=null;}for(const n of d.territories)territories.set(n.id,n);render();queueMicrotask(renderAtlasPanel);});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];routeCost=d?.cost??null;routeRead=true;render();});
     on('buildings',d=>{catalogue={sites:d.sites,types:d.types};buildings=new Map(d.buildings.map(b=>[b.id,b]));for(const id of details.keys())if(!buildings.has(id))details.delete(id);render();});
     on('building',d=>{buildings.set(d.id,d);details.set(d.id,d);render();});
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
-    on('campaign',d=>{campaign=d;renderHud();renderWorkspace();renderDistrict();});
+    on('campaign',d=>{if(d.kind==='progression'){scoreReading=d.data;if(theme==='guild')campaign=d;}else campaign=d;campaignStale=false;renderHud();renderWorkspace();renderDistrict();});
+    on('rank',d=>{const f=locationFields();if(d.world!==f.world||d.account!==f.account)return;rankReading=d.data;renderWorkspace();});
     on('trade-history',d=>{const f=locationFields();if(d.transactions!==null&&(d.world!==f.world||d.account!==f.account))return;tradeHistory=d.transactions;tradeHistoryMore=d.more===true;renderCommerce();});
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();renderDistrict();updateSelection();});
     on('confirmed',d=>{
         const context={...locationFields(),theme};
         if(d.world!==context.world||d.account!==context.account)return;
         if(economicJournal.record(d,context)){lastEconomicEvent={id:d.id,type:d.type};selectedOperationId=d.id;}
-        if(d.type==='building.place')referenceInput.value='';reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
+        if(d.type==='building.place')referenceInput.value='';campaignStale=true;rankReading=null;reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();}});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load]'))b.disabled=false;}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();if(!classic&&!districtMode&&selected?.type==='territory')centerAtlas(selected.id);});
     document.getElementById('map-location').addEventListener('input',updateSelection);
@@ -1358,7 +1453,7 @@
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
         slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,ambiencePanel,districtCommand,architecturalInspector,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
-        actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
+        actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>{focusNode(objectiveBlock.root);if(theme==='guild'&&!busy&&!document.getElementById('progression-panel').hidden)document.getElementById('progression-load').click();},market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
     if(!classic)revealPanel('domain');

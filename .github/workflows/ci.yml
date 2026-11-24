@@ -36,6 +36,7 @@ jobs:
           node tests/browser/atmosphere-contract.cjs
           node tests/browser/operation-contract.cjs
           node tests/browser/commerce-contract.cjs
+          node tests/browser/campaign-contract.cjs
           test -s public/client-dist/aeternum-shell.js
           composer dump-autoload --no-interaction
           bash tests/m11-package.sh
