@@ -257,7 +257,7 @@ components:
     CharacterCreate:
       type: object
       additionalProperties: false
-      required: [id, name]
+      required: [name]
       properties:
         id: { $ref: '#/components/schemas/Identifier' }
         name: { type: string, minLength: 1, maxLength: 160 }

@@ -77,4 +77,9 @@ $created=$api->handle('POST',$base.'/people',['id'=>'new-player','name'=>'Joueur
     'Idempotency-Key'=>'create-player-12345','If-Match'=>$s['headers']['ETag']
 ]);
 wp2($created['status']===201 && $roster->snapshot()['people']['new-player']['profile']===[],'POST quick candidate without extended fields');
+$latest=$api->handle('GET',$base);
+$nameOnly=$api->handle('POST',$base.'/people',['name'=>'Création immédiate'],[
+    'Idempotency-Key'=>'minimal-player-00001','If-Match'=>$latest['headers']['ETag']
+]);
+wp2($nameOnly['status']===201 && str_starts_with($nameOnly['body']['person_id'],'f-'),'in-memory REST accepts name-only candidate');
 echo "WP02 headless character template tests passed.\n";

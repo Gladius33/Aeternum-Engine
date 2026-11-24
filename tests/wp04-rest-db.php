@@ -42,6 +42,14 @@ wp4($api->handle('POST',$base.'/people',['id'=>'fictional','name'=>'Candidate'])
 $headers=['idempotency-key'=>'create-character-0001','if-match'=>$get['headers']['ETag']];
 $create=$api->handle('POST',$base.'/people',['id'=>'fictional','name'=>'Candidate','mode'=>'quick'],$headers);
 wp4($create['status']===201,'quick fictional candidate persisted through REST');
+$minimal=$api->handle('POST',$base.'/people',['name'=>'Nom seulement'],[
+    'Idempotency-Key'=>'create-minimal-00001','If-Match'=>$create['headers']['ETag']
+]);
+wp4($minimal['status']===201 && preg_match('/^f-[a-f0-9]{32}$/D',$minimal['body']['person_id'])===1,'name-only creation generates stable identifier server-side');
+$minimalRepeat=$api->handle('POST',$base.'/people',['name'=>'Nom seulement'],[
+    'Idempotency-Key'=>'create-minimal-00001','If-Match'=>'"stale"'
+]);
+wp4($minimalRepeat===$minimal,'name-only submission is retry-stable after database write');
 $repeat=$api->handle('POST',$base.'/people',['id'=>'fictional','name'=>'Candidate','mode'=>'quick'],[
     'Idempotency-Key'=>'create-character-0001','If-Match'=>'"stale"'
 ]);
@@ -51,7 +59,7 @@ wp4($api->handle('GET',$base.'/people/unknown')['status']===404,'unknown charact
 
 $start=$api->handle('POST',$base.'/head-of-state',['person_id'=>'fictional'],[
     'Idempotency-Key'=>'new-president-0001',
-    'If-Match'=>$create['headers']['ETag']
+    'If-Match'=>$minimal['headers']['ETag']
 ]);
 wp4($start['status']===200,'alternate presidency initialized');
 $nominate=$api->handle('POST',$base.'/nominations',['office'=>'prime_minister','person_id'=>'fictional'],[
@@ -74,6 +82,6 @@ $auth->allowed=false;
 wp4($api->handle('GET',$base)['status']===404,'revoked principal cannot read world');
 wp4($api->handle('POST',$base.'/people',['id'=>'fictional','name'=>'Candidate','mode'=>'quick'],$headers)['status']===403,'revoked principal cannot replay receipt');
 $count=(int)$pdo->query("SELECT COUNT(*) FROM wp_world_events WHERE world_id='scenario-a'")->fetchColumn();
-wp4($count===4,'only successful commands produced durable journal events');
+wp4($count===5,'only successful commands produced durable journal events');
 
 echo "World Politics persistent REST contract passed.\n";
