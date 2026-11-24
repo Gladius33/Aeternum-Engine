@@ -4,6 +4,7 @@ declare(strict_types=1);
 require __DIR__.'/../games/world-politics/src/WorldClockApi.php';
 require_once __DIR__.'/../games/world-politics/src/PoliticalRoster.php';
 require_once __DIR__.'/../games/world-politics/src/FrenchConstitutionalCrisis.php';
+require_once __DIR__.'/../games/world-politics/src/PdoFrenchSittingCalendarStore.php';
 
 use Aeternum\WorldPolitics\{
     GeopoliticalActorRegistry,EconomicReferenceRegistry,
@@ -13,7 +14,8 @@ use Aeternum\WorldPolitics\{
     PdoInstitutionalStore,InstitutionalActorAuthorizer,
     WorldClockCoordinator,WorldClockApi,EconomicPolicyPrincipal,
     FrenchConstitutionalCrisis,FrenchConstitutionalPrincipal,
-    PdoFrenchConstitutionalStore
+    PdoFrenchConstitutionalStore,FrenchSittingAuthority,
+    FrenchSittingCalendar,PdoFrenchSittingCalendarStore
 };
 
 function wp25(bool $condition,string $label):void
@@ -43,6 +45,7 @@ $connect=static fn():PDO=>new PDO($dsn,$user,$password,[
 $pdo=$connect();
 foreach ([
     'wp_world_clock_fr_parliament_steps','wp_world_clock_fr_parliament',
+    'wp_fr_sitting_journal','wp_fr_sitting_calendars',
     'wp_fr_constitutional_journal','wp_fr_constitutional_receipts',
     'wp_fr_constitutional_states',
     'wp_world_clock_country_steps','wp_world_clock_countries',
@@ -59,7 +62,7 @@ foreach ([
     '004_organizations.sql','005_economic_policies.sql',
     '006_diplomatic_outbox.sql','007_world_clock.sql',
     '008_world_clock_countries.sql','009_fr_constitutional_49_3.sql',
-    '011_fr_parliament_world_clock.sql'
+    '011_fr_parliament_world_clock.sql','012_fr_sitting_calendar.sql'
 ] as $filename) {
     $sql=preg_replace('/^\s*--[^\n]*$/m','',
         file_get_contents(__DIR__.'/../games/world-politics/database/'.$filename)
@@ -187,7 +190,7 @@ $ecoStore->seed($economy);
  * French parliamentary clerk/clock authority with distinct signature.
  * No web client may supply a verified timestamp or parliamentary roll-call.
  */
-$frPrincipal=new class($scheduler) implements FrenchConstitutionalPrincipal {
+$frPrincipal=new class($scheduler) implements FrenchSittingAuthority {
     public bool $clockAllowed=false;
     public string $now='2026-11-24T09:00:00+01:00';
     public function __construct(private readonly object $globalScheduler) {}
@@ -197,6 +200,7 @@ $frPrincipal=new class($scheduler) implements FrenchConstitutionalPrincipal {
         return match($ability) {
             'fr.constitution.read'=>true,
             'fr.49_3.engage'=>true,
+            'fr.calendar.bootstrap','fr.calendar.read','fr.calendar.schedule'=>true,
             'fr.constitution.clock'=>$this->clockAllowed,
             default=>false
         };
@@ -212,12 +216,29 @@ $frPrincipal=new class($scheduler) implements FrenchConstitutionalPrincipal {
     public function verifiedInstant(string $world,string $operation):string {
         return $this->now;
     }
+    public function verifiedCensureVoteAt(string $world,string $motion):string {
+        return '2026-11-27T15:00:00+01:00';
+    }
 };
-$frStore=new PdoFrenchConstitutionalStore($connect(),$frPrincipal);
+$frSitting=new PdoFrenchSittingCalendarStore($connect(),$frPrincipal);
+$frSitting->seed(new FrenchSittingCalendar($world,[
+    '2026-11-24','2026-11-25','2026-11-26',
+    '2026-11-27','2026-11-30','2026-12-01',
+    '2026-12-02','2026-12-03','2027-03-28','2027-10-31'
+],'fictional_scenario','https://www.assemblee-nationale.fr/'));
+$frStore=new PdoFrenchConstitutionalStore(
+    $connect(),$frPrincipal,$frSitting
+);
+wp25($frStore->hasSittingCalendar()===true,
+    'worldwide constitutional store uses mandatory reviewed French sitting calendar');
 $frStore->seed(new FrenchConstitutionalCrisis(
     $world,'regular-2026',
     FrenchConstitutionalCrisis::instant($frPrincipal->now),577
 ));
+wp25reject(fn()=>(new PdoFrenchConstitutionalStore(
+    $connect(),$frPrincipal
+))->read($world),
+    'global world test refuses a worker that omitted the pinned sitting calendar');
 $lawInitial=$frStore->read($world);
 $engagement=$frStore->execute($world,'engage',[
     'bill_id'=>'fr-finance-budget',
