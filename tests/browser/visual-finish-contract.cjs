@@ -1,0 +1,32 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {runInNewContext}=require('node:vm');
+const path=require('node:path');
+const doc={createElementNS(ns,tag){return{tag,attrs:{},children:[],setAttribute(k,v){this.attrs[k]=String(v)},append(n){this.children.push(n)}}}};
+const window={};
+runInNewContext(readFileSync(path.join(__dirname,'../../public/living-art.js'),'utf8'),{window,document:doc});
+const art=window.AeternumLivingArt,walk=n=>[n,...n.children.flatMap(walk)];
+let count=0;
+const signatures=new Set();
+for(const theme of ['medieval','industrial','guild'])for(const phase of art.phases)for(const [w,h] of [[360,490],[900,510]]){
+    const a=doc.createElementNS('','svg'),b=doc.createElementNS('','svg');
+    assert.ok(art.terrainFinish(a,theme,phase,w,h));
+    assert.ok(art.terrainFinish(b,theme,phase,w,h));
+    assert.equal(JSON.stringify(a),JSON.stringify(b));
+    const root=a.children[0];
+    assert.equal(root.attrs['data-terrain-finish'],theme);
+    assert.equal(root.attrs['pointer-events'],'none');
+    assert.equal(root.attrs['aria-hidden'],'true');
+    assert.equal(walk(root).length,9);
+    assert.ok(walk(root).every(n=>Object.values(n.attrs).every(v=>!(/NaN|Infinity|undefined/.test(v)))));
+    assert.ok(root.children.every(n=>n.tag==='path'));
+    signatures.add(JSON.stringify(root));
+    count++;
+}
+assert.equal(count,18);assert.equal(signatures.size,18);
+const a=doc.createElementNS('','svg');
+assert.equal(art.terrainFinish(a,'neutral','day',360,490),false);
+assert.equal(art.terrainFinish(a,'guild','night',0,490),false);
+assert.equal(a.children.length,0);
+console.log('G24: 18 deterministic theme/light/viewport finishes; 8 paths per finish; input and non-interactive contracts passed.');

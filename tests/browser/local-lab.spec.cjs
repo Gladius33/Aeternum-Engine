@@ -150,6 +150,24 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('[data-district-decor='+type+']')).toBeAttached();
             await expect(page.locator('[data-district-site=approved]')).toBeVisible();
             await captureScene(page,'local-'+pack+'-domain');
+            // G24: inspect the map itself, not merely the full scrolling shell.
+            for(const [device,width,height] of [['desktop',1440,900],['mobile',390,844]]){
+                await page.setViewportSize({width,height});
+                const scene=page.locator('.scene-district'),nav=page.locator('.game-ui-nav');
+                await expect(scene.locator('[data-terrain-finish='+theme+']')).toHaveCount(1);
+                await expect(scene.locator('[data-terrain-finish='+theme+']')).toHaveAttribute('pointer-events','none');
+                await expect(nav.locator('[data-game-nav=domain]')).toHaveAttribute('aria-pressed','true');
+                const before=await nav.evaluate(n=>n.getBoundingClientRect().height);
+                if(device==='mobile'){
+                    await expect(nav).toHaveCSS('position','static');
+                    expect(before).toBeLessThan(180);
+                    const gap=await page.evaluate(()=>document.querySelector('.game-ui-stage').getBoundingClientRect().top-document.querySelector('.game-ui-nav').getBoundingClientRect().bottom);
+                    expect(gap).toBeGreaterThanOrEqual(0);expect(gap).toBeLessThan(30);
+                }
+                await scene.screenshot({path:'browser-captures/g24-'+pack+'-map-'+device+'.png',animations:'disabled'});
+                expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+            }
+            await page.setViewportSize({width:1440,height:900});
             const architecture=page.locator('.architectural-inspector');
             await expect(architecture).toBeVisible();
             await architecture.locator('[data-architecture-toggle]').click();
