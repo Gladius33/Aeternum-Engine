@@ -14,6 +14,109 @@ tags:
   - name: Politics
     description: World-scoped political reference and scenario state
 paths:
+  /worlds/{world}/countries/{country}/institutions:
+    get:
+      operationId: readCountryInstitutionalState
+      summary: Read game-state of a specific country's institutions
+      description: No generic global presidential power exists. World access is checked by the trusted server.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+      responses:
+        '200':
+          description: Version-pinned institutional state with ETag
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/countries/{country}/institutions/rulebook:
+    get:
+      operationId: readCountryConstitutionalRulebook
+      summary: Inspect a country's reviewed partial constitutional rules
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+      responses:
+        '200':
+          description: Country-specific reviewed legal citations and supported actions (pilot; not exhaustive)
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/countries/{country}/institutions/decisions:
+    post:
+      operationId: proposeInstitutionalDecision
+      summary: Submit an authorized country-specific institutional action
+      description: |
+        Role is resolved exclusively by trusted server-side office authority.
+        Clients cannot declare president, prime minister or parliamentary role.
+        Legal conditions are checked against recorded world events.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [action, payload]
+              properties:
+                action:
+                  type: string
+                  enum: [record_consultation, submit_bill, dissolve_lower_house, hold_election]
+                payload:
+                  type: object
+                  additionalProperties: true
+                  description: Validated against the chosen country's specific action schema
+      responses:
+        '202':
+          description: Command journaled; may create delayed game-time events
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/countries/{country}/institutions/clock:
+    post:
+      operationId: advanceInstitutionalGameClock
+      summary: Privileged simulation clock operation; never a public player permission
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200':
+          description: Due world events processed deterministically, with a durable receipt
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
   /worlds/{world}/countries/{country}/politics:
     get:
       operationId: readNationalPolitics
