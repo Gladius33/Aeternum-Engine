@@ -1299,136 +1299,13 @@ components:
           type: array
           uniqueItems: true
           description: National clocks already advanced during a pending tick.
-          items: { type: string, pattern: '^[A-Z]{2}
-    Identifier:
-      type: string
-      pattern: '^[a-z][a-z0-9_-]{0,63}$'
-    GeopoliticalActorId:
-      type: string
-      pattern: '^[a-z0-9][a-z0-9_-]{0,63}$'
-    ProgrammeMeasure:
-      type: object
-      additionalProperties: false
-      required: [id, domain, proposal, sources]
-      properties:
-        id: { $ref: '#/components/schemas/Identifier' }
-        domain: { $ref: '#/components/schemas/Identifier' }
-        proposal: { type: string, minLength: 1, maxLength: 1000 }
-        sources:
-          type: array
-          maxItems: 20
-          items: { type: string, format: uri, pattern: '^https://' }
-    Person:
-      type: object
-      additionalProperties: false
-      required: [id, kind, name, country, biography, as_of, sources, programme]
-      properties:
-        id: { $ref: '#/components/schemas/Identifier' }
-        kind: { type: string, enum: [real, fictional] }
-        name: { type: string, minLength: 1, maxLength: 160 }
-        country: { type: string, pattern: '^[A-Z]{2}$' }
-        biography: { type: string, maxLength: 2000 }
-        as_of: { type: [string, 'null'], format: date }
-        sources:
-          type: array
-          maxItems: 20
-          items: { type: string, format: uri, pattern: '^https://' }
-        programme:
-          type: array
-          maxItems: 100
-          items: { $ref: '#/components/schemas/ProgrammeMeasure' }
-        profile: { $ref: '#/components/schemas/CharacterProfile' }
-        avatar: { type: string, const: generic-v1 }
-    CharacterCreate:
-      type: object
-      additionalProperties: false
-      required: [name]
-      properties:
-        id: { $ref: '#/components/schemas/Identifier' }
-        name: { type: string, minLength: 1, maxLength: 160 }
-        mode: { type: string, enum: [quick, detailed], default: quick }
-        kind: { type: string, const: fictional }
-        country: { type: string, pattern: '^[A-Z]{2}$' }
-        biography: { type: string, maxLength: 2000, default: '' }
-        avatar: { type: string, const: generic-v1 }
-        profile: { $ref: '#/components/schemas/CharacterProfile' }
-        programme:
-          type: array
-          maxItems: 100
-          items:
-            type: object
-            additionalProperties: false
-            required: [id, domain, proposal]
-            properties:
-              id: { $ref: '#/components/schemas/Identifier' }
-              domain: { $ref: '#/components/schemas/Identifier' }
-              proposal: { type: string, minLength: 1, maxLength: 1000 }
-              sources: { type: array, maxItems: 0, default: [] }
-    CharacterProfile:
-      type: object
-      additionalProperties: false
-      properties:
-        birth_date: { type: string, format: date }
-        birth_place: { type: string, maxLength: 160 }
-        personal_statement: { type: string, maxLength: 2000 }
-        party: { type: string, maxLength: 160 }
-        orientation: { type: string, maxLength: 160 }
-        education: { $ref: '#/components/schemas/ProfileTextList' }
-        languages: { $ref: '#/components/schemas/ProfileTextList' }
-        professional_history: { $ref: '#/components/schemas/ProfileTextList' }
-        public_service: { $ref: '#/components/schemas/ProfileTextList' }
-        expertise: { $ref: '#/components/schemas/ProfileTextList' }
-        political_history: { $ref: '#/components/schemas/ProfileTextList' }
-        policy_priorities: { $ref: '#/components/schemas/ProfileTextList' }
-    ProfileTextList:
-      type: array
-      maxItems: 24
-      items: { type: string, maxLength: 300 }
-    Problem:
-      type: object
-      required: [type, status, code]
-      properties:
-        type: { type: string }
-        status: { type: integer }
-        code: { type: string }
-  responses:
-    notFound:
-      description: Missing or inaccessible resource
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-    forbidden:
-      description: Insufficient ability for the operation
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-    conflict:
-      description: Conflicting request or state
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-    precondition:
-      description: Missing or stale state precondition
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-    invalid:
-      description: Invalid request
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-    missingPrecondition:
-      description: Idempotency key or If-Match was not supplied
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
- }
+          items: { type: string, pattern: '^[A-Z]{2}$' }
         france_parliament_enabled:
           type: boolean
-          description: Whether France constitutional Article 49 calendar is a pinned mandatory global clock step.
+          description: Whether the French constitutional day is a mandatory global-clock step.
         france_parliament_completed:
           type: boolean
-          description: Whether the French parliamentary calendar checkpoint is durable for current pending day.
+          description: Whether the French constitutional checkpoint is durable for this pending game day.
         coherent: { type: boolean }
     Identifier:
       type: string
