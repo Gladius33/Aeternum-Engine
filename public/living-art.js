@@ -182,5 +182,89 @@
         }
         return true;
     }
-    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,version:2});
+    // G16: the lighting preset is a client-only presentation choice. It
+    // never represents simulated time, weather, power usage or production.
+    const atmospheres=Object.freeze({
+        medieval:Object.freeze({
+            day:{sky:['#648b9d','#b8d0c0','#e9dcb2'],earth:['#a4b17b','#738c54','#426349'],mist:'#d9e7c4',light:'#fff0b7',shadow:'#304f50'},
+            dusk:{sky:['#4e647f','#bd8078','#f4c28a'],earth:['#b3a375','#887b4e','#4b5d45'],mist:'#f1cba1',light:'#ffd19b',shadow:'#423c57'},
+            night:{sky:['#142c4a','#355875','#7b919d'],earth:['#688079','#435d56','#293f45'],mist:'#a3bdcc',light:'#e5eccc',shadow:'#102639'}
+        }),
+        industrial:Object.freeze({
+            day:{sky:['#647e92','#b1c2cb','#d5d6c3'],earth:['#a8b4ad','#788b8d','#465962'],mist:'#ced9dc',light:'#ecf0d8',shadow:'#344b58'},
+            dusk:{sky:['#4c627d','#a58283','#e8bb90'],earth:['#aaa493','#7d7f7f','#4d5c68'],mist:'#e1c5a5',light:'#ffd5a0',shadow:'#3b465d'},
+            night:{sky:['#172b47','#36536b','#8495aa'],earth:['#687d8c','#465e6b','#2c3e50'],mist:'#a0bbcb',light:'#d8e4ff',shadow:'#142738'}
+        }),
+        guild:Object.freeze({
+            day:{sky:['#7da4b2','#d9bf99','#f6dfa8'],earth:['#e7c58b','#c39a61','#926c48'],mist:'#ffe1a9',light:'#fff3c5',shadow:'#715a4b'},
+            dusk:{sky:['#62678e','#c97e6d','#ffc481'],earth:['#d9ae76','#b18555','#805b4b'],mist:'#f6c08b',light:'#ffcf95',shadow:'#654854'},
+            night:{sky:['#182e50','#405675','#8a92a4'],earth:['#ac987b','#786e62','#4a4b50'],mist:'#c3c3ca',light:'#e9e7cf',shadow:'#343b50'}
+        })
+    });
+    const phases=Object.freeze(['day','dusk','night']);
+    function atmosphereProfile(theme,phase){
+        return atmospheres[theme]?.[phase]??null;
+    }
+    let atmosphereSerial=0;
+    function atmosphereGradient(g,stops,radial=false){
+        const id='aeternum-ambience-'+(++atmosphereSerial),defs=node(g,'defs',{});
+        const grad=node(defs,radial?'radialGradient':'linearGradient',radial?{id,cx:'50%',cy:'50%',r:'50%'}:{id,x1:'0%',y1:'0%',x2:'0%',y2:'100%'});
+        for(const [offset,color,opacity] of stops)node(grad,'stop',{offset:offset+'%','stop-color':color,'stop-opacity':opacity});
+        return 'url(#'+id+')';
+    }
+    function atmosphere(parent,theme,phase,w,h,scene='district'){
+        const c=atmosphereProfile(theme,phase);
+        if(!c||!['district','atlas','inspection'].includes(scene)||!Number.isFinite(w)||!Number.isFinite(h)||w<=0||h<=0)return false;
+        const g=group(parent,0,0,1,{'data-atmosphere-layer':scene,'data-atmosphere-theme':theme,'data-lighting':phase,'aria-hidden':'true','pointer-events':'none'});
+        const seed=i=>{const n=Math.sin(i*91.71+17.39)*43758.5453;return n-Math.floor(n);};
+        if(scene==='district'){
+            const sky=atmosphereGradient(g,[[0,c.sky[0],1],[55,c.sky[1],1],[100,c.sky[2],1]]);
+            r(g,0,0,w,h*.48,sky);
+            const x=w*(phase==='dusk'?.22:.76),y=h*(phase==='dusk'?.22:.16),radius=Math.min(w,h)*.045;
+            const glow=atmosphereGradient(g,[[0,c.light,.65],[35,c.light,.28],[100,c.light,0]],true);
+            e(g,x,y,radius*3.1,radius*3.1,glow);e(g,x,y,radius,radius,c.light);
+            if(phase==='night'){
+                e(g,x+radius*.35,y-radius*.18,radius*.86,radius*.86,c.sky[0]);
+                for(let i=0;i<25;i++){
+                    const sx=seed(i+10)*w,sy=(.025+seed(i+80)*.17)*h;
+                    e(g,sx,sy,.7+seed(i+140)*.7,.7+seed(i+140)*.7,'#e4e8dc',{opacity:.3+seed(i+200)*.5});
+                }
+            }
+            const cloudLayer=group(g,0,0,1,{class:'ambience-cloud-motion ambience-motion'});
+            for(let i=0;i<5;i++){
+                const cx=w*(.1+i*.2),cy=h*(.09+seed(i+270)*.12),rx=w*(.055+seed(i+310)*.045);
+                const cloud=atmosphereGradient(g,[[0,c.mist,phase==='night'?.11:.27],[100,c.mist,0]],true);
+                e(cloudLayer,cx,cy,rx,h*.024,cloud);e(cloudLayer,cx+rx*.3,cy-h*.013,rx*.6,h*.024,cloud);
+            }
+        }else{
+            const wash=atmosphereGradient(g,[[0,c.shadow,phase==='night'?.38:phase==='dusk'?.13:.04],[55,c.light,phase==='night'?.04:.07],[100,c.shadow,.12]]);
+            r(g,0,0,w,h,wash);
+        }
+        return true;
+    }
+    // Foreground details sit below interactive holdings and labels.
+    // No decorative actor, smoke plume or animated shipment is fabricated.
+    function atmosphereDepth(parent,theme,phase,w,h,scene='district'){
+        const c=atmosphereProfile(theme,phase);
+        if(!c||!Number.isFinite(w)||!Number.isFinite(h)||w<=0||h<=0||!['district','atlas','inspection'].includes(scene))return false;
+        const g=group(parent,0,0,1,{'data-atmosphere-depth':scene,'aria-hidden':'true','pointer-events':'none'});
+        const seed=i=>{const n=Math.sin(i*123.7+71.9)*43758.5453;return n-Math.floor(n);};
+        if(scene==='district'){
+            const haze=atmosphereGradient(g,[[0,c.mist,0],[35,c.mist,.25],[70,c.mist,.09],[100,c.mist,0]]);
+            r(g,0,h*.19,w,h*.27,haze);
+            const glints=group(g,0,0,1,{class:'ambience-motion ambience-glint-motion','data-ambience-effect':theme==='medieval'?'water-light':theme==='industrial'?'haze-light':'sand-light'});
+            for(let i=0;i<15;i++){
+                const x=w*(.04+seed(i+80)*.92),y=h*(.40+seed(i+180)*.46),len=3+seed(i+320)*12;
+                // Side accents only; the central action area is kept clear.
+                if(x>w*.24&&x<w*.76)continue;
+                if(theme==='medieval')p(glints,'M'+x+' '+y+'q'+len/2+' -1 '+len+' 0','none',c.light,.8);
+                else if(theme==='industrial')l(glints,x,y,x+len,y-1,c.mist,.7);
+                else p(glints,'M'+x+' '+y+'q'+len/2+' -3 '+len+' -1','none',c.light,.7);
+            }
+        }
+        const vignette=atmosphereGradient(g,[[0,c.shadow,0],[62,c.shadow,.015],[100,c.shadow,phase==='night'?.26:.12]],true);
+        r(g,0,0,w,h,vignette);
+        return true;
+    }
+    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,version:3});
 })();
