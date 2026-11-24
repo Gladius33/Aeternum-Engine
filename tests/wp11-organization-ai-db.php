@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__.'/../games/world-politics/src/PdoOrganizationApi.php';
-require __DIR__.'/../games/world-politics/src/AutonomousOrganizationPlanner.php';
+require_once __DIR__.'/../games/world-politics/src/AutonomousOrganizationPlanner.php';
 
 use Aeternum\WorldPolitics\{
     GeopoliticalActorRegistry,OrganizationSimulation,DiplomaticPrincipal,
