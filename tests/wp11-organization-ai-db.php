@@ -129,5 +129,48 @@ $stored=$humanStore->read('ai-world');
 $sim2=OrganizationSimulation::fromSnapshot($stored['state'],$registry,$charters);
 $plan=$planner->plan($sim2,$registry,'state_il','consensus_seeking');
 wp11(count($plan)===1 && $plan[0]['approve']===true
-    && $sim2->hash()===$stored['state']['charters_sha']?false:true,
-    'placeholder');
+    && '"'.$sim2->hash().'"'===$stored['etag'],
+    'AI planner chooses approval and remains a pure deterministic calculation');
+wp11($plan[0]['rationale']==='fictional_policy_supports_existing_consensus',
+    'NPC rationale is explicitly a fictional scenario policy, not a real-world intent');
+$decisions=$botApi->handle('POST',$root.'/ai/decisions',[
+    'voter'=>'state_il','policy'=>'consensus_seeking'
+],[
+    'Idempotency-Key'=>'ai-after-consensus-1','If-Match'=>$ballot['headers']['ETag']
+]);
+wp11($decisions['status']===200 && count($decisions['body']['decisions'])===1
+    && $decisions['body']['decisions'][0]['result']['status']==='approved_pending_formalization',
+    'verified AI vote makes application eligible for formalization, not instant membership');
+$retry=$botApi->handle('POST',$root.'/ai/decisions',[
+    'voter'=>'state_il','policy'=>'consensus_seeking'
+],[
+    'Idempotency-Key'=>'ai-after-consensus-1','If-Match'=>'"obsolete"'
+]);
+wp11($retry===$decisions,'AI command receipt is crash-safe and retry-stable');
+$latest=$humanApi->handle('GET',$root.'/scenario-forum');
+wp11(!in_array('state_de',$latest['body']['organization']['members'],true)
+    && $latest['body']['applications'][0]['status']==='approved_pending_formalization',
+    'NPC consensus does not bypass ratification delay');
+$connection=new PDO(getenv('WP_TEST_DSN'),getenv('WP_TEST_USER'),getenv('WP_TEST_PASSWORD'),[
+    PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_EMULATE_PREPARES=>false
+]);
+$restarted=new PdoOrganizationStore($connection,$registry,$charters,$bot);
+wp11($restarted->read('ai-world')['state']['applications'][$appId]['status']==='approved_pending_formalization',
+    'independent database connection restores AI-cast votes');
+$afterVote=$botApi->handle('POST',$root.'/ai/decisions',[
+    'voter'=>'state_il','policy'=>'cautious'
+],[
+    'Idempotency-Key'=>'ai-repeat-policy-01','If-Match'=>$decisions['headers']['ETag']
+]);
+wp11($afterVote['status']===200 && $afterVote['body']['decisions']===[],
+    'AI will not cast a second vote even under a different fictional strategy');
+$badPolicy=$botApi->handle('POST',$root.'/ai/decisions',[
+    'voter'=>'state_il','policy'=>'predict_real_leaders'
+],[
+    'Idempotency-Key'=>'invalid-ai-policy-1','If-Match'=>$afterVote['headers']['ETag']
+]);
+wp11($badPolicy['status']===422,'unsupported claims about real government behavior rejected');
+$events=(int)$pdo->query("SELECT COUNT(*) FROM wp_organization_journal WHERE world_id='ai-world'")->fetchColumn();
+wp11($events===5,'five successful commands have exactly five durable journal entries');
+echo "WP11 authorized and replayable fictional multilateral AI passed.\n";
