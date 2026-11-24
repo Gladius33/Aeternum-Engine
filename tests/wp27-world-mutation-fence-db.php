@@ -189,4 +189,22 @@ WorldMutationFence::admit($pdo,$other,'human-opposition','nominate');
 $pdo->commit();
 wp27(true,'independent second world remains writable while first is recovered');
 
+// Simulate a physically corrupted or partially repaired database: the
+// authoritative clock says "pending" while the fence incorrectly says idle.
+$pdo->prepare(
+    'UPDATE wp_world_clock SET pending_day=?,pending_key=? WHERE world_id=?'
+)->execute(['2026-11-26',$wrongKey,$world]);
+$pdo->beginTransaction();
+wp27Reject(fn()=>WorldMutationFence::admit(
+    $pdo,$world,'human-minister','nominate'
+),'world clock and write fence corruption fails closed instead of admitting player actions');
+$pdo->rollBack();
+$pdo->prepare(
+    'UPDATE wp_world_clock SET pending_day=NULL,pending_key=NULL WHERE world_id=?'
+)->execute([$world]);
+$pdo->beginTransaction();
+WorldMutationFence::admit($pdo,$world,'human-minister','nominate');
+$pdo->commit();
+wp27(true,'restored coherent world and idle fence admit ordinary actions again');
+
 echo "WP27 concurrency, durable fencing, crash recovery and service isolation passed.\n";
