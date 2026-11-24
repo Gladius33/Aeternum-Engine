@@ -79,12 +79,149 @@ final class OrganizationSimulation
             $organizations[$record['id']]=$record;
         }
         ksort($organizations,SORT_STRING);
+        $charterSha=hash('sha256',self::encode($organizations));
         $this->state=[
             'world_id'=>$world,'day'=>$day,
-            'actors_sha'=>$actors->hash(),'version'=>'organizations-wp09-0.1',
+            'actors_sha'=>$actors->hash(),'version'=>'organizations-wp10-0.1',
+            'charters_sha'=>$charterSha,
             'organizations'=>$organizations,
             'applications'=>[],'withdrawals'=>[],'events'=>[],'commands'=>[]
         ];
+    }
+
+    /**
+     * Reconstruct a saved campaign using the SAME trusted original charter
+     * definitions. Memberships can change, but rules never silently change.
+     *
+     * @param array<string,mixed> $snapshot
+     * @param list<array<string,mixed>> $charters
+     */
+    public static function fromSnapshot(
+        array $snapshot, GeopoliticalActorRegistry $actors, array $charters
+    ):self {
+        self::keys($snapshot,[
+            'world_id','day','actors_sha','version','charters_sha',
+            'organizations','applications','withdrawals','events','commands'
+        ]);
+        if (!is_string($snapshot['world_id']) || !is_string($snapshot['day'])) {
+            throw new \InvalidArgumentException('Invalid world identity in snapshot');
+        }
+        $self=new self($snapshot['world_id'],$snapshot['day'],$actors,$charters);
+        if ($snapshot['version']!==$self->state['version']
+            || !is_string($snapshot['actors_sha'])
+            || !hash_equals($self->state['actors_sha'],$snapshot['actors_sha'])
+            || !is_string($snapshot['charters_sha'])
+            || !hash_equals($self->state['charters_sha'],$snapshot['charters_sha'])) {
+            throw new \DomainException('Pinned charter version or geopolitical data differs');
+        }
+        foreach (['organizations','applications','withdrawals','commands'] as $key) {
+            if (!is_array($snapshot[$key])
+                || (array_is_list($snapshot[$key]) && $snapshot[$key]!==[])) {
+                throw new \InvalidArgumentException('Invalid persisted keyed section '.$key);
+            }
+        }
+        if (!is_array($snapshot['events']) || !array_is_list($snapshot['events'])) {
+            throw new \InvalidArgumentException('Invalid persisted event journal');
+        }
+        $charterIds=array_keys($self->state['organizations']);
+        $savedIds=array_keys($snapshot['organizations']);
+        sort($charterIds,SORT_STRING);sort($savedIds,SORT_STRING);
+        if ($charterIds!==$savedIds) {
+            throw new \DomainException('Cannot change the charter roster on a running world');
+        }
+        foreach ($self->state['organizations'] as $orgId=>$template) {
+            $record=$snapshot['organizations'][$orgId];
+            if (!is_array($record)) throw new \InvalidArgumentException('Invalid saved charter');
+            self::keys($record,array_keys($template));
+            foreach ($template as $field=>$original) {
+                if ($field!=='members' && $record[$field]!==$original) {
+                    throw new \DomainException('Persisted charter rule was modified');
+                }
+            }
+            $members=$record['members'];
+            if (!is_array($members) || !array_is_list($members) || count($members)>193
+                || count($members)!==count(array_unique($members))
+                || $members!==array_values(array_unique($members))) {
+                throw new \InvalidArgumentException('Invalid membership list');
+            }
+            foreach ($members as $id) {
+                if (!is_string($id)) throw new \InvalidArgumentException('Invalid member');
+                $self->requireState($id);
+            }
+        }
+        foreach ($snapshot['applications'] as $id=>$application) {
+            if (!is_string($id) || !is_array($application)) {
+                throw new \InvalidArgumentException('Invalid application');
+            }
+            self::identifier($id);
+            self::keys($application,[
+                'id','organization','applicant','created_on','status',
+                'electors','ballots','ready_on','approval_rule'
+            ]);
+            if ($application['id']!==$id
+                || !isset($snapshot['organizations'][$application['organization']])
+                || !in_array($application['status'],[
+                    'voting','rejected','approved_pending_formalization','member'
+                ],true)
+                || !is_array($application['electors']) || !array_is_list($application['electors'])
+                || !is_array($application['ballots'])
+                || (array_is_list($application['ballots']) && $application['ballots']!==[])) {
+                throw new \InvalidArgumentException('Invalid application status');
+            }
+            $self->requireState($application['applicant']);
+            self::day($application['created_on']);
+            if ($application['ready_on']!==null) self::day($application['ready_on']);
+            $rule=$self->state['organizations'][$application['organization']]['approval_rule'];
+            if ($application['approval_rule']!==$rule) {
+                throw new \DomainException('Application violates pinned voting rule');
+            }
+            foreach ($application['electors'] as $elector) $self->requireState($elector);
+            if (count($application['electors'])!==count(array_unique($application['electors']))) {
+                throw new \InvalidArgumentException('Duplicate historical electors');
+            }
+            foreach ($application['ballots'] as $voter=>$ballot) {
+                if (!in_array($voter,$application['electors'],true) || !is_bool($ballot)) {
+                    throw new \InvalidArgumentException('Invalid historical ballot');
+                }
+            }
+        }
+        foreach ($snapshot['withdrawals'] as $id=>$withdrawal) {
+            if (!is_string($id) || !is_array($withdrawal)) {
+                throw new \InvalidArgumentException('Invalid withdrawal entry');
+            }
+            self::identifier($id);
+            self::keys($withdrawal,['id','organization','actor','status','requested_on','effective_on']);
+            if ($withdrawal['id']!==$id
+                || !isset($snapshot['organizations'][$withdrawal['organization']])
+                || !in_array($withdrawal['status'],['pending','effective'],true)) {
+                throw new \InvalidArgumentException('Invalid withdrawal state');
+            }
+            $self->requireState($withdrawal['actor']);
+            self::day($withdrawal['requested_on']);
+            self::day($withdrawal['effective_on']);
+        }
+        foreach ($snapshot['commands'] as $id=>$receipt) {
+            if (!is_string($id) || !is_array($receipt)) {
+                throw new \InvalidArgumentException('Invalid command receipt');
+            }
+            self::identifier($id);
+            self::keys($receipt,['sha','result']);
+            if (!is_string($receipt['sha'])
+                || !preg_match('/^[a-f0-9]{64}$/D',$receipt['sha'])
+                || !is_array($receipt['result'])) {
+                throw new \InvalidArgumentException('Invalid saved command receipt');
+            }
+        }
+        foreach ($snapshot['events'] as $event) {
+            if (!is_array($event) || !isset($event['id'],$event['day'],$event['kind'])
+                || !is_string($event['id']) || !is_string($event['day'])) {
+                throw new \InvalidArgumentException('Invalid saved organization event');
+            }
+            self::identifier($event['id']);
+            self::day($event['day']);
+        }
+        $self->state=$snapshot;
+        return $self;
     }
 
     /** Request an application for membership; never grants membership now. */
@@ -264,6 +401,11 @@ final class OrganizationSimulation
         return hash('sha256',json_encode(
             $this->snapshot(),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE
         ));
+    }
+
+    private static function encode(mixed $data):string
+    {
+        return json_encode($data,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
     }
 
     /** @return array<string,mixed> */
