@@ -78,7 +78,7 @@ final class PdoOrganizationApi
             $etag=$headersNormalized['if-match']??'';
             if ($key==='' || $etag==='') return self::problem(428,'precondition_required');
             $payload=$body;
-            if ($operation==='apply' || $operation==='withdraw') {
+            if ($operation!=='clock') {
                 $payload=['organization'=>$organization]+$body;
             }
             $receipt=$this->store->execute($world,$operation,$payload,$key,$etag);

@@ -165,9 +165,9 @@ final class PdoOrganizationStore
     {
         $fields=match ($operation) {
             'apply'=>['organization','applicant'],
-            'vote'=>['voter','application_id','approve'],
+            'vote'=>['organization','voter','application_id','approve'],
             'withdraw'=>['organization','actor'],
-            'formalize'=>['application_id'],
+            'formalize'=>['organization','application_id'],
             'clock'=>['target_day'],
         };
         self::fields($payload,$fields);
@@ -197,6 +197,14 @@ final class PdoOrganizationStore
     private function apply(
         OrganizationSimulation $sim,string $operation,array $payload,string $commandId
     ):array {
+        if ($operation==='vote' || $operation==='formalize') {
+            $appId=self::str($payload['application_id']);
+            $org=self::str($payload['organization']);
+            $application=$sim->snapshot()['applications'][$appId]??null;
+            if (!is_array($application) || $application['organization']!==$org) {
+                throw new \DomainException('Application belongs to another organization');
+            }
+        }
         return match ($operation) {
             'apply'=>$sim->apply($this->principal,
                 self::str($payload['organization']),self::str($payload['applicant']),$commandId),

@@ -148,6 +148,12 @@ $fr=$api->handle('POST',$root.'/fictional-forum/votes',[
 ]);
 wp10($fr['status']===200 && $fr['body']['status']==='voting',
     'French vote is counted without automatic membership');
+$otherOrgRoute=$worker->handle('POST',$root.'/unknown-organization/votes',[
+    'voter'=>'state_ir','application_id'=>$appId,'approve'=>true
+],[
+    'Idempotency-Key'=>'cross-org-vote-0001','If-Match'=>$fr['headers']['ETag']
+]);
+wp10($otherOrgRoute['status']===409,'cross-organization ballot route cannot mutate unrelated application');
 $iranVote=$worker->handle('POST',$root.'/fictional-forum/votes',[
     'voter'=>'state_ir','application_id'=>$appId,'approve'=>true
 ],[
