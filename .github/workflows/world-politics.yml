@@ -44,6 +44,7 @@ jobs:
             abort "Missing NPC voting endpoint" unless d["paths"].key?("/worlds/{world}/organizations/ai/decisions")
             abort "Missing economic scenario REST endpoints" unless d["paths"].key?("/worlds/{world}/economy/policies/{policyId}/authorization")
             abort "Missing authoritative world clock REST endpoint" unless d["paths"].key?("/worlds/{world}/clock/advances")
+            abort "Missing pinned national clock roster" unless d.dig("components","schemas","WorldClockState","properties","countries")
             puts "PASS OpenAPI 3.1: syntax, required paths and DTOs"
           ' games/world-politics/api/openapi.yaml
       - name: Reviewed geopolitical statuses and deterministic diplomacy
@@ -96,6 +97,7 @@ jobs:
           php tests/wp13-economic-rest-db.php
           php tests/wp16-sanctions-outbox-db.php
           php tests/wp17-world-clock-db.php
+          php tests/wp18-world-clock-institutions-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4

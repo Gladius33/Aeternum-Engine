@@ -57,3 +57,21 @@ Les routes constituent pour l'instant **un adaptateur PHP de contrat REST, pas u
 2. Garantir la lecture cohérente d'un monde en cours de progression, suspendre les commandes concurrentes ou faire appliquer un verrou commun.
 3. Implémenter les dépendances entre organisations, sanctions, diplomatie et marché national à partir de données et règles vérifiées.
 4. Extraire World Politics vers son propre dépôt Git, sans modifier le moteur générique.
+
+## WP18 — échéances constitutionnelles nationales coordonnées
+
+Le coordinateur WP17 peut désormais être configuré avec une liste **immuable** de pays dont les règles constitutionnelles ont déjà un prototype validé : FR, DE et US.
+
+Le fichier `database/008_world_clock_countries.sql` ajoute un registre des calendriers nationaux obligatoires et un checkpoint durable par pays et par commande. Aucun pays ne peut être supprimé silencieusement de ce registre lorsqu'un service redémarre.
+
+L'ordre de calcul d'un jour est : organisations internationales ; institutions nationales activées triées par code ISO ; diplomatie ; économie ; publication de la date mondiale cohérente.
+
+Un projet de loi en France, en Allemagne ou aux États-Unis continue de suivre le modèle institutionnel distinct de son pays, y compris ses événements d'agenda. Un calendrier national retardé, inaccessible ou non autorisé empêche la publication du nouveau jour mondial.
+
+Le coordinateur national emploie le principal de service institutionnel vérifié, et jamais le rôle revendiqué par un joueur. Les pays non couverts par un module constitutionnel ne sont pas ajoutés fictivement à la liste des pays à calendrier pilotable.
+
+Le test `tests/wp18-world-clock-institutions-db.php` vérifie sur MariaDB : trois rôles législatifs distincts, agenda des débats, reprise après deux refus successifs de calendrier, restauration d'une échéance américaine déjà écrite sans checkpoint, absence de double exécution, contrôle d'accès, et impossibilité de retirer un pays de l'univers de simulation.
+
+**Limite importante :** les calendriers FR/DE/US ne constituent encore que des modèles partiels de constitution. Les dizaines d'autres pays restent dans le référentiel diplomatique, mais ne disposent pas de calendriers constitutionnels pilotés à ce stade. Cette extension requiert les migrations de tables 001 et 002 pour les pays configurés.
+
+Après mise à jour WP18, les installations WP17 doivent aussi appliquer `008_world_clock_countries.sql` avant d'utiliser le coordinateur, y compris lorsqu'aucun pays n'est encore activé : l'absence de calendrier ne doit pas être confondue avec une panne de configuration.
