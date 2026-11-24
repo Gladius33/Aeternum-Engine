@@ -1,9 +1,10 @@
 <?php
 declare(strict_types=1);
-require __DIR__.'/../games/world-politics/src/PdoFrenchSittingCalendarStore.php';
+require __DIR__.'/../games/world-politics/src/FrenchSittingCalendarApi.php';
 use Aeternum\WorldPolitics\{
     FrenchSittingAuthority,FrenchConstitutionalCrisis,FrenchSittingCalendar,
-    PdoFrenchConstitutionalStore,PdoFrenchSittingCalendarStore
+    PdoFrenchConstitutionalStore,PdoFrenchSittingCalendarStore,
+    FrenchSittingCalendarApi
 };
 function wp26db(bool $ok,string $label):void
 {
@@ -79,6 +80,7 @@ $authority=new class implements FrenchSittingAuthority {
     }
 };
 $calendarStore=new PdoFrenchSittingCalendarStore($connect(),$authority);
+$calendarApi=new FrenchSittingCalendarApi($calendarStore);
 $calendarStore->seed(new FrenchSittingCalendar($world,[
     '2026-11-24','2026-11-25','2026-11-26','2026-11-27',
     '2026-11-30','2026-12-01','2026-12-02','2026-12-03','2026-12-04'
@@ -118,6 +120,15 @@ $slot=$calendarStore->schedule($world,'motion-budget',$frStore);
 wp26db($slot['vote_day']==='2026-11-27'
     && $slot['third_following_sitting_day']==='2026-12-01',
     'conference-approved motion vote is within third sitting day');
+$calendarPath='/api/v1/worlds/'.$world.'/france/calendar';
+wp26db($calendarApi->handle('GET',$calendarPath)['status']===200
+    && $calendarApi->handle('GET',$calendarPath.'/motions/motion-budget')
+            ['body']['third_following_sitting_day']==='2026-12-01',
+    'future web or mobile client may inspect reviewed agenda and certified ballot time');
+wp26db($calendarApi->handle('GET',$calendarPath.'/motions/unknown')['status']===404,
+    'unscheduled parliamentary motion never appears as scheduled');
+wp26db($calendarApi->handle('POST',$calendarPath)['status']===405,
+    'clients cannot change Assembly sitting calendar through read-only REST adapter');
 wp26db((int)$pdo->query(
     'SELECT COUNT(*) FROM wp_fr_sitting_journal'
 )->fetchColumn()===1,'conference agenda is written atomically to its own audit journal');
@@ -162,6 +173,8 @@ $restartedConstitution=new PdoFrenchConstitutionalStore(
 wp26db($restartedConstitution->read($world)['state']['government']==='resignation_required',
     'a fresh server connection resumes both pinned calendar and constitutional state');
 $authority->valid=false;
+wp26db($calendarApi->handle('GET',$calendarPath)['status']===404,
+    'client cannot enumerate a revoked French Assembly calendar');
 wp26dbReject(fn()=>$restartedConstitution->read($world),
     'revoked Assembly scheduler cannot access even previously recorded vote');
 $authority->valid=true;
@@ -171,4 +184,6 @@ $pdo->exec(
 );
 wp26dbReject(fn()=>$restartedConstitution->read($world),
     'corrupt calendar checksum prevents an apparently healthy constitutional state being served');
+wp26db($calendarApi->handle('GET',$calendarPath)['status']===503,
+    'calendar API refuses tampered persisted schedule and leaks no SQL details');
 echo "WP26 French sitting dates and persistent censure enforcement passed.\n";
