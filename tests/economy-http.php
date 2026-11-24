@@ -40,8 +40,13 @@ check($ea->handle('POST',$ep.'commands',$eh,$eu)[0]===200,'overview fixture upgr
 check($st===200&&$br['data']['stock']===60&&$br['data']['level']===0&&$br['data']['next']===null,'overview pending debit');
 check($br['data']['pending']===['level'=>1,'dueAt'=>620,'amount'=>50],'overview exposes real due time without event identifier');
 $ec->advanceTo(620);
-check($ea->handle('GET',$eo,$eh)[0]===409,'overview preserves due-event barrier');
+check($ea->handle('GET',$eo,$eh)===[409,['error'=>'command_or_access_conflict','retryable'=>true]],'overview labels only the due-event barrier retryable');
+$settle=json_encode(['id'=>'g10-retry-same-id','type'=>'economy.settle','payload'=>['account'=>'mine','resource'=>'wood']],JSON_THROW_ON_ERROR);
+check($ea->handle('POST',$ep.'commands',$eh,$settle)===[409,['error'=>'command_or_access_conflict','retryable'=>true]],'due event refuses new command with retry hint');
+check($ea->handle('GET',$ep.'overview/other/wood',$eh)===[409,['error'=>'command_or_access_conflict']],'foreign account remains permanent at due boundary');
 (new PdoScheduler(db(),$ew,$ec,$er))->processDue($er->events);
+[$retryStatus,$retryReceipt]=$ea->handle('POST',$ep.'commands',$eh,$settle);
+check($retryStatus===200 && $ea->handle('POST',$ep.'commands',$eh,$settle)[1]==$retryReceipt,'identical retry commits exactly once after real worker');
 [$st,$br]=$ea->handle('GET',$eo,$eh);
 check($st===200&&$br['data']['level']===1&&$br['data']['pending']===null&&$br['data']['next']['level']===2,'overview completed level');
 $em->assign('target',$actor);
