@@ -56,7 +56,8 @@ final class FrenchConstitutionalCrisis
             'world_id'=>$world,'version'=>self::VERSION,
             'session'=>$session,'now'=>$startingInstant,
             'assembly_members'=>$assemblyMembers,
-            'ordinary_49_3_used'=>false,'government'=>'in_office',
+            'ordinary_49_3_used'=>false,'ordinary_49_3_bill'=>null,
+            'government'=>'in_office',
             'current_bill'=>null,'motions'=>[],'history'=>[],
             'events'=>[],'commands'=>[]
         ];
@@ -105,10 +106,15 @@ final class FrenchConstitutionalCrisis
         if ($this->state['government']!=='in_office' || $this->state['current_bill']!==null) {
             throw new \DomainException('No active government or a previous 49(3) remains unresolved');
         }
-        if ($category==='ordinary' && $this->state['ordinary_49_3_used']) {
-            throw new \DomainException('Ordinary Article 49(3) limit already used in this session');
+        if ($category==='ordinary'
+            && $this->state['ordinary_49_3_used']
+            && $this->state['ordinary_49_3_bill']!==$billId) {
+            throw new \DomainException('A different ordinary text already used Article 49(3) this session');
         }
-        if ($category==='ordinary') $this->state['ordinary_49_3_used']=true;
+        if ($category==='ordinary' && !$this->state['ordinary_49_3_used']) {
+            $this->state['ordinary_49_3_used']=true;
+            $this->state['ordinary_49_3_bill']=$billId;
+        }
         $this->state['current_bill']=[
             'bill_id'=>$billId,'category'=>$category,'engaged_at'=>$when,
             'censure_filing_deadline'=>$when+86400,
@@ -248,6 +254,7 @@ final class FrenchConstitutionalCrisis
         }
         $this->state['session']=$nextSession;
         $this->state['ordinary_49_3_used']=false;
+        $this->state['ordinary_49_3_bill']=null;
         $this->state['now']=$when;
         return $this->record($commandId,'session',[$nextSession,$when],[
             'session'=>$nextSession,'ordinary_49_3_available'=>true
@@ -274,7 +281,8 @@ final class FrenchConstitutionalCrisis
     public static function restore(array $state):self
     {
         $fields=['world_id','version','session','now','assembly_members',
-            'ordinary_49_3_used','government','current_bill','motions',
+            'ordinary_49_3_used','ordinary_49_3_bill',
+            'government','current_bill','motions',
             'history','events','commands'];
         self::fields($state,$fields);
         if (($state['version']??null)!==self::VERSION
@@ -287,6 +295,9 @@ final class FrenchConstitutionalCrisis
             $state['now'],$state['assembly_members']
         );
         if (!is_bool($state['ordinary_49_3_used'])
+            || ($state['ordinary_49_3_bill']!==null
+                && !is_string($state['ordinary_49_3_bill']))
+            || ($state['ordinary_49_3_used']!==($state['ordinary_49_3_bill']!==null))
             || !in_array($state['government'],['in_office','resignation_required'],true)
             || ($state['current_bill']!==null && !is_array($state['current_bill']))
             || !is_array($state['motions']) || !is_array($state['history'])
@@ -328,6 +339,9 @@ final class FrenchConstitutionalCrisis
                 throw new \InvalidArgumentException('Invalid persisted motion');
             }
         }
+        if ($state['ordinary_49_3_bill']!==null) {
+            self::id($state['ordinary_49_3_bill']);
+        }
         $self->state=$state;
         return $self;
     }
@@ -344,8 +358,10 @@ final class FrenchConstitutionalCrisis
 
     private function noPendingMotions():bool
     {
+        $billId=$this->state['current_bill']['bill_id']??null;
         foreach ($this->state['motions'] as $motion) {
-            if ($motion['status']==='filed') return false;
+            if ($motion['bill_id']===$billId
+                && $motion['status']==='filed') return false;
         }
         return true;
     }

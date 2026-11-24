@@ -173,8 +173,15 @@ $fresh=new FrenchConstitutionalCrisis('french-scenario','regular-2026',
     $epoch,577);
 $fresh->engage($office,'ordinary-1','ordinary',$t0,'ordinary-once');
 $fresh->advance($office,'2026-11-25T09:00:01+01:00','window-closed');
+$sameText=$fresh->engage(
+    $office,'ordinary-1','ordinary','2026-11-26T09:00:00+01:00','same-text-new-reading'
+);
+wp19($sameText['status']==='censure_window_open'
+    && $fresh->snapshot()['ordinary_49_3_bill']==='ordinary-1',
+    'same ordinary project may use 49.3 in successive readings without consuming another text quota');
+$fresh->advance($office,'2026-11-27T09:00:01+01:00','same-text-window-closed');
 wp19reject(fn()=>$fresh->engage(
-    $office,'ordinary-2','ordinary','2026-11-26T09:00:00+01:00','ordinary-twice'
-),'second ordinary 49.3 within same session blocked independently of protests');
+    $office,'ordinary-2','ordinary','2026-11-28T09:00:00+01:00','ordinary-twice'
+),'different ordinary bill blocked once session has assigned its quota to another text');
 
 echo "WP19 Article 49(3), censure timing, Article 50 and Assembly-only adoption passed.\n";
