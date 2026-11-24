@@ -63,6 +63,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(commandBar).toBeVisible();
             await expect(commandBar).toHaveAttribute('data-stage','foundation');
             await expect(building.locator('[data-living-site]')).toHaveCount(0);
+            await expect(building.locator('[data-architecture]')).toHaveCount(0);
             await expect(page.locator('.living-economy[data-activity]')).toHaveCount(0);
             await expect(commandBar.locator('.district-command-cost')).not.toHaveCount(0);
             await expect(building.locator('.district-stage-marker[data-stage=foundation]')).toBeAttached();
@@ -81,6 +82,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await expect(building.locator('.district-stage-marker[data-stage=built]')).toBeAttached();
             await expect(building.locator('[data-living-site='+type+']')).toHaveCount(1);
+            await expect(building.locator('[data-architecture='+type+']')).toHaveAttribute('data-architecture-level','1');
             await expect(commandBar).toHaveAttribute('data-stage','built');
             await expect(page.locator('[data-mission-step=next]')).toBeVisible();
             for(const width of [390,1440]){
@@ -91,6 +93,14 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('[data-district-decor='+type+']')).toBeAttached();
             await expect(page.locator('[data-district-site=approved]')).toBeVisible();
             await captureScene(page,'local-'+pack+'-domain');
+            const architecture=page.locator('.architectural-inspector');
+            await expect(architecture).toBeVisible();
+            await architecture.locator('[data-architecture-toggle]').click();
+            await expect(architecture.locator('.architectural-view [data-architecture='+type+']')).toHaveAttribute('data-architecture-level','1');
+            await expect(architecture.locator('.architectural-facts')).toContainText('Confirmed level');
+            await captureScene(page,'g15-'+pack+'-architecture');
+            await architecture.locator('[data-architecture-toggle]').click();
+            await expect(architecture.locator('.architectural-body')).toBeHidden();
             if(pack==='medieval'){
                 // The pinned campaign starts with one resident; lumber work
                 // requires two. Build and populate a farm through the real UI.

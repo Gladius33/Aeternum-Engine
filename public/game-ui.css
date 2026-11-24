@@ -242,3 +242,19 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 
 .atlas-directory{display:grid;gap:.25rem;font-size:.8rem;color:var(--ui-muted)}
 #world-scene .atlas-directory select{width:100%;min-height:44px;max-width:100%;border:1px solid #ffffff35;border-radius:6px;background:var(--ui-surface);color:var(--ui-ink);padding:.35rem .55rem}
+
+/* G15: architectural close-up and exact server stage. */
+#world-scene .architectural-inspector[hidden],#world-scene .architectural-body[hidden]{display:none}
+#world-scene .architectural-inspector{margin:.55rem 0;padding:.7rem .8rem;border:1px solid #ffffff28;border-radius:10px;background:linear-gradient(115deg,var(--ui-surface),var(--ui-bg));color:var(--ui-ink)}
+.architectural-header{display:flex;gap:.5rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.architectural-header h3{font:600 1rem Georgia,serif;color:var(--ui-accent);margin:0}
+#world-scene .architectural-toggle{min-height:44px;padding:.4rem .65rem;border-radius:6px;border:1px solid #ffffff38;background:var(--ui-surface);color:var(--ui-ink);font-size:.8rem}
+.architectural-body{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:.8rem;align-items:center;margin-top:.65rem}
+.architectural-view{display:block;width:100%;height:auto;border-radius:8px;border:1px solid #ffffff28}
+.architectural-facts{display:grid;gap:.45rem;min-width:0}
+.architectural-fact{display:grid;gap:.15rem;padding:.4rem .55rem;background:#0d192260;border-radius:6px;overflow-wrap:anywhere}
+.architectural-fact small{font-size:.72rem;color:var(--ui-muted)}
+.architectural-fact strong{font-size:.86rem;color:var(--ui-ink)}
+.architectural-facts p{font-size:.78rem;color:var(--ui-muted);margin:0}
+.district-building:focus-visible .architectural-plot-hit,.district-building[aria-pressed=true] .architectural-plot-hit{stroke:#ffe0a0;stroke-width:1.8;fill:#ffe1a012}
+@media(max-width:640px){.architectural-body{grid-template-columns:1fr}.architectural-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.architectural-facts p{grid-column:1/-1}.architectural-header h3{font-size:.92rem}}
