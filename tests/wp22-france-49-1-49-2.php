@@ -137,10 +137,13 @@ wp22reject(
 
 $motionState=$full();
 foreach(range(1,3) as $n) {
+    $fileAt=gmdate('Y-m-d\TH:i:s\Z',$epoch+($n-1)*259200);
+    $earlyAt=gmdate('Y-m-d\TH:i:s\Z',$epoch+($n-1)*259200+172799);
+    $voteAt=gmdate('Y-m-d\TH:i:s\Z',$epoch+($n-1)*259200+172800);
     $id='spontaneous-'.$n;
     $principal->signatures[$id]=$ids;
     $filed=$motionState->fileSpontaneousMotion(
-        $principal,$id,"2026-11-24T09:00:00+01:00",
+        $principal,$id,$fileAt,
         'file-spontaneous-'.$n
     );
     wp22($filed['signatories_count']===58 && $filed['per_deputy_limit']===3,
@@ -148,13 +151,13 @@ foreach(range(1,3) as $n) {
     $principal->censureVotes[$id]=288;
     wp22reject(
         fn()=>$motionState->voteSpontaneousMotion(
-            $principal,$id,'2026-11-26T08:59:59+01:00',
+            $principal,$id,$earlyAt,
             'early-vote-'.$n
         ),
         '49(2) must wait at least 48 hours after verified filing '.$n
     );
     $result=$motionState->voteSpontaneousMotion(
-        $principal,$id,'2026-11-26T09:00:00+01:00',
+        $principal,$id,$voteAt,
         'vote-spontaneous-'.$n
     );
     wp22($result['motion_status']==='rejected',
@@ -164,7 +167,7 @@ $principal->signatures['spontaneous-fourth']=$ids;
 wp22reject(
     fn()=>$motionState->fileSpontaneousMotion(
         $principal,'spontaneous-fourth',
-        '2026-11-26T10:00:00+01:00','illegal-fourth'
+        '2026-12-02T10:00:00+01:00','illegal-fourth'
     ),
     'same deputy cannot sign fourth spontaneous censure in ordinary session'
 );
@@ -174,21 +177,21 @@ $principal->signatures['duplicate-motion']=array_fill(0,58,'deputy-001');
 wp22reject(
     fn()=>$motionState->fileSpontaneousMotion(
         $principal,'duplicate-motion',
-        '2026-11-26T10:00:00+01:00','duplicate-signers'
+        '2026-12-02T10:00:00+01:00','duplicate-signers'
     ),
     'duplicate signatures cannot forge quorum of one tenth');
 $principal->signatures['too-small']=array_slice($ids,0,57);
 wp22reject(
     fn()=>$motionState->fileSpontaneousMotion(
         $principal,'too-small',
-        '2026-11-26T10:00:00+01:00','too-few-signers'
+        '2026-12-02T10:00:00+01:00','too-few-signers'
     ),
     '57 valid deputy signatures are insufficient with 577 members');
 
 $principal->sessionKind='extraordinary';
 $motionState->openSession(
     $principal,'extraordinary-2026',
-    '2026-11-27T09:00:00+01:00','extraordinary-open'
+    '2026-12-03T09:00:00+01:00','extraordinary-open'
 );
 wp22($motionState->snapshot()['session_kind']==='extraordinary'
     && $motionState->snapshot()['signatory_counters']===[],
@@ -196,18 +199,18 @@ wp22($motionState->snapshot()['session_kind']==='extraordinary'
 $principal->signatures['extra-one']=$ids;
 $motionState->fileSpontaneousMotion(
     $principal,'extra-one',
-    '2026-11-27T10:00:00+01:00','extra-file-one'
+    '2026-12-03T10:00:00+01:00','extra-file-one'
 );
 $principal->signatures['extra-two']=$ids;
 wp22reject(
     fn()=>$motionState->fileSpontaneousMotion(
         $principal,'extra-two',
-        '2026-11-27T10:00:00+01:00','extra-file-two'
+        '2026-12-03T10:00:00+01:00','extra-file-two'
     ),
     'one spontaneous motion per deputy in an extraordinary session');
 wp22reject(
     fn()=>$motionState->openSession(
-        $principal,'extraordinary-next','2026-11-27T11:00:00+01:00',
+        $principal,'extraordinary-next','2026-12-03T11:00:00+01:00',
         'extra-close-pending'
     ),
     'open motions cannot be silently discarded at session transition');
