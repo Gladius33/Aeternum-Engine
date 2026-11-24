@@ -112,9 +112,9 @@ test('M05 two newly registered players complete an isolated browser colony campa
     await a.locator('#world-scene [data-label=zoomIn]').click();
     await expect(a.locator('.scene-atlas')).not.toHaveAttribute('viewBox','0 0 900 460');
     await a.locator('#world-scene [data-label=reset]').click();
-    await test.info().attach('medieval-atlas-desktop',{body:await a.locator('#world-scene').screenshot(),contentType:'image/png'});
+    await test.info().attach('medieval-atlas-desktop',{body:await a.locator('#world-scene').screenshot({path:'browser-captures/medieval-atlas-desktop.png'}),contentType:'image/png'});
     await a.setViewportSize({width:375,height:812});
-    await test.info().attach('medieval-atlas-mobile',{body:await a.locator('#world-scene').screenshot(),contentType:'image/png'});
+    await test.info().attach('medieval-atlas-mobile',{body:await a.locator('#world-scene').screenshot({path:'browser-captures/medieval-atlas-mobile.png'}),contentType:'image/png'});
     await a.setViewportSize({width:1280,height:800});
     await expect(a.locator('[data-building=m05-wood]')).toBeVisible();
     await expect(a.locator('.command-confirmed')).toContainText('Foundation placed');

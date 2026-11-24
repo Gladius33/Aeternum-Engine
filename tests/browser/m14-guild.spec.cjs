@@ -82,9 +82,9 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
     await a.locator('#world-scene [data-label=zoomIn]').click();
     await expect(a.locator('.scene-atlas')).not.toHaveAttribute('viewBox','0 0 900 460');
     await a.locator('#world-scene [data-label=reset]').click();
-    await test.info().attach('guild-atlas-desktop',{body:await a.locator('#world-scene').screenshot(),contentType:'image/png'});
+    await test.info().attach('guild-atlas-desktop',{body:await a.locator('#world-scene').screenshot({path:'browser-captures/guild-atlas-desktop.png'}),contentType:'image/png'});
     await a.setViewportSize({width:375,height:812});
-    await test.info().attach('guild-atlas-mobile',{body:await a.locator('#world-scene').screenshot(),contentType:'image/png'});
+    await test.info().attach('guild-atlas-mobile',{body:await a.locator('#world-scene').screenshot({path:'browser-captures/guild-atlas-mobile.png'}),contentType:'image/png'});
     await a.setViewportSize({width:1280,height:800});
         await expect(a.locator('[data-building=m14-guild-hall]')).toBeVisible();
         const steal=await b.request.post(url,{headers:{Authorization:bob.token},data:{

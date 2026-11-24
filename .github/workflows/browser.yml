@@ -13,7 +13,9 @@ concurrency:
 jobs:
   chromium:
     runs-on: ubuntu-24.04
-    timeout-minutes: 19
+    # Browser installation, real rate-limit windows and timed construction
+    # campaigns are sequential. Keep a bounded budget with diagnostic headroom.
+    timeout-minutes: 40
     services:
       mariadb:
         image: mariadb:11.4
@@ -108,6 +110,7 @@ jobs:
           $buildings->establish('receiver-mill','west','receiver-ford',$receiver,'mill');
           PHP
       - name: Run real browser scenarios
+        timeout-minutes: 30
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -266,7 +269,7 @@ jobs:
           npx playwright test tests/browser/premium.spec.cjs --workers=1 --reporter=github,line
           npx playwright test tests/browser/social.spec.cjs --workers=1 --reporter=github,line
       - name: Server diagnostics
-        if: failure()
+        if: failure() || cancelled()
         run: |
           echo '=== Public server ==='
           tail -n 150 browser-server.log || true
@@ -284,7 +287,7 @@ jobs:
           tail -n 150 browser-unsafe-policy.log || true
 
       - name: Preserve Chromium failure evidence
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: chromium-e2e-failure
@@ -300,3 +303,12 @@ jobs:
             browser-activation.log
             browser-activation-tls.log
             browser-unsafe-policy.log
+
+      - name: Preserve strategic atlas screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g01-medieval-industrial-atlas
+          retention-days: 7
+          if-no-files-found: ignore
+          path: browser-captures/*.png
