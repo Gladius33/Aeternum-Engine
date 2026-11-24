@@ -31,3 +31,8 @@ html[data-game-presentation=play] #world-scene{margin:.5rem 0}
 .game-ui-diagnostic{font-size:.8rem;color:var(--ui-muted)}
 @media(max-width:1000px){.game-ui-layout{grid-template-columns:90px minmax(0,1fr)}.game-ui-side{grid-column:2}.game-ui-side .scene-toolbar{display:flex}.game-ui-side .scene-button{width:auto}}
 @media(max-width:640px){.game-ui-mast{grid-template-columns:1fr;padding:.6rem}.game-ui-layout{grid-template-columns:1fr}.game-ui-side{grid-column:auto}.game-ui-nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:.25rem}#world-scene .game-ui-nav-button{flex-direction:column;justify-content:center;text-align:center;font-size:.72rem;padding:.35rem .15rem;min-height:52px}.game-ui-stage .scene-atlas{height:360px}.game-ui-context label{min-width:80px}}
+
+.game-ui-selectors{display:flex;flex-wrap:wrap;gap:.4rem;width:100%;align-items:end}
+.scene-trade-composer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.35rem}
+.scene-trade-composer label{font-size:.75rem;margin:.25rem 0;min-width:0}
+.scene-trade-composer .scene-button{grid-column:1/-1}

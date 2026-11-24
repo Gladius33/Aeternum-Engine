@@ -168,6 +168,16 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
             await expect(modern.locator('[data-district-building=m14-guild-caravan]')).toBeVisible();
             await modern.locator('[data-game-nav=construction]').click();
             await expect(modern.locator('[data-catalogue=market_hall]')).toBeVisible();
+            await expect(modern.locator('[data-reserve]').first()).toBeVisible();
+            await modern.locator('[data-game-nav=market]').click();
+            await modern.locator('[data-trade-field=giveResource]').selectOption('spice');
+            await modern.locator('[data-trade-field=wantResource]').selectOption('silver');
+            await modern.locator('[data-trade-field=giveUnits]').fill('1');
+            await modern.locator('[data-trade-field=wantUnits]').fill('1');
+            const posted=modern.waitForResponse(r=>r.url()===url&&r.request().postDataJSON()?.type==='market.create');
+            await modern.getByRole('button',{name:'Publish barter',exact:true}).click();
+            expect((await posted).status()).toBe(200);
+            await expect(modern.locator('[data-command="market.create"]').first()).toBeVisible();
             await captureScene(modern,'guild-reusable-shell');
         }finally{await modern.close();}
     }finally {

@@ -167,6 +167,37 @@
         document.getElementById('foundation-id').value=referenceInput.value.trim();
         document.getElementById('foundation-place').click();
     });
+    const tradeComposer=html('div',tradeBlock.body,'scene-trade-composer');
+    const tradeFields={};
+    for(const [key,kind] of [['giveResource','select'],['giveUnits','input'],['wantResource','select'],['wantUnits','input']]){
+        const label=html('label',tradeComposer,'');
+        const caption=html('span',label,'');
+        const input=html(kind,label,'scene-plot');
+        input.dataset.tradeField=key;
+        if(kind==='input'){input.type='number';input.min='1';input.max='1000000000000';input.step='1';input.value='1';}
+        tradeFields[key]={caption,input};
+    }
+    const publish=html('button',tradeComposer,'scene-button');publish.type='button';
+    publish.addEventListener('click',()=>{
+        if(busy)return;
+        const form=document.getElementById('market-create');
+        for(const [key,{input}] of Object.entries(tradeFields))form.elements[key].value=input.value;
+        form.requestSubmit();
+    });
+    function refreshTradeComposer(){
+        const fr=lang()==='fr';
+        const labels=fr?['Ressource offerte','Quantité offerte','Ressource demandée','Quantité demandée']:['Offer resource','Offer quantity','Request resource','Request quantity'];
+        Object.entries(tradeFields).forEach(([key,{caption,input}],i)=>{
+            caption.textContent=labels[i];
+            if(input.tagName!=='SELECT')return;
+            const old=input.value,original=document.getElementById('market-create').elements[key];
+            input.replaceChildren();
+            for(const o of original.options){const n=document.createElement('option');n.value=o.value;n.textContent=displayName(o.value);input.append(n);}
+            if([...input.options].some(o=>o.value===old))input.value=old;
+            else if(key==='wantResource'&&input.options.length>1)input.selectedIndex=1;
+        });
+        publish.textContent=fr?'Publier le troc':'Publish barter';
+    }
     const tradeList=html('div',tradeBlock.body,'scene-trade-list');
     const tradeControls=html('div',tradeBlock.body,'scene-toolbar');
     const acceptTrade=button(tradeControls,'acceptTrade',()=>tradeCommand('market-accept'));
@@ -405,7 +436,7 @@
             }
             if(data.victory.achieved)html('p',objectiveBlock.body,'scene-victory',t('achieved'));
         }
-        tradeBlock.root.hidden=theme!=='guild';
+        tradeBlock.root.hidden=theme==='neutral';refreshTradeComposer();
         tradeList.replaceChildren();
         if(!offers.length)html('p',tradeList,'scene-caption',t('noOffers'));
         for(const offer of offers){
@@ -545,7 +576,7 @@
     function render(){
         host.dataset.theme=theme; title.textContent=t(theme);
         campaignButton.hidden=theme==='neutral'||(theme==='guild'&&document.getElementById('progression-panel').hidden);
-        marketButton.hidden=theme!=='guild';
+        marketButton.hidden=theme==='neutral';
         for(const op of operations)op.control.hidden=op.pack!==theme;
         renderHud();
         summary.textContent=territories.size+' '+t('territories')+' · '+buildings.size+' '+t('registered');
@@ -617,7 +648,7 @@
     for(const child of originalChildren)if(child!==host)legacy.append(child);
     legacy.open=classic;
     document.documentElement.dataset.gamePresentation=classic?'classic':'play';
-    const contextControls=html('div',host,'game-ui-selectors');
+    const contextControls=html('div',host,'game-ui-selectors');contextControls.hidden=classic;
     const mirrors={};
     for(const key of ['world','account','resource']){
         const label=html('label',contextControls,'');
@@ -629,15 +660,16 @@
             const original=balance.elements[key];
             if([...original.options].some(o=>o.value===select.value)){original.value=select.value;original.dispatchEvent(new Event('change'));}
             syncMirrors();
+            if(key!=='resource'&&initialLoad&&!busy){initialLoad=false;run(loadInitialScene);}
         });
     }
     function syncMirrors(){
         for(const [key,{title,select}] of Object.entries(mirrors)){
-            title.textContent=({world:['World','Monde'],account:['Player domain','Domaine du joueur'],resource:['Resource','Ressource']})[key][lang()==='fr'?1:0];
+            title.textContent=({world:['Active world','Monde actif'],account:['Player domain','Domaine du joueur'],resource:['Active resource','Ressource active']})[key][lang()==='fr'?1:0];
             const original=balance.elements[key];select.replaceChildren();
             [...original.options].forEach((o,i)=>{
                 const n=document.createElement('option');n.value=o.value;
-                n.textContent=key==='account'?(lang()==='fr'?'Domaine ':'Domain ')+(i+1):key==='resource'?displayName(o.value):' '+(i+1)+' · '+(worlds.find(w=>w.world===o.value)?.name??(lang()==='fr'?'Monde':'World'));
+                n.textContent=key==='account'?(lang()==='fr'?'Domaine ':'Domain ')+(i+1):key==='resource'?displayName(o.value):(lang()==='fr'?'Monde ':'World ')+(i+1)+' · '+(isTechnicalId(worlds.find(w=>w.world===o.value)?.name)?t(theme):(worlds.find(w=>w.world===o.value)?.name??t(theme)));
                 select.append(n);
             });
             select.value=original.value;select.disabled=busy;
@@ -647,7 +679,7 @@
     const showDistrict=mode=>{districtMode=mode;districtPage=0;render();focusNode(districtBar);};
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
         slots:{resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,hint,toolbar],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
-        actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>theme==='guild'?focusNode(tradeBlock.root):jump('market-panel'),activity:()=>focusNode(receiptBlock.root)}
+        actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>focusNode(tradeBlock.root),activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
     const legacyLink=html('button',ui.root,'scene-button game-ui-diagnostic',lang()==='fr'?'Commandes détaillées':'Detailed controls');legacyLink.type='button';
@@ -661,6 +693,7 @@
         legacySummary.textContent=detailLabel;legacyLink.textContent=detailLabel;
         exit.textContent=lang()==='fr'?'Déconnexion':'Leave game';
     }
+    async function loadInitialScene(){await loadMap();await readStages();districtMode=true;render();await readInventory();}
     let initialLoad=false;
     on('context',()=>{refreshShell();initialLoad=!classic&&Boolean(locationFields().world);});
     on('activity',d=>{
@@ -668,7 +701,7 @@
         if(d.busy){ui.setStatus(lang()==='fr'?'Synchronisation…':'Synchronizing…');return;}
         const ok=document.getElementById('status').textContent==='Success';
         ui.setStatus(ok?(lang()==='fr'?'Synchronisé':'Synchronized'):(lang()==='fr'?'Consultez le résultat détaillé':'Check detailed result'));
-        if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(async()=>{await loadMap();await readStages();districtMode=true;render();});});}
+        if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
     on('reset',()=>{initialLoad=false;ui.setStatus('');});
     document.getElementById('locale-select').addEventListener('change',refreshShell);

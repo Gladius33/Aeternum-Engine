@@ -35,3 +35,5 @@ The normal /play.html opens the game-focused layout with legacy detailed control
 - OGame: https://ogame.gameforge.com/ and https://ogame.fandom.com/wiki/Overview_Screen — resource summary, selected domain and navigation hierarchy. Public landing redirects; authenticated client source not inspected.
 - Travian: https://support.travian.com/en/articles/42-central-village-overview and https://support.travian.com/en/articles/155-discovering-map-features — domain switching, map and resource summaries.
 - Forge of Empires: https://support.innogames.com/kb/ForgeOfEmpires/en_DK/1358 — contextual construction menus.
+
+The game-facing market includes a bilingual barter composer that submits the original validated market form. Normal mode explicitly reads reserves on entry and switches domain/world through the original context selectors. The Guild modern-mode acceptance also publishes a real barter offer from the new interface.
