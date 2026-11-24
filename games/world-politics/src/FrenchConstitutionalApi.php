@@ -60,7 +60,7 @@ final class FrenchConstitutionalApi
                 $resource==='engagements' && $resourceId==='' && $subresource==='' => 'engage',
                 $resource==='motions' && $resourceId==='' && $subresource==='' => 'file_motion',
                 $resource==='motions' && $resourceId!=='' && $subresource==='votes' => 'vote_motion',
-                $resource==='confidence' && $resourceId==='' && $subresource==='engagements' => 'engage_confidence',
+                $resource==='confidence' && $resourceId==='engagements' && $subresource==='' => 'engage_confidence',
                 $resource==='confidence' && $resourceId!=='' && $subresource==='votes' => 'vote_confidence',
                 $resource==='spontaneous-motions' && $resourceId==='' && $subresource==='' => 'file_spontaneous',
                 $resource==='spontaneous-motions' && $resourceId!=='' && $subresource==='votes' => 'vote_spontaneous',
