@@ -41,7 +41,7 @@ final class FrenchConstitutionalCrisis
     private array $state;
 
     public function __construct(
-        string $world,string $session,string $startingInstant,int $assemblyMembers
+        string $world,string $session,int $startingInstant,int $assemblyMembers
     ) {
         self::id($world);self::id($session);
         if ($startingInstant<0 || $startingInstant>4102444800) {
