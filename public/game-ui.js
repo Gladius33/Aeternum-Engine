@@ -5,7 +5,7 @@
         const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;
         if(parent)parent.append(n);return n;
     };
-    const icons={domain:'M3 10 12 3 21 10V21H3Z M9 21V14H15V21',atlas:'M3 5 9 3 15 5 21 3V19L15 21 9 19 3 21Z M9 3V19M15 5V21',construction:'M3 20 13 10M10 4 20 14M13 3 21 11 18 14 10 6Z',holdings:'M3 21V8L12 3 21 8V21Z M8 21V12H16V21',reserves:'M3 7 12 3 21 7 12 11Z M3 7V17L12 21 21 17V7M12 11V21',objectives:'M12 3 15 9 22 10 17 15 18 22 12 19 6 22 7 15 2 10 9 9Z',market:'M3 8H21L18 3H6Z M4 8V21H20V8M8 21V14H16V21',activity:'M4 12 9 17 20 6',settings:'M4 7H20M4 12H20M4 17H20'};
+    const icons={domain:'M3 10 12 3 21 10V21H3Z M9 21V14H15V21',atlas:'M3 5 9 3 15 5 21 3V19L15 21 9 19 3 21Z M9 3V19M15 5V21',construction:'M3 20 13 10M10 4 20 14M13 3 21 11 18 14 10 6Z',holdings:'M3 21V8L12 3 21 8V21Z M8 21V12H16V21',reserves:'M3 7 12 3 21 7 12 11Z M3 7V17L12 21 21 17V7M12 11V21',objectives:'M12 3 15 9 22 10 17 15 18 22 12 19 6 22 7 15 2 10 9 9Z',market:'M3 8H21L18 3H6Z M4 8V21H20V8M8 21V14H16V21',activity:'M4 12 9 17 20 6',relations:'M3 5H21V15H13L8 20V15H3Z M7 9H17M7 12H14',settings:'M4 7H20M4 12H20M4 17H20'};
     function icon(key,parent){
         const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
         svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.setAttribute('class','game-ui-icon');
