@@ -68,6 +68,8 @@ jobs:
         run: php tests/wp19-france-49-3.php
       - name: France Article 49.1 confidence and 49.2 spontaneous censure WP22
         run: php tests/wp22-france-49-1-49-2.php
+      - name: France sitting days and censure scheduling WP26
+        run: php tests/wp26-fr-sitting-calendar.php
       - name: Sectoral social and economic reaction WP20
         run: php tests/wp20-france-social.php
 
@@ -113,6 +115,7 @@ jobs:
           php tests/wp17-world-clock-db.php
           php tests/wp18-world-clock-institutions-db.php
           php tests/wp25-fr-parliament-world-clock-db.php
+          php tests/wp26-fr-sitting-calendar-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4
