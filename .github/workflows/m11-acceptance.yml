@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 # No M13 release head may skip M11 restoration and operations checks.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
