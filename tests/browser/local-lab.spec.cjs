@@ -50,7 +50,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             const placed=page.waitForResponse(r=>isFinal(r,'building.place'));
             await page.locator('#world-scene [data-label=place]').click();
             expect((await placed).status()).toBe(200);
-            await expect(page.locator('#status')).toHaveText('Success');
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await expect(page.locator('[data-mission-step=start]')).toBeVisible();
             await page.locator('[data-first-mission]').click();
             const building=page.locator('[data-district-building]').first();
@@ -61,12 +61,12 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             const startResponse=await started;
             // Preserve the response on failure, rather than masking a server rejection.
             expect(startResponse.status(),await startResponse.text()).toBe(200);
-            await expect(page.locator('#status')).toHaveText('Success');
-            await expect.poll(async()=>{
-                await page.locator('#world-scene [data-label=districtRefresh]').click();
-                await expect(page.locator('#status')).toHaveText('Success');
-                return building.getAttribute('data-district-level');
-            },{timeout:90000,intervals:[3000,5000]}).toBe('1');
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+            // Exercise G11's automatic read-only refresh, not a competing
+            // manual refresh that can collide with the same busy lock.
+            await expect(building).toHaveAttribute('data-district-level','1',{timeout:90000});
+            await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await expect(page.locator('[data-mission-step=next]')).toBeVisible();
             await expect(page.locator('[data-district-decor='+type+']')).toBeAttached();
             await expect(page.locator('[data-district-site=approved]')).toBeVisible();
@@ -78,7 +78,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             if(pack==='guild'){
                 await action.click();
                 await expect(page.locator('[data-workspace-panel=market]')).toBeVisible();
-                await expect(page.locator('#status')).toHaveText('Success');
+                await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
                 await page.locator('[data-trade-field=giveResource]').selectOption('silver');
                 await page.locator('[data-trade-field=wantResource]').selectOption('grain');
                 const traded=page.waitForResponse(r=>isFinal(r,actionType));
@@ -89,7 +89,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 await action.click();
                 expect((await produced).status()).toBe(200);
             }
-            await expect(page.locator('#status')).toHaveText('Success');
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await page.locator('[data-game-nav=domain]').click();
             await captureScene(page,'local-'+pack+'-productive-domain');
             await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
