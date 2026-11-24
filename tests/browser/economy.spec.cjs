@@ -615,9 +615,18 @@ test('public signup provisions real players, supports retry, reconnect and accou
         await expect(page.locator('#recovery-secret')).toContainText(changed.recoveryCode);
         await expect(page.locator('#status')).toHaveText('Password changed. All sessions signed out. Save your new recovery code before signing in.');
         expect((await page.request.get(url+'/v1/me/worlds',{headers:{Authorization:oldAuthorization}})).status()).toBe(401);
-        const staleCode=await page.request.post(url+'/v1/auth/recover',{data:{
-            login:'browser-public-first',code:rotated.recoveryCode,newPassword:'browser replayed replaced recovery'
-        }});
+        // This scenario deliberately consumes several auth quotas. A 429 is
+        // not proof of revocation: wait for the real limiter to admit the
+        // request, then require the stale credential to be rejected with 401.
+        let staleCode;
+        for(let attempt=0;attempt<3;attempt++){
+            staleCode=await page.request.post(url+'/v1/auth/recover',{data:{
+                login:'browser-public-first',code:rotated.recoveryCode,newPassword:'browser replayed replaced recovery'
+            }});
+            if(staleCode.status()!==429)break;
+            if(attempt===2)throw new Error('Recovery quota remained exhausted');
+            await page.waitForTimeout(65000);
+        }
         expect(staleCode.status()).toBe(401);
         await signIn(page,{...scenarios[1],login:'browser-public-first',password:'browser final password after change'},{reusePage:true});
         await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);

@@ -50,7 +50,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             const placed=page.waitForResponse(r=>isFinal(r,'building.place'));
             await page.locator('#world-scene [data-label=place]').click();
             expect((await placed).status()).toBe(200);
-            await expect(page.locator('#status')).toHaveText('Success');
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await expect(page.locator('[data-mission-step=start]')).toBeVisible();
             await page.locator('[data-first-mission]').click();
             const building=page.locator('[data-district-building]').first();
@@ -61,16 +61,61 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             const startResponse=await started;
             // Preserve the response on failure, rather than masking a server rejection.
             expect(startResponse.status(),await startResponse.text()).toBe(200);
-            await expect(page.locator('#status')).toHaveText('Success');
-            await expect.poll(async()=>{
-                await page.locator('#world-scene [data-label=districtRefresh]').click();
-                await expect(page.locator('#status')).toHaveText('Success');
-                return building.getAttribute('data-district-level');
-            },{timeout:90000,intervals:[3000,5000]}).toBe('1');
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+            // Exercise G11's automatic read-only refresh, not a competing
+            // manual refresh that can collide with the same busy lock.
+            await expect(building).toHaveAttribute('data-district-level','1',{timeout:90000});
+            await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await expect(page.locator('[data-mission-step=next]')).toBeVisible();
             await expect(page.locator('[data-district-decor='+type+']')).toBeAttached();
             await expect(page.locator('[data-district-site=approved]')).toBeVisible();
             await captureScene(page,'local-'+pack+'-domain');
+            if(pack==='medieval'){
+                // The pinned campaign starts with one resident; lumber work
+                // requires two. Build and populate a farm through the real UI.
+                await expect(page.locator('[data-domain-action=work]')).toBeDisabled();
+                await page.locator('[data-first-mission]').click();
+                await expect(page.locator('[data-catalogue=farm]')).toHaveAttribute('aria-pressed','true');
+                const farmPlaced=page.waitForResponse(r=>isFinal(r,'building.place'));
+                await page.locator('#world-scene [data-label=place]').click();
+                const farmReply=await farmPlaced;expect(farmReply.status(),await farmReply.text()).toBe(200);
+                await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+                await page.locator('[data-first-mission]').click();
+                const farm=page.locator('[data-district-building]').filter({has:page.locator('[data-model=farm]')});
+                await expect(farm).toHaveAttribute('aria-pressed','true');
+                const farmStarted=page.waitForResponse(r=>isFinal(r,'building.start'));
+                await page.locator('#world-scene [data-label=startStage]').click();
+                const startedReply=await farmStarted;expect(startedReply.status(),await startedReply.text()).toBe(200);
+                await expect(farm).toHaveAttribute('data-district-level','1',{timeout:90000});
+                await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+                const welcomed=page.waitForResponse(r=>isFinal(r,'settlement.feed'));
+                await page.locator('[data-domain-action=feed]').click();
+                const welcomedReply=await welcomed;expect(welcomedReply.status(),await welcomedReply.text()).toBe(200);
+                await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+                await expect(page.locator('[data-domain-action=work]')).toBeEnabled();
+            }
+            const actionType={medieval:'settlement.work',industrial:'industry.generate',guild:'market.create'}[pack];
+            const actionKey={medieval:'work',industrial:'generate',guild:'trade'}[pack];
+            const action=page.locator('[data-domain-action='+actionKey+']');
+            await expect(action).toBeEnabled();
+            if(pack==='guild'){
+                await action.click();
+                await expect(page.locator('[data-workspace-panel=market]')).toBeVisible();
+                await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+                await page.locator('[data-trade-field=giveResource]').selectOption('silver');
+                await page.locator('[data-trade-field=wantResource]').selectOption('grain');
+                const traded=page.waitForResponse(r=>isFinal(r,actionType));
+                await page.locator('.scene-trade-composer button').click();
+                expect((await traded).status()).toBe(200);
+            }else{
+                const produced=page.waitForResponse(r=>isFinal(r,actionType));
+                await action.click();
+                const response=await produced;expect(response.status(),await response.text()).toBe(200);
+            }
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+            await page.locator('[data-game-nav=domain]').click();
+            await captureScene(page,'local-'+pack+'-productive-domain');
             await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             await page.locator('[data-game-nav=construction]').click();
             await captureScene(page,'local-'+pack+'-construction');
