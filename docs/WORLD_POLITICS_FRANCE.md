@@ -185,3 +185,13 @@ Tests :
 - `tests/wp25-fr-parliament-world-clock-db.php` — horloge multinationale fonctionnant avec le calendrier de séance français épinglé.
 
 **Limites restantes :** les jours de séance réels n'ont pas encore été importés depuis une source officielle vérifiée ; les jeux de tests utilisent un calendrier fictif explicitement étiqueté. Les débats et scrutins ne sont pas encore planifiés automatiquement par l'IA parlementaire ; ils sont déclenchés par une autorité vérifiée. Le modèle actuel ne représente pas encore toutes les subtilités de clôture ou suspension des sessions, séances exceptionnelles, ordres du jour et amendements. Les scénarios anciens n'ayant pas opté pour ce calendrier restent en mode constitutionnel partiel et doivent être migrés expressément.
+
+## WP28 — votes nominatifs et sortie constitutionnelle d'une crise gouvernementale
+
+Après WP26, les délais de censure et les séances étaient pris en compte, mais un greffier vérifié devait encore fournir un nombre global de suffrages. Avec WP28, la confiance, les motions spontanées et la procédure du 49.3 peuvent toutes être décidées à partir de **577 voix individuelles, contrôlées et persistantes**. La formation de coalitions change le rapport de forces sans rendre les votes des députés automatiquement uniformes.
+
+L'installation d'un registre parlementaire enregistre `parliament_required=1` dans le monde constitutionnel ; un ancien service qui voudrait injecter arbitrairement un total de voix est alors refusé. Les élus contrôlés par un joueur sont soumis à une vérification nominative, et les votes IA sont produits selon des paramètres fictifs, documentés et déterministes. Chaque résultat est lié à l'empreinte de l'état constitutionnel qui l'a autorisé.
+
+Après un refus de confiance ou une censure, l'article 50 entraîne la démission gouvernementale, **pas la disparition de la République**. Le jeu exige ensuite une remise de démission vérifiée et un décret authentifié de nomination d'un nouveau Premier ministre sous l'article 8, sans inventer d'investiture obligatoire. La liste des autres membres du Gouvernement reste à modéliser.
+
+Sources : Constitution, articles 8, 49 et 50 sur Légifrance, et fiches de l'Assemblée nationale sur les votes et les groupes. Détails, nouvelles routes et migrations : `docs/WORLD_POLITICS_PARLIAMENT.md`.

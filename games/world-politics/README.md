@@ -141,3 +141,15 @@ Les dates de séance utilisées en test sont **fictives et explicitement identif
 - Documentation détaillée : `docs/WORLD_POLITICS_WORLD_FENCE.md`.
 
 La version ne lance ni serveur HTTP public ni worker permanent. Les garanties couvrent les écritures passant par les adaptateurs du jeu et doivent être renforcées par les permissions SQL en production.
+
+## WP28 — Assemblée française, IA parlementaire et succession gouvernementale
+
+- `src/FrenchParliament.php` : 577 sièges au maximum, députés nominatifs, groupes, coalitions et votes individuels pour/contre/abstention/absence. Les préférences IA, négociations et coalitions sont des **hypothèses fictives de scénario**, enregistrées et reproductibles.
+- `src/PdoFrenchParliamentStore.php` et `database/015_fr_parliament.sql` : registre MariaDB, journal, reçus d'idempotence, permission de chaque député, branchement à la barrière WP27.
+- `src/VerifiedFrenchParliamentPrincipal.php` : les 49.1, 49.2 et 49.3 utilisent les véritables résultats individuels certifiés, et non des totaux fabriqués par le client ou un faux greffier.
+- `src/FrenchParliamentApi.php` : contrats REST, sans serveur HTTP public.
+- `src/FrenchConstitutionalCrisis.php` : après défaite parlementaire, démission de l'article 50 et nomination présidentielle vérifiée au titre de l'article 8 ; **pas de vote d'investiture obligatoire inventé ni chute automatique de la République**.
+- `database/016_wp28_constitution_parliament_required.sql` : ajout facultatif du marqueur sur des instances préexistantes ; l'installation du registre WP28 le rend obligatoire pour son monde.
+- `tests/wp28-french-parliament.php` et `tests/wp28-french-parliament-db.php` : tests de domaine, de sécurité, MariaDB et d'intégration constitutionnelle.
+
+Documentation exhaustive : `docs/WORLD_POLITICS_PARLIAMENT.md`. La composition réelle de l'Assemblée à une date donnée et les programmes réels des groupes n'ont **pas** été importés.

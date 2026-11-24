@@ -147,3 +147,11 @@ Développer les députés, groupes parlementaires, majorités, abstentions, disc
 ### Renforcement WP27 à différer jusqu'à l'architecture de production
 
 Rôles SQL minimaux et éventuels triggers d'audit, verrouillage de toutes les écritures hors adaptateurs, supervision des workers, logs et alertes, métriques de contention, tests de charge, migrations des parties antérieures et procédures d'exploitation. Ces points restent des **conditions de mise en production**, pas des fonctionnalités actuellement terminées.
+
+## Statut après WP28 — parlement français et majorité politique
+
+**WP28 livré :** modèle de députés et sièges individuellement vérifiés, groupes et coalitions, politique fictive par député, voix nominatives, scrutin 49.1/49.2/49.3 issu du même registre, archives et tests MariaDB, droits d'un élu humain, preuve des sources constitutionnelles, succession Premier ministre sous les articles 50 puis 8. Description technique : `docs/WORLD_POLITICS_PARLIAMENT.md`.
+
+La France a désormais un premier scénario parlementaire cohérent de bout en bout, mais la mécanique reste un **prototype d'IA et de données fictives**. Aucun nom de parlementaire réel, mandat daté, composition officielle de groupe, projet réel de réforme ou statistique de comportement politique n'est encore importé et validé. Les nominations de ministres, la composition détaillée des cabinets, les élections et la dissolution restent à achever.
+
+**Prochaine priorité : WP29 — boucle de politique publique multi-journées**, avec projet de loi, coûts/revenus, clauses et concessions ciblées, comportement parlementaire, réaction sociale graduelle et effets économiques durables. Ensuite, une alpha privée devra bénéficier d'un véritable serveur HTTP avec authentification et permissions.
