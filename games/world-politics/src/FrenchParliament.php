@@ -199,8 +199,10 @@ final class FrenchParliament
             self::signed($value,-1000,1000);
         }
         ksort($concessions,SORT_STRING);
+        $activeCoalitionGroups=$this->activeCoalitionGroups();
         $this->state['matters'][$id]=[
             'id'=>$id,'kind'=>$kind,'topic'=>$topic,
+            'coalition_groups'=>$activeCoalitionGroups,
             'public_pressure'=>$publicPressure,'concessions'=>$concessions,
             'source_constitution_sha'=>$sourceConstitutionSha,
             'status'=>'awaiting_ballots','human_votes'=>[],
@@ -248,12 +250,7 @@ final class FrenchParliament
                 throw new \DomainException('All human parliamentary votes must be submitted or marked absent');
             }
         }
-        $coalitionGroups=[];
-        foreach ($this->state['coalitions'] as $coalition) {
-            if ($coalition['active']) {
-                foreach ($coalition['groups'] as $group) $coalitionGroups[$group]=true;
-            }
-        }
+        $coalitionGroups=array_fill_keys($matter['coalition_groups'],true);
         $roll=[];$tally=['for'=>0,'against'=>0,'abstain'=>0,'absent'=>0];
         foreach ($this->state['deputies'] as $member) {
             $group=$this->state['groups'][$member['group']];
@@ -356,7 +353,7 @@ final class FrenchParliament
             if (!is_array($matter)) throw new \DomainException('Malformed legislative item');
             $keys=array_keys($matter);sort($keys,SORT_STRING);
             $expected=[
-                'concessions','human_votes','id','kind','public_pressure',
+                'coalition_groups','concessions','human_votes','id','kind','public_pressure',
                 'roll_call','source_constitution_sha','status','tally','topic'
             ];
             if ($matter['status']==='resolved') $expected[]='result';
@@ -369,6 +366,26 @@ final class FrenchParliament
                 $matter['public_pressure'],$matter['concessions'],
                 $matter['source_constitution_sha']
             );
+            // Coalition membership is frozen when an agenda is created.
+            // Historical votes must NOT be recomputed using the current,
+            // potentially different coalition agreements.
+            $historicalGroups=$matter['coalition_groups'];
+            if (!is_array($historicalGroups) || !array_is_list($historicalGroups)
+                || count($historicalGroups)!==count(array_unique($historicalGroups))) {
+                throw new \DomainException('Unverifiable historical coalition membership');
+            }
+            $sortedGroups=$historicalGroups;
+            sort($sortedGroups,SORT_STRING);
+            if ($historicalGroups!==$sortedGroups) {
+                throw new \DomainException('Noncanonical historical coalition snapshot');
+            }
+            foreach ($historicalGroups as $groupId) {
+                self::id($groupId);
+                if (!isset($model->state['groups'][$groupId])) {
+                    throw new \DomainException('Historical coalition names unknown group');
+                }
+            }
+            $model->state['matters'][$id]['coalition_groups']=$historicalGroups;
             if (!is_array($matter['human_votes'])) {
                 throw new \DomainException('Malformed parliamentary ballots');
             }
@@ -388,6 +405,20 @@ final class FrenchParliament
             throw new \DomainException('Noncanonical French Assembly snapshot');
         }
         return $model;
+    }
+
+    /** @return list<string> */
+    private function activeCoalitionGroups():array
+    {
+        $groups=[];
+        foreach ($this->state['coalitions'] as $coalition) {
+            if ($coalition['active']) {
+                foreach ($coalition['groups'] as $group) $groups[$group]=true;
+            }
+        }
+        $names=array_keys($groups);
+        sort($names,SORT_STRING);
+        return $names;
     }
 
     private function aiChoice(array $member,array $group,array $matter,bool $coalition):string
