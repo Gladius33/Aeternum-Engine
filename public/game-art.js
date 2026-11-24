@@ -364,6 +364,8 @@
             if(frame===null)frame=requestFrame(flush);
         }
         function up(e){
+            if(e.type==='lostpointercapture'&&e.target!==svg)return;
+            if(e.type==='pointerleave'&&svg.hasPointerCapture(e.pointerId))return;
             if(!pointers.has(e.pointerId))return;
             drain();pointers.delete(e.pointerId);
             if(moved)suppressUntil=now()+450;
@@ -385,7 +387,7 @@
             state.y=Math.max(0,Math.min(extent.h-h,state.y));
             svg.setAttribute('viewBox',[state.x,state.y,w,h].join(' '));onChange({...state});
         }
-        function size(w,h){if(!(w>0&&h>0))throw RangeError('Invalid scene extent');if(w!==extent.w||h!==extent.h){extent={w,h};state={x:0,y:0,z:1};}draw();}
+        function size(w,h){if(!(w>0&&h>0))throw RangeError('Invalid scene extent');if(w!==extent.w||h!==extent.h){extent={w,h};state={x:0,y:0,z:1};draw();}}
         function zoom(f,atX=.5,atY=.5){
             if(!Number.isFinite(f)||f<=0)return;
             const z=Math.max(min,Math.min(max,state.z*f));
@@ -407,5 +409,15 @@
         svg.addEventListener('keydown',key);
         return Object.freeze({size,zoom,reset,state:()=>({...state}),destroy(){gesture.destroy();svg.removeEventListener('keydown',key);}});
     }
-    window.AeternumArt=Object.freeze({create,camera,gestures,version:2});
+    // Keep only the most recent signature for each surface. No detached
+    // SVG trees, cross-account snapshots or unbounded cache.
+    function renderGate(){
+        let previous=null,draws=0,hits=0;
+        return Object.freeze({run(key,draw){
+            const signature=JSON.stringify(key);
+            if(signature===previous){hits++;return false;}
+            draw();previous=signature;draws++;return true;
+        },invalidate(){previous=null;},stats:()=>({draws,hits})});
+    }
+    window.AeternumArt=Object.freeze({create,camera,gestures,renderGate,version:3});
 })();
