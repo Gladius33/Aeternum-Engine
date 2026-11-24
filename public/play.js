@@ -1163,6 +1163,11 @@ document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>
     const profiles=document.createElement('div');profiles.className='library-profiles';profiles.hidden=true;library.append(profiles);
     const change=document.createElement('button');change.type='button';change.className='library-change';change.hidden=true;library.append(change);
     main.insertBefore(library,login);
+    const accountHelp=document.createElement('details');accountHelp.className='library-account-help';
+    const helpSummary=document.createElement('summary');accountHelp.append(helpSummary);
+    main.insertBefore(accountHelp,document.getElementById('recover'));
+    accountHelp.append(document.getElementById('recover'));
+
     let lab=false,profile='alice';
     const fr=()=>locale.value==='fr';
     function choose(key){
@@ -1173,6 +1178,7 @@ document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>
     function render(){
         const i=fr()?1:0;heading.textContent=fr()?'Choisissez votre aventure':'Choose your adventure';
         intro.textContent=fr()?'Trois univers indépendants. Trois façons de jouer.':'Three independent worlds. Three ways to play.';
+        helpSummary.textContent=fr()?'Mot de passe oublié ?':'Forgot your password?';
         for(const card of cards.children){const key=card.dataset.chooseGame;card.setAttribute('aria-pressed',String(selectedGame===key));card.querySelector('strong').textContent=catalog[key].name[i];card.querySelector('small').textContent=catalog[key].tag[i];card.querySelector('.library-description').textContent=catalog[key].description[i];card.querySelector('.library-cta').textContent=fr()?'Choisir ce jeu':'Choose this game';}
         selected.textContent=selectedGame?(fr()?'Votre jeu : ':'Your game: ')+catalog[selectedGame].name[i]:(fr()?'Vous avez déjà un compte ? Vous pouvez aussi vous connecter directement.':'Already have an account? You can also sign in directly.');
         profiles.hidden=!(lab&&selectedGame);change.hidden=!selectedGame;change.textContent=fr()?'Choisir un autre jeu':'Choose another game';
@@ -1188,7 +1194,7 @@ document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>
     }
     for(const name of ['alice','bob']){const button=document.createElement('button');button.type='button';button.dataset.profile=name;button.textContent=name==='alice'?'Alice':'Bob';profiles.append(button);button.addEventListener('click',()=>{profile=name;login.elements.login.value=selectedGame+'-'+name;render();});}
     change.addEventListener('click',()=>{selectedGame=null;login.elements.login.value='';render();cards.querySelector('button').focus();});
-    function sync(){library.hidden=!game.hidden;main.classList.toggle('in-game',!game.hidden);if(game.hidden)render();}
+    function sync(){library.hidden=!game.hidden;accountHelp.hidden=!game.hidden;main.classList.toggle('in-game',!game.hidden);if(game.hidden)render();}
     new MutationObserver(sync).observe(game,{attributes:true,attributeFilter:['hidden']});
     locale.addEventListener('change',render);render();sync();
     // This marker is served only by the private Compose laboratory, not by the public API.
