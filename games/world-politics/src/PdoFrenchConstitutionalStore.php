@@ -36,7 +36,8 @@ final class PdoFrenchConstitutionalStore
 
     public function seed(FrenchConstitutionalCrisis $sim):void
     {
-         $this->pdo->beginTransaction();
+ 
+        $this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$state['world_id'],$this->principal->actorId(),'bootstrap'

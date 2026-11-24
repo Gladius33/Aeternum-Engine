@@ -41,7 +41,8 @@ final class PdoInstitutionalStore
     /** Trusted scenario bootstrap. Both roster and reviewed rules must exist. */
     public function seed(InstitutionalSimulation $simulation):void
     {
-         $this->pdo->beginTransaction();
+ 
+        $this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$state['world_id'],$this->auth->actorId(),'bootstrap'

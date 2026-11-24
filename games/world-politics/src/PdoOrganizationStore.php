@@ -38,7 +38,8 @@ final class PdoOrganizationStore
 
     public function seed(OrganizationSimulation $sim):void
     {
-         $this->pdo->beginTransaction();
+ 
+        $this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$state['world_id'],$this->principal->actorId(),'bootstrap'

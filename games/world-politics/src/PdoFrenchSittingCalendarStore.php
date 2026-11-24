@@ -31,7 +31,8 @@ final class PdoFrenchSittingCalendarStore
 
     public function seed(FrenchSittingCalendar $calendar):void
     {
-         $this->pdo->beginTransaction();
+ 
+        $this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$world,$this->authority->actorId(),'bootstrap'

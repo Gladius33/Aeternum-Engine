@@ -37,7 +37,8 @@ final class PdoDiplomaticStore
     /** Trusted scenario bootstrap, not a player command. */
     public function seed(DiplomaticSimulation $sim):void
     {
-         $this->pdo->beginTransaction();
+ 
+        $this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$snapshot['world_id'],$this->principal->actorId(),'bootstrap'
