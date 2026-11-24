@@ -15,7 +15,7 @@ final class PoliticalProfileTemplate
     /** @return array<string,mixed> */
     public static function definition(): array
     {
-        return [
+        $template=[
             'schema_version' => self::VERSION,
             'avatar' => ['key' => self::AVATAR, 'uploads_enabled' => false],
             'modes' => [
@@ -47,6 +47,29 @@ final class PoliticalProfileTemplate
                 'policy_priorities'=>['type'=>'text_list','required'=>false,'max_items'=>24],
             ],
         ];
+        $labels=[
+            'name'=>['Nom du personnage','Seul champ obligatoire. Un identifiant technique est généré par le serveur.'],
+            'biography'=>['Présentation générale','Qui est votre personnage ? Résumez son histoire et ses motivations.'],
+            'birth_date'=>['Date de naissance','Facultatif. Utilisez une date cohérente avec votre scénario.'],
+            'birth_place'=>['Lieu de naissance','Ville, région ou autre lieu fictif ou réel.'],
+            'personal_statement'=>['Déclaration personnelle','Présentez sa vision du pouvoir et ses objectifs.'],
+            'education'=>['Formation et diplômes','Ajoutez autant de formations que vous le souhaitez, dans les limites prévues.'],
+            'languages'=>['Langues','Langues pratiquées dans votre histoire alternative.'],
+            'professional_history'=>['Parcours professionnel','Emplois, responsabilités et étapes de carrière.'],
+            'public_service'=>['Carrière administrative','Fonctions dans la haute administration ou les services publics.'],
+            'expertise'=>['Domaines d’expertise','Domaines d’expérience déclarés par ce personnage.'],
+            'party'=>['Parti politique','Parti existant dans le scénario ou organisation fictive.'],
+            'orientation'=>['Courant politique revendiqué','Description libre, sans assignation automatique par le jeu.'],
+            'political_history'=>['Mandats et engagements','Expérience politique antérieure du personnage fictif.'],
+            'programme'=>['Programme électoral','Ajoutez des propositions concrètes, classées par domaine. Ce champ peut rester vide.'],
+            'policy_priorities'=>['Priorités gouvernementales','Domaines que le personnage souhaite mettre en avant.'],
+        ];
+        foreach ($labels as $id=>$text) {
+            $template['fields'][$id]['label']=$text[0];
+            $template['fields'][$id]['help']=$text[1];
+        }
+        $template['locale']='fr-FR';
+        return $template;
     }
 
     /**
