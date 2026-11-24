@@ -158,9 +158,9 @@
         }
         if(theme==='medieval'){
             for(const x of [-81,77]){const a=group(g,x,-12,.8);e(a,0,4,13,5,'#243e3255');p(a,'M-12 0L0 -25 12 0Z','#32563c');p(a,'M0 -25L-12 0 0 -5Z','#789457');}
-            crop(group(g,-70,15,.46),0,0);
+            for(let i=0;i<5;i++){const x=-90+i*9,y=16+i%2*3;l(g,x,y,x+3,y-5,c.light,.9);}
         }else if(theme==='industrial'){
-            for(const x of [-77,67]){const a=group(g,x,8,.5);transformer(a,0,0);}
+            for(const x of [-77,67])for(let i=0;i<4;i++)p(g,'M'+(x+i*6)+' '+(8+i%2*4)+'l5 -3 6 2 -4 4Z',i%2?c.dark:c.light,c.ink,.4);
         }else{
             for(const x of [-79,79]){const a=group(g,x,9,.5);p(a,'M-8 0L0 -9 9 0 0 4Z','#c6a16b','#8d6b43');}
             p(g,'M-95 17Q-78 7 -61 15','none','#e9cb94',1.4);

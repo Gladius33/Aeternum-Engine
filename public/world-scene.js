@@ -134,8 +134,9 @@
         const n=territories.get(id),p=n?atlasPositions.get(n.location):null;
         if(!p)return;
         // Keep a region and its label comfortably within the camera.
-        const z=Math.max(1,Math.min(2.5,extent.h/220,extent.w/280));
-        camera={x:p.x-extent.w/z/2,y:p.y+12-extent.h/z/2,z};view();
+        const z=narrow.matches?1.05:1.65;
+        const size=atlasViewSize(z);
+        camera={x:p.x-size.w/2,y:p.y+12-size.h/2,z};view();
     }
     const atlasControls=html('div',atlasPanel,'atlas-expedition-controls');
     const atlasButton=(key,fn)=>{const b=html('button',atlasControls,'atlas-command');b.type='button';b.dataset.atlasCommand=key;b.addEventListener('click',()=>{if(!busy)fn();});return b;};
@@ -479,10 +480,15 @@
             document.getElementById('building-load').click();
         }
     }
-    function view(){const w=extent.w/camera.z,h=extent.h/camera.z;camera.x=Math.max(-w*.15,Math.min(extent.w-w*.85,camera.x));camera.y=Math.max(-h*.15,Math.min(extent.h-h*.85,camera.y));svg.setAttribute('viewBox',[camera.x,camera.y,w,h].join(' '));}
-    function zoom(f){const z=Math.max(1,Math.min(3,camera.z*f));camera.x+=(extent.w/camera.z-extent.w/z)/2;camera.y+=(extent.h/camera.z-extent.h/z)/2;camera.z=z;view();}
+    function atlasViewSize(z=camera.z){
+        const modern=!classic&&theme!=='neutral';
+        const height=modern?Math.min(extent.h,Math.max(300,extent.w*(narrow.matches?1.06:.63))):extent.h;
+        return {w:extent.w/z,h:height/z};
+    }
+    function view(){const {w,h}=atlasViewSize();camera.x=Math.max(-w*.15,Math.min(extent.w-w*.85,camera.x));camera.y=Math.max(-h*.15,Math.min(extent.h-h*.85,camera.y));svg.setAttribute('viewBox',[camera.x,camera.y,w,h].join(' '));}
+    function zoom(f){const z=Math.max(1,Math.min(3,camera.z*f)),old=atlasViewSize(),next=atlasViewSize(z);camera.x+=(old.w-next.w)/2;camera.y+=(old.h-next.h)/2;camera.z=z;view();}
     svg.addEventListener('pointerdown',e=>{if(e.target.closest('[data-territory]')||e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY};svg.setPointerCapture(e.pointerId);});
-    svg.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;const scale=extent.w/camera.z/Math.max(1,svg.clientWidth);camera.x-=(e.clientX-drag.x)*scale;camera.y-=(e.clientY-drag.y)*scale;drag.x=e.clientX;drag.y=e.clientY;view();});
+    svg.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;const matrix=svg.getScreenCTM();if(!matrix)return;camera.x-=(e.clientX-drag.x)/Math.max(.0001,Math.abs(matrix.a));camera.y-=(e.clientY-drag.y)/Math.max(.0001,Math.abs(matrix.d));drag.x=e.clientX;drag.y=e.clientY;view();});
     for(const event of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(event,()=>{drag=null;});
     svg.addEventListener('keydown',e=>{
         if(e.target!==svg)return;
@@ -490,8 +496,9 @@
         else if(e.key==='-')zoom(.8);
         else if(e.key==='Home'){camera={x:0,y:0,z:1};view();}
         else if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
-            camera.x+=({'ArrowLeft':-1,'ArrowRight':1}[e.key]??0)*extent.w/camera.z*.12;
-            camera.y+=({'ArrowUp':-1,'ArrowDown':1}[e.key]??0)*extent.h/camera.z*.12;view();
+            const size=atlasViewSize();
+            camera.x+=({'ArrowLeft':-1,'ArrowRight':1}[e.key]??0)*size.w*.12;
+            camera.y+=({'ArrowUp':-1,'ArrowDown':1}[e.key]??0)*size.h*.12;view();
         }else return;
         e.preventDefault();
     });
@@ -1019,7 +1026,7 @@
     on('resource-change',()=>{reading=null;renderHud();});
     on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();}});
     document.getElementById('locale-select').addEventListener('change',render);
-    narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();});
+    narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();if(!classic&&!districtMode&&selected?.type==='territory')centerAtlas(selected.id);});
     document.getElementById('map-location').addEventListener('input',updateSelection);
     document.getElementById('map-destination').addEventListener('input',updateSelection);
     // Reusable shell mounts the existing scene slots, not a duplicate game implementation.
