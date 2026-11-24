@@ -314,32 +314,87 @@
         return Object.freeze({el,poly,rect,line,ellipse,path,shade,brickwork,windowFrame,roofTiles,house,tree,factory,tent,model:render,register});
     }
     // Independent viewBox controller. Coordinates refer to presentation space, never server map positions.
+    // Shared touch/mouse gesture controller. A tap still reaches the original
+    // building/territory button. Drag or pinch never dispatches a game action.
+    function gestures(svg,{pan,zoom,requestFrame=fn=>requestAnimationFrame(fn),cancelFrame=id=>cancelAnimationFrame(id)}){
+        const pointers=new Map();
+        let frame=null,baseline=null,moved=false,suppressUntil=0;
+        const now=()=>performance.now();
+        const measure=()=>{
+            const a=[...pointers.values()];
+            if(!a.length)return null;
+            if(a.length===1)return {x:a[0].x,y:a[0].y,d:0,n:1};
+            return {x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2,d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),n:2};
+        };
+        function flush(){
+            frame=null;
+            const m=measure();if(!m||!baseline||m.n!==baseline.n){baseline=m;return;}
+            const dx=m.x-baseline.x,dy=m.y-baseline.y;
+            if(!moved&&m.n===1&&Math.hypot(dx,dy)<6)return;
+            moved=true;
+            const matrix=svg.getScreenCTM();
+            if(!matrix){baseline=m;return;}
+            const sx=Math.max(.0001,Math.abs(matrix.a)),sy=Math.max(.0001,Math.abs(matrix.d));
+            if(m.n===2&&m.d>3&&baseline.d>3){
+                const box=svg.getBoundingClientRect();
+                const ax=box.width?Math.max(0,Math.min(1,(m.x-box.left)/box.width)):.5;
+                const ay=box.height?Math.max(0,Math.min(1,(m.y-box.top)/box.height)):.5;
+                zoom(m.d/baseline.d,ax,ay);
+            }
+            pan(-dx/sx,-dy/sy);baseline=m;
+        }
+        function drain(){if(frame!==null){cancelFrame(frame);frame=null;flush();}}
+        function down(e){
+            if(e.button!==0||pointers.size>=2||pointers.has(e.pointerId))return;
+            drain();if(!pointers.size){moved=false;suppressUntil=0;}
+            const interactive=Boolean(e.target.closest('[role=button]'));
+            pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,interactive});
+            // Mouse drag starts on empty ground; touch may begin on holdings.
+            // Don't capture a normal tap or its target would become the SVG.
+            if(e.pointerType==='mouse'&&interactive){pointers.delete(e.pointerId);return;}
+            baseline=measure();
+            if(pointers.size===2){moved=true;for(const id of pointers.keys())try{svg.setPointerCapture(id);}catch{}}
+        }
+        function move(e){
+            const point=pointers.get(e.pointerId);if(!point)return;
+            point.x=e.clientX;point.y=e.clientY;
+            if(pointers.size===2||moved||Math.hypot(point.x-baseline.x,point.y-baseline.y)>=6){
+                try{if(!svg.hasPointerCapture(e.pointerId))svg.setPointerCapture(e.pointerId);}catch{}
+            }
+            if(frame===null)frame=requestFrame(flush);
+        }
+        function up(e){
+            if(e.type==='lostpointercapture'&&e.target!==svg)return;
+            if(e.type==='pointerleave'&&svg.hasPointerCapture(e.pointerId))return;
+            if(!pointers.has(e.pointerId))return;
+            drain();pointers.delete(e.pointerId);
+            if(moved)suppressUntil=now()+450;
+            baseline=measure();if(!pointers.size)moved=false;
+        }
+        function click(e){
+            if(e.detail!==0&&(moved||now()<suppressUntil)){e.preventDefault();e.stopImmediatePropagation();}
+        }
+        svg.addEventListener('pointerdown',down);svg.addEventListener('pointermove',move);
+        for(const event of ['pointerup','pointercancel','lostpointercapture','pointerleave'])svg.addEventListener(event,up);
+        svg.addEventListener('click',click,true);
+        return Object.freeze({destroy(){if(frame!==null)cancelFrame(frame);pointers.clear();svg.removeEventListener('pointerdown',down);svg.removeEventListener('pointermove',move);for(const event of ['pointerup','pointercancel','lostpointercapture','pointerleave'])svg.removeEventListener(event,up);svg.removeEventListener('click',click,true);}});
+    }
     function camera(svg,{min=1,max=3,onChange=()=>{}}={}){
-        let extent={w:1,h:1},state={x:0,y:0,z:1},pointer=null;
+        let extent={w:1,h:1},state={x:0,y:0,z:1};
         function draw(){
             const w=extent.w/state.z,h=extent.h/state.z;
             state.x=Math.max(0,Math.min(extent.w-w,state.x));
             state.y=Math.max(0,Math.min(extent.h-h,state.y));
             svg.setAttribute('viewBox',[state.x,state.y,w,h].join(' '));onChange({...state});
         }
-        function size(w,h){if(!(w>0&&h>0))throw RangeError('Invalid scene extent');if(w!==extent.w||h!==extent.h){extent={w,h};state={x:0,y:0,z:1};}draw();}
+        function size(w,h){if(!(w>0&&h>0))throw RangeError('Invalid scene extent');if(w!==extent.w||h!==extent.h){extent={w,h};state={x:0,y:0,z:1};draw();}}
         function zoom(f,atX=.5,atY=.5){
             if(!Number.isFinite(f)||f<=0)return;
             const z=Math.max(min,Math.min(max,state.z*f));
             state.x+=(extent.w/state.z-extent.w/z)*atX;state.y+=(extent.h/state.z-extent.h/z)*atY;state.z=z;draw();
         }
         function reset(){state={x:0,y:0,z:1};draw();}
-        function down(e){
-            if(e.button!==0||e.target.closest('[role=button]'))return;
-            pointer={id:e.pointerId,x:e.clientX,y:e.clientY};svg.setPointerCapture(e.pointerId);
-        }
-        function move(e){
-            if(pointer?.id!==e.pointerId)return;
-            const matrix=svg.getScreenCTM();if(!matrix)return;
-            const dx=(e.clientX-pointer.x)/Math.max(.0001,Math.abs(matrix.a)),dy=(e.clientY-pointer.y)/Math.max(.0001,Math.abs(matrix.d));
-            pointer.x=e.clientX;pointer.y=e.clientY;state.x-=dx;state.y-=dy;draw();
-        }
-        function up(){pointer=null;}
+        const gesture=gestures(svg,{pan(dx,dy){state.x+=dx;state.y+=dy;draw();},zoom});
         function key(e){
             if(e.target!==svg)return;
             if(e.key==='+'||e.key==='=')zoom(1.25);
@@ -351,9 +406,18 @@
             }else return;
             e.preventDefault();
         }
-        svg.addEventListener('pointerdown',down);svg.addEventListener('pointermove',move);svg.addEventListener('keydown',key);
-        for(const event of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(event,up);
-        return Object.freeze({size,zoom,reset,state:()=>({...state}),destroy(){svg.removeEventListener('pointerdown',down);svg.removeEventListener('pointermove',move);svg.removeEventListener('keydown',key);for(const event of ['pointerup','pointercancel','lostpointercapture'])svg.removeEventListener(event,up);}});
+        svg.addEventListener('keydown',key);
+        return Object.freeze({size,zoom,reset,state:()=>({...state}),destroy(){gesture.destroy();svg.removeEventListener('keydown',key);}});
     }
-    window.AeternumArt=Object.freeze({create,camera,version:1});
+    // Keep only the most recent signature for each surface. No detached
+    // SVG trees, cross-account snapshots or unbounded cache.
+    function renderGate(){
+        let previous=null,draws=0,hits=0;
+        return Object.freeze({run(key,draw){
+            const signature=JSON.stringify(key);
+            if(signature===previous){hits++;return false;}
+            draw();previous=signature;draws++;return true;
+        },invalidate(){previous=null;},stats:()=>({draws,hits})});
+    }
+    window.AeternumArt=Object.freeze({create,camera,gestures,renderGate,version:3});
 })();

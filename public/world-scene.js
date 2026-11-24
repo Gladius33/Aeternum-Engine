@@ -54,7 +54,10 @@
     };
     let districtMode=false,districtId='',districtPage=0;
     let lighting='day',ambienceMotion=true;
-    let theme='neutral',territories=new Map(),buildings=new Map(),details=new Map(),links=new Map(),route=[],selected=null,camera={x:0,y:0,z:1},extent={w:900,h:460},drag=null;
+    let theme='neutral',territories=new Map(),buildings=new Map(),details=new Map(),links=new Map(),route=[],selected=null,camera={x:0,y:0,z:1},extent={w:900,h:460};
+    const atlasGate=window.AeternumArt.renderGate(),districtGate=window.AeternumArt.renderGate(),holdingGate=window.AeternumArt.renderGate();
+    const stageSignature=b=>[b.id,b.type,b.territory,details.get(b.id)?.level??null,Boolean(details.get(b.id)?.pending)];
+    const renderCounts=(node,gate)=>{const counts=gate.stats();node.dataset.renderDraws=String(counts.draws);node.dataset.renderHits=String(counts.hits);};
     const header=html('div',host,'scene-header'),title=html('h3',header,'scene-title'),summary=html('p',header,'scene-summary');
     const hud=html('div',host,'scene-hud');
     let reading=null,campaign=null,marketReading=null,stale=false,lastEconomicEvent=null;
@@ -758,10 +761,8 @@
         return {w:extent.w/z,h:height/z};
     }
     function view(){const {w,h}=atlasViewSize();camera.x=Math.max(-w*.15,Math.min(extent.w-w*.85,camera.x));camera.y=Math.max(-h*.15,Math.min(extent.h-h*.85,camera.y));svg.setAttribute('viewBox',[camera.x,camera.y,w,h].join(' '));}
-    function zoom(f){const z=Math.max(1,Math.min(3,camera.z*f)),old=atlasViewSize(),next=atlasViewSize(z);camera.x+=(old.w-next.w)/2;camera.y+=(old.h-next.h)/2;camera.z=z;view();}
-    svg.addEventListener('pointerdown',e=>{if(e.target.closest('[data-territory]')||e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY};svg.setPointerCapture(e.pointerId);});
-    svg.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;const matrix=svg.getScreenCTM();if(!matrix)return;camera.x-=(e.clientX-drag.x)/Math.max(.0001,Math.abs(matrix.a));camera.y-=(e.clientY-drag.y)/Math.max(.0001,Math.abs(matrix.d));drag.x=e.clientX;drag.y=e.clientY;view();});
-    for(const event of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(event,()=>{drag=null;});
+    function zoom(f,ax=.5,ay=.5){if(!Number.isFinite(f)||f<=0)return;const z=Math.max(1,Math.min(3,camera.z*f)),old=atlasViewSize(),next=atlasViewSize(z);camera.x+=(old.w-next.w)*ax;camera.y+=(old.h-next.h)*ay;camera.z=z;view();}
+    window.AeternumArt.gestures(svg,{pan(dx,dy){camera.x+=dx;camera.y+=dy;view();},zoom});
     svg.addEventListener('keydown',e=>{
         if(e.target!==svg)return;
         if(e.key==='+'||e.key==='=')zoom(1.25);
@@ -1150,7 +1151,7 @@
         districtPrev.hidden=districtNext.hidden=!districtMode||ids.length<2;
         pagePrev.hidden=pageNext.hidden=true;
         districtZoomIn.hidden=districtZoomOut.hidden=districtReset.hidden=!districtMode;
-        districtCaption.textContent=classic?t('districtNote')+' · '+t('cameraHelp'):(lang()==='fr'?'Cliquez sur un bâtiment pour agir. Glissez pour explorer.':'Select a building to act. Drag to explore.');
+        districtCaption.textContent=classic?t('districtNote')+' · '+t('cameraHelp'):(lang()==='fr'?'Touchez un bâtiment pour agir. Glissez ou pincez pour explorer.':'Tap a building to act. Drag or pinch to explore.');
         if(!districtMode){districtCommand.hidden=true;livingScene.hidden=true;renderArchitecture();renderAtlasPanel();return;}
         atlasPanel.hidden=true;
         if(!ids.includes(districtId)){districtId=ids[0]??'';districtPage=0;}
@@ -1161,6 +1162,8 @@
         pagePrev.hidden=districtPage===0;pageNext.hidden=(districtPage+1)*limit>=owned.length;
         domainCamera.size(w,h);
         districtSvg.setAttribute('aria-label',t('districtTitle'));
+        const signature=[locationFields().world,locationFields().account,theme,lang(),lighting,w,h,districtId,districtPage,Boolean(selectedGame),classic,[...territories.values()],[...buildings.values()].map(stageSignature),catalogue.sites,campaign,marketReading,lastEconomicEvent?.type,receipts[0]?.type];
+        districtGate.run(signature,()=>{
         districtSvg.replaceChildren();ground(districtSvg,w,h);
         if(!classic)window.AeternumLivingArt.atmosphereDepth(districtSvg,theme,lighting,w,h);
         const n=territories.get(districtId),p=palettes[theme];
@@ -1168,6 +1171,7 @@
         el('text',{x:26,y:33,class:'district-heading'},districtSvg,n?locationName(n):t('districtTitle'));
         el('text',{x:26,y:49,class:'district-subheading'},districtSvg,t('layoutPage')+' : '+owned.length);
         if(!districtId){
+            districtSvg.dataset.builtCount='0';
             el('text',{x:w/2,y:h*.55,'text-anchor':'middle',class:'district-label'},districtSvg,t('districtEmpty').slice(0,mobile?36:100));return;
         }
         const visible=owned.slice(districtPage*limit,(districtPage+1)*limit);
@@ -1293,7 +1297,7 @@
             rect(notification,12,h-44,w-24,32,'#172b24ed',{rx:6,stroke:'#9eb887'});
             el('text',{x:24,y:h-24,class:'district-label'},notification,'✓ '+label);
         }
-        updateSelection();
+        });renderCounts(districtSvg,districtGate);updateSelection();
     }
     function tile(g,x,y,territory,index){
         const p=palettes[theme],a=el('g',{transform:'translate('+x+' '+y+')',tabindex:0,role:'button','aria-label':locationName(territory)+' · '+territory.kind,'data-territory':territory.id,'aria-pressed':'false',class:'scene-territory'},g);
@@ -1338,7 +1342,10 @@
         hint.textContent=t('caption');holdingTitle.textContent=t('holdings');
         host.querySelectorAll('[data-label]').forEach(b=>b.textContent=t(b.dataset.label));
         svg.setAttribute('aria-label',t(theme));
-        svg.replaceChildren(); holdingList.replaceChildren();
+        const sceneContext=[locationFields().world,locationFields().account,theme,lang(),Boolean(selectedGame),classic];
+        const structureState=[...buildings.values()].map(stageSignature);
+        atlasGate.run([...sceneContext,narrow.matches,lighting,[...territories.values()],structureState,[...links],route],()=>{
+        svg.replaceChildren();
         const nodes=[...territories.values()],cols=narrow.matches?1:Math.min(3,Math.max(1,nodes.length));
         const rows=Math.max(1,Math.ceil(nodes.length/cols));
         extent={w:narrow.matches?340:Math.max(440,cols*270+60),h:Math.max(narrow.matches?310:300,rows*155+90)};
@@ -1375,6 +1382,9 @@
         }
         nodes.forEach((n,i)=>{const q=positions.get(n.location);tile(svg,q.x,q.y,n,i);});
         if(!nodes.length){const label=el('text',{x:extent.w/2,y:extent.h/2-8,'text-anchor':'middle',class:'scene-empty'},svg);const words=t('empty').split(' ');const split=Math.ceil(words.length/2);el('tspan',{x:extent.w/2,dy:0},label,words.slice(0,split).join(' '));el('tspan',{x:extent.w/2,dy:20},label,words.slice(split).join(' '));}
+        });renderCounts(svg,atlasGate);
+        holdingGate.run([...sceneContext,structureState],()=>{
+        holdingList.replaceChildren();
         if(!buildings.size)html('p',holdingList,'scene-caption',t('none'));
         for(const b of buildings.values()){
             const card=html('button',holdingList,'scene-holding');card.type='button';card.dataset.building=b.id;
@@ -1388,10 +1398,11 @@
             html('small',card,'scene-stage',d?t('level')+' '+d.level+' · '+t(d.pending?'pending':d.level===0?'foundation':'ready'):t('planned'));
             card.addEventListener('click',()=>select('building',b.id));
         }
+        });renderCounts(holdingList,holdingGate);
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');audio.reset();audio.setTheme(theme);soundVisibility();soundSeen.clear();soundVictory=false;reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{atlasGate.invalidate();districtGate.invalidate();holdingGate.invalidate();botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');audio.reset();audio.setTheme(theme);soundVisibility();soundSeen.clear();soundVictory=false;reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();clearAtlasRoute();selected=null;}for(const n of d.territories)territories.set(n.id,n);render();queueMicrotask(renderAtlasPanel);});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];routeCost=d?.cost??null;routeRead=true;render();});

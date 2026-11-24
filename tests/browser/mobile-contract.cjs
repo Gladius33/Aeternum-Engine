@@ -1,0 +1,58 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {runInNewContext}=require('node:vm');
+const path=require('node:path');
+let time=1000;
+const window={};
+runInNewContext(readFileSync(path.join(__dirname,'../../public/game-art.js'),'utf8'),{window,performance:{now:()=>time}});
+const art=window.AeternumArt;
+const gate=art.renderGate();
+let draws=0;
+const draw=()=>draws++;
+const key=(account,level,pending)=>['world',account,'medieval','en',[[level,pending]]];
+assert.equal(gate.run(key('a',0,true),draw),true);
+for(let i=0;i<100;i++)assert.equal(gate.run(key('a',0,true),draw),false);
+assert.equal(gate.stats().draws,1);
+assert.equal(gate.stats().hits,100);
+assert.equal(gate.run(key('a',1,false),draw),true);
+assert.equal(gate.run(key('b',1,false),draw),true);
+gate.invalidate();
+assert.equal(gate.run(key('b',1,false),draw),true);
+assert.equal(draws,4);
+const listeners=new Map(),captures=new Set(),frames=new Map();
+let serial=0;
+const svg={closest:()=>null,addEventListener(type,fn){listeners.set(type,fn);},removeEventListener(type){listeners.delete(type);},
+    getScreenCTM:()=>({a:2,d:2}),getBoundingClientRect:()=>({left:0,top:0,width:400,height:400}),
+    setPointerCapture(id){captures.add(id);},hasPointerCapture(id){return captures.has(id);}};
+const pans=[],zooms=[];
+const g=art.gestures(svg,{pan:(x,y)=>pans.push([x,y]),zoom:(z,x,y)=>zooms.push([z,x,y]),
+    requestFrame:fn=>{frames.set(++serial,fn);return serial;},cancelFrame:id=>frames.delete(id)});
+const runFrame=()=>{const copy=[...frames.values()];frames.clear();copy.forEach(fn=>fn());};
+const child={closest:()=>({})};
+const event=(type,id,x,y,target=svg,extra={})=>{
+    const e={type,pointerId:id,clientX:x,clientY:y,target,button:0,pointerType:'touch',detail:1,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};
+    listeners.get(type)(e);return e;
+};
+event('pointerdown',1,100,100,child);
+event('pointermove',1,102,101,child);runFrame();
+event('pointerup',1,102,101,child);
+assert.equal(pans.length,0);
+assert.equal(event('click',1,102,101,child).prevented,undefined);
+event('pointerdown',1,100,100);
+for(let n=1;n<=10;n++)event('pointermove',1,100+n*2,100);
+assert.equal(frames.size,1);runFrame();
+assert.equal(pans.length,1);assert.equal(pans[0][0],-10);
+event('pointerup',1,120,100);
+assert.equal(event('click',1,120,100).prevented,true);
+assert.equal(event('click',1,120,100,svg,{detail:0}).prevented,undefined);
+time+=500;
+assert.equal(event('click',1,120,100).prevented,undefined);
+event('pointerdown',1,100,100,child);event('pointerdown',2,200,100,child);
+event('lostpointercapture',1,100,100,child);
+event('pointermove',1,50,100);event('pointermove',2,250,100);runFrame();
+assert.equal(zooms.length,1);assert.equal(zooms[0][0],2);
+event('pointerup',1,50,100);event('pointercancel',2,250,100);
+assert.equal(event('click',2,250,100).prevented,true);
+g.destroy();assert.equal(listeners.size,0);assert.equal(frames.size,0);
+console.log('G21: 100 identical scene updates reused; invalidation, account scope, tap, frame coalescing, pinch, click suppression and cleanup passed.');

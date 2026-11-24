@@ -5,7 +5,7 @@ const password='aeternum-local-playtest-only';
 for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wood'],['industrial','industrial','power_plant','steel'],['guild','guild','market_hall','silver']]){
     test('local lab '+pack+' real browser and autonomous worker',async({browser})=>{
         test.setTimeout(270000);
-        const context=await browser.newContext({ignoreHTTPSErrors:true});
+        const context=await browser.newContext({ignoreHTTPSErrors:true,hasTouch:true});
         try{
             const page=await context.newPage();
             const artResponse=page.waitForResponse(r=>r.url()===origin+'/living-art.js');
@@ -278,10 +278,46 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(atlas).not.toHaveAttribute('viewBox',initialView);
             await page.keyboard.press('Home');
             await captureScene(page,'g14-'+pack+'-strategic-atlas');
+            // G21: repeated presentation of identical data keeps the actual
+            // SVG nodes, and physical touch gestures change only the camera.
+            await page.setViewportSize({width:390,height:844});
+            await expect.poll(()=>atlas.getAttribute('viewBox')).not.toBe(initialView);
+            await atlas.scrollIntoViewIfNeeded();
+            await atlas.focus();
+            await page.keyboard.press('Home');
+            const beforeTouch=await atlas.getAttribute('viewBox');
+            const beforeDraws=await atlas.getAttribute('data-render-draws');
+            const beforeHits=Number(await atlas.getAttribute('data-render-hits'));
+            await page.locator('#locale-select').dispatchEvent('change');
+            await expect(atlas).toHaveAttribute('data-render-draws',beforeDraws);
+            await expect.poll(async()=>Number(await atlas.getAttribute('data-render-hits'))).toBeGreaterThan(beforeHits);
+            const client=await context.newCDPSession(page);
+            const box=await atlas.boundingBox();
+            expect(box).not.toBeNull();
+            const x=box.x+box.width/2,y=box.y+box.height/2;
+            let commandsDuringGesture=0;
+            const trackGesture=r=>{if(r.method()==='POST'&&r.url().includes('/economy/commands'))commandsDuringGesture++;};
+            page.on('request',trackGesture);
+            try{
+                await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:x-25,y,id:1},{x:x+25,y,id:2}]});
+                await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-65,y,id:1},{x:x+65,y,id:2}]});
+                await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+                await expect(atlas).not.toHaveAttribute('viewBox',beforeTouch);
+                await expect(atlas).toHaveAttribute('data-render-draws',beforeDraws);
+                expect(commandsDuringGesture).toBe(0);
+            }finally{page.off('request',trackGesture);await client.detach();}
+            await page.setViewportSize({width:1440,height:900});
             await exp.locator('[data-atlas-directory]').selectOption(await territory.getAttribute('data-territory'));
             await exp.locator('[data-atlas-command=domain]').click();
             await expect(page.locator('.scene-district')).toBeVisible();
             await expect(exp).toBeHidden();
+            const domain=page.locator('.scene-district');
+            const domainDraws=await domain.getAttribute('data-render-draws');
+            const domainHits=Number(await domain.getAttribute('data-render-hits'));
+            await page.locator('#locale-select').dispatchEvent('change');
+            await expect(domain).toHaveAttribute('data-render-draws',domainDraws);
+            await expect.poll(async()=>Number(await domain.getAttribute('data-render-hits'))).toBeGreaterThan(domainHits);
+            await captureScene(page,'g21-'+pack+'-mobile-navigation');
             await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             // G18: real market, illustrations and a non-mutating draft.
             await page.locator('[data-game-nav=market]').click();
