@@ -6,9 +6,11 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/PdoDiplomaticStore.php';
 require_once __DIR__.'/PdoOrganizationStore.php';
 require_once __DIR__.'/PdoEconomicStore.php';
+require_once __DIR__.'/PdoInstitutionalStore.php';
 
 /**
- * WP17: recoverable WORLD clock for the three existing domain aggregates.
+ * WP17/WP18: recoverable WORLD clock for diplomacy, organizations,
+ * the economy and an optional pinned roster of national institutions.
  *
  * - A single durable pending intent precedes all subsystem writes.
  * - Every subsystem clocks through its existing server-granted command API.
@@ -23,13 +25,36 @@ final class WorldClockCoordinator
 {
     private const STEPS=['organizations','diplomacy','economy'];
 
+    /** @var list<string> */
+    private readonly array $countries;
+    private readonly ?PdoInstitutionalStore $institutions;
+
     public function __construct(
         private readonly \PDO $pdo,
         private readonly PdoOrganizationStore $organizations,
         private readonly PdoDiplomaticStore $diplomacy,
         private readonly PdoEconomicStore $economy,
-        private readonly DiplomaticPrincipal $principal
+        private readonly DiplomaticPrincipal $principal,
+        ?PdoInstitutionalStore $institutions=null,
+        array $countries=[]
     ) {
+        if (!array_is_list($countries) || count($countries)>193
+            || count(array_unique($countries))!==count($countries)) {
+            throw new \InvalidArgumentException('Invalid national institution clock roster');
+        }
+        foreach ($countries as $country) {
+            if (!is_string($country)
+                || !preg_match('/^[A-Z]{2}$/D',$country)
+                || !InstitutionalRulebook::hasRules($country)) {
+                throw new \DomainException('National clock needs an explicitly reviewed country rulebook');
+            }
+        }
+        if ($countries!==[] && $institutions===null) {
+            throw new \InvalidArgumentException('Country clocks require institutional store');
+        }
+        sort($countries,SORT_STRING);
+        $this->countries=$countries;
+        $this->institutions=$institutions;
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE,\PDO::ERRMODE_EXCEPTION);
         $this->pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES,false);
     }
@@ -48,10 +73,24 @@ final class WorldClockCoordinator
                 throw new \DomainException('New world has mismatched '.$name.' starting date');
             }
         }
-        $q=$this->pdo->prepare(
-            'INSERT INTO wp_world_clock(world_id,committed_day,revision) VALUES(?,?,0)'
-        );
-        $q->execute([$world,$startingDay]);
+        $this->assertCountryDaysAt($world,$startingDay);
+        $this->pdo->beginTransaction();
+        try {
+            $q=$this->pdo->prepare(
+                'INSERT INTO wp_world_clock(world_id,committed_day,revision) VALUES(?,?,0)'
+            );
+            $q->execute([$world,$startingDay]);
+            $roster=$this->pdo->prepare(
+                'INSERT INTO wp_world_clock_countries(world_id,country_code) VALUES(?,?)'
+            );
+            foreach ($this->countries as $code) {
+                $roster->execute([$world,$code]);
+            }
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
     }
 
     /**
@@ -67,6 +106,7 @@ final class WorldClockCoordinator
         $this->trust($world,'world.clock.read');
         $row=$this->row($world,false);
         if ($row===null) throw new \DomainException('No world clock');
+        $this->assertCountryRoster($world);
         $state=$this->publicState($row);
         return ['state'=>$state,'etag'=>self::etag($row)];
     }
@@ -87,6 +127,7 @@ final class WorldClockCoordinator
         try {
             $row=$this->row($world,true);
             if ($row===null) throw new \DomainException('No world clock');
+            $this->assertCountryRoster($world);
 
             // Revocations must be checked even when replaying a receipt.
             $this->trust($world,'world.clock.advance');
@@ -121,6 +162,7 @@ final class WorldClockCoordinator
                     throw new \InvalidArgumentException('A world tick may not exceed 366 days');
                 }
                 $this->assertDomainsAt($world,$row['committed_day']);
+                $this->assertCountryDaysAt($world,$row['committed_day']);
 
                 $update=$this->pdo->prepare(
                     'UPDATE wp_world_clock SET pending_day=?,pending_key=? WHERE world_id=?'
@@ -137,6 +179,11 @@ final class WorldClockCoordinator
         // This method may throw at any step without losing pending intent.
         foreach (self::STEPS as $step) {
             $this->completeStep($world,$targetDay,$key,$step);
+            if ($step==='organizations') {
+                foreach ($this->countries as $country) {
+                    $this->completeCountry($world,$targetDay,$key,$country);
+                }
+            }
         }
 
         $this->pdo->beginTransaction();
@@ -148,7 +195,11 @@ final class WorldClockCoordinator
             }
             $this->trust($world,'world.clock.advance');
             $this->assertDomainsAt($world,$targetDay);
+            $this->assertCountryDaysAt($world,$targetDay);
             $progress=$this->completedSteps($world,$key);
+            if ($this->completedCountryNames($world,$key)!==$this->countries) {
+                throw new \DomainException('National institutions must reach the same day before publication');
+            }
             if (count($progress)!==count(self::STEPS)) {
                 throw new \DomainException('All domains must be checkpointed before publication');
             }
@@ -161,6 +212,7 @@ final class WorldClockCoordinator
                     'committed_day'=>$targetDay,
                     'revision'=>$revision,
                     'completed_subsystems'=>self::STEPS,
+                    'countries'=>$this->countries,
                     'coherent'=>true
                 ],
                 'etag'=>self::etagFrom($world,$targetDay,null,$revision)
@@ -267,6 +319,112 @@ final class WorldClockCoordinator
         }
     }
 
+    /**
+     * The national roster is part of immutable world configuration. A
+     * restarted worker cannot silently omit an inconvenient country.
+     */
+    private function assertCountryRoster(string $world):void
+    {
+        $q=$this->pdo->prepare(
+            'SELECT country_code FROM wp_world_clock_countries WHERE world_id=? ORDER BY country_code'
+        );
+        $q->execute([$world]);
+        $stored=$q->fetchAll(\PDO::FETCH_COLUMN,0);
+        if ($stored!==$this->countries) {
+            throw new \DomainException('National institution roster differs from pinned world configuration');
+        }
+    }
+
+    private function assertCountryDaysAt(string $world,string $date):void
+    {
+        if ($this->countries===[]) return;
+        if ($this->institutions===null) {
+            throw new \DomainException('National institution store is missing');
+        }
+        foreach ($this->countries as $country) {
+            $row=$this->institutions->read($world,$country);
+            if (($row['state']['day']??null)!==$date) {
+                throw new \DomainException('Country institution time differs: '.$country);
+            }
+        }
+    }
+
+    /** @return list<string> */
+    private function completedCountryNames(string $world,string $commandKey):array
+    {
+        $q=$this->pdo->prepare(
+            'SELECT country_code FROM wp_world_clock_country_steps WHERE world_id=? AND command_key=? ORDER BY country_code'
+        );
+        $q->execute([$world,$commandKey]);
+        return $q->fetchAll(\PDO::FETCH_COLUMN,0);
+    }
+
+    private function completeCountry(
+        string $world,string $targetDay,string $key,string $country
+    ):void {
+        if ($this->institutions===null) {
+            throw new \DomainException('National institution store missing');
+        }
+        $this->pdo->beginTransaction();
+        try {
+            $row=$this->row($world,true);
+            if ($row===null || $row['pending_day']!==$targetDay
+                || $row['pending_key']!==$key) {
+                throw new \DomainException('Country event has no matching world tick');
+            }
+            $this->assertCountryRoster($world);
+            $this->trust($world,'world.clock.advance');
+            $current=$this->institutions->read($world,$country);
+            $day=$current['state']['day']??null;
+            if ($day!==$row['committed_day'] && $day!==$targetDay) {
+                throw new \DomainException('Country institution externally advanced: '.$country);
+            }
+            $check=$this->pdo->prepare(
+                'SELECT after_sha FROM wp_world_clock_country_steps
+                 WHERE world_id=? AND command_key=? AND country_code=?'
+            );
+            $check->execute([$world,$key,$country]);
+            $done=$check->fetch(\PDO::FETCH_ASSOC);
+            if ($done!==false) {
+                if ($day!==$targetDay
+                    || !hash_equals($done['after_sha'],trim($current['etag'],'"'))) {
+                    throw new \UnexpectedValueException('Recorded country institution checkpoint differs');
+                }
+                $this->pdo->commit();
+                return;
+            }
+            $recovered=$day===$targetDay;
+            if (!$recovered) {
+                $receipt=$this->institutions->advance(
+                    $world,$country,$targetDay,
+                    self::stepKey($world,$targetDay,'institution-'.$country),
+                    $current['etag']
+                );
+                if ($receipt['status']!==200
+                    || ($receipt['result']['day']??null)!==$targetDay) {
+                    throw new \UnexpectedValueException('Country clock failed its effective date');
+                }
+            }
+            $final=$this->institutions->read($world,$country);
+            if (($final['state']['day']??null)!==$targetDay) {
+                throw new \UnexpectedValueException('Country clock not at target date');
+            }
+            $q=$this->pdo->prepare(
+                'INSERT INTO wp_world_clock_country_steps
+                 (world_id,country_code,command_key,before_day,after_day,after_sha,recovered)
+                 VALUES(?,?,?,?,?,?,?)'
+            );
+            $q->execute([
+                $world,$country,$key,$row['committed_day'],$targetDay,
+                trim($final['etag'],'"'),$recovered?1:0
+            ]);
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
+    }
+
     private function store(string $step):object
     {
         return match($step) {
@@ -288,7 +446,9 @@ final class WorldClockCoordinator
         // principals' privileged domain stores.
         if ($this->organizations->principalId()!==$principalId
             || $this->diplomacy->principalId()!==$principalId
-            || $this->economy->principalId()!==$principalId) {
+            || $this->economy->principalId()!==$principalId
+            || ($this->institutions!==null
+                && $this->institutions->principalId()!==$principalId)) {
             throw new \DomainException('Mismatch between clock and verified domain principals');
         }
     }
@@ -342,6 +502,9 @@ final class WorldClockCoordinator
             'status'=>$pending?'advancing':'coherent',
             'revision'=>(int)$row['revision'],
             'completed_subsystems'=>$completed,
+            'countries'=>$this->countries,
+            'completed_country_clocks'=>$pending
+                ?$this->completedCountryNames($row['world_id'],$row['pending_key']):[],
             'coherent'=>!$pending
         ];
     }
