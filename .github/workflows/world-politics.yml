@@ -51,6 +51,8 @@ jobs:
         run: php tests/wp09-organizations.php
       - name: Causal and source-attributed scenario economy WP12
         run: php tests/wp12-economic-domain.php
+      - name: Offline and rights-aware World Bank data importer WP14
+        run: php tests/wp14-worldbank-import.php
       - name: Constitutional domain and country selection WP05
         run: php tests/wp05-institutions.php
 
