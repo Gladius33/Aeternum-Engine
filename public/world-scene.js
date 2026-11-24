@@ -254,6 +254,7 @@
         const d=building?details.get(building.id):null;
         selection.textContent=territory?locationName(territory):building?buildingName(building):t('choose');
         stageStart.hidden=!(d&&currentBuilding?.id===d.id&&d.account===locationFields().account&&d.pending===null&&d.next);
+        if(!stageStart.hidden)stageStart.textContent=lang()==='fr'?(d.level===0?'Lancer les travaux':'Améliorer le bâtiment'):(d.level===0?'Start construction':'Upgrade building');
         stageCancel.hidden=!(d&&currentBuilding?.id===d.id&&d.account===locationFields().account&&d.pending!==null);
         info.textContent=territory?locationName(territory):building?buildingName(building)+' · '+(d?t('level')+' '+d.level+(d.pending?' · '+t('pending'):''):t('unknown')):'';
         if(d?.next)info.textContent+=' · '+t('costs')+': '+Object.entries(d.next.costs).map(([k,v])=>v+' '+displayName(k)).join(', ');
@@ -481,6 +482,49 @@
             const x=(i*197+31)%w,y=h*(.42+((i*31)%56)/100);
             ellipse(floor,x,y,10+i%6*4,2+i%3,theme==='medieval'?'#2a583c':theme==='industrial'?'#2e4650':'#926943',{'fill-opacity':.12});
         }
+        // G10 visual review: painted landscape details, not invented buildings or production.
+        // A seeded sampler keeps the scenery stable when real game state changes.
+        if(theme!=='neutral'){
+            const seed=i=>{const v=Math.sin(i*127.1+311.7)*43758.5453;return v-Math.floor(v);};
+            const scenery=el('g',{'aria-hidden':'true','pointer-events':'none','data-landscape':theme},floor);
+            const clump=(x,y,k)=>{
+                const a=el('g',{transform:'translate('+x+' '+y+') scale('+k+')'},scenery);
+                if(theme==='medieval'){
+                    ellipse(a,4,3,19,7,'#203b2980');
+                    rect(a,-2,-20,4,23,'#74513c');
+                    for(let n=0;n<5;n++){const xx=(seed(n+x)-.5)*22,yy=-19-seed(n+y)*18;ellipse(a,xx,yy,11+seed(n+4)*7,10+seed(n+5)*6,['#314e32','#4e7040','#65854b','#819a57','#a0ab62'][n]);}
+                    path(a,'M-10 -35Q-3 -42 6 -37','none',{stroke:'#c3cb83','stroke-opacity':.45,'stroke-width':2});
+                }else if(theme==='industrial'){
+                    // Rock and ballast texture, not operating industrial assets.
+                    poly(a,'-14,2 -10,-5 1,-7 15,0 9,5 -5,7','#5a6867','#455355');
+                    poly(a,'-10,-5 1,-7 15,0 1,1','#a4aaa1');
+                    line(a,-17,8,18,6,'#39494d',1);
+                }else{
+                    ellipse(a,3,4,19,6,'#76523960');
+                    path(a,'M-2 1Q-5 -12 0 -20Q4 -10 3 2','#766b3d');
+                    for(let n=0;n<6;n++){const xx=(n-2.5)*5;path(a,'M0 0Q'+xx+' -19 '+(xx*1.3)+' -8','none',{stroke:n%2?'#7f874c':'#576b42','stroke-width':2.5});}
+                }
+            };
+            for(let i=0;i<48;i++){
+                // Dense side groves frame the action area; leave the interactive centre clear.
+                const side=i%2,x=(side?w*.79:0)+seed(i+10)*w*.21;
+                const y=h*(.39+seed(i+90)*.56);
+                clump(x,y,.42+(y/h-.35)*1.55);
+            }
+            for(let i=0;i<13;i++){
+                const y=h*(.37+seed(i+200)*.13),x=seed(i+300)*w;
+                clump(x,y,.25+seed(i+400)*.35);
+            }
+            if(theme==='medieval'){
+                const river='M0 '+(h*.70)+' Q'+w*.27+' '+(h*.42)+' '+w*.45+' '+(h*.58)+' T'+w+' '+(h*.43);
+                // Local terrain contours and flowering meadows, not farms generating stock.
+                for(let i=0;i<65;i++){const x=seed(i+500)*w,y=h*(.42+seed(i+600)*.56);if(x>w*.27&&x<w*.73)continue;ellipse(scenery,x,y,1.4,1.1,i%3?'#eadba0':'#f2eee1');}
+            }else if(theme==='industrial'){
+                for(let i=0;i<7;i++){const y=h*(.75+i*.04);line(scenery,0,y,w*.18,y-w*.013,'#c1b49b',1.5);line(scenery,w*.83,y,w,y-w*.012,'#c1b49b',1.5);}
+            }else{
+                for(let i=0;i<15;i++){const x=seed(i+700)*w,y=h*(.62+seed(i+800)*.35);if(x>w*.25&&x<w*.75)continue;path(scenery,'M'+x+' '+y+' q15 -7 31 -2','none',{stroke:'#f4dca7','stroke-width':1.2,'stroke-opacity':.65});}
+            }
+        }
         // deterministic small ground marks and horizon silhouettes, decorative only.
         for(let i=0;i<180;i++){
             const x=(i*137+29)%w,y=h*.38+(i*73%(Math.floor(h*.62)));
@@ -521,9 +565,9 @@
         districtSvg.setAttribute('aria-label',t('districtTitle'));
         districtSvg.replaceChildren();ground(districtSvg,w,h);
         const n=territories.get(districtId),p=palettes[theme];
-        rect(districtSvg,12,12,w-24,58,'#14232bdc',{rx:7,stroke:p[2]});
-        el('text',{x:26,y:36,class:'district-heading'},districtSvg,n?locationName(n):t('districtTitle'));
-        el('text',{x:26,y:55,class:'district-subheading'},districtSvg,t('layoutPage')+' '+owned.length+' · '+t('districtNote').split(' · ')[0]);
+        rect(districtSvg,12,12,mobile?w-24:Math.min(w-24,310),51,'#14232be6',{rx:7,stroke:p[2]});
+        el('text',{x:26,y:33,class:'district-heading'},districtSvg,n?locationName(n):t('districtTitle'));
+        el('text',{x:26,y:49,class:'district-subheading'},districtSvg,t('layoutPage')+' : '+owned.length);
         if(!districtId){
             el('text',{x:w/2,y:h*.55,'text-anchor':'middle',class:'district-label'},districtSvg,t('districtEmpty').slice(0,mobile?36:100));return;
         }
@@ -547,7 +591,7 @@
         visible.forEach((b,i)=>{
             const row=Math.floor(i/cols),col=i%cols;
             const x=w/2+(col-(Math.min(cols,visible.length-row*cols)-1)/2)*spacing,y=h*(rows===1?.57:.43)+row*(h*.30/Math.max(1,rows-1));
-            const d=details.get(b.id),scale=mobile?1.35:2.05;
+            const d=details.get(b.id),scale=mobile?(visible.length===1?2.05:1.5):(visible.length===1?3.0:2.15);
             const plot=el('g',{transform:'translate('+x+' '+y+')',class:'district-building',tabindex:0,role:'button','aria-label':buildingName(b),'aria-pressed':'false','data-district-building':b.id,'data-district-level':d?.level??'unknown'},districtSvg);
             ellipse(plot,0,7,spacing*.44,spacing*.18,'#14252250');
             const land=theme==='medieval'?['#a3a36c','#758555']:theme==='industrial'?['#abb2ad','#68767b']:['#dfc18e','#b18a59'];
@@ -571,7 +615,10 @@
             const attrs={transform:'translate('+x+' '+y+')'};
             if(site)Object.assign(attrs,{role:'button',tabindex:0,'aria-label':t('chooseBuild'),'data-district-site':'approved',class:'district-building'});
             const plot=el('g',attrs,districtSvg);
-            poly(plot,'-85,0 0,-40 85,0 0,40',p[0],p[2]);
+            ellipse(plot,0,7,91,42,'#192d2e50');
+            poly(plot,'-85,0 0,-40 85,0 0,40',theme==='medieval'?'#9a9d67':theme==='industrial'?'#929e9e':'#cda976',p[2]);
+            poly(plot,'-72,0 0,-34 72,0 0,34','none','#f0dca9');
+            for(const x of [-64,64]){line(plot,x,5,x,-12,'#e6c98b',3);line(plot,x-5,-10,x+5,-10,'#f1ddb6',2);}
             if(site){
                 path(plot,'M-22 0H22M0 -22V22','none',{stroke:'#fff1be','stroke-width':4});
                 const choose=()=>{if(busy)return;chosenSite=site.territory_id+'|'+site.entity_id;renderWorkspace();focusNode(workshop.root);};
@@ -669,7 +716,7 @@
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();});
     on('campaign',d=>{campaign=d;renderHud();renderWorkspace();});
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();});
-    on('confirmed',d=>{if(d.type==='building.place')referenceInput.value='';reading=null;campaign=null;marketReading=null;inventory.clear();offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
+    on('confirmed',d=>{if(d.type==='building.place')referenceInput.value='';reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
     on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));if(!d.busy){updateSelection();renderMission();}});
     document.getElementById('locale-select').addEventListener('change',render);
@@ -784,7 +831,7 @@
         ui.setBusy(d.busy);syncMirrors();
         if(d.busy){ui.setStatus(lang()==='fr'?'Synchronisation…':'Synchronizing…');return;}
         const ok=document.getElementById('status').textContent==='Success';
-        ui.setStatus(ok?(lang()==='fr'?'Synchronisé':'Synchronized'):(lang()==='fr'?'Consultez le résultat détaillé':'Check detailed result'));
+        ui.setStatus(ok?'':(lang()==='fr'?'Action non terminée : ':'Action not completed: ')+document.getElementById('status').textContent);
         if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
     on('reset',()=>{initialLoad=false;ui.setStatus('');});
