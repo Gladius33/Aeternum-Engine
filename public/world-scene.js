@@ -1281,7 +1281,7 @@
         ui.setStatus(ok?'':(lang()==='fr'?'Action non terminée : ':'Action not completed: ')+friendly);
         if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
-    on('reset',()=>{initialLoad=false;lastEconomicEvent=null;livingScene.hidden=true;ui.setStatus('');});
+    on('reset',()=>{initialLoad=false;lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;livingScene.hidden=true;ui.setStatus('');});
     document.getElementById('locale-select').addEventListener('change',refreshShell);
     for(const key of Object.keys(mirrors))balance.elements[key].addEventListener('change',syncMirrors);
     // Existing Vue navigation opens the relevant advanced controls when requested.
