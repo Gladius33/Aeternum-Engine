@@ -88,3 +88,14 @@ L'heure mondiale ne devient cohérente qu'après cette étape : une panne après
 **Limites conservées :** cette avancée n'apporte pas encore les jours de séance réels, la discussion/votation de censure inscrite au plus tard au troisième jour de séance ni le verrou mondial contre toutes les mutations concurrentes. Le prototype autorise encore des sauts de calendrier de plusieurs mois dans les jeux de test ; cela n'est pas suffisant pour une simulation constitutionnelle de production. La suite du back-end est détaillée dans `docs/WORLD_POLITICS_BACKEND_REMAINING.md`.
 
 Test d'intégration : `tests/wp25-fr-parliament-world-clock-db.php`. Les jeux sans activation France continuent de fonctionner après application de la migration, mais un monde configuré avec cette obligation ne peut pas être repris sans le magasin constitutionnel correspondant.
+
+
+## WP26 — garde parlementaire intégrée au passage du temps
+
+La France peut désormais activer un calendrier **vérifiable et persistant des séances de l'Assemblée nationale**. Lorsqu'il est épinglé, le magasin constitutionnel utilisé par l'horloge mondiale contrôle les motions 49.2 et 49.3 en attente avant chaque progression de la journée.
+
+Si une motion n'a pas encore reçu de créneau de vote approuvé et que le délai de 48 heures est dépassé, la progression est refusée. Si la date de vote certifiée est atteinte mais que la motion n'a pas été votée, la progression est refusée également. L'application doit d'abord obtenir le résultat institutionnel dans le modèle de vote vérifié. Cela empêche les sauts de plusieurs semaines qui, dans le prototype précédent, pouvaient ignorer une crise parlementaire.
+
+Le référentiel reste daté et source-labellisé. Les sources fictives du jeu ne deviennent jamais de fausses dates historiques. La protection persiste après redémarrage grâce au marqueur `sitting_calendar_required` inscrit sur le monde constitutionnel.
+
+`database/012_fr_sitting_calendar.sql` complète la migration 009 et ajoute les journaux du calendrier. Les tests WP26 vérifient les nouvelles interdictions ; le test mondial WP25 s'exécute aussi avec cette option activée.

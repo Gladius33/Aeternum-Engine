@@ -117,3 +117,15 @@ Ces modules ne forment pas encore un modèle complet de la Ve République : arti
 - `docs/WORLD_POLITICS_BACKEND_REMAINING.md` : audit d'avancement et critères P0/P1/P2 avant une première alpha back-end.
 
 Un simulateur avec des tests verts n'est pas encore un jeu jouable en production : serveur HTTP, sécurité des comptes, calendrier parlementaire complet, IA, données authentiques et économie nationale calibrée restent indispensables.
+
+
+## WP26 — jours de séance et motions de censure
+
+- `FrenchSittingCalendar.php` : échéance du troisième jour de **séance** après les 48 heures, créneaux certifiés et refus de sauts temporels constitutionnellement incompatibles.
+- `PdoFrenchSittingCalendarStore.php`, `database/012_fr_sitting_calendar.sql` : conservation et contrôles des calendriers de séance par monde, journal des décisions certifiées et activation obligatoire sur le monde.
+- `FrenchSittingCalendarApi.php` : consultation REST en lecture seule pour les futurs clients.
+- `PdoFrenchConstitutionalStore.php` : contrôle des votes 49.2/49.3 et du passage de journée si le calendrier est activé.
+- `tests/wp26-fr-sitting-calendar.php`, `tests/wp26-fr-sitting-calendar-db.php` : tests unitaires et MariaDB.
+- `tests/wp25-fr-parliament-world-clock-db.php` : régression de l'horloge mondiale avec un calendrier français épinglé.
+
+Les dates de séance utilisées en test sont **fictives et explicitement identifiées**, pas des archives réelles de l'Assemblée.

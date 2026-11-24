@@ -118,3 +118,14 @@ La séquence n'est pas un nombre exact d'itérations restantes : chaque jalon pe
 
 **À ce stade : prototype back-end technique vérifié par tests, PAS une alpha réellement jouable et PAS un serveur de production.**
 La prochaine démonstration de valeur sera une **partie France sur plusieurs mois** avec Gouvernement, Assemblée, majorité, 49.3, censure, opinion publique, concessions, économie et IA, sans contournement des délais parlementaires ni incohérence au passage des jours. La réussite de cette démonstration constitue un critère de réalité bien plus pertinent qu'un pourcentage arbitraire de « back-end terminé ».
+
+
+## État après WP26 — échéances parlementaires enfin contrôlées
+
+**WP26 livré :** moteur de jours de séance français explicitement datés, calcul du troisième jour après les 48 heures constitutionnelles, affectation de créneaux vérifiés, persistance de la conférence parlementaire, consultation REST en lecture seule, interdiction des sauts de temps qui ignorent un vote, régression du scénario mondial WP25.
+
+Ce jalon ne signifie pas « calendrier officiel français complet ». Les jours réels doivent encore être importés, sourcés et versionnés ; des règles de débat, de séances exceptionnelles, de session et de programmation des scrutins restent à préciser, ainsi que l'automatisation parlementaire.
+
+**Prochain jalon recommandé — WP27 :** verrou/ordonnanceur de monde et protections de cohérence transactionnelle pour les ordres concurrents des joueurs, des administrations et des IA pendant une saga d'avancement de date. Le jeu doit empêcher que des actes de diplomatie, des nominations ou des effets économiques surviennent au mauvais état de monde. Ensuite WP28 : assemblée, députés, opposition et coalitions IA.
+
+L'état du back-end reste **prototype non déployé** : ces améliorations ne fournissent ni serveur HTTP public, ni authentification de comptes réels, ni monde complet de 193 États, ni IA et économie calibrées.

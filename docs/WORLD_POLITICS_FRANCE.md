@@ -152,3 +152,36 @@ Le coordinateur mondial dispose désormais d'une étape française optionnelle e
 Les preuves d'avancement et les reçus restent persistants, la récupération après interruption est testée et les droits d'accès sont revérifiés. L'absence du calendrier de séance réel impose cependant de considérer cette mécanique comme **provisoire** pour toute simulation des délais de censure.
 
 Pour les autres étapes nécessaires, consulter `docs/WORLD_POLITICS_BACKEND_REMAINING.md` : France parlementaire complète, 27 pays de l'UE et Suisse, statistiques, IA, économie et véritable serveur REST.
+
+
+## WP26 — calendrier des jours de séance de l'Assemblée nationale
+
+**Le module d'échéances parlementaires est désormais codé, persisté et vérifié par tests**, indépendamment des autres règles de l'article 49.
+
+Le droit applicable impose :
+- une attente constitutionnelle de **48 heures consécutives** après le dépôt de la motion de censure avant le vote (Constitution, article 49) ;
+- une **discussion au plus tard le troisième jour de séance suivant l'expiration** des 48 heures (Règlement de l'Assemblée nationale, article 154), et non le troisième jour calendaire ;
+- la date de discussion doit être fixée par la Conférence des présidents de l'Assemblée.
+
+Sources : https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000019241062/ et https://www.assemblee-nationale.fr/dyn/17/divers/texte_reference/02_reglement_assemblee_nationale.html .
+
+Le nouveau modèle `FrenchSittingCalendar.php` exige une **liste explicite et datée des jours de séance**, un statut de provenance (`verified_official` ou `fictional_scenario`) et une URL de source. Il ne suppose pas que tous les jours ouvrés sont des séances officielles. Une motion déposée peut recevoir un créneau précis de vote, vérifié par rapport à sa date de dépôt et à la troisième séance suivant l'expiration des 48 heures. Ni un jour hors calendrier ni une programmation après le terme réglementaire ne sont acceptés.
+
+`PdoFrenchSittingCalendarStore.php` consigne ce calendrier et les décisions de programmation en MariaDB avec empreintes SHA-256, journal et identité de l'autorité parlementaire. La décision de créneau est fournie par une autorité de simulation vérifiée côté serveur, **jamais par un champ de date choisi par le joueur**.
+
+`PdoFrenchConstitutionalStore.php` accepte une dépendance optionnelle à ce calendrier. **Lorsqu'un monde l'active, son obligation est inscrite dans `wp_fr_constitutional_states.sitting_calendar_required`**. Après reconnexion, un service sans calendrier ne peut donc pas faire croire que les délais ne sont plus applicables. Les votes des motions 49.2 et 49.3 doivent correspondre à leur créneau approuvé. Une tentative de faire avancer le temps au-delà de ce créneau avant le vote est refusée : **aucune censure fictive automatique, ni adoption de loi fictive en présence d'une motion pendante**.
+
+`FrenchSittingCalendarApi.php` offre uniquement des routes REST de lecture :
+- `GET /api/v1/worlds/{world}/france/calendar`
+- `GET /api/v1/worlds/{world}/france/calendar/motions/{motionId}`
+
+Les programmations sont pour le moment des commandes internes de service authentifié, sans route client autorisant l'invention de séances.
+
+Migration `database/012_fr_sitting_calendar.sql` : ajoute, lorsqu'il manque, le marqueur obligatoire sur le registre constitutionnel et crée les tables du calendrier et du journal. Elle doit être appliquée **après 009** ; les anciennes parties existantes ne sont pas automatiquement remplies de jours de séance.
+
+Tests :
+- `tests/wp26-fr-sitting-calendar.php` — délai constitutionnel, troisième jour de séance, week-end sans séance, date trop tardive, interdiction de sauter le vote et intégrité.
+- `tests/wp26-fr-sitting-calendar-db.php` — calendrier épinglé, calendrier omis au redémarrage, programmation certifiée, refus de votes hors créneau, reprise MariaDB, révocation, détection de corruption.
+- `tests/wp25-fr-parliament-world-clock-db.php` — horloge multinationale fonctionnant avec le calendrier de séance français épinglé.
+
+**Limites restantes :** les jours de séance réels n'ont pas encore été importés depuis une source officielle vérifiée ; les jeux de tests utilisent un calendrier fictif explicitement étiqueté. Les débats et scrutins ne sont pas encore planifiés automatiquement par l'IA parlementaire ; ils sont déclenchés par une autorité vérifiée. Le modèle actuel ne représente pas encore toutes les subtilités de clôture ou suspension des sessions, séances exceptionnelles, ordres du jour et amendements. Les scénarios anciens n'ayant pas opté pour ce calendrier restent en mode constitutionnel partiel et doivent être migrés expressément.
