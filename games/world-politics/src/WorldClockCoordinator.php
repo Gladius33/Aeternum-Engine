@@ -7,6 +7,7 @@ require_once __DIR__.'/PdoDiplomaticStore.php';
 require_once __DIR__.'/PdoOrganizationStore.php';
 require_once __DIR__.'/PdoEconomicStore.php';
 require_once __DIR__.'/PdoInstitutionalStore.php';
+require_once __DIR__.'/PdoFrenchConstitutionalStore.php';
 
 /**
  * WP17/WP18: recoverable WORLD clock for diplomacy, organizations,
@@ -28,6 +29,7 @@ final class WorldClockCoordinator
     /** @var list<string> */
     private readonly array $countries;
     private readonly ?PdoInstitutionalStore $institutions;
+    private readonly ?PdoFrenchConstitutionalStore $franceParliament;
 
     public function __construct(
         private readonly \PDO $pdo,
@@ -36,7 +38,8 @@ final class WorldClockCoordinator
         private readonly PdoEconomicStore $economy,
         private readonly DiplomaticPrincipal $principal,
         ?PdoInstitutionalStore $institutions=null,
-        array $countries=[]
+        array $countries=[],
+        ?PdoFrenchConstitutionalStore $franceParliament=null
     ) {
         if (!array_is_list($countries) || count($countries)>193
             || count(array_unique($countries))!==count($countries)) {
@@ -53,8 +56,14 @@ final class WorldClockCoordinator
             throw new \InvalidArgumentException('Country clocks require institutional store');
         }
         sort($countries,SORT_STRING);
+        if ($franceParliament!==null && !in_array('FR',$countries,true)) {
+            throw new \DomainException(
+                'French parliamentary calendar requires FR among pinned institutional countries'
+            );
+        }
         $this->countries=$countries;
         $this->institutions=$institutions;
+        $this->franceParliament=$franceParliament;
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE,\PDO::ERRMODE_EXCEPTION);
         $this->pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES,false);
     }
@@ -74,6 +83,7 @@ final class WorldClockCoordinator
             }
         }
         $this->assertCountryDaysAt($world,$startingDay);
+        $this->assertFranceDayAt($world,$startingDay,false);
         $this->pdo->beginTransaction();
         try {
             $q=$this->pdo->prepare(
@@ -85,6 +95,13 @@ final class WorldClockCoordinator
             );
             foreach ($this->countries as $code) {
                 $roster->execute([$world,$code]);
+            }
+            if ($this->franceParliament!==null) {
+                $this->pdo->prepare(
+                    "INSERT INTO wp_world_clock_fr_parliament
+                     (world_id,country_code,timezone_id)
+                     VALUES(?,'FR','Europe/Paris')"
+                )->execute([$world]);
             }
             $this->pdo->commit();
         } catch (\Throwable $error) {
@@ -107,6 +124,7 @@ final class WorldClockCoordinator
         $row=$this->row($world,false);
         if ($row===null) throw new \DomainException('No world clock');
         $this->assertCountryRoster($world);
+        $this->assertFranceRoster($world);
         $state=$this->publicState($row);
         return ['state'=>$state,'etag'=>self::etag($row)];
     }
@@ -128,6 +146,7 @@ final class WorldClockCoordinator
             $row=$this->row($world,true);
             if ($row===null) throw new \DomainException('No world clock');
             $this->assertCountryRoster($world);
+            $this->assertFranceRoster($world);
 
             // Revocations must be checked even when replaying a receipt.
             $this->trust($world,'world.clock.advance');
@@ -163,6 +182,7 @@ final class WorldClockCoordinator
                 }
                 $this->assertDomainsAt($world,$row['committed_day']);
                 $this->assertCountryDaysAt($world,$row['committed_day']);
+                $this->assertFranceDayAt($world,$row['committed_day'],false);
 
                 $update=$this->pdo->prepare(
                     'UPDATE wp_world_clock SET pending_day=?,pending_key=? WHERE world_id=?'
@@ -182,6 +202,9 @@ final class WorldClockCoordinator
             if ($step==='organizations') {
                 foreach ($this->countries as $country) {
                     $this->completeCountry($world,$targetDay,$key,$country);
+                    if ($country==='FR' && $this->franceParliament!==null) {
+                        $this->completeFranceParliament($world,$targetDay,$key);
+                    }
                 }
             }
         }
@@ -196,6 +219,11 @@ final class WorldClockCoordinator
             $this->trust($world,'world.clock.advance');
             $this->assertDomainsAt($world,$targetDay);
             $this->assertCountryDaysAt($world,$targetDay);
+            $this->assertFranceDayAt($world,$targetDay,true);
+            if ($this->franceParliament!==null
+                && !$this->franceStepComplete($world,$key)) {
+                throw new \DomainException('French constitutional parliamentary checkpoint missing');
+            }
             $progress=$this->completedSteps($world,$key);
             if ($this->completedCountryNames($world,$key)!==$this->countries) {
                 throw new \DomainException('National institutions must reach the same day before publication');
@@ -213,6 +241,7 @@ final class WorldClockCoordinator
                     'revision'=>$revision,
                     'completed_subsystems'=>self::STEPS,
                     'countries'=>$this->countries,
+                    'france_parliament_enabled'=>$this->franceParliament!==null,
                     'coherent'=>true
                 ],
                 'etag'=>self::etagFrom($world,$targetDay,null,$revision)
@@ -425,6 +454,169 @@ final class WorldClockCoordinator
         }
     }
 
+    /**
+     * A separate world-configuration row pins the France constitutional
+     * calendar. A restarted coordinator may not silently omit it.
+     */
+    private function assertFranceRoster(string $world):void
+    {
+        $q=$this->pdo->prepare(
+            'SELECT country_code,timezone_id
+             FROM wp_world_clock_fr_parliament WHERE world_id=?'
+        );
+        $q->execute([$world]);
+        $saved=$q->fetch(\PDO::FETCH_ASSOC);
+        if (($saved!==false)!==($this->franceParliament!==null)) {
+            throw new \DomainException(
+                'French constitutional clock configuration differs from pinned world'
+            );
+        }
+        if ($saved!==false
+            && ($saved['country_code']!=='FR'
+                || $saved['timezone_id']!=='Europe/Paris')) {
+            throw new \UnexpectedValueException('Unsupported French clock timezone or country');
+        }
+    }
+
+    private static function frenchEndInstant(string $day):string
+    {
+        self::day($day);
+        return (new \DateTimeImmutable(
+            $day,new \DateTimeZone('Europe/Paris')
+        ))->setTime(23,59,59)->format('Y-m-d\TH:i:sP');
+    }
+
+    private static function frenchDay(int $epoch):string
+    {
+        if ($epoch<0 || $epoch>4102444800) {
+            throw new \UnexpectedValueException('Out-of-range French constitutional time');
+        }
+        return (new \DateTimeImmutable('@'.$epoch))
+            ->setTimezone(new \DateTimeZone('Europe/Paris'))
+            ->format('Y-m-d');
+    }
+
+    private function assertFranceDayAt(
+        string $world,string $day,bool $requireEndOfDay
+    ):void {
+        if ($this->franceParliament===null) return;
+        $read=$this->franceParliament->read($world);
+        $epoch=$read['state']['now']??null;
+        if (!is_int($epoch) || self::frenchDay($epoch)!==$day) {
+            throw new \DomainException(
+                'French parliamentary calendar differs from authoritative game day'
+            );
+        }
+        if ($requireEndOfDay
+            && $epoch!==FrenchConstitutionalCrisis::instant(
+                self::frenchEndInstant($day)
+            )) {
+            throw new \DomainException(
+                'French parliament has not finished its end-of-day calendar work'
+            );
+        }
+    }
+
+    private function franceStepComplete(string $world,string $key):bool
+    {
+        $q=$this->pdo->prepare(
+            'SELECT 1 FROM wp_world_clock_fr_parliament_steps
+             WHERE world_id=? AND command_key=?'
+        );
+        $q->execute([$world,$key]);
+        return $q->fetchColumn()!==false;
+    }
+
+    /**
+     * Authorized, Paris-local parliamentary end-of-day tick with durable
+     * recovery after constitution committed but the checkpoint did not.
+     * Each store owns its own PDO transaction.
+     */
+    private function completeFranceParliament(
+        string $world,string $targetDay,string $key
+    ):void {
+        if ($this->franceParliament===null) {
+            throw new \DomainException('French parliamentary store is not configured');
+        }
+        $targetStamp=self::frenchEndInstant($targetDay);
+        $targetEpoch=FrenchConstitutionalCrisis::instant($targetStamp);
+        $this->pdo->beginTransaction();
+        try {
+            $row=$this->row($world,true);
+            if ($row===null || $row['pending_day']!==$targetDay
+                || $row['pending_key']!==$key) {
+                throw new \DomainException('Missing matching parliamentary world tick intent');
+            }
+            $this->assertFranceRoster($world);
+            $this->trust($world,'world.clock.advance');
+            $source=$this->franceParliament->read($world);
+            $now=$source['state']['now']??null;
+            if (!is_int($now) || $now>$targetEpoch) {
+                throw new \DomainException('French parliamentary time is after requested day');
+            }
+            $sourceDay=self::frenchDay($now);
+            if ($sourceDay!==$row['committed_day']
+                && $sourceDay!==$targetDay) {
+                throw new \DomainException('French parliamentary clock externally advanced');
+            }
+            $saved=$this->pdo->prepare(
+                'SELECT after_instant,after_sha
+                 FROM wp_world_clock_fr_parliament_steps
+                 WHERE world_id=? AND command_key=?'
+            );
+            $saved->execute([$world,$key]);
+            $checkpoint=$saved->fetch(\PDO::FETCH_ASSOC);
+            if ($checkpoint!==false) {
+                if ((int)$checkpoint['after_instant']!==$targetEpoch
+                    || $now!==$targetEpoch
+                    || !hash_equals(
+                        $checkpoint['after_sha'],trim($source['etag'],'"')
+                    )) {
+                    throw new \UnexpectedValueException(
+                        'French parliamentary checkpoint no longer matches legal state'
+                    );
+                }
+                $this->pdo->commit();
+                return;
+            }
+
+            $recovered=$now===$targetEpoch;
+            if (!$recovered) {
+                // The trusted French principal must independently certify
+                // the same clock instant; a request body cannot choose it.
+                $response=$this->franceParliament->execute(
+                    $world,'clock',['at'=>$targetStamp],
+                    self::stepKey($world,$targetDay,'france-parliament'),
+                    $source['etag']
+                );
+                if ($response['status']!==200
+                    || ($response['result']['now']??null)!==$targetEpoch) {
+                    throw new \UnexpectedValueException(
+                        'French parliamentary domain did not complete the target instant'
+                    );
+                }
+            }
+            $after=$this->franceParliament->read($world);
+            if (($after['state']['now']??null)!==$targetEpoch) {
+                throw new \UnexpectedValueException('French parliamentary day not closed');
+            }
+            $write=$this->pdo->prepare(
+                'INSERT INTO wp_world_clock_fr_parliament_steps
+                 (world_id,command_key,before_day,after_day,
+                  after_instant,after_sha,recovered)
+                 VALUES(?,?,?,?,?,?,?)'
+            );
+            $write->execute([
+                $world,$key,$row['committed_day'],$targetDay,
+                $targetEpoch,trim($after['etag'],'"'),$recovered?1:0
+            ]);
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
+    }
+
     private function store(string $step):object
     {
         return match($step) {
@@ -448,7 +640,9 @@ final class WorldClockCoordinator
             || $this->diplomacy->principalId()!==$principalId
             || $this->economy->principalId()!==$principalId
             || ($this->institutions!==null
-                && $this->institutions->principalId()!==$principalId)) {
+                && $this->institutions->principalId()!==$principalId)
+            || ($this->franceParliament!==null
+                && $this->franceParliament->principalId()!==$principalId)) {
             throw new \DomainException('Mismatch between clock and verified domain principals');
         }
     }
@@ -505,6 +699,10 @@ final class WorldClockCoordinator
             'countries'=>$this->countries,
             'completed_country_clocks'=>$pending
                 ?$this->completedCountryNames($row['world_id'],$row['pending_key']):[],
+            'france_parliament_enabled'=>$this->franceParliament!==null,
+            'france_parliament_completed'=>$pending
+                && $this->franceParliament!==null
+                && $this->franceStepComplete($row['world_id'],$row['pending_key']),
             'coherent'=>!$pending
         ];
     }
