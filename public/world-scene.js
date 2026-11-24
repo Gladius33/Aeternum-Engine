@@ -139,7 +139,7 @@
     const stageCancel=button(controls,'cancelStage',()=>stageCommand('building-cancel'));
     const buildHere=button(controls,'buildHere',()=>{
         const site=catalogue.sites.find(s=>s.territory_id===selected?.id);
-        if(site){chosenSite=site.territory_id+'|'+site.entity_id;renderWorkspace();workshop.root.scrollIntoView({block:'nearest'});}
+        if(site){chosenSite=site.territory_id+'|'+site.entity_id;renderWorkspace();focusNode(workshop.root);}
     });
     function stageCommand(id){
         if(busy||selected?.type!=='building'||currentBuilding?.id!==selected.id||currentBuilding.account!==locationFields().account)return;

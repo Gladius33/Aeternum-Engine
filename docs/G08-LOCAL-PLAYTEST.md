@@ -7,7 +7,7 @@ docker compose -f compose.lab.yml up -d --build
 docker compose -f compose.lab.yml ps
 ```
 
-Ouvrir https://127.0.0.1:8443/play.html. Certificat autosigné de laboratoire, généré à la construction ; accepter uniquement cette exception locale après contrôle du nom/hôte. Ne jamais réutiliser ce certificat, les identifiants ou cette configuration en production.
+Ouvrir https://127.0.0.1:8443/play.html. Certificat autosigné de laboratoire, généré au premier démarrage du conteneur ; accepter uniquement cette exception locale après contrôle du nom/hôte. Ne jamais réutiliser ce certificat, les identifiants ou cette configuration en production.
 
 | Monde | Alice | Bob |
 |---|---|---|
