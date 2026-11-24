@@ -121,3 +121,11 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 .player-first.in-game.library-chosen #world-scene .game-ui-selectors label:has([data-game-context=resource]){display:none}
 .player-first.in-game.library-chosen #world-scene .game-ui-context{justify-content:flex-end}
 .player-first.in-game.library-chosen #world-scene .scene-bot-roster{order:9}
+
+.game-ui-introduction:empty,.game-ui-introduction:has(>[hidden]){display:none}
+.player-first.in-game #world-scene .game-ui-introduction .scene-first-mission{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:.15rem .9rem;padding:.65rem .9rem;margin:0}
+.game-ui-introduction .scene-first-mission strong,.game-ui-introduction .scene-first-mission h3,.game-ui-introduction .scene-first-mission p{grid-column:1}
+.game-ui-introduction .scene-first-mission button{grid-column:2;grid-row:1/4;align-self:center;max-width:15rem}
+.player-first.in-game.library-chosen .scene-hud .scene-stat[data-stat=stock],.player-first.in-game.library-chosen .scene-hud .scene-stat[data-stat=yield],.player-first.in-game.library-chosen .scene-hud .scene-stat[data-stat=interval]{display:none}
+.player-first.in-game.library-chosen .game-ui-side .scene-toolbar button:is([data-label=build],[data-label=production],[data-label=trade]){display:none}
+@media(max-width:640px){.player-first.in-game #world-scene .game-ui-introduction .scene-first-mission{grid-template-columns:1fr;gap:.25rem}.game-ui-introduction .scene-first-mission button{grid-column:1;grid-row:auto;max-width:none;width:100%}}
