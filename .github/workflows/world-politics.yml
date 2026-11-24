@@ -31,6 +31,8 @@ jobs:
         run: php tests/wp01-rest-contract.php
       - name: Quick and detailed candidate template acceptance
         run: php tests/wp02-profile-template.php
+      - name: Constitutional domain and country selection WP05
+        run: php tests/wp05-institutions.php
 
   mariadb-rosters:
     runs-on: ubuntu-24.04
