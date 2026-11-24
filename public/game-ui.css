@@ -258,3 +258,22 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 .architectural-facts p{font-size:.78rem;color:var(--ui-muted);margin:0}
 .district-building:focus-visible .architectural-plot-hit,.district-building[aria-pressed=true] .architectural-plot-hit{stroke:#ffe0a0;stroke-width:1.8;fill:#ffe1a012}
 @media(max-width:640px){.architectural-body{grid-template-columns:1fr}.architectural-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.architectural-facts p{grid-column:1/-1}.architectural-header h3{font-size:.92rem}}
+
+/* G16: lighting is a display preference, not a simulated day/night cycle. */
+#world-scene .ambience-panel[hidden]{display:none}
+#world-scene .ambience-panel{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:.4rem .8rem;padding:.55rem .7rem;border:1px solid #ffffff24;border-radius:8px;background:var(--ui-surface);color:var(--ui-ink)}
+.ambience-title{font:600 .98rem Georgia,serif;color:var(--ui-accent);margin:0}
+.ambience-controls{display:flex;flex-wrap:wrap;gap:.3rem;justify-content:flex-end}
+#world-scene .ambience-controls button{min-height:44px;padding:.35rem .6rem;border:1px solid #ffffff36;border-radius:6px;background:#12202c55;color:var(--ui-ink);font-size:.8rem}
+#world-scene .ambience-controls button[aria-pressed=true]{background:var(--ui-accent);color:#1e292b;border-color:transparent;font-weight:700}
+#world-scene .ambience-controls button:disabled{opacity:.62}
+.ambience-note{grid-column:1/-1;margin:0;font-size:.73rem;color:var(--ui-muted);line-height:1.4}
+#world-scene[data-lighting=dusk] .ambience-lit-model,#world-scene[data-lighting=dusk] .scene-territory [data-map-holding]{filter:brightness(.93) sepia(.13) saturate(1.09)}
+#world-scene[data-lighting=night] .ambience-lit-model,#world-scene[data-lighting=night] .scene-territory [data-map-holding]{filter:brightness(.78) saturate(.72) contrast(1.09)}
+.ambience-cloud-motion{animation:ambience-cloud-drift 14s ease-in-out infinite alternate}
+.ambience-glint-motion{animation:ambience-glint 4s ease-in-out infinite alternate}
+@keyframes ambience-cloud-drift{from{opacity:.72}to{opacity:1}}
+@keyframes ambience-glint{from{opacity:.18}to{opacity:.75}}
+#world-scene[data-ambience-motion=off] .ambience-motion{animation:none!important}
+@media(prefers-reduced-motion:reduce){.ambience-motion{animation:none!important}}
+@media(max-width:640px){#world-scene .ambience-panel{grid-template-columns:1fr;gap:.4rem}.ambience-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));justify-content:stretch}.ambience-controls .ambience-motion-control{grid-column:1/-1}.ambience-controls button{overflow-wrap:anywhere}}
