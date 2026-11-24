@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__.'/../games/world-politics/src/PdoInstitutionalStore.php';
+require __DIR__.'/../games/world-politics/src/PoliticalRoster.php';
 require_once __DIR__.'/../games/world-politics/src/PoliticalRoster.php';
 use Aeternum\WorldPolitics\{
   PoliticalRoster, InstitutionalSimulation, PdoInstitutionalStore, InstitutionalActorAuthorizer
@@ -57,7 +58,7 @@ foreach(['FR','DE','US'] as $code) {
     $store->seed(new InstitutionalSimulation('world-legal',$code,'2026-11-24'));
 }
 $start=$store->read('world-legal','FR');
-wp6($start['revision']===0 && $start['state']['ruleset']==='fr-1958-wp05-0.1','country-specific policy pinned to persisted world');
+wp6($start['revision']===0 && $start['state']['ruleset']==='fr-1958-wp05-0.2','country-specific policy pinned to persisted world');
 $bill=$store->decide('world-legal','FR','submit_bill',['title'=>'Bill with parliament stage'],
     'first-bill-000001',$start['etag']);
 wp6($bill['status']===202 && $bill['revision']===1,'French prime minister submits a bill transactionally');
@@ -75,10 +76,18 @@ wp6reject(fn()=> $store->decide('world-legal','FR','submit_bill',['title'=>'Conf
 
 $auth->role='president';
 wp6reject(fn()=> $store->decide('world-legal','FR','dissolve_lower_house',
-    ['consultations_recorded'=>false],'attempt-dissolve-01',$bill['etag']),
+    [],'attempt-dissolve-01',$bill['etag']),
     'France: mandatory consultation gate cannot be bypassed');
+$consultEtag=$bill['etag'];
+foreach (['prime_minister','assembly_speaker','senate_speaker'] as $i=>$office) {
+    $auth->role=$office;
+    $consult=$store->decide('world-legal','FR','record_consultation',[],
+        'consultation-0000'.($i+1),$consultEtag);
+    $consultEtag=$consult['etag'];
+}
+$auth->role='president';
 $diss=$store->decide('world-legal','FR','dissolve_lower_house',
-    ['consultations_recorded'=>true],'valid-dissolve-01',$bill['etag']);
+    [],'valid-dissolve-01',$consultEtag);
 wp6($diss['result']['election_earliest']==='2026-12-14'
     && $diss['result']['election_deadline']==='2027-01-03','constitutional election window persisted with dissolution');
 
@@ -98,12 +107,12 @@ wp6($store->read('world-legal','FR')['state']['constitutional_breaches']===0,
     'on-time election prevents deadline crisis');
 $auth->role='president';
 wp6reject(fn()=> $store->decide('world-legal','US','dissolve_lower_house',
-    ['consultations_recorded'=>true],'us-dissolve-0001',
+    [],'us-dissolve-0001',
     $store->read('world-legal','US')['etag']),
     'American president cannot invoke French dissolution');
 $auth->role='federal_president';
 wp6reject(fn()=> $store->decide('world-legal','DE','dissolve_lower_house',
-    ['consultations_recorded'=>true],'de-dissolve-0001',
+    [],'de-dissolve-0001',
     $store->read('world-legal','DE')['etag']),
     'German dissolution without a modeled conditional trigger fails closed');
 wp6($store->read('world-legal','DE')['revision']===0
@@ -111,7 +120,7 @@ wp6($store->read('world-legal','DE')['revision']===0
 
 $logCount=(int)$pdo->query("SELECT COUNT(*) FROM wp_institutional_journal WHERE world_id='world-legal' AND country_code='FR'")->fetchColumn();
 $receiptCount=(int)$pdo->query("SELECT COUNT(*) FROM wp_institutional_receipts WHERE world_id='world-legal' AND country_code='FR'")->fetchColumn();
-wp6($logCount===5 && $receiptCount===5,'event journal and durable receipts have exactly five committed operations');
+wp6($logCount===8 && $receiptCount===8,'event journal and durable receipts have exactly five committed operations');
 $auth->revoked=true;
 wp6reject(fn()=> $store->read('world-legal','FR'),'revoked principal cannot read institutions');
 wp6reject(fn()=> $store->decide('world-legal','FR','submit_bill',['title'=>'Bill with parliament stage'],
