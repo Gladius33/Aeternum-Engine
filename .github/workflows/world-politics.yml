@@ -113,6 +113,7 @@ jobs:
           php tests/wp21-france-constitutional-rest-db.php
           php tests/wp23-france-accountability-rest-db.php
           php tests/wp24-france-social-rest-db.php
+          php tests/wp27-world-mutation-fence-db.php
           php tests/wp17-world-clock-db.php
           php tests/wp18-world-clock-institutions-db.php
           php tests/wp25-fr-parliament-world-clock-db.php
