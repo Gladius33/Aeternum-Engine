@@ -1,0 +1,51 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {runInNewContext}=require('node:vm');
+const path=require('node:path');
+const window={};
+runInNewContext(readFileSync(path.join(__dirname,'../../public/game-tutorial.js'),'utf8'),{window});
+const tutorial=window.AeternumTutorial;
+const {tracks,messages,project}=tutorial;
+assert.equal(Object.keys(messages.en).sort().join(','),Object.keys(messages.fr).sort().join(','));
+let count=0;
+for(const theme of ['medieval','industrial','guild']){
+    const track=tracks[theme];
+    assert.equal(new Set(track.map(l=>l.id)).size,track.length);
+    for(const l of track){
+        assert.equal(l.copy.en.length,3);
+        assert.equal(l.copy.fr.length,3);
+        assert.ok(l.copy.en.every(x=>typeof x==='string'&&x.length>10));
+        assert.ok(l.copy.fr.every(x=>typeof x==='string'&&x.length>10));
+        assert.notEqual(l.copy.en.join(' '),l.copy.fr.join(' '));
+        count++;
+    }
+    const blank=project(theme);
+    assert.equal(blank.done,0);
+    assert.equal(blank.rows[0].state,'unknown');
+    assert.equal(blank.next,0);
+    assert.equal(project(theme,{known:true}).rows[0].state,'incomplete');
+    const first=track[0].target;
+    const pending=project(theme,{known:true,holdings:[{type:first,level:0,pending:true}]});
+    assert.equal(pending.rows[0].state,'pending');
+    assert.equal(pending.done,0);
+    const built=project(theme,{known:true,holdings:[{type:first,level:1,pending:false}]});
+    assert.equal(built.rows[0].state,'complete');
+    assert.equal(built.done,1);
+    assert.equal(built.next,1);
+    const held=track.filter(l=>l.kind==='building').map(l=>({type:l.target,level:1,pending:false}));
+    const receipts=track.filter(l=>l.kind==='receipt').map(l=>l.target);
+    const all=project(theme,{known:true,holdings:held,confirmed:[...receipts,...receipts,'fake']});
+    assert.equal(all.done,track.length);
+    assert.equal(all.finished,true);
+    assert.equal(all.next,-1);
+    const resumed=project(theme,{known:true,holdings:held});
+    assert.equal(resumed.done,held.length);
+    assert.equal(resumed.finished,false);
+    assert.equal(project(theme,{known:true,holdings:[{type:first,level:undefined,pending:false}]}).rows[0].state,'unknown');
+}
+assert.equal(count,16);
+assert.equal(project('unknown').total,0);
+assert.equal(project('unknown').finished,false);
+assert.equal(project('medieval',{known:true,confirmed:['industry.generate','market.create']}).done,0);
+console.log('G22: '+count+' bilingual lessons, matching locale keys, pending/unknown/complete states, session-only receipt isolation and completion contracts passed.');
