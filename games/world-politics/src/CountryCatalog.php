@@ -96,9 +96,8 @@ final class CountryCatalog
                 ? 'non_member_observer_state' : null,
             // No country's policy is invented just to enable the selection.
             'institution_rules_ready'=>InstitutionalRulebook::hasRules($code),
-            'human_play_ready'=>isset($this->playableTargets[$code])
-                && !in_array($code,self::PERMANENTLY_AUTOMATED,true)
-                && InstitutionalRulebook::hasRules($code),
+            // A constitutional pilot is not a completed playable campaign.
+            'human_play_ready'=>false,
         ];
     }
 

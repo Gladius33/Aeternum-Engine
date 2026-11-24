@@ -27,8 +27,8 @@ foreach(['FR'=>'France','DE'=>'Germany','US'=>'United States','CH'=>'Switzerland
 }
 $catalog=new CountryCatalog($records);
 wp5(count($catalog->all())===9,'subset source import does not fabricate absent countries');
-wp5($catalog->country('FR')['human_play_ready'] && $catalog->country('DE')['human_play_ready'],'FR and DE are eligible and rule-backed');
-wp5($catalog->country('US')['human_play_ready'] && $catalog->country('CN')['eligible_for_human_play'],'major-power selection is configurable');
+wp5($catalog->country('FR')['institution_rules_ready'] && $catalog->country('DE')['institution_rules_ready'] && !$catalog->country('FR')['human_play_ready'],'FR and DE are eligible and rule-backed');
+wp5($catalog->country('US')['institution_rules_ready'] && $catalog->country('CN')['eligible_for_human_play'] && !$catalog->country('US')['human_play_ready'],'major-power selection is configurable');
 wp5(!$catalog->country('CH')['institution_rules_ready'] && $catalog->country('CH')['eligible_for_human_play'],'Switzerland is mandatory target but rules not yet implemented');
 wp5(!$catalog->country('BR')['human_play_ready'],'do not claim a playable legal simulation before rules exist');
 wp5($catalog->unMemberCount()===9,'real count reflects only imported records');
