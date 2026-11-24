@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/PdoEconomicStore.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /**
  * WP16 — trusted, at-least-once bridge from the transactional diplomatic
@@ -143,6 +144,9 @@ final class SanctionsOutboxDispatcher
 
         $this->diplomaticPdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->diplomaticPdo,$world,$this->service->actorId(),'bridge_ack'
+            );
             $update=$this->diplomaticPdo->prepare(
                 "UPDATE wp_diplomatic_outbox
                  SET status='delivered',assumptions_sha=?,economic_policy_id=?,
