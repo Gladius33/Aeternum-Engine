@@ -58,7 +58,8 @@ async function advanceBuilding(page,id,expectedLevel,seconds) {
     await page.getByRole('button',{name:'Inspect building plan'}).click();
     const accepted=page.waitForResponse(r=>r.url()===commandUrl
         && r.request().postDataJSON().type==='building.start');
-    await page.getByRole('button',{name:'Begin construction'}).click();
+    await page.locator('#world-scene [data-building="'+id+'"]').click();
+    await page.locator('#world-scene [data-label=startStage]').click();
     const response=await accepted;
     // Preserve the server's rejection reason: a 409 can mean insufficient
     // resources, unmet prerequisites or an already pending construction.
@@ -71,6 +72,8 @@ async function advanceBuilding(page,id,expectedLevel,seconds) {
     executeWorker();
     await page.getByRole('button',{name:'Inspect building plan'}).click();
     await expect(page.locator('#building-details dd').nth(3)).toHaveText(String(expectedLevel));
+    await expect(page.locator('#world-scene [data-building="'+id+'"]')).toHaveAttribute('data-level',String(expectedLevel));
+    await expect(page.locator('#world-scene [data-building="'+id+'"]')).toHaveAttribute('data-stage','built');
 }
 async function settle(page,type) {
     const reply=page.waitForResponse(r=>r.url()===commandUrl &&
@@ -89,6 +92,7 @@ test('M05 two newly registered players complete an isolated browser colony campa
   await a.setViewportSize({width:375,height:812});
   await a.getByRole('button',{name:'Review your colony'}).click();
   await expect(a.locator('#medieval-details')).toContainText('Residents');
+  await expect(a.locator('[data-stat=population]')).toContainText('1 / 1');
   const viewport=await a.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));
   expect(viewport.scroll).toBeLessThanOrEqual(viewport.width);
   await a.setViewportSize({width:1280,height:800});

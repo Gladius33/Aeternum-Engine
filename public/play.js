@@ -238,6 +238,7 @@ async function reviewMedieval() {
     const data=await api(root+'/settlement/status/'+encodeURIComponent(fields.account));
     if (JSON.stringify(fields)!==JSON.stringify(locationFields())) return;
     resetMedieval();
+    window.dispatchEvent(new CustomEvent('aeternum:campaign',{detail:{kind:'medieval',data}}));
     const line=(name,value)=>{
         const dt=document.createElement('dt'),dd=document.createElement('dd');
         dt.textContent=name;dd.textContent=String(value);medievalDetails.append(dt,dd);
@@ -285,6 +286,7 @@ async function reviewIndustrial() {
     const data=await api(root+'/industrial/status/'+encodeURIComponent(fields.account));
     if (JSON.stringify(fields)!==JSON.stringify(locationFields())) return;
     resetIndustrial();
+    window.dispatchEvent(new CustomEvent('aeternum:campaign',{detail:{kind:'industrial',data}}));
     const line=(name,value)=>{
         const dt=document.createElement('dt'),dd=document.createElement('dd');
         dt.textContent=name;dd.textContent=String(value);industrialDetails.append(dt,dd);
@@ -348,6 +350,7 @@ async function loadProgression() {
         dd.textContent=String(result[key]);
         progressionDetails.append(dt,dd);
     }
+    window.dispatchEvent(new CustomEvent('aeternum:campaign',{detail:{kind:'progression',data:result}}));
 }
 document.querySelector('#progression-load').addEventListener('click',()=>run(loadProgression));
 document.querySelector('#progression-rank-load').addEventListener('click',()=>run(async()=>{
@@ -389,7 +392,7 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
-for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='account'){clearMarketPage();clearMarketHistory();resetMedieval();resetIndustrial();resetProgression();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='resource')window.dispatchEvent(new Event('aeternum:resource-change'));if(key==='account'){clearMarketPage();clearMarketHistory();resetMedieval();resetIndustrial();resetProgression();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
@@ -398,6 +401,7 @@ async function refresh() {
     const data=await api(base(f)+'overview/'+encodeURIComponent(f.account)+'/'+encodeURIComponent(f.resource));
     if (JSON.stringify(f)!==JSON.stringify(locationFields())) return;
     stock.replaceChildren();
+    window.dispatchEvent(new CustomEvent('aeternum:reserve',{detail:{resource:f.resource,data}}));
     marketClaim.hidden=!Number.isSafeInteger(data.refundPending) || data.refundPending<=0;
     function line(key,value) {
         const dt=document.createElement('dt'),dd=document.createElement('dd');
@@ -686,6 +690,7 @@ async function loadMarket(after=null) {
     const data=await api(base(f)+path+(after===null?'':'/'+encodeURIComponent(after)));
     if (f.world!==balance.elements.world.value || f.account!==balance.elements.account.value) return;
     marketOffers=data.offers; marketAfter=data.nextAfter;
+    window.dispatchEvent(new CustomEvent('aeternum:market-snapshot',{detail:{count:data.offers.length}}));
     options(marketChoice,[['','Choose an offer'],...marketOffers.map(o=>[o.id,o.seller+': '+o.giveUnits+' '+o.giveResource+' for '+o.wantUnits+' '+o.wantResource])]);
     marketNext.hidden=marketAfter===null;
     marketNotice.textContent=marketOffers.length?'Choose an offer to accept, or cancel your own offer.':'No open offers.';
