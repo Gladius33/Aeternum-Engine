@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Aeternum\WorldPolitics;
 
+require_once __DIR__.'/InstitutionalRulebook.php';
+
 /**
  * A scenario's country universe and human-playability are DIFFERENT concerns.
  * Only trusted, source-verified imports may add country records.
@@ -26,6 +28,9 @@ final class CountryCatalog
         'AU','BR','CA','CN','GB','ID','IN','JP','KR','MX','RU','SA','TR','US','ZA'
     ];
 
+    /** Non-human geopolitical actors, regardless of strategic selection. */
+    public const PERMANENTLY_AUTOMATED = ['IL','IR','PS'];
+
     /** @var array<string,array<string,mixed>> */
     private array $countries = [];
     /** @var array<string,true> */
@@ -37,6 +42,11 @@ final class CountryCatalog
      */
     public function __construct(array $records, array $strategic = self::STRATEGIC_STARTER)
     {
+        foreach ($strategic as $candidate) {
+            if (in_array($candidate,self::PERMANENTLY_AUTOMATED,true)) {
+                throw new \InvalidArgumentException('Non-playable country cannot be selected as a strategic human faction');
+            }
+        }
         $eligible = array_merge(self::EU_2026,['CH'],$strategic);
         if (count($eligible)!==count(array_unique($eligible))) {
             throw new \InvalidArgumentException('Strategic country list duplicates mandatory playable targets');
@@ -78,10 +88,17 @@ final class CountryCatalog
         if (!isset($this->countries[$code])) throw new \DomainException('Country not imported');
         $record = $this->countries[$code];
         return $record + [
-            'eligible_for_human_play'=>isset($this->playableTargets[$code]),
+            'eligible_for_human_play'=>isset($this->playableTargets[$code])
+                && !in_array($code,self::PERMANENTLY_AUTOMATED,true),
+            'control_policy'=>in_array($code,self::PERMANENTLY_AUTOMATED,true) ? 'ai_only'
+                : (isset($this->playableTargets[$code]) ? 'human_or_ai' : 'ai_only'),
+            'un_observer_status'=>$code==='PS' && !$record['un_member']
+                ? 'non_member_observer_state' : null,
             // No country's policy is invented just to enable the selection.
             'institution_rules_ready'=>InstitutionalRulebook::hasRules($code),
-            'human_play_ready'=>isset($this->playableTargets[$code]) && InstitutionalRulebook::hasRules($code),
+            'human_play_ready'=>isset($this->playableTargets[$code])
+                && !in_array($code,self::PERMANENTLY_AUTOMATED,true)
+                && InstitutionalRulebook::hasRules($code),
         ];
     }
 
@@ -106,6 +123,16 @@ final class CountryCatalog
     {
         if ($this->unMemberCount()!==193) {
             throw new \DomainException('Scenario lacks the 193 documented UN member countries');
+        }
+        // 193 full UN members plus Palestine as a separate observer-state actor.
+        // Their presence must be verified from sources, never inferred from ISO.
+        if (!isset($this->countries['PS']) || $this->countries['PS']['un_member']!==false) {
+            throw new \DomainException('Palestine must exist separately as a non-member observer state');
+        }
+        foreach (['IL','IR'] as $code) {
+            if (!isset($this->countries[$code]) || !$this->countries[$code]['un_member']) {
+                throw new \DomainException('A UN member geopolitical actor is missing: '.$code);
+            }
         }
         foreach (array_keys($this->playableTargets) as $target) {
             if (!isset($this->countries[$target])) {
