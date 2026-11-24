@@ -274,6 +274,45 @@ wp25reject(
     fn()=>$clock->advance($world,$targetDay,$key,$first['etag']),
     'world clock stops when trusted French parliament denies constitutional tick'
 );
+$pendingFence=$pdo->prepare(
+    'SELECT state,pending_key,target_day,controller_id
+     FROM wp_world_mutation_fences WHERE world_id=?'
+);
+$pendingFence->execute([$world]);
+$fenceRecord=$pendingFence->fetch(PDO::FETCH_ASSOC);
+wp25($fenceRecord['state']==='advancing'
+    && $fenceRecord['target_day']===$targetDay
+    && $fenceRecord['controller_id']===$scheduler->actorId(),
+    'saga declares a durable, identity-bound WP27 writer fence before partial subsystem commits');
+function wp25fenced(callable $callback,string $description):void
+{
+    try {$callback();}
+    catch (\DomainException $error) {
+        wp25(str_contains($error->getMessage(),'World transition in progress'),
+            $description);
+        return;
+    }
+    throw new \RuntimeException('Expected WorldMutationFence refusal: '.$description);
+}
+wp25fenced(fn()=>$orgStore->execute(
+    $world,'apply',[],
+    'blocked-organization-decision-01',$orgStore->read($world)['etag']
+),'independent international organization command is fenced during partial world tick');
+wp25fenced(fn()=>$dipStore->execute(
+    $world,'propose',[],
+    'blocked-diplomatic-command-01',$dipStore->read($world)['etag']
+),'independent diplomacy write cannot change a partially advanced world');
+wp25fenced(fn()=>$ecoStore->execute(
+    $world,'propose',[],
+    'blocked-economic-command-01',$ecoStore->read($world)['etag']
+),'economic proposals cannot race against worldwide economic clock');
+wp25fenced(fn()=>$frStore->execute(
+    $world,'engage',[
+        'bill_id'=>'fr-budget-extra',
+        'category'=>'finance',
+        'at'=>$frPrincipal->now
+    ],'blocked-french-cabinet-decision',$frStore->read($world)['etag']
+),'French Government cannot start a second constitutional act during world transition');
 $pending=$clock->read($world);
 wp25($pending['state']['pending_day']===$targetDay
     && $pending['state']['committed_day']==='2026-11-24'
@@ -330,6 +369,23 @@ wp25($resumed['status']===200
     && $resumed['body']['france_parliament_enabled']===true,
     'resumed world tick publishes France plus country institutions and global subsystems');
 $after=$clock->read($world);
+$releasedFence=$pdo->prepare(
+    'SELECT state,pending_key,controller_id FROM wp_world_mutation_fences
+     WHERE world_id=?'
+);
+$releasedFence->execute([$world]);
+$fenceReleased=$releasedFence->fetch(PDO::FETCH_ASSOC);
+wp25($fenceReleased['state']==='idle'
+    && $fenceReleased['pending_key']===null
+    && $fenceReleased['controller_id']===null,
+    'authoritative world-day publication releases WP27 fence atomically');
+$ordinary=$connect();
+$ordinary->beginTransaction();
+\Aeternum\WorldPolitics\WorldMutationFence::admit(
+    $ordinary,$world,'authenticated-human-principal','nominate'
+);
+$ordinary->commit();
+wp25(true,'ordinary political decisions become writable again after coherent publication');
 wp25($after['state']['committed_day']===$targetDay
     && $after['state']['pending_day']===null,
     'global clock commits once all components are consistent with Paris-local date');
