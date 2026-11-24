@@ -356,6 +356,13 @@ wp25($frStore->read($world)['state']['history'][0]['status']
         ==='adopted_by_assembly',
     'without any censure motion the French finance bill is adopted by Assembly after statutory window');
 
+$recoveredByWorker=$clock->resumePending($world);
+wp25($recoveredByWorker!==null
+    && $recoveredByWorker['status']===200
+    && $recoveredByWorker['result']['committed_day']===$targetDay,
+    'new WP27 worker resumes exactly the saved world tick without original client idempotency key');
+wp25($clock->resumePending($world)===null,
+    'worker reports no pending task after completed world tick rather than replaying another advancement');
 $api=new WorldClockApi($clock);
 $url='/api/v1/worlds/'.$world.'/clock';
 $resumed=$api->handle('POST',$url.'/advances',[
