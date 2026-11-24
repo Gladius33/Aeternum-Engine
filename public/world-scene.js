@@ -445,7 +445,7 @@
     button(nav,'build',()=>classic?jump('foundation-panel'):focusNode(workshop.root));
     button(nav,'production',()=>classic?jump('action'):focusNode(inventoryBlock.root));
     button(nav,'trade',()=>classic?jump('market-panel'):focusNode(tradeBlock.root));
-    const goals=button(nav,'goals',()=>classic||theme==='guild'?jump(theme==='medieval'?'medieval-panel':theme==='industrial'?'industrial-panel':'progression-panel'):focusNode(objectiveBlock.root));
+    const goals=button(nav,'goals',()=>classic?jump(theme==='medieval'?'medieval-panel':theme==='industrial'?'industrial-panel':'progression-panel'):focusNode(objectiveBlock.root));
     const operations=[
         ['medieval','feed','medieval-feed'],['medieval','work','medieval-work'],
         ['industrial','generate','industrial-generate'],['industrial','refine','industrial-refine'],['industrial','ship','industrial-ship']
@@ -855,7 +855,7 @@
             else if(theme==='industrial')await reviewIndustrial();
             else if(!document.getElementById('progression-panel').hidden)await loadProgression();
         }));
-        html('p',journal,'campaign-note',guild?label('Suggested milestones, not an official victory campaign. No additional rewards are granted.','Jalons suggérés, sans condition de victoire officielle ni récompense supplémentaire.'):label('Chapters group the existing server victory objectives. No new rules or rewards.','Les chapitres regroupent les objectifs de victoire existants du serveur. Aucune règle ni récompense ajoutée.'));
+        html('p',journal,'campaign-note',guild?label('Suggested milestones, not an official victory campaign. No additional rewards are granted.','Jalons suggérés, sans condition de victoire officielle ni récompense supplémentaire.'):label('Chapters group the existing server victory objectives. Artwork illustrates goals; no new rules or rewards.','Les chapitres regroupent les objectifs de victoire existants du serveur. Le décor illustre les objectifs ; aucune règle ni récompense ajoutée.'));
         if(campaignStale)html('p',journal,'campaign-note',label('Last reading; refresh after your latest action.','Dernier relevé ; actualisez après votre dernière action.'));
         const all=projection.chapters.flatMap(ch=>ch.goals),done=all.filter(g=>g.state==='complete').length;
         const summary=html('div',journal,'campaign-summary');
