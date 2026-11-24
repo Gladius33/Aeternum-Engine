@@ -80,3 +80,21 @@ générique versionnée, sans merger dans `main` d'Aeternum.
 Tests supplémentaires : php tests/wp12-economic-domain.php ; php tests/wp14-worldbank-import.php ; php tests/wp15-diplomacy-economic-bridge.php. Les tests WP10, WP11 et WP13 ont besoin d'une base wp_test isolée.
 
 Le moteur reste expérimental : les données réelles, les lois de chaque État, les licences et la calibration économique doivent être vérifiées avant toute mise en production. Consulter docs/WORLD_POLITICS_ECONOMY.md.
+
+## France — 49.3, responsabilité gouvernementale et tensions sociales (WP19–WP21)
+
+Le socle France s'étend avec trois modules indépendants du moteur générique :
+
+- `src/FrenchConstitutionalCrisis.php` : Premier ministre et délibération du Conseil des ministres vérifiés, classification des textes, quota d'un projet ordinaire par session (réutilisable aux lectures ultérieures du même texte), délai de 24 heures pour la censure, vote au moins 48 heures après dépôt, seuil de signatures d'un dixième et majorité absolue des députés, puis démission obligatoire du Gouvernement si la motion est adoptée, sans chute automatique de la République.
+- `src/FrenchSocialDynamics.php` : réactions de groupes socio-professionnels distincts, prises en compte de concessions sectorielles, mécontentement, manifestations pacifiques, retrait du travail, ralentissements et pertes de productivité en indices de scénario, sans prédiction automatique de chute de régime.
+- `database/009_fr_constitutional_49_3.sql`, `src/PdoFrenchConstitutionalStore.php` et `src/FrenchConstitutionalApi.php` : journal et reçus InnoDB, contrôle des compétences et de l'heure côté serveur, contrat REST versionné destiné au futur mobile/bureau/web.
+
+Tests :
+
+- `php tests/wp19-france-49-3.php`
+- `php tests/wp20-france-social.php`
+- `php tests/wp21-france-constitutional-rest-db.php` (base dédiée `wp_test`)
+
+Références juridiques, limitations, hypothèses et étapes à venir : `docs/WORLD_POLITICS_FRANCE.md`.
+
+Ces modules ne forment pas encore un modèle complet de la Ve République : article 49 alinéas 1 et 2, régime des amendements, navette, contrôle constitutionnel, calendrier de séance, données sociales calibrées et synchronisation avec l'horloge mondiale restent à réaliser.
