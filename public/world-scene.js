@@ -219,7 +219,7 @@
     // controls and canonical command pipeline.
     const districtCommand=html('section',host,'district-command');districtCommand.hidden=true;
     districtCommand.setAttribute('aria-labelledby','district-command-title');
-    const districtPreview=el('svg',{viewBox:'0 0 128 100','aria-hidden':'true',class:'district-command-art'},districtCommand);
+    const districtPreview=el('svg',{viewBox:'0 0 128 110','aria-hidden':'true',class:'district-command-art'},districtCommand);
     const districtCommandBody=html('div',districtCommand,'district-command-body');
     const districtCommandTitle=html('h3',districtCommandBody,'');districtCommandTitle.id='district-command-title';
     const districtCommandState=html('p',districtCommandBody,'district-command-state');
@@ -238,7 +238,7 @@
         const fr=lang()==='fr',label=(en,frText)=>fr?frText:en;
         districtCommand.dataset.stage=!d?'unknown':d.pending?'pending':d.level===0?'foundation':'built';
         districtPreview.replaceChildren();
-        model(el('g',{transform:'translate(64 74) scale(.92)'},districtPreview),b.type,d);
+        model(el('g',{transform:'translate(64 80) scale(.85)'},districtPreview),b.type,d);
         districtCommandTitle.textContent=buildingName(b);
         districtCommandState.textContent=d?t('level')+' '+d.level+' · '+t(d.pending?'pending':d.level===0?'foundation':'ready'):t('planned');
         districtCommandCosts.replaceChildren();
@@ -274,6 +274,47 @@
             }else districtPrimary.hidden=true;
             districtCommandHint.textContent=label('Confirmed building state.','État du bâtiment confirmé.');
         }
+    }
+    // A larger inspection scene, tied to the same selected building and
+    // verified state as the district command. No separate simulation.
+    const architecturalInspector=html('section',host,'architectural-inspector');architecturalInspector.hidden=true;
+    architecturalInspector.setAttribute('aria-labelledby','architecture-title');
+    const architecturalHeader=html('div',architecturalInspector,'architectural-header');
+    const architecturalTitle=html('h3',architecturalHeader,'');architecturalTitle.id='architecture-title';
+    const architecturalToggle=html('button',architecturalHeader,'architectural-toggle');architecturalToggle.type='button';architecturalToggle.dataset.architectureToggle='true';
+    const architecturalBody=html('div',architecturalInspector,'architectural-body');architecturalBody.hidden=true;
+    architecturalBody.id='architecture-body';architecturalToggle.setAttribute('aria-controls',architecturalBody.id);
+    const architecturalView=el('svg',{viewBox:'0 0 320 220',role:'img',class:'architectural-view'},architecturalBody);
+    const architecturalFacts=html('div',architecturalBody,'architectural-facts');
+    let architectureExpanded=false,architectureId=null;
+    architecturalToggle.addEventListener('click',()=>{if(busy)return;architectureExpanded=!architectureExpanded;renderArchitecture();});
+    function renderArchitecture(){
+        const b=selected?.type==='building'?buildings.get(selected.id):null,d=b?details.get(b.id):null;
+        architecturalInspector.hidden=classic||!selectedGame||!districtMode||!b||b.territory!==districtId;
+        if(architecturalInspector.hidden){architectureExpanded=false;architectureId=null;architecturalBody.hidden=true;architecturalView.replaceChildren();return;}
+        if(architectureId!==b.id){architectureId=b.id;architectureExpanded=false;}
+        const fr=lang()==='fr',label=(en,frText)=>fr?frText:en;
+        architecturalTitle.textContent=label('Architectural view','Vue architecturale')+' · '+buildingName(b);
+        architecturalToggle.textContent=architectureExpanded?label('Close view','Fermer la vue'):label('Inspect architecture','Examiner le bâtiment');
+        architecturalToggle.disabled=busy;architecturalToggle.setAttribute('aria-expanded',String(architectureExpanded));
+        architecturalBody.hidden=!architectureExpanded;
+        if(!architectureExpanded){architecturalView.replaceChildren();return;}
+        architecturalView.replaceChildren();architecturalFacts.replaceChildren();
+        architecturalView.setAttribute('aria-label',buildingName(b)+' · '+(d?t('level')+' '+d.level:t('unknown')));
+        const bg=theme==='medieval'?['#729187','#9da773','#526d4d']:theme==='industrial'?['#708594','#a2b2b0','#455a64']:['#bc8d6b','#e6c28f','#a2774b'];
+        rect(architecturalView,0,0,320,220,shade(architecturalView,bg));
+        const floor=el('g',{'aria-hidden':'true'},architecturalView);
+        ellipse(floor,160,173,129,29,'#192b2a45');
+        poly(floor,'32,175 160,114 288,175 160,213',shade(floor,[bg[1],bg[2]]),'#d2c3a080');
+        for(let i=0;i<10;i++)line(floor,44+i*12,174+i*3,156+i*12,124+i*3,'#e6dbb830',.8);
+        model(el('g',{transform:'translate(157 165) scale(1.92)'},architecturalView),b.type,d);
+        const stage=!d?t('unknown'):d.pending?t('pending'):d.level===0?t('foundation'):t('ready');
+        const fact=(key,value)=>{const item=html('div',architecturalFacts,'architectural-fact');html('small',item,'',key);html('strong',item,'',String(value));};
+        fact(label('Confirmed stage','État confirmé'),stage);
+        fact(label('Confirmed level','Niveau confirmé'),d?.level??'—');
+        if(d?.next)fact(label('Next stage duration','Durée du prochain niveau'),d.next.duration+' s');
+        if(d?.next)fact(label('Next stage resources','Ressources du prochain niveau'),Object.entries(d.next.costs).map(([k,v])=>v+' '+displayName(k)).join(' · '));
+        if(d?.pending)html('p',architecturalFacts,'',label('Construction remains pending until the worker confirms it.','Le chantier reste en attente jusqu’à sa validation par le worker.'));
     }
     const livingScene=html('section',host,'living-economy');livingScene.hidden=true;
     livingScene.setAttribute('aria-labelledby','living-economy-title');
@@ -470,7 +511,7 @@
         svg.querySelectorAll('[data-territory]').forEach(n=>n.setAttribute('aria-pressed',String(territory?.id===n.dataset.territory)));
         holdingList.querySelectorAll('[data-building]').forEach(n=>n.setAttribute('aria-pressed',String(building?.id===n.dataset.building)));
         districtSvg.querySelectorAll('[data-district-building]').forEach(n=>n.setAttribute('aria-pressed',String(building?.id===n.dataset.districtBuilding)));
-        renderDistrictCommand(building,d);renderAtlasPanel();
+        renderDistrictCommand(building,d);renderArchitecture();renderAtlasPanel();
     }
     function select(type,id){
         if(busy)return;
@@ -780,7 +821,7 @@
         pagePrev.hidden=pageNext.hidden=true;
         districtZoomIn.hidden=districtZoomOut.hidden=districtReset.hidden=!districtMode;
         districtCaption.textContent=classic?t('districtNote')+' · '+t('cameraHelp'):(lang()==='fr'?'Cliquez sur un bâtiment pour agir. Glissez pour explorer.':'Select a building to act. Drag to explore.');
-        if(!districtMode){districtCommand.hidden=true;livingScene.hidden=true;renderAtlasPanel();return;}
+        if(!districtMode){districtCommand.hidden=true;livingScene.hidden=true;renderArchitecture();renderAtlasPanel();return;}
         atlasPanel.hidden=true;
         if(!ids.includes(districtId)){districtId=ids[0]??'';districtPage=0;}
         renderLivingScene();
@@ -819,9 +860,11 @@
         visible.forEach((b,i)=>{
             const row=Math.floor(i/cols),col=i%cols;
             const x=w/2+(col-(Math.min(cols,visible.length-row*cols)-1)/2)*spacing,y=h*(rows===1?.57:.43)+row*(h*.30/Math.max(1,rows-1));
-            const d=details.get(b.id),scale=mobile?(visible.length===1?2.05:1.5):(visible.length===1?3.0:2.15);
+            const d=details.get(b.id),scale=mobile?(visible.length===1?1.85:1.28):(visible.length===1?2.55:1.85);
             const plot=el('g',{transform:'translate('+x+' '+y+')',class:'district-building',tabindex:0,role:'button','aria-label':buildingName(b),'aria-pressed':'false','data-district-building':b.id,'data-district-level':d?.level??'unknown'},districtSvg);
-            ellipse(plot,0,7,spacing*.44,spacing*.18,'#14252250');
+            const hit=rect(plot,-spacing*.42,-spacing*.43,spacing*.84,spacing*.69,'transparent',{rx:12,class:'architectural-plot-hit'});
+            hit.setAttribute('aria-hidden','true');
+            ellipse(plot,spacing*.055,spacing*.065,spacing*.44,spacing*.17,'#14252255');
             const land=theme==='medieval'?['#a3a36c','#758555']:theme==='industrial'?['#abb2ad','#68767b']:['#dfc18e','#b18a59'];
             poly(plot,[-spacing*.43,4,0,-spacing*.20,spacing*.43,4,0,spacing*.21].join(' '),shade(plot,land),p[0]);
             for(let i=0;i<4;i++)line(plot,-spacing*.32+i*spacing*.12,3+i*3,-spacing*.04+i*spacing*.12,-spacing*.13+i*3,'#f2e5b840',1);
@@ -867,7 +910,7 @@
                     window.AeternumLivingArt.event(vignette,evt.type);
                 }
             }
-            if(d?.level>1){ // Actual level adds a visible annex rather than a number alone.
+            if(d?.level>1&&!art.querySelector('[data-architecture]')){ // Fallback for future packs without authored extensions.
                 const annex=el('g',{transform:'translate('+(-spacing*.29)+' 12) scale(.48)'},plot);
                 model(annex,b.type,{level:1,pending:null});
             }
@@ -1118,7 +1161,7 @@
         missionGo.disabled=busy||(!building&&!type);
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
-        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,districtCommand,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,districtCommand,architecturalInspector,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
         actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;

@@ -8,7 +8,7 @@ permissions:
 
 # Cancel stale PR checks on new commits, but never interrupt post-merge main checks.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   core:
@@ -32,6 +32,7 @@ jobs:
           npm ci --prefix client --no-audit --no-fund
           npm run build --prefix client
           npm test --prefix client
+          node tests/browser/architecture-contract.cjs
           test -s public/client-dist/aeternum-shell.js
           composer dump-autoload --no-interaction
           bash tests/m11-package.sh

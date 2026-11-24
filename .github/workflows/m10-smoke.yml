@@ -7,7 +7,7 @@ on:
 # On release qualification every PR and post-merge HEAD must rerun M10.
 # Cancel obsolete PR attempts while keeping pushed main runs intact.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
