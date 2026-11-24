@@ -120,6 +120,7 @@ jobs:
           php tests/wp18-world-clock-institutions-db.php
           php tests/wp25-fr-parliament-world-clock-db.php
           php tests/wp26-fr-sitting-calendar-db.php
+          php tests/wp28-french-parliament-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4
