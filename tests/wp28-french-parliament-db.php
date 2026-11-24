@@ -99,6 +99,10 @@ $authority=new class implements FrenchParliamentaryPrincipal,FrenchAssemblyAutho
         'policy-stale'=>[
             'kind'=>'confidence','topic'=>'general_policy',
             'public_pressure'=>0,'concessions'=>['swing'=>500]
+        ],
+        'budget-censure'=>[
+            'kind'=>'censure_49_3','topic'=>'budget',
+            'public_pressure'=>-450,'concessions'=>[]
         ]
     ];
     public array $coalitions=[
@@ -109,7 +113,7 @@ $authority=new class implements FrenchParliamentaryPrincipal,FrenchAssemblyAutho
     public function actorId():string{return 'verified-assembly-clerk-wp28';}
     public function allows(string $world,string $ability):bool {
         return $this->authorized
-            && in_array($world,['fr-wp28-world','fr-wp28-stale'],true)
+            && in_array($world,['fr-wp28-world','fr-wp28-stale','fr-wp28-budget'],true)
             && in_array($ability,[
                 'fr.constitution.read','fr.constitution.clock',
                 'fr.49_1.engage','fr.49_1.vote',
@@ -400,6 +404,60 @@ wp28dbReject(fn()=>$parliament->execute($staleWorld,'resolve',[
     'matter_id'=>'policy-stale'
 ],'stale-world-second-resolution',$parliament->read($staleWorld)['etag']),
     'completed roll call cannot be resimulated to hide an intervening government event');
+// Third legally distinct Article 49(3) pathway: the same individual
+// verified deputies and source-pinned constitutional ballot apply.
+$budgetWorld='fr-wp28-budget';
+$authority->now='2026-11-28T09:00:00+01:00';
+$base->seed(new FrenchConstitutionalCrisis(
+    $budgetWorld,'ordinary-2026',
+    FrenchConstitutionalCrisis::instant($authority->now),577
+));
+$parliament->seed(new FrenchParliament(
+    $budgetWorld,'fictional-legislature-2026','2026-11-28',
+    'fictional_scenario','https://www.assemblee-nationale.fr/',
+    $groups,$deputies
+));
+$beforeBudget=$constitution->read($budgetWorld);
+$engagedBudget=$constitution->execute($budgetWorld,'engage',[
+    'bill_id'=>'budget-2027','category'=>'finance','at'=>$authority->now
+],'engage-constitution-budget-49-3',$beforeBudget['etag']);
+wp28db($engagedBudget['status']===202,
+    'finance bill Article 49(3) can engage government responsibility with real Assembly roster');
+$authority->motionSigners['budget-censure']=$authority->motionSigners['motion-one'];
+$beforeSeal=$parliament->read($budgetWorld);
+$sealedBudget=$parliament->execute($budgetWorld,'seal_signatures',[
+    'motion_id'=>'budget-censure'
+],'seal-49-3-motion-signatures',$beforeSeal['etag']);
+$authority->now='2026-11-28T10:00:00+01:00';
+$fileBudget=$constitution->execute($budgetWorld,'file_motion',[
+    'motion_id'=>'budget-censure','at'=>$authority->now
+],'file-budget-censure-in-24h',$engagedBudget['etag']);
+wp28db($fileBudget['status']===202
+    && $fileBudget['result']['needed_votes']===289,
+    '49(3) incidental censure filed within constitutional 24-hour period with real signers');
+$preAgenda=$parliament->read($budgetWorld);
+$agendaBudget=$parliament->execute($budgetWorld,'open_matter',[
+    'matter_id'=>'budget-censure'
+],'open-budget-censure-ballot',$preAgenda['etag']);
+$humanBudget=$parliament->execute($budgetWorld,'cast_ballot',[
+    'matter_id'=>'budget-censure','deputy_id'=>'deputy-001','choice'=>'against'
+],'human-deputy-budget-ballot',$agendaBudget['etag']);
+$votesBudget=$parliament->execute($budgetWorld,'resolve',[
+    'matter_id'=>'budget-censure'
+],'resolve-budget-nominal-rollcall',$humanBudget['etag']);
+wp28db(array_sum($votesBudget['result']['tally'])===577
+    && $votesBudget['result']['majority_required']===289,
+    'Article 49(3) censure receives separate 577-member actual nominal roll call');
+$authority->now='2026-11-30T10:00:00+01:00';
+$constitutionBudget=$constitution->execute($budgetWorld,'vote_motion',[
+    'motion_id'=>'budget-censure','at'=>$authority->now
+],'vote-constitution-budget-49-3',$fileBudget['etag']);
+wp28db($constitutionBudget['status']===200
+    && ($constitutionBudget['result']['motion_status']==='adopted')
+        ===($votesBudget['result']['tally']['for']>=289)
+    && $constitutionBudget['result']['regime_changed']===false,
+    '49(3) real nominal tally, not a forged vote count, determines whether budget motion succeeds');
+
 $authority->authorized=false;
 wp28dbReject(fn()=>$reopen->read($world),
     'revoked Assembly clerk loses read access to archived roll calls');
