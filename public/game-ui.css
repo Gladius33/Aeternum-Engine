@@ -1,0 +1,33 @@
+/* Stable reusable slots; a game skin only overrides presentation tokens. */
+.game-ui{--ui-bg:#17252e;--ui-surface:#233641;--ui-border:#77918c;--ui-accent:#d4e6d9;--ui-ink:#f3f4e9;--ui-muted:#c4d0ce;display:grid;gap:.7rem;color:var(--ui-ink);min-width:0}
+.game-ui[data-skin=medieval]{--ui-bg:#1d2b25;--ui-surface:#35483a;--ui-border:#8a9a69;--ui-accent:#edce87}
+.game-ui[data-skin=industrial]{--ui-bg:#192830;--ui-surface:#344550;--ui-border:#7e9299;--ui-accent:#f7c486}
+.game-ui[data-skin=guild]{--ui-bg:#302720;--ui-surface:#594433;--ui-border:#ad8f64;--ui-accent:#f4d39a}
+.game-ui-mast{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:.5rem;padding:.75rem 1rem;background:linear-gradient(115deg,var(--ui-surface),var(--ui-bg));border:1px solid var(--ui-border);border-radius:.6rem}
+.game-ui-title{font:600 clamp(1.3rem,2.6vw,2.3rem) Georgia,serif;letter-spacing:.01em;color:var(--ui-accent);margin:0}
+.game-ui-subtitle,.game-ui-status{font-size:.8rem;color:var(--ui-muted);margin:.2rem 0}
+.game-ui-status{grid-column:1/-1;min-height:1em}
+.game-ui-context{display:flex;align-items:end;flex-wrap:wrap;gap:.4rem}
+.game-ui-context label{flex:1;min-width:90px;font-size:.75rem;margin:0;color:var(--ui-muted)}
+.game-ui-context select{background:var(--ui-bg);color:var(--ui-ink);border:1px solid var(--ui-border);border-radius:.35rem}
+.game-ui-layout{display:grid;grid-template-columns:112px minmax(0,1fr) minmax(180px,235px);gap:.55rem;align-items:start}
+.game-ui-nav{display:grid;gap:.35rem;padding:.4rem;background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:.5rem}
+#world-scene .game-ui-nav-button{display:flex;align-items:center;gap:.4rem;width:100%;margin:0;padding:.5rem .35rem;text-align:left;font-size:.8rem;background:var(--ui-surface);color:var(--ui-ink);border:1px solid transparent;border-radius:.35rem;min-height:44px}
+#world-scene .game-ui-nav-button[aria-pressed=true]{border-color:var(--ui-accent);color:var(--ui-accent)}
+.game-ui-icon{width:20px;height:20px;flex:none}
+.game-ui-stage,.game-ui-side,.game-ui-lower{min-width:0}
+.game-ui-side{border:1px solid var(--ui-border);background:var(--ui-bg);padding:.55rem;border-radius:.5rem}
+.game-ui-stage .scene-atlas{height:clamp(310px,43vw,530px)}
+.game-ui-side .scene-toolbar{display:grid}
+.game-ui-side .scene-button{width:100%;overflow-wrap:anywhere}
+.game-ui-lower{display:grid;gap:.6rem}
+#game .game-ui-legacy{border:1px solid #64748b;border-radius:.6rem;padding:.7rem;margin-top:1rem}
+.game-ui-legacy summary{cursor:pointer;padding:.5rem}
+.game-ui-legacy:not([open]){color:#cbd5e1}
+html[data-game-presentation=play] .player-context{display:none}
+html[data-game-presentation=play] main:has(#game:not([hidden])){max-width:100rem;padding:clamp(.4rem,1.3vw,1.25rem);margin:.5rem auto}
+html[data-game-presentation=play] #game{border:0;padding:0}
+html[data-game-presentation=play] #world-scene{margin:.5rem 0}
+.game-ui-diagnostic{font-size:.8rem;color:var(--ui-muted)}
+@media(max-width:1000px){.game-ui-layout{grid-template-columns:90px minmax(0,1fr)}.game-ui-side{grid-column:2}.game-ui-side .scene-toolbar{display:flex}.game-ui-side .scene-button{width:auto}}
+@media(max-width:640px){.game-ui-mast{grid-template-columns:1fr;padding:.6rem}.game-ui-layout{grid-template-columns:1fr}.game-ui-side{grid-column:auto}.game-ui-nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:.25rem}#world-scene .game-ui-nav-button{flex-direction:column;justify-content:center;text-align:center;font-size:.72rem;padding:.35rem .15rem;min-height:52px}.game-ui-stage .scene-atlas{height:360px}.game-ui-context label{min-width:80px}}

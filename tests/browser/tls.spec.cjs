@@ -3,7 +3,7 @@ test('browser can load enrollment and approved worlds over real loopback TLS',as
     const context=await browser.newContext({ignoreHTTPSErrors:true});
     try {
         const page=await context.newPage();
-        await page.goto('https://127.0.0.1:8777/play.html');
+        await page.goto('https://127.0.0.1:8777/play.html?view=classic');
         expect(new URL(page.url()).protocol).toBe('https:');
         await expect(page.getByRole('heading',{name:'Aeternum',exact:true})).toBeVisible();
         await expect(page.locator('#register')).toBeVisible();
@@ -37,7 +37,7 @@ test('real TLS player can register, produce and sign back in without CLI provisi
     const password='long TLS browser registration password';
     try {
         const page=await context.newPage();
-        await page.goto(url+'/play.html');
+        await page.goto(url+'/play.html?view=classic');
         await expect(page.locator('#register')).toBeVisible();
         await page.getByLabel('New login',{exact:true}).fill(login);
         await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
@@ -69,7 +69,7 @@ test('real TLS player can register, produce and sign back in without CLI provisi
         expect(confirmed.status()).toBe(200);
         await expect(page.locator('#status')).toHaveText('Success');
         // Simulate losing the in-memory bearer and the one-time recovery secret.
-        await page.goto(url+'/play.html');
+        await page.goto(url+'/play.html?view=classic');
         await expect(page.locator('#recovery-secret')).toBeHidden();
         await page.getByLabel('Login',{exact:true}).fill(login);
         for(let attempt=0;attempt<3;attempt++){

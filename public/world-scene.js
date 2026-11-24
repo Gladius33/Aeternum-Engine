@@ -137,7 +137,7 @@
         const control=document.getElementById(id);if(!control.hidden)control.click();
     }
     const nav=html('div',host,'scene-toolbar');
-    const jump=id=>{const node=document.getElementById(id);if(node&&!node.hidden){node.scrollIntoView({block:'start'});const focus=node.querySelector('button:not([hidden]),input,select');focus?.focus({preventScroll:true});}};
+    const jump=id=>{const node=document.getElementById(id);if(node&&!node.hidden){const legacy=node.closest('.game-ui-legacy');if(legacy)legacy.open=true;node.scrollIntoView({block:'start'});const focus=node.querySelector('button:not([hidden]),input,select');focus?.focus({preventScroll:true});}};
     button(nav,'build',()=>jump('foundation-panel'));
     button(nav,'production',()=>jump('action'));
     button(nav,'trade',()=>jump('market-panel'));
@@ -184,7 +184,7 @@
         tradeList.querySelectorAll('[data-offer]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.offer===chosenOffer)));
     }
     function setLocation(id){if(selected?.type==='territory'){document.getElementById(id).value=territories.get(selected.id).location;updateSelection();}}
-    function inspectBuilding(id){if(!buildings.has(id))return;document.getElementById('building-id').value=id;document.getElementById('building-load').click();jump('building-details');}
+    function inspectBuilding(id){if(!buildings.has(id))return;document.getElementById('building-id').value=id;document.getElementById('building-load').click();}
     const narrow=window.matchMedia('(max-width:640px)');
     const isTechnicalId=value=>/^(?:[a-f0-9]{16,128}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/i.test(String(value));
     const numberFor=(values,id)=>Math.max(1,[...values].findIndex(v=>v===id)+1);
@@ -607,5 +607,73 @@
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();});
     document.getElementById('map-location').addEventListener('input',updateSelection);
     document.getElementById('map-destination').addEventListener('input',updateSelection);
-    render();
+    // Reusable shell mounts the existing scene slots, not a duplicate game implementation.
+    const classic=new URLSearchParams(location.search).get('view')==='classic';
+    const rootGame=document.getElementById('game');
+    const legacy=html('details',rootGame,'game-ui-legacy');
+    const legacySummary=html('summary',legacy,'',lang()==='fr'?'Commandes détaillées':'Detailed controls');
+    const originalChildren=[...rootGame.children].filter(n=>n!==legacy);
+    rootGame.prepend(host);
+    for(const child of originalChildren)if(child!==host)legacy.append(child);
+    legacy.open=classic;
+    document.documentElement.dataset.gamePresentation=classic?'classic':'play';
+    const contextControls=html('div',host,'game-ui-selectors');
+    const mirrors={};
+    for(const key of ['world','account','resource']){
+        const label=html('label',contextControls,'');
+        const title=html('span',label,'');
+        const select=html('select',label,'');select.dataset.gameContext=key;
+        mirrors[key]={title,select};
+        select.addEventListener('change',()=>{
+            if(busy)return;
+            const original=balance.elements[key];
+            if([...original.options].some(o=>o.value===select.value)){original.value=select.value;original.dispatchEvent(new Event('change'));}
+            syncMirrors();
+        });
+    }
+    function syncMirrors(){
+        for(const [key,{title,select}] of Object.entries(mirrors)){
+            title.textContent=({world:['World','Monde'],account:['Player domain','Domaine du joueur'],resource:['Resource','Ressource']})[key][lang()==='fr'?1:0];
+            const original=balance.elements[key];select.replaceChildren();
+            [...original.options].forEach((o,i)=>{
+                const n=document.createElement('option');n.value=o.value;
+                n.textContent=key==='account'?(lang()==='fr'?'Domaine ':'Domain ')+(i+1):key==='resource'?displayName(o.value):' '+(i+1)+' · '+(worlds.find(w=>w.world===o.value)?.name??(lang()==='fr'?'Monde':'World'));
+                select.append(n);
+            });
+            select.value=original.value;select.disabled=busy;
+        }
+    }
+    const focusNode=n=>{n.scrollIntoView({block:'nearest'});n.querySelector('button:not([hidden]),select,input')?.focus({preventScroll:true});};
+    const showDistrict=mode=>{districtMode=mode;districtPage=0;render();focusNode(districtBar);};
+    const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
+        slots:{resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,hint,toolbar],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>theme==='guild'?focusNode(tradeBlock.root):jump('market-panel'),activity:()=>focusNode(receiptBlock.root)}
+    });
+    header.hidden=true;
+    const legacyLink=html('button',ui.root,'scene-button game-ui-diagnostic',lang()==='fr'?'Commandes détaillées':'Detailed controls');legacyLink.type='button';
+    legacyLink.addEventListener('click',()=>{legacy.open=!legacy.open;if(legacy.open)legacy.scrollIntoView({block:'start'});});
+    const exit=html('button',contextControls,'scene-button',lang()==='fr'?'Déconnexion':'Sign out');exit.type='button';exit.dataset.gameExit='true';exit.addEventListener('click',()=>document.getElementById('logout').click());
+    // The original sign-out label is retained in classic mode for existing accessible controls.
+    exit.hidden=classic;
+    function refreshShell(){
+        ui.update(window.AeternumUIProfiles[theme],lang());syncMirrors();
+        const detailLabel=lang()==='fr'?'Commandes détaillées':'Detailed controls';
+        legacySummary.textContent=detailLabel;legacyLink.textContent=detailLabel;
+        exit.textContent=lang()==='fr'?'Déconnexion':'Leave game';
+    }
+    let initialLoad=false;
+    on('context',()=>{refreshShell();initialLoad=!classic&&Boolean(locationFields().world);});
+    on('activity',d=>{
+        ui.setBusy(d.busy);syncMirrors();
+        if(d.busy){ui.setStatus(lang()==='fr'?'Synchronisation…':'Synchronizing…');return;}
+        const ok=document.getElementById('status').textContent==='Success';
+        ui.setStatus(ok?(lang()==='fr'?'Synchronisé':'Synchronized'):(lang()==='fr'?'Consultez le résultat détaillé':'Check detailed result'));
+        if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(async()=>{await loadMap();await readStages();districtMode=true;render();});});}
+    });
+    on('reset',()=>{initialLoad=false;ui.setStatus('');});
+    document.getElementById('locale-select').addEventListener('change',refreshShell);
+    for(const key of Object.keys(mirrors))balance.elements[key].addEventListener('change',syncMirrors);
+    // Existing Vue navigation opens the relevant advanced controls when requested.
+    document.addEventListener('click',e=>{const link=e.target.closest?.('.player-nav a');if(link&&link.hash&&legacy.contains(document.getElementById(link.hash.slice(1))))legacy.open=true;});
+    refreshShell();render();
 })();

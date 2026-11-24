@@ -5,7 +5,7 @@ const world='e2e-medieval';
 const path='/v1/worlds/'+world+'/premium/me';
 const password='browser-only test password';
 async function login(page,name) {
-  await page.goto(origin+'/play.html');
+  await page.goto(origin+'/play.html?view=classic');
   await page.getByLabel('Login',{exact:true}).fill(name);
   await page.getByLabel('Password',{exact:true}).fill(password);
   for(let i=0;i<3;i++) {

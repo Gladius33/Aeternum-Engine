@@ -5,7 +5,7 @@ const pass='browser-only test password';
 const world='e2e-medieval';
 const root=origin+'/v1/worlds/'+world+'/social';
 async function signin(page,login) {
-  await page.goto(origin+'/play.html');
+  await page.goto(origin+'/play.html?view=classic');
   await page.getByLabel('Login',{exact:true}).fill(login);
   await page.getByLabel('Password',{exact:true}).fill(pass);
   for(let attempt=0;attempt<3;attempt++) {

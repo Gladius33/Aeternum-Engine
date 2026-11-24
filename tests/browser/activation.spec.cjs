@@ -23,7 +23,7 @@ test('HTTPS self-service mailbox proof creates no premature bearer, then player 
     const email='verified-browser@example.org';
     try {
         const page=await context.newPage();
-        await page.goto(url+'/play.html');
+        await page.goto(url+'/play.html?view=classic');
         expect(new URL(page.url()).protocol).toBe('https:');
         await expect(page.getByLabel('Email address for verification')).toBeVisible();
         await page.getByLabel('New login',{exact:true}).fill(login);
@@ -81,7 +81,7 @@ test('HTTPS self-service mailbox proof creates no premature bearer, then player 
         const replay=await postAfterPeerWindow(context.request,url+'/v1/auth/activate',{data:{login,password,code:delivered.code}});
         expect(replay.status()).toBe(401);
         // Reload and sign back in, ensuring the ready actor and world are durable.
-        await page.goto(url+'/play.html');
+        await page.goto(url+'/play.html?view=classic');
         await page.getByLabel('Login',{exact:true}).fill(login);
         await page.getByLabel('Password',{exact:true}).fill(password);
         for(let attempt=0;attempt<3;attempt++){

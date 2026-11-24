@@ -16,7 +16,7 @@ const worker=()=>{
 };
 
 async function signIn(page,login){
-    await page.goto(origin+'/play.html');
+    await page.goto(origin+'/play.html?view=classic');
     await page.getByLabel('Login',{exact:true}).fill(login);
     for(let n=0;n<3;n++){
         await page.getByLabel('Password',{exact:true}).fill(password);
@@ -156,6 +156,20 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
             alice.account+'/wood',{headers:{Authorization:alice.token}});
         // Configured-but-inaccessible worlds return 409, unconfigured worlds 404.
         expect([404,409]).toContain(wrongWorld.status());
+        const modern=await browser.newPage();
+        try{
+            await modern.goto(origin+'/play.html');
+            await modern.getByLabel('Login',{exact:true}).fill('m14-guild-alice');
+            await modern.getByLabel('Password',{exact:true}).fill('browser-only test password');
+            await modern.getByRole('button',{name:'Sign in',exact:true}).click();
+            await expect(modern.locator('.game-ui[data-ui-template="1"]')).toBeVisible();
+            await expect(modern.locator('.game-ui-legacy')).not.toHaveAttribute('open','');
+            await expect(modern.locator('.scene-district')).toBeVisible({timeout:20000});
+            await expect(modern.locator('[data-district-building=m14-guild-caravan]')).toBeVisible();
+            await modern.locator('[data-game-nav=construction]').click();
+            await expect(modern.locator('[data-catalogue=market_hall]')).toBeVisible();
+            await captureScene(modern,'guild-reusable-shell');
+        }finally{await modern.close();}
     }finally {
         await a.close();
         await b.close();

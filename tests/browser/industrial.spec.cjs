@@ -17,7 +17,7 @@ function worker() {
     expect(JSON.parse(output).processed).toBeGreaterThanOrEqual(1);
 }
 async function register(page,login) {
-    await page.goto(origin+'/play.html');
+    await page.goto(origin+'/play.html?view=classic');
     await page.getByLabel('New login',{exact:true}).fill(login);
     await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
     await page.getByLabel('Confirm new password',{exact:true}).fill(password);

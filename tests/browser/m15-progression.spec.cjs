@@ -5,7 +5,7 @@ const world='e2e-guild-scored';
 const commandUrl=origin+'/v1/worlds/'+world+'/economy/commands';
 const password='browser-only test password';
 async function enter(page,login) {
-    await page.goto(origin+'/play.html');
+    await page.goto(origin+'/play.html?view=classic');
     await page.getByLabel('Login',{exact:true}).fill(login);
     await page.getByLabel('Password',{exact:true}).fill(password);
     const result=page.waitForResponse(r=>r.url().endsWith('/v1/auth/login')
