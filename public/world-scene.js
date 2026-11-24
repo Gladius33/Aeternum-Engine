@@ -90,7 +90,7 @@
             if(locationFields().world!==f.world||locationFields().account!==f.account)return;
             results.set(resource,data);
         }
-        inventory=results;stale=false;renderHud();renderWorkspace();
+        inventory=results;stale=false;renderHud();renderWorkspace();updateSelection();
     }
     async function readStages(){
         const f=locationFields();
@@ -146,6 +146,67 @@
     function stageCommand(id){
         if(busy||selected?.type!=='building'||currentBuilding?.id!==selected.id||currentBuilding.account!==locationFields().account)return;
         const control=document.getElementById(id);if(!control.hidden)control.click();
+    }
+    // A building's visual inspection stays beside the map instead of sending
+    // the player to a technical form. All mutations use the existing guarded
+    // controls and canonical command pipeline.
+    const districtCommand=html('section',host,'district-command');districtCommand.hidden=true;
+    districtCommand.setAttribute('aria-labelledby','district-command-title');
+    const districtPreview=el('svg',{viewBox:'0 0 128 100','aria-hidden':'true',class:'district-command-art'},districtCommand);
+    const districtCommandBody=html('div',districtCommand,'district-command-body');
+    const districtCommandTitle=html('h3',districtCommandBody,'');districtCommandTitle.id='district-command-title';
+    const districtCommandState=html('p',districtCommandBody,'district-command-state');
+    const districtCommandCosts=html('div',districtCommandBody,'district-command-costs');
+    const districtCommandHint=html('p',districtCommandBody,'district-command-hint');
+    const districtCommandButtons=html('div',districtCommand,'district-command-buttons');
+    const districtPrimary=html('button',districtCommandButtons,'district-command-primary');districtPrimary.type='button';districtPrimary.dataset.districtCommand='primary';
+    const districtDismiss=html('button',districtCommandButtons,'district-command-dismiss');districtDismiss.type='button';districtDismiss.dataset.districtCommand='dismiss';
+    let districtPrimaryAction=null;
+    districtPrimary.addEventListener('click',()=>{if(!busy)districtPrimaryAction?.();});
+    districtDismiss.addEventListener('click',()=>{if(!busy){selected=null;updateSelection();districtSvg.focus({preventScroll:true});}});
+    function renderDistrictCommand(b,d){
+        districtCommand.hidden=classic||!selectedGame||!districtMode||!b||b.territory!==districtId;
+        districtPrimaryAction=null;
+        if(districtCommand.hidden)return;
+        const fr=lang()==='fr',label=(en,frText)=>fr?frText:en;
+        districtCommand.dataset.stage=!d?'unknown':d.pending?'pending':d.level===0?'foundation':'built';
+        districtPreview.replaceChildren();
+        model(el('g',{transform:'translate(64 74) scale(.92)'},districtPreview),b.type,d);
+        districtCommandTitle.textContent=buildingName(b);
+        districtCommandState.textContent=d?t('level')+' '+d.level+' · '+t(d.pending?'pending':d.level===0?'foundation':'ready'):t('planned');
+        districtCommandCosts.replaceChildren();
+        districtCommandHint.textContent='';
+        districtPrimary.hidden=false;districtPrimary.disabled=busy;
+        districtDismiss.textContent=label('Close','Fermer');districtDismiss.disabled=busy;
+        if(!d||currentBuilding?.id!==b.id){
+            districtPrimary.textContent=label('Inspect','Inspecter');
+            districtPrimaryAction=()=>inspectBuilding(b.id);
+        }else if(d.pending){
+            districtPrimary.textContent=label('Check progress','Vérifier les travaux');
+            districtPrimaryAction=()=>run(readStages);
+            districtCommandHint.textContent=label('The worker completes this project; the map follows the server.','Le worker termine ce chantier ; la carte suit le serveur.');
+        }else if(d.next&&!stageStart.hidden){
+            districtPrimary.textContent=d.level===0?label('Start construction','Lancer les travaux'):label('Upgrade','Améliorer');
+            districtPrimaryAction=()=>stageCommand('building-start');
+            for(const [resource,amount] of Object.entries(d.next.costs)){
+                const chip=html('span',districtCommandCosts,'district-command-cost');
+                resourceIcon(chip,resource);html('span',chip,'',amount+' '+displayName(resource));
+                const reserve=inventory.get(resource);
+                if(reserve&&!stale&&reserve.stock<amount)chip.dataset.short='true';
+            }
+            const missing=Object.entries(d.missing??{});
+            if(missing.length)districtCommandHint.textContent=t('prerequisite')+' : '+missing.map(([k,v])=>displayName(k)+' '+v.current+'/'+v.required).join(' · ');
+            else if(!stale&&Object.entries(d.next.costs).some(([k,v])=>inventory.has(k)&&inventory.get(k).stock<v))districtCommandHint.textContent=label('Insufficient reserves in the last reading.','Réserves insuffisantes au dernier relevé.');
+            else districtCommandHint.textContent=label('The server checks costs and prerequisites before starting.','Le serveur vérifie les coûts et prérequis avant le lancement.');
+        }else{
+            const key={lumberyard:'work',farm:'feed',power_plant:'generate',steelworks:'refine',freight_terminal:'ship',market_hall:'trade'}[b.type];
+            const action=key?playGrid.querySelector('[data-domain-action='+key+']'):null;
+            if(action&&!action.disabled){
+                districtPrimary.textContent=label('Open production / trade','Production / échanges');
+                districtPrimaryAction=()=>{playGrid.querySelector('[data-domain-action='+key+']')?.focus({preventScroll:true});playActions.scrollIntoView({block:'nearest'});};
+            }else districtPrimary.hidden=true;
+            districtCommandHint.textContent=label('Confirmed building state.','État du bâtiment confirmé.');
+        }
     }
     const nav=html('div',host,'scene-toolbar');
     const jump=id=>{const node=document.getElementById(id);if(node&&!node.hidden){const legacy=node.closest('.game-ui-legacy');if(legacy)legacy.open=true;node.scrollIntoView({block:'start'});const focus=node.querySelector('button:not([hidden]),input,select');focus?.focus({preventScroll:true});}};
@@ -298,6 +359,7 @@
         svg.querySelectorAll('[data-territory]').forEach(n=>n.setAttribute('aria-pressed',String(territory?.id===n.dataset.territory)));
         holdingList.querySelectorAll('[data-building]').forEach(n=>n.setAttribute('aria-pressed',String(building?.id===n.dataset.building)));
         districtSvg.querySelectorAll('[data-district-building]').forEach(n=>n.setAttribute('aria-pressed',String(building?.id===n.dataset.districtBuilding)));
+        renderDistrictCommand(building,d);
     }
     function select(type,id){
         if(busy)return;
@@ -590,7 +652,7 @@
         pagePrev.hidden=pageNext.hidden=true;
         districtZoomIn.hidden=districtZoomOut.hidden=districtReset.hidden=!districtMode;
         districtCaption.textContent=classic?t('districtNote')+' · '+t('cameraHelp'):(lang()==='fr'?'Cliquez sur un bâtiment pour agir. Glissez pour explorer.':'Select a building to act. Drag to explore.');
-        if(!districtMode)return;
+        if(!districtMode){districtCommand.hidden=true;return;}
         if(!ids.includes(districtId)){districtId=ids[0]??'';districtPage=0;}
         const mobile=narrow.matches,w=mobile?360:900,h=mobile?(selectedGame?490:650):510,limit=mobile?4:6;
         const owned=[...buildings.values()].filter(b=>b.territory===districtId);
@@ -634,6 +696,18 @@
             poly(plot,[-spacing*.43,4,0,-spacing*.20,spacing*.43,4,0,spacing*.21].join(' '),shade(plot,land),p[0]);
             for(let i=0;i<4;i++)line(plot,-spacing*.32+i*spacing*.12,3+i*3,-spacing*.04+i*spacing*.12,-spacing*.13+i*3,'#f2e5b840',1);
             const art=el('g',{transform:'scale('+scale+')'},plot);model(art,b.type,d);
+            // Signal only authoritative building stages, with distinct silhouettes
+            // and an animated pending ring that does not imply completion.
+            const marker=el('g',{transform:'translate('+(-spacing*.34)+' '+(-spacing*.32)+')','aria-hidden':'true','pointer-events':'none',class:'district-stage-marker','data-stage':!d?'unknown':d.pending?'pending':d.level>0?'built':'foundation'},plot);
+            ellipse(marker,0,2,14,13,'#101b24e8',{stroke:'#d5c89f','stroke-width':1.2});
+            if(d?.pending){
+                const ring=ellipse(marker,0,2,10,9,'none',{stroke:'#ffd081','stroke-width':2,'stroke-dasharray':'9 5'});ring.setAttribute('class','district-pending-ring');
+                path(marker,'M-3 -3H3V4H-3Z M0 -5V-3','none',{stroke:'#ffd081','stroke-width':1.5});
+            }else if(d?.level>0){
+                path(marker,'M-5 2L-1 6 6 -3','none',{stroke:'#b6e0a1','stroke-width':2.5,'stroke-linecap':'round','stroke-linejoin':'round'});
+            }else{
+                path(marker,'M-6 3L0 -3 6 3 0 8Z','none',{stroke:'#d4c49f','stroke-width':1.5});
+            }
             if(d?.level>0&&!d.pending){
                 const accent=el('g',{'aria-hidden':'true','pointer-events':'none',class:'district-asset-detail','data-district-decor':b.type},art);
                 // These decorative props belong to an actual completed building;
@@ -784,12 +858,12 @@
     on('route',d=>{route=d?.locations??[];render();});
     on('buildings',d=>{catalogue={sites:d.sites,types:d.types};buildings=new Map(d.buildings.map(b=>[b.id,b]));for(const id of details.keys())if(!buildings.has(id))details.delete(id);render();});
     on('building',d=>{buildings.set(d.id,d);details.set(d.id,d);render();});
-    on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();});
+    on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
     on('campaign',d=>{campaign=d;renderHud();renderWorkspace();renderDistrict();});
-    on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();});
+    on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();renderDistrict();updateSelection();});
     on('confirmed',d=>{if(d.type==='building.place')referenceInput.value='';reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));if(!d.busy){updateSelection();renderMission();renderPlayActions();}});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();});
     document.getElementById('map-location').addEventListener('input',updateSelection);
@@ -883,7 +957,7 @@
         missionGo.disabled=busy||(!building&&!type);
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
-        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,districtCommand,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
         actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
