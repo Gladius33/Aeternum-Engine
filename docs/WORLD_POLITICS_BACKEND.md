@@ -19,13 +19,19 @@
 | Contrat API en mémoire, pour comparaison | WorldPoliticsApi.php |
 | Stockage MariaDB / InnoDB transactionnel | PdoPoliticalStore.php |
 | REST adossé à MariaDB, transport non exposé | PdoWorldPoliticsApi.php |
+| Moteur constitutionnel et persistance nationale | InstitutionalSimulation.php, PdoInstitutionalStore.php |
+| Diplomatie, acteurs Palestine/Israël/Iran, règles IA fictives | GeopoliticalActorRegistry.php, DiplomaticSimulation.php |
+| Diplomatie mondiale transactionnelle | PdoDiplomaticStore.php, PdoDiplomaticApi.php |
+| Journal et reçus diplomatiques MariaDB | games/world-politics/database/003_diplomacy.sql |
+| Contrôles d'intégration et de restauration diplomatique | tests/wp08-diplomacy-db.php |
 | Migration SQL du jeu, indépendante du noyau | games/world-politics/database/001_rosters.sql |
 | Contrat OpenAPI 3.1 | games/world-politics/api/openapi.yaml |
 | Tests PHP et MariaDB | tests/wp01-*.php à tests/wp04-rest-db.php |
 
 Les profils de la base de code actuelle sont des **fixtures synthétiques**.
-Aucun import réel de personnalités politiques, aucun calcul économique et
-aucune IA politique n'ont été intégrés à ce stade.
+Aucun import complet de personnalités politiques réelles ni calcul
+économique n'est encore intégré. Les premiers agents de diplomatie sont
+des règles déterministes **fictives**, et non des IA gouvernementales calibrées.
 
 ## Éditeur de personnages pour les futurs clients
 
@@ -127,3 +133,32 @@ une autorisation de fusion dans le moteur générique.
 6. Tests avancés de replay, de concurrence et de charge avant tout client.
 
 Consulter \`docs/WORLD_POLITICS.md\` pour le périmètre de serious game.
+
+## Contrat REST diplomatique durable — WP08
+
+Les modules spécifiques au jeu fournissent `PdoDiplomaticStore` et
+`PdoDiplomaticApi`, avec les routes suivantes :
+
+| Verbe | Route | Objet |
+| --- | --- | --- |
+| GET | `/api/v1/worlds/{world}/diplomacy` | état diplomatique versionné |
+| GET | `/api/v1/worlds/{world}/diplomacy/actors` | acteurs publics sourcés |
+| GET | `/api/v1/worlds/{world}/diplomacy/proposals` | propositions en cours ou terminées |
+| POST | `/api/v1/worlds/{world}/diplomacy/proposals` | demande/dialogue/position fictive |
+| POST | `/api/v1/worlds/{world}/diplomacy/responses` | réponse du destinataire autorisé |
+| POST | `/api/v1/worlds/{world}/diplomacy/ai/decisions` | service d'IA vérifié seulement |
+| POST | `/api/v1/worlds/{world}/diplomacy/clock` | horloge simulée vérifiée seulement |
+
+L'ensemble reste un **contrat applicatif interne**, pas encore un endpoint
+HTTP public. Le principal d'authentification injecté doit être déterminé
+par une authentification fiable ; aucune donnée du corps JSON ne lui
+attribue le contrôle d'un pays.
+
+Le stockage garantit l'atomicité de la mise à jour, du journal et du
+reçu d'idempotence. Le moteur de stratégie diplomatique n'accorde pas
+à une autorité administrative la personnalité d'un État souverain.
+
+**Important :** les snapshots sont réécrits en entier dans une ligne
+par monde. Avant la production multijoueur, il faudra segmenter ce
+stockage et ajouter le rejeu indépendant depuis le journal, les
+quotas/pagination et les contrôles de concurrence à grande échelle.

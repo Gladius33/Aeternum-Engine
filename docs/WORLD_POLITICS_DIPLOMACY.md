@@ -96,28 +96,54 @@ iranien ou palestinien**. Dans une version plus avancée, les mécanismes
 seront alimentés par les institutions, engagements publics, contraintes
 économiques, alliances, crises et réactions accumulées dans la partie.
 
+## WP08 livré — persistance diplomatique et API REST (expérimental)
+
+Le prototype a maintenant une **persistance MariaDB 11.4/InnoDB**
+spécifique au jeu :
+
+- `database/003_diplomacy.sql` : états du monde, reçus idempotents et journal
+  d'opérations dans trois tables isolées de celles du moteur générique.
+- `PdoDiplomaticStore.php` : un verrou transactionnel par monde, comparaison
+  des ETag, empreinte de registre géopolitique et de règles épinglées,
+  contrôle d'autorisation du principal, enregistrement atomique.
+- `PdoDiplomaticApi.php` : adaptateur sans serveur HTTP public pour les
+  opérations REST versionnées `/api/v1/worlds/{world}/diplomacy`.
+- `tests/wp08-diplomacy-db.php` : vérifications sur base MariaDB réelle :
+  isolement de deux mondes, reconnexion/reprise, refus d'usurpation de l'Iran,
+  politique IA autorisée, propos de traité avec la Palestine, refus des
+  traités avec l'Autorité palestinienne en tant qu'État souverain,
+  idempotence, préconditions, révocation et détection d'altérations.
+
+L'API expose la lecture des acteurs, propositions, décisions, réponses
+des IA et avancement de l'horloge **exclusivement côté serveur**.
+Une réponse `accepted_for_treaty_negotiations` reste non contraignante.
+
+La spécification `api/openapi.yaml` a été réparée et validée en CI
+(OpenAPI 3.1, YAML, présence des routes et schémas indispensables).
+
+**Ce module n'est toujours pas déployable en production** :
+authentification réelle, filtrage avancé de l'information par joueur,
+gestion des migrations et partitionnement de charge sont encore absents.
+
 ## Prochaines livraisons techniques
 
-- Stockage MariaDB du journal diplomatique et des propositions, avec
-  idempotence et reprise après panne, dans le schéma propre au jeu.
-- Adaptateur API REST `/api/v1` et tests multi-acteurs/multi-pays,
-  sans créer de frontend.
-- Chaîne de données internationales sourcées, historiques et
-  versionnées, avec obligations de licence.
-- Système de négociation : traités bilatéraux/multilatéraux,
-  adhésions et retraits institutionnels, conventions, reconnaissance
-  et votes, **chacun avec des procédures propres**.
-- Modélisation distincte des institutions palestiniennes, de la
-  représentation internationale et des différentes zones territoriales,
-  sans figer des hypothèses contestées en vérités juridiques.
-- IA gouvernementale améliorée, avec contraintes économiques,
-  diplomatiques et institutionnelles, et journalisation explicable.
+- Dossiers de sources internationales horodatés et contrôlés, avec
+  droits de réutilisation, séries numériques et incertitude explicite.
+- Système de négociation : traités bilatéraux/multilatéraux, adhésions
+  et retraits institutionnels, reconnaissance et votes, avec procédure
+  propre à chaque organisation.
+- Différenciation détaillée des administrations palestiniennes, des zones
+  territoriales et des compétences juridiquement contestées.
+- Agents gouvernementaux autonomes contextualisés et explicables :
+  pas de probabilité ni d'intention non fondée prêtée aux dirigeants réels.
+- Contrôle de charge et découpage du stockage mondial : aujourd'hui,
+  **l'agrégat diplomatique entier est sérialisé dans une seule ligne
+  par monde**, ce qui est correct pour un prototype mais limitant.
+- Passerelle d'authentification et d'autorisation Aeternum vérifiées,
+  tests de concurrence réels et système d'événements pouvant être rejoué.
 
-Le prototype ne contient **ni serveur HTTP public ni IA politique
-calibrée**. La suite de tests `tests/wp06-diplomacy.php` vérifie les
-statuts, l'absence d'incarnation humaine des trois acteurs, le refus
-d'usurpation d'autorité IA, la différence État/Autorité palestinienne,
-les offres et réponses, les délais et l'absence de traité instantané.
+Le prototype ne contient **ni serveur HTTP public ni IA calibrée sur les
+comportements gouvernementaux réels**.
 
 ## Sources principales
 

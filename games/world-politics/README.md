@@ -1,44 +1,66 @@
-# World Politics — back-end de simulation (branche isolée)
+# World Politics — back-end autonome (branche temporaire)
 
-**Aucun développement d'interface graphique dans cette branche.**
-Il s'agit du jeu World Politics, destiné ultérieurement à un dépôt dédié :
-**ne jamais fusionner ce code dans le main du moteur Aeternum Engine**.
+**World Politics est un jeu distinct d'Aeternum Engine.**
+NE JAMAIS fusionner cette branche dans le `main` du moteur générique.
+Le développement graphique et les templates d'Aeternum sont exclus jusqu'à
+approbation expresse. Les futurs clients web/mobile/bureau utiliseront
+la même API RESTful JSON côté serveur.
 
-Le sous-système actuel implémente la création de personnages fictifs rapides
-ou détaillés, un registre de profils réels sourcés ou fictifs, la composition
-initiale d'un gouvernement, et les adaptations REST headless.
+## Modules métier
 
-## Fichiers
+- `src/PoliticalProfileTemplate.php` : champs communs aux profils
+  biographiques fictifs et réels, modes rapide et détaillé.
+- `src/PoliticalRoster.php`, `src/PdoPoliticalStore.php` :
+  personnages, gouvernements et nominations, stockage InnoDB.
+- `src/InstitutionalRulebook.php`, `src/InstitutionalSimulation.php`,
+  `src/PdoInstitutionalStore.php` : règles nationales testées France,
+  Allemagne, États-Unis, horloge et révisions.
+- `src/CountryCatalog.php` : pays potentiellement jouables versus
+  acteurs contrôlés par l'IA, statut ONU et statut Palestine.
+- `src/GeopoliticalActorRegistry.php` :
+  acteurs diplomatiques distincts, sources et date d'observation.
+- `src/DiplomaticSimulation.php` :
+  propositions, réactions IA déterministes et délais de jeu.
+- `src/PdoDiplomaticStore.php` :
+  persistance mondiale transactionnelle, reçus et audit.
+- `src/PdoDiplomaticApi.php` :
+  contrat REST durable, non déployé en HTTP.
+- `api/openapi.yaml` : contrat OpenAPI 3.1 validé automatiquement.
+- `database/001_rosters.sql`, `002_institutions.sql`,
+  `003_diplomacy.sql` : schémas propres au jeu.
 
-- \`src/PoliticalProfileTemplate.php\` : spécification de saisie rapide/
-  détaillée destinée aux futurs clients ;
-- \`src/PoliticalRoster.php\` : règles métier de profils et nominations ;
-- \`src/PdoPoliticalStore.php\` : état MariaDB, transactions et journal ;
-- \`src/PdoWorldPoliticsApi.php\` : opérations REST sans serveur public ;
-- \`src/WorldPoliticsApi.php\` : prototype en mémoire, réservé aux tests ;
-- \`api/openapi.yaml\` : contrat OpenAPI 3.1 ;
-- \`database/001_rosters.sql\` : première migration spécifique au jeu.
+## Validation
 
-## Tests sur PHP 8.4
+Dans la racine du dépôt, avec PHP 8.4 :
 
-Depuis la racine du dépôt :
-
-\`\`\`sh
+```sh
 php tests/wp01-political-roster.php
 php tests/wp01-rest-contract.php
 php tests/wp02-profile-template.php
-\`\`\`
+php tests/wp05-institutions.php
+php tests/wp06-diplomacy.php
+```
 
-Les tests \`tests/wp03-store-db.php\` et \`tests/wp04-rest-db.php\`
-nécessitent une base MariaDB **de test isolée** avec un DSN comportant
-\`wp_test\` et \`WP_TEST_ISOLATED=YES\`. Le workflow CI fournit cet
-environnement. **Ne pas les lancer sur une base de production**.
+Les tests MariaDB (`wp03-store-db.php`, `wp04-rest-db.php`,
+`wp06-institutions-db.php`, `wp07-institutional-rest-db.php` et
+`wp08-diplomacy-db.php`) utilisent **exclusivement une base de test**
+dont le DSN contient `wp_test`, avec `WP_TEST_ISOLATED=YES`.
+Ils effacent et reconstruisent les tables du test ; ne jamais les
+exécuter sur une base de production.
 
-## Limites
+## Sécurité et maturité
 
-Aucun serveur HTTP accessible, aucune authentification de production,
-aucune IA gouvernementale ni données politiques réelles importées.
-Aucune garantie de production n'est accordée par ces prototypes.
+L'API est un **adaptateur en PHP, pas un serveur HTTP public**.
+Authentification effective, contrôle des autorisations Aeternum,
+gestion de charge mondiale, import des 193 pays, résultats
+électoraux, économie et IA gouvernementales calibrées restent à
+développer. Les sources militaires réelles inconnues ou contestées
+ne sont jamais inventées.
 
-Voir \`../../docs/WORLD_POLITICS_BACKEND.md\` pour l'architecture et
-les exigences de migration et de sécurité.
+Documentation :
+- `../../docs/WORLD_POLITICS_BACKEND.md`
+- `../../docs/WORLD_POLITICS_DIPLOMACY.md`
+
+Migration future : déplacer `games/world-politics/` et ses tests
+vers un dépôt de jeu dédié, maintenir une intégration de moteur
+générique versionnée, sans merger dans `main` d'Aeternum.
