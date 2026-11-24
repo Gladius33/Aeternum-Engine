@@ -36,7 +36,12 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await page.locator('[data-bot-count="10"]').click();
             await expect(page.locator('#game-library')).toBeHidden();
             await expect(page.locator('[data-mission-step=place]')).toBeVisible();
+            await expect(page.locator('#world-scene .game-ui-stage > .scene-toolbar')).toBeHidden();
+            await expect(page.locator('#world-scene [data-landscape='+pack+']')).toBeAttached();
             await captureScene(page,'local-'+pack+'-first-visit');
+            await page.locator('#locale-select').selectOption('fr');
+            await expect(page.locator('[data-first-mission]')).toHaveText('Choisir le bâtiment');
+            await page.locator('#locale-select').selectOption('en');
             await page.locator('[data-first-mission]').click();
             await expect(page.locator('[data-catalogue='+type+']')).toHaveAttribute('aria-pressed','true');
             await captureScene(page,'local-'+pack+'-first-build');
@@ -52,7 +57,9 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(building).toHaveAttribute('aria-pressed','true');
             const started=page.waitForResponse(r=>r.url()===command&&r.request().postDataJSON()?.type==='building.start');
             await page.locator('#world-scene [data-label=startStage]').click();
-            expect((await started).status()).toBe(200);
+            const startResponse=await started;
+            // Preserve the response on failure, rather than masking a server rejection.
+            expect(startResponse.status(),await startResponse.text()).toBe(200);
             await expect(page.locator('#status')).toHaveText('Success');
             await expect.poll(async()=>{
                 await page.locator('#world-scene [data-label=districtRefresh]').click();
