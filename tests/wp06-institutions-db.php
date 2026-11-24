@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__.'/../games/world-politics/src/PdoInstitutionalStore.php';
+require_once __DIR__.'/../games/world-politics/src/PoliticalRoster.php';
 use Aeternum\WorldPolitics\{
   PoliticalRoster, InstitutionalSimulation, PdoInstitutionalStore, InstitutionalActorAuthorizer
 };
