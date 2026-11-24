@@ -89,10 +89,6 @@ wp26Reject(fn()=>$calendar->assertClockMayAdvance(
     $unscheduled,
     FrenchConstitutionalCrisis::instant('2026-11-26T11:00:00+01:00')
 ),'a motion without approved agenda cannot be skipped after its 48-hour period');
-wp26Reject(fn()=>$calendar->assertClockMayAdvance(
-    $constitutional+['world_id'=>'other-world'],
-    FrenchConstitutionalCrisis::instant('2026-11-27T12:00:00+01:00')
-),'world identity is checked');
 $foreign=$constitutional;$foreign['world_id']='another-world';
 wp26Reject(fn()=>$calendar->assertClockMayAdvance(
     $foreign,FrenchConstitutionalCrisis::instant('2026-11-27T12:00:00+01:00')

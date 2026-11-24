@@ -16,10 +16,16 @@ final class PdoFrenchConstitutionalStore
 {
     public function __construct(
         private readonly \PDO $pdo,
-        private readonly FrenchConstitutionalPrincipal $principal
+        private readonly FrenchConstitutionalPrincipal $principal,
+        private readonly ?PdoFrenchSittingCalendarStore $sittingCalendar=null
     ) {
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE,\PDO::ERRMODE_EXCEPTION);
         $this->pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES,false);
+    }
+
+    public function hasSittingCalendar():bool
+    {
+        return $this->sittingCalendar!==null;
     }
 
     public function principalId():string
@@ -47,6 +53,7 @@ final class PdoFrenchConstitutionalStore
         $row=$q->fetch(\PDO::FETCH_ASSOC);
         if ($row===false) throw new \DomainException('French constitutional world absent');
         $sim=$this->restore($row,$world);
+        $this->assertCalendarIdentity($world);
         return [
             'state'=>$sim->snapshot(),
             'etag'=>'"'.$sim->hash().'"',
@@ -130,6 +137,7 @@ final class PdoFrenchConstitutionalStore
                 throw new \DomainException('Constitutional identity changed during transaction');
             }
             $sim=$this->restore($row,$world);
+            $this->assertCalendarIdentity($world);
             $retry=$this->pdo->prepare(
                 'SELECT request_sha,response_json FROM wp_fr_constitutional_receipts
                  WHERE world_id=? AND actor_id=? AND receipt_key=?'
@@ -148,6 +156,7 @@ final class PdoFrenchConstitutionalStore
             if (!hash_equals('"'.$before.'"',$ifMatch)) {
                 throw new \DomainException('Stale French constitutional ETag');
             }
+            $this->checkSittingAgenda($world,$sim,$operation,$request);
             $result=match($operation) {
                 'engage'=>$sim->engage(
                     $this->principal,$request['bill_id'],$request['category'],
@@ -229,6 +238,35 @@ final class PdoFrenchConstitutionalStore
             throw new \UnexpectedValueException('French constitutional snapshot hash does not match');
         }
         return $sim;
+    }
+
+    private function assertCalendarIdentity(string $world):void
+    {
+        if ($this->sittingCalendar===null) return;
+        if ($this->sittingCalendar->principalId()!==$this->principal->actorId()) {
+            throw new \DomainException('French sitting calendar principal mismatch');
+        }
+        // Also ensure that the approved schedule exists and its SHA is valid.
+        $this->sittingCalendar->read($world);
+    }
+
+    /** @param array<string,mixed> $request */
+    private function checkSittingAgenda(
+        string $world,FrenchConstitutionalCrisis $constitution,
+        string $operation,array $request
+    ):void {
+        if ($this->sittingCalendar===null) return;
+        $snapshot=$constitution->snapshot();
+        if ($operation==='clock') {
+            $this->sittingCalendar->assertClock(
+                $world,$snapshot,FrenchConstitutionalCrisis::instant($request['at'])
+            );
+        } elseif ($operation==='vote_motion' || $operation==='vote_spontaneous') {
+            $this->sittingCalendar->assertVote(
+                $world,$snapshot,$request['motion_id'],
+                FrenchConstitutionalCrisis::instant($request['at'])
+            );
+        }
     }
 
     private function parliamentClerk():FrenchParliamentaryPrincipal
