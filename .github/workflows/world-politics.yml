@@ -46,6 +46,8 @@ jobs:
             abort "Missing authoritative world clock REST endpoint" unless d["paths"].key?("/worlds/{world}/clock/advances")
             abort "Missing pinned national clock roster" unless d.dig("components","schemas","WorldClockState","properties","countries")
             abort "Missing French 49.3 API" unless d["paths"].key?("/worlds/{world}/france/constitution/engagements")
+            abort "Missing French 49.1 confidence API" unless d["paths"].key?("/worlds/{world}/france/constitution/confidence/{statementId}/votes")
+            abort "Missing spontaneous 49.2 censure API" unless d["paths"].key?("/worlds/{world}/france/constitution/spontaneous-motions/{motionId}/votes")
             puts "PASS OpenAPI 3.1: syntax, required paths and DTOs"
           ' games/world-politics/api/openapi.yaml
       - name: Reviewed geopolitical statuses and deterministic diplomacy
@@ -104,6 +106,7 @@ jobs:
           php tests/wp13-economic-rest-db.php
           php tests/wp16-sanctions-outbox-db.php
           php tests/wp21-france-constitutional-rest-db.php
+          php tests/wp23-france-accountability-rest-db.php
           php tests/wp17-world-clock-db.php
           php tests/wp18-world-clock-institutions-db.php
         env:

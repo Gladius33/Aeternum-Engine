@@ -1027,6 +1027,132 @@ paths:
         '422': { $ref: '#/components/responses/invalid' }
         '428': { $ref: '#/components/responses/missingPrecondition' }
 
+  /worlds/{world}/france/constitution/confidence/engagements:
+    post:
+      operationId: engageFrenchGovernmentConfidence49_1
+      tags: [FrenchConstitution]
+      description: >
+        Verified French PM and Council of Ministers engage responsibility
+        on a government programme or general policy declaration. All minister
+        competence checks and simulation time come from trusted server services.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [statement_id, kind, at]
+              properties:
+                statement_id: { $ref: '#/components/schemas/Identifier' }
+                kind: { type: string, enum: [programme, general_policy] }
+                at: { type: string, format: date-time }
+      responses:
+        '202': { description: Verified government confidence engagement recorded }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/confidence/{statementId}/votes:
+    post:
+      operationId: voteFrenchGovernmentConfidence49_1
+      tags: [FrenchConstitution]
+      description: >
+        Majority of votes CAST (for > against) determines government confidence;
+        abstentions are not expressed votes. If confidence fails, Article 50
+        requires the cabinet to resign, not the end of the republic.
+        The ballot totals come exclusively from authenticated parliamentary clerks.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/statementId'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [at]
+              properties:
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Constitutional confidence ballot verified and journaled }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/spontaneous-motions:
+    post:
+      operationId: fileFrenchSpontaneousCensure49_2
+      tags: [FrenchConstitution]
+      description: >
+        Filing Article 49(2) motion. The authenticated clerk provides actual,
+        unique deputy signatory IDs, at least one tenth of Assembly members.
+        Each deputy may sign at most three in ordinary sessions and one in
+        extraordinary sessions. Article 49(3) motions do not count towards
+        this separate per-deputy quota.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [motion_id, at]
+              properties:
+                motion_id: { $ref: '#/components/schemas/Identifier' }
+                at: { type: string, format: date-time }
+      responses:
+        '202': { description: Article 49(2) motion filed and deputy quotas updated }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/spontaneous-motions/{motionId}/votes:
+    post:
+      operationId: voteFrenchSpontaneousCensure49_2
+      tags: [FrenchConstitution]
+      description: >
+        At least 48 elapsed hours after filing, only affirmative votes count.
+        An absolute majority of Assembly members adopts the censure and triggers
+        mandatory cabinet resignation under Article 50. No regime change is
+        inferred from a parliamentary vote.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/motionId'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [at]
+              properties:
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Authenticated Article 49(2) roll call recorded }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1034,6 +1160,11 @@ components:
       scheme: bearer
       description: Authentication gateway reserved; no production token verifier implemented.
   parameters:
+    statementId:
+      name: statementId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
     motionId:
       name: motionId
       in: path
