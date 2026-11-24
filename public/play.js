@@ -7,9 +7,18 @@ async function api(path, method='GET', data) {
     const headers = {'Accept':'application/json'};
     if (token) headers.Authorization = 'Bearer '+token;
     if (data !== undefined) headers['Content-Type'] = 'application/json';
-    const response = await fetch(path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),cache:'no-store',redirect:'error',credentials:'omit'});
-    const result = await response.json();
-    if (!response.ok) { const error=new Error(response.status===503 && result.error==='registration_busy' ? 'Registration server is busy. Please retry shortly.' : response.status===503 && result.error==='authentication_busy' ? 'Authentication server is busy. Please retry shortly.' : (result.error || 'Request failed')); error.status=response.status; throw error; }
+    let response,result;
+    const body=data===undefined?undefined:JSON.stringify(data);
+    for(let attempt=0;attempt<4;attempt++){
+        response=await fetch(path,{method,headers,body,cache:'no-store',redirect:'error',credentials:'omit'});
+        result=await response.json();
+        // Only an explicit server consistency barrier is retryable. The body,
+        // including the idempotency ID, remains identical. Never retry access or
+        // funding failures and never bypass the independent worker.
+        if(!selectedGame||response.status!==409||result.retryable!==true||attempt===3)break;
+        await new Promise(resolve=>setTimeout(resolve,650*(attempt+1)));
+    }
+    if (!response.ok) { const error=new Error(response.status===503 && result.error==='registration_busy' ? 'Registration server is busy. Please retry shortly.' : response.status===503 && result.error==='authentication_busy' ? 'Authentication server is busy. Please retry shortly.' : (result.error || 'Request failed')); error.status=response.status; error.retryable=result.retryable===true; throw error; }
     return result.data;
 }
 function locationFields() {

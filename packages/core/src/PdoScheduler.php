@@ -104,7 +104,7 @@ final class PdoScheduler
             $due=$this->query('SELECT event_id FROM engine_events
                 WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1 FOR UPDATE',
                 [$this->worldId,$at])->fetchColumn();
-            if ($due!==false) throw new \DomainException('Due events must be processed before new commands');
+            if ($due!==false) throw new DueEventsPending('Due events must be processed before new commands');
             $eventSeq=$candidate['next_sequence'];
             foreach ($result->events as $event) {
                 if ($this->query('SELECT event_id FROM engine_events WHERE world_id=? AND event_id=?',
@@ -693,7 +693,7 @@ final class PdoScheduler
             if ($at<0 || $at<(int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
             if ($this->query('SELECT event_id FROM engine_events WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1',
                 [$this->worldId,$at])->fetchColumn()!==false) {
-                throw new \DomainException('Due events must be processed before projection');
+                throw new DueEventsPending('Due events must be processed before projection');
             }
             $row=$this->query('SELECT stock_units,settled_at,remainder,level_no
                 FROM engine_economy_balances WHERE world_id=? AND account_id=? AND resource_id=?',
@@ -727,7 +727,7 @@ final class PdoScheduler
             if ($at<0 || $at<(int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
             if ($this->query('SELECT event_id FROM engine_events WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1',
                 [$this->worldId,$at])->fetchColumn()!==false) {
-                throw new \DomainException('Due events must be processed before projection');
+                throw new DueEventsPending('Due events must be processed before projection');
             }
             $row=$this->query('SELECT stock_units,settled_at,remainder,level_no,pending_event_id
                 FROM engine_economy_balances WHERE world_id=? AND account_id=? AND resource_id=?',
@@ -775,7 +775,7 @@ final class PdoScheduler
             $at=$this->clock->now();
             if ($at<0 || $at<(int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
             if ($this->query('SELECT event_id FROM engine_events WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1 FOR UPDATE',[$this->worldId,$at])->fetchColumn()!==false) {
-                throw new \DomainException('Due events must be processed before projection');
+                throw new DueEventsPending('Due events must be processed before projection');
             }
             $state=ScalarMap::decode($world['state_json']);
             $balance=$handler->balanceAt($state,$account,$resource,$at);
@@ -826,7 +826,7 @@ final class PdoScheduler
                 $at = $this->clock->now();
                 if ($at < 0 || $at < (int)$world['watermark']) throw new \DomainException('Clock precedes committed logical time');
                 $due = $this->query('SELECT event_id FROM engine_events WHERE world_id = ? AND completed = 0 AND due_at <= ? LIMIT 1 FOR UPDATE', [$this->worldId,$at])->fetchColumn();
-                if ($due !== false) throw new \DomainException('Due events must be processed before new commands');
+                if ($due !== false) throw new DueEventsPending('Due events must be processed before new commands');
                 $usable=$prepared!==null
                     && $prepared['journal_sequence']===(int)$world['journal_sequence']
                     && $prepared['state_json']===$world['state_json']

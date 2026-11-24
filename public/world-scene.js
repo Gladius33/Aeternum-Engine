@@ -600,6 +600,24 @@
             poly(plot,[-spacing*.43,4,0,-spacing*.20,spacing*.43,4,0,spacing*.21].join(' '),shade(plot,land),p[0]);
             for(let i=0;i<4;i++)line(plot,-spacing*.32+i*spacing*.12,3+i*3,-spacing*.04+i*spacing*.12,-spacing*.13+i*3,'#f2e5b840',1);
             const art=el('g',{transform:'scale('+scale+')'},plot);model(art,b.type,d);
+            if(d?.level>0&&!d.pending){
+                const accent=el('g',{'aria-hidden':'true','pointer-events':'none',class:'district-asset-detail','data-district-decor':b.type},art);
+                // These decorative props belong to an actual completed building;
+                // they do not imply active production, inhabitants or shipments.
+                const crate=(x,y,fill)=>{poly(accent,[x,y,x+8,y-4,x+17,y,x+9,y+4].join(' '),fill,'#443e32');poly(accent,[x,y,x+9,y+4,x+9,y+12,x,y+8].join(' '),'#806140');poly(accent,[x+9,y+4,x+17,y,x+17,y+8,x+9,y+12].join(' '),'#604d37');line(accent,x+2,y+2,x+7,y+5,'#c4aa7a',.65);};
+                if(theme==='medieval'){
+                    if(b.type==='lumberyard'){for(let i=0;i<4;i++){const y=8+i*3;line(accent,-36,y,-17,y-3,'#76543b',4);ellipse(accent,-17,y-3,2,2,'#d3ab70');}}
+                    else if(b.type==='farm'){for(let i=0;i<6;i++){const x=-38+i*7;line(accent,x,10,x+11,5,'#ead183',1.3);}}
+                    else{crate(-36,4,'#b59b65');crate(-25,7,'#c1a271');}
+                    for(const x of [-41,38]){line(accent,x,8,x,-3,'#9c7b4b',1.6);line(accent,x-4,3,x+4,3,'#b69662',1);}
+                }else if(theme==='industrial'){
+                    for(const x of [-37,31]){rect(accent,x,5,9,6,'#7e969b',{stroke:'#364852','stroke-width':.8});line(accent,x+1,7,x+7,7,'#d0c4a1',.8);}
+                    for(let i=0;i<5;i++)line(accent,-30+i*5,13,-27+i*5,9,'#e5bc64',1.3);
+                }else if(theme==='guild'){
+                    crate(-40,6,'#d2af75');crate(26,7,'#bd935c');
+                    for(const x of [-26,36]){ellipse(accent,x,10,4,3,'#765037');rect(accent,x-4,4,8,6,'#b47c45',{rx:2});line(accent,x-4,7,x+4,7,'#775031',1);}
+                }
+            }
             if(d?.level>1){ // Actual level adds a visible annex rather than a number alone.
                 const annex=el('g',{transform:'translate('+(-spacing*.29)+' 12) scale(.48)'},plot);
                 model(annex,b.type,{level:1,pending:null});
@@ -611,11 +629,12 @@
             const choose=()=>select('building',b.id);
             plot.addEventListener('click',choose);plot.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}});
         });
-        if(!visible.length){
-            const x=w/2,y=h*.61;
+        if(!visible.length||selectedGame&&visible.length<limit){
+            const x=visible.length?w*.84:w/2,y=visible.length?h*.79:h*.61;
             const site=catalogue.sites.find(s=>s.territory_id===districtId);
             const attrs={transform:'translate('+x+' '+y+')'};
             if(site)Object.assign(attrs,{role:'button',tabindex:0,'aria-label':t('chooseBuild'),'data-district-site':'approved',class:'district-building'});
+            if(visible.length)attrs.transform+=' scale('+(mobile?.53:.72)+')';
             const plot=el('g',attrs,districtSvg);
             ellipse(plot,0,7,91,42,'#192d2e50');
             poly(plot,'-85,0 0,-40 85,0 0,40',theme==='medieval'?'#9a9d67':theme==='industrial'?'#929e9e':'#cda976',p[2]);
@@ -626,7 +645,7 @@
                 const choose=()=>{if(busy)return;chosenSite=site.territory_id+'|'+site.entity_id;renderWorkspace();focusNode(workshop.root);};
                 plot.addEventListener('click',choose);plot.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}});
             }
-            el('text',{x:0,y:62,'text-anchor':'middle',class:'district-label'},plot,t(site?'showBuild':'noSite'));
+            el('text',{x:0,y:62,'text-anchor':'middle',class:'district-label'},plot,site&&selectedGame?(lang()==='fr'?'Construire ici':'Build here'):t(site?'showBuild':'noSite'));
         }
         // Event feedback reflects the last acknowledged server command only.
         if(receipts.length){
@@ -802,7 +821,7 @@
         }else if(detail.pending){
             step='pending';title=pick('Construction in progress','Travaux en cours');
             copy=pick('The worker completes construction on the server. Refresh to see the latest confirmed progress.','Les travaux se terminent sur le serveur. Actualisez pour consulter leur avancement réel.');
-            cta=pick('Check construction','Vérifier les travaux');missionAction=()=>run(readStages);
+            cta=pick('Check construction','Vérifier les travaux');missionAction=()=>run(async()=>{await readStages();await readInventory();});
         }else{
             step='next';title=pick('Your first building is ready','Votre premier bâtiment est prêt');
             const next={medieval:pick('Build a farm and grow your village.','Construisez une ferme et développez votre village.'),industrial:pick('Expand your power and production network.','Développez votre réseau énergétique et productif.'),guild:pick('Visit the market and publish your first exchange.','Visitez le marché et publiez votre premier échange.')}[theme];
@@ -836,7 +855,9 @@
         ui.setBusy(d.busy);syncMirrors();
         if(d.busy){ui.setStatus(lang()==='fr'?'Synchronisation…':'Synchronizing…');return;}
         const ok=document.getElementById('status').textContent==='Success';
-        ui.setStatus(ok?'':(lang()==='fr'?'Action non terminée : ':'Action not completed: ')+document.getElementById('status').textContent);
+        const message=document.getElementById('status').textContent;
+        const friendly=message==='command_or_access_conflict'?(lang()==='fr'?'Action refusée. Vérifiez les ressources et les prérequis, puis réessayez.':'Action refused. Check your resources and prerequisites, then try again.'):message;
+        ui.setStatus(ok?'':(lang()==='fr'?'Action non terminée : ':'Action not completed: ')+friendly);
         if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
     on('reset',()=>{initialLoad=false;ui.setStatus('');});

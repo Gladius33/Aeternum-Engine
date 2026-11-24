@@ -46,7 +46,8 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('[data-catalogue='+type+']')).toHaveAttribute('aria-pressed','true');
             await captureScene(page,'local-'+pack+'-first-build');
             const command=origin+'/v1/worlds/lab-'+pack+'/economy/commands';
-            const placed=page.waitForResponse(r=>r.url()===command&&r.request().postDataJSON()?.type==='building.place');
+            const isFinal=async(r,type)=>r.url()===command&&r.request().postDataJSON()?.type===type&&(r.status()!==409||!(await r.json()).retryable);
+            const placed=page.waitForResponse(r=>isFinal(r,'building.place'));
             await page.locator('#world-scene [data-label=place]').click();
             expect((await placed).status()).toBe(200);
             await expect(page.locator('#status')).toHaveText('Success');
@@ -55,7 +56,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             const building=page.locator('[data-district-building]').first();
             await expect(building).toBeVisible();
             await expect(building).toHaveAttribute('aria-pressed','true');
-            const started=page.waitForResponse(r=>r.url()===command&&r.request().postDataJSON()?.type==='building.start');
+            const started=page.waitForResponse(r=>isFinal(r,'building.start'));
             await page.locator('#world-scene [data-label=startStage]').click();
             const startResponse=await started;
             // Preserve the response on failure, rather than masking a server rejection.
@@ -67,6 +68,8 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 return building.getAttribute('data-district-level');
             },{timeout:90000,intervals:[3000,5000]}).toBe('1');
             await expect(page.locator('[data-mission-step=next]')).toBeVisible();
+            await expect(page.locator('[data-district-decor='+type+']')).toBeAttached();
+            await expect(page.locator('[data-district-site=approved]')).toBeVisible();
             await captureScene(page,'local-'+pack+'-domain');
             await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             await page.locator('[data-game-nav=construction]').click();
