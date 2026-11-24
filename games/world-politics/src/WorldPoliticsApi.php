@@ -57,7 +57,7 @@ final class WorldPoliticsApi
     public function handle(string $method, string $path, ?array $payload = null, array $headers = []): array
     {
         if (strlen($path) > 512 || !preg_match(
-            '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/countries/([A-Z]{2})/politics(?:/(people|head-of-state|nominations)(?:/([a-z][a-z0-9_-]{0,63}))?(?:/(resolution))?)?$~D',
+            '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/countries/([A-Z]{2})/politics(?:/(people|head-of-state|nominations|person-template)(?:/([a-z][a-z0-9_-]{0,63}))?(?:/(resolution))?)?$~D',
             $path, $matches
         )) {
             return self::problem(404, 'route_not_found');
@@ -75,6 +75,9 @@ final class WorldPoliticsApi
         if ($method === 'GET') {
             if ($payload !== null) {
                 return self::problem(400, 'get_body_forbidden');
+            }
+            if ($resource === 'person-template' && $item === '' && $action === '') {
+                return self::ok(200, PoliticalProfileTemplate::definition(), $roster->snapshotHash());
             }
             if ($resource === '' && $item === '' && $action === '') {
                 return self::ok(200, $roster->snapshot(), $roster->snapshotHash());
@@ -131,7 +134,8 @@ final class WorldPoliticsApi
                 if (($payload['kind'] ?? null) !== 'fictional') {
                     return self::problem(422, 'only_fictional_profiles_can_be_player_created');
                 }
-                $roster->addPerson($payload);
+                $person = PoliticalProfileTemplate::normalizeFictional($payload, $country);
+                $roster->addPerson($person);
                 $status = 201;
                 $result = ['person_id' => $payload['id']];
             } elseif ($ability === 'initialize_scenario') {
