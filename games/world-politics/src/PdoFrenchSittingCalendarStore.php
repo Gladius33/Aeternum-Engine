@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/FrenchSittingCalendar.php';
 require_once __DIR__.'/PdoFrenchConstitutionalStore.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /** Only trusted parliamentary scenario configuration can approve a ballot slot. */
 interface FrenchSittingAuthority extends FrenchConstitutionalPrincipal
@@ -83,6 +84,9 @@ final class PdoFrenchSittingCalendarStore
         $time=$this->authority->verifiedCensureVoteAt($world,$motionId);
         $this->pdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->pdo,$world,$this->authority->actorId(),'schedule',null
+            );
             $this->check($world,'fr.calendar.schedule');
             $q=$this->pdo->prepare(
                 'SELECT state_json,state_sha,revision

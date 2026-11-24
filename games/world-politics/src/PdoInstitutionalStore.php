@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/InstitutionalSimulation.php';
 require_once __DIR__.'/WorldPoliticsApi.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /**
  * Session-derived institutional roles, NOT an HTTP header or JSON attribute.
@@ -113,6 +114,9 @@ final class PdoInstitutionalStore
         $commandId='a'.substr(hash('sha256',$world."\n".$country."\n".$actor."\n".$key),0,32);
         $this->pdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->pdo,$world,$actor,$action==='advance_clock' ? 'clock' : $action,$clock ? ($payload['target_day']??null) : null
+            );
             $stmt=$this->pdo->prepare(
                 'SELECT state_json,state_sha,revision FROM wp_institutional_states WHERE world_id=? AND country_code=? FOR UPDATE'
             );

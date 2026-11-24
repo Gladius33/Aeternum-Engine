@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/WorldEconomicSimulation.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /**
  * Durable, world-scoped economic policy decisions.
@@ -123,6 +124,9 @@ final class PdoEconomicStore
         $this->readAllowed($world);
         $this->pdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->pdo,$world,$actor,$operation,$operation==='clock' ? ($payload['target_day']??null) : null
+            );
             $lock=$this->pdo->prepare(
                 'SELECT state_json,state_sha,reference_sha,actor_registry_sha,revision FROM wp_economic_states WHERE world_id=? FOR UPDATE'
             );

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/DiplomaticSimulation.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /**
  * WP08: global, transactionally serialized, server-authorized diplomacy.
@@ -103,6 +104,9 @@ final class PdoDiplomaticStore
         $this->admitRead($world);
         $this->pdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->pdo,$world,$actor,$operation,$operation==='clock' ? ($payload['target_day']??null) : null
+            );
             $stmt=$this->pdo->prepare(
                 'SELECT state_json,state_sha,actor_registry_sha,revision FROM wp_diplomatic_states WHERE world_id=? FOR UPDATE'
             );

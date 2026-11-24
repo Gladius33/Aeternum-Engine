@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/FrenchConstitutionalCrisis.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /**
  * WP21 — durable France-specific constitutional event log / REST command store.
@@ -130,6 +131,9 @@ final class PdoFrenchConstitutionalStore
         ),0,32);
         $this->pdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->pdo,$world,$principalId,$operation,$operation==='clock' ? (new \DateTimeImmutable('@'.FrenchConstitutionalCrisis::instant($request['at'])))->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d') : null
+            );
             $read=$this->pdo->prepare(
                 'SELECT state_json,state_sha,revision,sitting_calendar_required FROM wp_fr_constitutional_states WHERE world_id=? FOR UPDATE'
             );

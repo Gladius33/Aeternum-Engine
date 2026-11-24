@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/FrenchSocialDynamics.php';
 require_once __DIR__.'/PdoFrenchConstitutionalStore.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /**
  * WP24: Source-pinned social effects, transactional and server-driven.
@@ -124,6 +125,9 @@ final class PdoFrenchSocialStore
 
         $this->pdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->pdo,$world,$principalId,'assess',null
+            );
             $lock=$this->pdo->prepare(
                 'SELECT state_json,state_sha,cohort_sha,revision
                  FROM wp_fr_social_states WHERE world_id=? FOR UPDATE'

@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/OrganizationSimulation.php';
 require_once __DIR__.'/AutonomousOrganizationPlanner.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /**
  * WP10: country-owned and AI decisions both go through a durable,
@@ -103,6 +104,9 @@ final class PdoOrganizationStore
         $this->canRead($world);
         $this->pdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->pdo,$world,$actorId,$operation,$operation==='clock' ? ($payload['target_day']??null) : null
+            );
             $locked=$this->pdo->prepare(
                 'SELECT state_json,state_sha,actors_sha,charters_sha,revision FROM wp_organization_states WHERE world_id=? FOR UPDATE'
             );

@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/PoliticalRoster.php';
 require_once __DIR__.'/WorldPoliticsApi.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /**
  * WP03: durable game-specific world aggregate and append-only audit journal.
@@ -97,6 +98,9 @@ final class PdoPoliticalStore
 
         $this->pdo->beginTransaction();
         try {
+            WorldMutationFence::admit(
+                $this->pdo,$world,$actor,$operation,null
+            );
             $query=$this->pdo->prepare(
                 'SELECT state_json,state_sha,revision FROM wp_world_rosters WHERE world_id=? AND country_code=? FOR UPDATE'
             );
