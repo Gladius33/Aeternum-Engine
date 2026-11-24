@@ -470,8 +470,17 @@
             d+=' L'+w+' '+h+' H0 Z';
             path(g,d,[p[5],p[0],p[1]][i],{'fill-opacity':.82});
         }
-        const floor=el('g',{'aria-hidden':'true'},g);
+        const floor=el('g',{'aria-hidden':'true','pointer-events':'none'},g);
         path(floor,'M0 '+(h*.36)+' Q'+w*.45+' '+(h*.27)+' '+w+' '+(h*.40)+' V'+h+' H0 Z',shade(floor,theme==='medieval'?['#9ca66a','#69854c','#466b42']:theme==='industrial'?['#a7b1ab','#6d7b7a','#465963']:['#e7c28a','#bf9257','#9c7146']));
+        // Broad, layered landscape textures are non-interactive terrain, not production or map entities.
+        for(let i=0;i<7;i++){
+            const y=h*(.39+i*.091),bend=(i%2?1:-1)*h*.045;
+            path(floor,'M0 '+y+' Q'+w*.26+' '+(y+bend)+' '+w*.48+' '+(y-h*.035)+' T'+w+' '+(y+bend),'none',{stroke:theme==='medieval'?'#d3cc92':theme==='industrial'?'#c7d2cc':'#f3d8a4','stroke-width':i%3===0?12:5,'stroke-opacity':.09});
+        }
+        for(let i=0;i<24;i++){
+            const x=(i*197+31)%w,y=h*(.42+((i*31)%56)/100);
+            ellipse(floor,x,y,10+i%6*4,2+i%3,theme==='medieval'?'#2a583c':theme==='industrial'?'#2e4650':'#926943',{'fill-opacity':.12});
+        }
         // deterministic small ground marks and horizon silhouettes, decorative only.
         for(let i=0;i<180;i++){
             const x=(i*137+29)%w,y=h*.38+(i*73%(Math.floor(h*.62)));
@@ -521,22 +530,37 @@
         const visible=owned.slice(districtPage*limit,(districtPage+1)*limit);
         const cols=mobile?2:3,spacing=w/(cols+0.15);
         const rows=Math.max(1,Math.ceil(visible.length/cols));
+        // A shared approach through the visual district replaces isolated floating platforms.
+        // It is an illustration of the placement layout, not a server route or an economic link.
+        if(visible.length){
+            const approach=el('g',{'aria-hidden':'true','pointer-events':'none'},districtSvg);
+            const road=theme==='medieval'?'#a88d60':theme==='industrial'?'#424e53':'#b59060';
+            const edge=theme==='medieval'?'#d4bc82':theme==='industrial'?'#a5aca4':'#e0c294';
+            for(let row=0;row<rows;row++){
+                const yy=h*(rows===1?.57:.43)+row*(h*.30/Math.max(1,rows-1))+spacing*.19;
+                const d='M'+(w*.05)+' '+(yy+9)+' Q'+w*.48+' '+(yy-7)+' '+w*.95+' '+(yy+9);
+                path(approach,d,'none',{stroke:edge,'stroke-width':mobile?24:39,'stroke-linecap':'round','stroke-opacity':.8});
+                path(approach,d,'none',{stroke:road,'stroke-width':mobile?19:32,'stroke-linecap':'round'});
+                if(theme==='industrial')path(approach,d,'none',{stroke:'#e9c77c','stroke-width':1.5,'stroke-dasharray':'8 8'});
+            }
+        }
         visible.forEach((b,i)=>{
             const row=Math.floor(i/cols),col=i%cols;
             const x=w/2+(col-(Math.min(cols,visible.length-row*cols)-1)/2)*spacing,y=h*(rows===1?.57:.43)+row*(h*.30/Math.max(1,rows-1));
             const d=details.get(b.id),scale=mobile?1.35:2.05;
             const plot=el('g',{transform:'translate('+x+' '+y+')',class:'district-building',tabindex:0,role:'button','aria-label':buildingName(b),'aria-pressed':'false','data-district-building':b.id,'data-district-level':d?.level??'unknown'},districtSvg);
-            poly(plot,[-spacing*.46,4,0,-spacing*.24,spacing*.46,4,0,spacing*.24].join(' '),p[0],'#273c38');
-            poly(plot,[-spacing*.40,1,0,-spacing*.20,spacing*.40,1,0,spacing*.20].join(' '),shade(plot,[p[2],p[1]]),'#e8d6a06b');
+            ellipse(plot,0,7,spacing*.44,spacing*.18,'#14252250');
+            const land=theme==='medieval'?['#a3a36c','#758555']:theme==='industrial'?['#abb2ad','#68767b']:['#dfc18e','#b18a59'];
+            poly(plot,[-spacing*.43,4,0,-spacing*.20,spacing*.43,4,0,spacing*.21].join(' '),shade(plot,land),p[0]);
             for(let i=0;i<4;i++)line(plot,-spacing*.32+i*spacing*.12,3+i*3,-spacing*.04+i*spacing*.12,-spacing*.13+i*3,'#f2e5b840',1);
             const art=el('g',{transform:'scale('+scale+')'},plot);model(art,b.type,d);
             if(d?.level>1){ // Actual level adds a visible annex rather than a number alone.
                 const annex=el('g',{transform:'translate('+(-spacing*.29)+' 12) scale(.48)'},plot);
                 model(annex,b.type,{level:1,pending:null});
             }
-            rect(plot,-spacing*.44,spacing*.25,spacing*.88,38,'#14232bea',{rx:5,stroke:p[2]});
-            el('text',{x:0,y:spacing*.25+15,'text-anchor':'middle',class:'district-label'},plot,buildingName(b));
-            el('text',{x:0,y:spacing*.25+29,'text-anchor':'middle',class:'district-subheading'},plot,d?t('level')+' '+d.level+' · '+t(d.pending?'pending':d.level===0?'foundation':'ready'):t('planned'));
+            rect(plot,-spacing*.41,spacing*.23,spacing*.82,36,'#14232bea',{rx:8,stroke:p[2]});
+            el('text',{x:0,y:spacing*.23+14,'text-anchor':'middle',class:'district-label'},plot,buildingName(b));
+            el('text',{x:0,y:spacing*.23+27,'text-anchor':'middle',class:'district-subheading'},plot,d?t('level')+' '+d.level+' · '+t(d.pending?'pending':d.level===0?'foundation':'ready'):t('planned'));
             el('title',{},plot,buildingName(b));
             const choose=()=>select('building',b.id);
             plot.addEventListener('click',choose);plot.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}});
@@ -731,14 +755,14 @@
             step='next';title=pick('Your first building is ready','Votre premier bâtiment est prêt');
             const next={medieval:pick('Build a farm and grow your village.','Construisez une ferme et développez votre village.'),industrial:pick('Expand your power and production network.','Développez votre réseau énergétique et productif.'),guild:pick('Visit the market and publish your first exchange.','Visitez le marché et publiez votre premier échange.')}[theme];
             copy=next;cta=theme==='guild'?pick('Open the market','Ouvrir le marché'):pick('View campaign','Voir la campagne');
-            missionAction=()=>theme==='guild'?focusNode(tradeBlock.root):focusNode(objectiveBlock.root);
+            missionAction=()=>{if(theme==='guild'){focusNode(tradeBlock.root);document.getElementById('market-load').click();}else focusNode(objectiveBlock.root);};
         }
         mission.dataset.missionStep=step;missionTitle.textContent=title;missionCopy.textContent=copy;missionGo.textContent=cta;
         missionGo.disabled=busy||(!building&&!type);
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
-        slots:{resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,hint,toolbar],side:[mission,panel,nav],lower:[holdingTitle,holdingList,workspace]},
-        actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>focusNode(tradeBlock.root),activity:()=>focusNode(receiptBlock.root)}
+        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,hint,toolbar],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
     if(!classic)revealPanel('domain');
