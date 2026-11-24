@@ -169,6 +169,9 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
             await modern.locator('[data-game-nav=construction]').click();
             await expect(modern.locator('[data-catalogue=market_hall]')).toBeVisible();
             await expect(modern.locator('[data-reserve]').first()).toBeVisible();
+            await expect(modern.locator('[data-resource-tile=spice]')).toBeVisible();
+            await modern.locator('[data-resource-tile=silver]').click();
+            await expect(modern.locator('[data-stat=stock]')).toContainText(/silver/i);
             await modern.locator('[data-game-nav=market]').click();
             await modern.locator('[data-trade-field=giveResource]').selectOption('spice');
             await modern.locator('[data-trade-field=wantResource]').selectOption('silver');
@@ -178,6 +181,8 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
             await modern.getByRole('button',{name:'Publish barter',exact:true}).click();
             expect((await posted).status()).toBe(200);
             await expect(modern.locator('[data-command="market.create"]').first()).toBeVisible();
+            await modern.locator('#world-scene [data-label=refreshReserves]').click();
+            await expect(modern.locator('[data-resource-tile=spice] strong')).not.toHaveText('—');
             await captureScene(modern,'guild-reusable-shell');
         }finally{await modern.close();}
     }finally {
