@@ -1,0 +1,51 @@
+name: aeternum-playtest
+x-runtime: &runtime
+  image: aeternum-playtest:local
+  build:
+    context: .
+    dockerfile: lab/Dockerfile
+  environment: &runtime-env
+    AETERNUM_LAB_ONLY: '1'
+    AETERNUM_DSN: 'mysql:host=db;port=3306;dbname=aeternum_lab;charset=utf8mb4'
+    AETERNUM_DB_USER: aeternum_lab
+    AETERNUM_DB_PASSWORD: local-lab-db-only
+    AETERNUM_WORLD_REGISTRY: /etc/aeternum-lab/worlds.json
+    AETERNUM_PUBLIC_REGISTRATION: '0'
+    AETERNUM_LAB_PLAYER_PASSWORD: 'aeternum-local-playtest-only'
+services:
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: aeternum_lab
+      MARIADB_USER: aeternum_lab
+      MARIADB_PASSWORD: local-lab-db-only
+      MARIADB_ROOT_PASSWORD: local-lab-root-only
+    volumes:
+      - lab-db:/var/lib/mysql
+    healthcheck:
+      test: ['CMD','healthcheck.sh','--connect','--innodb_initialized']
+      interval: 3s
+      timeout: 5s
+      retries: 30
+  init:
+    <<: *runtime
+    command: ['sh','lab/init.sh']
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    <<: *runtime
+    ports:
+      - '127.0.0.1:8443:443'
+    depends_on:
+      init:
+        condition: service_completed_successfully
+  worker:
+    <<: *runtime
+    command: ['sh','lab/worker.sh']
+    restart: on-failure
+    depends_on:
+      init:
+        condition: service_completed_successfully
+volumes:
+  lab-db:

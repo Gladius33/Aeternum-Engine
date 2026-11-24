@@ -147,10 +147,10 @@
     }
     const nav=html('div',host,'scene-toolbar');
     const jump=id=>{const node=document.getElementById(id);if(node&&!node.hidden){const legacy=node.closest('.game-ui-legacy');if(legacy)legacy.open=true;node.scrollIntoView({block:'start'});const focus=node.querySelector('button:not([hidden]),input,select');focus?.focus({preventScroll:true});}};
-    button(nav,'build',()=>jump('foundation-panel'));
-    button(nav,'production',()=>jump('action'));
-    button(nav,'trade',()=>jump('market-panel'));
-    const goals=button(nav,'goals',()=>jump(theme==='medieval'?'medieval-panel':theme==='industrial'?'industrial-panel':'progression-panel'));
+    button(nav,'build',()=>classic?jump('foundation-panel'):focusNode(workshop.root));
+    button(nav,'production',()=>classic?jump('action'):focusNode(inventoryBlock.root));
+    button(nav,'trade',()=>classic?jump('market-panel'):focusNode(tradeBlock.root));
+    const goals=button(nav,'goals',()=>classic||theme==='guild'?jump(theme==='medieval'?'medieval-panel':theme==='industrial'?'industrial-panel':'progression-panel'):focusNode(objectiveBlock.root));
     const operations=[
         ['medieval','feed','medieval-feed'],['medieval','work','medieval-work'],
         ['industrial','generate','industrial-generate'],['industrial','refine','industrial-refine'],['industrial','ship','industrial-ship']
@@ -660,13 +660,18 @@
             select.value=original.value;select.disabled=busy;
         }
     }
-    const focusNode=n=>{n.scrollIntoView({block:'nearest'});n.querySelector('button:not([hidden]),select,input')?.focus({preventScroll:true});};
-    const showDistrict=mode=>{districtMode=mode;districtPage=0;domainCamera.reset();render();focusNode(districtBar);};
+    const panels=new Map([['holdings',holdingList],['construction',workshop.root],['reserves',inventoryBlock.root],['objectives',objectiveBlock.root],['market',tradeBlock.root],['activity',receiptBlock.root]]);
+    for(const [key,node] of panels)node.dataset.workspacePanel=key;
+    holdingTitle.dataset.workspacePanel='holdings';
+    function revealPanel(key){host.dataset.workspace=key;for(const button of host.querySelectorAll('[data-game-nav]'))button.setAttribute('aria-pressed',String(button.dataset.gameNav===key));}
+    const focusNode=n=>{const key=n.dataset.workspacePanel;if(key&&!classic)revealPanel(key);n.scrollIntoView({block:'nearest'});n.querySelector('button:not([hidden]),select,input')?.focus({preventScroll:true});};
+    const showDistrict=mode=>{if(!classic)revealPanel(mode?'domain':'atlas');districtMode=mode;districtPage=0;domainCamera.reset();render();focusNode(districtBar);};
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
         slots:{resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,hint,toolbar],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
         actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>focusNode(tradeBlock.root),activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
+    if(!classic)revealPanel('domain');
     const legacyLink=html('button',ui.root,'scene-button game-ui-diagnostic',lang()==='fr'?'Commandes détaillées':'Detailed controls');legacyLink.type='button';
     legacyLink.addEventListener('click',()=>{legacy.open=!legacy.open;if(legacy.open)legacy.scrollIntoView({block:'start'});});
     const exit=html('button',contextControls,'scene-button',lang()==='fr'?'Déconnexion':'Sign out');exit.type='button';exit.dataset.gameExit='true';exit.addEventListener('click',()=>document.getElementById('logout').click());
@@ -680,7 +685,7 @@
     }
     async function loadInitialScene(){await loadMap();await readStages();districtMode=true;render();await readInventory();if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();}
     let initialLoad=false;
-    on('context',()=>{refreshShell();initialLoad=!classic&&Boolean(locationFields().world);});
+    on('context',()=>{refreshShell();if(!classic)revealPanel('domain');initialLoad=!classic&&Boolean(locationFields().world);});
     on('activity',d=>{
         ui.setBusy(d.busy);syncMirrors();
         if(d.busy){ui.setStatus(lang()==='fr'?'Synchronisation…':'Synchronizing…');return;}

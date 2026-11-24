@@ -31,7 +31,8 @@ while IFS= read -r -d '' rel; do
 done < <(git ls-files -z -- LICENSE.md NOTICE README.md composer.json \
   bin/ packages/core/src/ database/migrations/ games/ schemas/ docs/ \
   tools/m11-backup.sh tools/m11-restore-lab.sh \
-  public/.htaccess public/index.php public/play.html public/play.js public/play.css public/locale.js)
+  public/.htaccess public/index.php public/play.html public/play.js public/play.css public/locale.js \
+  public/world-scene.js public/world-scene.css public/game-ui.js public/game-ui.css public/game-ui-profiles.js public/game-art.js)
 mkdir -p "$STAGE/vendor" "$STAGE/public/client-dist"
 cp -- "$ROOT/vendor/autoload.php" "$STAGE/vendor/autoload.php"
 cp -R -- "$ROOT/vendor/composer" "$STAGE/vendor/composer"
