@@ -5,6 +5,7 @@ require __DIR__.'/../games/world-politics/src/WorldClockApi.php';
 require_once __DIR__.'/../games/world-politics/src/PoliticalRoster.php';
 require_once __DIR__.'/../games/world-politics/src/FrenchConstitutionalCrisis.php';
 require_once __DIR__.'/../games/world-politics/src/PdoFrenchSittingCalendarStore.php';
+require_once __DIR__.'/../games/world-politics/src/WorldTickRecoveryWorker.php';
 
 use Aeternum\WorldPolitics\{
     GeopoliticalActorRegistry,EconomicReferenceRegistry,
@@ -15,7 +16,7 @@ use Aeternum\WorldPolitics\{
     WorldClockCoordinator,WorldClockApi,EconomicPolicyPrincipal,
     FrenchConstitutionalCrisis,FrenchConstitutionalPrincipal,
     PdoFrenchConstitutionalStore,FrenchSittingAuthority,
-    FrenchSittingCalendar,PdoFrenchSittingCalendarStore
+    FrenchSittingCalendar,PdoFrenchSittingCalendarStore,WorldTickRecoveryWorker
 };
 
 function wp25(bool $condition,string $label):void
@@ -356,13 +357,19 @@ wp25($frStore->read($world)['state']['history'][0]['status']
         ==='adopted_by_assembly',
     'without any censure motion the French finance bill is adopted by Assembly after statutory window');
 
-$recoveredByWorker=$clock->resumePending($world);
-wp25($recoveredByWorker!==null
-    && $recoveredByWorker['status']===200
-    && $recoveredByWorker['result']['committed_day']===$targetDay,
-    'new WP27 worker resumes exactly the saved world tick without original client idempotency key');
-wp25($clock->resumePending($world)===null,
-    'worker reports no pending task after completed world tick rather than replaying another advancement');
+$worker=new WorldTickRecoveryWorker($connect(),
+    static fn(string $targetWorld):WorldClockCoordinator=>
+        $targetWorld===$world
+            ?$clock
+            :throw new \DomainException('No trusted coordinator for this world')
+);
+$recoveredByWorker=$worker->runOnce(5);
+wp25(count($recoveredByWorker)===1
+    && $recoveredByWorker[0]['status']==='recovered'
+    && $recoveredByWorker[0]['committed_day']===$targetDay,
+    'trusted WP27 worker resumes a saved tick without original client idempotency key');
+wp25($worker->runOnce(5)===[] && $clock->resumePending($world)===null,
+    'bounded WP27 recovery queue is empty after all audited checkpoints publish the day');
 $api=new WorldClockApi($clock);
 $url='/api/v1/worlds/'.$world.'/clock';
 $resumed=$api->handle('POST',$url.'/advances',[
