@@ -129,3 +129,15 @@ Un simulateur avec des tests verts n'est pas encore un jeu jouable en production
 - `tests/wp25-fr-parliament-world-clock-db.php` : régression de l'horloge mondiale avec un calendrier français épinglé.
 
 Les dates de séance utilisées en test sont **fictives et explicitement identifiées**, pas des archives réelles de l'Assemblée.
+
+## WP27 — admission concurrente mondiale et reprise
+
+- `src/WorldMutationFence.php` et `database/013_world_mutation_fences.sql` : barrière InnoDB par monde, prise et libération atomiques avec l'intention d'horloge, contrôles de l'identité du scheduler et du jour exact.
+- Les magasins de diplomatie, organisations, économie, politique, institutions, France constitutionnelle, société, calendrier de séances et l'outbox des sanctions contrôlent désormais cette barrière avant leurs écritures.
+- `src/WorldClockCoordinator.php::resumePending` et `src/WorldTickRecoveryWorker.php` : reprise de commandes d'horloge interrompues sans clé d'idempotence brute du client, par services de confiance uniquement.
+- `tests/wp27-world-mutation-fence-db.php` : contention MariaDB entre deux connexions, isolement par monde, droits, crash/reprise et détection de corruption.
+- `tests/wp25-fr-parliament-world-clock-db.php` : tests croisés sur vraie saga multinationale avec décisions ordinaires refusées puis reprises.
+- `database/014_wp27_backfill_coherent_worlds_maintenance_only.sql` : script facultatif de mise à niveau des mondes **déjà cohérents**, à exécuter uniquement après suspension de toutes les écritures et sauvegarde.
+- Documentation détaillée : `docs/WORLD_POLITICS_WORLD_FENCE.md`.
+
+La version ne lance ni serveur HTTP public ni worker permanent. Les garanties couvrent les écritures passant par les adaptateurs du jeu et doivent être renforcées par les permissions SQL en production.

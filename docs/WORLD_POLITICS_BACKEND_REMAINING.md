@@ -129,3 +129,21 @@ Ce jalon ne signifie pas « calendrier officiel français complet ». Les jours 
 **Prochain jalon recommandé — WP27 :** verrou/ordonnanceur de monde et protections de cohérence transactionnelle pour les ordres concurrents des joueurs, des administrations et des IA pendant une saga d'avancement de date. Le jeu doit empêcher que des actes de diplomatie, des nominations ou des effets économiques surviennent au mauvais état de monde. Ensuite WP28 : assemblée, députés, opposition et coalitions IA.
 
 L'état du back-end reste **prototype non déployé** : ces améliorations ne fournissent ni serveur HTTP public, ni authentification de comptes réels, ni monde complet de 193 États, ni IA et économie calibrées.
+
+## WP27 livré — admission concurrente et reprise des horloges mondiales
+
+Le verrou interdomaines n'est plus uniquement une priorité théorique. WP27 a été réalisé avec `WorldMutationFence.php`, la migration `013_world_mutation_fences.sql`, l'intégration dans les magasins du jeu, `WorldTickRecoveryWorker.php` et les tests de concurrence MariaDB.
+
+Les écritures d'un monde dont le calendrier global est `advancing` sont refusées, sauf étape `clock` exécutée par le principal vérifié du coordinateur pour le jour précis en attente. L'écriture de l'intention d'avancement et la prise de barrière sont atomiques, tout comme sa libération et la publication du nouveau jour. Des verrous `SELECT FOR UPDATE` assurent l'exclusion entre les dernières décisions admises avant le changement de jour et sa prise d'effet.
+
+La récupération depuis la base, sans clé brute de client, est disponible avec `resumePending` et la file bornée `WorldTickRecoveryWorker`. **Ce ne sont pas encore un daemon installé, un ordonnanceur supervisé ni des garanties de transactions globalement atomiques.**
+
+Documentation détaillée : `docs/WORLD_POLITICS_WORLD_FENCE.md`.
+
+### Prochain jalon prioritaire : WP28
+
+Développer les députés, groupes parlementaires, majorités, abstentions, discipline de vote et coalitions, avec une opposition IA qui utilise les véritables procédures 49.1, 49.2 et 49.3 et leur calendrier. Ajouter la formation d'un nouveau Gouvernement après une censure, sans confondre démission et changement de régime.
+
+### Renforcement WP27 à différer jusqu'à l'architecture de production
+
+Rôles SQL minimaux et éventuels triggers d'audit, verrouillage de toutes les écritures hors adaptateurs, supervision des workers, logs et alertes, métriques de contention, tests de charge, migrations des parties antérieures et procédures d'exploitation. Ces points restent des **conditions de mise en production**, pas des fonctionnalités actuellement terminées.

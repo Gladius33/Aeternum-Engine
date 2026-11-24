@@ -99,3 +99,13 @@ Si une motion n'a pas encore reçu de créneau de vote approuvé et que le déla
 Le référentiel reste daté et source-labellisé. Les sources fictives du jeu ne deviennent jamais de fausses dates historiques. La protection persiste après redémarrage grâce au marqueur `sitting_calendar_required` inscrit sur le monde constitutionnel.
 
 `database/012_fr_sitting_calendar.sql` complète la migration 009 et ajoute les journaux du calendrier. Les tests WP26 vérifient les nouvelles interdictions ; le test mondial WP25 s'exécute aussi avec cette option activée.
+
+## WP27 — barrière d'écriture transactionnelle par monde
+
+La progression mondiale dispose désormais d'un verrou durable de commande, distinct du verrou SQL du registre des dates. L'entrée de chaque commande de joueur, d'administration ou d'IA est sérialisée par `SELECT ... FOR UPDATE` avant le chargement de l'agrégat et l'éventuel rejeu d'un reçu d'idempotence.
+
+L'intention d'avancement et la barrière sont prises dans une seule transaction MariaDB ; la publication du jour cohérent et la libération de la barrière le sont également. Seules les opérations internes d'horloge correspondant au contrôleur et au jour enregistrés sont admises pendant la transition.
+
+`WorldClockCoordinator::resumePending` et `WorldTickRecoveryWorker` assurent une reprise bornée des mondes suspendus sans dépendre du client d'origine. Ces opérations restent internes au back-end ; aucun accès public ni tâche planifiée n'est déployé à ce stade.
+
+Voir `docs/WORLD_POLITICS_WORLD_FENCE.md` pour les invariants de sécurité, les scénarios de concurrence, les limites et la migration d'anciennes parties.
