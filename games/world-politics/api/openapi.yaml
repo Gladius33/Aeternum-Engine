@@ -623,6 +623,44 @@ paths:
         '422': { $ref: '#/components/responses/invalid' }
         '428': { $ref: '#/components/responses/missingPrecondition' }
 
+  /worlds/{world}/organizations/ai/decisions:
+    post:
+      tags: [Organizations]
+      operationId: executeAutonomousOrganizationVotes
+      description: >
+        Trusted non-player service principal only. A configurable fictional
+        scenario policy evaluates open votes. It never represents the
+        documented intentions of a real government and cannot ratify membership.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [voter, policy]
+              properties:
+                voter: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                policy:
+                  type: string
+                  enum: [cautious, cooperative, consensus_seeking]
+      responses:
+        '200':
+          description: NPC voting decisions admitted by the same transaction gate as player votes
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
 components:
   securitySchemes:
     bearerAuth:

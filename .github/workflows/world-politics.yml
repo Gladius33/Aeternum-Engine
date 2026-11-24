@@ -41,6 +41,7 @@ jobs:
             abort "Missing diplomacy schema" unless d["paths"].key?("/worlds/{world}/diplomacy/proposals")
             abort "Missing candidate schema" unless d.dig("components","schemas","CharacterCreate")
             abort "Missing organization API routes" unless d["paths"].key?("/worlds/{world}/organizations/{organization}/votes")
+            abort "Missing NPC voting endpoint" unless d["paths"].key?("/worlds/{world}/organizations/ai/decisions")
             puts "PASS OpenAPI 3.1: syntax, required paths and DTOs"
           ' games/world-politics/api/openapi.yaml
       - name: Reviewed geopolitical statuses and deterministic diplomacy
@@ -83,6 +84,7 @@ jobs:
           php tests/wp07-institutional-rest-db.php
           php tests/wp08-diplomacy-db.php
           php tests/wp10-organization-rest-db.php
+          php tests/wp11-organization-ai-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4

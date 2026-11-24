@@ -87,3 +87,31 @@ statuts d'observateur, procédures d'approbation spécifiques
 et validation juridique. Puis le moteur pourra être raccordé
 au journal MariaDB et à l'API REST sans dépendre d'un client
 graphique.
+
+## WP10/WP11 — stockage transactionnel et IA des organisations
+
+Le back-end World Politics (branche du jeu uniquement) comprend désormais :
+
+- database/004_organizations.sql : état mondial, reçus et journal InnoDB.
+- PdoOrganizationStore.php : transactions sérialisées par monde, contrôle d'identité, snapshot et chartes épinglés.
+- PdoOrganizationApi.php : contrat REST JSON versionné, sans serveur HTTP public.
+- AutonomousOrganizationPlanner.php : propositions de votes d'IA soumises aux mêmes pouvoirs et autorisations que les humains.
+- tests/wp10-organization-rest-db.php : adhésion/vote/ratification/retrait, reprise, isolation et corruptions.
+- tests/wp11-organization-ai-db.php : vote d'IA, prévention d'usurpation et rejouabilité.
+
+Routes :
+
+- GET /api/v1/worlds/{world}/organizations
+- GET /api/v1/worlds/{world}/organizations/{organization}
+- POST /api/v1/worlds/{world}/organizations/{organization}/applications
+- POST /api/v1/worlds/{world}/organizations/{organization}/votes
+- POST /api/v1/worlds/{world}/organizations/{organization}/formalizations
+- POST /api/v1/worlds/{world}/organizations/{organization}/withdrawals
+- POST /api/v1/worlds/{world}/organizations/clock
+- POST /api/v1/worlds/{world}/organizations/ai/decisions
+
+Les stratégies de vote cautious, cooperative et consensus_seeking sont des paramètres fictionnels et non des prédictions des décisions de dirigeants réels.
+Chaque vote automatisé utilise un principal de service vérifié et la frontière de commande du moteur.
+Une approbation ne produit pas immédiatement une adhésion juridiquement effective.
+
+Limites : pas encore de serveur HTTP public, de contrôle réel des jetons, de pagination des bulletins privés, de calibration des chartes des organisations véritables, ni de modèle macroéconomique.
