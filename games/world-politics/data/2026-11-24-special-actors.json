@@ -1,0 +1,85 @@
+{
+  "version": "2026-11-24-wp06-initial",
+  "observation_date": "2026-11-24",
+  "disclaimer": "Public-source metadata, not a claim to real-time operational knowledge. No military stockpiles or nuclear weaponization asserted.",
+  "entities": [
+    {
+      "id": "authority_pa",
+      "label": "Autorité palestinienne",
+      "iso2": "PS",
+      "kind": "governing_authority",
+      "un_status": "not_applicable",
+      "parent_id": "state_ps",
+      "controller": "ai_only",
+      "representation": "local_administrative_interlocutor",
+      "sources": [
+        "https://www.un.org/unispal/document/auto-insert-187149/",
+        "https://www.un.org/unispal/document/summary-of-the-icj-order-icj-19jul24/"
+      ],
+      "strategic_programmes": []
+    },
+    {
+      "id": "state_il",
+      "label": "Israël",
+      "iso2": "IL",
+      "kind": "state",
+      "un_status": "un_member",
+      "parent_id": null,
+      "controller": "ai_only",
+      "representation": "international_state_actor",
+      "sources": [
+        "https://www.un.org/en/about-us/member-states"
+      ],
+      "strategic_programmes": []
+    },
+    {
+      "id": "state_ir",
+      "label": "Iran",
+      "iso2": "IR",
+      "kind": "state",
+      "un_status": "un_member",
+      "parent_id": null,
+      "controller": "ai_only",
+      "representation": "international_state_actor",
+      "sources": [
+        "https://www.un.org/en/about-us/member-states"
+      ],
+      "strategic_programmes": [
+        {
+          "id": "ballistic_missile_program",
+          "status": "publicly_documented",
+          "quantified_operational_capacity": null,
+          "verification": "independent_open_source_estimate_not_operational_intelligence",
+          "sources": [
+            "https://missilethreat.csis.org/country/iran/"
+          ]
+        },
+        {
+          "id": "nuclear_program",
+          "status": "publicly_documented",
+          "quantified_operational_capacity": null,
+          "verification": "international_safeguards_reporting_with_limitations",
+          "sources": [
+            "https://www.gov.uk/government/speeches/quad-statement-to-iaea-board-of-governors-november-2026",
+            "https://ola.iaea.org/Applications/FactSheets/Country/Detail?code=IR"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "state_ps",
+      "label": "État de Palestine",
+      "iso2": "PS",
+      "kind": "state",
+      "un_status": "non_member_observer_state",
+      "parent_id": null,
+      "controller": "ai_only",
+      "representation": "international_state_actor_with_distinct_authorities",
+      "sources": [
+        "https://www.un.org/en/about-us/non-member-states",
+        "https://www.un.org/unispal/document/auto-insert-187149/"
+      ],
+      "strategic_programmes": []
+    }
+  ]
+}
