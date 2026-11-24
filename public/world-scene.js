@@ -455,7 +455,7 @@
         const resourceStrip=html('div',hud,'scene-resource-strip');
         const current=locationFields().resource;
         for(const option of [...balance.elements.resource.options].slice(0,16)){
-            const key=option.value,d=inventory.get(key)??(reading?.resource===key?reading.data:null);
+            const key=option.value,d=(reading?.resource===key?reading.data:null)??inventory.get(key);
             const tile=html('button',resourceStrip,'scene-resource-tile');tile.type='button';tile.dataset.resourceTile=key;
             tile.setAttribute('aria-pressed',String(key===current));tile.setAttribute('aria-label',displayName(key)+' · '+t('selectResource'));
             resourceIcon(tile,key);
@@ -465,7 +465,7 @@
             tile.addEventListener('click',()=>selectResource(key));
         }
         const economy=html('div',hud,'scene-economy-actions');
-        const active=inventory.get(current)??(reading?.resource===current?reading.data:null);
+        const active=(reading?.resource===current?reading.data:null)??inventory.get(current);
         if(active){
             const level=html('span',economy,'scene-caption',t('resourceLevel')+' '+active.level+(active.pending?' · '+t('pendingUpgrade'):''));
             level.dataset.resourceLevel=String(active.level);
