@@ -916,8 +916,14 @@ components:
         countries:
           type: array
           uniqueItems: true
-          description: Canonical pinned list of constitutional models activated in this world.
-          items: { type: string, pattern: '^[A-Z]{2}
+          description: Pinned country rulebook list for active national clocks.
+          items: { type: string, pattern: '^[A-Z]{2}$' }
+        completed_country_clocks:
+          type: array
+          uniqueItems: true
+          description: National clocks already advanced during a pending tick.
+          items: { type: string, pattern: '^[A-Z]{2}$' }
+        coherent: { type: boolean }
     Identifier:
       type: string
       pattern: '^[a-z][a-z0-9_-]{0,63}$'
