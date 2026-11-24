@@ -6,9 +6,7 @@ CREATE TABLE IF NOT EXISTS wp_world_clock_countries (
   country_code CHAR(2) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   PRIMARY KEY(world_id,country_code),
   CONSTRAINT wp_clock_country_world_fk FOREIGN KEY(world_id)
-    REFERENCES wp_world_clock(world_id),
-  CONSTRAINT wp_clock_country_institution_fk FOREIGN KEY(world_id,country_code)
-    REFERENCES wp_institutional_states(world_id,country_code)
+    REFERENCES wp_world_clock(world_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS wp_world_clock_country_steps (
