@@ -28,3 +28,6 @@ Le workflow G08 construit exactement la même image, exécute un vrai login et c
 
 ## Revue visuelle G07 et correction G08
 Les captures authentiques des runs 45361585935 et 45361585980 montrent une scène identifiable mais un écran trop long (2364–2823 pixels en capture PC). Le mode normal affiche maintenant un seul panneau de travail, selon la navigation ; la scène et le HUD restent accessibles. Le mode classic conserve la totalité des panneaux pour les scénarios historiques. Les commandes de l'inspecteur ouvrent directement les nouveaux panneaux.
+
+## Adversaires automatisés (G09)
+Dix bots par monde, trente au total, avec identités et mots de passe indépendants conservés dans un volume privé. Quatre profils déterministes : bâtisseur, producteur, marchand, équilibré. Le service `bots` décide toutes les 30 secondes via les mêmes API et sessions que les humains. Construction, économie, progression médiévale/industrielle et troc Guild. Le tableau présente uniquement leurs synthèses volontaires, sans identifiants internes ni secrets. Pause : `docker compose -f compose.lab.yml stop bots` ; reprise : `docker compose -f compose.lab.yml start bots`. Rapport ancien après 90 secondes. Agents à règles, pas un LLM ni une IA auto-apprenante. Ne pas exposer le laboratoire sur Internet.

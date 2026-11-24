@@ -25,7 +25,9 @@ RUN composer dump-autoload --no-interaction --no-dev --classmap-authoritative \
     && mkdir -p /etc/aeternum-lab
 COPY lab/apache.conf /etc/apache2/sites-available/aeternum-lab.conf
 RUN a2dissite 000-default && a2ensite aeternum-lab
-COPY lab/registry.php lab/init.sh lab/worker.sh lab/web.sh ./lab/
+COPY lab/registry.php lab/init.sh lab/worker.sh lab/web.sh lab/bots.php lab/bot-policy.php lab/bot-policy.sha256 ./lab/
+RUN mkdir -p /var/lib/aeternum-bot-secrets /var/lib/aeternum-bot-public /opt/aeternum/public/lab-bots && chmod 700 /var/lib/aeternum-bot-secrets && chmod 755 /var/lib/aeternum-bot-public \
+    && test "$(sha256sum lab/bot-policy.php | cut -d' ' -f1)" = "$(cat lab/bot-policy.sha256)" && php -l lab/bots.php && php -l lab/bot-policy.php
 RUN chmod 755 lab/init.sh lab/worker.sh lab/web.sh \
     && php lab/registry.php /etc/aeternum-lab/worlds.json \
     && chmod 644 /etc/aeternum-lab/worlds.json \
