@@ -31,6 +31,17 @@ jobs:
         run: php tests/wp01-rest-contract.php
       - name: Quick and detailed candidate template acceptance
         run: php tests/wp02-profile-template.php
+      - name: Validate OpenAPI 3.1 structure
+        run: |
+          ruby -ryaml -e '
+            d = YAML.load_file(ARGV.fetch(0))
+            abort "Missing OpenAPI 3.1" unless d["openapi"] == "3.1.0"
+            abort "Missing REST paths" unless d["paths"].is_a?(Hash) && d["paths"].size >= 12
+            abort "Missing components" unless d["components"].is_a?(Hash)
+            abort "Missing diplomacy schema" unless d["paths"].key?("/worlds/{world}/diplomacy/proposals")
+            abort "Missing candidate schema" unless d.dig("components","schemas","CharacterCreate")
+            puts "PASS OpenAPI 3.1: syntax, required paths and DTOs"
+          ' games/world-politics/api/openapi.yaml
       - name: Reviewed geopolitical statuses and deterministic diplomacy
         run: php tests/wp06-diplomacy.php
       - name: Constitutional domain and country selection WP05
@@ -67,6 +78,7 @@ jobs:
           php tests/wp04-rest-db.php
           php tests/wp06-institutions-db.php
           php tests/wp07-institutional-rest-db.php
+          php tests/wp08-diplomacy-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4
