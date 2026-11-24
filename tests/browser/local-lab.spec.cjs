@@ -8,7 +8,10 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
         const context=await browser.newContext({ignoreHTTPSErrors:true});
         try{
             const page=await context.newPage();
+            const artResponse=page.waitForResponse(r=>r.url()===origin+'/living-art.js');
             await page.goto(origin+'/play.html');
+            expect((await artResponse).status(),'G13 asset must be served by the actual lab image').toBe(200);
+            await expect.poll(()=>page.evaluate(()=>typeof window.AeternumLivingArt?.site)).toBe('function');
             await expect(page.locator('[data-choose-game]')).toHaveCount(3);
             if(pack==='medieval'){
                 for(const [device,width,height] of [['desktop',1440,900],['mobile',390,844]]){
@@ -59,6 +62,8 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             const commandBar=page.locator('.district-command');
             await expect(commandBar).toBeVisible();
             await expect(commandBar).toHaveAttribute('data-stage','foundation');
+            await expect(building.locator('[data-living-site]')).toHaveCount(0);
+            await expect(page.locator('.living-economy[data-activity]')).toHaveCount(0);
             await expect(commandBar.locator('.district-command-cost')).not.toHaveCount(0);
             await expect(building.locator('.district-stage-marker[data-stage=foundation]')).toBeAttached();
             const primary=commandBar.locator('[data-district-command=primary]');
@@ -75,6 +80,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
             await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await expect(building.locator('.district-stage-marker[data-stage=built]')).toBeAttached();
+            await expect(building.locator('[data-living-site='+type+']')).toHaveCount(1);
             await expect(commandBar).toHaveAttribute('data-stage','built');
             await expect(page.locator('[data-mission-step=next]')).toBeVisible();
             for(const width of [390,1440]){
@@ -108,6 +114,8 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 const welcomedReply=await welcomed;expect(welcomedReply.status(),await welcomedReply.text()).toBe(200);
                 await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
                 await expect(page.locator('[data-domain-action=work]')).toBeEnabled();
+                await expect(page.locator('.living-economy')).toHaveAttribute('data-activity','settlement.feed');
+                await expect(page.locator('[data-living-metric=population] strong')).toHaveText('2 / 4');
             }
             const actionType={medieval:'settlement.work',industrial:'industry.generate',guild:'market.create'}[pack];
             const actionKey={medieval:'work',industrial:'generate',guild:'trade'}[pack];
@@ -129,6 +137,14 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             }
             await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await page.locator('[data-game-nav=domain]').click();
+            const living=page.locator('.living-economy');
+            await expect(living).toHaveAttribute('data-activity',actionType);
+            await expect(living.locator('[data-living-event]')).toHaveCount(1);
+            await expect(page.locator('.scene-district [data-living-event="'+actionType+'"]')).toHaveCount(1);
+            await page.emulateMedia({reducedMotion:'reduce'});
+            await expect(living.locator('.living-art-motion').first()).toHaveCSS('animation-name','none');
+            await captureScene(page,'g13-'+pack+'-living-economy');
+            await page.emulateMedia({reducedMotion:'no-preference'});
             await captureScene(page,'local-'+pack+'-productive-domain');
             await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             await page.locator('[data-game-nav=construction]').click();

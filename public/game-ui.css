@@ -196,3 +196,26 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 @keyframes district-pending-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.district-pending-ring{animation:none}}
 @media(max-width:640px){#world-scene .district-command{grid-template-columns:76px minmax(0,1fr);gap:.5rem;padding:.55rem}.district-command-buttons{grid-column:1/-1;flex-direction:row}.district-command-primary{flex:1}.district-command-dismiss{padding:.4rem .75rem}}
+
+/* G13: original event vignettes and economy readings, separate from simulation. */
+#world-scene .living-economy[hidden],.living-economy-art[hidden]{display:none}
+#world-scene .living-economy{margin:.65rem 0;padding:.7rem .8rem;border-radius:10px;border:1px solid #ffffff28;background:linear-gradient(115deg,var(--ui-surface),var(--ui-bg));color:var(--ui-ink)}
+.living-economy-heading{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.25rem .8rem}
+.living-economy-heading h3{font:600 1.12rem Georgia,serif;letter-spacing:.01em;color:var(--ui-accent);margin:0}
+.living-economy-scope{font-size:.73rem;color:var(--ui-muted)}
+.living-economy-content{display:flex;align-items:center;gap:.75rem;min-width:0;margin-top:.45rem}
+.living-economy-art{width:156px;max-width:33%;flex:none;background:radial-gradient(ellipse at 50% 58%,#cbbb8240,#19242d30 75%);border:1px solid #ffffff16;border-radius:9px}
+.living-economy-text{min-width:0;flex:1}
+.living-economy-event{font-size:.86rem;font-weight:600;color:var(--ui-ink);margin:0 0 .45rem}
+.living-economy[data-activity] .living-economy-event{color:#c9e4b2}
+.living-economy-metrics{display:flex;flex-wrap:wrap;gap:.4rem}
+.living-metric{display:grid;gap:.1rem;background:#0b151e65;border:1px solid #ffffff16;border-radius:6px;padding:.35rem .55rem;min-width:0;flex:1 1 85px}
+.living-metric small{font-size:.7rem;color:var(--ui-muted);overflow-wrap:anywhere}
+.living-metric strong{font-size:1rem;color:var(--ui-accent);font-variant-numeric:tabular-nums}
+.living-art-motion{transform-box:fill-box;transform-origin:center}
+.living-art-pulse{animation:living-art-pulse .8s ease-in-out 5 alternate}
+.living-art-swing{animation:living-art-swing .8s ease-in-out 5 alternate}
+@keyframes living-art-pulse{from{opacity:.65}to{opacity:1}}
+@keyframes living-art-swing{from{opacity:.72}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.living-art-motion{animation:none!important}}
+@media(max-width:640px){#world-scene .living-economy{padding:.6rem}.living-economy-content{gap:.4rem}.living-economy-art{width:96px}.living-metric{padding:.3rem;flex-basis:72px}.living-metric strong{font-size:.86rem}}

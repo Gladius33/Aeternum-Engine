@@ -56,7 +56,7 @@
     let theme='neutral',territories=new Map(),buildings=new Map(),details=new Map(),links=new Map(),route=[],selected=null,camera={x:0,y:0,z:1},extent={w:900,h:460},drag=null;
     const header=html('div',host,'scene-header'),title=html('h3',header,'scene-title'),summary=html('p',header,'scene-summary');
     const hud=html('div',host,'scene-hud');
-    let reading=null,campaign=null,marketReading=null,stale=false;
+    let reading=null,campaign=null,marketReading=null,stale=false,lastEconomicEvent=null;
     let inventory=new Map(),catalogue={sites:[],types:[]},chosenSite='',chosenType='',offers=[],offerMore=false,chosenOffer='',receipts=[];
     const actionLabels={
         'building.place':['Foundation established','Fondation établie'],
@@ -106,6 +106,9 @@
             next.set(stage.id,{...b,...(old?.level===stage.level&&old?.pending===stage.pending?old:{}),...stage});
         }
         details=next;render();
+        // A selected building's command form must follow real worker completion.
+        const updated=currentBuilding?next.get(currentBuilding.id):null;
+        if(updated&&currentBuilding.account===f.account&&(updated.level!==currentBuilding.level||Boolean(updated.pending)!==Boolean(currentBuilding.pending)))await loadBuilding();
     }
     const campaignButton=button(toolbar,'campaignSync',()=>{
         const id=theme==='medieval'?'medieval-check':theme==='industrial'?'industrial-check':'progression-load';
@@ -207,6 +210,50 @@
             }else districtPrimary.hidden=true;
             districtCommandHint.textContent=label('Confirmed building state.','État du bâtiment confirmé.');
         }
+    }
+    const livingScene=html('section',host,'living-economy');livingScene.hidden=true;
+    livingScene.setAttribute('aria-labelledby','living-economy-title');
+    const livingHead=html('div',livingScene,'living-economy-heading');
+    const livingTitle=html('h3',livingHead,'');livingTitle.id='living-economy-title';
+    const livingScope=html('span',livingHead,'living-economy-scope');
+    const livingContent=html('div',livingScene,'living-economy-content');
+    const livingVignette=el('svg',{viewBox:'0 0 160 90','aria-hidden':'true',class:'living-economy-art'},livingContent);
+    const livingText=html('div',livingContent,'living-economy-text');
+    const livingEvent=html('p',livingText,'living-economy-event');livingEvent.setAttribute('aria-live','polite');
+    const livingMetrics=html('div',livingText,'living-economy-metrics');
+    let renderedEventId=null;
+    function renderLivingScene(){
+        livingScene.hidden=classic||!selectedGame||!districtMode||theme==='neutral'||!districtId;
+        if(livingScene.hidden)return;
+        const fr=lang()==='fr',label=(en,frText)=>fr?frText:en;
+        livingTitle.textContent={medieval:label('Village life','Vie du village'),industrial:label('Industrial operations','Activité industrielle'),guild:label('Merchant activity','Activité marchande')}[theme];
+        livingScope.textContent=label('Account-wide · server readings','Compte entier · relevés serveur');
+        const evt=lastEconomicEvent,meta=evt?window.AeternumLivingArt.eventTypes[evt.type]:null;
+        const hasEvent=Boolean(meta&&meta.theme===theme);
+        livingVignette.toggleAttribute('hidden',!hasEvent);
+        if(hasEvent){
+            livingScene.dataset.activity=evt.type;
+            livingEvent.textContent=(actionLabels[evt.type]?.[fr?1:0]??t('receipt'))+' · '+label('confirmed','confirmée');
+            if(renderedEventId!==evt.id){
+                livingVignette.replaceChildren();
+                window.AeternumLivingArt.event(el('g',{transform:'translate(80 51) scale(1.25)'},livingVignette),evt.type);
+                renderedEventId=evt.id;
+            }
+        }else{
+            delete livingScene.dataset.activity;livingEvent.textContent=label('No confirmed economic action in this session yet.','Aucune action économique confirmée dans cette session.');
+            livingVignette.replaceChildren();renderedEventId=null;
+        }
+        livingMetrics.replaceChildren();
+        const metric=(key,name,value)=>{const a=html('div',livingMetrics,'living-metric');a.dataset.livingMetric=key;html('small',a,'',name);html('strong',a,'',String(value));};
+        if(campaign?.kind==='medieval'){
+            const d=campaign.data;metric('population',label('Residents','Habitants'),d.population+' / '+d.capacity);metric('workers',label('Workers','Travailleurs'),d.workers);metric('yield',label('Wood per shift','Bois par coupe'),d.workYield);
+        }else if(campaign?.kind==='industrial'){
+            const d=campaign.data;metric('grid',label('Grid supply / load','Offre / charge réseau'),d.grid.supply+' / '+d.grid.load);metric('surplus',label('Spare power','Énergie disponible'),d.grid.surplus);metric('freight',label('Goods delivered','Biens livrés'),d.delivery.current+' / '+d.delivery.required);
+        }else if(theme==='guild'&&marketReading!==null){
+            metric('offers',label('Offers on loaded page','Offres sur la page chargée'),marketReading);
+            metric('own-offers',label('Your offers on this page','Vos offres sur cette page'),offers.filter(o=>o.seller===locationFields().account).length);
+        }
+        if(!livingMetrics.childElementCount)html('span',livingMetrics,'living-economy-scope',label('Waiting for a server reading.','En attente d’un relevé serveur.'));
     }
     const nav=html('div',host,'scene-toolbar');
     const jump=id=>{const node=document.getElementById(id);if(node&&!node.hidden){const legacy=node.closest('.game-ui-legacy');if(legacy)legacy.open=true;node.scrollIntoView({block:'start'});const focus=node.querySelector('button:not([hidden]),input,select');focus?.focus({preventScroll:true});}};
@@ -652,8 +699,9 @@
         pagePrev.hidden=pageNext.hidden=true;
         districtZoomIn.hidden=districtZoomOut.hidden=districtReset.hidden=!districtMode;
         districtCaption.textContent=classic?t('districtNote')+' · '+t('cameraHelp'):(lang()==='fr'?'Cliquez sur un bâtiment pour agir. Glissez pour explorer.':'Select a building to act. Drag to explore.');
-        if(!districtMode){districtCommand.hidden=true;return;}
+        if(!districtMode){districtCommand.hidden=true;livingScene.hidden=true;return;}
         if(!ids.includes(districtId)){districtId=ids[0]??'';districtPage=0;}
+        renderLivingScene();
         const mobile=narrow.matches,w=mobile?360:900,h=mobile?(selectedGame?490:650):510,limit=mobile?4:6;
         const owned=[...buildings.values()].filter(b=>b.territory===districtId);
         districtPage=Math.min(districtPage,Math.max(0,Math.ceil(owned.length/limit)-1));
@@ -724,6 +772,17 @@
                 }else if(theme==='guild'){
                     crate(-40,6,'#d2af75');crate(26,7,'#bd935c');
                     for(const x of [-26,36]){ellipse(accent,x,10,4,3,'#765037');rect(accent,x-4,4,8,6,'#b47c45',{rx:2});line(accent,x-4,7,x+4,7,'#775031',1);}
+                }
+            }
+            if(d?.level>0){
+                window.AeternumLivingArt.site(art,b.type,d.level);
+                const evt=lastEconomicEvent,meta=evt?window.AeternumLivingArt.eventTypes[evt.type]:null;
+                // These commands operate on an account, not a specific plot. Only
+                // anchor the vignette if there is exactly one eligible structure;
+                // otherwise the account-wide panel alone depicts the action.
+                if(meta?.theme===theme&&meta.building===b.type&&[...buildings.values()].filter(x=>x.type===b.type&&(details.get(x.id)?.level??0)>0).length===1){
+                    const vignette=el('g',{transform:'translate(31 -8) scale(.42)',class:'living-map-event','aria-hidden':'true','pointer-events':'none'},art);
+                    window.AeternumLivingArt.event(vignette,evt.type);
                 }
             }
             if(d?.level>1){ // Actual level adds a visible annex rather than a number alone.
@@ -852,7 +911,7 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';receipts=[];territories.clear();buildings.clear();details.clear();links.clear();route=[];selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';receipts=[];lastEconomicEvent=null;territories.clear();buildings.clear();details.clear();links.clear();route=[];selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();route=[];selected=null;}for(const n of d.territories)territories.set(n.id,n);render();});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];render();});
@@ -861,7 +920,7 @@
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
     on('campaign',d=>{campaign=d;renderHud();renderWorkspace();renderDistrict();});
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();renderDistrict();updateSelection();});
-    on('confirmed',d=>{if(d.type==='building.place')referenceInput.value='';reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
+    on('confirmed',d=>{if(d.world===locationFields().world&&Object.hasOwn(window.AeternumLivingArt.eventTypes,d.type)&&lastEconomicEvent?.id!==d.id)lastEconomicEvent={id:d.id,type:d.type};if(d.type==='building.place')referenceInput.value='';reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
     on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();}});
     document.getElementById('locale-select').addEventListener('change',render);
@@ -957,7 +1016,7 @@
         missionGo.disabled=busy||(!building&&!type);
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
-        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,districtCommand,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,districtCommand,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
         actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
@@ -985,7 +1044,7 @@
         ui.setStatus(ok?'':(lang()==='fr'?'Action non terminée : ':'Action not completed: ')+friendly);
         if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
-    on('reset',()=>{initialLoad=false;ui.setStatus('');});
+    on('reset',()=>{initialLoad=false;lastEconomicEvent=null;livingScene.hidden=true;ui.setStatus('');});
     document.getElementById('locale-select').addEventListener('change',refreshShell);
     for(const key of Object.keys(mirrors))balance.elements[key].addEventListener('change',syncMirrors);
     // Existing Vue navigation opens the relevant advanced controls when requested.

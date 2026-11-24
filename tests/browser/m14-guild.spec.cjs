@@ -16,7 +16,10 @@ const worker=()=>{
 };
 
 async function signIn(page,login){
+    const artResponse=page.waitForResponse(r=>r.url()===origin+'/living-art.js');
     await page.goto(origin+'/play.html?view=classic');
+    expect((await artResponse).status(),'G13 asset must be allowed by the browser router').toBe(200);
+    await expect.poll(()=>page.evaluate(()=>typeof window.AeternumLivingArt?.site)).toBe('function');
     await page.getByLabel('Login',{exact:true}).fill(login);
     for(let n=0;n<3;n++){
         await page.getByLabel('Password',{exact:true}).fill(password);
