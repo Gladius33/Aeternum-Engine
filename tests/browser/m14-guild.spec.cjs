@@ -29,6 +29,7 @@ async function signIn(page,login){
         await page.waitForTimeout(65000);
     }
     await expect(page.locator('#balance select[name=world]')).toHaveValue(world);
+    await expect(page.locator('#world-scene')).toHaveAttribute('data-theme','guild');
     const account=await page.locator('#balance select[name=account]').inputValue();
     expect(account).toMatch(/^[a-z0-9_-]{1,64}$/);
     await page.locator('#balance select[name=resource]').selectOption('spice');
@@ -71,6 +72,21 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
         expect(alice.account).not.toBe(bob.account);
         await expect(a.locator('select[name=resource] option[value=spice]')).toHaveCount(1);
         await build(a,'m14-guild-hall','market_hall',2);
+    await a.locator('#world-scene [data-label=sync]').click();
+    await expect(a.locator('#status')).toHaveText('Success');
+    const territory=a.locator('#world-scene [data-territory]').first();
+    await expect(territory).toBeVisible();
+    await territory.click();
+    await a.locator('#world-scene [data-label=from]').click();
+    await expect(a.locator('#map-location')).not.toHaveValue('');
+    await a.locator('#world-scene [data-label=zoomIn]').click();
+    await expect(a.locator('.scene-atlas')).not.toHaveAttribute('viewBox','0 0 900 460');
+    await a.locator('#world-scene [data-label=reset]').click();
+    await test.info().attach('guild-atlas-desktop',{body:await a.locator('#world-scene').screenshot(),contentType:'image/png'});
+    await a.setViewportSize({width:375,height:812});
+    await test.info().attach('guild-atlas-mobile',{body:await a.locator('#world-scene').screenshot(),contentType:'image/png'});
+    await a.setViewportSize({width:1280,height:800});
+        await expect(a.locator('[data-building=m14-guild-hall]')).toBeVisible();
         const steal=await b.request.post(url,{headers:{Authorization:bob.token},data:{
             id:'m14-guild-steal',type:'building.start',
             payload:{account:bob.account,building:'m14-guild-hall',type:'market_hall'}

@@ -1,0 +1,29 @@
+/* Original Aeternum presentation. No remote fonts, assets or inline styles. */
+main:has(#game:not([hidden])){max-width:78rem}
+#world-scene{--scene-accent:#b7d1c6;--scene-surface:#172a30;background:linear-gradient(145deg,#23363c,#111e25 65%);border:1px solid #52646a;border-radius:1rem;padding:clamp(.65rem,2vw,1.25rem);margin:1rem 0;box-shadow:0 12px 34px #0005;min-width:0}
+#world-scene[data-theme=medieval]{--scene-accent:#f2d39a;--scene-surface:#26372c;background:linear-gradient(145deg,#374c36,#162a24 65%)}
+#world-scene[data-theme=industrial]{--scene-accent:#ffd398;--scene-surface:#26333c;background:linear-gradient(145deg,#46515a,#18262f 65%)}
+#world-scene[data-theme=guild]{--scene-accent:#ffe0ab;--scene-surface:#44332b;background:linear-gradient(145deg,#684c37,#2c2624 65%)}
+.scene-header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.5rem 1rem}
+.scene-title{font:600 clamp(1.35rem,3vw,2.1rem) Georgia,serif;color:var(--scene-accent);margin:.2rem 0}
+.scene-summary,.scene-caption,.scene-info{font-size:.85rem;color:#e0e5e5;line-height:1.5;margin:.4rem 0}
+.scene-toolbar{display:flex;flex-wrap:wrap;gap:.3rem;margin:.6rem 0}
+#world-scene .scene-button{background:var(--scene-surface);color:#f2f5f3;border:1px solid #87928a;border-radius:.4rem;min-height:44px;padding:.55rem .75rem;margin:0;font-size:.9rem}
+#world-scene .scene-button:hover{border-color:var(--scene-accent);color:var(--scene-accent)}
+.scene-atlas{display:block;width:100%;height:clamp(240px,44vw,480px);border:1px solid #a9b6ac55;border-radius:.7rem;background:#243b3c;touch-action:none;cursor:grab}
+.scene-atlas:active{cursor:grabbing}
+.scene-territory{cursor:pointer;outline:none}
+.scene-territory:focus-visible,.scene-territory[aria-pressed=true]{filter:drop-shadow(0 0 4px #ffe0a0)}
+.scene-territory:focus-visible>polygon:first-of-type,.scene-territory[aria-pressed=true]>polygon:first-of-type{stroke:#ffe0a0;stroke-width:3}
+.scene-node-label{font:600 12px system-ui,sans-serif;fill:#fff}
+.scene-node-meta{font:10px system-ui,sans-serif;fill:#dce4df}
+.scene-empty{font:16px system-ui,sans-serif;fill:#fff}
+.scene-inspector{border:1px solid #8b9c8d66;background:var(--scene-surface);border-radius:.5rem;padding:.8rem;min-width:0}
+.scene-selection{color:var(--scene-accent)}
+.scene-holdings{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:.55rem}
+#world-scene .scene-holding{display:grid;justify-items:start;text-align:left;background:var(--scene-surface);border:1px solid #809083;border-radius:.6rem;color:#fff;margin:0;padding:.65rem;overflow-wrap:anywhere;min-width:0}
+.scene-holding svg{width:100%;height:88px;background:#101c2440;border-radius:.3rem}
+.scene-holding strong{color:var(--scene-accent);margin-top:.45rem}
+.scene-holding span,.scene-holding small{font-size:.78rem;color:#e0e5e5}
+.scene-holding[aria-pressed=true]{outline:2px solid var(--scene-accent)}
+@media(max-width:520px){.scene-atlas{height:260px}.scene-holdings{grid-template-columns:repeat(2,minmax(0,1fr))}#world-scene .scene-button{font-size:.8rem;padding:.45rem .55rem}.scene-header{display:block}}

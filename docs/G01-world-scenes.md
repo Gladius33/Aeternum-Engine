@@ -1,0 +1,3 @@
+# G01 — strategic scene increment
+
+Original SVG artwork is authored in `public/world-scene.js` and distributed under the repository licence; no external assets. Tiles are a schematic layout, not geographic coordinates. Illustrative scenery is not a claim of simulated residents, buildings or freight. Territory identifiers, kinds, control, links, path, and owned building records come from existing authenticated endpoints. Unknown building levels require inspection. Existing commands, rules and permissions remain authoritative. The three browser campaign suites now exercise the atlas and attach desktop/mobile screenshots. This is a first graphical increment, not G01–G09 certification or a release.

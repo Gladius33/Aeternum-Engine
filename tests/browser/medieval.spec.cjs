@@ -36,6 +36,7 @@ async function register(page,login) {
     }
     await expect(page.locator('#game')).toBeVisible();
     await expect(page.locator('#medieval-panel')).toBeVisible();
+    await expect(page.locator('#world-scene')).toHaveAttribute('data-theme','medieval');
     await expect(page.locator('#balance select[name=world]')).toHaveValue(world);
     return page.locator('#balance select[name=account]').inputValue();
 }
@@ -101,6 +102,21 @@ test('M05 two newly registered players complete an isolated browser colony campa
     await expect(a.locator('#medieval-details')).toContainText('Residents1 / 1');
     await expect(a.locator('#medieval-victory')).not.toContainText('VICTORY');
     await foundation(a,'lumberyard','m05-wood');
+    await a.locator('#world-scene [data-label=sync]').click();
+    await expect(a.locator('#status')).toHaveText('Success');
+    const territory=a.locator('#world-scene [data-territory]').first();
+    await expect(territory).toBeVisible();
+    await territory.click();
+    await a.locator('#world-scene [data-label=from]').click();
+    await expect(a.locator('#map-location')).not.toHaveValue('');
+    await a.locator('#world-scene [data-label=zoomIn]').click();
+    await expect(a.locator('.scene-atlas')).not.toHaveAttribute('viewBox','0 0 900 460');
+    await a.locator('#world-scene [data-label=reset]').click();
+    await test.info().attach('medieval-atlas-desktop',{body:await a.locator('#world-scene').screenshot(),contentType:'image/png'});
+    await a.setViewportSize({width:375,height:812});
+    await test.info().attach('medieval-atlas-mobile',{body:await a.locator('#world-scene').screenshot(),contentType:'image/png'});
+    await a.setViewportSize({width:1280,height:800});
+    await expect(a.locator('[data-building=m05-wood]')).toBeVisible();
     await expect(a.locator('.command-confirmed')).toContainText('Foundation placed');
     await a.getByLabel('Language').selectOption('fr');
     await expect(a.locator('.command-confirmed')).toHaveText('Action confirmée: Fondation créée');
