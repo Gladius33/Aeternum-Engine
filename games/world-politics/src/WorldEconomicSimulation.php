@@ -210,9 +210,9 @@ final class WorldEconomicSimulation
                 'model_assumption_bps'=>$policy['effect_bps'],
                 'low_assumption_bps'=>$policy['low_bps'],
                 'high_assumption_bps'=>$policy['high_bps'],
-                'central_usd'=>$base===null?null:intdiv($base*$policy['effect_bps'],10000),
-                'lower_usd'=>$base===null?null:intdiv($base*$policy['low_bps'],10000),
-                'upper_usd'=>$base===null?null:intdiv($base*$policy['high_bps'],10000),
+                'central_usd'=>$base===null?null:self::weightedUsd($base,$policy['effect_bps']),
+                'lower_usd'=>$base===null?null:self::weightedUsd($base,$policy['low_bps']),
+                'upper_usd'=>$base===null?null:self::weightedUsd($base,$policy['high_bps']),
                 'effective_on'=>$policy['effective_on'],
                 'does_not_change_recorded_gdp'=>true,
                 'not_a_forecast'=>true,
@@ -294,6 +294,16 @@ final class WorldEconomicSimulation
             throw new \InvalidArgumentException('Invalid game date');
         }
     }
+    /**
+     * Integer-only bps multiplication without overflowing 64-bit PHP when
+     * an administrator provides large but valid macroeconomic magnitudes.
+     */
+    private static function weightedUsd(int $base,int $bps):int
+    {
+        return intdiv($base,10000)*$bps
+            + intdiv(($base%10000)*$bps,10000);
+    }
+
     private static function bps(int $value):void
     {
         if ($value<0 || $value>10000) {
