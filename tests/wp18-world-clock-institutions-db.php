@@ -204,7 +204,7 @@ $partial=$clock->read($world);
 wp18($partial['state']['pending_day']===$target
     && $partial['state']['committed_day']==='2026-11-24'
     && $partial['state']['coherent']===false,
-    'global day stays old while a required country's date has not advanced');
+    'global day remains old while a required national clock has not advanced');
 wp18($orgStore->read($world)['state']['day']===$target
     && $institutions->read($world,'DE')['state']['day']==='2026-11-24',
     'organizations advanced but blocked German constitutional institution has not');
