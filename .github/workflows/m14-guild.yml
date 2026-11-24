@@ -91,3 +91,12 @@ jobs:
           path: |
             m14-guild-server.log
             test-results/
+
+      - name: Preserve strategic atlas screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g01-guild-atlas
+          retention-days: 7
+          if-no-files-found: ignore
+          path: browser-captures/*.png

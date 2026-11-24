@@ -56,6 +56,7 @@ async function loadMap(after=null) {
         item.textContent=territory.id+' — '+territory.location+' — '+territory.kind+' — '+territory.control;
         mapList.append(item);
     }
+    window.dispatchEvent(new CustomEvent('aeternum:territories',{detail:{territories:data.territories,append:after!==null}}));
     mapAfter=data.nextAfter;
     mapNext.hidden=mapAfter===null;
     mapNotice.textContent=data.territories.length?'Territories in this world.':'No territories on this page.';
@@ -72,6 +73,7 @@ async function loadMapLinks() {
         item.textContent=location+' → '+link.location+' (cost '+link.cost+')';
         mapLinks.append(item);
     }
+    window.dispatchEvent(new CustomEvent('aeternum:links',{detail:{location,neighbors:data.neighbors}}));
     if (!data.neighbors.length) {
         const item=document.createElement('li');
         item.textContent='No outgoing routes'; mapLinks.append(item);
@@ -89,6 +91,7 @@ async function loadShortestRoute() {
     const root='/v1/worlds/'+encodeURIComponent(world).replaceAll('%3A',':')+'/map';
     const data=await api(root+'/routes/'+encodeURIComponent(start)+'/'+encodeURIComponent(destination));
     if (world!==balance.elements.world.value) return;
+    window.dispatchEvent(new CustomEvent('aeternum:route',{detail:data.route}));
     document.querySelector('#map-route').textContent=data.route===null?
         'No directed route found.':data.route.locations.join(' → ')+' (cost '+data.route.cost+')';
 }
@@ -101,6 +104,7 @@ async function loadConstructionChoices() {
     const choices=await api(root+'/construction/options');
     if (world!==balance.elements.world.value) return;
     ownSiteOptions=choices.sites;
+    window.dispatchEvent(new CustomEvent('aeternum:buildings',{detail:choices}));
     options(document.querySelector('#foundation-site'),
         choices.sites.map(site=>[site.territory_id+'|'+site.entity_id,
             site.territory_id+' — '+site.entity_id]));
@@ -157,6 +161,7 @@ async function loadBuilding() {
     const building=await api(root+'/buildings/'+encodeURIComponent(id));
     if (world!==balance.elements.world.value) return;
     currentBuilding=building;
+    window.dispatchEvent(new CustomEvent('aeternum:building',{detail:building}));
     document.querySelector('#building-start').hidden=building.next===null || building.pending!==null;
     document.querySelector('#building-cancel').hidden=building.pending===null;
     document.querySelector('#building-claim').hidden=Object.keys(building.refundPending??{}).length===0;
@@ -375,7 +380,7 @@ function selectWorld() {
     progressionPanel.hidden=w?.progressionEnabled!==true;
     medievalPanel.hidden=w?.settlementEnabled!==true;
     industrialPanel.hidden=w?.industryEnabled!==true;
-    window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:w?.world??'',account:balance.elements.account.value}}));
+    window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:w?.world??'',account:balance.elements.account.value,theme:w?.settlementEnabled===true?'medieval':w?.industryEnabled===true?'industrial':w?.resources?.includes('spice')&&w?.resources?.includes('silver')?'guild':'neutral'}}));
 }
 async function discover() {
     const data=await api('/v1/me/worlds');
