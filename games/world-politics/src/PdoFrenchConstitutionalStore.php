@@ -22,6 +22,11 @@ final class PdoFrenchConstitutionalStore
         $this->pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES,false);
     }
 
+    public function principalId():string
+    {
+        return $this->principal->actorId();
+    }
+
     public function seed(FrenchConstitutionalCrisis $sim):void
     {
         $state=$sim->snapshot();

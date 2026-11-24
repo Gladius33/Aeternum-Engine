@@ -231,6 +231,55 @@ final class FrenchSocialDynamics
         return $record;
     }
 
+    /**
+     * Restore only an immutable, provenance-bearing assessment archive.
+     * The persistence adapter separately verifies its SHA-256 checksum.
+     */
+    public static function restore(array $state):self
+    {
+        self::fields($state,[
+            'world_id','version','sectors','history','cohort_sha'
+        ]);
+        if (!is_string($state['world_id'])
+            || $state['version']!==self::VERSION
+            || !is_array($state['sectors'])
+            || !is_array($state['history'])
+            || !is_string($state['cohort_sha'])
+            || count($state['history'])>5000) {
+            throw new \InvalidArgumentException('Invalid persisted social simulation');
+        }
+        $instance=new self($state['world_id'],array_values($state['sectors']));
+        if (!hash_equals($instance->cohortHash(),$state['cohort_sha'])) {
+            throw new \DomainException('Curated population cohort snapshot changed');
+        }
+        foreach ($state['history'] as $bill=>$report) {
+            self::id($bill);
+            if (!is_array($report)
+                || ($report['bill_id']??null)!==$bill
+                || ($report['world_id']??null)!==$state['world_id']
+                || ($report['classification']??null)!==
+                    'scenario_assumptions_not_survey_or_forecast'
+                || !is_string($report['scenario_sha']??null)
+                || !preg_match('/^[a-f0-9]{64}$/D',$report['scenario_sha'])
+                || !is_string($report['source_constitution_hash']??null)
+                || !preg_match('/^[a-f0-9]{64}$/D',$report['source_constitution_hash'])
+                || ($report['government_removed']??null)!==false
+                || ($report['regime_changed']??null)!==false
+                || !is_array($report['aggregate']??null)
+                || !is_array($report['cohorts']??null)) {
+                throw new \InvalidArgumentException('Corrupted or misclassified social scenario report');
+            }
+            $cohortKeys=array_keys($report['cohorts']);
+            sort($cohortKeys,SORT_STRING);
+            if ($cohortKeys!==array_keys($instance->sectors)) {
+                throw new \DomainException('Social report has unknown or missing professional sectors');
+            }
+        }
+        $instance->history=$state['history'];
+        ksort($instance->history,SORT_STRING);
+        return $instance;
+    }
+
     public function cohortHash():string
     {
         return hash('sha256',self::json([
