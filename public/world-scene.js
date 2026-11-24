@@ -107,7 +107,10 @@
             const old=details.get(stage.id);
             next.set(stage.id,{...b,...(old?.level===stage.level&&old?.pending===stage.pending?old:{}),...stage});
         }
-        details=next;stagesKnown=true;render();
+        // Observe a transition from a previously confirmed pending stage.
+        // Initial reads and repeated polls never play a completion cue.
+        const completed=[...next].some(([id,d])=>details.get(id)?.pending&&d.level>(details.get(id)?.level??0));
+        details=next;stagesKnown=true;if(completed)audio.cue('building.complete');render();
         // A selected building's command form must follow real worker completion.
         const updated=currentBuilding?next.get(currentBuilding.id):null;
         if(updated&&currentBuilding.account===f.account&&(updated.level!==currentBuilding.level||Boolean(updated.pending)!==Boolean(currentBuilding.pending)))await loadBuilding();
@@ -198,6 +201,53 @@
     const districtZoomOut=button(districtBar,'districtZoomOut',()=>domainCamera.zoom(.8));
     const districtReset=button(districtBar,'districtReset',()=>domainCamera.reset());
     const districtCaption=html('p',host,'scene-caption');
+    // Sound is opt-in and entirely client-side. It is never an economic signal
+    // until the existing server receipt or authoritative stage confirms it.
+    const soundPanel=html('details',host,'sound-panel');soundPanel.hidden=true;
+    const soundSummary=html('summary',soundPanel,'sound-summary');
+    const soundToggle=html('button',soundPanel,'scene-button');soundToggle.type='button';soundToggle.dataset.audioToggle='true';
+    const soundStatus=html('p',soundPanel,'sound-status');soundStatus.setAttribute('role','status');
+    const soundMix=html('div',soundPanel,'sound-mix');
+    const soundInputs={};
+    for(const key of ['music','ambience','effects']){
+        const label=html('label',soundMix,'sound-channel');
+        const title=html('span',label,'');
+        const input=html('input',label,'');input.type='range';input.min='0';input.max='100';input.step='5';input.dataset.audioVolume=key;
+        const value=html('span',label,'sound-value');
+        soundInputs[key]={title,input,value};
+        input.addEventListener('input',()=>audio.setVolume(key,Number(input.value)/100));
+    }
+    let audioStarting=false,soundVictory=false;
+    const soundSeen=new Set();
+    const audio=window.AeternumAudio.create({onChange:renderSound});
+    soundToggle.addEventListener('click',async()=>{
+        if(audioStarting)return;
+        if(audio.state().enabled){audio.disable();return;}
+        audioStarting=true;renderSound();
+        try{await audio.enable();}finally{audioStarting=false;renderSound();}
+    });
+    function renderSound(){
+        const fr=lang()==='fr',label=(en,f)=>fr?f:en,state=audio.state();
+        soundPanel.hidden=classic||!selectedGame||theme==='neutral';
+        soundSummary.textContent=label('Sound & music','Son et musique');
+        soundToggle.textContent=state.enabled?label('Mute all sound','Couper le son'):label('Enable sound','Activer le son');
+        soundToggle.disabled=audioStarting||!state.supported;
+        soundToggle.setAttribute('aria-pressed',String(state.enabled));
+        soundPanel.dataset.audioEnabled=String(state.enabled);
+        soundStatus.textContent=!state.supported?label('Web Audio is unavailable in this browser.','Web Audio est indisponible dans ce navigateur.'):state.error?label('Sound could not start. Try again.','Le son n’a pas pu démarrer. Réessayez.'):state.enabled?label('Original soundscape enabled. Paused when this tab is hidden.','Ambiance originale activée. Suspendue lorsque cet onglet est masqué.'):label('Silent until you enable sound.','Silencieux jusqu’à votre activation du son.');
+        const names={music:label('Music','Musique'),ambience:label('Ambience','Ambiance'),effects:label('Action sounds','Bruitages')};
+        for(const [key,{title,input,value}] of Object.entries(soundInputs)){
+            title.textContent=names[key];input.value=String(Math.round(state.volumes[key]*100));value.textContent=input.value+' %';
+        }
+    }
+    function soundReceipt(d){
+        if(typeof d.id!=='string'||soundSeen.has(d.id))return;
+        if(soundSeen.size>=256)soundSeen.delete(soundSeen.values().next().value);
+        soundSeen.add(d.id);audio.cue(d.type);
+    }
+    function soundVisibility(){audio.setVisible(!document.hidden);}
+    document.addEventListener('visibilitychange',soundVisibility);
+    window.addEventListener('pagehide',()=>audio.disable());
     const ambiencePanel=html('section',host,'ambience-panel');ambiencePanel.hidden=true;
     const ambienceTitle=html('h3',ambiencePanel,'ambience-title');ambienceTitle.id='ambience-title';
     ambiencePanel.setAttribute('aria-labelledby',ambienceTitle.id);
@@ -1279,7 +1329,7 @@
         a.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select('territory',territory.id);}});
     }
     function render(){
-        host.dataset.theme=theme; title.textContent=t(theme);renderAmbience();
+        host.dataset.theme=theme; title.textContent=t(theme);renderAmbience();renderSound();
         campaignButton.hidden=theme==='neutral'||(theme==='guild'&&document.getElementById('progression-panel').hidden);
         marketButton.hidden=theme==='neutral';
         for(const op of operations)op.control.hidden=op.pack!==theme;
@@ -1341,20 +1391,21 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');audio.reset();audio.setTheme(theme);soundVisibility();soundSeen.clear();soundVictory=false;reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();clearAtlasRoute();selected=null;}for(const n of d.territories)territories.set(n.id,n);render();queueMicrotask(renderAtlasPanel);});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];routeCost=d?.cost??null;routeRead=true;render();});
     on('buildings',d=>{catalogue={sites:d.sites,types:d.types};buildings=new Map(d.buildings.map(b=>[b.id,b]));for(const id of details.keys())if(!buildings.has(id))details.delete(id);render();});
     on('building',d=>{buildings.set(d.id,d);details.set(d.id,d);render();});
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
-    on('campaign',d=>{if(d.kind==='progression'){scoreReading=d.data;if(theme==='guild')campaign=d;}else campaign=d;campaignStale=false;renderHud();renderWorkspace();renderDistrict();});
+    on('campaign',d=>{if(d.kind==='progression'){scoreReading=d.data;if(theme==='guild')campaign=d;}else {campaign=d;const won=d.data?.victory?.achieved===true;if(won&&!soundVictory&&campaignStale)audio.cue('campaign.victory');soundVictory=won;}campaignStale=false;renderHud();renderWorkspace();renderDistrict();});
     on('rank',d=>{const f=locationFields();if(d.world!==f.world||d.account!==f.account)return;rankReading=d.data;renderWorkspace();});
     on('trade-history',d=>{const f=locationFields();if(d.transactions!==null&&(d.world!==f.world||d.account!==f.account))return;tradeHistory=d.transactions;tradeHistoryMore=d.more===true;renderCommerce();});
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();renderDistrict();updateSelection();});
     on('confirmed',d=>{
         const context={...locationFields(),theme};
         if(d.world!==context.world||d.account!==context.account)return;
+        soundReceipt(d);
         if(economicJournal.record(d,context)){lastEconomicEvent={id:d.id,type:d.type};selectedOperationId=d.id;}
         if(d.type==='building.place')referenceInput.value='';campaignStale=true;rankReading=null;reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
@@ -1452,7 +1503,7 @@
         missionGo.disabled=busy||(!building&&!type);
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
-        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,ambiencePanel,districtCommand,architecturalInspector,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        slots:{introduction:[mission],resources:[hud],context:[contextControls,soundPanel],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,ambiencePanel,districtCommand,architecturalInspector,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
         actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>{focusNode(objectiveBlock.root);if(theme==='guild'&&!busy&&!document.getElementById('progression-panel').hidden)document.getElementById('progression-load').click();},market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
@@ -1480,7 +1531,7 @@
         ui.setStatus(ok?'':(lang()==='fr'?'Action non terminée : ':'Action not completed: ')+friendly);
         if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
-    on('reset',()=>{initialLoad=false;lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;livingScene.hidden=true;ui.setStatus('');});
+    on('reset',()=>{audio.reset();soundSeen.clear();soundVictory=false;initialLoad=false;lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;livingScene.hidden=true;ui.setStatus('');});
     document.getElementById('locale-select').addEventListener('change',refreshShell);
     for(const key of Object.keys(mirrors))balance.elements[key].addEventListener('change',syncMirrors);
     // Existing Vue navigation opens the relevant advanced controls when requested.
