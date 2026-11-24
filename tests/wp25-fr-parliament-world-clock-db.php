@@ -49,7 +49,7 @@ foreach ([
     'wp_fr_constitutional_journal','wp_fr_constitutional_receipts',
     'wp_fr_constitutional_states',
     'wp_world_clock_country_steps','wp_world_clock_countries',
-    'wp_world_clock_steps','wp_world_clock',
+    'wp_world_clock_steps','wp_world_mutation_fences','wp_world_clock',
     'wp_institutional_journal','wp_institutional_receipts','wp_institutional_states',
     'wp_command_receipts','wp_world_events','wp_world_rosters',
     'wp_diplomatic_outbox','wp_diplomatic_journal',
@@ -62,7 +62,7 @@ foreach ([
     '004_organizations.sql','005_economic_policies.sql',
     '006_diplomatic_outbox.sql','007_world_clock.sql',
     '008_world_clock_countries.sql','009_fr_constitutional_49_3.sql',
-    '011_fr_parliament_world_clock.sql','012_fr_sitting_calendar.sql'
+    '011_fr_parliament_world_clock.sql','012_fr_sitting_calendar.sql','013_world_mutation_fences.sql'
 ] as $filename) {
     $sql=preg_replace('/^\s*--[^\n]*$/m','',
         file_get_contents(__DIR__.'/../games/world-politics/database/'.$filename)
