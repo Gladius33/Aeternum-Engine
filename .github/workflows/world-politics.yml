@@ -59,6 +59,10 @@ jobs:
         run: php tests/wp15-diplomacy-economic-bridge.php
       - name: Constitutional domain and country selection WP05
         run: php tests/wp05-institutions.php
+      - name: France Article 49.3 legal workflow WP19
+        run: php tests/wp19-france-49-3.php
+      - name: Sectoral social and economic reaction WP20
+        run: php tests/wp20-france-social.php
 
   mariadb-rosters:
     runs-on: ubuntu-24.04
