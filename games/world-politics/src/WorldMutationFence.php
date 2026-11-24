@@ -160,7 +160,28 @@ final class WorldMutationFence
             return;
         }
         self::valid($row);
-        if ($row['state']==='idle') return;
+        // The fence and authoritative game clock must agree exactly.
+        // A broken migration, partial manual repair or corrupted intent
+        // must not turn a still-pending world into a writable one.
+        $clock=$pdo->prepare(
+            'SELECT pending_key,pending_day FROM wp_world_clock WHERE world_id=?'
+        );
+        $clock->execute([$world]);
+        $clockRow=$clock->fetch(\PDO::FETCH_ASSOC);
+        if ($clockRow===false) {
+            throw new \UnexpectedValueException('Orphaned world write fence');
+        }
+        if ($row['state']==='idle') {
+            if ($clockRow['pending_key']!==null
+                || $clockRow['pending_day']!==null) {
+                throw new \DomainException('World clock pending intent has no active write fence');
+            }
+            return;
+        }
+        if ($clockRow['pending_key']!==$row['pending_key']
+            || $clockRow['pending_day']!==$row['target_day']) {
+            throw new \DomainException('World clock and write fence intents disagree');
+        }
         // Only internal module clock actions pass. They are separately
         // authorized by their domain-specific principal capabilities.
         if ($operation==='clock' && $targetDay!==null
