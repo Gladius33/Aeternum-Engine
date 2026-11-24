@@ -1449,6 +1449,41 @@ paths:
         '422': { $ref: '#/components/responses/invalid' }
         '428': { $ref: '#/components/responses/missingPrecondition' }
 
+  /worlds/{world}/france/constitution/presidency/prime-minister-appointments:
+    post:
+      operationId: appointFrenchPrimeMinisterAfterCensure
+      tags: [FrenchConstitution]
+      description: >
+        Article 50 requires the censured or disapproved government to submit
+        resignation. An independently authenticated presidential decree under
+        Article 8 appoints a successor PM; the client may submit only the
+        certified appointment identifier and simulation time. The service
+        independently verifies the formal resignation and appointee.
+        No mandatory Assembly investiture is invented and the republic
+        is not automatically overthrown.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [appointment_id, at]
+              properties:
+                appointment_id: { $ref: '#/components/schemas/Identifier' }
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Verified presidential decree recorded after Article 50 resignation }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
 components:
   securitySchemes:
     bearerAuth:

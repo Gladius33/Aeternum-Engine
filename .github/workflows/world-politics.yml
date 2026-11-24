@@ -52,6 +52,7 @@ jobs:
             abort "Missing French Assembly sitting calendar REST endpoint" unless d["paths"].key?("/worlds/{world}/france/calendar/motions/{motionId}")
             abort "Missing French individual deputy ballot API" unless d["paths"].key?("/worlds/{world}/france/assembly/ballots")
             abort "Missing parliamentary censure signatures API" unless d["paths"].key?("/worlds/{world}/france/assembly/signatures")
+            abort "Missing Articles 8/50 presidential succession API" unless d["paths"].key?("/worlds/{world}/france/constitution/presidency/prime-minister-appointments")
             abort "Missing Paris parliamentary clock flag" unless d.dig("components","schemas","WorldClockState","properties","france_parliament_enabled")
             puts "PASS OpenAPI 3.1: syntax, required paths and DTOs"
           ' games/world-politics/api/openapi.yaml
