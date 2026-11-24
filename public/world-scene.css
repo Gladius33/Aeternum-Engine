@@ -27,3 +27,22 @@ main:has(#game:not([hidden])){max-width:78rem}
 .scene-holding span,.scene-holding small{font-size:.78rem;color:#e0e5e5}
 .scene-holding[aria-pressed=true]{outline:2px solid var(--scene-accent)}
 @media(max-width:520px){.scene-atlas{height:260px}.scene-holdings{grid-template-columns:repeat(2,minmax(0,1fr))}#world-scene .scene-button{font-size:.8rem;padding:.45rem .55rem}.scene-header{display:block}}
+
+/* G02: world-state presentation, original procedural architecture and accessible HUD. */
+.scene-hud{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:.45rem;margin:.8rem 0}
+.scene-stat{padding:.65rem .75rem;border:1px solid #9da7a15e;background:linear-gradient(135deg,#111f26b8,#111f2650);border-radius:.5rem;min-width:0}
+.scene-stat small{display:block;color:#e0e4e2;font-size:.75rem;line-height:1.35;overflow-wrap:anywhere}
+.scene-stat strong{display:block;color:var(--scene-accent);font:600 clamp(.95rem,2vw,1.28rem) system-ui,sans-serif;margin-top:.25rem;font-variant-numeric:tabular-nums}
+.scene-reading{grid-column:1/-1;font-size:.75rem;color:#cbd9d4;margin:0}
+.scene-reading[data-stale=true]{color:#ffe0a1}
+.scene-holding svg{height:112px;background:radial-gradient(ellipse at 50% 70%,#c8bfa224,#0b192b55 70%)}
+.scene-holding[data-stage=pending]{border-color:#e7bc75}
+.scene-holding[data-stage=built]{border-color:#92b7a0}
+.scene-stage{border-top:1px solid #ffffff20;padding-top:.35rem;margin-top:.3rem;width:100%}
+.scene-confirmed-route{stroke-dasharray:14 7;animation:scene-route 2s linear infinite}
+@keyframes scene-route{to{stroke-dashoffset:-42}}
+.scene-scaffold{animation:scene-scaffold 2.5s ease-in-out infinite alternate}
+@keyframes scene-scaffold{from{opacity:.75}to{opacity:1}}
+#world-scene[aria-busy=true] .scene-holding{cursor:wait}
+@media(prefers-reduced-motion:reduce){.scene-confirmed-route,.scene-scaffold{animation:none}}
+@media(max-width:520px){.scene-hud{grid-template-columns:repeat(2,minmax(0,1fr))}.scene-holding svg{height:95px}}

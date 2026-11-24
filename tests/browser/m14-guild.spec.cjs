@@ -34,7 +34,8 @@ async function signIn(page,login){
     expect(account).toMatch(/^[a-z0-9_-]{1,64}$/);
     await page.locator('#balance select[name=resource]').selectOption('spice');
     const req=page.waitForRequest(r=>r.url().includes('/economy/overview/'));
-    await page.getByRole('button',{name:'Refresh stock'}).click();
+    await page.locator('#world-scene [data-label=stockSync]').click();
+    await expect(page.locator('[data-stat=stock]')).toContainText('spice');
     const token=(await (await req).allHeaders()).authorization;
     expect(token).toMatch(/^Bearer [a-f0-9]{64}$/);
     return {account,token};
@@ -54,13 +55,16 @@ async function build(page,id,type,seconds){
     await page.getByRole('button',{name:'Inspect building plan'}).click();
     const started=page.waitForResponse(r=>r.url()===url
         && r.request().postDataJSON().type==='building.start');
-    await page.getByRole('button',{name:'Begin construction'}).click();
+    await page.locator('#world-scene [data-building="'+id+'"]').click();
+    await page.locator('#world-scene [data-label=startStage]').click();
     const accepted=await started;
     expect(accepted.status(),id+': '+await accepted.text()).toBe(200);
     await page.waitForTimeout((seconds+2)*1000);
     expect(worker()).toBeGreaterThanOrEqual(1);
     await page.getByRole('button',{name:'Inspect building plan'}).click();
     await expect(page.locator('#building-details dd').nth(3)).toHaveText('1');
+    await expect(page.locator('#world-scene [data-building="'+id+'"]')).toHaveAttribute('data-level',String(1));
+    await expect(page.locator('#world-scene [data-building="'+id+'"]')).toHaveAttribute('data-stage','built');
 }
 
 test('M14 third data-only guild game: two browser players build, trade and upgrade',async ({browser})=>{
@@ -97,17 +101,22 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
             {headers:{Authorization:alice.token}});
         expect(hall.status()).toBe(200);
         expect((await hall.json()).data.level).toBe(1);
-        const offer={
-            id:'m14-guild-offer',
-            type:'market.create',
-            payload:{offer:'m14-guild-offer',seller:alice.account,
-                giveResource:'spice',giveUnits:3,wantResource:'silver',wantUnits:6}
-        };
-        const sale=await a.request.post(url,{headers:{Authorization:alice.token},data:offer});
+        await a.locator('#market-give-resource').selectOption('spice');
+        await a.locator('#market-give-units').fill('3');
+        await a.locator('#market-want-resource').selectOption('silver');
+        await a.locator('#market-want-units').fill('6');
+        const selling=a.waitForResponse(r=>r.url()===url&&r.request().postDataJSON()?.type==='market.create');
+        await a.locator('#market-create button[type=submit],#market-create button:not([type])').click();
+        const sale=await selling;
         expect(sale.status(),await sale.text()).toBe(200);
-        const purchase={id:'m14-guild-buy',type:'market.accept',
-            payload:{offer:'m14-guild-offer',seller:alice.account,buyer:bob.account}};
-        const settled=await b.request.post(url,{headers:{Authorization:bob.token},data:purchase});
+        const offer=sale.request().postDataJSON();
+        await b.locator('#world-scene [data-label=marketSync]').click();
+        await expect(b.locator('[data-stat=market] strong')).toHaveText('1');
+        await b.locator('#market-offer').selectOption(offer.payload.offer);
+        const purchasing=b.waitForResponse(r=>r.url()===url&&r.request().postDataJSON()?.type==='market.accept');
+        await b.locator('#market-accept').click();
+        const settled=await purchasing;
+        const purchase=settled.request().postDataJSON();
         expect(settled.status(),await settled.text()).toBe(200);
         const again=await b.request.post(url,{headers:{Authorization:bob.token},data:purchase});
         expect(again.status()).toBe(200);

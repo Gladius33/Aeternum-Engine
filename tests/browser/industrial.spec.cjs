@@ -50,13 +50,16 @@ async function build(page,id,level,seconds) {
     await page.getByLabel('Owned building ID').fill(id);
     await page.getByRole('button',{name:'Inspect building plan'}).click();
     const accepted=page.waitForResponse(r=>r.url()===url&&r.request().postDataJSON().type==='building.start');
-    await page.getByRole('button',{name:'Begin construction'}).click();
+    await page.locator('#world-scene [data-building="'+id+'"]').click();
+    await page.locator('#world-scene [data-label=startStage]').click();
     const result=await accepted;
     expect(result.status(),id+' stage '+level+': '+await result.text()).toBe(200);
     await page.waitForTimeout(seconds*1000+2100);
     worker();
     await page.getByRole('button',{name:'Inspect building plan'}).click();
     await expect(page.locator('#building-details dd').nth(3)).toHaveText(String(level));
+    await expect(page.locator('#world-scene [data-building="'+id+'"]')).toHaveAttribute('data-level',String(level));
+    await expect(page.locator('#world-scene [data-building="'+id+'"]')).toHaveAttribute('data-stage','built');
 }
 async function operation(page,type,button) {
     const reply=page.waitForResponse(r=>r.url()===url&&r.request().postDataJSON().type===type);
@@ -73,6 +76,7 @@ test('M06 two players complete an isolated industrial network and freight victor
   await a.setViewportSize({width:375,height:812});
   await a.getByRole('button',{name:'Review industrial network'}).click();
   await expect(a.locator('#industrial-details')).toContainText('Grid power supply');
+  await expect(a.locator('[data-stat=grid] strong')).not.toBeEmpty();
   const viewport=await a.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));
   expect(viewport.scroll).toBeLessThanOrEqual(viewport.width);
   await a.setViewportSize({width:1280,height:800});
