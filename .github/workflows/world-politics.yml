@@ -44,6 +44,8 @@ jobs:
           ' games/world-politics/api/openapi.yaml
       - name: Reviewed geopolitical statuses and deterministic diplomacy
         run: php tests/wp06-diplomacy.php
+      - name: Charter-configured international institutions
+        run: php tests/wp09-organizations.php
       - name: Constitutional domain and country selection WP05
         run: php tests/wp05-institutions.php
 
