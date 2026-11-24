@@ -93,6 +93,7 @@ jobs:
           php tests/wp10-organization-rest-db.php
           php tests/wp11-organization-ai-db.php
           php tests/wp13-economic-rest-db.php
+          php tests/wp16-sanctions-outbox-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4
