@@ -157,3 +157,5 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 @media(max-width:640px){.player-first.in-game.library-chosen #world-scene .game-ui-layout{grid-template-columns:1fr}.player-first.in-game.library-chosen #world-scene .scene-district{aspect-ratio:360/490}.player-first.in-game.library-chosen #world-scene .game-ui-stage{grid-row:1}.player-first.in-game.library-chosen #world-scene .game-ui-nav{grid-row:2}.player-first.in-game.library-chosen #world-scene .game-ui-side{grid-row:3}}
 
 .library-account-help{max-width:420px;padding:.5rem .1rem;color:#d9d9bd}.library-account-help summary{cursor:pointer;min-height:36px}
+
+.scene-catalogue-card .scene-unaffordable{color:#ffb996}.scene-build-price{font-weight:600}.player-first.in-game.library-chosen #world-scene .scene-catalogue-card svg{background:radial-gradient(ellipse at 50% 70%,var(--ui-surface),#101c2440 72%)}
