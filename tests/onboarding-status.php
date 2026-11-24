@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{PdoOnboardingStatus,PdoIdentity,FrozenClock,SystemClock};
+use Aeternum\Core\{PdoOnboardingStatus,PdoIdentity,FrozenClock};
 // A deliberately pending identity tests the 15-minute stalled-claim indicator.
 $obsActor=(new PdoIdentity(db()))->register('metrics-pending-test','metrics pending secret password');
 $obs=db()->prepare("INSERT INTO engine_onboarding(actor_id,world_id,status,created_at) VALUES (?,?,'pending',?)");
@@ -36,10 +36,14 @@ $runStatusCli=static function(array $args) use($env):array {
     fclose($pipes[1]);fclose($pipes[2]);
     return [proc_close($p),$out,$err];
 };
+$before=time();
 [$exit,$out,$err]=$runStatusCli(['public-test-world']);
+$after=time();
 check($exit===0 && $err==='', 'read-only approved world status CLI succeeds');
 $report=json_decode($out,true,8,JSON_THROW_ON_ERROR);
-$expected=(new PdoOnboardingStatus(db(),new SystemClock()))->snapshot('public-test-world');
+check(is_int($report['observedAt']) && $report['observedAt'] >= $before && $report['observedAt'] <= $after,
+    'CLI observation timestamp lies within invocation window');
+$expected=(new PdoOnboardingStatus(db(),new FrozenClock($report['observedAt'])))->snapshot('public-test-world');
 check($report['world']==='public-test-world'
     && $report['enrollment']===$expected['enrollment']
     && $report['invitations']===$expected['invitations']
