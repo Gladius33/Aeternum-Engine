@@ -1,0 +1,120 @@
+# World Politics — bilan du back-end et critères de sortie (24 novembre 2026)
+
+## Portée et principe non négociable
+
+World Politics est un jeu original autonome qui consommera Aeternum Engine comme dépendance générique. La branche actuelle
+`feat/world-politics-wp01-identity-government` est un espace de travail TEMPORAIRE : **ne jamais la fusionner dans le main d'Aeternum**.
+Pas de graphiques, pas de front-end, pas d'intégration à des templates Aeternum avant l'approbation expresse du projet client. Les clients web, Android, iOS et éventuellement bureau devront consulter le même back-end versionné.
+
+La présence de tests unitaires et MariaDB verts ne signifie ni serveur HTTP déployé, ni jeu politiquement réaliste prêt à commercialiser, ni conformité constitutionnelle exhaustive.
+
+## Avancées concrètement présentes
+
+| Domaine | Code actuellement disponible | Limitation honnête |
+| --- | --- | --- |
+| Profils humains / fictionnels | `PoliticalProfileTemplate.php`, `PoliticalRoster.php`, `PdoPoliticalStore.php` | Modes « rapide / détaillé » décrits en JSON, pas de compte client complet ni d'interface ; données de personnalités réelles non validées à l'échelle mondiale |
+| Univers pays | `CountryCatalog.php` | Catalogues de pays candidats : UE (27) + Suisse + puissances sélectionnées ; aucun pays automatiquement déclaré prêt à jouer ; référentiel complet des 193 États membres ONU non encore importé et vérifié |
+| Statuts particuliers | `GeopoliticalActorRegistry.php` | Israel (IL), Iran (IR), Palestine/Autorité palestinienne (PS) doivent rester automatisés, avec identité diplomatique distincte ; scénarios diplomatiques pas encore calibrés sur l'actualité |
+| Institutions | `InstitutionalRulebook.php`, `InstitutionalSimulation.php`, `PdoInstitutionalStore.php` | Débuts de règles propres FR, DE, US, très loin des constitutions complètes |
+| France constitutionnelle | `FrenchConstitutionalCrisis.php`, `PdoFrenchConstitutionalStore.php`, `FrenchConstitutionalApi.php` | 49.1/49.2/49.3, délais minimaux, signatures, votes, 50 ; jours de séance, navette, constitutionnalité et formation du nouveau Gouvernement NON achevés |
+| France sociale | `FrenchSocialDynamics.php`, `PdoFrenchSocialStore.php`, `FrenchSocialApi.php` | Mécontentement et perturbations économiques par secteur avec concessions explicites ; coefficients hypothétiques non calibrés |
+| Diplomatie | `DiplomaticSimulation.php`, `PdoDiplomaticStore.php`, `PdoDiplomaticApi.php` | Acteurs, propositions, délais et journal, mais pas encore une diplomatie multinationale complète avec traités juridiquement et économiquement vérifiés |
+| Organisations | `OrganizationSimulation.php`, `PdoOrganizationStore.php`, `AutonomousOrganizationPlanner.php` | Adhésion, décisions et votes IA en prototype ; pas encore toutes les organisations et procédures spécifiques de l'ONU, de l'UE, de l'OTAN, etc. |
+| Économie | `EconomicReferenceRegistry.php`, `WorldBankOfflineImporter.php`, `WorldEconomicSimulation.php`, `PdoEconomicStore.php` | Import WDI hors ligne et politiques commerciales fictives ; ni véritable modèle macro-économique national, ni calibrage statistique |
+| Passage interdomaines | `DiplomacyEconomicBridge.php`, `SanctionsOutboxDispatcher.php` | Propositions de sanctions dédupliquées, sans transaction globale ni ordonnanceur durable déployé |
+| Horloge mondiale | `WorldClockCoordinator.php`, migrations 007, 008, 011 | Coordination récupérable économie/diplomatie/organisations/institutions FR/DE/US et, si activée, procédure France en heure de Paris. Ce n'est PAS une transaction distribuée atomique. |
+| APIs | `api/openapi.yaml` et plusieurs adaptateurs `*Api.php` | Contrats JSON et réponses in-process uniquement : aucune passerelle HTTP publique, authentification des joueurs ou API hébergée de production |
+
+## WP25 — horloge parlementaire française et synchronisation mondiale
+
+La migration `database/011_fr_parliament_world_clock.sql` épingle, par monde de jeu, l'activation obligatoire du calendrier constitutionnel français et son fuseau `Europe/Paris`. `WorldClockCoordinator.php` refuse de démarrer un monde dans lequel une France constitutionnelle activée n'est pas incluse parmi les pays ayant un module institutionnel.
+
+La clôture d'une journée de simulation est définie à **23:59:59 heure de Paris** avec calcul du véritable décalage UTC selon le jour (heure d'hiver / heure d'été), sans choix libre d'horodatage par le joueur. L'autorité parlementaire certifie séparément l'instant demandé. L'horloge mondiale n'enregistre sa date comme cohérente qu'après les autres calendriers nationaux, l'étape française, la diplomatie et l'économie.
+
+Une interruption entre la validation de l'horloge française et l'inscription du checkpoint ne provoque pas un second calcul : la reprise vérifie le véritable état constitutionnel et restitue l'étape. Le registre de configuration empêche un processus redémarré de supprimer silencieusement la procédure française obligatoire. Les droits sont réévalués avant les reçus et les progressions.
+
+Le fichier `tests/wp25-fr-parliament-world-clock-db.php` teste l'interruption après une étape française déjà enregistrée, la reprise, les autorisations, les fuseaux hiver/été, le rejet d'une heure non certifiée et l'impossibilité de « retirer » un module obligatoire du monde.
+
+**Limite :** les jours de séance de l'Assemblée nationale et l'inscription obligatoire d'un débat de censure au plus tard le troisième jour de séance après les 48 heures constitutionnelles ne sont pas encore représentés. Les sauts temporels de plusieurs semaines ou mois sont une facilité de test ; tant que le calendrier parlementaire n'est pas complet, ils ne suffisent pas à simuler fidèlement une crise réelle. Les mutations concurrentes provenant d'autres modules doivent encore être bloquées à l'échelle de la partie pendant une saga en cours.
+
+Références françaises :
+- Constitution article 49 : https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000019241062/
+- Fonctionnement du travail parlementaire : https://www.assemblee-nationale.fr/dyn/synthese/fonctionnement-assemblee-nationale/travail-legislatif/la-procedure-legislative
+- Règlement de l'Assemblée nationale (notamment motion et délai des jours de séance) : https://www.assemblee-nationale.fr/dyn/16/divers/texte_reference/02_reglement_assemblee_nationale.html
+
+## P0 — Bloquants pour une première alpha jouable avec back-end fiable
+
+| Ordre | Chantier | Critère d'acceptation |
+| --- | --- | --- |
+| 1 | **Dépôt propre World Politics** et livraison reproductible | Dépôt dédié, architecture et historique séparés d'Aeternum ; moteur comme dépendance versionnée, aucune fusion du jeu vers `main` |
+| 2 | **HTTP réel et comptes authentifiés** | Passerelle JSON REST exposant les contrats OpenAPI ; identité vérifiée côté serveur, inscription, connexion, sessions, rôles, anti-abus, CORS/CSRF selon clients, quotas et journalisation |
+| 3 | **Création, reprise et sauvegarde de parties** | Monde persistant multijoueur ou solo, pays contrôlé, vitesse du temps, permissions pays/gouvernement, révisions, reprises et états consultables après panne |
+| 4 | **Verrou de monde et traitement cohérent des commandes** | Pendant le passage de journée, aucune écriture concurrente ne peut invalider l'état ; récupération des sagas, outbox/inbox généralisées, agents de traitement persistants |
+| 5 | **Boucle de jeu politique minimale** | Création rapide/détaillée du personnage fictif avec avatar générique, programme, biographies ; sélection des personnages réels sourcés ; gouvernement, actes, opposition, résultats et tours qui ont des conséquences |
+| 6 | **Pays alpha et pouvoirs réellement fonctionnels** | Règles constitutionnelles nationales testées pour chaque pays effectivement proposé au lancement de l'alpha ; verrouillage explicite des pays seulement présents dans le référentiel |
+| 7 | **IA autonomes et contrôle unifié** | Opposition, ministres, acteurs économiques et pays IA utilisent exactement les mêmes contrôles d'autorité et procédures que les joueurs ; résultats reproductibles, agents vérifiés et limités |
+| 8 | **Économie intérieure jouable** | Budget, recettes, dépenses, impôts, inflation, chômage, marché du travail, production par secteur, dette, services publics, commerce extérieur et conséquences des politiques ; calculs testés et hypothèses identifiables |
+| 9 | **Données officielles historisées et licences** | Référentiel ONU de 193 membres, acteurs observateurs pertinents, population/PIB/travail/budget et provenance ; date de validité, qualité, licence, manquants, vérification de redistribution |
+| 10 | **Qualité et sécurité de livraison** | Tests unitaires, d'intégration, de sécurité et de charge ; migrations versionnées, restauration des sauvegardes, surveillance, gestion des incidents et confidentialité |
+
+Les points ci-dessus sont des **jalons fonctionnels**. Ils ne correspondent pas chacun à une seule itération ni à une durée arbitraire. Ils sont à découper en tickets acceptables et testés par CI.
+
+## P1 — Réalisme politique, juridique et diplomatique nécessaire à la version ambitieuse
+
+### A. France, institutions et droit constitutionnel
+
+- Registre des **577 sièges maximum** (variable selon la période et la composition du scénario) et des députés réellement investis ; groupes et alliances parlementaires, discipline, absences, votes nominatifs vérifiés, formation de majorités.
+- Conseil des ministres, responsabilité du Premier ministre, formation et démission d'un gouvernement, nomination, continuité administrative, remaniements, impossibilités juridiques.
+- Calendrier réel des **séances** (jours et heures), article 49 et calendrier du débat de censure : pas de motion laissée en suspens pendant plusieurs mois par un saut artificiel de temps.
+- Motion 49.2 : contrôle individuel des trois signatures par session ordinaire / une en session extraordinaire. Motion 49.3 et article 50 distincts. Contrôle du caractère approprié d'une loi de finances et du recours au 49.3.
+- Droit législatif : initiatives, commissions, amendements, recevabilité, navette Sénat/Assemblée, commission mixte paritaire, vote final et promulgation. Articles 34, 38, 39, 40, 42, 44, 45, 47, 47-1.
+- Dissolution : article 12, consultation obligatoire, restrictions, élections subséquentes ; article 8 (Premier ministre). Contrôle constitutionnel : articles 61/61-1, décisions du Conseil constitutionnel. Régimes d'exception : articles 16 et dispositions applicables, sans raccourci.
+- Mécanismes électoraux, présidentiels, législatifs, locaux et européens, cohérents avec les dates historiques du monde.
+
+### B. Toutes les puissances et États européens jouables
+
+- Modèles constitutionnels propres aux **27 États membres de l'UE + Suisse**, puis aux puissances hors UE sélectionnées, avec sources de droit vérifiées.
+- Président français ≠ chancelier allemand ≠ président américain : aucune décision de dissolution, de guerre, d'impôt ou de nomination n'est permise par simple équivalence de titre.
+- Gouvernement, parlement, tribunaux, administration, autorités territoriales et leurs compétences au cas par cas. Élections et transitions gouvernementales nationales.
+
+### C. Hétérogénéité de la population et économie sociale
+
+- Démographie par âge, territoire, revenu, profession, niveau d'éducation ; migrations et actualisation des statistiques d'importance.
+- Organismes collectifs et partenaires sociaux, syndicats, branches professionnelles, réseaux de solidarité et associations ; négociations, concessions ciblées, droit de grève et continuité des services.
+- Réactions qui s'inscrivent dans le temps (fatigue, apprentissage, confiance et événements) ; effets économiques non automatiques et corrélations non assimilées à des causalités. Calibration sur données historiques et publication de l'incertitude.
+- Séparation stricte entre défaite parlementaire d'un gouvernement, crise sociale, continuité de l'État et éventuelle transition exceptionnelle de régime. Ni « toutes les manifestations renversent le régime », ni « les institutions sécuritaires rendent le régime invulnérable ».
+- Police, armée et autorités civiles sous contraintes juridiques, modélisées au niveau institutionnel, sans fournir de tactiques réelles de répression.
+
+### D. Géopolitique et IA
+
+- Tous les États du monde présents comme acteurs automatisés si non jouables ; **Israël, Iran et Palestine/Autorité palestinienne uniquement automatisés**, mais pouvant être destinataires d'alliances, relations, mesures commerciales ou reconnaissances dans le jeu.
+- Organisations ONU, UE, OTAN, alliances régionales, veto/majorités, ratification, obligations des traités, sanctions et effets économiques.
+- Gouvernements et partis IA qui prennent des décisions plausibles selon des objectifs, des contraintes institutionnelles, l'information disponible et les ressources, sans omniscience.
+- Actualité réelle importée sous forme de faits **sourcés et datés**, séparée des événements alternatifs du scénario. Aucun état de fait géopolitique vivant ne doit être présenté sans date et source.
+- Stratégie de défense **à l'échelle politique**, accords, budgets, dissuasion et enjeux géopolitiques ; éviter de substituer un moteur opérationnel militaire détaillé à la simulation institutionnelle.
+
+## P2 — Renforcement avant une large diffusion
+
+- Outils de recherche et d'équilibrage des scénarios, tests de sensibilité, comparaisons historiques, tests de causalité et calibrations statistiques révisables.
+- Économie multiannuelle (dette et taux, cycles, investissements, commerce bilatéral, secteurs, taux de change, politique monétaire selon pays).
+- Modes « jeu accessible » et « simulation poussée » sur un même moteur sans modifier la vérité des règles.
+- Déploiements haute disponibilité, partitionnement et isolation des mondes, reprise de crash multi-nœuds, quotas et budgets de calcul IA.
+- API stable de notifications et synchronisation, versionnage de snapshots, migration d'anciens scénarios, import/export, données de conformité et outils d'administration.
+- Banc de vérification de sécurité, évaluations d'équité, performances et audit des permissions, tests de charge avec de nombreuses parties simultanées.
+
+## Ordre recommandé après WP25
+
+1. **WP26 : calendrier parlementaire français à jours de séance réels**, motion votable et échéance légale, avec validation obligatoire avant de sauter des journées.
+2. **WP27 : verrou mondial des décisions concurrentes**, preuve de cohérence des versions des agrégats, et ordonnanceur de reprise.
+3. **WP28 : composition de l'Assemblée, majorité et formation/démission des gouvernements** ; suffrages par député et opposition IA.
+4. **WP29 : mécanisme de politiques publiques et de conséquences nationales**, avec transitions économiques et sociales persistantes entre plusieurs jours.
+5. **WP30 : service HTTP authentifié + gestion des comptes et des univers**, interfaces JSON partagées par les futurs clients, en environnement de test privé.
+6. **WP31 : import contrôlé du référentiel mondial et de données historiques réelles**, avec suivi de licences et d'actualisation.
+7. **WP32+ : extension constitutionnelle et IA diplomatique/économique**, chaque nouvelle nation devant passer les mêmes contrôles de cohérence.
+
+La séquence n'est pas un nombre exact d'itérations restantes : chaque jalon peut exiger plusieurs développements et revues. Les interfaces visuelles sont **hors périmètre** tant que le socle back-end n'est pas suffisamment fiable.
+
+## Verdict de sortie
+
+**À ce stade : prototype back-end technique vérifié par tests, PAS une alpha réellement jouable et PAS un serveur de production.**
+La prochaine démonstration de valeur sera une **partie France sur plusieurs mois** avec Gouvernement, Assemblée, majorité, 49.3, censure, opinion publique, concessions, économie et IA, sans contournement des délais parlementaires ni incohérence au passage des jours. La réussite de cette démonstration constitue un critère de réalité bien plus pertinent qu'un pourcentage arbitraire de « back-end terminé ».
