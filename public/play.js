@@ -1153,6 +1153,7 @@ document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>
     if(new URLSearchParams(location.search).get('view')==='classic')return;
     const main=document.getElementById('main-content'), locale=document.getElementById('locale-select');
     main.classList.add('player-first');
+    if(navigator.language.toLowerCase().startsWith('fr'))locale.value='fr';
     const library=document.createElement('section');library.id='game-library';library.setAttribute('aria-labelledby','library-title');
     const heading=document.createElement('h2');heading.id='library-title';library.append(heading);
     const intro=document.createElement('p');library.append(intro);
