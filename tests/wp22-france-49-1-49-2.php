@@ -243,7 +243,7 @@ wp22($restored->hash()===$standalone->hash(),
 
 $quota=$full();
 $quota->engage($principal,'budget-1','finance',
-    '2026-11-24T09:00:00+01:00','49-3-budget');
+    '2026-11-24T09:00:00+01:00','budget-49-3');
 $principal->censureVotes['incidental']=0;
 $quota->fileMotion($principal,'incidental',
     '2026-11-24T10:00:00+01:00','49-3-incidental-motion');
