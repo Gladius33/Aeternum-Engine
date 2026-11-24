@@ -1,11 +1,13 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/../games/world-politics/src/VerifiedFrenchParliamentPrincipal.php';
+require __DIR__.'/../games/world-politics/src/FrenchParliamentApi.php';
 
 use Aeternum\WorldPolitics\{
     FrenchParliament,FrenchParliamentaryPrincipal,FrenchAssemblyAuthorizer,
     PdoFrenchConstitutionalStore,FrenchConstitutionalCrisis,
-    PdoFrenchParliamentStore,VerifiedFrenchParliamentPrincipal
+    PdoFrenchParliamentStore,VerifiedFrenchParliamentPrincipal,
+    FrenchParliamentApi
 };
 
 function wp28db(bool $valid,string $label):void {
@@ -163,6 +165,23 @@ wp28db((int)$pdo->query(
     "SELECT parliament_required FROM wp_fr_constitutional_states
      WHERE world_id='fr-wp28-world'"
 )->fetchColumn()===1,'roster installation atomically makes nominal Assembly votes mandatory');
+$api=new FrenchParliamentApi($parliament);
+$apiRoot='/api/v1/worlds/'.$world.'/france/assembly';
+$published=$api->handle('GET',$apiRoot);
+wp28db($published['status']===200
+    && $published['body']['occupied_seats']===577,
+    'read-only REST returns constitutional roster with all 577 named deputies');
+wp28db($api->handle('POST',$apiRoot.'/matters',[
+    'matter_id'=>'policy-a','fictional_votes_for'=>577
+],[
+    'Idempotency-Key'=>'client-forged-policy-a',
+    'If-Match'=>$published['headers']['ETag']
+])['status']===422,
+    'REST rejects fabricated total vote counts and extra policy coefficients');
+wp28db($api->handle('POST',$apiRoot.'/matters',[
+    'matter_id'=>'policy-a'
+])['status']===428,
+    'every change requires ETag and idempotency receipt from authenticated client');
 $proof=new VerifiedFrenchParliamentPrincipal($authority,$parliament);
 $constitution=new PdoFrenchConstitutionalStore($connect(),$proof);
 $etag=$base->read($world)['etag'];
@@ -210,6 +229,16 @@ wp28db($parliament->execute($world,'cast_ballot',[
     'matter_id'=>'policy-a','deputy_id'=>'deputy-001','choice'=>'for'
 ],'cast-policy-deputy-001','"obsolete"')===$human,
     'valid replay of an authorized deputy ballot is idempotent after reconnect');
+wp28db($api->handle('GET',$apiRoot.'/matters/policy-a')
+    ['body']['human_votes']['deputy-001']==='for',
+    'REST reads verified individual human ballot without deriving a fake tally');
+wp28db($api->handle('POST',$apiRoot.'/ballots',[
+    'matter_id'=>'policy-a','deputy_id'=>'deputy-002','choice'=>'for'
+],[
+    'Idempotency-Key'=>'api-forge-other-human',
+    'If-Match'=>$human['etag']
+])['status']===403,
+    'REST enforces deputy control independently of the payload');
 $resolved=$parliament->execute($world,'resolve',[
     'matter_id'=>'policy-a'
 ],'resolve-policy-a-49-1',$human['etag']);
