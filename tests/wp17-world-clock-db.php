@@ -192,7 +192,7 @@ $key='world-advance-2026-12-31';
 $day='2026-12-31';
 wp17reject(
     fn()=>$clock->advance(
-        'clock-world',$day,$key,$begin['etag']
+        'clock-world',$day,$key,$begin['headers']['ETag']
     ),
     'economic domain clock failure interrupts coordinated tick'
 );
