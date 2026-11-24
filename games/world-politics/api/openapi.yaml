@@ -25,6 +25,8 @@ tags:
     description: France Article 49(3), parliamentary censure and Article 50, modelled separately from regime collapse
   - name: FrenchSociety
     description: Versioned professional and regional social scenario outputs, never official forecasts
+  - name: FrenchParliamentCalendar
+    description: Source-labelled Assembly sitting dates and authenticated censure hearing schedules
 paths:
   /worlds/{world}/diplomacy:
     get:
@@ -1218,6 +1220,44 @@ paths:
       responses:
         '200':
           description: Source-pinned social scenario report
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+
+  /worlds/{world}/france/calendar:
+    get:
+      operationId: readFrenchAssemblySittingCalendar
+      tags: [FrenchParliamentCalendar]
+      description: >
+        Read pinned and provenance-labelled French parliamentary sitting
+        dates and certified conference decisions. The rule is the third
+        sitting day after expiration of the Constitutional 48-hour delay;
+        scenario days are explicitly fictional and never represented
+        as actual historical Assembly sessions.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Immutable parliamentary date source and scheduled ballot slots
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/calendar/motions/{motionId}:
+    get:
+      operationId: readFrenchAssemblyCensureHearing
+      tags: [FrenchParliamentCalendar]
+      description: >
+        Read the certified censure hearing and roll-call instant, if
+        registered by an authorized parliamentary authority. Game
+        users cannot create or alter these slots through this API.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/motionId'
+      responses:
+        '200':
+          description: Scheduled motion with third-sitting-day deadline
+          headers: { ETag: { schema: { type: string } } }
           content:
             application/json: { schema: { type: object, additionalProperties: true } }
         '404': { $ref: '#/components/responses/notFound' }
