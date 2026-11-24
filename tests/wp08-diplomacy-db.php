@@ -25,12 +25,17 @@ $connect=static fn():\PDO=>new \PDO($dsn,$user,$pass,[
     \PDO::ATTR_EMULATE_PREPARES=>false
 ]);
 $pdo=$connect();
-foreach (['wp_diplomatic_journal','wp_diplomatic_receipts','wp_diplomatic_states'] as $table) {
+foreach (['wp_diplomatic_outbox','wp_diplomatic_journal','wp_diplomatic_receipts','wp_diplomatic_states'] as $table) {
     $pdo->exec('DROP TABLE IF EXISTS '.$table);
 }
 $sql=preg_replace('/^\s*--[^\n]*$/m','',
     file_get_contents(__DIR__.'/../games/world-politics/database/003_diplomacy.sql'));
 foreach(explode(';',$sql) as $statement) {
+    if (trim($statement)!=='') $pdo->exec(trim($statement));
+}
+
+$extra=preg_replace('/^\s*--[^\n]*$/m','',file_get_contents(__DIR__.'/../games/world-politics/database/006_diplomatic_outbox.sql'));
+foreach (explode(';',$extra) as $statement) {
     if (trim($statement)!=='') $pdo->exec(trim($statement));
 }
 

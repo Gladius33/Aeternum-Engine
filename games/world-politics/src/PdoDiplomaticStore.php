@@ -153,6 +153,30 @@ final class PdoDiplomaticStore
             );
             $writeReceipt->execute([$world,$actor,$receiptKey,$requestSha,self::json($response)]);
 
+            // Trusted sanctions intentions must reach the outbox in the
+            // SAME transaction as diplomatic state, audit event and receipt.
+            if ($operation==='propose' && ($payload['action']??null)==='sanctions_proposal') {
+                $event=[
+                    'version'=>'wp16-sanctions-proposal-1',
+                    'world_id'=>$world,
+                    'event_id'=>$result['id'],
+                    'from'=>$payload['from'],
+                    'to'=>$payload['to'],
+                    'action'=>'sanctions_proposal',
+                    'status'=>'pending_domestic_approval',
+                    'source_revision'=>$revision,
+                    'source_state_sha'=>$after
+                ];
+                $serialized=self::json($event);
+                $outbox=$this->pdo->prepare(
+                    'INSERT INTO wp_diplomatic_outbox(world_id,event_id,source_revision,source_actor_id,source_state_sha,payload_json,payload_sha,status) VALUES(?,?,?,?,?,?,?,?)'
+                );
+                $outbox->execute([
+                    $world,$result['id'],$revision,$actor,$after,
+                    $serialized,hash('sha256',$serialized),'pending'
+                ]);
+            }
+
             $this->pdo->commit();
             return $response;
         } catch (\Throwable $e) {
