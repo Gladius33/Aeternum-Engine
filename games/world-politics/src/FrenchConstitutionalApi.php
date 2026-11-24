@@ -28,7 +28,7 @@ final class FrenchConstitutionalApi
     ):array {
         if (strlen($path)>512
             || !preg_match(
-                '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/france/constitution(?:(?:/(engagements|motions|clock|sessions))(?:/([a-z][a-z0-9_-]{0,63}))?(?:/(votes))?)?$~D',
+                '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/france/constitution(?:(?:/(engagements|motions|clock|sessions|confidence|spontaneous-motions))(?:/([a-z][a-z0-9_-]{0,63}))?(?:/(votes|engagements))?)?$~D',
                 $path,$matches
             )) {
             return self::fail(404,'route_not_found');
@@ -60,16 +60,22 @@ final class FrenchConstitutionalApi
                 $resource==='engagements' && $resourceId==='' && $subresource==='' => 'engage',
                 $resource==='motions' && $resourceId==='' && $subresource==='' => 'file_motion',
                 $resource==='motions' && $resourceId!=='' && $subresource==='votes' => 'vote_motion',
+                $resource==='confidence' && $resourceId==='' && $subresource==='engagements' => 'engage_confidence',
+                $resource==='confidence' && $resourceId!=='' && $subresource==='votes' => 'vote_confidence',
+                $resource==='spontaneous-motions' && $resourceId==='' && $subresource==='' => 'file_spontaneous',
+                $resource==='spontaneous-motions' && $resourceId!=='' && $subresource==='votes' => 'vote_spontaneous',
                 $resource==='clock' && $resourceId==='' && $subresource==='' => 'clock',
                 $resource==='sessions' && $resourceId==='' && $subresource==='' => 'session',
                 default=>null
             };
             if ($operation===null) return self::fail(405,'method_not_allowed');
-            if ($operation==='vote_motion') {
-                if (array_key_exists('motion_id',$body)) {
-                    return self::fail(422,'motion_id_is_path_scoped');
+            if ($operation==='vote_motion' || $operation==='vote_spontaneous'
+                || $operation==='vote_confidence') {
+                $field=$operation==='vote_confidence'?'statement_id':'motion_id';
+                if (array_key_exists($field,$body)) {
+                    return self::fail(422,'identifier_is_path_scoped');
                 }
-                $body=['motion_id'=>$resourceId]+$body;
+                $body=[$field=>$resourceId]+$body;
             }
             $key=$normalized['idempotency-key']??'';
             $precondition=$normalized['if-match']??'';
@@ -96,7 +102,8 @@ final class FrenchConstitutionalApi
             if ($reason==='Invalid trusted service principal'
                 || $reason==='Constitutional identity changed during transaction'
                 || $reason==='Unverified constitutional simulation time'
-                || $reason==='Verified constitutional office required') {
+                || $reason==='Verified constitutional office required'
+                || $reason==='Authenticated parliamentary clerk required') {
                 return self::fail(403,'forbidden');
             }
             if ($reason==='Stale French constitutional ETag') {
