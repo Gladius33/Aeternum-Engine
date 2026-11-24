@@ -48,6 +48,8 @@ jobs:
         run: php tests/wp06-diplomacy.php
       - name: Charter-configured international institutions
         run: php tests/wp09-organizations.php
+      - name: Causal and source-attributed scenario economy WP12
+        run: php tests/wp12-economic-domain.php
       - name: Constitutional domain and country selection WP05
         run: php tests/wp05-institutions.php
 
