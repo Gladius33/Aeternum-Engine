@@ -1,0 +1,27 @@
+name: World Politics WP01 prototype
+on:
+  pull_request:
+    paths:
+      - 'games/world-politics/**'
+      - 'tests/wp01-political-roster.php'
+      - 'docs/WORLD_POLITICS.md'
+      - '.github/workflows/world-politics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  identity-domain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: Validate new PHP files
+        run: |
+          php -l games/world-politics/src/PoliticalRoster.php
+          php -l tests/wp01-political-roster.php
+      - name: WP01 positive and negative acceptance
+        run: php tests/wp01-political-roster.php

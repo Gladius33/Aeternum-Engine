@@ -1,0 +1,99 @@
+# Aeternum: World Politics — serious-game charter (WP01, experimental)
+
+## Product definition
+
+World Politics is a **separate browser game** built on Aeternum Engine, not
+a change to the medieval, industrial or Guild Caravans gameplay. It is a
+persistent, replayable political/economic/diplomatic simulation grounded
+in real-world reference data, with a clearly marked counterfactual world
+after the scenario's starting timestamp.
+
+Two presentation modes may share the same engine: an accessible strategy
+game and an inspectable serious-game simulator. Neither is a real-world
+political forecast. Compare outcomes only under explicit assumptions,
+data-version pins, model uncertainty and reproducible initial conditions.
+
+## Identity and government requirements (approved scope)
+
+- Choose a real public political figure with date-stamped, source-attributed
+  career and public programme; or create a fictional president with generic
+  avatar, name, biography, party and individually defined proposals.
+- Choose a historical starting office holder, an explicitly alternate
+  presidency, or a political-career scenario. Alternate presidencies never
+  claim that a fictional election actually occurred.
+- Mix real and fictional personalities in the cabinet and civil service;
+  nominations are proposals with a distinct acceptance/decline step, not
+  automatic assertions about the real individual's preferences.
+- Country-specific **office definitions and constitutional rules** determine
+  nomination authority, oversight and legal consequences. The WP01 prototype
+  only accepts an operator-supplied office allowlist; it does not implement
+  French appointment law.
+- Preserve two separate records: immutable, externally sourced historical
+  biography versus simulated roles, relations and actions within a world.
+- Real programme promises must link to actual published sources, not invented
+  campaign positions. Fictional policies are marked fictional.
+- Player-authored identities/content require moderation, source licensing,
+  identity/spoofing protection and authorization before public availability.
+
+## Wider simulation scope (planned, NOT implemented)
+
+World reference data: UN M49, geographical boundaries and contested statuses,
+economic/demographic series with dates and license metadata. Political systems:
+institutions, elections, cabinet formation, civil society, courts, legality
+of decisions, protests and constitutional crises. Defence: public budgets,
+personnel, conscription, reserves and training delays; no invented classified
+military facts. Diplomacy: state-to-state relations, negotiated treaties,
+international organizations, join/withdrawal procedures and obligations.
+Religion: population and institutional datasets without inferring individual
+political behavior from religious affiliation. Economic simulation: budget,
+debt, trade, production and distribution with calibrated uncertainty.
+
+Coercive or clandestine political abuses may appear as **abstract fictional
+events and consequences**, not operational instructions or a claim that any
+real person would perform them.
+
+## Architecture and security invariants
+
+- Aeternum keeps control of identity/session admission, world membership,
+  authorization, transaction locks, delayed events, rule-version SHA-256
+  pinning, idempotent receipts and authoritative journal replay.
+- World Politics handlers must be explicitly reviewed/trusted and pinned
+  through the game's composition root. Never execute code from JSON profiles.
+- No API may authorize a president or official solely because a client
+  declares that title. A server-side world actor-role/office authorization
+  model and legally modeled powers must precede any mutation endpoints.
+- Historical source data and generated simulation state remain separately
+  persisted; no dynamic data refresh silently changes a running campaign.
+- A live world must not be migrated by rewriting an old rules digest.
+- The lab must demonstrate isolation between national rosters, worlds,
+  players and immutable snapshots before exposing any gameplay endpoint.
+- The existing three reference games and all pinned worlds must continue
+  functioning unchanged.
+
+## WP01 deliverable in this PR
+
+A **pure PHP domain prototype** under
+\`games/world-politics/src/PoliticalRoster.php\` with:
+- real-versus-fictional provenance validated at ingestion;
+- bounded programme measures and HTTPS source metadata;
+- national office allowlists, initial head of state, mixed roster;
+- proposed, accepted and declined appointments;
+- deterministic sorted snapshots and SHA-256 snapshots;
+- isolated executable PHP unit/negative tests and CI.
+
+This code is **not yet wired** to MariaDB, authenticated HTTP, the official
+Aeternum event journal, the browser UI, the base engine pack registry, or
+actual data importers. It deliberately does not invent a political party
+or biography data set. Tests use synthetic people/URLs only.
+
+## Next acceptance milestones
+
+1. Versioned source ingestion pipeline and source-license audit.
+2. Immutable political reference IDs + world-character IDs in MariaDB,
+   migrations, transactions and rollback tests.
+3. Actor/office power authorization and event-journal integration.
+4. Real/fictitious person picker, proposal editor and cabinet UI in Vue.
+5. Full Chromium/MariaDB E2E proving separation of worlds and real/fictional
+   provenance, then tested constitutional procedures and scenario variants.
+
+This work must not imply that Aeternum V1.0 was certified for production.
