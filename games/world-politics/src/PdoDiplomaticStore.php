@@ -182,9 +182,23 @@ final class PdoDiplomaticStore
                 || !$this->principal->allows($world,$this->principal->actorId(),'diplomacy.ai_scheduler')) {
                 throw new \DomainException('Trusted AI scheduler required');
             }
+            $this->actors->get($payload['responder']);
+            if ($this->actors->isHumanPlayable($payload['responder'])
+                || !$this->principal->allows($world,$payload['responder'],'diplomacy.respond')
+                || !$this->principal->allows($world,$payload['responder'],'diplomacy.ai_controller')) {
+                throw new \DomainException('Trusted AI scheduler required');
+            }
+            return;
         }
-        // The domain's propose/respond methods perform fine-grained
-        // from/responder authority checks and prevent AI-country impersonation.
+        $entityId=$operation==='propose' ? ($payload['from']??null) : ($payload['responder']??null);
+        $ability=$operation==='propose'?'diplomacy.propose':'diplomacy.respond';
+        if (!is_string($entityId)) throw new \InvalidArgumentException('Missing diplomatic actor field');
+        $entity=$this->actors->get($entityId);
+        if (!$this->principal->allows($world,$entityId,$ability)
+            || ($entity['controller']==='ai_only'
+                && !$this->principal->allows($world,$entityId,'diplomacy.ai_controller'))) {
+            throw new \DomainException('Actor has no verified authority over this diplomatic participant');
+        }
     }
 
     /** @param array<string,mixed> $payload @return array<string,mixed> */
@@ -207,8 +221,7 @@ final class PdoDiplomaticStore
                     $payload['proposal_id'],$payload['accepted'],$commandId);
             case 'ai_decide':
                 self::fields($payload,['responder','policy']);
-                if (!is_string($payload['responder']) || !is_string($payload['policy'])
-                    || !$this->actors->get($payload['responder'])['controller']==='ai_only') {
+                if (!is_string($payload['responder']) || !is_string($payload['policy'])) {
                     throw new \InvalidArgumentException('Invalid AI target');
                 }
                 // The AI only decides for explicitly non-playable entities.
