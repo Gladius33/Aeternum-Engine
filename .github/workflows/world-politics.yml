@@ -58,7 +58,9 @@ jobs:
           extensions: pdo_mysql
           coverage: none
       - name: Transactional persistent roster and journal regression
-        run: php tests/wp03-store-db.php
+        run: |
+          php tests/wp03-store-db.php
+          php tests/wp04-rest-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4
