@@ -49,6 +49,15 @@ final class PoliticalProfileTemplate
         ];
     }
 
+    /**
+     * Server-owned, retry-stable identifier. Not an authentication secret.
+     * Never accept principal or idempotency source from form-body fields.
+     */
+    public static function generatedId(string $actor,string $world,string $country,string $key):string
+    {
+        return 'f-'.substr(hash('sha256',$actor."\n".$world."\n".$country."\n".$key),0,32);
+    }
+
     /** @param array<string,mixed> $input @return array<string,mixed> */
     public static function normalizeFictional(array $input, string $country): array
     {
