@@ -289,7 +289,7 @@ final class OrganizationSimulation
         if (!$principal->allows($this->state['world_id'],$actor,$ability)
             || ($record['controller']==='ai_only'
                 && !$principal->allows($this->state['world_id'],$actor,'organizations.ai_controller'))) {
-            throw new \DomainException('Actor not authorized for this organization's action');
+            throw new \DomainException('Actor not authorized for this organization action');
         }
     }
 
