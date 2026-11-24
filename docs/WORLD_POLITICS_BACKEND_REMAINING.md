@@ -155,3 +155,8 @@ Rôles SQL minimaux et éventuels triggers d'audit, verrouillage de toutes les �
 La France a désormais un premier scénario parlementaire cohérent de bout en bout, mais la mécanique reste un **prototype d'IA et de données fictives**. Aucun nom de parlementaire réel, mandat daté, composition officielle de groupe, projet réel de réforme ou statistique de comportement politique n'est encore importé et validé. Les nominations de ministres, la composition détaillée des cabinets, les élections et la dissolution restent à achever.
 
 **Prochaine priorité : WP29 — boucle de politique publique multi-journées**, avec projet de loi, coûts/revenus, clauses et concessions ciblées, comportement parlementaire, réaction sociale graduelle et effets économiques durables. Ensuite, une alpha privée devra bénéficier d'un véritable serveur HTTP avec authentification et permissions.
+
+
+## WP29A — domestic policy domain candidate
+
+New headless domain and regression tests: `DomesticPolicySimulation.php`, `tests/wp29a-domestic-policy.php`. See `docs/WORLD_POLITICS_DOMESTIC_POLICY.md`. Full WP29 remains open pending durable storage, legislative proof and coordinated clock integration. CI must confirm this candidate before acceptance.

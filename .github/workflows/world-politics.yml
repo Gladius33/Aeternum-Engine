@@ -76,6 +76,8 @@ jobs:
         run: php tests/wp26-fr-sitting-calendar.php
       - name: French parliamentary deputy roll calls and coalitions WP28
         run: php tests/wp28-french-parliament.php
+      - name: Domestic policy fiscal ledger and multi-day scenario WP29A
+        run: php tests/wp29a-domestic-policy.php
       - name: Sectoral social and economic reaction WP20
         run: php tests/wp20-france-social.php
 
