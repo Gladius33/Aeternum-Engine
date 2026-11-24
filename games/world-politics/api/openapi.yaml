@@ -12,8 +12,164 @@ security:
   - bearerAuth: []
 tags:
   - name: Politics
-    description: World-scoped political reference and scenario state
+    description: World-scoped political identity and cabinet state
+  - name: Diplomacy
+    description: Headless persistent international actor interactions
 paths:
+  /worlds/{world}/diplomacy:
+    get:
+      operationId: readWorldDiplomacy
+      tags: [Diplomacy]
+      summary: Read world-scoped diplomatic proposals, declarations and events
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Durable diplomatic state with strong ETag
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/diplomacy/actors:
+    get:
+      operationId: listDiplomaticActors
+      tags: [Diplomacy]
+      description: Source-pinned states and separate governing authorities; no playable AI-only actors.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Dated actors and source dataset hash
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/diplomacy/proposals:
+    get:
+      operationId: listDiplomaticProposals
+      tags: [Diplomacy]
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Proposals in persistent world state
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+    post:
+      operationId: offerDiplomaticCooperation
+      tags: [Diplomacy]
+      description: Creates an offer or fictional declaration; never automatically ratifies treaties.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [from, to, action]
+              properties:
+                from: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                to: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                action:
+                  type: string
+                  enum: [dialogue, humanitarian_assistance, trade_cooperation, treaty_proposal, express_support, express_opposition, sanctions_proposal]
+      responses:
+        '202':
+          description: Offer stored with idempotent receipt and current ETag
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/diplomacy/responses:
+    post:
+      operationId: respondToDiplomaticProposal
+      tags: [Diplomacy]
+      description: Response is a fictional acceptance in principle, not a binding international treaty.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [responder, proposal_id, accepted]
+              properties:
+                responder: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                proposal_id: { $ref: '#/components/schemas/Identifier' }
+                accepted: { type: boolean }
+      responses:
+        '200': { description: Response recorded without binding treaty effect }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/diplomacy/ai/decisions:
+    post:
+      operationId: runAutonomousDiplomaticPlanner
+      tags: [Diplomacy]
+      description: Trusted service actor only; never allow a human client to impersonate another country.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [responder, policy]
+              properties:
+                responder: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                policy: { type: string, enum: [cautious, open_dialogue, humanitarian_open] }
+      responses:
+        '200': { description: Autonomous choices recorded atomically }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/diplomacy/clock:
+    post:
+      operationId: advanceWorldDiplomaticClock
+      tags: [Diplomacy]
+      description: Server worker-only virtual clock; progresses expiring proposals.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200': { description: Time advanced and due events stored }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
   /worlds/{world}/countries/{country}/institutions:
     get:
       operationId: readCountryInstitutionalState
@@ -300,7 +456,7 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Reserved for future trusted authentication gateway; not implemented.
+      description: Authentication gateway reserved; no production token verifier implemented.
   parameters:
     world:
       name: world
@@ -316,16 +472,21 @@ components:
       name: Idempotency-Key
       in: header
       required: true
-      schema: { type: string, pattern: '^[a-zA-Z0-9_-]{12,100}$' }
-      description: At most once per principal, method, route and key; only in-process in prototype.
+      schema: { type: string, pattern: '^[A-Za-z0-9_-]{12,100}$' }
+      description: Actor- and world-scoped crash-safe receipt in the persistent store.
     ifMatch:
       name: If-Match
       in: header
       required: true
       schema: { type: string }
-      description: Must match last state ETag, preventing stale concurrent mutations.
+      description: Strong ETag precondition for state-changing commands.
   schemas:
-    Identifier: { type: string, pattern: '^[a-z][a-z0-9_-]{0,63}$' }
+    Identifier:
+      type: string
+      pattern: '^[a-z][a-z0-9_-]{0,63}$'
+    GeopoliticalActorId:
+      type: string
+      pattern: '^[a-z0-9][a-z0-9_-]{0,63}$'
     ProgrammeMeasure:
       type: object
       additionalProperties: false
@@ -357,6 +518,8 @@ components:
           type: array
           maxItems: 100
           items: { $ref: '#/components/schemas/ProgrammeMeasure' }
+        profile: { $ref: '#/components/schemas/CharacterProfile' }
+        avatar: { type: string, const: generic-v1 }
     CharacterCreate:
       type: object
       additionalProperties: false
@@ -366,51 +529,10 @@ components:
         name: { type: string, minLength: 1, maxLength: 160 }
         mode: { type: string, enum: [quick, detailed], default: quick }
         kind: { type: string, const: fictional }
-        country: { type: string, pattern: '^[A-Z]{2}      allOf:
-        - $ref: '#/components/schemas/Person'
-        - type: object
-          properties:
-            kind: { const: fictional }
-            as_of: { type: 'null' }
-            sources: { type: array, maxItems: 0 }
-    Problem:
-      type: object
-      required: [type, status, code]
-      properties:
-        type: { type: string }
-        status: { type: integer }
-        code: { type: string }
-  responses:
-    notFound:
-      description: Missing or inaccessible resource
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-    forbidden:
-      description: Insufficient ability for the operation
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-    conflict:
-      description: Conflicting request or state
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-    precondition:
-      description: Missing or stale state precondition
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-    invalid:
-      description: Invalid request
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
- }
+        country: { type: string, pattern: '^[A-Z]{2}$' }
         biography: { type: string, maxLength: 2000, default: '' }
         avatar: { type: string, const: generic-v1 }
-        profile:
-          $ref: '#/components/schemas/CharacterProfile'
+        profile: { $ref: '#/components/schemas/CharacterProfile' }
         programme:
           type: array
           maxItems: 100
@@ -443,14 +565,6 @@ components:
       type: array
       maxItems: 24
       items: { type: string, maxLength: 300 }
-    FictionalPerson:
-      allOf:
-        - $ref: '#/components/schemas/Person'
-        - type: object
-          properties:
-            kind: { const: fictional }
-            as_of: { type: 'null' }
-            sources: { type: array, maxItems: 0 }
     Problem:
       type: object
       required: [type, status, code]
@@ -481,6 +595,11 @@ components:
           schema: { $ref: '#/components/schemas/Problem' }
     invalid:
       description: Invalid request
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    missingPrecondition:
+      description: Idempotency key or If-Match was not supplied
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
