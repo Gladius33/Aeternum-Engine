@@ -38,6 +38,10 @@ $trusted=new class implements FrenchConstitutionalPrincipal {
     }
     public function verifiedSignatures(string $world,string $motion):int{return 58;}
     public function verifiedVotesFor(string $world,string $motion):int{return 0;}
+    public function verifiedInstant(string $world,string $operation):string
+    {
+        return '2026-11-24T09:00:00+01:00';
+    }
 };
 $constitution=new FrenchConstitutionalCrisis(
     'social-world','regular-2026',

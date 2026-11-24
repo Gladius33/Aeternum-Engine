@@ -19,6 +19,8 @@ interface FrenchConstitutionalPrincipal
     public function verifiedBillCategory(string $world,string $billId):string;
     public function verifiedSignatures(string $world,string $motionId):int;
     public function verifiedVotesFor(string $world,string $motionId):int;
+    /** Authoritative simulation time, not a client-selected timestamp. */
+    public function verifiedInstant(string $world,string $operation):string;
 }
 
 /**

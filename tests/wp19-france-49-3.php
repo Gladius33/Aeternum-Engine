@@ -51,6 +51,10 @@ $office=new class implements FrenchConstitutionalPrincipal {
     {
         return $this->signatures[$motion]??0;
     }
+    public function verifiedInstant(string $world,string $operation):string
+    {
+        return '2026-11-24T09:00:00+01:00';
+    }
     public function verifiedVotesFor(string $world,string $motion):int
     {
         return $this->votes[$motion]??0;

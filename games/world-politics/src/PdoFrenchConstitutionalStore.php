@@ -89,6 +89,7 @@ final class PdoFrenchConstitutionalStore
             || preg_match('/[\x00-\x1f\x7f]/',$principalId)) {
             throw new \DomainException('Invalid trusted service principal');
         }
+        $this->checkInstant($world,$operation,$request['at']);
         ksort($request,SORT_STRING);
         $sha=hash('sha256',self::json([$operation,$request]));
         $keyHash=hash('sha256',$operation."\n".$idempotencyKey);
@@ -105,6 +106,7 @@ final class PdoFrenchConstitutionalStore
             if ($row===false) throw new \DomainException('French constitutional world absent');
             $this->check($world,'fr.constitution.read');
             $this->check($world,$right);
+            $this->checkInstant($world,$operation,$request['at']);
             if ($this->principal->actorId()!==$principalId) {
                 throw new \DomainException('Constitutional identity changed during transaction');
             }
@@ -190,6 +192,15 @@ final class PdoFrenchConstitutionalStore
             throw new \UnexpectedValueException('French constitutional snapshot hash does not match');
         }
         return $sim;
+    }
+
+    private function checkInstant(string $world,string $operation,string $claimed):void
+    {
+        $verified=$this->principal->verifiedInstant($world,$operation);
+        if (FrenchConstitutionalCrisis::instant($claimed)
+            !==FrenchConstitutionalCrisis::instant($verified)) {
+            throw new \DomainException('Unverified constitutional simulation time');
+        }
     }
 
     private function check(string $world,string $ability):void
