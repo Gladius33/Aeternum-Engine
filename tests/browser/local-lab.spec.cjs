@@ -154,6 +154,8 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(exp).toBeVisible();
             await expect(atlas.locator('[data-atlas-landscape='+theme+']')).toHaveCount(1);
             const territory=atlas.locator('[data-territory]').filter({has:page.locator('[data-atlas-region=own]')}).first();
+            await expect(territory).toBeAttached();
+            await exp.locator('[data-atlas-directory]').selectOption(await territory.getAttribute('data-territory'));
             await expect(territory).toBeVisible();
             await territory.click();
             await expect(territory).toHaveAttribute('aria-pressed','true');
@@ -166,7 +168,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(exp.locator('.atlas-route-summary')).toContainText('Registered outgoing connections:');
             const others=atlas.locator('[data-territory][aria-pressed=false]');
             if(await others.count()){
-                await others.first().click();
+                await exp.locator('[data-atlas-directory]').selectOption(await others.first().getAttribute('data-territory'));
                 await exp.locator('[data-atlas-command=destination]').click();
                 const planned=page.waitForResponse(r=>r.url().includes('/map/routes/'));
                 await exp.locator('[data-atlas-command=route]').click();
@@ -178,12 +180,13 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             }
             await atlas.focus();
+            await page.keyboard.press('Home');
             const initialView=await atlas.getAttribute('viewBox');
             await page.keyboard.press('+');
             await expect(atlas).not.toHaveAttribute('viewBox',initialView);
             await page.keyboard.press('Home');
             await captureScene(page,'g14-'+pack+'-strategic-atlas');
-            await territory.click();
+            await exp.locator('[data-atlas-directory]').selectOption(await territory.getAttribute('data-territory'));
             await exp.locator('[data-atlas-command=domain]').click();
             await expect(page.locator('.scene-district')).toBeVisible();
             await expect(exp).toBeHidden();

@@ -239,3 +239,6 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 @keyframes atlas-route-flow{to{stroke-dashoffset:-30}}
 @media(prefers-reduced-motion:reduce){.atlas-route-motion{animation:none}}
 @media(max-width:640px){#world-scene .atlas-expedition{padding:.6rem}.atlas-expedition-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-command[hidden]{display:none}.atlas-expedition .atlas-command{overflow-wrap:anywhere}.atlas-endpoints{font-size:.76rem}}
+
+.atlas-directory{display:grid;gap:.25rem;font-size:.8rem;color:var(--ui-muted)}
+#world-scene .atlas-directory select{width:100%;min-height:44px;max-width:100%;border:1px solid #ffffff35;border-radius:6px;background:var(--ui-surface);color:var(--ui-ink);padding:.35rem .55rem}

@@ -122,6 +122,21 @@
     atlasPanel.setAttribute('aria-labelledby','atlas-expedition-title');
     const atlasTitle=html('h3',atlasPanel,'');atlasTitle.id='atlas-expedition-title';
     const atlasSummary=html('p',atlasPanel,'atlas-expedition-summary');
+    const atlasDirectory=html('label',atlasPanel,'atlas-directory');
+    const atlasDirectoryLabel=html('span',atlasDirectory,'');
+    const atlasDirectorySelect=html('select',atlasDirectory,'');atlasDirectorySelect.dataset.atlasDirectory='true';
+    let atlasPositions=new Map();
+    atlasDirectorySelect.addEventListener('change',()=>{
+        const id=atlasDirectorySelect.value;if(!id||busy||!territories.has(id))return;
+        select('territory',id);centerAtlas(id);
+    });
+    function centerAtlas(id){
+        const n=territories.get(id),p=n?atlasPositions.get(n.location):null;
+        if(!p)return;
+        // Keep a region and its label comfortably within the camera.
+        const z=Math.max(1,Math.min(2.5,extent.h/220,extent.w/280));
+        camera={x:p.x-extent.w/z/2,y:p.y+12-extent.h/z/2,z};view();
+    }
     const atlasControls=html('div',atlasPanel,'atlas-expedition-controls');
     const atlasButton=(key,fn)=>{const b=html('button',atlasControls,'atlas-command');b.type='button';b.dataset.atlasCommand=key;b.addEventListener('click',()=>{if(!busy)fn();});return b;};
     const atlasOpen=atlasButton('domain',()=>{if(selected?.type==='territory'&&districtIds().includes(selected.id)){districtId=selected.id;showDistrict(true);}});
@@ -144,6 +159,12 @@
         const own=current&&districtIds().includes(current.id);
         const state=current?label(current.control==='own'?'Your territory':current.control==='occupied'?'Occupied territory':'Unclaimed territory',current.control==='own'?'Votre territoire':current.control==='occupied'?'Territoire occupé':'Territoire libre'):'';
         atlasSummary.textContent=current?locationName(current)+' · '+state:label('Select a territory to explore its registered connections.','Sélectionnez un territoire pour explorer ses liaisons enregistrées.');
+        atlasDirectoryLabel.textContent=label('Go to territory','Aller au territoire');
+        atlasDirectorySelect.replaceChildren();
+        const empty=html('option',atlasDirectorySelect,'',label('Choose a territory','Choisir un territoire'));empty.value='';
+        const ordered=[...territories.values()].sort((a,b)=>Number(b.control==='own')-Number(a.control==='own')||locationName(a).localeCompare(locationName(b),fr?'fr':'en'));
+        for(const n of ordered){const o=html('option',atlasDirectorySelect,'',locationName(n));o.value=n.id;}
+        atlasDirectorySelect.value=current?.id??'';atlasDirectorySelect.disabled=busy||!ordered.length;
         atlasOpen.textContent=label('Enter domain','Entrer dans le domaine');atlasOpen.hidden=!own;
         atlasFrom.textContent=label('Set departure','Définir le départ');atlasTo.textContent=label('Set destination','Définir l’arrivée');
         atlasLinks.textContent=label('Survey connections','Consulter les liaisons');atlasTrace.textContent=label('Find route','Calculer l’itinéraire');atlasMore.textContent=label('More territories','Autres territoires');
@@ -941,7 +962,7 @@
         const rows=Math.max(1,Math.ceil(nodes.length/cols));
         extent={w:narrow.matches?340:Math.max(440,cols*270+60),h:Math.max(narrow.matches?310:300,rows*155+90)};
         // Initial viewport fits the first two rows; larger worlds remain pannable.
-        if(rows>2&&camera.z===1)camera.z=Math.min(3,extent.h/(2*155+90));
+        if(classic&&rows>2&&camera.z===1)camera.z=Math.min(3,extent.h/(2*155+90));
         const p=palettes[theme],defs=el('defs',{},svg),gradient=el('linearGradient',{id:'scene-bg',x1:'0%',y1:'0%',x2:'100%',y2:'100%'},defs);
         el('stop',{offset:'0%','stop-color':p[5]},gradient);el('stop',{offset:'100%','stop-color':p[0]},gradient);
         const illustrated=!classic&&theme!=='neutral';
@@ -955,7 +976,7 @@
         for(const [x,y,dx,dy] of [[12,12,1,1],[extent.w-12,12,-1,1],[12,extent.h-12,1,-1],[extent.w-12,extent.h-12,-1,-1]]){
             line(border,x,y,x+dx*24,y,p[2],2);line(border,x,y,x,y+dy*24,p[2],2);
         }
-        const positions=new Map();
+        const positions=new Map();atlasPositions=positions;
         nodes.forEach((n,i)=>{const x=extent.w/2+((i%cols)-(cols-1)/2)*270,y=(extent.h-rows*155)/2+65+Math.floor(i/cols)*155;positions.set(n.location,{x,y});});
         for(const [from,neighbors] of links)for(const n of neighbors){
             const a=positions.get(from),b=positions.get(n.location);if(!a||!b)continue;
