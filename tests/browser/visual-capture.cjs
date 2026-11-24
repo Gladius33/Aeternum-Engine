@@ -9,7 +9,7 @@ async function captureScene(page,name){
             expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
             const scene=page.locator('#world-scene');
             // No opaque internal identifiers in the player-facing scene, even in rendered controls.
-            expect(await scene.innerText()).not.toMatch(/\b(?:[a-f0-9]{24,128}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\b/i);
+            expect((await scene.innerText())+' '+(await scene.locator('svg:not([hidden]) text').allTextContents()).join(' ')).not.toMatch(/\b(?:[a-f0-9]{24,128}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\b/i);
             await scene.screenshot({path:'browser-captures/'+name+'-'+device+'.png',animations:'disabled'});
         }
     }finally{if(original)await page.setViewportSize(original);}

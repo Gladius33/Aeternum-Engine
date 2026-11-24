@@ -2,7 +2,7 @@ const {test,expect}=require('@playwright/test');
 const origin='http://127.0.0.1:8769';
 
 test('M07: language selection updates accessible headings without changing account input',async ({page})=>{
-  await page.goto(origin+'/play.html');
+  await page.goto(origin+'/play.html?view=classic');
   const login=page.locator('#login input[name=login]');
   await login.fill('local-user');
   await expect(page.locator('html')).toHaveAttribute('lang','en');
@@ -29,7 +29,7 @@ test('M07: language selection updates accessible headings without changing accou
 
 test('M07 Vue shell offers keyboard navigation, translated help, safe mobile width and network feedback',async ({page,context})=>{
   await page.setViewportSize({width:375,height:812});
-  await page.goto(origin+'/play.html');
+  await page.goto(origin+'/play.html?view=classic');
   await expect(page.locator('[data-client="vue-typescript"]')).toBeVisible();
   await expect(page.getByRole('navigation',{name:'Player navigation'}).getByRole('link',{name:'Sign in'})).toBeVisible();
   await page.keyboard.press('Tab');

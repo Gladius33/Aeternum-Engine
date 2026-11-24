@@ -8,7 +8,7 @@ const scenarios=[
     {pack:'reference-industrial',login:'browser-industrial',world:'e2e-industrial',resource:'steel',initial:200,rate:75,cost:120,upgraded:110,duration:180}
 ];
 async function signIn(page, scenario, options={}) {
-    if (!options.reusePage) await page.goto(url+'/play.html');
+    if (!options.reusePage) await page.goto(url+'/play.html?view=classic');
     const credential=scenario.password??password;
     await page.getByLabel('Login',{exact:true}).fill(scenario.login);
     await page.getByLabel('Password',{exact:true}).fill(credential);
@@ -322,7 +322,7 @@ test('invitation-only live server enforces one-use code through the real browser
     const invitation=fs.readFileSync('tests/browser/.e2e-invite-token','utf8').trim();
     expect(invitation).toMatch(/^[a-f0-9]{64}$/);
     const invitedUrl='http://127.0.0.1:8766';
-    await page.goto(invitedUrl+'/play.html');
+    await page.goto(invitedUrl+'/play.html?view=classic');
     await expect(page.locator('#register')).toBeVisible();
     await expect(page.locator('#invite-wrap')).toBeVisible();
     await expect(page.getByLabel('Invitation code',{exact:true})).toHaveAttribute('required','');
@@ -513,7 +513,7 @@ test('public signup provisions real players, supports retry, reconnect and accou
     test.setTimeout(420000);
     const context=await browser.newContext(), page=await context.newPage();
     try {
-        await page.goto(url+'/play.html');
+        await page.goto(url+'/play.html?view=classic');
         await expect(page.locator('#register')).toBeVisible();
         // The operator registry may add worlds without modifying this test.
         // Assert both historical worlds remain present, and the M02 fixture
@@ -564,7 +564,7 @@ test('public signup provisions real players, supports retry, reconnect and accou
         // Use the one-time recovery code issued after registration.
         expect(first.recoveryCode).toMatch(/^[a-f0-9]{64}$/);
         // Reload the client without a second logout: recovery must work even while an old bearer exists.
-        await page.goto(url+'/play.html');
+        await page.goto(url+'/play.html?view=classic');
         await page.getByLabel('Recovery login',{exact:true}).fill('browser-public-first');
         await page.getByLabel('Recovery code',{exact:true}).fill(first.recoveryCode);
         await page.getByLabel('Replacement password',{exact:true}).fill('browser new password after recovery');

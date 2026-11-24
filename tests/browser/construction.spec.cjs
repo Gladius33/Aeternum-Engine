@@ -7,7 +7,7 @@ test('M04 pinned two-player construction debits, completes and isolates actor st
     test.setTimeout(280000);
     const one=await browser.newPage(),two=await browser.newPage();
     async function signIn(page,login) {
-        await page.goto(base+'/play.html');
+        await page.goto(base+'/play.html?view=classic');
         await page.getByLabel('Login',{exact:true}).fill(login);
         for(let i=0;i<3;i++) {
             await page.getByLabel('Password',{exact:true}).fill(password);
