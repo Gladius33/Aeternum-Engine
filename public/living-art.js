@@ -438,5 +438,69 @@
         if(typeof giveResource!=='string'||!giveResource||typeof wantResource!=='string'||!wantResource||giveResource===wantResource||!valid(giveUnits)||!valid(wantUnits))return null;
         return Object.freeze({giveResource,giveUnits,wantResource,wantUnits});
     }
-    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,economicJournal,operationScene,cargo,marketHall,exchangeTerms,version:5});
+    // G19: chapter layout is a presentation of authoritative counters.
+    // No points, rewards, buildings or victory conditions are granted here.
+    function campaignChapters(theme,snapshot,holdings=null){
+        const safe=v=>Number.isSafeInteger(v)&&v>=0;
+        const goal=(key,current,required,kind='building')=>{
+            if(!safe(required)||required===0)return null;
+            return Object.freeze({key,kind,current:safe(current)?current:null,required,state:!safe(current)?'unknown':current>=required?'complete':'incomplete'});
+        };
+        const chapters=[];
+        const add=(key,goals)=>{
+            const rows=goals.filter(Boolean);
+            if(!rows.length)return;
+            const complete=rows.filter(x=>x.state==='complete').length;
+            chapters.push(Object.freeze({key,goals:Object.freeze(rows),complete,total:rows.length,state:complete===rows.length?'complete':rows.some(x=>x.state==='unknown')?'unknown':'incomplete'}));
+        };
+        if(theme==='guild'){
+            // Guild has no canonical victory campaign. These are only two
+            // suggested development milestones, with confirmed owned levels.
+            const level=key=>holdings&&Object.hasOwn(holdings,key)?holdings[key]:null;
+            add('guild-foundation',[goal('market_hall',level('market_hall'),1)]);
+            add('guild-caravan',[goal('caravan_hub',level('caravan_hub'),1)]);
+            return Object.freeze({chapters:Object.freeze(chapters),victory:null,guide:true});
+        }
+        if(!['medieval','industrial'].includes(theme)||!snapshot?.victory?.buildings)return Object.freeze({chapters:Object.freeze([]),victory:null,guide:false});
+        const buildings=snapshot.victory.buildings;
+        const used=new Set();
+        const structure=key=>{
+            if(!Object.hasOwn(buildings,key))return null;
+            used.add(key);const d=buildings[key];return goal(key,d?.current,d?.required);
+        };
+        if(theme==='medieval'){
+            add('medieval-foundation',[structure('lumberyard'),structure('farm')]);
+            add('medieval-community',[structure('granary'),goal('population',snapshot.population,snapshot.victory.populationRequired,'population')]);
+            add('medieval-stronghold',[structure('keep')]);
+        }else{
+            add('industrial-foundation',[structure('power_plant'),structure('warehouse')]);
+            add('industrial-manufacture',[structure('steelworks')]);
+            add('industrial-freight',[structure('freight_terminal'),goal('delivery',snapshot.delivery?.current,snapshot.delivery?.required,'delivery')]);
+        }
+        add('additional',Object.keys(buildings).filter(k=>!used.has(k)).map(structure));
+        return Object.freeze({chapters:Object.freeze(chapters),victory:typeof snapshot.victory.achieved==='boolean'?snapshot.victory.achieved:null,guide:false});
+    }
+    function chapterLandscape(parent,theme,key){
+        const profile=atmosphereProfile(theme,'dusk');
+        if(!profile)return false;
+        const g=group(parent,0,0,1,{'data-chapter-landscape':key,'aria-hidden':'true','pointer-events':'none'});
+        const sky=atmosphereGradient(g,[[0,profile.sky[0],1],[60,profile.sky[1],1],[100,profile.sky[2],1]]);
+        r(g,0,0,320,120,sky);
+        e(g,248,29,19,19,'#ffe0a899');e(g,248,29,11,11,profile.light);
+        for(let j=0;j<3;j++){
+            let d='M0 '+(52+j*15);
+            for(let i=0;i<=8;i++){const x=i*40,y=52+j*14-Math.sin(i*1.3+j*.8)*12-Math.cos(i*.66+j)*8;d+=' L'+x+' '+y;}
+            p(g,d+'V120H0Z',profile.earth[2-j]);
+        }
+        p(g,'M0 120Q85 92 130 99T320 84V120Z',profile.earth[1]);
+        for(let i=0;i<22;i++){
+            const x=(i*73+19)%320,y=84+(i*17)%34;
+            if(x>75&&x<245)continue;
+            if(theme==='medieval'){p(g,'M'+(x-6)+' '+y+'l6 -15 6 15Z',profile.earth[2]);l(g,x,y,x,y+3,'#77533c',1);}
+            else if(theme==='industrial')p(g,'M'+x+' '+y+'l7 -5 8 3 -3 4Z',profile.earth[2]);
+            else p(g,'M'+x+' '+y+'q7 -5 14 -2','none',profile.light,.8);
+        }
+        return true;
+    }
+    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,economicJournal,operationScene,cargo,marketHall,exchangeTerms,campaignChapters,chapterLandscape,version:6});
 })();
