@@ -1,0 +1,247 @@
+<?php
+declare(strict_types=1);
+
+namespace Aeternum\WorldPolitics;
+
+require_once __DIR__.'/InstitutionalRulebook.php';
+
+/**
+ * WP05: small deterministic institution/event aggregate. Illustrates exactly
+ * why FR/DE/US actions cannot share a generic presidential permission.
+ *
+ * Actor role is an explicit trusted server-side argument, NEVER read from the
+ * action JSON. No tactical coercion, electoral manipulation or AI implemented.
+ */
+final class InstitutionalSimulation
+{
+    /** @var array<string,mixed> */
+    private array $state;
+
+    public function __construct(string $world, string $country, string $startingDay)
+    {
+        self::id($world);
+        self::day($startingDay);
+        $rules=InstitutionalRulebook::forCountry($country);
+        $this->state=[
+            'world_id'=>$world,
+            'country_code'=>$country,
+            'ruleset'=>$rules['version'],
+            'day'=>$startingDay,
+            'legislature'=>'sitting',
+            'election'=>null,
+            'last_dissolution'=>null,
+            'bills'=>[],
+            'agenda'=>[],
+            'events'=>[],
+            'constitutional_breaches'=>0,
+        ];
+    }
+
+    /** Recreate state for a trusted database snapshot with validation. */
+    public static function restore(array $state):self
+    {
+        $expected=['world_id','country_code','ruleset','day','legislature','election',
+          'last_dissolution','bills','agenda','events','constitutional_breaches'];
+        $keys=array_keys($state);sort($keys);sort($expected);
+        if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
+        $self=new self($state['world_id'],$state['country_code'],$state['day']);
+        if ($state['ruleset']!==$self->state['ruleset']) {
+            throw new \DomainException('Ruleset mismatch: never silently migrate worlds');
+        }
+        if (!in_array($state['legislature'],['sitting','dissolved'],true)
+            || !is_array($state['bills']) || !is_array($state['agenda']) || !is_array($state['events'])
+            || !is_int($state['constitutional_breaches']) || $state['constitutional_breaches']<0) {
+            throw new \InvalidArgumentException('Invalid institutional snapshot');
+        }
+        if ($state['election']!==null && (
+            !is_array($state['election'])
+            || !isset($state['election']['earliest'],$state['election']['deadline'])
+        )) throw new \InvalidArgumentException('Invalid election window');
+        foreach ($state['agenda'] as $event) {
+            if (!is_array($event) || !isset($event['id'],$event['on'],$event['kind'])) {
+                throw new \InvalidArgumentException('Invalid pending institutional event');
+            }
+            self::id($event['id']); self::day($event['on']);
+            if (!in_array($event['kind'],['bill_debate_open','election_window_open','election_deadline'],true)) {
+                throw new \InvalidArgumentException('Unknown scheduled event');
+            }
+        }
+        $self->state=$state;
+        return $self;
+    }
+
+    /**
+     * Country-specific institutional action, with game-time side effects.
+     * @param array<string,mixed> $input
+     * @return array<string,mixed>
+     */
+    public function decide(string $role, string $action, array $input, string $commandId):array
+    {
+        self::id($commandId);
+        $rules=InstitutionalRulebook::forCountry($this->state['country_code']);
+        $day=$this->state['day'];
+        if (!is_string($role) || !preg_match('/^[a-z][a-z0-9_]{0,63}$/D',$role)) {
+            throw new \InvalidArgumentException('Unknown actor role');
+        }
+        if ($action==='submit_bill') {
+            self::keys($input,['title']);
+            if (!in_array($role,$rules['bill_proposers'],true)) {
+                throw new \DomainException('Role cannot introduce legislation in this country');
+            }
+            $title=$input['title'];
+            if (!is_string($title) || trim($title)==='' || strlen($title)>200
+                || preg_match('/[\x00-\x1f\x7f]/',$title)) {
+                throw new \InvalidArgumentException('Invalid bill title');
+            }
+            if (isset($this->state['bills'][$commandId])) throw new \DomainException('Bill already filed');
+            $this->state['bills'][$commandId]=[
+                'id'=>$commandId,'title'=>$title,'initiated_by_role'=>$role,
+                'status'=>'filed','filed_on'=>$day,'source_of_result'=>'simulation',
+            ];
+            // SEVEN DAYS IS A CONFIGURABLE GAMEPLAY DEFAULT, NOT A LEGAL DEADLINE.
+            $this->enqueue($commandId.'-debate','bill_debate_open',self::plus($day,7));
+            $result=['bill_id'=>$commandId,'status'=>'filed','earliest_debate'=>self::plus($day,7)];
+        } elseif ($action==='dissolve_lower_house') {
+            self::keys($input,['consultations_recorded']);
+            if ($rules['dissolution']['mode']!=='consultations_required'
+                || $role!==($rules['dissolution']['role']??null)) {
+                throw new \DomainException('No ordinary dissolution power for that institution');
+            }
+            if ($input['consultations_recorded']!==true) {
+                throw new \DomainException('Mandatory consultations not recorded');
+            }
+            if ($this->state['legislature']!=='sitting') {
+                throw new \DomainException('Legislature already dissolved');
+            }
+            $last=$this->state['last_dissolution'];
+            if ($last!==null && self::difference($last,$day)<365) {
+                throw new \DomainException('Repeat dissolution restricted');
+            }
+            $earliest=self::plus($day,$rules['dissolution']['election_min_days']);
+            $deadline=self::plus($day,$rules['dissolution']['election_max_days']);
+            $this->state['legislature']='dissolved';
+            $this->state['last_dissolution']=$day;
+            $this->state['election']=[
+                'earliest'=>$earliest,'deadline'=>$deadline,'status'=>'scheduled',
+            ];
+            $this->enqueue($commandId.'-opening','election_window_open',$earliest);
+            $this->enqueue($commandId.'-deadline','election_deadline',$deadline);
+            $result=['status'=>'dissolved','election_earliest'=>$earliest,
+                'election_deadline'=>$deadline,'legality'=>'within_modeled_constitution'];
+        } elseif ($action==='hold_election') {
+            self::keys($input,[]);
+            if ($role!=='election_authority') {
+                throw new \DomainException('Election is administered by its authorized institution');
+            }
+            $election=$this->state['election'];
+            if (!is_array($election) || $this->state['legislature']!=='dissolved'
+                || $day<$election['earliest'] || $day>$election['deadline']) {
+                throw new \DomainException('No valid election window');
+            }
+            // Results/seats cannot be fabricated before electoral simulation.
+            $this->state['election']['status']='voting_recorded_results_pending';
+            $this->state['legislature']='sitting';
+            $result=['status'=>'voting_recorded_results_pending','on'=>$day];
+        } else {
+            // Refuse bypasses: "cancel elections" cannot masquerade as a legal
+            // presidential action. Abstract unconstitutional events are a
+            // separate future game module with crisis consequences.
+            throw new \DomainException('Unknown or unmodeled constitutional power');
+        }
+        $this->state['events'][]=[
+            'id'=>$commandId,'on'=>$day,'kind'=>$action,'actor_role'=>$role,
+            'result'=>$result,
+        ];
+        return $result;
+    }
+
+    /** Advance deterministic game clock, executing only approved due events. */
+    public function advanceTo(string $targetDay):array
+    {
+        self::day($targetDay);
+        if ($targetDay<$this->state['day']) throw new \InvalidArgumentException('Game clock cannot regress');
+        $due=[];$remain=[];
+        foreach ($this->state['agenda'] as $event) {
+            if ($event['on']<=$targetDay) $due[]=$event;
+            else $remain[]=$event;
+        }
+        usort($due,static fn($a,$b)=>[$a['on'],$a['id']]<=>[$b['on'],$b['id']]);
+        $applied=[];
+        foreach ($due as $event) {
+            $this->state['day']=$event['on'];
+            $kind=$event['kind'];
+            if ($kind==='bill_debate_open') {
+                $billId=substr($event['id'],0,-7);
+                if (isset($this->state['bills'][$billId])) {
+                    $this->state['bills'][$billId]['status']='debate_ready';
+                }
+            } elseif ($kind==='election_window_open') {
+                if (($this->state['election']['status']??null)==='scheduled') {
+                    $this->state['election']['status']='voting_window_open';
+                }
+            } elseif ($kind==='election_deadline') {
+                if ($this->state['legislature']==='dissolved') {
+                    $this->state['election']['status']='constitutional_deadline_missed';
+                    $this->state['constitutional_breaches']++;
+                }
+            }
+            $this->state['events'][]=[
+                'id'=>$event['id'],'on'=>$event['on'],
+                'kind'=>$kind,'actor_role'=>'simulation_clock',
+                'result'=>['processed'=>true],
+            ];
+            $applied[]=$event['id'];
+        }
+        $this->state['day']=$targetDay;
+        $this->state['agenda']=$remain;
+        return ['day'=>$targetDay,'processed'=>$applied,
+            'constitutional_breaches'=>$this->state['constitutional_breaches']];
+    }
+
+    /** @return array<string,mixed> */
+    public function snapshot():array
+    {
+        $s=$this->state;
+        ksort($s['bills'],SORT_STRING);
+        usort($s['agenda'],static fn($a,$b)=>[$a['on'],$a['id']]<=>[$b['on'],$b['id']]);
+        return $s;
+    }
+
+    public function hash():string
+    {
+        return hash('sha256',json_encode($this->snapshot(),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+    }
+
+    private function enqueue(string $id,string $kind,string $on):void
+    {
+        self::id($id);
+        $this->state['agenda'][]=['id'=>$id,'kind'=>$kind,'on'=>$on];
+    }
+    private static function keys(array $data,array $expected):void
+    {
+        $a=array_keys($data);sort($a);sort($expected);
+        if ($a!==$expected) throw new \InvalidArgumentException('Unexpected institutional action fields');
+    }
+    private static function id(string $id):void
+    {
+        if (!preg_match('/^[a-z][a-z0-9_-]{0,63}$/D',$id)) {
+            throw new \InvalidArgumentException('Invalid identifier');
+        }
+    }
+    private static function day(string $day):void
+    {
+        $date=\DateTimeImmutable::createFromFormat('!Y-m-d',$day);
+        if ($date===false || $date->format('Y-m-d')!==$day) {
+            throw new \InvalidArgumentException('Invalid simulation day');
+        }
+    }
+    private static function plus(string $day,int $days):string
+    {
+        return (new \DateTimeImmutable($day,new \DateTimeZone('UTC')))
+            ->modify('+'.$days.' days')->format('Y-m-d');
+    }
+    private static function difference(string $a,string $b):int
+    {
+        return (int)(new \DateTimeImmutable($a))->diff(new \DateTimeImmutable($b))->format('%r%a');
+    }
+}
