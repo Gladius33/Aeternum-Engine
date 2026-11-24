@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/OrganizationSimulation.php';
+require_once __DIR__.'/AutonomousOrganizationPlanner.php';
 
 /**
  * WP10: country-owned and AI decisions both go through a durable,
@@ -68,7 +69,7 @@ final class PdoOrganizationStore
         string $world,string $operation,array $payload,
         string $idempotencyKey,string $ifMatch
     ):array {
-        if (!in_array($operation,['apply','vote','formalize','withdraw','clock'],true)) {
+        if (!in_array($operation,['apply','vote','formalize','withdraw','clock','ai_vote'],true)) {
             throw new \InvalidArgumentException('Unrecognized organization operation');
         }
         self::identifier($world);
@@ -169,8 +170,22 @@ final class PdoOrganizationStore
             'withdraw'=>['organization','actor'],
             'formalize'=>['organization','application_id'],
             'clock'=>['target_day'],
+            'ai_vote'=>['voter','policy'],
         };
         self::fields($payload,$fields);
+        if ($operation==='ai_vote') {
+            if (!is_string($payload['voter']) || !is_string($payload['policy'])) {
+                throw new \InvalidArgumentException('Invalid AI voting input');
+            }
+            $entity=$this->actors->get($payload['voter']);
+            if ($entity['controller']!=='ai_only'
+                || !$this->principal->allows($world,$this->principal->actorId(),'organizations.ai_scheduler')
+                || !$this->principal->allows($world,$payload['voter'],'organizations.vote')
+                || !$this->principal->allows($world,$payload['voter'],'organizations.ai_controller')) {
+                throw new \DomainException('Trusted AI voting service required');
+            }
+            return;
+        }
         if ($operation==='formalize' || $operation==='clock') {
             $ability=$operation==='formalize'?'organizations.formalize':'organizations.clock';
             if (!$this->principal->allows($world,$this->principal->actorId(),$ability)) {
@@ -217,6 +232,13 @@ final class PdoOrganizationStore
                 self::str($payload['organization']),self::str($payload['actor']),$commandId),
             'clock'=>$sim->advanceTo($this->principal,
                 self::str($payload['target_day']),$commandId),
+            'ai_vote'=>[
+                'voter'=>self::str($payload['voter']),
+                'decisions'=>(new AutonomousOrganizationPlanner())->execute(
+                    $sim,$this->actors,$this->principal,
+                    self::str($payload['voter']),self::str($payload['policy'])
+                ),
+            ],
         };
     }
 
