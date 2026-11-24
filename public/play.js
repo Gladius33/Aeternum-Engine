@@ -1,5 +1,7 @@
 'use strict';
 let token = null, busy = false, pending = null, worlds = [];
+let selectedGame = null;
+const gameKind=w=>w.settlementEnabled===true?'medieval':w.industryEnabled===true?'industrial':w.resources?.includes('spice')&&w.resources?.includes('silver')?'guild':'neutral';
 const login = document.querySelector('#login'), game = document.querySelector('#game'), balance = document.querySelector('#balance'), action = document.querySelector('#action'), status = document.querySelector('#status'), stock = document.querySelector('#stock'), marketClaim=document.querySelector('#market-claim');
 async function api(path, method='GET', data) {
     const headers = {'Accept':'application/json'};
@@ -388,7 +390,9 @@ function selectWorld() {
 async function discover() {
     const data=await api('/v1/me/worlds');
     worlds=data.worlds;
-    options(balance.elements.world,worlds.map(w=>[w.world,w.name+' — '+w.world]));
+    const matching=selectedGame?worlds.filter(w=>gameKind(w)===selectedGame):worlds;
+    if(selectedGame&&!matching.length)throw new Error(document.documentElement.lang==='fr'?'Ce compte ne possède pas de domaine dans ce jeu. Choisissez un autre joueur ou un autre jeu.':'This account has no domain in this game. Choose another player or game.');
+    options(balance.elements.world,matching.map(w=>[w.world,w.name+' — '+w.world]));
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
@@ -447,7 +451,7 @@ login.addEventListener('submit',e=>{
     // An offline recovery secret is only for its issuance screen. Never leave
     // it visible after the user attempts to enter an authenticated session.
     showRecoveryCode(null);
-    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;login.hidden=true;registration.hidden=true;activation.hidden=true;activationResend.hidden=true;recovery.hidden=true;game.hidden=false;await discover();});
+    run(async()=>{const data=await api('/v1/auth/login','POST',credentials);token=data.token;try{await discover();}catch(error){try{await api('/v1/auth/logout','POST');}finally{resetSession();}throw error;}login.hidden=true;registration.hidden=true;activation.hidden=true;activationResend.hidden=true;recovery.hidden=true;game.hidden=false;});
 });
 const registration=document.querySelector('#register');
 let joinableWorlds=[], inviteRequired=false, activationRequired=false;
@@ -1143,3 +1147,53 @@ document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>
     await api('/v1/auth/logout/all','POST');
     resetSession();
 }));
+
+// G10: a player-facing game library. No credential or session is stored by the launcher.
+(()=>{
+    if(new URLSearchParams(location.search).get('view')==='classic')return;
+    const main=document.getElementById('main-content'), locale=document.getElementById('locale-select');
+    main.classList.add('player-first');
+    const library=document.createElement('section');library.id='game-library';library.setAttribute('aria-labelledby','library-title');
+    const heading=document.createElement('h2');heading.id='library-title';library.append(heading);
+    const intro=document.createElement('p');library.append(intro);
+    const cards=document.createElement('div');cards.className='game-library-grid';library.append(cards);
+    const catalog={medieval:{name:['The Living Realm','Le Royaume vivant'],description:['Build a village, harvest food and welcome new residents.','Fondez un village, cultivez vos terres et accueillez des habitants.'],tag:['Settlement strategy','Stratégie médiévale'],art:'<svg viewBox="0 0 320 160" aria-hidden="true"><path fill="#334e45" d="M0 92 67 24 128 82 201 17 320 100V160H0Z"/><path fill="#738b5d" d="M0 110 90 70 180 103 320 65V160H0Z"/><path fill="#b69e65" d="M0 160 120 103 164 105 65 160Z"/><g stroke="#29372d" stroke-width="2"><path fill="#d9c19b" d="M140 62h76v61h-76z"/><path fill="#a86041" d="m128 64 50-41 50 41z"/><path fill="#d5c4a0" d="M179 75h58v56h-58z"/><path fill="#754638" d="m170 76 38-32 38 32z"/><path fill="#4b3932" d="M201 106h15v25h-15z"/><path fill="#e2c876" d="M150 82h13v15h-13z"/></g><g fill="#314b3b"><path d="m26 112 25-70 25 70zM60 110 82 49l22 61zM252 115l25-73 25 73z"/></g><g stroke="#dfc178" stroke-width="3"><path d="m8 145 68-24m-51 35 69-25m110 24 85-22m-59 24 84-22"/></g></svg>'},industrial:{name:['Industrial Frontier','Frontière industrielle'],description:['Power factories, manufacture goods and dispatch freight.','Alimentez vos usines, fabriquez des marchandises et expédiez du fret.'],tag:['Industrial management','Gestion industrielle'],art:'<svg viewBox="0 0 320 160" aria-hidden="true"><path fill="#4d6571" d="M0 85 80 57 145 82 235 39 320 74V160H0Z"/><path fill="#59686b" d="M0 119 320 95V160H0Z"/><g stroke="#263741" stroke-width="2"><path fill="#929e9c" d="M49 65h137v61H49z"/><path fill="#52626a" d="m49 65 36-22v22l39-22v22l40-22v22z"/><path fill="#a4a9a3" d="M197 81h84v44h-84z"/><path fill="#756459" d="M204 30h18v61h-18zM246 20h17v68h-17z"/><path fill="#d9a459" d="M67 88h19v16H67zM100 88h19v16h-19zM133 88h19v16h-19z"/><path fill="#3c4a52" d="M224 101h32v24h-32z"/></g><g stroke="#c2aa85" stroke-width="3"><path d="M0 141 320 122M0 151l320-19"/></g><g fill="#d4e0da" opacity=".35"><ellipse cx="223" cy="24" rx="25" ry="10"/><ellipse cx="274" cy="12" rx="32" ry="10"/></g></svg>'},guild:{name:['Guild Caravans','Guild Caravans'],description:['Create a trading house and exchange goods with other merchants.','Fondez un comptoir et échangez vos marchandises avec les négociants.'],tag:['Trade strategy','Stratégie commerciale'],art:'<svg viewBox="0 0 320 160" aria-hidden="true"><path fill="#b57e50" d="M0 96Q80 29 160 84T320 65V160H0Z"/><path fill="#e1b97e" d="M0 120Q115 61 320 113V160H0Z"/><path fill="#b08a59" d="M3 160Q93 90 231 105L320 160Z"/><g stroke="#6e4730" stroke-width="2"><path fill="#d8b486" d="M50 78h72v45H50zM133 85h72v45h-72z"/><path fill="#8b463d" d="m40 78 46-28 46 28z"/><path fill="#637e75" d="m123 85 46-28 46 28z"/><path fill="#5b4132" d="M75 104h21v19H75zM158 111h22v19h-22z"/><path fill="#b99c6e" d="M232 107h47v24h-47z"/><circle fill="#4f3a2a" cx="242" cy="133" r="9"/><circle fill="#4f3a2a" cx="270" cy="133" r="9"/><path fill="#d6a45d" d="m228 108 9-21h36l10 21z"/></g><path stroke="#64563b" stroke-width="5" d="M297 99V49"/><path stroke="#42674c" stroke-width="8" fill="none" d="M297 51q-22-20-32 0m32 0q22-20 25 1m-25-1q-12-27-21-22"/></svg>'}};
+    const selected=document.createElement('p');selected.id='library-selection';selected.setAttribute('aria-live','polite');library.append(selected);
+    const profiles=document.createElement('div');profiles.className='library-profiles';profiles.hidden=true;library.append(profiles);
+    const change=document.createElement('button');change.type='button';change.className='library-change';change.hidden=true;library.append(change);
+    main.insertBefore(library,login);
+    let lab=false,profile='alice';
+    const fr=()=>locale.value==='fr';
+    function choose(key){
+        selectedGame=key;profile='alice';
+        if(lab)login.elements.login.value=key+'-'+profile;
+        render();login.elements[lab?'password':'login'].focus({preventScroll:true});login.scrollIntoView({block:'nearest'});
+    }
+    function render(){
+        const i=fr()?1:0;heading.textContent=fr()?'Choisissez votre aventure':'Choose your adventure';
+        intro.textContent=fr()?'Trois univers indépendants. Trois façons de jouer.':'Three independent worlds. Three ways to play.';
+        for(const card of cards.children){const key=card.dataset.chooseGame;card.setAttribute('aria-pressed',String(selectedGame===key));card.querySelector('strong').textContent=catalog[key].name[i];card.querySelector('small').textContent=catalog[key].tag[i];card.querySelector('p').textContent=catalog[key].description[i];card.querySelector('.library-cta').textContent=fr()?'Choisir ce jeu':'Choose this game';}
+        selected.textContent=selectedGame?(fr()?'Votre jeu : ':'Your game: ')+catalog[selectedGame].name[i]:(fr()?'Vous avez déjà un compte ? Vous pouvez aussi vous connecter directement.':'Already have an account? You can also sign in directly.');
+        profiles.hidden=!(lab&&selectedGame);change.hidden=!selectedGame;change.textContent=fr()?'Choisir un autre jeu':'Choose another game';
+        for(const button of profiles.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.profile===profile));
+        login.classList.toggle('library-login-selected',Boolean(selectedGame));
+        login.classList.toggle('library-login-profile',Boolean(lab&&selectedGame));
+        main.classList.toggle('library-chosen',Boolean(selectedGame));
+    }
+    for(const [key,data] of Object.entries(catalog)){
+        const card=document.createElement('button');card.type='button';card.className='library-card';card.dataset.chooseGame=key;
+        const art=document.createElement('span');art.className='library-art';art.innerHTML=data.art;card.append(art);
+        const copy=document.createElement('span');copy.className='library-copy';for(const tag of ['small','strong','p','span']){const el=document.createElement(tag);if(tag==='span')el.className='library-cta';copy.append(el);}card.append(copy);cards.append(card);card.addEventListener('click',()=>choose(key));
+    }
+    for(const name of ['alice','bob']){const button=document.createElement('button');button.type='button';button.dataset.profile=name;button.textContent=name==='alice'?'Alice':'Bob';profiles.append(button);button.addEventListener('click',()=>{profile=name;login.elements.login.value=selectedGame+'-'+name;render();});}
+    change.addEventListener('click',()=>{selectedGame=null;login.elements.login.value='';render();cards.querySelector('button').focus();});
+    function sync(){library.hidden=!game.hidden;main.classList.toggle('in-game',!game.hidden);if(game.hidden)render();}
+    new MutationObserver(sync).observe(game,{attributes:true,attributeFilter:['hidden']});
+    locale.addEventListener('change',render);render();sync();
+    // This marker is served only by the private Compose laboratory, not by the public API.
+    if(['localhost','127.0.0.1','[::1]'].includes(location.hostname))fetch('/lab-bots/roster.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{
+        lab=data?.version===1&&['medieval','industrial','guild'].every(k=>Array.isArray(data.worlds?.['lab-'+k])&&data.worlds['lab-'+k].length===10);
+        if(lab&&selectedGame){login.elements.login.value=selectedGame+'-'+profile;render();}
+        else render();
+    }).catch(()=>{});
+})();
