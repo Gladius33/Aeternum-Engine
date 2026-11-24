@@ -117,6 +117,48 @@
     const marketButton=button(toolbar,'marketSync',()=>document.getElementById('market-load').click());
     const svg=el('svg',{class:'scene-atlas',role:'group','aria-label':'Strategic atlas',viewBox:'0 0 900 460'});
     host.append(svg);
+    svg.setAttribute('tabindex','0');
+    const atlasPanel=html('section',host,'atlas-expedition');atlasPanel.hidden=true;
+    atlasPanel.setAttribute('aria-labelledby','atlas-expedition-title');
+    const atlasTitle=html('h3',atlasPanel,'');atlasTitle.id='atlas-expedition-title';
+    const atlasSummary=html('p',atlasPanel,'atlas-expedition-summary');
+    const atlasControls=html('div',atlasPanel,'atlas-expedition-controls');
+    const atlasButton=(key,fn)=>{const b=html('button',atlasControls,'atlas-command');b.type='button';b.dataset.atlasCommand=key;b.addEventListener('click',()=>{if(!busy)fn();});return b;};
+    const atlasOpen=atlasButton('domain',()=>{if(selected?.type==='territory'&&districtIds().includes(selected.id)){districtId=selected.id;showDistrict(true);}});
+    const atlasFrom=atlasButton('origin',()=>{setLocation('map-location');clearAtlasRoute();render();});
+    const atlasTo=atlasButton('destination',()=>{setLocation('map-destination');clearAtlasRoute();render();});
+    const atlasLinks=atlasButton('connections',()=>{setLocation('map-location');clearAtlasRoute();document.getElementById('map-links-load').click();});
+    const atlasTrace=atlasButton('route',()=>document.getElementById('map-route-load').click());
+    const atlasMore=atlasButton('more',()=>document.getElementById('map-next').click());
+    const atlasEndpoints=html('div',atlasPanel,'atlas-endpoints');
+    const atlasRoute=html('p',atlasPanel,'atlas-route-summary');atlasRoute.setAttribute('aria-live','polite');
+    const atlasLegend=html('p',atlasPanel,'atlas-legend');
+    let routeRead=false,routeCost=null;
+    function clearAtlasRoute(){route=[];routeRead=false;routeCost=null;}
+    function renderAtlasPanel(){
+        atlasPanel.hidden=classic||!selectedGame||districtMode||theme==='neutral';
+        if(atlasPanel.hidden)return;
+        const fr=lang()==='fr',label=(en,frText)=>fr?frText:en;
+        atlasTitle.textContent={medieval:label('Survey the realm','Explorer le royaume'),industrial:label('Regional network','Réseau régional'),guild:label('Merchant roads','Routes marchandes')}[theme];
+        const current=selected?.type==='territory'?territories.get(selected.id):null;
+        const own=current&&districtIds().includes(current.id);
+        const state=current?label(current.control==='own'?'Your territory':current.control==='occupied'?'Occupied territory':'Unclaimed territory',current.control==='own'?'Votre territoire':current.control==='occupied'?'Territoire occupé':'Territoire libre'):'';
+        atlasSummary.textContent=current?locationName(current)+' · '+state:label('Select a territory to explore its registered connections.','Sélectionnez un territoire pour explorer ses liaisons enregistrées.');
+        atlasOpen.textContent=label('Enter domain','Entrer dans le domaine');atlasOpen.hidden=!own;
+        atlasFrom.textContent=label('Set departure','Définir le départ');atlasTo.textContent=label('Set destination','Définir l’arrivée');
+        atlasLinks.textContent=label('Survey connections','Consulter les liaisons');atlasTrace.textContent=label('Find route','Calculer l’itinéraire');atlasMore.textContent=label('More territories','Autres territoires');
+        atlasFrom.disabled=atlasTo.disabled=atlasLinks.disabled=busy||!current;
+        atlasOpen.disabled=atlasMore.disabled=busy;atlasMore.hidden=document.getElementById('map-next').hidden;
+        const from=document.getElementById('map-location').value,to=document.getElementById('map-destination').value;
+        atlasTrace.disabled=busy||!from||!to;
+        const name=v=>{const n=[...territories.values()].find(x=>x.location===v);return n?locationName(n):v&&!isTechnicalId(v)?v:label('Location outside loaded map','Lieu hors carte chargée');};
+        atlasEndpoints.textContent=label('Departure: ','Départ : ')+(from?name(from):'—')+'  ·  '+label('Destination: ','Arrivée : ')+(to?name(to):'—');
+        atlasPanel.dataset.routeState=!routeRead?'unread':route.length?'found':'none';
+        if(routeRead)atlasRoute.textContent=route.length?route.map(name).join(' → ')+' · '+label('Cost ','Coût ')+routeCost:label('No directed route found by the server.','Aucun itinéraire orienté trouvé par le serveur.');
+        else if(current&&links.has(current.location))atlasRoute.textContent=label('Registered outgoing connections: ','Liaisons sortantes enregistrées : ')+links.get(current.location).length;
+        else atlasRoute.textContent=label('Connections not yet surveyed.','Liaisons non encore consultées.');
+        atlasLegend.textContent=label('Illustrative terrain · real territories and server-confirmed connections only.','Terrain illustré · territoires réels et liaisons confirmées par le serveur uniquement.');
+    }
     const districtBar=html('div',host,'scene-district-bar');
     const districtToggle=button(districtBar,'district',()=>{if(busy)return;districtMode=!districtMode;districtPage=0;render();});
     const districtPrev=button(districtBar,'previousPlot',()=>moveDistrict(-1));
@@ -406,7 +448,7 @@
         svg.querySelectorAll('[data-territory]').forEach(n=>n.setAttribute('aria-pressed',String(territory?.id===n.dataset.territory)));
         holdingList.querySelectorAll('[data-building]').forEach(n=>n.setAttribute('aria-pressed',String(building?.id===n.dataset.building)));
         districtSvg.querySelectorAll('[data-district-building]').forEach(n=>n.setAttribute('aria-pressed',String(building?.id===n.dataset.districtBuilding)));
-        renderDistrictCommand(building,d);
+        renderDistrictCommand(building,d);renderAtlasPanel();
     }
     function select(type,id){
         if(busy)return;
@@ -421,6 +463,17 @@
     svg.addEventListener('pointerdown',e=>{if(e.target.closest('[data-territory]')||e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY};svg.setPointerCapture(e.pointerId);});
     svg.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;const scale=extent.w/camera.z/Math.max(1,svg.clientWidth);camera.x-=(e.clientX-drag.x)*scale;camera.y-=(e.clientY-drag.y)*scale;drag.x=e.clientX;drag.y=e.clientY;view();});
     for(const event of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(event,()=>{drag=null;});
+    svg.addEventListener('keydown',e=>{
+        if(e.target!==svg)return;
+        if(e.key==='+'||e.key==='=')zoom(1.25);
+        else if(e.key==='-')zoom(.8);
+        else if(e.key==='Home'){camera={x:0,y:0,z:1};view();}
+        else if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+            camera.x+=({'ArrowLeft':-1,'ArrowRight':1}[e.key]??0)*extent.w/camera.z*.12;
+            camera.y+=({'ArrowUp':-1,'ArrowDown':1}[e.key]??0)*extent.h/camera.z*.12;view();
+        }else return;
+        e.preventDefault();
+    });
     const artKit=window.AeternumArt.create({skin:()=>theme,palette:()=>palettes[theme]});
     const {poly,rect,line,ellipse,path,shade,tree,model}=artKit;
     const resourceGlyphs={
@@ -699,7 +752,8 @@
         pagePrev.hidden=pageNext.hidden=true;
         districtZoomIn.hidden=districtZoomOut.hidden=districtReset.hidden=!districtMode;
         districtCaption.textContent=classic?t('districtNote')+' · '+t('cameraHelp'):(lang()==='fr'?'Cliquez sur un bâtiment pour agir. Glissez pour explorer.':'Select a building to act. Drag to explore.');
-        if(!districtMode){districtCommand.hidden=true;livingScene.hidden=true;return;}
+        if(!districtMode){districtCommand.hidden=true;livingScene.hidden=true;renderAtlasPanel();return;}
+        atlasPanel.hidden=true;
         if(!ids.includes(districtId)){districtId=ids[0]??'';districtPage=0;}
         renderLivingScene();
         const mobile=narrow.matches,w=mobile?360:900,h=mobile?(selectedGame?490:650):510,limit=mobile?4:6;
@@ -842,6 +896,13 @@
     function tile(g,x,y,territory,index){
         const p=palettes[theme],a=el('g',{transform:'translate('+x+' '+y+')',tabindex:0,role:'button','aria-label':locationName(territory)+' · '+territory.kind,'data-territory':territory.id,'aria-pressed':'false',class:'scene-territory'},g);
         el('title',{},a,locationName(territory));
+        const illustrated=!classic&&theme!=='neutral';
+        if(illustrated){
+            // A real territory keeps an explicit accessible hit area; the
+            // illustration itself never intercepts pointer selection.
+            rect(a,-116,-55,232,141,'transparent',{class:'atlas-region-hit',rx:14});
+            window.AeternumLivingArt.atlasRegion(a,theme,territory.control);
+        }else{
         poly(a,'-115,0 0,49 115,0 115,14 0,63 -115,14',p[0],'#111e22');
         poly(a,'-115,0 0,-49 115,0 0,49',p[1],'#233b39');
         for(let i=0;i<5;i++)line(a,-78+i*9,0+i*3,-16+i*9,-27+i*3,p[2],2);
@@ -850,6 +911,7 @@
         else if(theme==='industrial'){line(a,-85,10,-20,35,'#c3a477',4);line(a,-87,16,-22,41,'#25323b',2);for(let i=0;i<5;i++)line(a,-76+i*11,11+i*4,-82+i*11,17+i*4,'#a2a49b',1);}
         else if(theme==='guild'){path(a,'M-87 4 Q-38 24 18 7 T87 -4','none',{stroke:'#d7ad6c','stroke-width':5});for(let i=0;i<5;i++)ellipse(a,-70+i*34,16-i*4,5,2,'#82664b');}
         else {poly(a,'-30,5 0,-27 29,5',p[2]);ellipse(a,34,13,16,5,p[5]);}
+        }
         const owned=[...buildings.values()].filter(b=>b.territory===territory.id);
         owned.slice(0,3).forEach((b,i)=>{
             const layer=el('g',{transform:'translate('+((i-(Math.min(owned.length,3)-1)/2)*52)+' '+(i%2?17:0)+') scale(.65)','data-map-holding':b.id},a);
@@ -858,7 +920,9 @@
         if(owned.length>3)el('text',{x:75,y:35,fill:'#fff','font-size':11},a,'+'+(owned.length-3));
         rect(a,-100,51,200,35,'#15232bea',{rx:7,stroke:'#ffffff35'});
         el('text',{x:0,y:66,'text-anchor':'middle',class:'scene-node-label'},a,locationName(territory).length>28?locationName(territory).slice(0,26)+'…':locationName(territory));
-        el('text',{x:0,y:79,'text-anchor':'middle',class:'scene-node-meta'},a,locationName(territory));
+        const fr=lang()==='fr';
+        const status=territory.control==='own'?(fr?'Votre domaine':'Your domain'):territory.control==='occupied'?(fr?'Occupé':'Occupied'):(fr?'Libre':'Unclaimed');
+        el('text',{x:0,y:79,'text-anchor':'middle',class:'scene-node-meta'},a,illustrated?status+' · '+owned.length+' '+(fr?'bât.':'holdings'):locationName(territory));
         a.addEventListener('click',()=>select('territory',territory.id));
         a.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select('territory',territory.id);}});
     }
@@ -880,8 +944,10 @@
         if(rows>2&&camera.z===1)camera.z=Math.min(3,extent.h/(2*155+90));
         const p=palettes[theme],defs=el('defs',{},svg),gradient=el('linearGradient',{id:'scene-bg',x1:'0%',y1:'0%',x2:'100%',y2:'100%'},defs);
         el('stop',{offset:'0%','stop-color':p[5]},gradient);el('stop',{offset:'100%','stop-color':p[0]},gradient);
-        rect(svg,0,0,extent.w,extent.h,'url(#scene-bg)');
-        for(let i=0;i<extent.h/22+3;i++){
+        const illustrated=!classic&&theme!=='neutral';
+        if(illustrated)window.AeternumLivingArt.atlasTerrain(svg,theme,extent.w,extent.h);
+        else rect(svg,0,0,extent.w,extent.h,'url(#scene-bg)');
+        for(let i=0;!illustrated&&i<extent.h/22+3;i++){
             const y=i*22-30;
             path(svg,'M0 '+y+' Q'+extent.w*.25+' '+(y-35)+' '+extent.w*.5+' '+y+' T'+extent.w+' '+y,'none',{stroke:p[2],'stroke-opacity':.15,'stroke-width':1});
         }
@@ -891,8 +957,16 @@
         }
         const positions=new Map();
         nodes.forEach((n,i)=>{const x=extent.w/2+((i%cols)-(cols-1)/2)*270,y=(extent.h-rows*155)/2+65+Math.floor(i/cols)*155;positions.set(n.location,{x,y});});
-        for(const [from,neighbors] of links)for(const n of neighbors){const a=positions.get(from),b=positions.get(n.location);if(!a||!b)continue;const l=line(svg,a.x,a.y,b.x,b.y,p[2],5);l.setAttribute('stroke-dasharray','7 5');el('title',{},l,(isTechnicalId(from)?t('plotNumber'):from)+' → '+(isTechnicalId(n.location)?t('plotNumber'):n.location)+' · '+n.cost);}
-        for(let i=1;i<route.length;i++){const a=positions.get(route[i-1]),b=positions.get(route[i]);if(a&&b){const road=line(svg,a.x,a.y,b.x,b.y,'#ffe095',8);road.setAttribute('class','scene-confirmed-route');}}
+        for(const [from,neighbors] of links)for(const n of neighbors){
+            const a=positions.get(from),b=positions.get(n.location);if(!a||!b)continue;
+            if(illustrated){const layer=el('g',{'data-atlas-link':'true'},svg);window.AeternumLivingArt.atlasEdge(layer,theme,a,b);el('title',{},layer,(lang()==='fr'?'Coût : ':'Cost: ')+n.cost);}
+            else{const l=line(svg,a.x,a.y,b.x,b.y,p[2],5);l.setAttribute('stroke-dasharray','7 5');el('title',{},l,(isTechnicalId(from)?t('plotNumber'):from)+' → '+(isTechnicalId(n.location)?t('plotNumber'):n.location)+' · '+n.cost);}
+        }
+        for(let i=1;i<route.length;i++){
+            const a=positions.get(route[i-1]),b=positions.get(route[i]);if(!a||!b)continue;
+            if(illustrated){const layer=el('g',{'data-atlas-route-segment':'true'},svg);window.AeternumLivingArt.atlasEdge(layer,theme,a,b,{confirmed:true});}
+            else{const road=line(svg,a.x,a.y,b.x,b.y,'#ffe095',8);road.setAttribute('class','scene-confirmed-route');}
+        }
         nodes.forEach((n,i)=>{const q=positions.get(n.location);tile(svg,q.x,q.y,n,i);});
         if(!nodes.length){const label=el('text',{x:extent.w/2,y:extent.h/2-8,'text-anchor':'middle',class:'scene-empty'},svg);const words=t('empty').split(' ');const split=Math.ceil(words.length/2);el('tspan',{x:extent.w/2,dy:0},label,words.slice(0,split).join(' '));el('tspan',{x:extent.w/2,dy:20},label,words.slice(split).join(' '));}
         if(!buildings.size)html('p',holdingList,'scene-caption',t('none'));
@@ -911,10 +985,10 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';receipts=[];lastEconomicEvent=null;territories.clear();buildings.clear();details.clear();links.clear();route=[];selected=null;camera={x:0,y:0,z:1};render();});
-    on('territories',d=>{if(!d.append){territories.clear();links.clear();route=[];selected=null;}for(const n of d.territories)territories.set(n.id,n);render();});
+    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';receipts=[];lastEconomicEvent=null;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
+    on('territories',d=>{if(!d.append){territories.clear();links.clear();clearAtlasRoute();selected=null;}for(const n of d.territories)territories.set(n.id,n);render();queueMicrotask(renderAtlasPanel);});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
-    on('route',d=>{route=d?.locations??[];render();});
+    on('route',d=>{route=d?.locations??[];routeCost=d?.cost??null;routeRead=true;render();});
     on('buildings',d=>{catalogue={sites:d.sites,types:d.types};buildings=new Map(d.buildings.map(b=>[b.id,b]));for(const id of details.keys())if(!buildings.has(id))details.delete(id);render();});
     on('building',d=>{buildings.set(d.id,d);details.set(d.id,d);render();});
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
@@ -1016,7 +1090,7 @@
         missionGo.disabled=busy||(!building&&!type);
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
-        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,districtSvg,districtCaption,districtCommand,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,districtCommand,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
         actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
