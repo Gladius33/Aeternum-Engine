@@ -2,12 +2,14 @@
 declare(strict_types=1);
 require __DIR__.'/../games/world-politics/src/VerifiedFrenchParliamentPrincipal.php';
 require __DIR__.'/../games/world-politics/src/FrenchParliamentApi.php';
+require __DIR__.'/../games/world-politics/src/FrenchConstitutionalApi.php';
 
 use Aeternum\WorldPolitics\{
     FrenchParliament,FrenchParliamentaryPrincipal,FrenchAssemblyAuthorizer,
     PdoFrenchConstitutionalStore,FrenchConstitutionalCrisis,
     PdoFrenchParliamentStore,VerifiedFrenchParliamentPrincipal,
-    FrenchParliamentApi
+    FrenchParliamentApi,FrenchPresidentialAppointmentPrincipal,
+    FrenchConstitutionalApi
 };
 
 function wp28db(bool $valid,string $label):void {
@@ -80,10 +82,11 @@ for($n=1;$n<=577;$n++) {
         'independence'=>$n>505?(($n%7)-3)*70:0
     ];
 }
-$authority=new class implements FrenchParliamentaryPrincipal,FrenchAssemblyAuthorizer {
+$authority=new class implements FrenchParliamentaryPrincipal,FrenchAssemblyAuthorizer,FrenchPresidentialAppointmentPrincipal {
     public string $now='2026-11-24T09:00:00+01:00';
     public bool $authorized=true;
     public bool $controlsHuman=true;
+    public bool $resignationPresented=false;
     public array $approved=[
         'policy-a'=>[
             'kind'=>'confidence','topic'=>'general_policy',
@@ -112,6 +115,7 @@ $authority=new class implements FrenchParliamentaryPrincipal,FrenchAssemblyAutho
                 'fr.49_1.engage','fr.49_1.vote',
                 'fr.49_2.file','fr.49_2.vote',
                 'fr.49_3.engage','fr.censure.file','fr.censure.vote',
+                'fr.president.appoint_pm',
                 'fr.assembly.bootstrap','fr.assembly.read',
                 'fr.assembly.agenda','fr.assembly.vote',
                 'fr.assembly.clerk','fr.assembly.coalition'
@@ -137,6 +141,15 @@ $authority=new class implements FrenchParliamentaryPrincipal,FrenchAssemblyAutho
             throw new DomainException('Coalition not authenticated');
         }
         return $this->coalitions[$coalition];
+    }
+    public function verifiedResignationPresented(string $world,string $appointment):bool {
+        return $this->resignationPresented && $appointment==='new-pm-appointment';
+    }
+    public function verifiedPrimeMinisterAppointee(string $world,string $appointment):string {
+        if ($appointment!=='new-pm-appointment') {
+            throw new DomainException('Missing authenticated Article 8 appointment decree');
+        }
+        return 'prime-minister-new';
     }
     public function councilDeliberated(string $world,string $bill):bool{return true;}
     public function verifiedBillCategory(string $world,string $bill):string{return 'finance';}
@@ -303,6 +316,39 @@ wp28db($governmentVote['result']['government']==='resignation_required'
     && $governmentVote['result']['motion_status']==='adopted'
     && $governmentVote['result']['verified_votes_for']===$censure['result']['tally']['for'],
     'certified Article 49(2) majority removes cabinet but leaves Fifth Republic intact');
+$authority->now='2026-11-28T09:00:00+01:00';
+wp28dbReject(fn()=>$constitution->execute($world,'appoint_prime_minister',[
+    'appointment_id'=>'new-pm-appointment','at'=>$authority->now
+],'attempt-before-formal-resignation',$governmentVote['etag']),
+    'Article 8 appointment cannot proceed until Article 50 resignation is formally presented');
+$authority->resignationPresented=true;
+$constitutionApi=new FrenchConstitutionalApi($constitution);
+$appointRoot='/api/v1/worlds/'.$world.'/france/constitution/presidency/prime-minister-appointments';
+wp28db($constitutionApi->handle('POST',$appointRoot,[
+    'appointment_id'=>'new-pm-appointment','at'=>$authority->now,
+    'prime_minister_id'=>'client-invented-person'
+],[
+    'Idempotency-Key'=>'client-forged-new-pm',
+    'If-Match'=>$governmentVote['etag']
+])['status']===422,
+    'client cannot choose or fabricate French Prime Minister identity by JSON');
+$appointment=$constitutionApi->handle('POST',$appointRoot,[
+    'appointment_id'=>'new-pm-appointment','at'=>$authority->now
+],[
+    'Idempotency-Key'=>'verified-new-prime-minister',
+    'If-Match'=>$governmentVote['etag']
+]);
+wp28db($appointment['status']===200
+    && $appointment['body']['prime_minister_id']==='prime-minister-new'
+    && $appointment['body']['government']==='in_office'
+    && $appointment['body']['regime_changed']===false
+    && $appointment['body']['mandatory_assembly_investiture']===false,
+    'Article 50 resignation and verified presidential Article 8 decree restore a government without automatic new vote or regime change');
+wp28dbReject(fn()=>$constitution->execute($world,'appoint_prime_minister',[
+    'appointment_id'=>'new-pm-appointment','at'=>$authority->now
+],'duplicate-presidential-appointment',$appointment['headers']['ETag']),
+    'a newly appointed Government cannot be silently replaced by reusing a decree');
+
 $reopen=new PdoFrenchParliamentStore($connect(),$authority,$base);
 wp28db(
     $reopen->certifiedResult($world,'policy-a','confidence')
