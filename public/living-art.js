@@ -266,5 +266,113 @@
         r(g,0,0,w,h,vignette);
         return true;
     }
-    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,version:3});
+    // G17: bounded, context-scoped session receipts. It is not a durable
+    // transaction ledger, and a replay cannot submit or settle a command.
+    function economicJournal(limit=8){
+        if(!Number.isSafeInteger(limit)||limit<1||limit>32)throw RangeError('Invalid journal capacity');
+        let rows=[],seen=new Set();
+        return Object.freeze({
+            record(receipt,context){
+                if(!receipt||typeof receipt.id!=='string'||!receipt.id||!context?.world||!context?.account||
+                    receipt.world!==context.world||receipt.account!==context.account||
+                    !Object.hasOwn(eventTypes,receipt.type)||eventTypes[receipt.type].theme!==context.theme||
+                    seen.has(receipt.id))return false;
+                // Memory is bounded; old receipts beyond the deduplication
+                // window are not a substitute for server idempotency.
+                if(seen.size>=256)seen.delete(seen.values().next().value);
+                seen.add(receipt.id);
+                rows=[Object.freeze({id:receipt.id,type:receipt.type}),...rows].slice(0,limit);
+                return true;
+            },
+            entries:()=>rows.slice(),
+            reset(){rows=[];seen.clear();}
+        });
+    }
+    function operationScene(parent,type){
+        if(!Object.hasOwn(eventTypes,type))return false;
+        const {theme,kind}=eventTypes[type];
+        const g=group(parent,0,0,1,{'data-operation-scene':type,'data-operation-theme':theme,'aria-hidden':'true','pointer-events':'none'});
+        const palette=theme==='medieval'?['#526c55','#819669','#b7b27b','#435c43']:theme==='industrial'?['#405865','#748b91','#a4b0aa','#435860']:['#8c694e','#c39a67','#e3c38e','#96714f'];
+        const defs=node(g,'defs',{}),id='aeternum-operation-'+(++atmosphereSerial);
+        const grad=node(defs,'linearGradient',{id,x1:'0%',y1:'0%',x2:'0%',y2:'100%'});
+        palette.slice(0,3).forEach((c,i)=>node(grad,'stop',{offset:i*50+'%','stop-color':c}));
+        r(g,0,0,320,170,'url(#'+id+')');
+        for(let i=0;i<3;i++)p(g,'M0 '+(63+i*12)+' Q50 '+(22+i*19)+' 114 '+(55+i*13)+' T230 '+(40+i*17)+' T320 '+(66+i*12)+' V170H0Z',palette[(i+1)%4]);
+        p(g,'M0 111Q72 85 140 101T320 105V170H0Z',palette[2]);
+        for(let i=0;i<24;i++){const x=(i*79+13)%320,y=111+(i*17)%54;l(g,x,y,x+5+i%4,y-2,palette[3],.65);}
+        const platform=group(g,160,126);
+        shadow(platform,0,12,120,23);p(platform,'M-119 0L-36 -39 120 -9 48 35Z',palette[1],palette[3],1.4);
+        for(let i=0;i<8;i++)l(platform,-105+i*20,3+i*3,-31+i*20,-30+i*3,palette[2],.6);
+        const actor=(parent,x,y,scale,role,draw,motion)=>{
+            const position=group(parent,x,y,scale,{'data-operation-actor':role});
+            const inner=group(position,0,0,1,motion?{class:'operation-motion operation-'+motion}:{});
+            draw(inner);
+            return inner;
+        };
+        function cart(a,color='#af8c5a'){
+            shadow(a,0,8,27,6);
+            p(a,'M-23 -12H19L25 -3 18 2H-21Z',color,'#574936');
+            for(const x of [-15,15]){e(a,x,4,7,7,'#403b31',{stroke:'#cfb17b','stroke-width':1});l(a,x-5,4,x+5,4,'#ac9366',.8);l(a,x,-1,x,9,'#ac9366',.8);}
+            l(a,25,-3,38,-6,'#6a5038',2);
+        }
+        function belt(a){
+            p(a,'M-38 -8L37 -8 47 -1 -29 -1Z','#a6aeaa','#41545e');r(a,-29,-1,76,8,'#4f6168','#2e424b');
+            for(let i=0;i<8;i++){e(a,-25+i*10,4,3,3,'#c6c7b5');l(a,-31+i*10,-8,-21+i*10,-1,'#455962',.9);}
+            for(const x of [-20,32])l(a,x,8,x,18,'#46545b',3);
+        }
+        function rail(a){
+            for(const y of [0,12])l(a,-91,y,91,y,'#4b4d4c',3);
+            for(let i=0;i<19;i++)l(a,-86+i*10,-4,-86+i*10,16,'#7e6d55',2);
+            for(const y of [0,12])l(a,-91,y,91,y,'#c1c4b7',.8);
+        }
+        function freightCar(a){
+            p(a,'M-27 -18L18 -18 31 -25 -14 -25Z','#9daeb0','#495c65');r(a,-27,-18,45,20,'#738a91','#354c57');p(a,'M18 -18L31 -25V-5L18 2Z','#405c66','#354c57');
+            for(let x=-23;x<18;x+=6)l(a,x,-17,x,1,'#3d5863',.8);
+            for(const x of [-18,11])e(a,x,5,5,5,'#29383e',{stroke:'#a7b1ac','stroke-width':.8});
+        }
+        function scroll(a,mark){
+            r(a,-14,-20,28,25,'#e7c993','#795e40',2);
+            for(let i=0;i<3;i++)l(a,-9,-14+i*5,7,-14+i*5,'#9a7952',.8);
+            if(mark==='withdraw'){l(a,-10,-17,10,1,'#a9574b',2);l(a,10,-17,-10,1,'#a9574b',2);}
+            else if(mark==='exchange')p(a,'M-10 -9H10L5 -14M10 -3H-10L-5 2','none','#537553',2);
+            else e(a,9,3,4,4,'#a95443');
+        }
+        if(kind==='timber'){
+            for(let i=0;i<4;i++)log(group(g,67,112+i*5,1.1),0,0);
+            actor(g,125,121,1.28,'woodworker',a=>{person(a,0,0,'#6e8754','lift');const tool=group(a,9,-23,1);l(tool,0,0,10,-13,'#9d7950',2.5);p(tool,'M6 -14L16 -20 19 -11 11 -8Z','#b6c3bb','#52636a');},'work');
+            actor(g,188,127,1.15,'timber-cart',a=>{cart(a);for(let i=0;i<3;i++)log(a,-19,-15-i*5);},'carry');
+            actor(g,246,111,1.05,'worker',a=>person(a,0,0,'#a27a53'),'step');
+        }else if(kind==='resident'){
+            crop(group(g,66,108,1.25),0,0);crop(group(g,103,125,1.2),0,0);
+            actor(g,162,126,1.25,'resident',a=>person(a,0,0,'#a36b50'),'step');
+            actor(g,211,119,1.15,'welcome',a=>person(a,0,0,'#6f8758','lift'),'work');
+            actor(g,246,94,1,'welcome-sign',a=>p(a,'M0 -18V2M-10 -8H10','none','#d2efaa',3),'signal');
+        }else if(kind==='energy'){
+            transformer(group(g,70,108,1.9),0,0);
+            transformer(group(g,184,112,1.55),0,0);
+            const cable=group(g,0,0,1);p(cable,'M105 82Q158 39 202 82','none','#45565b',4);
+            p(cable,'M105 82Q158 39 202 82','none','#efc775',2).setAttribute('class','operation-motion operation-current');
+            actor(g,160,73,1.25,'energy-signal',a=>p(a,'M3 -27L-9 -9H-1L-6 8 15 -14H6Z','#ffe38c','#9a7136',1.1),'signal');
+        }else if(kind==='manufacture'){
+            belt(group(g,160,118,1.8));
+            actor(g,105,105,1,'input',a=>crate(a,-8,-8,'#a5aeac'),'carry');
+            actor(g,179,105,1,'output',a=>crate(a,-8,-8,'#c9ad75'),'carry');
+            actor(g,239,126,1.08,'operator',a=>person(a,0,0,'#b49b68','lift'),'work');
+            const spark=group(g,153,76,1,{class:'operation-motion operation-signal'});for(let i=0;i<7;i++)l(spark,0,0,Math.cos(i*.9)*11,Math.sin(i*.9)*11,'#ffda88',1.3);
+        }else if(kind==='freight'){
+            rail(group(g,160,126,1.3));
+            actor(g,98,119,1.15,'freight-car',freightCar,'carry');
+            actor(g,192,119,1.15,'freight-load',a=>{freightCar(a);crate(a,-16,-40,'#bc9a68');},'carry');
+            actor(g,251,113,1,'dispatcher',a=>person(a,0,0,'#c1a66c','lift'),'work');
+        }else{
+            stall(group(g,75,111,1.45),0,0);
+            actor(g,130,128,1.12,'merchant',a=>person(a,0,0,'#b77353','lift'),'work');
+            actor(g,188,127,1.1,'trader',a=>person(a,0,0,'#66847b'),kind==='exchange'?'step':null);
+            if(kind==='exchange')actor(g,238,116,1.05,'trade-crates',a=>{crate(a,-12,-9);crate(a,4,-1,'#c9ad75');},'carry');
+            else crate(group(g,240,119,1.05),-8,-8);
+            actor(g,164,77,1.1,'document',a=>scroll(a,kind),'signal');
+        }
+        return true;
+    }
+    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,economicJournal,operationScene,version:4});
 })();
