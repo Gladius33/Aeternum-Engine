@@ -64,7 +64,8 @@ async function build(page,id,level,seconds) {
 }
 async function operation(page,type,button) {
     const reply=page.waitForResponse(r=>r.url()===url&&r.request().postDataJSON().type===type);
-    await page.getByRole('button',{name:button}).click();
+    const key={'industry.generate':'generate','industry.refine':'refine','industry.ship':'ship'}[type];
+    await page.locator('#world-scene [data-label='+key+']').click();
     const result=await reply;
     expect(result.status(),type+': '+await result.text()).toBe(200);
 }

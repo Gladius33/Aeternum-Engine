@@ -16,7 +16,7 @@ async function postAfterPeerWindow(request,endpoint,options) {
     throw new Error('Unreachable peer quota path');
 }
 test('HTTPS self-service mailbox proof creates no premature bearer, then player persists',async({browser})=>{
-    test.setTimeout(380000);
+    test.setTimeout(540000);
     const context=await browser.newContext({ignoreHTTPSErrors:true});
     const login='browser-mailbox-verified';
     const password='browser verified mailbox strong password';
@@ -31,10 +31,21 @@ test('HTTPS self-service mailbox proof creates no premature bearer, then player 
         await page.getByLabel('Confirm new password',{exact:true}).fill(password);
         await page.getByLabel('World to join',{exact:true}).selectOption('e2e-medieval');
         await page.getByLabel('Email address for verification').fill(email);
-        const signupPromise=page.waitForResponse(r=>r.url().endsWith('/v1/auth/register')&&r.request().method()==='POST');
-        await page.getByRole('button',{name:'Create player',exact:true}).click();
-        const signup=await signupPromise;
-        expect(signup.status()).toBe(202);
+        // Previous suites consume the same real peer quota. Only retry a
+        // legitimate 429 after the full window, without changing admission.
+        let signup;
+        for(let attempt=0;attempt<3;attempt++){
+            await page.getByLabel('New password (12 characters minimum)',{exact:true}).fill(password);
+            await page.getByLabel('Confirm new password',{exact:true}).fill(password);
+            const signupPromise=page.waitForResponse(r=>r.url().endsWith('/v1/auth/register')&&r.request().method()==='POST');
+            await page.getByRole('button',{name:'Create player',exact:true}).click();
+            const response=await signupPromise;
+            if(response.status()===202){signup=response;break;}
+            expect(response.status()).toBe(429);
+            if(attempt===2)throw new Error('Mailbox registration peer quota remained exhausted');
+            await page.waitForTimeout(65000);
+        }
+        expect(signup).toBeDefined();
         expect(await signup.json()).toEqual({data:{activationRequired:true}});
         await expect(page.locator('#activate')).toBeVisible();
         await expect(page.locator('#activation-resend')).toBeVisible();

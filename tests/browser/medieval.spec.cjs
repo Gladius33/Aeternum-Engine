@@ -80,7 +80,8 @@ async function settle(page,type) {
     const reply=page.waitForResponse(r=>r.url()===commandUrl &&
         r.request().postDataJSON().type===type);
     const button=type==='settlement.feed'?'Feed and welcome one resident':'Organize lumber work';
-    await page.getByRole('button',{name:button}).click();
+    const key=type==='settlement.feed'?'feed':'work';
+    await page.locator('#world-scene [data-label='+key+']').click();
     expect((await reply).status()).toBe(200);
     await expect(page.locator('#status')).toHaveText('Success');
 }
