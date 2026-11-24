@@ -62,6 +62,16 @@ interface FrenchBallotProofPrincipal extends FrenchParliamentaryPrincipal
     ):string;
 }
 
+/**
+ * Articles 8 and 50: authenticated presidential appointment, separately
+ * from parliamentary censure and votes of confidence.
+ */
+interface FrenchPresidentialAppointmentPrincipal extends FrenchConstitutionalPrincipal
+{
+    public function verifiedResignationPresented(string $world,string $appointmentId):bool;
+    public function verifiedPrimeMinisterAppointee(string $world,string $appointmentId):string;
+}
+
 final class FrenchConstitutionalCrisis
 {
     public const VERSION='wp22-fr-constitutional-responsibility-1';
@@ -435,6 +445,57 @@ final class FrenchConstitutionalCrisis
         ]);
     }
 
+    /**
+     * Mandatory presentation of resignation (Article 50), followed by
+     * a separately verified presidential PM appointment (Article 8).
+     * No automatic Assembly investiture or Fifth-Republic overthrow.
+     * Ministerial portfolio appointments remain outside WP28.
+     */
+    public function appointPrimeMinister(
+        FrenchPresidentialAppointmentPrincipal $president,
+        string $appointmentId,string $at,string $commandId
+    ):array {
+        self::id($appointmentId);self::id($commandId);
+        $when=$this->at($at);
+        $this->require($president,'fr.president.appoint_pm');
+        if (!$president->verifiedResignationPresented(
+            $this->state['world_id'],$appointmentId
+        )) {
+            throw new \DomainException('Article 50 resignation not yet presented');
+        }
+        $newPM=$president->verifiedPrimeMinisterAppointee(
+            $this->state['world_id'],$appointmentId
+        );
+        self::id($newPM);
+        $payload=[$appointmentId,$when,$newPM];
+        if ($prior=$this->prior($commandId,'appoint_prime_minister',$payload)) {
+            return $prior;
+        }
+        if ($this->state['government']!=='resignation_required'
+            || $this->state['confidence']!==null
+            || $this->state['current_bill']!==null) {
+            throw new \DomainException('Only a government resigned under Article 50 can be succeeded here');
+        }
+        // Pending censure of the departed cabinet becomes moot, not rejected.
+        foreach (['motions','spontaneous_motions'] as $collection) {
+            foreach ($this->state[$collection] as $id=>$motion) {
+                if ($motion['status']==='filed') {
+                    $this->state[$collection][$id]['status']='moot_after_resignation';
+                }
+            }
+        }
+        $this->state['government']='in_office';
+        $this->state['now']=$when;
+        return $this->record($commandId,'appoint_prime_minister',$payload,[
+            'appointment_id'=>$appointmentId,
+            'prime_minister_id'=>$newPM,
+            'article_50_resignation_presented'=>true,
+            'government'=>'in_office',
+            'regime_changed'=>false,
+            'mandatory_assembly_investiture'=>false
+        ]);
+    }
+
     /** Deterministic housekeeping: 24h window expires, pending votes remain pending. */
     public function advance(
         FrenchConstitutionalPrincipal $scheduler,string $target,
@@ -588,7 +649,7 @@ final class FrenchConstitutionalCrisis
             if ($key!==$motion['id']
                 || !is_int($motion['filed_at'])
                 || $motion['earliest_vote_at']!==$motion['filed_at']+172800
-                || !in_array($motion['status'],['filed','rejected','adopted'],true)) {
+                || !in_array($motion['status'],['filed','rejected','adopted','moot_after_resignation'],true)) {
                 throw new \InvalidArgumentException('Invalid persisted motion');
             }
         }
@@ -609,7 +670,7 @@ final class FrenchConstitutionalCrisis
             ]);
             if ($id!==$motion['id'] || !is_int($motion['filed_at'])
                 || $motion['earliest_vote_at']!==$motion['filed_at']+172800
-                || !in_array($motion['status'],['filed','adopted','rejected'],true)
+                || !in_array($motion['status'],['filed','adopted','rejected','moot_after_resignation'],true)
                 || !is_array($motion['signatories'])
                 || count($motion['signatories'])>$state['assembly_members']) {
                 throw new \InvalidArgumentException('Invalid 49(2) motion receipt');

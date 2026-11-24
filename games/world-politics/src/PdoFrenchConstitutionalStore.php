@@ -99,6 +99,7 @@ final class PdoFrenchConstitutionalStore
             'vote_spontaneous'=>['motion_id','at'],
             'clock'=>['at'],
             'session'=>['session_id','at'],
+            'appoint_prime_minister'=>['appointment_id','at'],
             default=>throw new \InvalidArgumentException('Unsupported French constitutional command')
         };
         self::fields($request,$fields);
@@ -119,7 +120,8 @@ final class PdoFrenchConstitutionalStore
             'file_spontaneous'=>'fr.49_2.file',
             'vote_spontaneous'=>'fr.49_2.vote',
             'clock'=>'fr.constitution.clock',
-            'session'=>'fr.constitution.session'
+            'session'=>'fr.constitution.session',
+            'appoint_prime_minister'=>'fr.president.appoint_pm'
         };
         $this->check($world,'fr.constitution.read');
         $this->check($world,$right);
@@ -128,6 +130,10 @@ final class PdoFrenchConstitutionalStore
             'file_spontaneous','vote_spontaneous'
         ],true) && !$this->principal instanceof FrenchParliamentaryPrincipal) {
             throw new \DomainException('Authenticated parliamentary clerk required');
+        }
+        if ($operation==='appoint_prime_minister'
+            && !$this->principal instanceof FrenchPresidentialAppointmentPrincipal) {
+            throw new \DomainException('Verified presidential appointment authority required');
         }
         $principalId=$this->principal->actorId();
         if ($principalId==='' || strlen($principalId)>128
@@ -237,6 +243,10 @@ final class PdoFrenchConstitutionalStore
                 'session'=>$sim->openSession(
                     $this->principal,$request['session_id'],$request['at'],$commandId
                 ),
+                'appoint_prime_minister'=>$sim->appointPrimeMinister(
+                    $this->presidentialAppointer(),$request['appointment_id'],
+                    $request['at'],$commandId
+                ),
             };
             $after=$sim->hash();
             $revision=(int)$row['revision']+1;
@@ -326,6 +336,14 @@ final class PdoFrenchConstitutionalStore
                 FrenchConstitutionalCrisis::instant($request['at'])
             );
         }
+    }
+
+    private function presidentialAppointer():FrenchPresidentialAppointmentPrincipal
+    {
+        if (!$this->principal instanceof FrenchPresidentialAppointmentPrincipal) {
+            throw new \DomainException('Verified presidential appointment authority required');
+        }
+        return $this->principal;
     }
 
     private function parliamentClerk():FrenchParliamentaryPrincipal

@@ -28,7 +28,7 @@ final class FrenchConstitutionalApi
     ):array {
         if (strlen($path)>512
             || !preg_match(
-                '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/france/constitution(?:(?:/(engagements|motions|clock|sessions|confidence|spontaneous-motions))(?:/([a-z][a-z0-9_-]{0,63}))?(?:/(votes|engagements))?)?$~D',
+                '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/france/constitution(?:(?:/(engagements|motions|clock|sessions|confidence|spontaneous-motions|presidency))(?:/([a-z][a-z0-9_-]{0,63}))?(?:/(votes|engagements))?)?$~D',
                 $path,$matches
             )) {
             return self::fail(404,'route_not_found');
@@ -66,6 +66,8 @@ final class FrenchConstitutionalApi
                 $resource==='spontaneous-motions' && $resourceId!=='' && $subresource==='votes' => 'vote_spontaneous',
                 $resource==='clock' && $resourceId==='' && $subresource==='' => 'clock',
                 $resource==='sessions' && $resourceId==='' && $subresource==='' => 'session',
+                $resource==='presidency' && $resourceId==='prime-minister-appointments'
+                    && $subresource==='' => 'appoint_prime_minister',
                 default=>null
             };
             if ($operation===null) return self::fail(405,'method_not_allowed');

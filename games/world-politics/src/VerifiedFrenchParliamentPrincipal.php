@@ -12,7 +12,7 @@ require_once __DIR__.'/PdoFrenchParliamentStore.php';
  * office assignments and constitutional clock. This adapter does not grant
  * additional legal powers.
  */
-final class VerifiedFrenchParliamentPrincipal implements FrenchBallotProofPrincipal
+final class VerifiedFrenchParliamentPrincipal implements FrenchBallotProofPrincipal,FrenchPresidentialAppointmentPrincipal
 {
     public function __construct(
         private readonly FrenchParliamentaryPrincipal $delegate,
@@ -39,6 +39,20 @@ final class VerifiedFrenchParliamentPrincipal implements FrenchBallotProofPrinci
         return $this->delegate->verifiedSessionKind($world,$session);
     }
 
+    public function verifiedResignationPresented(string $world,string $appointmentId):bool
+    {
+        if (!$this->delegate instanceof FrenchPresidentialAppointmentPrincipal) {
+            throw new \DomainException('No verified Article 50 resignation source');
+        }
+        return $this->delegate->verifiedResignationPresented($world,$appointmentId);
+    }
+    public function verifiedPrimeMinisterAppointee(string $world,string $appointmentId):string
+    {
+        if (!$this->delegate instanceof FrenchPresidentialAppointmentPrincipal) {
+            throw new \DomainException('No authenticated presidential appointment decree');
+        }
+        return $this->delegate->verifiedPrimeMinisterAppointee($world,$appointmentId);
+    }
     public function verifiedSignatures(string $world,string $motionId):int {
         return count($this->parliament->certifiedSignatories($world,$motionId));
     }
