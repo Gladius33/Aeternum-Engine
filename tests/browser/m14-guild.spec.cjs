@@ -151,6 +151,11 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
     await a.locator('[data-district-building=m14-guild-caravan]').click();
     await expect(a.locator('[data-district-building=m14-guild-caravan]')).toHaveAttribute('aria-pressed','true');
     await captureScene(a,'guild-district');
+    await a.locator('#world-scene [data-label=districtZoomIn]').click();
+    await expect(a.locator('.scene-district')).toHaveAttribute('data-zoom','1.25');
+    await a.locator('.scene-district').focus();
+    await a.keyboard.press('Home');
+    await expect(a.locator('.scene-district')).toHaveAttribute('data-zoom','1');
     await a.locator('#world-scene [data-label=district]').click();
         const wrongWorld=await a.request.get(origin+'/v1/worlds/e2e-medieval/economy/balances/'+
             alice.account+'/wood',{headers:{Authorization:alice.token}});

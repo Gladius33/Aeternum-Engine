@@ -173,6 +173,11 @@ test('M06 two players complete an isolated industrial network and freight victor
     await a.locator('[data-district-building=m06-power]').click();
     await expect(a.locator('[data-district-building=m06-power]')).toHaveAttribute('aria-pressed','true');
     await captureScene(a,'industrial-district');
+    await a.locator('#world-scene [data-label=districtZoomIn]').click();
+    await expect(a.locator('.scene-district')).toHaveAttribute('data-zoom','1.25');
+    await a.locator('.scene-district').focus();
+    await a.keyboard.press('Home');
+    await expect(a.locator('.scene-district')).toHaveAttribute('data-zoom','1');
     await a.locator('#world-scene [data-label=district]').click();
     await b.getByRole('button',{name:'Review industrial network'}).click();
     await expect(b.locator('#industrial-victory')).not.toContainText('VICTORY');
