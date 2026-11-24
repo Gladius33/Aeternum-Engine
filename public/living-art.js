@@ -374,5 +374,69 @@
         }
         return true;
     }
-    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,economicJournal,operationScene,version:4});
+    // G18: resource illustrations are symbolic, not physical inventories.
+    function cargo(parent,resource){
+        const g=group(parent,0,0,1,{'data-cargo-resource':resource,'aria-hidden':'true','pointer-events':'none'});
+        shadow(g,40,67,34,9);
+        const a=group(g,40,55,1.05);
+        if(resource==='wood'){
+            for(let i=0;i<5;i++)log(a,-26+(i%2)*10,-i*6);
+        }else if(['grain','food','spice'].includes(resource)){
+            for(let i=0;i<3;i++){
+                const x=-25+i*20,y=i%2?-7:0;
+                p(a,'M'+x+' '+y+'q-7 -19 4 -30l-2 -6h13l-2 6q13 14 6 30q-10 6 -19 0Z',resource==='spice'?'#bd7950':'#c3a675','#70583c');
+                l(a,x+3,y-31,x+13,y-31,'#70583c',2);
+                for(let j=0;j<4;j++)l(a,x+3+j*3,y-17,x+5+j*3,y-14,'#e2c38a',.7);
+            }
+        }else if(['silver','gold','steel','iron','stone','coal'].includes(resource)){
+            const color={silver:'#b9cbd1',gold:'#e4c26a',steel:'#93b0b7',iron:'#8a999b',stone:'#b0aca0',coal:'#4b5355'}[resource];
+            for(let i=0;i<5;i++){const x=-28+(i%3)*18,y=-Math.floor(i/3)*13;
+                p(a,'M'+x+' '+y+'l5 -12 16 -4 8 13 -4 9 -21 0Z',color,'#4d5553');
+                p(a,'M'+x+' '+y+'l5 -12 16 -4 -3 12Z','#ffffff35');
+                p(a,'M'+(x+18)+' '+(y-4)+'l3 -12 8 13 -4 9Z','#192d3e44');
+            }
+        }else if(['energy','electricity'].includes(resource)){
+            transformer(group(a,-26,-5,1.35),0,0);
+            p(a,'M3 -45L-10 -23H0L-5 -4 17 -30H7Z','#ffe291','#9e733b',1.4);
+        }else if(['oil','water'].includes(resource)){
+            for(let i=0;i<3;i++){const x=-24+i*18,y=i%2?-8:0;r(a,x,y-32,16,32,resource==='oil'?'#617078':'#6f9fb1','#374b52',3);e(a,x+8,y-32,8,3,'#9db3b4');for(const yy of [y-24,y-8])l(a,x,yy,x+16,yy,'#c7c3ad',1.3);}
+        }else{
+            crate(a,-27,-13);crate(a,-4,-20,'#b8b19b');crate(a,14,-8,'#c1a16e');
+        }
+        return true;
+    }
+    function marketHall(parent,theme){
+        if(!['medieval','industrial','guild'].includes(theme))return false;
+        const g=group(parent,0,0,1,{'data-commerce-hall':theme,'aria-hidden':'true','pointer-events':'none'});
+        const colors={medieval:['#718e81','#b6c09a','#72694c'],industrial:['#657d8c','#a7b7b4','#56696c'],guild:['#bc8c62','#e6c18c','#b18758']}[theme];
+        const id='aeternum-commerce-'+(++atmosphereSerial),defs=node(g,'defs',{}),grad=node(defs,'linearGradient',{id,x2:'0%',y2:'100%'});
+        colors.forEach((c,i)=>node(grad,'stop',{offset:i*50+'%','stop-color':c}));
+        r(g,0,0,480,130,'url(#'+id+')');
+        p(g,'M0 91L164 39 480 72V130H0Z',colors[2]);
+        p(g,'M0 108L164 68 480 101V130H0Z',colors[1]);
+        for(let i=0;i<18;i++)l(g,i*31-20,111,i*31+10,96,'#e1d4ad80',.7);
+        // Empty architectural backdrop, independent of actual offer count.
+        for(let i=0;i<4;i++){
+            const x=22+i*117,a=group(g,x,87);
+            shadow(a,39,9,53,12);
+            if(theme==='industrial'){
+                p(a,'M0 -35L17 -49 92 -49 76 -35Z','#aab5af','#485d64');
+                r(a,0,-35,76,35,'#899b9d','#4c6269');
+                p(a,'M76 -35L92 -49V-9L76 0Z','#4c636b');
+                for(let j=0;j<3;j++){r(a,5+j*24,-27,20,27,'#354a53','#aebbb4');for(let k=0;k<6;k++)l(a,5+j*24,-25+k*4,25+j*24,-25+k*4,'#799198',.6);}
+            }else{
+                r(a,0,-38,78,38,theme==='guild'?'#d6b080':'#c4ac80','#795f42');
+                p(a,theme==='guild'?'M-3 -38H81L91 -44H7Z':'M-6 -38L39 -65 84 -38Z',theme==='guild'?'#a96b4e':'#89513e','#674b38');
+                for(let j=0;j<3;j++)p(a,'M'+(6+j*25)+' 0v-18q9 -17 18 0V0Z','#6d533e','#d4bc91');
+                for(let j=0;j<8;j++)p(a,'M'+(j*10-3)+' -24h10l4 9h-10Z',j%2?'#e8d3ab':'#a95d49','#795a40',.4);
+            }
+        }
+        return true;
+    }
+    function exchangeTerms(giveResource,giveUnits,wantResource,wantUnits){
+        const valid=v=>Number.isSafeInteger(v)&&v>=1&&v<=1000000000000;
+        if(typeof giveResource!=='string'||!giveResource||typeof wantResource!=='string'||!wantResource||giveResource===wantResource||!valid(giveUnits)||!valid(wantUnits))return null;
+        return Object.freeze({giveResource,giveUnits,wantResource,wantUnits});
+    }
+    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,economicJournal,operationScene,cargo,marketHall,exchangeTerms,version:5});
 })();

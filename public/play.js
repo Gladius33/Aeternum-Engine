@@ -652,6 +652,7 @@ let marketOffers=[], marketAfter=null, historyAfter=null;
 function clearMarketHistory(message='') {
     marketHistoryList.replaceChildren();
     historyAfter=null;marketHistoryNext.hidden=true;
+    window.dispatchEvent(new CustomEvent('aeternum:trade-history',{detail:{transactions:null,more:false}}));
     marketHistoryNotice.textContent=message;
 }
 async function loadMarketHistory(after=null) {
@@ -669,6 +670,7 @@ async function loadMarketHistory(after=null) {
         marketHistoryList.append(item);
     }
     historyAfter=data.nextAfter;
+    window.dispatchEvent(new CustomEvent('aeternum:trade-history',{detail:{world:f.world,account:f.account,transactions:data.transactions,more:data.nextAfter!==null}}));
     marketHistoryNext.hidden=historyAfter===null;
     marketHistoryNotice.textContent=data.transactions.length?'Private account history.':'No completed trades.';
 }

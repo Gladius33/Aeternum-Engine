@@ -130,6 +130,10 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
             {headers:{Authorization:alice.token}});
         expect(market.status()).toBe(200);
         expect(JSON.stringify(await market.json())).toContain('filled');
+        // The illustrated private history is derived from the same API.
+        await a.locator('[data-commerce-history=load]').click();
+        await expect(a.locator('.commerce-history-entry[data-trade-status=filled]')).toBeVisible();
+        await expect(a.locator('.commerce-history-entry[data-trade-status=filled] [data-cargo-resource]')).toHaveCount(2);
         const upgrade=await a.request.post(url,{headers:{Authorization:alice.token},data:{
             id:'m14-guild-upgrade',type:'economy.upgrade',
             payload:{account:alice.account,resource:'silver'}

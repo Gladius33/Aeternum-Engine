@@ -502,6 +502,31 @@
         document.getElementById('foundation-id').value=referenceInput.value.trim();
         document.getElementById('foundation-place').click();
     });
+    const commerceHall=el('svg',{viewBox:'0 0 480 130',class:'commerce-hall','aria-hidden':'true'},tradeBlock.body);
+    let commerceTheme=null,tradeHistory=null,tradeHistoryMore=false;
+    const logistics=html('section',tradeBlock.body,'commerce-logistics');
+    const logisticsTitle=html('h4',logistics,'');
+    const logisticsReadings=html('div',logistics,'commerce-readings');
+    const logisticsRefresh=html('button',logistics,'scene-button');logisticsRefresh.type='button';logisticsRefresh.dataset.commerceRefresh='true';
+    logisticsRefresh.addEventListener('click',()=>run(async()=>{await readInventory();if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();await loadMarket();}));
+    const commerceFilters=html('div',tradeBlock.body,'commerce-filters');
+    const filters={};
+    for(const key of ['give','want']){
+        const label=html('label',commerceFilters,'');
+        const title=html('span',label,'');
+        const input=html('select',label,'scene-plot');input.dataset.commerceFilter=key;
+        filters[key]={title,input};
+    }
+    const filterButton=html('button',commerceFilters,'scene-button');filterButton.type='button';filterButton.dataset.commerceSearch='true';
+    filterButton.addEventListener('click',()=>{
+        if(busy)return;
+        for(const [key,{input}] of Object.entries(filters))document.getElementById('market-filter-'+key).value=input.value;
+        document.getElementById('market-search').click();
+    });
+    for(const {input} of Object.values(filters))input.addEventListener('change',updateCommerceFilters);
+    function updateCommerceFilters(){
+        filterButton.disabled=busy||(Boolean(filters.give.input.value)!==Boolean(filters.want.input.value));
+    }
     const tradeComposer=html('div',tradeBlock.body,'scene-trade-composer');
     const tradeFields={};
     for(const [key,kind] of [['giveResource','select'],['giveUnits','input'],['wantResource','select'],['wantUnits','input']]){
@@ -512,13 +537,41 @@
         if(kind==='input'){input.type='number';input.min='1';input.max='1000000000000';input.step='1';input.value='1';}
         tradeFields[key]={caption,input};
     }
+    const exchangePreview=html('div',tradeComposer,'commerce-preview');
+    const exchangeNote=html('p',tradeComposer,'commerce-note');
     const publish=html('button',tradeComposer,'scene-button');publish.type='button';
     publish.addEventListener('click',()=>{
-        if(busy)return;
+        if(busy||!draftTerms())return;
         const form=document.getElementById('market-create');
         for(const [key,{input}] of Object.entries(tradeFields))form.elements[key].value=input.value;
         form.requestSubmit();
     });
+    function draftTerms(){
+        return window.AeternumLivingArt.exchangeTerms(tradeFields.giveResource.input.value,Number(tradeFields.giveUnits.input.value),tradeFields.wantResource.input.value,Number(tradeFields.wantUnits.input.value));
+    }
+    function cargoCard(parent,resource,units,caption){
+        const card=html('span',parent,'commerce-cargo');
+        const art=el('svg',{viewBox:'0 0 80 80','aria-hidden':'true'},card);
+        window.AeternumLivingArt.cargo(art,resource);
+        if(caption)html('small',card,'',caption);
+        html('strong',card,'',units+' '+displayName(resource));
+        return card;
+    }
+    function exchangeGraphic(parent,terms,own){
+        const fr=lang()==='fr',row=html('span',parent,'commerce-exchange');
+        cargoCard(row,terms.giveResource,terms.giveUnits,own?(fr?'Vous offrez':'You offer'):(fr?'Vous recevez':'You receive'));
+        html('span',row,'commerce-arrow','⇄').setAttribute('aria-hidden','true');
+        cargoCard(row,terms.wantResource,terms.wantUnits,own?(fr?'Vous demandez':'You request'):(fr?'Vous payez':'You pay'));
+    }
+    function refreshDraft(){
+        const terms=draftTerms(),fr=lang()==='fr';
+        exchangePreview.replaceChildren();
+        if(terms)exchangeGraphic(exchangePreview,terms,true);
+        const reserve=terms?inventory.get(terms.giveResource):null;
+        exchangeNote.textContent=!terms?(fr?'Choisissez deux ressources distinctes et des quantités entières positives.':'Choose two distinct resources and positive whole quantities.'):reserve&&!stale&&reserve.stock<terms.giveUnits?(fr?'Réserve connue insuffisante ; le serveur vérifie les fonds.':'Last reserve reading is insufficient; the server checks funding.'):(fr?'Le serveur contrôle et réserve les ressources à la publication.':'The server checks and reserves resources when published.');
+        publish.disabled=busy||!terms;
+    }
+    for(const {input} of Object.values(tradeFields))input.addEventListener('input',refreshDraft);
     function refreshTradeComposer(){
         const fr=lang()==='fr';
         const labels=fr?['Ressource offerte','Quantité offerte','Ressource demandée','Quantité demandée']:['Offer resource','Offer quantity','Request resource','Request quantity'];
@@ -531,9 +584,55 @@
             if([...input.options].some(o=>o.value===old))input.value=old;
             else if(key==='wantResource'&&input.options.length>1)input.selectedIndex=1;
         });
-        publish.textContent=fr?'Publier le troc':'Publish barter';
+        publish.textContent=fr?'Publier le troc':'Publish barter';refreshDraft();
     }
     const tradeList=html('div',tradeBlock.body,'scene-trade-list');
+    const marketMore=html('button',tradeBlock.body,'scene-button');marketMore.type='button';marketMore.dataset.commerceMore='true';
+    marketMore.addEventListener('click',()=>{if(!busy&&offerMore)document.getElementById('market-next').click();});
+    const selectedTerms=html('div',tradeBlock.body,'commerce-selected');selectedTerms.hidden=true;
+    const historyPanel=html('section',tradeBlock.body,'commerce-history');
+    const historyTitle=html('h4',historyPanel,'');
+    const historyLoad=html('button',historyPanel,'scene-button');historyLoad.type='button';historyLoad.dataset.commerceHistory='load';
+    historyLoad.addEventListener('click',()=>{if(!busy)document.getElementById('market-history-load').click();});
+    const historyList=html('div',historyPanel,'commerce-history-list');
+    const historyMore=html('button',historyPanel,'scene-button');historyMore.type='button';historyMore.dataset.commerceHistory='more';
+    historyMore.addEventListener('click',()=>{if(!busy&&tradeHistoryMore)document.getElementById('market-history-next').click();});
+    function renderCommerce(){
+        const fr=lang()==='fr',label=(en,f)=>fr?f:en;
+        commerceHall.hidden=classic||theme==='neutral';
+        if(commerceTheme!==theme){commerceHall.replaceChildren();window.AeternumLivingArt.marketHall(commerceHall,theme);commerceTheme=theme;}
+        logistics.hidden=classic||theme==='neutral';
+        logisticsTitle.textContent=theme==='industrial'?label('Logistics network','Réseau logistique'):theme==='medieval'?label('Village provisions','Approvisionnement du village'):label('Trading reserves','Réserves commerciales');
+        logisticsRefresh.textContent=label('Refresh reserves and market','Actualiser réserves et marché');
+        logisticsReadings.replaceChildren();
+        const metric=(key,value)=>{const m=html('span',logisticsReadings,'commerce-reading');html('small',m,'',key);html('strong',m,'',String(value));};
+        if(campaign?.kind==='industrial'){const d=campaign.data;metric(label('Warehouse capacity','Capacité entrepôt'),d.warehouseCapacity);metric(label('Delivered goods','Biens livrés'),d.delivery.current+' / '+d.delivery.required);metric(label('Spare power','Énergie disponible'),d.grid.surplus);}
+        if(campaign?.kind==='medieval'){const d=campaign.data;metric(label('Residents','Habitants'),d.population+' / '+d.capacity);metric(label('Workers','Travailleurs'),d.workers);}
+        for(const [resource,d] of [...inventory].slice(0,6))metric(displayName(resource),d.stock+' / '+d.capacity);
+        if(!logisticsReadings.childElementCount)metric(label('No server reading','Aucun relevé serveur'),'—');
+        if(stale)metric(label('Refresh required','Actualisation nécessaire'),'!');
+        for(const [key,{title,input}] of Object.entries(filters)){
+            title.textContent=key==='give'?label('Offered resource','Ressource offerte'):label('Requested resource','Ressource demandée');
+            const previous=input.value,source=document.getElementById('market-filter-'+key);
+            input.replaceChildren();
+            for(const o of source.options){const opt=html('option',input,'',o.value?displayName(o.value):label('All resources','Toutes les ressources'));opt.value=o.value;}
+            if([...input.options].some(o=>o.value===previous))input.value=previous;
+        }
+        filterButton.textContent=label('Search market','Rechercher');updateCommerceFilters();
+        marketMore.hidden=!offerMore;marketMore.textContent=label('Next offer page','Page suivante');
+        historyTitle.textContent=label('Private transaction history','Historique privé des transactions');
+        historyLoad.textContent=label('Read my history','Consulter mon historique');
+        historyMore.textContent=label('Next history page','Historique suivant');historyMore.hidden=!tradeHistoryMore;
+        historyList.replaceChildren();
+        if(tradeHistory===null)html('p',historyList,'commerce-note',label('Not loaded.','Non consulté.'));
+        else if(!tradeHistory.length)html('p',historyList,'commerce-note',label('No transactions on this page.','Aucune transaction sur cette page.'));
+        for(const tr of tradeHistory??[]){
+            const row=html('div',historyList,'commerce-history-entry');row.dataset.tradeStatus=tr.status;
+            const terms=window.AeternumLivingArt.exchangeTerms(tr.giveResource,tr.giveUnits,tr.wantResource,tr.wantUnits);
+            html('strong',row,'',({filled:label('Exchange completed','Échange réalisé'),cancelled:label('Offer cancelled','Offre annulée'),expired:label('Offer expired','Offre expirée'),open:label('Open offer','Offre ouverte')})[tr.status]??label('Recorded transaction','Transaction enregistrée'));
+            if(terms)exchangeGraphic(row,terms,tr.seller===locationFields().account);
+        }
+    }
     const tradeControls=html('div',tradeBlock.body,'scene-toolbar');
     const acceptTrade=button(tradeControls,'acceptTrade',()=>tradeCommand('market-accept'));
     const cancelTrade=button(tradeControls,'cancelTrade',()=>tradeCommand('market-cancel'));
@@ -548,6 +647,8 @@
         acceptTrade.hidden=!offer||offer.seller===locationFields().account;
         cancelTrade.hidden=!offer||offer.seller!==locationFields().account;
         tradeList.querySelectorAll('[data-offer]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.offer===chosenOffer)));
+        selectedTerms.hidden=!offer;selectedTerms.replaceChildren();
+        if(offer){const terms=window.AeternumLivingArt.exchangeTerms(offer.giveResource,offer.giveUnits,offer.wantResource,offer.wantUnits);if(terms)exchangeGraphic(selectedTerms,terms,offer.seller===locationFields().account);}
     }
     function setLocation(id){if(selected?.type==='territory'){document.getElementById(id).value=territories.get(selected.id).location;updateSelection();}}
     function inspectBuilding(id){if(!buildings.has(id))return;document.getElementById('building-id').value=id;document.getElementById('building-load').click();}
@@ -773,12 +874,14 @@
             }
             if(data.victory.achieved)html('p',objectiveBlock.body,'scene-victory',t('achieved'));
         }
-        tradeBlock.root.hidden=theme==='neutral';refreshTradeComposer();
+        tradeBlock.root.hidden=theme==='neutral';refreshTradeComposer();renderCommerce();
         tradeList.replaceChildren();
         if(!offers.length)html('p',tradeList,'scene-caption',t('noOffers'));
         for(const offer of offers){
             const row=html('button',tradeList,'scene-offer');row.type='button';row.dataset.offer=offer.id;
-            html('strong',row,'',offer.giveUnits+' '+displayName(offer.giveResource)+' ↔ '+offer.wantUnits+' '+displayName(offer.wantResource));
+            const terms=window.AeternumLivingArt.exchangeTerms(offer.giveResource,offer.giveUnits,offer.wantResource,offer.wantUnits);
+            if(terms)exchangeGraphic(row,terms,offer.seller===locationFields().account);
+            else html('strong',row,'',offer.giveUnits+' '+displayName(offer.giveResource)+' ↔ '+offer.wantUnits+' '+displayName(offer.wantResource));
             html('small',row,'',merchantName(offer.seller));row.addEventListener('click',()=>{if(!busy){chosenOffer=offer.id;tradeSelection();}});
         }
         if(offerMore)html('p',tradeList,'scene-caption',t('moreOffers'));
@@ -1144,7 +1247,7 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');reading=null;campaign=null;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();clearAtlasRoute();selected=null;}for(const n of d.territories)territories.set(n.id,n);render();queueMicrotask(renderAtlasPanel);});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];routeCost=d?.cost??null;routeRead=true;render();});
@@ -1152,6 +1255,7 @@
     on('building',d=>{buildings.set(d.id,d);details.set(d.id,d);render();});
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
     on('campaign',d=>{campaign=d;renderHud();renderWorkspace();renderDistrict();});
+    on('trade-history',d=>{const f=locationFields();if(d.transactions!==null&&(d.world!==f.world||d.account!==f.account))return;tradeHistory=d.transactions;tradeHistoryMore=d.more===true;renderCommerce();});
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();renderDistrict();updateSelection();});
     on('confirmed',d=>{
         const context={...locationFields(),theme};
@@ -1159,7 +1263,7 @@
         if(economicJournal.record(d,context)){lastEconomicEvent={id:d.id,type:d.type};selectedOperationId=d.id;}
         if(d.type==='building.place')referenceInput.value='';reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();}});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();if(!classic&&!districtMode&&selected?.type==='territory')centerAtlas(selected.id);});
     document.getElementById('map-location').addEventListener('input',updateSelection);
