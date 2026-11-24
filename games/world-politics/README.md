@@ -107,3 +107,13 @@ Ces modules ne forment pas encore un modèle complet de la Ve République : arti
 - Ne pas confondre les hypothèses de scénario avec des statistiques, un sondage, une prévision économique ou une règle de maintien de l'ordre.
 - Documentation : `docs/WORLD_POLITICS_FRANCE.md`.
 - Important : WP22 modifie la version du snapshot constitutionnel ; les mondes déjà créés sous WP19 nécessitent une migration auditée avant toute reprise, et aucune conversion automatique n'est actuellement proposée.
+
+
+## WP25 — horloge constitutionnelle France et audit des travaux restants
+
+- `src/WorldClockCoordinator.php` : France parlementaire épinglée par monde, contrôle du principal, clôture `Europe/Paris`, récupération des étapes InnoDB et cohérence de la date mondiale.
+- `database/011_fr_parliament_world_clock.sql` : nouvelle migration sur le schéma **du jeu**.
+- `tests/wp25-fr-parliament-world-clock-db.php` : crash/reprise, contrôle des droits, configuration immuable, heures d'été et d'hiver.
+- `docs/WORLD_POLITICS_BACKEND_REMAINING.md` : audit d'avancement et critères P0/P1/P2 avant une première alpha back-end.
+
+Un simulateur avec des tests verts n'est pas encore un jeu jouable en production : serveur HTTP, sécurité des comptes, calendrier parlementaire complet, IA, données authentiques et économie nationale calibrée restent indispensables.

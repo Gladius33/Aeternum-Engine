@@ -143,3 +143,12 @@ Le stockage social et le stockage constitutionnel restent **deux agrégats trans
 ## Ce qui ne peut toujours pas être revendiqué
 
 Les coefficients sociaux ne sont pas calibrés empiriquement ; les changements de gouvernement ne valent pas changements de régime ; les mécanismes relatifs à la police et aux armées restent des indicateurs institutionnels abstraits, sans plan de répression ni simulation opérationnelle ; aucun moteur HTTP public n'est déployé ; aucun module graphique n'a été introduit.
+
+
+## WP25 — calendrier français synchronisé avec les décisions mondiales
+
+Le coordinateur mondial dispose désormais d'une étape française optionnelle et **non contournable une fois inscrite dans le monde**, distincte de l'institution générale française. Son calcul utilise les fuseaux horaires réels `Europe/Paris`. Un événement constitutionnel 49.3 enregistré en France est donc mis à jour lorsqu'un jour est définitivement achevé, sans présumer d'une motion adoptée et sans changement de régime automatique.
+
+Les preuves d'avancement et les reçus restent persistants, la récupération après interruption est testée et les droits d'accès sont revérifiés. L'absence du calendrier de séance réel impose cependant de considérer cette mécanique comme **provisoire** pour toute simulation des délais de censure.
+
+Pour les autres étapes nécessaires, consulter `docs/WORLD_POLITICS_BACKEND_REMAINING.md` : France parlementaire complète, 27 pays de l'UE et Suisse, statistiques, IA, économie et véritable serveur REST.

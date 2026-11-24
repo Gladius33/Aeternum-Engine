@@ -162,3 +162,10 @@ reçu d'idempotence. Le moteur de stratégie diplomatique n'accorde pas
 par monde. Avant la production multijoueur, il faudra segmenter ce
 stockage et ajouter le rejeu indépendant depuis le journal, les
 quotas/pagination et les contrôles de concurrence à grande échelle.
+
+
+## WP25 et bilan général du back-end
+
+Le calendrier français constitutionnel est désormais raccordé de manière facultative mais **persistante et obligatoire lorsqu'activée** à la saga de l'horloge mondiale. L'autorité horaire est indépendante des données de requête, les échéances de jour sont calculées en heure de Paris avec DST, et la reprise après panne est vérifiée en CI sur MariaDB.
+
+Le calendrier des jours de séance de l'Assemblée, la résolution obligatoire des motions en temps voulu et le verrou contre toute mutation concurrente ne sont toujours pas achevés. **L'évaluation complète des domaines encore absents, des risques de production et des critères d'acceptation est consignée dans `docs/WORLD_POLITICS_BACKEND_REMAINING.md`.**

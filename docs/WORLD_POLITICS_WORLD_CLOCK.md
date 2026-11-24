@@ -75,3 +75,16 @@ Le test `tests/wp18-world-clock-institutions-db.php` vérifie sur MariaDB : troi
 **Limite importante :** les calendriers FR/DE/US ne constituent encore que des modèles partiels de constitution. Les dizaines d'autres pays restent dans le référentiel diplomatique, mais ne disposent pas de calendriers constitutionnels pilotés à ce stade. Cette extension requiert les migrations de tables 001 et 002 pour les pays configurés.
 
 Après mise à jour WP18, les installations WP17 doivent aussi appliquer `008_world_clock_countries.sql` avant d'utiliser le coordinateur, y compris lorsqu'aucun pays n'est encore activé : l'absence de calendrier ne doit pas être confondue avec une panne de configuration.
+
+
+## WP25 — raccordement effectif de l'article 49 au calendrier mondial
+
+À la différence des premiers prototypes WP17–WP18, l'horloge commune peut maintenant intégrer **le magasin constitutionnel français distinct**, en plus des institutions générales FR/DE/US. Cette option est activée explicitement dans la configuration du monde et épinglée en MariaDB par la migration `011_fr_parliament_world_clock.sql`.
+
+L'heure de fin de journée est exactement **23 h 59 min 59 s à Paris**, calculée avec le décalage UTC réel du jour concerné, y compris les changements d'heure. La France constitutionnelle garde un journal et des reçus propres, et son autorité de service doit être identique à celle du coordinateur mondial. Le coordinateur exige une heure certifiée par ce service et vérifie ensuite la date, l'empreinte de l'état et le checkpoint.
+
+L'heure mondiale ne devient cohérente qu'après cette étape : une panne après écriture constitutionnelle mais avant checkpoint est récupérable. Une nouvelle instance du serveur ne peut ni oublier la configuration française épinglée, ni réutiliser les droits d'un principal non autorisé.
+
+**Limites conservées :** cette avancée n'apporte pas encore les jours de séance réels, la discussion/votation de censure inscrite au plus tard au troisième jour de séance ni le verrou mondial contre toutes les mutations concurrentes. Le prototype autorise encore des sauts de calendrier de plusieurs mois dans les jeux de test ; cela n'est pas suffisant pour une simulation constitutionnelle de production. La suite du back-end est détaillée dans `docs/WORLD_POLITICS_BACKEND_REMAINING.md`.
+
+Test d'intégration : `tests/wp25-fr-parliament-world-clock-db.php`. Les jeux sans activation France continuent de fonctionner après application de la migration, mais un monde configuré avec cette obligation ne peut pas être repris sans le magasin constitutionnel correspondant.
