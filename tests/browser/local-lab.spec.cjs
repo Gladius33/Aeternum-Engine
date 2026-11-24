@@ -41,7 +41,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 return building.getAttribute('data-district-level');
             },{timeout:90000,intervals:[3000,5000]}).toBe('1');
             await captureScene(page,'local-'+pack+'-domain');
-            await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json');expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
+            await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             await page.locator('[data-game-nav=construction]').click();
             await captureScene(page,'local-'+pack+'-construction');
             expect((await context.request.get(origin+'/v1/public/worlds')).status()).toBe(404);
