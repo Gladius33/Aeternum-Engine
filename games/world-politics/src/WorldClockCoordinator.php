@@ -8,6 +8,7 @@ require_once __DIR__.'/PdoOrganizationStore.php';
 require_once __DIR__.'/PdoEconomicStore.php';
 require_once __DIR__.'/PdoInstitutionalStore.php';
 require_once __DIR__.'/PdoFrenchConstitutionalStore.php';
+require_once __DIR__.'/WorldMutationFence.php';
 
 /**
  * WP17/WP18: recoverable WORLD clock for diplomacy, organizations,
@@ -90,6 +91,7 @@ final class WorldClockCoordinator
                 'INSERT INTO wp_world_clock(world_id,committed_day,revision) VALUES(?,?,0)'
             );
             $q->execute([$world,$startingDay]);
+            WorldMutationFence::seed($this->pdo,$world);
             $roster=$this->pdo->prepare(
                 'INSERT INTO wp_world_clock_countries(world_id,country_code) VALUES(?,?)'
             );
@@ -143,6 +145,10 @@ final class WorldClockCoordinator
         $key=$this->commandKey($world,$idempotencyKey);
         $this->pdo->beginTransaction();
         try {
+            // Order: fence row FIRST, then authoritative world-clock row.
+            // This serializes the transition intent with every admitted
+            // player, autonomous worker and government command.
+            $fence=WorldMutationFence::lockCoordinator($this->pdo,$world);
             $row=$this->row($world,true);
             if ($row===null) throw new \DomainException('No world clock');
             $this->assertCountryRoster($world);
@@ -153,6 +159,9 @@ final class WorldClockCoordinator
             if ($row['pending_key']===null
                 && $row['last_command_key']!==null
                 && hash_equals($row['last_command_key'],$key)) {
+                if ($fence['state']!=='idle') {
+                    throw new \DomainException('Completed world clock receipt has an active write fence');
+                }
                 if ($row['last_target_day']!==$targetDay) {
                     throw new \DomainException('Idempotency key reused with another target date');
                 }
@@ -166,9 +175,16 @@ final class WorldClockCoordinator
                     || $row['pending_day']!==$targetDay) {
                     throw new \DomainException('Another world tick is awaiting recovery');
                 }
+                WorldMutationFence::begin(
+                    $this->pdo,$world,$fence,$key,$targetDay,
+                    $this->principal->actorId()
+                );
                 // A retry does not need the old, now-stale If-Match value.
                 $this->pdo->commit();
             } else {
+                if ($fence['state']!=='idle') {
+                    throw new \DomainException('Write fence and world clock transition disagree');
+                }
                 if (!hash_equals(self::etag($row),$ifMatch)) {
                     throw new \DomainException('Stale world clock precondition');
                 }
@@ -184,6 +200,12 @@ final class WorldClockCoordinator
                 $this->assertCountryDaysAt($world,$row['committed_day']);
                 $this->assertFranceDayAt($world,$row['committed_day'],false);
 
+                // Both records transition in a single transaction. A crash
+                // can never publish pending game time without fencing writers.
+                WorldMutationFence::begin(
+                    $this->pdo,$world,$fence,$key,$targetDay,
+                    $this->principal->actorId()
+                );
                 $update=$this->pdo->prepare(
                     'UPDATE wp_world_clock SET pending_day=?,pending_key=? WHERE world_id=?'
                 );
@@ -211,6 +233,7 @@ final class WorldClockCoordinator
 
         $this->pdo->beginTransaction();
         try {
+            $fence=WorldMutationFence::lockCoordinator($this->pdo,$world);
             $row=$this->row($world,true);
             if ($row===null || $row['pending_key']!==$key
                 || $row['pending_day']!==$targetDay) {
@@ -255,6 +278,10 @@ final class WorldClockCoordinator
             $update->execute([
                 $targetDay,$revision,$key,$targetDay,self::json($result),$world
             ]);
+            WorldMutationFence::finish(
+                $this->pdo,$world,$fence,$key,$targetDay,
+                $this->principal->actorId()
+            );
             $this->pdo->commit();
             return $result;
         } catch (\Throwable $error) {
