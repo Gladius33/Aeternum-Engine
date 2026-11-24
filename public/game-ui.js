@@ -20,13 +20,14 @@
         const name=node('h2','game-ui-title',brand),subtitle=node('p','game-ui-subtitle',brand);
         const context=node('div','game-ui-context',mast);
         const status=node('p','game-ui-status',mast);status.setAttribute('role','status');
+        const introduction=node('div','game-ui-introduction',root);
         const resources=node('div','game-ui-resources',root);
         const layout=node('div','game-ui-layout',root);
         const nav=node('nav','game-ui-nav',layout);
         const stage=node('div','game-ui-stage',layout);
         const side=node('aside','game-ui-side',layout);
         const lower=node('div','game-ui-lower',root);
-        const groups={resources,stage,side,lower,context};
+        const groups={introduction,resources,stage,side,lower,context};
         for(const [key,items] of Object.entries(slots)){
             if(!Object.hasOwn(groups,key))throw TypeError('Unknown UI slot: '+key);
             for(const item of items){if(item instanceof Element)groups[key].append(item);}
