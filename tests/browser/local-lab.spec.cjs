@@ -9,7 +9,21 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
         try{
             const page=await context.newPage();
             await page.goto(origin+'/play.html');
-            await page.getByLabel('Login',{exact:true}).fill(pack+'-alice');
+            await expect(page.locator('[data-choose-game]')).toHaveCount(3);
+            if(pack==='medieval'){
+                for(const [device,width,height] of [['desktop',1440,900],['mobile',390,844]]){
+                    await page.setViewportSize({width,height});
+                    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+                    await page.screenshot({path:'browser-captures/library-'+device+'.png',animations:'disabled',fullPage:true});
+                }
+                await page.setViewportSize({width:1440,height:900});
+            }
+            await page.locator('[data-choose-game='+pack+']').click();
+            await expect(page.locator('.library-profiles')).toBeVisible();
+            await page.locator('[data-profile=bob]').click();
+            await expect(page.locator('#login input[name=login]')).toHaveValue(pack+'-bob');
+            await page.locator('[data-profile=alice]').click();
+            await expect(page.locator('#login input[name=login]')).toHaveValue(pack+'-alice');
             await page.getByLabel('Password',{exact:true}).fill(password);
             await page.getByRole('button',{name:'Sign in',exact:true}).click();
             await expect(page.locator('#world-scene')).toHaveAttribute('data-theme',theme);
@@ -20,17 +34,22 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await page.locator('[data-bot-count="10"]').click();
             await expect(page.locator('[data-bot-name]')).toHaveCount(10);
             await page.locator('[data-bot-count="10"]').click();
-            await page.locator('[data-game-nav=construction]').click();
-            await page.locator('[data-catalogue='+type+']').click();
+            await expect(page.locator('#game-library')).toBeHidden();
+            await expect(page.locator('[data-mission-step=place]')).toBeVisible();
+            await captureScene(page,'local-'+pack+'-first-visit');
+            await page.locator('[data-first-mission]').click();
+            await expect(page.locator('[data-catalogue='+type+']')).toHaveAttribute('aria-pressed','true');
+            await captureScene(page,'local-'+pack+'-first-build');
             const command=origin+'/v1/worlds/lab-'+pack+'/economy/commands';
             const placed=page.waitForResponse(r=>r.url()===command&&r.request().postDataJSON()?.type==='building.place');
             await page.locator('#world-scene [data-label=place]').click();
             expect((await placed).status()).toBe(200);
             await expect(page.locator('#status')).toHaveText('Success');
-            await page.locator('[data-game-nav=domain]').click();
+            await expect(page.locator('[data-mission-step=start]')).toBeVisible();
+            await page.locator('[data-first-mission]').click();
             const building=page.locator('[data-district-building]').first();
             await expect(building).toBeVisible();
-            await building.click();
+            await expect(building).toHaveAttribute('aria-pressed','true');
             const started=page.waitForResponse(r=>r.url()===command&&r.request().postDataJSON()?.type==='building.start');
             await page.locator('#world-scene [data-label=startStage]').click();
             expect((await started).status()).toBe(200);
@@ -40,6 +59,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 await expect(page.locator('#status')).toHaveText('Success');
                 return building.getAttribute('data-district-level');
             },{timeout:90000,intervals:[3000,5000]}).toBe('1');
+            await expect(page.locator('[data-mission-step=next]')).toBeVisible();
             await captureScene(page,'local-'+pack+'-domain');
             await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             await page.locator('[data-game-nav=construction]').click();
