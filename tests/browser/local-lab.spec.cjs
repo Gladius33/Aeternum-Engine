@@ -356,6 +356,22 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(domain).toHaveAttribute('data-render-draws',domainDraws);
             await expect.poll(async()=>Number(await domain.getAttribute('data-render-hits'))).toBeGreaterThan(domainHits);
             await captureScene(page,'g21-'+pack+'-mobile-navigation');
+            // G23: shared social routes must work in each real isolated pack.
+            await page.locator('[data-game-nav=relations]').click();
+            const relations=page.locator('[data-workspace-panel=relations]');
+            await expect(relations).toBeVisible();
+            await expect(relations.locator('[data-relations-tab]')).toHaveCount(4);
+            const relationsRead=page.waitForResponse(r=>r.url().endsWith('/social/alliances')&&r.request().method()==='GET');
+            await relations.locator('#social-directory-load').click();
+            expect((await relationsRead).status()).toBe(200);
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+            await relations.locator('[data-relations-tab=messages]').click();
+            await expect(relations.locator('#social-send-form')).toBeVisible();
+            await page.locator('#locale-select').selectOption('fr');
+            await expect(relations.locator('[data-relations-tab=messages]')).toHaveText('Correspondance');
+            await expect(relations.locator('#social-send-form button')).toHaveText('Envoyer un message privé');
+            await page.locator('#locale-select').selectOption('en');
+            await page.locator('[data-game-nav=domain]').click();
             await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             // G18: real market, illustrations and a non-mutating draft.
             await page.locator('[data-game-nav=market]').click();

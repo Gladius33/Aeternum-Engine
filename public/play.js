@@ -406,7 +406,7 @@ async function discover() {
     selectWorld();
 }
 balance.elements.world.addEventListener('change',selectWorld);
-for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='resource')window.dispatchEvent(new Event('aeternum:resource-change'));if(key==='account'){clearMarketPage();clearMarketHistory();resetMedieval();resetIndustrial();resetProgression();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
+for (const key of ['account','resource']) balance.elements[key].addEventListener('change',()=>{stock.replaceChildren();marketClaim.hidden=true;if(key==='resource')window.dispatchEvent(new Event('aeternum:resource-change'));if(key==='account'){clearSocial();clearMarketPage();clearMarketHistory();resetMedieval();resetIndustrial();resetProgression();window.dispatchEvent(new CustomEvent('aeternum:context',{detail:{world:balance.elements.world.value,account:balance.elements.account.value}}));}});
 document.querySelector('#discover').addEventListener('click',()=>run(discover));
 async function refresh() {
     const f=locationFields();
@@ -787,7 +787,7 @@ function socialKind(kind){return ({message:['message','message'],invitation:['in
 function socialContact(parent,actor,kind){
     if(!socialModern)return;
     const button=document.createElement('button');button.type='button';button.dataset.socialContact=kind;
-    socialCopy(button,kind==='message'?'Write to this player':'Block this player',kind==='message'?'Écrire à ce joueur':'Bloquer ce joueur');
+    socialCopy(button,kind==='message'?'Write to this player':'Prepare a block',kind==='message'?'Écrire à ce joueur':'Préparer un blocage');
     button.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('aeternum:social-contact',{detail:{actor,kind,world:balance.elements.world.value}})));
     parent.append(button);
 }
