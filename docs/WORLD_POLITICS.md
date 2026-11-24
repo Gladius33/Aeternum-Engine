@@ -86,14 +86,29 @@ Aeternum event journal, the browser UI, the base engine pack registry, or
 actual data importers. It deliberately does not invent a political party
 or biography data set. Tests use synthetic people/URLs only.
 
-## Next acceptance milestones
+## Back-end-only development decision (24 November 2026)
 
-1. Versioned source ingestion pipeline and source-license audit.
-2. Immutable political reference IDs + world-character IDs in MariaDB,
-   migrations, transactions and rollback tests.
+The currently evolving Aeternum Engine graphics and generic templates MUST NOT
+be used as a foundation for this game's frontend. **No browser UI, Vue game
+screen, CSS, avatars, image creation or UI E2E may be developed now.** World
+Politics development is limited to the domain backend, deterministic simulation,
+state persistence, policy AI, datasets, versioned REST API, schemas and tests.
+The future web, Android, iOS and optional desktop clients consume the **same
+server-authoritative RESTful API**. See [WORLD_POLITICS_BACKEND.md](WORLD_POLITICS_BACKEND.md).
+This game branch MUST NEVER be merged into Aeternum Engine main; it is a temporary
+workspace awaiting migration to a dedicated game repository.
+
+## Next acceptance milestones — headless backend only
+
+1. Versioned source ingestion pipeline, reference-data snapshots and license audit.
+2. Immutable political reference IDs, world-character IDs and durable MariaDB
+   repositories, migrations, transactional replay and rollback tests.
 3. Actor/office power authorization and event-journal integration.
-4. Real/fictitious person picker, proposal editor and cabinet UI in Vue.
-5. Full Chromium/MariaDB E2E proving separation of worlds and real/fictional
-   provenance, then tested constitutional procedures and scenario variants.
+4. Authorized RESTful API version 1, stable JSON/error contracts, schema tests,
+   robust idempotency and isolation; no client graphics.
+5. Constitutional procedures, real and fictional political relationships,
+   institutions, economy, diplomacy, defence and autonomous actors.
+6. MariaDB concurrency, fault and API integration tests plus reproducible
+   simulation runs; UI postponed until the user explicitly authorizes it.
 
 This work must not imply that Aeternum V1.0 was certified for production.
