@@ -5,7 +5,7 @@ on:
       - 'feat/world-politics-*'
     paths:
       - 'games/world-politics/**'
-      - 'tests/wp01-*.php'
+      - 'tests/wp0*.php'
       - 'docs/WORLD_POLITICS*.md'
       - '.github/workflows/world-politics.yml'
   workflow_dispatch:
@@ -24,8 +24,10 @@ jobs:
       - name: PHP syntax check
         run: |
           find games/world-politics/src -name '*.php' -print0 | xargs -0 -n1 php -l
-          find tests -maxdepth 1 -name 'wp01-*.php' -print0 | xargs -0 -n1 php -l
+          find tests -maxdepth 1 -name 'wp0*.php' -print0 | xargs -0 -n1 php -l
       - name: Political identity domain tests
         run: php tests/wp01-political-roster.php
       - name: REST contract tests (no running server)
         run: php tests/wp01-rest-contract.php
+      - name: Quick and detailed candidate template acceptance
+        run: php tests/wp02-profile-template.php
