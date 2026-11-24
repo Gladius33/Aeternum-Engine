@@ -246,7 +246,7 @@ $quota->engage($principal,'budget-1','finance',
     '2026-11-24T09:00:00+01:00','budget-49-3');
 $principal->censureVotes['incidental']=0;
 $quota->fileMotion($principal,'incidental',
-    '2026-11-24T10:00:00+01:00','49-3-incidental-motion');
+    '2026-11-24T10:00:00+01:00','incidental-motion-49-3');
 wp22($quota->snapshot()['signatory_counters']===[],
     '49(3) incidental censure does NOT consume Article 49(2) signature quotas');
 
