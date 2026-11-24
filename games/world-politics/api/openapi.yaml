@@ -23,6 +23,8 @@ tags:
     description: Authoritative resumable coordination of simulated world day
   - name: FrenchConstitution
     description: France Article 49(3), parliamentary censure and Article 50, modelled separately from regime collapse
+  - name: FrenchSociety
+    description: Versioned professional and regional social scenario outputs, never official forecasts
 paths:
   /worlds/{world}/diplomacy:
     get:
@@ -1153,6 +1155,71 @@ paths:
         '422': { $ref: '#/components/responses/invalid' }
         '428': { $ref: '#/components/responses/missingPrecondition' }
 
+  /worlds/{world}/france/social:
+    get:
+      operationId: readFranceSocialScenario
+      tags: [FrenchSociety]
+      description: >
+        Read immutable French professional cohorts and previously generated,
+        constitutionally anchored social reports. All numbers are fictional
+        scenario assumptions, not opinion polls or forecasts of real citizens.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Source-attributed social simulation snapshot
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/social/assessments:
+    post:
+      operationId: assessFranceSocioeconomic49_3Impact
+      tags: [FrenchSociety]
+      description: >
+        Requires a prior, legally verified Article 49(3) event in this world.
+        Impacts, concessions, professional cohorts and context parameters are
+        preapproved in immutable server-side configurations: the client may
+        submit a bill_id ONLY. Result cannot trigger any automatic regime change.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [bill_id]
+              properties:
+                bill_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '202': { description: Curated social reaction report evaluated and durably journaled }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/social/assessments/{billId}:
+    get:
+      operationId: readFranceSocialAssessment
+      tags: [FrenchSociety]
+      description: >
+        Read a saved professional-cohort impact report for an established
+        Article 49(3) simulation event. History is pinned to original
+        economic assumptions and constitutional source SHA256.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/billId'
+      responses:
+        '200':
+          description: Source-pinned social scenario report
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1160,6 +1227,11 @@ components:
       scheme: bearer
       description: Authentication gateway reserved; no production token verifier implemented.
   parameters:
+    billId:
+      name: billId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
     statementId:
       name: statementId
       in: path
