@@ -94,3 +94,52 @@ Le simulateur social reste pour le moment un **moteur de domaine en mémoire** e
 6. Distinguer juridiquement changements de gouvernement, élections, dissolution, transition institutionnelle et changements de régime sans automatisme.
 
 **Toutes ces évolutions restent sur la branche indépendante World Politics. Aucune fusion dans main d'Aeternum Engine. Aucune interface graphique.**
+
+## WP22 — article 49, alinéa 1, et censure spontanée 49, alinéa 2
+
+Le moteur `FrenchConstitutionalCrisis` a été étendu **dans le même agrégat de responsabilité gouvernementale** : les décisions 49.1, 49.2 et 49.3 ne créent plus trois gouvernements indépendants.
+
+**49.1 — Question de confiance.** Après délibération authentifiée du Conseil des ministres et habilitation du Premier ministre, un programme ou une déclaration de politique générale est soumis à l'Assemblée. Le résultat est obtenu sur les **suffrages exprimés** : le soutien doit être strictement supérieur à l'opposition, les abstentions ne sont pas comptées parmi les suffrages exprimés. Le rejet oblige le Gouvernement à remettre sa démission en vertu de l'article 50. Le régime politique ne s'effondre pas mécaniquement.
+
+**49.2 — Censure spontanée.** La motion émane des députés, sans engagement préalable sur un projet législatif ; elle nécessite au moins un dixième des membres de l'Assemblée parmi des **signataires individuellement identifiés et authentifiés côté serveur**. Aucun vote n'a lieu avant l'écoulement de 48 heures. Le succès requiert la majorité absolue des membres composant l'Assemblée, et seuls les votes favorables à la censure sont décomptés. Une motion adoptée entraîne la démission du Gouvernement, sans changement de régime automatique.
+
+**Quotas par député.** Un député peut signer jusqu'à trois motions spontanées dans une session ordinaire et une dans une session extraordinaire. Les motions consécutives à un 49.3 ne sont pas comprises dans ces quotas. Les compteurs sont conservés dans l'instantané et réinitialisés à l'ouverture d'une session autorisée. Une motion non encore votée empêche une clôture de session qui en effacerait silencieusement l'existence.
+
+Sources : Constitution de 1958 (Légifrance, article 49) https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000019241062/ ; Assemblée nationale, fiche de synthèse n°64 https://www.assemblee-nationale.fr/dyn/synthese/fonctionnement-assemblee-nationale/evaluation-politiques-publiques-controle-gouvernement/la-mise-en-cause-de-la-responsabilite-du-gouvernement ; règlement de l'Assemblée nationale https://www.assemblee-nationale.fr/dyn/17/divers/texte_reference/02_reglement_assemblee_nationale.pdf.
+
+**Limite de droit parlementaire :** la date maximale de discussion des motions (troisième jour de séance après l'expiration des 48 heures), la gestion réelle du calendrier des séances, les groupes politiques, les délégations et les évolutions des effectifs sont encore à développer. Les décomptes par député reposent sur des identifiants vérifiés injectés par un service externe, qui devra être raccordé à un registre électoral historique.
+
+**Migration :** l'agrégat porte désormais `VERSION=wp22-fr-constitutional-responsibility-1`. Les anciens instantanés WP19–WP21 ne sont pas convertis automatiquement et doivent bénéficier d'une migration auditée, ou d'une réinitialisation volontaire d'un scénario de test. Le moteur refuse délibérément un instantané versionné non compatible.
+
+## WP23 — REST et journalisation des nouveaux actes de responsabilité
+
+Les opérations 49.1 et 49.2 passent désormais par `PdoFrenchConstitutionalStore.php` et `FrenchConstitutionalApi.php`, en utilisant les mêmes verrous InnoDB, reçus d'idempotence, contrôles de délibération, habilitations et vérifications d'horloge que pour le 49.3. Aucune liste de signatures ni aucun nombre de votes ne peuvent être fournis par le client.
+
+Routes additionnelles :
+
+- `POST /api/v1/worlds/{world}/france/constitution/confidence/engagements` : annonce du programme ou de la déclaration de politique générale.
+- `POST /api/v1/worlds/{world}/france/constitution/confidence/{statementId}/votes` : vote de confiance certifié.
+- `POST /api/v1/worlds/{world}/france/constitution/spontaneous-motions` : dépôt de motion spontanée avec signatures serveur.
+- `POST /api/v1/worlds/{world}/france/constitution/spontaneous-motions/{motionId}/votes` : vote de censure à la majorité absolue.
+
+Tests : `tests/wp22-france-49-1-49-2.php` et `tests/wp23-france-accountability-rest-db.php`.
+
+## WP24 — rapports sociaux persistants à hypothèses immuables
+
+`FrenchSocialDynamics.php` possède une restauration d'instantané cohérente ; `PdoFrenchSocialStore.php` et `FrenchSocialApi.php` conservent maintenant les évaluations sociales avec une empreinte de leur source constitutionnelle, une empreinte des paramètres du scénario, un journal de révisions MariaDB et des reçus d'idempotence.
+
+Le catalogue des **paramètres socioprofessionnels est approuvé côté serveur à la création du monde**, jamais recalculé librement à partir des déclarations d'un joueur. Le client transmet uniquement le `bill_id` d'un texte dont l'usage du 49.3 a déjà été enregistré dans le monde. Les résultats sont des indices heuristiques et intervalles fictifs, pas des sondages historiques ni des prédictions de PIB.
+
+Routes :
+
+- `GET /api/v1/worlds/{world}/france/social` : lire les cohortes et rapports persistants.
+- `GET /api/v1/worlds/{world}/france/social/assessments/{billId}` : consulter un rapport lié à une décision constitutionnelle datée.
+- `POST /api/v1/worlds/{world}/france/social/assessments` : déclencher une évaluation sur une hypothèse déjà validée, avec `Idempotency-Key` et `If-Match`.
+
+Migration : `database/010_fr_social_scenarios.sql`, après `009_fr_constitutional_49_3.sql`. Tests MariaDB : `tests/wp24-france-social-rest-db.php`.
+
+Le stockage social et le stockage constitutionnel restent **deux agrégats transactionnels distincts** ; l'empreinte du document légal source garantit la traçabilité mais pas une transaction globale atomique. La prochaine étape nécessitera un calendrier constitutionnel intégré à WP18 et une orchestration de simulation cohérente pour les décisions publiques et leurs effets sociaux.
+
+## Ce qui ne peut toujours pas être revendiqué
+
+Les coefficients sociaux ne sont pas calibrés empiriquement ; les changements de gouvernement ne valent pas changements de régime ; les mécanismes relatifs à la police et aux armées restent des indicateurs institutionnels abstraits, sans plan de répression ni simulation opérationnelle ; aucun moteur HTTP public n'est déployé ; aucun module graphique n'a été introduit.

@@ -98,3 +98,12 @@ Tests :
 Références juridiques, limitations, hypothèses et étapes à venir : `docs/WORLD_POLITICS_FRANCE.md`.
 
 Ces modules ne forment pas encore un modèle complet de la Ve République : article 49 alinéas 1 et 2, régime des amendements, navette, contrôle constitutionnel, calendrier de séance, données sociales calibrées et synchronisation avec l'horloge mondiale restent à réaliser.
+
+## France WP22–WP24
+
+- Articles 49.1 et 49.2 : mêmes pouvoirs vérifiés que 49.3, confiance selon suffrages exprimés, censure spontanée selon majorité absolue, quotas de signature individuelle et démission obligatoire sans renversement automatique du régime.
+- REST et MariaDB : `FrenchConstitutionalApi.php`, `PdoFrenchConstitutionalStore.php` et tests `wp22`, `wp23`.
+- Réactions professionnelles persistantes : `FrenchSocialDynamics.php`, `PdoFrenchSocialStore.php`, `FrenchSocialApi.php`, `database/010_fr_social_scenarios.sql` et test `wp24`.
+- Ne pas confondre les hypothèses de scénario avec des statistiques, un sondage, une prévision économique ou une règle de maintien de l'ordre.
+- Documentation : `docs/WORLD_POLITICS_FRANCE.md`.
+- Important : WP22 modifie la version du snapshot constitutionnel ; les mondes déjà créés sous WP19 nécessitent une migration auditée avant toute reprise, et aucune conversion automatique n'est actuellement proposée.
