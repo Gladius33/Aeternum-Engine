@@ -85,6 +85,11 @@ final class PdoPoliticalStore
         if ($actor==='' || strlen($actor)>128 || preg_match('/[\x00-\x1f\x7f]/',$actor)) {
             throw new \InvalidArgumentException('Invalid authenticated actor');
         }
+        if ($operation==='create_fictional_person' && !array_key_exists('id',$payload)) {
+            $payload['id']=PoliticalProfileTemplate::generatedId(
+                $actor,$world,$country,$idempotencyKey
+            );
+        }
         $payloadJson=self::encode($payload);
         if (strlen($payloadJson)>16000) throw new \InvalidArgumentException('Oversized command');
         $fingerprint=hash('sha256',$operation."\n".$payloadJson);
