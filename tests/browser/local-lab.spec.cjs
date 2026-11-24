@@ -156,6 +156,38 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await captureScene(page,'g13-'+pack+'-living-economy');
             await page.emulateMedia({reducedMotion:'no-preference'});
             await captureScene(page,'local-'+pack+'-productive-domain');
+            // G16: changes are purely presentational and must never issue commands.
+            const atmosphere=page.locator('.ambience-panel');
+            const worldScene=page.locator('#world-scene');
+            const district=page.locator('.scene-district');
+            const before=await district.locator('[data-district-building]').evaluateAll(nodes=>nodes.map(n=>[n.dataset.districtBuilding,n.dataset.districtLevel]));
+            let visualCommands=0;
+            const track=request=>{if(request.method()==='POST'&&request.url().includes('/economy/commands'))visualCommands++;};
+            page.on('request',track);
+            try{
+                await expect(atmosphere).toBeVisible();
+                await atmosphere.locator('[data-lighting-choice=dusk]').click();
+                await expect(worldScene).toHaveAttribute('data-lighting','dusk');
+                await expect(district.locator('[data-atmosphere-layer=district]')).toHaveAttribute('data-lighting','dusk');
+                await captureScene(page,'g16-'+pack+'-dusk');
+                await atmosphere.locator('[data-lighting-choice=night]').click();
+                await expect(district.locator('[data-atmosphere-layer=district]')).toHaveAttribute('data-lighting','night');
+                await expect(atmosphere.locator('[data-lighting-choice=night]')).toHaveAttribute('aria-pressed','true');
+                await expect(district.locator('[data-atmosphere-depth=district]')).toHaveCount(1);
+                await captureScene(page,'g16-'+pack+'-moonlight');
+                await atmosphere.locator('[data-ambience-motion=toggle]').click();
+                await expect(worldScene).toHaveAttribute('data-ambience-motion','off');
+                await expect(district.locator('.ambience-motion').first()).toHaveCSS('animation-name','none');
+                await atmosphere.locator('[data-ambience-motion=toggle]').click();
+                await page.emulateMedia({reducedMotion:'reduce'});
+                await expect(worldScene).toHaveAttribute('data-ambience-motion','off');
+                await expect(atmosphere.locator('[data-ambience-motion=toggle]')).toBeDisabled();
+                await page.emulateMedia({reducedMotion:'no-preference'});
+                await expect(worldScene).toHaveAttribute('data-ambience-motion','on');
+                expect(await district.locator('[data-district-building]').evaluateAll(nodes=>nodes.map(n=>[n.dataset.districtBuilding,n.dataset.districtLevel]))).toEqual(before);
+                expect(visualCommands).toBe(0);
+            }finally{page.off('request',track);}
+
             // G14: explore the actual server territory page, query registered
             // connections, request a route and return to the owned domain.
             await page.locator('[data-game-nav=atlas]').click();
@@ -163,6 +195,9 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(atlas).toBeVisible();
             await expect(exp).toBeVisible();
             await expect(atlas.locator('[data-atlas-landscape='+theme+']')).toHaveCount(1);
+            await expect(atlas.locator('[data-atmosphere-layer=atlas]')).toHaveAttribute('data-lighting','night');
+            await atmosphere.locator('[data-lighting-choice=day]').click();
+            await expect(atlas.locator('[data-atmosphere-layer=atlas]')).toHaveAttribute('data-lighting','day');
             const territory=atlas.locator('[data-territory]').filter({has:page.locator('[data-atlas-region=own]')}).first();
             await expect(territory).toBeAttached();
             await exp.locator('[data-atlas-directory]').selectOption(await territory.getAttribute('data-territory'));

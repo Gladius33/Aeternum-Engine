@@ -53,6 +53,7 @@
         neutral:['#304e53','#557076','#9aa88e','#786855','#d3d8c4','#253c48']
     };
     let districtMode=false,districtId='',districtPage=0;
+    let lighting='day',ambienceMotion=true;
     let theme='neutral',territories=new Map(),buildings=new Map(),details=new Map(),links=new Map(),route=[],selected=null,camera={x:0,y:0,z:1},extent={w:900,h:460},drag=null;
     const header=html('div',host,'scene-header'),title=html('h3',header,'scene-title'),summary=html('p',header,'scene-summary');
     const hud=html('div',host,'scene-hud');
@@ -196,6 +197,41 @@
     const districtZoomOut=button(districtBar,'districtZoomOut',()=>domainCamera.zoom(.8));
     const districtReset=button(districtBar,'districtReset',()=>domainCamera.reset());
     const districtCaption=html('p',host,'scene-caption');
+    const ambiencePanel=html('section',host,'ambience-panel');ambiencePanel.hidden=true;
+    const ambienceTitle=html('h3',ambiencePanel,'ambience-title');ambienceTitle.id='ambience-title';
+    ambiencePanel.setAttribute('aria-labelledby',ambienceTitle.id);
+    const ambienceControls=html('div',ambiencePanel,'ambience-controls');
+    const phaseControls=new Map();
+    for(const phase of window.AeternumLivingArt.phases){
+        const control=html('button',ambienceControls,'ambience-phase');
+        control.type='button';control.dataset.lightingChoice=phase;
+        control.addEventListener('click',()=>{
+            if(lighting===phase||busy)return;
+            lighting=phase;render();
+        });
+        phaseControls.set(phase,control);
+    }
+    const motionControl=html('button',ambienceControls,'ambience-motion-control');motionControl.type='button';motionControl.dataset.ambienceMotion='toggle';
+    motionControl.addEventListener('click',()=>{ambienceMotion=!ambienceMotion;renderAmbience();});
+    const ambienceNote=html('p',ambiencePanel,'ambience-note');
+    const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
+    motionPreference.addEventListener('change',renderAmbience);
+    function renderAmbience(){
+        const fr=lang()==='fr',label=(en,frText)=>fr?frText:en;
+        host.dataset.lighting=lighting;
+        host.dataset.ambienceMotion=ambienceMotion&&!motionPreference.matches?'on':'off';
+        ambiencePanel.hidden=classic||!selectedGame||theme==='neutral';
+        if(ambiencePanel.hidden)return;
+        ambienceTitle.textContent=label('Atmosphere','Ambiance visuelle');
+        const names={day:label('Daylight','Jour'),dusk:label('Dusk','Crépuscule'),night:label('Moonlight','Nuit')};
+        for(const [phase,control] of phaseControls){
+            control.textContent=names[phase];control.setAttribute('aria-pressed',String(lighting===phase));control.disabled=busy;
+        }
+        motionControl.textContent=motionPreference.matches?label('Reduced motion','Animations réduites'):label('Ambient motion','Animations ambiantes');
+        motionControl.disabled=motionPreference.matches;
+        motionControl.setAttribute('aria-pressed',String(ambienceMotion&&!motionPreference.matches));
+        ambienceNote.textContent=label('Visual setting only · no change to world time, rules or resources.','Réglage visuel uniquement · sans effet sur le temps du monde, les règles ou les ressources.');
+    }
     const hint=html('p',host,'scene-caption'),panel=html('div',host,'scene-inspector');
     const selection=html('strong',panel,'scene-selection'),info=html('p',panel,'scene-info');
     const controls=html('div',panel,'scene-toolbar');
@@ -301,13 +337,15 @@
         if(!architectureExpanded){architecturalView.replaceChildren();return;}
         architecturalView.replaceChildren();architecturalFacts.replaceChildren();
         architecturalView.setAttribute('aria-label',buildingName(b)+' · '+(d?t('level')+' '+d.level:t('unknown')));
-        const bg=theme==='medieval'?['#729187','#9da773','#526d4d']:theme==='industrial'?['#708594','#a2b2b0','#455a64']:['#bc8d6b','#e6c28f','#a2774b'];
+        const bg=window.AeternumLivingArt.atmosphereProfile(theme,lighting)?.earth??['#729187','#9da773','#526d4d'];
         rect(architecturalView,0,0,320,220,shade(architecturalView,bg));
         const floor=el('g',{'aria-hidden':'true'},architecturalView);
         ellipse(floor,160,173,129,29,'#192b2a45');
         poly(floor,'32,175 160,114 288,175 160,213',shade(floor,[bg[1],bg[2]]),'#d2c3a080');
         for(let i=0;i<10;i++)line(floor,44+i*12,174+i*3,156+i*12,124+i*3,'#e6dbb830',.8);
-        model(el('g',{transform:'translate(157 165) scale(1.92)'},architecturalView),b.type,d);
+        window.AeternumLivingArt.atmosphere(architecturalView,theme,lighting,320,220,'inspection');
+        window.AeternumLivingArt.atmosphereDepth(architecturalView,theme,lighting,320,220,'inspection');
+        model(el('g',{transform:'translate(157 165) scale(1.92)',class:'ambience-lit-model'},architecturalView),b.type,d);
         const stage=!d?t('unknown'):d.pending?t('pending'):d.level===0?t('foundation'):t('ready');
         const fact=(key,value)=>{const item=html('div',architecturalFacts,'architectural-fact');html('small',item,'',key);html('strong',item,'',String(value));};
         fact(label('Confirmed stage','État confirmé'),stage);
@@ -725,12 +763,16 @@
     }
     function ground(g,w,h){
         const p=palettes[theme],defs=el('defs',{},g),grad=el('linearGradient',{id:'district-sky',x2:'0%',y2:'100%'},defs);
-        const colors=theme==='medieval'?['#789a9b','#c4cda5','#637d45']:theme==='industrial'?['#6b8190','#bbc3bf','#63717a']:theme==='guild'?['#ce9870','#f0c993','#ad7846']:['#799194','#b8c7be','#687f73'];
+        const ambient=!classic?window.AeternumLivingArt.atmosphereProfile(theme,lighting):null;
+        const colors=ambient?.sky??(theme==='medieval'?['#789a9b','#c4cda5','#637d45']:theme==='industrial'?['#6b8190','#bbc3bf','#63717a']:theme==='guild'?['#ce9870','#f0c993','#ad7846']:['#799194','#b8c7be','#687f73']);
         for(let i=0;i<3;i++)el('stop',{offset:[0,42,100][i]+'%','stop-color':colors[i]},grad);
         rect(g,0,0,w,h,'url(#district-sky)');
+        if(ambient)window.AeternumLivingArt.atmosphere(g,theme,lighting,w,h);
+        else{
         const sun=el('g',{'aria-hidden':'true'},g);
         ellipse(sun,w*.77,h*.17,h*.16,h*.16,'#fff0bb18');ellipse(sun,w*.77,h*.17,h*.11,h*.11,'#fff0bb25');ellipse(sun,w*.77,h*.17,h*.045,h*.045,'#fff1cc');
         for(let i=0;i<5;i++){const x=w*(i+.4)/5,y=h*(.09+(i%2)*.04);ellipse(g,x,y,w*.07,h*.018,'#fff9e71a');ellipse(g,x+w*.035,y-h*.007,w*.04,h*.015,'#fff9e71a');}
+        }
         const horizon=h*.26;
         for(let i=0;i<3;i++){
             let d='M0 '+(horizon+i*22);
@@ -739,7 +781,7 @@
             path(g,d,[p[5],p[0],p[1]][i],{'fill-opacity':.82});
         }
         const floor=el('g',{'aria-hidden':'true','pointer-events':'none'},g);
-        path(floor,'M0 '+(h*.36)+' Q'+w*.45+' '+(h*.27)+' '+w+' '+(h*.40)+' V'+h+' H0 Z',shade(floor,theme==='medieval'?['#9ca66a','#69854c','#466b42']:theme==='industrial'?['#a7b1ab','#6d7b7a','#465963']:['#e7c28a','#bf9257','#9c7146']));
+        path(floor,'M0 '+(h*.36)+' Q'+w*.45+' '+(h*.27)+' '+w+' '+(h*.40)+' V'+h+' H0 Z',shade(floor,ambient?.earth??(theme==='medieval'?['#9ca66a','#69854c','#466b42']:theme==='industrial'?['#a7b1ab','#6d7b7a','#465963']:['#e7c28a','#bf9257','#9c7146'])));
         // Broad, layered landscape textures are non-interactive terrain, not production or map entities.
         for(let i=0;i<7;i++){
             const y=h*(.39+i*.091),bend=(i%2?1:-1)*h*.045;
@@ -832,6 +874,7 @@
         domainCamera.size(w,h);
         districtSvg.setAttribute('aria-label',t('districtTitle'));
         districtSvg.replaceChildren();ground(districtSvg,w,h);
+        if(!classic)window.AeternumLivingArt.atmosphereDepth(districtSvg,theme,lighting,w,h);
         const n=territories.get(districtId),p=palettes[theme];
         rect(districtSvg,12,12,mobile?w-24:Math.min(w-24,310),51,'#14232be6',{rx:7,stroke:p[2]});
         el('text',{x:26,y:33,class:'district-heading'},districtSvg,n?locationName(n):t('districtTitle'));
@@ -868,7 +911,7 @@
             const land=theme==='medieval'?['#a3a36c','#758555']:theme==='industrial'?['#abb2ad','#68767b']:['#dfc18e','#b18a59'];
             poly(plot,[-spacing*.43,4,0,-spacing*.20,spacing*.43,4,0,spacing*.21].join(' '),shade(plot,land),p[0]);
             for(let i=0;i<4;i++)line(plot,-spacing*.32+i*spacing*.12,3+i*3,-spacing*.04+i*spacing*.12,-spacing*.13+i*3,'#f2e5b840',1);
-            const art=el('g',{transform:'scale('+scale+')'},plot);model(art,b.type,d);
+            const art=el('g',{transform:'scale('+scale+')',class:'ambience-lit-model'},plot);model(art,b.type,d);
             // Signal only authoritative building stages, with distinct silhouettes
             // and an animated pending ring that does not imply completion.
             const marker=el('g',{transform:'translate('+(-spacing*.34)+' '+(-spacing*.32)+')','aria-hidden':'true','pointer-events':'none',class:'district-stage-marker','data-stage':!d?'unknown':d.pending?'pending':d.level>0?'built':'foundation'},plot);
@@ -998,7 +1041,7 @@
         a.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select('territory',territory.id);}});
     }
     function render(){
-        host.dataset.theme=theme; title.textContent=t(theme);
+        host.dataset.theme=theme; title.textContent=t(theme);renderAmbience();
         campaignButton.hidden=theme==='neutral'||(theme==='guild'&&document.getElementById('progression-panel').hidden);
         marketButton.hidden=theme==='neutral';
         for(const op of operations)op.control.hidden=op.pack!==theme;
@@ -1016,7 +1059,11 @@
         const p=palettes[theme],defs=el('defs',{},svg),gradient=el('linearGradient',{id:'scene-bg',x1:'0%',y1:'0%',x2:'100%',y2:'100%'},defs);
         el('stop',{offset:'0%','stop-color':p[5]},gradient);el('stop',{offset:'100%','stop-color':p[0]},gradient);
         const illustrated=!classic&&theme!=='neutral';
-        if(illustrated)window.AeternumLivingArt.atlasTerrain(svg,theme,extent.w,extent.h);
+        if(illustrated){
+            window.AeternumLivingArt.atlasTerrain(svg,theme,extent.w,extent.h);
+            window.AeternumLivingArt.atmosphere(svg,theme,lighting,extent.w,extent.h,'atlas');
+            window.AeternumLivingArt.atmosphereDepth(svg,theme,lighting,extent.w,extent.h,'atlas');
+        }
         else rect(svg,0,0,extent.w,extent.h,'url(#scene-bg)');
         for(let i=0;!illustrated&&i<extent.h/22+3;i++){
             const y=i*22-30;
@@ -1067,7 +1114,7 @@
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();renderDistrict();updateSelection();});
     on('confirmed',d=>{if(d.world===locationFields().world&&Object.hasOwn(window.AeternumLivingArt.eventTypes,d.type)&&lastEconomicEvent?.id!==d.id)lastEconomicEvent={id:d.id,type:d.type};if(d.type==='building.place')referenceInput.value='';reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();}});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();if(!classic&&!districtMode&&selected?.type==='territory')centerAtlas(selected.id);});
     document.getElementById('map-location').addEventListener('input',updateSelection);
@@ -1161,7 +1208,7 @@
         missionGo.disabled=busy||(!building&&!type);
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
-        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,districtCommand,architecturalInspector,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
+        slots:{introduction:[mission],resources:[hud],context:[contextControls],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,ambiencePanel,districtCommand,architecturalInspector,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
         actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>focusNode(objectiveBlock.root),market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
     });
     header.hidden=true;
