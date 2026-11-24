@@ -56,3 +56,24 @@ Sources pour la future ingestion :
 - https://datahelpdesk.worldbank.org/knowledgebase/articles/898581
 - https://data.worldbank.org/summary-terms-of-use
 - https://www.un.org/en/about-us/non-member-states
+
+## WP14 — Importation hors ligne des indicateurs de la Banque mondiale
+
+WorldBankOfflineImporter.php importe des pages JSON WDI v2 archivées et complètes, sans requête réseau effectuée au cours d'une partie.
+Ce service vérifie le code de série, la pagination, les pays de l'univers déjà connus, les années, les valeurs manquantes, l'unité et le caractère reproductible des données.
+Il exige une validation administrative explicite des droits de réutilisation pour chaque indicateur (licence, URL, date et décision positive). Il ne déduit jamais une licence de redistribution de la seule présence d'un résultat API.
+Les indicateurs pris en charge initialement sont population totale (SP.POP.TOTL) et PIB en dollars courants (NY.GDP.MKTP.CD). Le commerce bilatéral est un indicateur différent et n'est pas inféré des deux précédents.
+Les tests WP14 utilisent uniquement des jeux de données synthétiques, et non une importation mondiale authentifiée.
+
+## WP15 — Passerelle entre diplomatie et décision économique
+
+DiplomacyEconomicBridge.php traduit une proposition de sanctions en une proposition économique fictive, en vérifiant l'origine diplomatique, le même monde de jeu et la cohérence des hypothèses.
+Cette traduction n'autorise pas les sanctions : l'institution compétente doit encore satisfaire la procédure juridique et l'horloge du monde doit atteindre la date prévue.
+Le moteur ne modifie jamais les chiffres de PIB publiés. Il calcule uniquement des projections de scénario, avec hypothèses centrales et marges configurées.
+Les tests WP15 couvrent l'absence d'effet immédiat, le contrôle de légalité, l'impossibilité de déguiser un dialogue en sanctions, les conflits d'idempotence et l'isolement entre mondes.
+
+La passerelle est encore en mémoire et n'assure PAS une transaction atomique entre les deux magasins MariaDB. Avant la production, le service d'orchestration devra utiliser une outbox/inbox transactionnelle avec conservation des versions de chaque agrégat, sans jamais accepter une preuve diplomatique forgée par un client.
+
+## Priorités suivantes
+
+Mettre en place l'outbox interdomaines, importer et vérifier des données économiques historiques réelles sous licence adéquate, étendre les modèles macroéconomiques, puis calibrer et vérifier les conséquences de politique publique avant de les présenter comme simulations quantitatives crédibles.

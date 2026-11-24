@@ -64,3 +64,19 @@ Documentation :
 Migration future : déplacer `games/world-politics/` et ses tests
 vers un dépôt de jeu dédié, maintenir une intégration de moteur
 générique versionnée, sans merger dans `main` d'Aeternum.
+
+## Modules économiques et internationaux — WP10 à WP15
+
+- PoliticalProfileTemplate.php : candidats fictifs rapides/détaillés et profils biographiques.
+- PoliticalRoster.php / PdoPoliticalStore.php : cabinets et nominations.
+- InstitutionalSimulation.php / PdoInstitutionalStore.php : règles institutionnelles selon le pays.
+- GeopoliticalActorRegistry.php / DiplomaticSimulation.php / PdoDiplomaticStore.php : États, autorités, relations diplomatiques et IA.
+- OrganizationSimulation.php / PdoOrganizationStore.php / AutonomousOrganizationPlanner.php : organisations, votes IA, procédures, préavis.
+- EconomicReferenceRegistry.php / WorldBankOfflineImporter.php : sources économiques datées, manquantes ou hypothétiques.
+- WorldEconomicSimulation.php / PdoEconomicStore.php / PdoEconomicApi.php : conséquences commerciales différées, audit MariaDB, REST.
+- DiplomacyEconomicBridge.php : passage non contraignant d'une proposition diplomatique vers une décision économique.
+- api/openapi.yaml : contrat OpenAPI 3.1, sans serveur HTTP ni client graphique.
+
+Tests supplémentaires : php tests/wp12-economic-domain.php ; php tests/wp14-worldbank-import.php ; php tests/wp15-diplomacy-economic-bridge.php. Les tests WP10, WP11 et WP13 ont besoin d'une base wp_test isolée.
+
+Le moteur reste expérimental : les données réelles, les lois de chaque État, les licences et la calibration économique doivent être vérifiées avant toute mise en production. Consulter docs/WORLD_POLITICS_ECONOMY.md.
