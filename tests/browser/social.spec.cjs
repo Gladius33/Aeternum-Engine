@@ -246,6 +246,7 @@ test('G23 real modern multiplayer: bilingual council, private mail, invitations 
   test.setTimeout(250000);
   const a=await browser.newPage(),b=await browser.newPage();
   try{
+    a.setDefaultTimeout(20000);b.setDefaultTimeout(20000);
     const alice=await signin(a,'browser-social-owner',true);
     const bob=await signin(b,'browser-social-member',true);
     for(const page of [a,b]){
@@ -268,7 +269,8 @@ test('G23 real modern multiplayer: bilingual council, private mail, invitations 
     await a.locator('#social-invite-form button').click();
     expect((await invited).status()).toBe(200);
     await b.locator('#locale-select').selectOption('fr');
-    await expect(b.locator('.relations-header h3')).toHaveText('Conseil du royaume');
+    // The pinned legacy medieval pack has no settlement module: neutral presentation is intentional.
+    await expect(b.locator('.relations-header h3')).toHaveText('Relations entre joueurs');
     await b.locator('#social-inbox-load').click();
     await b.locator('#social-inbox').selectOption('g23-browser-crew');
     const accepted=b.waitForResponse(r=>r.url()===root+'/alliances/g23-browser-crew/respond');
@@ -317,5 +319,5 @@ test('G23 real modern multiplayer: bilingual council, private mail, invitations 
     await expect(a.locator('#social-message-text')).toHaveValue('');
     await expect(a.locator('#social-recipient')).toHaveValue('');
     await expect(a.locator('#social-messages-list li')).toHaveCount(0);
-  }finally{await a.close();await b.close();}
+  }finally{await Promise.allSettled([a.close(),b.close()]);}
 });

@@ -1519,7 +1519,7 @@
     function renderRelations(){
         if(classic||!relationsTitle)return;
         const fr=lang()==='fr',label=(en,f)=>fr?f:en;
-        relationsBlock.root.hidden=theme==='neutral';
+        relationsBlock.root.hidden=!locationFields().world;
         relationsBlock.title.textContent=label('Relations','Relations');
         relationsTitle.textContent={medieval:label('Council of the realm','Conseil du royaume'),industrial:label('Industrial consortium','Consortium industriel'),guild:label('Merchant council','Conseil des marchands')}[theme]??label('Player relations','Relations entre joueurs');
         relationsDescription.textContent=label('Alliances, private correspondence and world-scoped diplomacy. Use a known player identifier for invitations or messages. Member and message records provide contact shortcuts. The server checks every permission.','Alliances, correspondance privée et diplomatie à l’échelle du monde. Utilisez un identifiant de joueur connu pour les invitations ou les messages. Les membres et messages fournissent des raccourcis de contact. Le serveur contrôle chaque autorisation.');

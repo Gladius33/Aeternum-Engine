@@ -10,7 +10,7 @@
     };
     const make=(id,title,subtitle,nav)=>Object.freeze({id,title,subtitle,labels:shared,nav:Object.freeze(nav)});
     const profiles={
-        neutral:make('neutral',pair('Aeternum','Aeternum'),pair('World management','Gestion du monde'),['atlas','domain','holdings','construction','reserves','market','activity']),
+        neutral:make('neutral',pair('Aeternum','Aeternum'),pair('World management','Gestion du monde'),['atlas','domain','holdings','construction','reserves','market','relations','activity']),
         medieval:make('medieval',pair('The living realm','Le royaume vivant'),pair('Grow your settlement','Développez votre colonie'),['domain','atlas','construction','holdings','reserves','objectives','market','relations','activity']),
         industrial:make('industrial',pair('Industrial frontier','La frontière industrielle'),pair('Build a productive network','Développez votre réseau productif'),['domain','atlas','construction','holdings','reserves','objectives','market','relations','activity']),
         guild:make('guild',pair('Guild Caravans','Guild Caravans'),pair('Develop your merchant house','Développez votre maison marchande'),['domain','atlas','construction','holdings','reserves','objectives','market','relations','activity'])
