@@ -79,3 +79,15 @@ main:has(#game:not([hidden])){max-width:78rem}
 .scene-holdings{grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr))}
 .scene-holding svg{height:135px}
 @media(max-width:640px){.scene-atlas{height:360px}.scene-holdings{grid-template-columns:repeat(2,minmax(0,1fr))}.scene-holding svg{height:105px}}
+
+/* G04: a separate illustrated, selectable district scene at gameplay scale. */
+#world-scene svg[hidden]{display:none}
+.scene-district-bar{display:flex;flex-wrap:wrap;gap:.35rem;margin:.7rem 0}
+.scene-district{display:block;width:100%;height:auto;aspect-ratio:900/510;border:1px solid #b0ba9677;border-radius:.7rem;background:#34494a;box-shadow:0 6px 18px #0005}
+.district-heading{font:600 20px Georgia,serif;fill:#fff5dc}
+.district-label{font:600 12px system-ui,sans-serif;fill:#fff8e7}
+.district-subheading{font:10px system-ui,sans-serif;fill:#e6e6dc}
+.district-building{cursor:pointer;outline:none}
+.district-building[aria-pressed=true],.district-building:focus-visible{filter:drop-shadow(0 0 5px #ffda80)}
+.district-building[aria-pressed=true]>polygon:first-of-type,.district-building:focus-visible>polygon:first-of-type{stroke:#ffdc8a;stroke-width:3}
+@media(max-width:640px){.scene-district{aspect-ratio:360/650}.district-heading{font-size:16px}.district-label{font-size:10px}.district-subheading{font-size:9px}}

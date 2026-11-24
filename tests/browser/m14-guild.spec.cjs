@@ -36,7 +36,7 @@ async function signIn(page,login){
     await page.locator('#balance select[name=resource]').selectOption('spice');
     const req=page.waitForRequest(r=>r.url().includes('/economy/overview/'));
     await page.locator('#world-scene [data-label=stockSync]').click();
-    await expect(page.locator('[data-stat=stock]')).toContainText('spice');
+    await expect(page.locator('[data-stat=stock]')).toContainText(/spice/i);
     const token=(await (await req).allHeaders()).authorization;
     expect(token).toMatch(/^Bearer [a-f0-9]{64}$/);
     return {account,token};
@@ -113,7 +113,7 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
         const offer=sale.request().postDataJSON();
         await b.locator('#world-scene [data-label=marketSync]').click();
         await expect(b.locator('[data-stat=market] strong')).toHaveText('1');
-        await b.locator('[data-offer]').filter({hasText:'3 spice'}).click();
+        await b.locator('[data-offer]').filter({hasText:/3 spice/i}).click();
         await captureScene(b,'guild-open-barter');
         const purchasing=b.waitForResponse(r=>r.url()===url&&r.request().postDataJSON()?.type==='market.accept');
         await b.locator('#world-scene [data-label=acceptTrade]').click();
@@ -145,6 +145,13 @@ test('M14 third data-only guild game: two browser players build, trade and upgra
     await expect(a.locator('[data-reserve]').first()).toBeVisible();
         await expect(a.locator('[data-building=m14-guild-caravan]')).toHaveAttribute('data-stage','built');
         await captureScene(a,'guild-developed-holdings');
+    await a.locator('#world-scene [data-label=district]').click();
+    await expect(a.locator('.scene-district')).toBeVisible();
+    await expect(a.locator('[data-district-building=m14-guild-caravan]')).toBeVisible();
+    await a.locator('[data-district-building=m14-guild-caravan]').click();
+    await expect(a.locator('[data-district-building=m14-guild-caravan]')).toHaveAttribute('aria-pressed','true');
+    await captureScene(a,'guild-district');
+    await a.locator('#world-scene [data-label=district]').click();
         const wrongWorld=await a.request.get(origin+'/v1/worlds/e2e-medieval/economy/balances/'+
             alice.account+'/wood',{headers:{Authorization:alice.token}});
         // Configured-but-inaccessible worlds return 409, unconfigured worlds 404.
