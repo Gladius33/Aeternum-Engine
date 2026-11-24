@@ -29,6 +29,12 @@ final class PdoOrganizationStore
     }
 
     /** Administrative scenario bootstrap, never exposed to public REST. */
+    /** Identity bound server-side; never derived from request JSON. */
+    public function principalId():string
+    {
+        return $this->principal->actorId();
+    }
+
     public function seed(OrganizationSimulation $sim):void
     {
         $state=$sim->snapshot();
