@@ -64,6 +64,15 @@ final class PdoFrenchParliamentStore
                 $world,self::json($parliament->snapshot()),
                 $parliament->hash(),$world
             ]);
+            $mark=$this->pdo->prepare(
+                'UPDATE wp_fr_constitutional_states
+                 SET parliament_required=1
+                 WHERE world_id=? AND parliament_required=0'
+            );
+            $mark->execute([$world]);
+            if ($mark->rowCount()!==1) {
+                throw new \DomainException('Constitutional parliamentary requirement already pinned');
+            }
             $this->pdo->commit();
         } catch (\Throwable $error) {
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
@@ -219,13 +228,13 @@ final class PdoFrenchParliamentStore
     }
 
     /** Trusted constitutional adapter reads the final recorded nominal tally. */
-    public function certifiedResult(string $world,string $matterId,string $kind):array
+    public function certifiedResult(string $world,string $matterId,?string $kind=null):array
     {
         $this->check($world,'fr.assembly.read');
         $read=$this->read($world);
         $model=FrenchParliament::restore($read['state']);
         $result=$model->result($matterId);
-        if ($result['kind']!==$kind) {
+        if ($kind!==null && $result['kind']!==$kind) {
             throw new \DomainException('Nominal roll call does not match constitutional legal procedure');
         }
         return $result;

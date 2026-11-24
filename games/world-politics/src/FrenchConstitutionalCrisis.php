@@ -51,6 +51,17 @@ interface FrenchParliamentaryPrincipal extends FrenchConstitutionalPrincipal
     public function verifiedSessionKind(string $world,string $session):string;
 }
 
+/**
+ * Mandatory when the Assembly roster is pinned to a scenario.
+ * The pre-vote constitutional SHA is checked under the state lock.
+ */
+interface FrenchBallotProofPrincipal extends FrenchParliamentaryPrincipal
+{
+    public function verifiedBallotSourceSha(
+        string $world,string $matterId,string $kind
+    ):string;
+}
+
 final class FrenchConstitutionalCrisis
 {
     public const VERSION='wp22-fr-constitutional-responsibility-1';

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS wp_fr_constitutional_states (
     state_sha CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     revision BIGINT UNSIGNED NOT NULL DEFAULT 0,
     sitting_calendar_required TINYINT(1) NOT NULL DEFAULT 0,
+    parliament_required TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY(world_id)
 ) ENGINE=InnoDB;
 

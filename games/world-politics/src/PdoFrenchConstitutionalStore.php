@@ -65,7 +65,7 @@ final class PdoFrenchConstitutionalStore
     {
         $this->check($world,'fr.constitution.read');
         $q=$this->pdo->prepare(
-            'SELECT state_json,state_sha,revision,sitting_calendar_required FROM wp_fr_constitutional_states WHERE world_id=?'
+            'SELECT state_json,state_sha,revision,sitting_calendar_required,parliament_required FROM wp_fr_constitutional_states WHERE world_id=?'
         );
         $q->execute([$world]);
         $row=$q->fetch(\PDO::FETCH_ASSOC);
@@ -147,7 +147,7 @@ final class PdoFrenchConstitutionalStore
                 $this->pdo,$world,$principalId,$operation,$operation==='clock' ? (new \DateTimeImmutable('@'.FrenchConstitutionalCrisis::instant($request['at'])))->setTimezone(new \DateTimeZone('Europe/Paris'))->format('Y-m-d') : null
             );
             $read=$this->pdo->prepare(
-                'SELECT state_json,state_sha,revision,sitting_calendar_required FROM wp_fr_constitutional_states WHERE world_id=? FOR UPDATE'
+                'SELECT state_json,state_sha,revision,sitting_calendar_required,parliament_required FROM wp_fr_constitutional_states WHERE world_id=? FOR UPDATE'
             );
             $read->execute([$world]);
             $row=$read->fetch(\PDO::FETCH_ASSOC);
@@ -159,6 +159,10 @@ final class PdoFrenchConstitutionalStore
                 throw new \DomainException('Constitutional identity changed during transaction');
             }
             $sim=$this->restore($row,$world);
+            if ((int)$row['parliament_required']===1
+                && !$this->principal instanceof FrenchBallotProofPrincipal) {
+                throw new \DomainException('Pinned French Assembly requires certified parliamentary principal');
+            }
             $this->assertCalendarConfiguration($row);
             $this->assertCalendarIdentity($world);
             $retry=$this->pdo->prepare(
@@ -180,6 +184,26 @@ final class PdoFrenchConstitutionalStore
                 throw new \DomainException('Stale French constitutional ETag');
             }
             $this->checkSittingAgenda($world,$sim,$operation,$request);
+            if ($this->principal instanceof FrenchBallotProofPrincipal
+                && in_array($operation,[
+                    'vote_motion','vote_spontaneous','vote_confidence'
+                ],true)) {
+                $matter=$operation==='vote_confidence'
+                    ?$request['statement_id']:$request['motion_id'];
+                $kind=match($operation) {
+                    'vote_confidence'=>'confidence',
+                    'vote_spontaneous'=>'censure_49_2',
+                    'vote_motion'=>'censure_49_3'
+                };
+                if (!hash_equals(
+                    $sim->hash(),
+                    $this->principal->verifiedBallotSourceSha($world,$matter,$kind)
+                )) {
+                    throw new \DomainException(
+                        'Parliamentary roll call does not match current French constitution'
+                    );
+                }
+            }
             $result=match($operation) {
                 'engage'=>$sim->engage(
                     $this->principal,$request['bill_id'],$request['category'],
