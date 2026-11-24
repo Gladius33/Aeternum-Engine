@@ -32,6 +32,7 @@ jobs:
           npm ci --prefix client --no-audit --no-fund
           npm run build --prefix client
           npm test --prefix client
+          node tests/browser/architecture-contract.cjs
           test -s public/client-dist/aeternum-shell.js
           composer dump-autoload --no-interaction
           bash tests/m11-package.sh

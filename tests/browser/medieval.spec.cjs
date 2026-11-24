@@ -75,6 +75,7 @@ async function advanceBuilding(page,id,expectedLevel,seconds) {
     await expect(page.locator('#building-details dd').nth(3)).toHaveText(String(expectedLevel));
     await expect(page.locator('#world-scene [data-building="'+id+'"]')).toHaveAttribute('data-level',String(expectedLevel));
     await expect(page.locator('#world-scene [data-building="'+id+'"]')).toHaveAttribute('data-stage','built');
+    await expect(page.locator('#world-scene [data-building="'+id+'"] [data-architecture]')).toHaveAttribute('data-architecture-level',String(expectedLevel));
 }
 async function settle(page,type) {
     const reply=page.waitForResponse(r=>r.url()===commandUrl &&
