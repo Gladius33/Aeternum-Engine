@@ -1,0 +1,271 @@
+openapi: 3.1.0
+info:
+  title: World Politics Headless API
+  version: 0.1.0-prototype
+  description: |
+    Experimental, transport-neutral contract, not a deployed HTTP server.
+    Do not expose until server-side authentication, MariaDB, durable receipts
+    and authoritative world-role authorization have been implemented.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Politics
+    description: World-scoped political reference and scenario state
+paths:
+  /worlds/{world}/countries/{country}/politics:
+    get:
+      operationId: readNationalPolitics
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+      responses:
+        '200':
+          description: World-scoped political roster and cabinet
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404':
+          $ref: '#/components/responses/notFound'
+  /worlds/{world}/countries/{country}/politics/people/{personId}:
+    get:
+      operationId: readPoliticalPerson
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - name: personId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200':
+          description: Single source-attributed or fictional political person
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [person]
+                properties:
+                  person: { $ref: '#/components/schemas/Person' }
+        '404':
+          $ref: '#/components/responses/notFound'
+  /worlds/{world}/countries/{country}/politics/people:
+    post:
+      operationId: createFictionalPoliticalPerson
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FictionalPerson' }
+      responses:
+        '201':
+          description: Fictional person created in the scenario
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [person_id]
+                properties:
+                  person_id: { $ref: '#/components/schemas/Identifier' }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/countries/{country}/politics/head-of-state:
+    post:
+      operationId: initializeAlternatePresidency
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [person_id]
+              properties:
+                person_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200':
+          description: Alternate scenario head of state initialized
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/countries/{country}/politics/nominations:
+    post:
+      operationId: proposePoliticalNomination
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [office, person_id]
+              properties:
+                office: { $ref: '#/components/schemas/Identifier' }
+                person_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '202':
+          description: Proposal registered but no automatic appointment
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/countries/{country}/politics/nominations/{office}/resolution:
+    post:
+      operationId: resolvePoliticalNomination
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+        - name: office
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Identifier' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [accepted]
+              properties:
+                accepted: { type: boolean }
+      responses:
+        '200':
+          description: Proposal accepted or declined by an authorized simulation actor
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Reserved for future trusted authentication gateway; not implemented.
+  parameters:
+    world:
+      name: world
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
+    country:
+      name: country
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[A-Z]{2}$' }
+    idempotency:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, pattern: '^[a-zA-Z0-9_-]{12,100}$' }
+      description: At most once per principal, method, route and key; only in-process in prototype.
+    ifMatch:
+      name: If-Match
+      in: header
+      required: true
+      schema: { type: string }
+      description: Must match last state ETag, preventing stale concurrent mutations.
+  schemas:
+    Identifier: { type: string, pattern: '^[a-z][a-z0-9_-]{0,63}$' }
+    ProgrammeMeasure:
+      type: object
+      additionalProperties: false
+      required: [id, domain, proposal, sources]
+      properties:
+        id: { $ref: '#/components/schemas/Identifier' }
+        domain: { $ref: '#/components/schemas/Identifier' }
+        proposal: { type: string, minLength: 1, maxLength: 1000 }
+        sources:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uri, pattern: '^https://' }
+    Person:
+      type: object
+      additionalProperties: false
+      required: [id, kind, name, country, biography, as_of, sources, programme]
+      properties:
+        id: { $ref: '#/components/schemas/Identifier' }
+        kind: { type: string, enum: [real, fictional] }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        country: { type: string, pattern: '^[A-Z]{2}$' }
+        biography: { type: string, maxLength: 2000 }
+        as_of: { type: [string, 'null'], format: date }
+        sources:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uri, pattern: '^https://' }
+        programme:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/ProgrammeMeasure' }
+    FictionalPerson:
+      allOf:
+        - $ref: '#/components/schemas/Person'
+        - type: object
+          properties:
+            kind: { const: fictional }
+            as_of: { type: 'null' }
+            sources: { type: array, maxItems: 0 }
+    Problem:
+      type: object
+      required: [type, status, code]
+      properties:
+        type: { type: string }
+        status: { type: integer }
+        code: { type: string }
+  responses:
+    notFound:
+      description: Missing or inaccessible resource
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    forbidden:
+      description: Insufficient ability for the operation
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    conflict:
+      description: Conflicting request or state
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    precondition:
+      description: Missing or stale state precondition
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    invalid:
+      description: Invalid request
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
