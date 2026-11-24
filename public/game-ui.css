@@ -173,3 +173,26 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 #world-scene .domain-action:disabled{opacity:.65;cursor:default}
 .player-first.in-game.library-chosen #world-scene .game-ui-side .scene-toolbar button:is([data-label=feed],[data-label=work],[data-label=generate],[data-label=refine],[data-label=ship]){display:none}
 @media(max-width:640px){.domain-action-grid{grid-template-columns:1fr}.domain-action svg{width:62px;height:62px}.domain-actions{padding:.5rem}}
+
+/* G12: a map-side command surface, built from the real selected building. */
+#world-scene .district-command[hidden]{display:none}
+#world-scene .district-command{display:grid;grid-template-columns:108px minmax(0,1fr) auto;gap:.85rem;align-items:center;margin:.45rem 0 .7rem;padding:.75rem;border:1px solid var(--ui-accent);border-radius:12px;background:linear-gradient(120deg,var(--ui-surface),var(--ui-bg));box-shadow:0 10px 22px #0003;color:var(--ui-ink)}
+.district-command-art{width:100%;height:auto;background:radial-gradient(ellipse,#e9d1a329,transparent 70%);border-radius:8px}
+.district-command-body{min-width:0;display:grid;gap:.3rem}
+.district-command-body h3{font:600 1.15rem Georgia,serif;color:var(--ui-accent);margin:0}
+.district-command-state,.district-command-hint{font-size:.79rem;line-height:1.35;margin:0;overflow-wrap:anywhere}
+.district-command-hint{color:var(--ui-muted)}
+.district-command-costs{display:flex;gap:.3rem;flex-wrap:wrap}
+.district-command-cost{display:inline-flex;align-items:center;gap:.3rem;border:1px solid #ffffff25;border-radius:5px;padding:.2rem .35rem;background:#0b171d66;font-size:.76rem}
+.district-command-cost svg{width:21px;height:21px}
+.district-command-cost[data-short=true]{border-color:#e5a17b;color:#ffbd9e}
+.district-command-buttons{display:flex;flex-direction:column;gap:.4rem}
+#world-scene .district-command-primary{min-height:44px;background:var(--ui-accent);color:#152027;border:1px solid transparent;font-weight:700;padding:.55rem .8rem;border-radius:6px}
+#world-scene .district-command-dismiss{min-height:36px;background:transparent;color:var(--ui-ink);border:1px solid #ffffff35;border-radius:6px}
+#world-scene .district-command button:disabled{opacity:.55;cursor:wait}
+.district-command[data-stage=pending] .district-command-state{color:#ffd28d}
+.district-command[data-stage=built] .district-command-state{color:#b6e0a1}
+.district-pending-ring{transform-box:fill-box;transform-origin:center;animation:district-pending-spin 6s linear infinite}
+@keyframes district-pending-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.district-pending-ring{animation:none}}
+@media(max-width:640px){#world-scene .district-command{grid-template-columns:76px minmax(0,1fr);gap:.5rem;padding:.55rem}.district-command-buttons{grid-column:1/-1;flex-direction:row}.district-command-primary{flex:1}.district-command-dismiss{padding:.4rem .75rem}}

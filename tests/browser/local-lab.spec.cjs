@@ -56,8 +56,15 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             const building=page.locator('[data-district-building]').first();
             await expect(building).toBeVisible();
             await expect(building).toHaveAttribute('aria-pressed','true');
+            const commandBar=page.locator('.district-command');
+            await expect(commandBar).toBeVisible();
+            await expect(commandBar).toHaveAttribute('data-stage','foundation');
+            await expect(commandBar.locator('.district-command-cost')).not.toHaveCount(0);
+            await expect(building.locator('.district-stage-marker[data-stage=foundation]')).toBeAttached();
+            const primary=commandBar.locator('[data-district-command=primary]');
+            await expect(primary).toHaveText('Start construction');
             const started=page.waitForResponse(r=>isFinal(r,'building.start'));
-            await page.locator('#world-scene [data-label=startStage]').click();
+            await primary.click();
             const startResponse=await started;
             // Preserve the response on failure, rather than masking a server rejection.
             expect(startResponse.status(),await startResponse.text()).toBe(200);
@@ -67,7 +74,14 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(building).toHaveAttribute('data-district-level','1',{timeout:90000});
             await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
             await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+            await expect(building.locator('.district-stage-marker[data-stage=built]')).toBeAttached();
+            await expect(commandBar).toHaveAttribute('data-stage','built');
             await expect(page.locator('[data-mission-step=next]')).toBeVisible();
+            for(const width of [390,1440]){
+                await page.setViewportSize({width,height:900});
+                await expect(commandBar).toBeVisible();
+                expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+            }
             await expect(page.locator('[data-district-decor='+type+']')).toBeAttached();
             await expect(page.locator('[data-district-site=approved]')).toBeVisible();
             await captureScene(page,'local-'+pack+'-domain');
@@ -85,7 +99,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 const farm=page.locator('[data-district-building]').filter({has:page.locator('[data-model=farm]')});
                 await expect(farm).toHaveAttribute('aria-pressed','true');
                 const farmStarted=page.waitForResponse(r=>isFinal(r,'building.start'));
-                await page.locator('#world-scene [data-label=startStage]').click();
+                await page.locator('.district-command [data-district-command=primary]').click();
                 const startedReply=await farmStarted;expect(startedReply.status(),await startedReply.text()).toBe(200);
                 await expect(farm).toHaveAttribute('data-district-level','1',{timeout:90000});
                 await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
