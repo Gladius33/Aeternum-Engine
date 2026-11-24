@@ -71,6 +71,27 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('[data-district-decor='+type+']')).toBeAttached();
             await expect(page.locator('[data-district-site=approved]')).toBeVisible();
             await captureScene(page,'local-'+pack+'-domain');
+            const actionType={medieval:'settlement.work',industrial:'industry.generate',guild:'market.create'}[pack];
+            const actionKey={medieval:'work',industrial:'generate',guild:'trade'}[pack];
+            const action=page.locator('[data-domain-action='+actionKey+']');
+            await expect(action).toBeEnabled();
+            if(pack==='guild'){
+                await action.click();
+                await expect(page.locator('[data-workspace-panel=market]')).toBeVisible();
+                await expect(page.locator('#status')).toHaveText('Success');
+                await page.locator('[data-trade-field=giveResource]').selectOption('silver');
+                await page.locator('[data-trade-field=wantResource]').selectOption('grain');
+                const traded=page.waitForResponse(r=>isFinal(r,actionType));
+                await page.locator('.scene-trade-composer button').click();
+                expect((await traded).status()).toBe(200);
+            }else{
+                const produced=page.waitForResponse(r=>isFinal(r,actionType));
+                await action.click();
+                expect((await produced).status()).toBe(200);
+            }
+            await expect(page.locator('#status')).toHaveText('Success');
+            await page.locator('[data-game-nav=domain]').click();
+            await captureScene(page,'local-'+pack+'-productive-domain');
             await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             await page.locator('[data-game-nav=construction]').click();
             await captureScene(page,'local-'+pack+'-construction');

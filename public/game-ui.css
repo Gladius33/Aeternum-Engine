@@ -159,3 +159,17 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 .library-account-help{max-width:420px;padding:.5rem .1rem;color:#d9d9bd}.library-account-help summary{cursor:pointer;min-height:36px}
 
 .scene-catalogue-card .scene-unaffordable{color:#ffb996}.scene-build-price{font-weight:600}.player-first.in-game.library-chosen #world-scene .scene-catalogue-card svg{background:radial-gradient(ellipse at 50% 70%,var(--ui-surface),#101c2440 72%)}
+
+/* G11: playable domain operations with illustrated, contextual actions. */
+.domain-actions{margin:.6rem 0 0;padding:.7rem;background:linear-gradient(130deg,var(--ui-surface),var(--ui-bg));border:1px solid #ffffff23;border-radius:.7rem;min-width:0}
+.domain-actions h3{font:600 1.1rem Georgia,serif;color:var(--ui-accent);margin:0 0 .5rem}
+.domain-action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:.45rem}
+#world-scene .domain-action{display:flex;align-items:center;gap:.6rem;text-align:left;padding:.5rem;background:#101b24bb;border:1px solid #ffffff32;border-radius:.45rem;color:var(--ui-ink);margin:0;min-width:0}
+.domain-action svg{width:76px;height:76px;flex:none;background:radial-gradient(ellipse at center,var(--ui-surface),transparent 75%)}
+.domain-action-copy{display:grid;gap:.25rem;min-width:0}
+.domain-action-copy strong{font-size:.88rem;color:var(--ui-accent)}
+.domain-action-copy small{font-size:.75rem;color:var(--ui-muted);line-height:1.3}
+.domain-action-state{font-size:.72rem;font-weight:700;color:#e7d0a1}
+#world-scene .domain-action:disabled{opacity:.65;cursor:default}
+.player-first.in-game.library-chosen #world-scene .game-ui-side .scene-toolbar button:is([data-label=feed],[data-label=work],[data-label=generate],[data-label=refine],[data-label=ship]){display:none}
+@media(max-width:640px){.domain-action-grid{grid-template-columns:1fr}.domain-action svg{width:62px;height:62px}.domain-actions{padding:.5rem}}
