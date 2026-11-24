@@ -268,6 +268,13 @@ wp25($frStore->read($world)['state']['current_bill']['status']==='censure_window
     'France 49.3 remains unresolved before trustworthy parliament clock advancement');
 
 $frPrincipal->clockAllowed=true;
+$frPrincipal->now='2026-12-15T09:00:00+01:00';
+wp25reject(
+    fn()=>$clock->advance($world,$targetDay,$key,$first['etag']),
+    'French parliamentary date cannot advance to a timestamp not independently certified by authority'
+);
+wp25($clock->read($world)['state']['coherent']===false,
+    'unverified clock timestamp leaves global date pending and unreleased');
 $frPrincipal->now='2026-12-15T23:59:59+01:00';
 $frBefore=$frStore->read($world);
 $componentKey='tick-'.substr(hash('sha256',
@@ -325,6 +332,14 @@ wp25($api->handle('POST',$url.'/advances',[
 ],[
     'Idempotency-Key'=>$key,'If-Match'=>'"stale"'
 ])===$resumed,'same worldwide clock command replays idempotently after restart');
+$scheduler->clockEnabled=false;
+wp25($api->handle('POST',$url.'/advances',[
+    'target_day'=>$targetDay
+],[
+    'Idempotency-Key'=>$key,'If-Match'=>'"stale"'
+])['status']===403,
+    'revoked scheduler cannot obtain prior completed France parliamentary tick receipt');
+$scheduler->clockEnabled=true;
 wp25reject(fn()=>(new WorldClockCoordinator(
     $connect(),$orgStore,$dipStore,$ecoStore,$scheduler,
     $institutions,['FR','DE','US']
@@ -368,4 +383,20 @@ wp25((int)$pdo->query(
     "SELECT COUNT(*) FROM wp_fr_constitutional_journal WHERE operation='clock'"
 )->fetchColumn()===2,
     'two completed world advancements produce exactly two French day-close events');
+$frPrincipal->now='2027-10-31T23:59:59+01:00';
+$fall=$api->handle('POST',$url.'/advances',[
+    'target_day'=>'2027-10-31'
+],[
+    'Idempotency-Key'=>'france-dst-autumn-2027',
+    'If-Match'=>$next['headers']['ETag']
+]);
+wp25($fall['status']===200
+    && $fall['body']['revision']===3
+    && $frStore->read($world)['state']['now']===
+        FrenchConstitutionalCrisis::instant('2027-10-31T23:59:59+01:00'),
+    'France parliamentary calendar also respects the autumn Paris UTC offset');
+wp25((int)$pdo->query(
+    "SELECT COUNT(*) FROM wp_fr_constitutional_journal WHERE operation='clock'"
+)->fetchColumn()===3,
+    'repeated DST-aware game-world advancement cannot duplicate constitutional votes or clock entries');
 echo "WP25 France parliamentary world-clock saga and DST crash recovery passed.\n";
