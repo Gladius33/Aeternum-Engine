@@ -62,6 +62,10 @@ final class PdoFrenchConstitutionalStore
             'engage'=>['bill_id','category','at'],
             'file_motion'=>['motion_id','at'],
             'vote_motion'=>['motion_id','at'],
+            'engage_confidence'=>['statement_id','kind','at'],
+            'vote_confidence'=>['statement_id','at'],
+            'file_spontaneous'=>['motion_id','at'],
+            'vote_spontaneous'=>['motion_id','at'],
             'clock'=>['at'],
             'session'=>['session_id','at'],
             default=>throw new \InvalidArgumentException('Unsupported French constitutional command')
@@ -79,11 +83,21 @@ final class PdoFrenchConstitutionalStore
             'engage'=>'fr.49_3.engage',
             'file_motion'=>'fr.censure.file',
             'vote_motion'=>'fr.censure.vote',
+            'engage_confidence'=>'fr.49_1.engage',
+            'vote_confidence'=>'fr.49_1.vote',
+            'file_spontaneous'=>'fr.49_2.file',
+            'vote_spontaneous'=>'fr.49_2.vote',
             'clock'=>'fr.constitution.clock',
             'session'=>'fr.constitution.session'
         };
         $this->check($world,'fr.constitution.read');
         $this->check($world,$right);
+        if (in_array($operation,[
+            'engage_confidence','vote_confidence',
+            'file_spontaneous','vote_spontaneous'
+        ],true) && !$this->principal instanceof FrenchParliamentaryPrincipal) {
+            throw new \DomainException('Authenticated parliamentary clerk required');
+        }
         $principalId=$this->principal->actorId();
         if ($principalId==='' || strlen($principalId)>128
             || preg_match('/[\x00-\x1f\x7f]/',$principalId)) {
@@ -140,6 +154,22 @@ final class PdoFrenchConstitutionalStore
                 'vote_motion'=>$sim->vote(
                     $this->principal,$request['motion_id'],$request['at'],$commandId
                 ),
+                'engage_confidence'=>$sim->engageConfidence(
+                    $this->parliamentClerk(),$request['statement_id'],
+                    $request['kind'],$request['at'],$commandId
+                ),
+                'vote_confidence'=>$sim->voteConfidence(
+                    $this->parliamentClerk(),$request['statement_id'],
+                    $request['at'],$commandId
+                ),
+                'file_spontaneous'=>$sim->fileSpontaneousMotion(
+                    $this->parliamentClerk(),$request['motion_id'],
+                    $request['at'],$commandId
+                ),
+                'vote_spontaneous'=>$sim->voteSpontaneousMotion(
+                    $this->parliamentClerk(),$request['motion_id'],
+                    $request['at'],$commandId
+                ),
                 'clock'=>$sim->advance(
                     $this->principal,$request['at'],$commandId
                 ),
@@ -150,7 +180,9 @@ final class PdoFrenchConstitutionalStore
             $after=$sim->hash();
             $revision=(int)$row['revision']+1;
             $receipt=[
-                'status'=>$operation==='engage'||$operation==='file_motion'?202:200,
+                'status'=>in_array($operation,[
+                    'engage','file_motion','engage_confidence','file_spontaneous'
+                ],true)?202:200,
                 'result'=>$result,'etag'=>'"'.$after.'"','revision'=>$revision
             ];
             $write=$this->pdo->prepare(
@@ -192,6 +224,14 @@ final class PdoFrenchConstitutionalStore
             throw new \UnexpectedValueException('French constitutional snapshot hash does not match');
         }
         return $sim;
+    }
+
+    private function parliamentClerk():FrenchParliamentaryPrincipal
+    {
+        if (!$this->principal instanceof FrenchParliamentaryPrincipal) {
+            throw new \DomainException('Authenticated parliamentary clerk required');
+        }
+        return $this->principal;
     }
 
     private function checkInstant(string $world,string $operation,string $claimed):void
