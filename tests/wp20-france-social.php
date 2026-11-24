@@ -149,7 +149,7 @@ wp20reject(fn()=>$sim->assess49_3(
 
 $bad=$sectors;$bad[0]['population_weight_bps']=3000;
 wp20reject(fn()=>new FrenchSocialDynamics('social-world',$bad),
-    'unbalanced demographic weights cannot inflate a social group's influence');
+    'unbalanced demographic weights cannot inflate a single cohort influence');
 $bad=$sectors;$bad[1]['id']='healthcare';
 wp20reject(fn()=>new FrenchSocialDynamics('social-world',$bad),
     'duplicate professions cannot be counted twice');
