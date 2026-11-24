@@ -1172,7 +1172,7 @@ document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>
     function render(){
         const i=fr()?1:0;heading.textContent=fr()?'Choisissez votre aventure':'Choose your adventure';
         intro.textContent=fr()?'Trois univers indépendants. Trois façons de jouer.':'Three independent worlds. Three ways to play.';
-        for(const card of cards.children){const key=card.dataset.chooseGame;card.setAttribute('aria-pressed',String(selectedGame===key));card.querySelector('strong').textContent=catalog[key].name[i];card.querySelector('small').textContent=catalog[key].tag[i];card.querySelector('p').textContent=catalog[key].description[i];card.querySelector('.library-cta').textContent=fr()?'Choisir ce jeu':'Choose this game';}
+        for(const card of cards.children){const key=card.dataset.chooseGame;card.setAttribute('aria-pressed',String(selectedGame===key));card.querySelector('strong').textContent=catalog[key].name[i];card.querySelector('small').textContent=catalog[key].tag[i];card.querySelector('.library-description').textContent=catalog[key].description[i];card.querySelector('.library-cta').textContent=fr()?'Choisir ce jeu':'Choose this game';}
         selected.textContent=selectedGame?(fr()?'Votre jeu : ':'Your game: ')+catalog[selectedGame].name[i]:(fr()?'Vous avez déjà un compte ? Vous pouvez aussi vous connecter directement.':'Already have an account? You can also sign in directly.');
         profiles.hidden=!(lab&&selectedGame);change.hidden=!selectedGame;change.textContent=fr()?'Choisir un autre jeu':'Choose another game';
         for(const button of profiles.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.profile===profile));
@@ -1182,8 +1182,8 @@ document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>
     }
     for(const [key,data] of Object.entries(catalog)){
         const card=document.createElement('button');card.type='button';card.className='library-card';card.dataset.chooseGame=key;
-        const art=document.createElement('span');art.className='library-art';art.innerHTML=data.art;card.append(art);
-        const copy=document.createElement('span');copy.className='library-copy';for(const tag of ['small','strong','p','span']){const el=document.createElement(tag);if(tag==='span')el.className='library-cta';copy.append(el);}card.append(copy);cards.append(card);card.addEventListener('click',()=>choose(key));
+        const art=document.createElement('span');art.className='library-art';art.append(document.importNode(new DOMParser().parseFromString(data.art,'text/html').querySelector('svg'),true));card.append(art);
+        const copy=document.createElement('span');copy.className='library-copy';for(const tag of ['small','strong','span','span']){const el=document.createElement(tag);if(tag==='span')el.className=copy.children.length===2?'library-description':'library-cta';copy.append(el);}card.append(copy);cards.append(card);card.addEventListener('click',()=>choose(key));
     }
     for(const name of ['alice','bob']){const button=document.createElement('button');button.type='button';button.dataset.profile=name;button.textContent=name==='alice'?'Alice':'Bob';profiles.append(button);button.addEventListener('click',()=>{profile=name;login.elements.login.value=selectedGame+'-'+name;render();});}
     change.addEventListener('click',()=>{selectedGame=null;login.elements.login.value='';render();cards.querySelector('button').focus();});
