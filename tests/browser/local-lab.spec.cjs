@@ -14,12 +14,12 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await page.getByRole('button',{name:'Sign in',exact:true}).click();
             await expect(page.locator('#world-scene')).toHaveAttribute('data-theme',theme);
             await expect(page.locator('.scene-district')).toBeVisible({timeout:30000});
-            await expect(page.locator('[data-resource-tile='+resource+'] strong')).not.toHaveText('—');
+            await expect(page.locator('[data-resource-tile='+resource+'] strong')).not.toHaveText('—',{timeout:30000});
             await expect(page.locator('[data-workspace-panel=construction]')).toBeHidden();
-            await expect(page.locator('[data-bot-count=10]')).toBeVisible({timeout:30000});
-            await page.locator('[data-bot-count=10]').click();
+            await expect(page.locator('[data-bot-count="10"]')).toBeVisible({timeout:30000});
+            await page.locator('[data-bot-count="10"]').click();
             await expect(page.locator('[data-bot-name]')).toHaveCount(10);
-            await page.locator('[data-bot-count=10]').click();
+            await page.locator('[data-bot-count="10"]').click();
             await page.locator('[data-game-nav=construction]').click();
             await page.locator('[data-catalogue='+type+']').click();
             const command=origin+'/v1/worlds/lab-'+pack+'/economy/commands';

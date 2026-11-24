@@ -16,7 +16,7 @@ function atomicJson(string $path,array $data,int $mode):void{
 }
 function readData(object $api,string $path,string $bearer):array{
     [$code,$data]=$api->handle('GET',$path,$bearer);
-    if($code!==200||!is_array($data['data']??null))throw new RuntimeException('Bot read refused');
+    if($code!==200||!is_array($data['data']??null))throw new RuntimeException('Bot read refused: '.$code);
     return $data['data'];
 }
 try{
@@ -82,13 +82,18 @@ try{
                     $row['status']=$code===200?'active':'blocked';
                     if($code===200)$row['lastAction']=$plan['type'];
                 }
-            }catch(Throwable){$row['status']='blocked';}
+            }catch(Throwable $error){$row['status']='blocked';
+                // Log class only, not raw exception messages, credentials or actor IDs.
+                fwrite(STDERR,$world.' bot '.sprintf('%02d',$i).' '.get_class($error).PHP_EOL);
+            }
             finally{if($token!==null)$sessions->revoke($token);}
             $status['worlds'][$world][$i-1]=$row;
         }
         $sessions->purgeExpired(500);$status['updatedAt']=time();
         atomicJson($roster,$status,0644);
-        echo json_encode(['tick'=>$tick,'worlds'=>3,'bots'=>30],JSON_THROW_ON_ERROR).PHP_EOL;
+        $counts=['active'=>0,'idle'=>0,'blocked'=>0,'ready'=>0];
+        foreach($status['worlds'] as $rows)foreach($rows as $row)$counts[$row['status']]++;
+        echo json_encode(['tick'=>$tick,'worlds'=>3,'bots'=>30,'counts'=>$counts],JSON_THROW_ON_ERROR).PHP_EOL;
         sleep(max(1,30-time()%30));
     }
 }catch(Throwable){fwrite(STDERR,"Laboratory bot operation failed; check private volumes, registry and database.\n");exit(1);}
