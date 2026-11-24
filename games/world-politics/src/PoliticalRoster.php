@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Aeternum\WorldPolitics;
 
+require_once __DIR__.'/PoliticalProfileTemplate.php';
+
 /**
  * WP01: isolated, deterministic national roster for scenario preparation.
  *
@@ -54,7 +56,19 @@ final class PoliticalRoster
      */
     public function addPerson(array $person): void
     {
-        self::assertKeys($person, ['id', 'kind', 'name', 'country', 'biography', 'as_of', 'sources', 'programme']);
+        $required=['id','kind','name','country','biography','as_of','sources','programme'];
+        foreach ($required as $field) {
+            if (!array_key_exists($field,$person)) throw new \InvalidArgumentException('Missing field');
+        }
+        foreach(array_keys($person) as $field) {
+            if (!in_array($field,[...$required,'profile','avatar'],true)) {
+                throw new \InvalidArgumentException('Unknown field');
+            }
+        }
+        if (array_key_exists('profile',$person)) PoliticalProfileTemplate::validateProfile($person['profile']);
+        if (array_key_exists('avatar',$person) && $person['avatar']!==PoliticalProfileTemplate::AVATAR) {
+            throw new \InvalidArgumentException('Unapproved avatar');
+        }
         self::assertIdentifier($person['id']);
         if (isset($this->people[$person['id']])) {
             throw new \DomainException('Person already registered');
@@ -163,6 +177,40 @@ final class PoliticalRoster
             'cabinet' => $cabinet,
             'pending_nominations' => $pending,
         ];
+    }
+
+    /** Rehydrate an immutable, validated snapshot from trusted persistence. */
+    public static function fromSnapshot(array $snapshot): self
+    {
+        self::assertKeys($snapshot,['world_id','country_code','offices','head_of_state','people','cabinet','pending_nominations']);
+        $self=new self($snapshot['world_id'],$snapshot['country_code'],$snapshot['offices']);
+        if (!is_array($snapshot['people']) || (array_is_list($snapshot['people']) && $snapshot['people']!==[])) {
+            throw new \InvalidArgumentException('Invalid roster snapshot');
+        }
+        foreach ($snapshot['people'] as $id=>$record) {
+            if (!is_array($record) || $id!==($record['id'] ?? null)) {
+                throw new \InvalidArgumentException('Invalid stored identity');
+            }
+            $self->addPerson($record);
+        }
+        if ($snapshot['head_of_state']!==null) {
+            if (!is_string($snapshot['head_of_state'])) throw new \InvalidArgumentException('Invalid head');
+            $self->setHeadOfState($snapshot['head_of_state']);
+        }
+        foreach (['cabinet','pending_nominations'] as $section) {
+            $entries=$snapshot[$section];
+            if (!is_array($entries) || (array_is_list($entries) && $entries!==[])) {
+                throw new \InvalidArgumentException('Invalid stored appointments');
+            }
+            foreach ($entries as $office=>$personId) {
+                if (!is_string($office) || !is_string($personId)) {
+                    throw new \InvalidArgumentException('Invalid stored nomination');
+                }
+                $self->nominate($office,$personId);
+                if ($section==='cabinet') $self->resolveNomination($office,true);
+            }
+        }
+        return $self;
     }
 
     public function snapshotHash(): string
