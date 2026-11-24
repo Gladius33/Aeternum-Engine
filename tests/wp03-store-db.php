@@ -25,7 +25,8 @@ $user=getenv('WP_TEST_USER') ?: '';
 $password=getenv('WP_TEST_PASSWORD') ?: '';
 $pdo=new PDO($dsn,$user,$password,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
 foreach(['wp_command_receipts','wp_world_events','wp_world_rosters'] as $name) $pdo->exec('DROP TABLE IF EXISTS '.$name);
-foreach(explode(';',file_get_contents(__DIR__.'/../games/world-politics/database/001_rosters.sql')) as $statement) {
+$schema=preg_replace('/^\s*--[^\n]*$/m','',file_get_contents(__DIR__.'/../games/world-politics/database/001_rosters.sql'));
+foreach(explode(';',$schema) as $statement) {
     if (trim($statement)!=='') $pdo->exec(trim($statement));
 }
 $auth=new class implements PoliticsAuthorizer {
