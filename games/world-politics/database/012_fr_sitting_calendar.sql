@@ -1,3 +1,7 @@
+-- Existing installations: add the immutable calendar configuration bit.
+ALTER TABLE wp_fr_constitutional_states
+  ADD COLUMN IF NOT EXISTS sitting_calendar_required TINYINT(1) NOT NULL DEFAULT 0;
+
 -- WP26, game-owned parliamentary sitting calendar, not part of Aeternum Engine.
 CREATE TABLE IF NOT EXISTS wp_fr_sitting_calendars (
   world_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,

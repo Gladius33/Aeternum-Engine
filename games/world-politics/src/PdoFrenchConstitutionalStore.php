@@ -36,10 +36,15 @@ final class PdoFrenchConstitutionalStore
     public function seed(FrenchConstitutionalCrisis $sim):void
     {
         $state=$sim->snapshot();
+        $this->assertCalendarIdentity($state['world_id']);
         $this->pdo->prepare(
             'INSERT INTO wp_fr_constitutional_states
-            (world_id,state_json,state_sha,revision) VALUES(?,?,?,0)'
-        )->execute([$state['world_id'],self::json($state),$sim->hash()]);
+            (world_id,state_json,state_sha,revision,sitting_calendar_required)
+             VALUES(?,?,?,0,?)'
+        )->execute([
+            $state['world_id'],self::json($state),$sim->hash(),
+            $this->sittingCalendar===null?0:1
+        ]);
     }
 
     /** @return array{state:array<string,mixed>,etag:string,revision:int} */
@@ -47,12 +52,13 @@ final class PdoFrenchConstitutionalStore
     {
         $this->check($world,'fr.constitution.read');
         $q=$this->pdo->prepare(
-            'SELECT state_json,state_sha,revision FROM wp_fr_constitutional_states WHERE world_id=?'
+            'SELECT state_json,state_sha,revision,sitting_calendar_required FROM wp_fr_constitutional_states WHERE world_id=?'
         );
         $q->execute([$world]);
         $row=$q->fetch(\PDO::FETCH_ASSOC);
         if ($row===false) throw new \DomainException('French constitutional world absent');
         $sim=$this->restore($row,$world);
+        $this->assertCalendarConfiguration($row);
         $this->assertCalendarIdentity($world);
         return [
             'state'=>$sim->snapshot(),
@@ -125,7 +131,7 @@ final class PdoFrenchConstitutionalStore
         $this->pdo->beginTransaction();
         try {
             $read=$this->pdo->prepare(
-                'SELECT state_json,state_sha,revision FROM wp_fr_constitutional_states WHERE world_id=? FOR UPDATE'
+                'SELECT state_json,state_sha,revision,sitting_calendar_required FROM wp_fr_constitutional_states WHERE world_id=? FOR UPDATE'
             );
             $read->execute([$world]);
             $row=$read->fetch(\PDO::FETCH_ASSOC);
@@ -137,6 +143,7 @@ final class PdoFrenchConstitutionalStore
                 throw new \DomainException('Constitutional identity changed during transaction');
             }
             $sim=$this->restore($row,$world);
+            $this->assertCalendarConfiguration($row);
             $this->assertCalendarIdentity($world);
             $retry=$this->pdo->prepare(
                 'SELECT request_sha,response_json FROM wp_fr_constitutional_receipts
@@ -238,6 +245,18 @@ final class PdoFrenchConstitutionalStore
             throw new \UnexpectedValueException('French constitutional snapshot hash does not match');
         }
         return $sim;
+    }
+
+    private function assertCalendarConfiguration(array $row):void
+    {
+        if (!array_key_exists('sitting_calendar_required',$row)
+            || !in_array((int)$row['sitting_calendar_required'],[0,1],true)
+            || ((int)$row['sitting_calendar_required']===1)
+               !==($this->sittingCalendar!==null)) {
+            throw new \DomainException(
+                'French constitutional calendar differs from pinned world configuration'
+            );
+        }
     }
 
     private function assertCalendarIdentity(string $world):void
