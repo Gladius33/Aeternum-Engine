@@ -32,6 +32,10 @@ $trusted=new class implements FrenchConstitutionalPrincipal {
     public function councilDeliberated(string $world,string $bill):bool {
         return $world==='social-world';
     }
+    public function verifiedBillCategory(string $world,string $bill):string
+    {
+        return $bill==='bill-social-2027'?'social_security_finance':'finance';
+    }
     public function verifiedSignatures(string $world,string $motion):int{return 58;}
     public function verifiedVotesFor(string $world,string $motion):int{return 0;}
 };

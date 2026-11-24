@@ -26,6 +26,12 @@ $office=new class implements FrenchConstitutionalPrincipal {
     public bool $scheduler=true;
     public array $signatures=[];
     public array $votes=[];
+    public function verifiedBillCategory(string $world,string $bill):string
+    {
+        if (str_contains($bill,'budget')) return 'finance';
+        if (str_contains($bill,'work') || str_contains($bill,'ordinary')) return 'ordinary';
+        return 'ordinary';
+    }
     public function actorId():string{return 'verified-french-government-service';}
     public function allows(string $world,string $ability):bool
     {
@@ -69,6 +75,9 @@ wp19reject(fn()=>$sim->engage($office,'bill-budget',
     'finance',$t0,'engage-without-council'),
     '49.3 engagement cannot bypass prior Council of Ministers deliberation');
 $office->council=true;
+wp19reject(fn()=>$sim->engage($office,'bill-work',
+    'finance',$t0,'forged-financial-classification'),
+    'client cannot misclassify a nonfinancial bill to evade once-per-session quota');
 wp19reject(fn()=>$sim->engage($office,'wrong-format',
     'constitutional_revision',$t0,'engage-unknown-category'),
     'revision of Constitution cannot be treated as ordinary 49.3 text');

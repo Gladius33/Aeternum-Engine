@@ -32,7 +32,7 @@ final class FrenchSocialDynamics
         'elite_cohesion','economic_resilience'
     ];
 
-    private array $sectors;
+    private array $sectors=[];
     private string $world;
     private array $history=[];
 
@@ -115,6 +115,9 @@ final class FrenchSocialDynamics
         }
         foreach ($concessions as $relief) self::score($relief);
 
+        ksort($impacts,SORT_STRING);
+        ksort($concessions,SORT_STRING);
+        ksort($context,SORT_STRING);
         $inputs=[
             'bill_id'=>$billId,
             'sectors_sha'=>$this->cohortHash(),

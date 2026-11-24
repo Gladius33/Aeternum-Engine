@@ -15,6 +15,8 @@ interface FrenchConstitutionalPrincipal
     public function actorId():string;
     public function allows(string $world,string $ability):bool;
     public function councilDeliberated(string $world,string $billId):bool;
+    /** Legislative legal classification verified from official bill metadata. */
+    public function verifiedBillCategory(string $world,string $billId):string;
     public function verifiedSignatures(string $world,string $motionId):int;
     public function verifiedVotesFor(string $world,string $motionId):int;
 }
@@ -92,6 +94,9 @@ final class FrenchConstitutionalCrisis
         }
         if (!in_array($category,['finance','social_security_finance','ordinary'],true)) {
             throw new \InvalidArgumentException('Article 49(3) is not available for this category');
+        }
+        if ($principal->verifiedBillCategory($this->state['world_id'],$billId)!==$category) {
+            throw new \DomainException('Verified bill category differs from the requested Article 49(3) route');
         }
         $payload=[$billId,$category,$when];
         if ($prior=$this->prior($commandId,'engage',$payload)) return $prior;
