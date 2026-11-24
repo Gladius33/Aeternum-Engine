@@ -1171,6 +1171,7 @@
         el('text',{x:26,y:33,class:'district-heading'},districtSvg,n?locationName(n):t('districtTitle'));
         el('text',{x:26,y:49,class:'district-subheading'},districtSvg,t('layoutPage')+' : '+owned.length);
         if(!districtId){
+            districtSvg.dataset.builtCount='0';
             el('text',{x:w/2,y:h*.55,'text-anchor':'middle',class:'district-label'},districtSvg,t('districtEmpty').slice(0,mobile?36:100));return;
         }
         const visible=owned.slice(districtPage*limit,(districtPage+1)*limit);
