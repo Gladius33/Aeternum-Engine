@@ -31,3 +31,36 @@ jobs:
         run: php tests/wp01-rest-contract.php
       - name: Quick and detailed candidate template acceptance
         run: php tests/wp02-profile-template.php
+
+  mariadb-rosters:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci-only
+          MARIADB_DATABASE: wp_test
+          MARIADB_USER: wp_test
+          MARIADB_PASSWORD: ci-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          coverage: none
+      - name: Transactional persistent roster and journal regression
+        run: php tests/wp03-store-db.php
+        env:
+          WP_TEST_ISOLATED: 'YES'
+          WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4
+          WP_TEST_USER: wp_test
+          WP_TEST_PASSWORD: ci-only
