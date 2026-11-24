@@ -10,7 +10,9 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             const page=await context.newPage();
             const artResponse=page.waitForResponse(r=>r.url()===origin+'/living-art.js');
             const audioResponse=page.waitForResponse(r=>r.url()===origin+'/game-audio.js');
+            const tutorialResponse=page.waitForResponse(r=>r.url()===origin+'/game-tutorial.js');
             await page.goto(origin+'/play.html');
+            expect((await tutorialResponse).status()).toBe(200);
             expect((await audioResponse).status()).toBe(200);
             expect((await artResponse).status(),'G13 asset must be served by the actual lab image').toBe(200);
             await expect.poll(()=>page.evaluate(()=>typeof window.AeternumLivingArt?.site)).toBe('function');
@@ -67,9 +69,38 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('#world-scene .game-ui-stage > .scene-toolbar')).toBeHidden();
             await expect(page.locator('#world-scene [data-landscape='+pack+']')).toBeAttached();
             await captureScene(page,'local-'+pack+'-first-visit');
+            const tutorial=page.locator('.tutorial-panel');
+            const lessonId={medieval:'timber',industrial:'power',guild:'hall'}[pack];
+            const actionLesson={medieval:'work',industrial:'generation',guild:'offer'}[pack];
+            await expect(tutorial).toBeVisible();
+            await expect(tutorial).toHaveAttribute('data-tutorial-done','0');
+            await tutorial.locator('summary').click();
+            await expect(tutorial).toHaveAttribute('data-tutorial-lesson',lessonId);
+            await expect(tutorial.locator('[data-tutorial-select='+lessonId+']')).toHaveAttribute('data-lesson-state','incomplete');
+            const lessonTitle={medieval:'Establish the lumberyard',industrial:'Build a power plant',guild:'Establish your market hall'}[pack];
+            const frenchTitle={medieval:'Établir la scierie',industrial:'Construire une centrale',guild:'Établir votre halle marchande'}[pack];
+            await expect(tutorial.locator('.tutorial-content h4')).toHaveText(lessonTitle);
+            await tutorial.locator('[data-tutorial-next]').click();
+            await expect(tutorial).not.toHaveAttribute('data-tutorial-lesson',lessonId);
+            await tutorial.locator('[data-tutorial-follow]').click();
+            await expect(tutorial).toHaveAttribute('data-tutorial-lesson',lessonId);
             await page.locator('#locale-select').selectOption('fr');
             await expect(page.locator('[data-first-mission]')).toHaveText('Choisir le bâtiment');
+            await expect(tutorial.locator('.tutorial-summary')).toContainText('Apprentissage');
+            await expect(tutorial.locator('.tutorial-content h4')).toHaveText(frenchTitle);
+            await expect(tutorial.locator('[data-tutorial-go]')).toHaveText('Ouvrir cette étape');
+            await captureScene(page,'g22-'+pack+'-fr');
             await page.locator('#locale-select').selectOption('en');
+            await expect(tutorial.locator('.tutorial-content h4')).toHaveText(lessonTitle);
+            let guideWrites=0;
+            const guideRequest=r=>{if(r.method()==='POST'&&r.url().includes('/economy/commands'))guideWrites++;};
+            page.on('request',guideRequest);
+            try{
+                await tutorial.locator('[data-tutorial-go]').click();
+                await expect(page.locator('[data-catalogue='+type+']')).toHaveAttribute('aria-pressed','true');
+                expect(guideWrites).toBe(0);
+            }finally{page.off('request',guideRequest);}
+            await tutorial.locator('summary').click();
             await page.locator('[data-first-mission]').click();
             await expect(page.locator('[data-catalogue='+type+']')).toHaveAttribute('aria-pressed','true');
             await captureScene(page,'local-'+pack+'-first-build');
@@ -110,6 +141,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(building.locator('[data-architecture='+type+']')).toHaveAttribute('data-architecture-level','1');
             await expect(commandBar).toHaveAttribute('data-stage','built');
             await expect(page.locator('[data-mission-step=next]')).toBeVisible();
+            await expect(tutorial).toHaveAttribute('data-tutorial-done','1');
             for(const width of [390,1440]){
                 await page.setViewportSize({width,height:900});
                 await expect(commandBar).toBeVisible();
@@ -174,6 +206,12 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await page.locator('[data-game-nav=domain]').click();
             const living=page.locator('.living-economy');
             await expect(living).toHaveAttribute('data-activity',actionType);
+            await expect(tutorial).toHaveAttribute('data-tutorial-done',pack==='medieval'?'4':'2');
+            await tutorial.locator('summary').click();
+            await expect(tutorial.locator('[data-tutorial-select='+actionLesson+']')).toHaveAttribute('data-lesson-state','complete');
+            await expect(tutorial.locator('[data-tutorial-select='+lessonId+']')).toHaveAttribute('data-lesson-state','complete');
+            await captureScene(page,'g22-'+pack+'-en');
+            await tutorial.locator('summary').click();
             await expect(living.locator('[data-living-event]')).toHaveCount(1);
             await expect(page.locator('.scene-district [data-living-event="'+actionType+'"]')).toHaveCount(1);
             const operation=page.locator('.operation-panel');

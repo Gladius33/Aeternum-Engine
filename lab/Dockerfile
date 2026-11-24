@@ -19,7 +19,7 @@ COPY database/migrations ./database/migrations
 COPY games ./games
 COPY schemas ./schemas
 COPY bin ./bin
-COPY public/index.php public/play.html public/play.js public/play.css public/locale.js public/world-scene.js public/world-scene.css public/game-ui.js public/game-ui.css public/game-ui-profiles.js public/game-art.js public/living-art.js public/game-audio.js ./public/
+COPY public/index.php public/play.html public/play.js public/play.css public/locale.js public/world-scene.js public/world-scene.css public/game-ui.js public/game-ui.css public/game-ui-profiles.js public/game-art.js public/living-art.js public/game-audio.js public/game-tutorial.js ./public/
 COPY --from=client /src/public/client-dist ./public/client-dist
 RUN composer dump-autoload --no-interaction --no-dev --classmap-authoritative \
     && mkdir -p /etc/aeternum-lab
