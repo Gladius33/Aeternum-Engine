@@ -22,6 +22,12 @@ final class PdoDiplomaticStore
         $this->pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES,false);
     }
 
+    /** Identity bound server-side; never derived from request JSON. */
+    public function principalId():string
+    {
+        return $this->principal->actorId();
+    }
+
     public function registry():GeopoliticalActorRegistry
     {
         return $this->actors;
