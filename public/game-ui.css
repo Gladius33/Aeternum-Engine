@@ -219,3 +219,23 @@ body:has(.player-first:not(.in-game)){background:radial-gradient(ellipse at 50% 
 @keyframes living-art-swing{from{opacity:.72}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.living-art-motion{animation:none!important}}
 @media(max-width:640px){#world-scene .living-economy{padding:.6rem}.living-economy-content{gap:.4rem}.living-economy-art{width:96px}.living-metric{padding:.3rem;flex-basis:72px}.living-metric strong{font-size:.86rem}}
+
+/* G14 strategic atlas: accessible regions, context controls, and directed-route readout. */
+#world-scene .atlas-expedition[hidden]{display:none}
+#world-scene .atlas-expedition{display:grid;gap:.5rem;padding:.8rem;margin:.5rem 0;background:linear-gradient(120deg,var(--ui-surface),var(--ui-bg));border:1px solid #ffffff30;border-radius:.75rem;color:var(--ui-ink)}
+.atlas-expedition h3{font:600 1.2rem Georgia,serif;color:var(--ui-accent);margin:0}
+.atlas-expedition p{margin:0;line-height:1.4}
+.atlas-expedition-summary{font-size:.87rem}
+.atlas-expedition-controls{display:flex;flex-wrap:wrap;gap:.35rem}
+#world-scene .atlas-command{padding:.48rem .65rem;min-height:44px;border:1px solid #ffffff35;border-radius:6px;background:var(--ui-surface);color:var(--ui-ink);font-weight:600;font-size:.79rem}
+#world-scene .atlas-command[data-atlas-command=domain],#world-scene .atlas-command[data-atlas-command=route]{background:var(--ui-accent);color:#17252b}
+#world-scene .atlas-command:disabled{opacity:.55;cursor:default}
+.atlas-endpoints,.atlas-route-summary{padding:.5rem .65rem;background:#111c24a6;border-radius:5px;overflow-wrap:anywhere;font-size:.8rem}
+.atlas-route-summary{border-left:3px solid var(--ui-accent)}
+.atlas-legend{color:var(--ui-muted);font-size:.73rem}
+.scene-territory[aria-pressed=true] .atlas-region-hit,.scene-territory:focus-visible .atlas-region-hit{stroke:#ffe6a4;stroke-width:2.5;fill:#fff4cc15}
+.scene-atlas:focus-visible{outline:2px solid var(--ui-accent);outline-offset:3px}
+.atlas-route-motion{animation:atlas-route-flow 2.5s linear infinite}
+@keyframes atlas-route-flow{to{stroke-dashoffset:-30}}
+@media(prefers-reduced-motion:reduce){.atlas-route-motion{animation:none}}
+@media(max-width:640px){#world-scene .atlas-expedition{padding:.6rem}.atlas-expedition-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-command[hidden]{display:none}.atlas-expedition .atlas-command{overflow-wrap:anywhere}.atlas-endpoints{font-size:.76rem}}
