@@ -8,7 +8,10 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
         const context=await browser.newContext({ignoreHTTPSErrors:true});
         try{
             const page=await context.newPage();
+            const artResponse=page.waitForResponse(r=>r.url()===origin+'/living-art.js');
             await page.goto(origin+'/play.html');
+            expect((await artResponse).status(),'G13 asset must be served by the actual lab image').toBe(200);
+            await expect.poll(()=>page.evaluate(()=>typeof window.AeternumLivingArt?.site)).toBe('function');
             await expect(page.locator('[data-choose-game]')).toHaveCount(3);
             if(pack==='medieval'){
                 for(const [device,width,height] of [['desktop',1440,900],['mobile',390,844]]){
