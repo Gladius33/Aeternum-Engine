@@ -187,6 +187,77 @@ final class DiplomaticSimulation
         return $result;
     }
 
+    /**
+     * Restore a trusted, world-scoped database aggregate.
+     * The store also checks the authoritative hash and pinned actor registry.
+     * @param array<string,mixed> $state
+     */
+    public static function fromSnapshot(array $state, GeopoliticalActorRegistry $actors):self
+    {
+        $keys=array_keys($state);
+        $expected=['world_id','day','rules_version','actors_sha',
+            'proposals','declarations','events','commands'];
+        sort($keys);sort($expected);
+        if ($keys!==$expected) throw new \InvalidArgumentException('Invalid diplomatic snapshot fields');
+        if (!is_string($state['world_id']) || !is_string($state['day'])) {
+            throw new \InvalidArgumentException('Invalid world snapshot identity');
+        }
+        $self=new self($state['world_id'],$state['day'],$actors);
+        if ($state['rules_version']!==self::VERSION
+            || !hash_equals($actors->hash(),$state['actors_sha'])) {
+            throw new \DomainException('Actor dataset or diplomacy ruleset changed; pin migration instead');
+        }
+        foreach (['proposals','declarations','commands'] as $key) {
+            if (!is_array($state[$key])
+                || (array_is_list($state[$key]) && $state[$key]!==[])) {
+                throw new \InvalidArgumentException('Invalid diplomatic keyed event collection');
+            }
+        }
+        if (!is_array($state['events']) || !array_is_list($state['events'])) {
+            throw new \InvalidArgumentException('Invalid diplomatic event journal');
+        }
+        foreach ($state['proposals'] as $id=>$proposal) {
+            self::identifier($id);
+            if (!is_array($proposal) || $proposal['id']!==$id
+                || !isset($proposal['from'],$proposal['to'],$proposal['action'],$proposal['status'],$proposal['created_on'])
+                || !in_array($proposal['status'],[
+                    'pending_response','pending_domestic_approval','accepted_in_principle',
+                    'accepted_for_treaty_negotiations','declined','expired'
+                ],true)) {
+                throw new \InvalidArgumentException('Invalid diplomatic proposal state');
+            }
+            $actors->get($proposal['from']);
+            $actors->get($proposal['to']);
+        }
+        foreach ($state['declarations'] as $id=>$declaration) {
+            self::identifier($id);
+            if (!is_array($declaration) || ($declaration['id']??null)!==$id
+                || ($declaration['status']??null)!=='declared_in_simulation') {
+                throw new \InvalidArgumentException('Invalid declaration state');
+            }
+            $actors->get($declaration['from']);
+            $actors->get($declaration['to']);
+        }
+        foreach ($state['commands'] as $id=>$receipt) {
+            self::identifier($id);
+            if (!is_array($receipt) || !isset($receipt['fingerprint'],$receipt['result'])
+                || !is_string($receipt['fingerprint'])
+                || !preg_match('/^[a-f0-9]{64}$/D',$receipt['fingerprint'])
+                || !is_array($receipt['result'])) {
+                throw new \InvalidArgumentException('Invalid diplomatic idempotency map');
+            }
+        }
+        foreach ($state['events'] as $event) {
+            if (!is_array($event) || !isset($event['id'],$event['on'],$event['kind'])
+                || !is_string($event['id']) || !is_string($event['on'])) {
+                throw new \InvalidArgumentException('Invalid diplomatic historical event');
+            }
+            self::day($event['on']);
+        }
+        $self->state=$state;
+        return $self;
+    }
+
     /** @return array<string,mixed> */
     public function snapshot():array
     {
