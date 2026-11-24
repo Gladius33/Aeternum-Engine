@@ -17,6 +17,8 @@ tags:
     description: Headless persistent international actor interactions
   - name: Organizations
     description: Source-pinned multilateral membership and voting procedures
+  - name: Economy
+    description: Provenance-aware economic reference and hypothetical effects
 paths:
   /worlds/{world}/diplomacy:
     get:
@@ -661,6 +663,139 @@ paths:
         '422': { $ref: '#/components/responses/invalid' }
         '428': { $ref: '#/components/responses/missingPrecondition' }
 
+  /worlds/{world}/economy:
+    get:
+      operationId: readWorldEconomy
+      tags: [Economy]
+      description: >
+        Read pinned scenario policies and modeled hypothetical consequences.
+        GDP and other official published reference values are never mutated.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Economic world scenario snapshot with strong ETag
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/economy/indicators:
+    get:
+      operationId: readWorldEconomicReferenceIndicators
+      tags: [Economy]
+      description: >
+        Dated indicators with explicit observed, scenario_assumption or missing
+        provenance; redistribution rights must be checked by data curators.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Source-attributed pinned economic reference data
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/economy/policies:
+    post:
+      operationId: proposeWorldTradeRestriction
+      tags: [Economy]
+      description: >
+        Proposal only. No automatic sanctions, trade change or GDP forecast.
+        Percentages are scenario-author assumptions, not historical outcomes.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [from, to, effect_bps, low_bps, high_bps, effective_on]
+              properties:
+                from: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                to: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                effect_bps: { type: integer, minimum: 0, maximum: 10000 }
+                low_bps: { type: integer, minimum: 0, maximum: 10000 }
+                high_bps: { type: integer, minimum: 0, maximum: 10000 }
+                effective_on: { type: string, format: date }
+      responses:
+        '202': { description: Nonbinding policy proposal recorded }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/economy/policies/{policyId}:
+    get:
+      operationId: readWorldEconomicPolicy
+      tags: [Economy]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/policyId'
+      responses:
+        '200':
+          description: Policy lifecycle with null or explicit scenario projection
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/economy/policies/{policyId}/authorization:
+    post:
+      operationId: authorizeWorldEconomicPolicy
+      tags: [Economy]
+      description: >
+        Country-specific lawful process verified by trusted server-side
+        institutional authority; never by a Boolean from request JSON.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/policyId'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              maxProperties: 0
+      responses:
+        '200': { description: Procedure authorized; effect still pending virtual date }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/economy/clock:
+    post:
+      operationId: advanceWorldEconomicClock
+      tags: [Economy]
+      description: >
+        Trusted simulation scheduler only. Computes synthetic policy
+        projections without changing observed reference indicators.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200': { description: Virtual clock advanced and due approved policies applied }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -668,6 +803,11 @@ components:
       scheme: bearer
       description: Authentication gateway reserved; no production token verifier implemented.
   parameters:
+    policyId:
+      name: policyId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
     organization:
       name: organization
       in: path
