@@ -7,7 +7,10 @@ async function captureScene(page,name){
             await page.locator('#world-scene').scrollIntoViewIfNeeded();
             await expect(page.locator('#world-scene')).toBeVisible();
             expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-            await page.locator('#world-scene').screenshot({path:'browser-captures/'+name+'-'+device+'.png',animations:'disabled'});
+            const scene=page.locator('#world-scene');
+            // No opaque internal identifiers in the player-facing scene, even in rendered controls.
+            expect(await scene.innerText()).not.toMatch(/\b(?:[a-f0-9]{24,128}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\b/i);
+            await scene.screenshot({path:'browser-captures/'+name+'-'+device+'.png',animations:'disabled'});
         }
     }finally{if(original)await page.setViewportSize(original);}
 }

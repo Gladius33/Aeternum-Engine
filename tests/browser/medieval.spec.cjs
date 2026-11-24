@@ -183,6 +183,13 @@ test('M05 two newly registered players complete an isolated browser colony campa
     await expect(a.locator('[data-objective][data-achieved=false]')).toHaveCount(0);
     await expect(a.locator('[data-building=m05-keep]')).toHaveAttribute('data-level','2');
     await captureScene(a,'medieval-victory');
+    await a.locator('#world-scene [data-label=district]').click();
+    await expect(a.locator('.scene-district')).toBeVisible();
+    await expect(a.locator('[data-district-building=m05-keep]')).toBeVisible();
+    await a.locator('[data-district-building=m05-keep]').click();
+    await expect(a.locator('[data-district-building=m05-keep]')).toHaveAttribute('aria-pressed','true');
+    await captureScene(a,'medieval-district');
+    await a.locator('#world-scene [data-label=district]').click();
     await b.getByRole('button',{name:'Review your colony'}).click();
     await expect(b.locator('#medieval-victory')).not.toContainText('VICTORY');
     await expect(b.locator('#medieval-details')).toContainText('Residents1 / 1');
