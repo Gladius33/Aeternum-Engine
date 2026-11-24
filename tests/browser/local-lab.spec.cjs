@@ -71,6 +71,30 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('[data-district-decor='+type+']')).toBeAttached();
             await expect(page.locator('[data-district-site=approved]')).toBeVisible();
             await captureScene(page,'local-'+pack+'-domain');
+            if(pack==='medieval'){
+                // The pinned campaign starts with one resident; lumber work
+                // requires two. Build and populate a farm through the real UI.
+                await expect(page.locator('[data-domain-action=work]')).toBeDisabled();
+                await page.locator('[data-first-mission]').click();
+                await expect(page.locator('[data-catalogue=farm]')).toHaveAttribute('aria-pressed','true');
+                const farmPlaced=page.waitForResponse(r=>isFinal(r,'building.place'));
+                await page.locator('#world-scene [data-label=place]').click();
+                const farmReply=await farmPlaced;expect(farmReply.status(),await farmReply.text()).toBe(200);
+                await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+                await page.locator('[data-first-mission]').click();
+                const farm=page.locator('[data-district-building]').filter({has:page.locator('[data-model=farm]')});
+                await expect(farm).toHaveAttribute('aria-pressed','true');
+                const farmStarted=page.waitForResponse(r=>isFinal(r,'building.start'));
+                await page.locator('#world-scene [data-label=startStage]').click();
+                const startedReply=await farmStarted;expect(startedReply.status(),await startedReply.text()).toBe(200);
+                await expect(farm).toHaveAttribute('data-district-level','1',{timeout:90000});
+                await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+                const welcomed=page.waitForResponse(r=>isFinal(r,'settlement.feed'));
+                await page.locator('[data-domain-action=feed]').click();
+                const welcomedReply=await welcomed;expect(welcomedReply.status(),await welcomedReply.text()).toBe(200);
+                await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+                await expect(page.locator('[data-domain-action=work]')).toBeEnabled();
+            }
             const actionType={medieval:'settlement.work',industrial:'industry.generate',guild:'market.create'}[pack];
             const actionKey={medieval:'work',industrial:'generate',guild:'trade'}[pack];
             const action=page.locator('[data-domain-action='+actionKey+']');
@@ -87,7 +111,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             }else{
                 const produced=page.waitForResponse(r=>isFinal(r,actionType));
                 await action.click();
-                expect((await produced).status()).toBe(200);
+                const response=await produced;expect(response.status(),await response.text()).toBe(200);
             }
             await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
             await page.locator('[data-game-nav=domain]').click();
