@@ -27,6 +27,8 @@ tags:
     description: Versioned professional and regional social scenario outputs, never official forecasts
   - name: FrenchParliamentCalendar
     description: Source-labelled Assembly sitting dates and authenticated censure hearing schedules
+  - name: FrenchAssembly
+    description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
   /worlds/{world}/diplomacy:
     get:
@@ -1262,6 +1264,191 @@ paths:
             application/json: { schema: { type: object, additionalProperties: true } }
         '404': { $ref: '#/components/responses/notFound' }
 
+  /worlds/{world}/france/assembly:
+    get:
+      operationId: readFrenchAssembly
+      tags: [FrenchAssembly]
+      description: >
+        Read historical or explicitly fictional, date-pinned deputy and group
+        rosters. The API reports all occupied seats, individual members,
+        coalitions and verified roll-call history. No real-world election
+        assumptions are implied by fictional scenario data.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Reviewed Assembly roster and audit state
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/assembly/matters:
+    post:
+      operationId: openFrenchAssemblyAgenda
+      tags: [FrenchAssembly]
+      description: >
+        Only a server-curated and constitutionally pending 49(1), 49(2)
+        or 49(3) matter may enter a vote agenda. The client supplies an
+        identifier ONLY, not fabricated votes, political pressure, or a
+        forged parliamentary programme.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [matter_id]
+              properties:
+                matter_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '202': { description: Legally linked parliamentary agenda opened }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/assembly/matters/{matterId}:
+    get:
+      operationId: readFrenchAssemblyMatter
+      tags: [FrenchAssembly]
+      description: >
+        Read signed roll-call, group-specific negotiation concessions,
+        abstentions and legally pinned constitutional source if available.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/matterId'
+      responses:
+        '200':
+          description: Assembly matter and optional nominal ballot
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/assembly/ballots:
+    post:
+      operationId: castFrenchHumanDeputyBallot
+      tags: [FrenchAssembly]
+      description: >
+        Record an individual human-controlled deputy vote. Actual control
+        of that seat is verified by the authenticated server-side principal.
+        AI deputies cannot be impersonated by client JSON. Votes are sealed.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [matter_id, deputy_id, choice]
+              properties:
+                matter_id: { $ref: '#/components/schemas/Identifier' }
+                deputy_id: { $ref: '#/components/schemas/Identifier' }
+                choice: { type: string, enum: [for, against, abstain, absent] }
+      responses:
+        '200': { description: Verified unique deputy roll-call choice recorded }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/assembly/roll-calls:
+    post:
+      operationId: certifyFrenchAssemblyNominalRollCall
+      tags: [FrenchAssembly]
+      description: >
+        Trusted clerk finalizes human votes and reproducible deputy-specific
+        AI ballots. Confidence is a majority of expressed votes; censure
+        counts only yes votes and requires absolute majority of occupied
+        Assembly seats. No automatic regime collapse is generated.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [matter_id]
+              properties:
+                matter_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200': { description: All deputy ballots certified and auditable }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/assembly/coalitions:
+    post:
+      operationId: recordFrenchAssemblyCoalition
+      tags: [FrenchAssembly]
+      description: >
+        Coalition membership is obtained from a verified internal scenario
+        protocol. Clients may submit only the coalition identifier and
+        desired active status, not a fabricated list of allied groups.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [coalition_id, active]
+              properties:
+                coalition_id: { $ref: '#/components/schemas/Identifier' }
+                active: { type: boolean }
+      responses:
+        '202': { description: Verified coalition state stored }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/assembly/signatures:
+    post:
+      operationId: sealFrenchAssemblyCensureSignatories
+      tags: [FrenchAssembly]
+      description: >
+        The legislative clerk seals identities of actual sitting deputies,
+        sourced from the trusted Assembly signature service. Signature IDs
+        cannot be provided in player-controlled request bodies.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [motion_id]
+              properties:
+                motion_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '202': { description: Parliamentarian identity-verified signature roll sealed }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1269,6 +1456,11 @@ components:
       scheme: bearer
       description: Authentication gateway reserved; no production token verifier implemented.
   parameters:
+    matterId:
+      name: matterId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
     billId:
       name: billId
       in: path
