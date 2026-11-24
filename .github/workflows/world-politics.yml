@@ -49,6 +49,7 @@ jobs:
             abort "Missing French 49.1 confidence API" unless d["paths"].key?("/worlds/{world}/france/constitution/confidence/{statementId}/votes")
             abort "Missing spontaneous 49.2 censure API" unless d["paths"].key?("/worlds/{world}/france/constitution/spontaneous-motions/{motionId}/votes")
             abort "Missing persisted France social scenario endpoint" unless d["paths"].key?("/worlds/{world}/france/social/assessments")
+            abort "Missing Paris parliamentary clock flag" unless d.dig("components","schemas","WorldClockState","properties","france_parliament_enabled")
             puts "PASS OpenAPI 3.1: syntax, required paths and DTOs"
           ' games/world-politics/api/openapi.yaml
       - name: Reviewed geopolitical statuses and deterministic diplomacy
@@ -111,6 +112,7 @@ jobs:
           php tests/wp24-france-social-rest-db.php
           php tests/wp17-world-clock-db.php
           php tests/wp18-world-clock-institutions-db.php
+          php tests/wp25-fr-parliament-world-clock-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4
