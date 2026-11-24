@@ -146,6 +146,50 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await captureScene(page,'g13-'+pack+'-living-economy');
             await page.emulateMedia({reducedMotion:'no-preference'});
             await captureScene(page,'local-'+pack+'-productive-domain');
+            // G14: explore the actual server territory page, query registered
+            // connections, request a route and return to the owned domain.
+            await page.locator('[data-game-nav=atlas]').click();
+            const atlas=page.locator('.scene-atlas'), exp=page.locator('.atlas-expedition');
+            await expect(atlas).toBeVisible();
+            await expect(exp).toBeVisible();
+            await expect(atlas.locator('[data-atlas-landscape='+theme+']')).toHaveCount(1);
+            const territory=atlas.locator('[data-territory]').filter({has:page.locator('[data-atlas-region=own]')}).first();
+            await expect(territory).toBeAttached();
+            await exp.locator('[data-atlas-directory]').selectOption(await territory.getAttribute('data-territory'));
+            await expect(territory).toBeVisible();
+            await territory.click();
+            await expect(territory).toHaveAttribute('aria-pressed','true');
+            await expect(exp.locator('[data-atlas-command=domain]')).toBeVisible();
+            await exp.locator('[data-atlas-command=origin]').click();
+            const connection=page.waitForResponse(r=>r.url().includes('/map/locations/')&&r.url().endsWith('/links'));
+            await exp.locator('[data-atlas-command=connections]').click();
+            const linksResponse=await connection;expect(linksResponse.status(),await linksResponse.text()).toBe(200);
+            await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+            await expect(exp.locator('.atlas-route-summary')).toContainText('Registered outgoing connections:');
+            const others=atlas.locator('[data-territory][aria-pressed=false]');
+            if(await others.count()){
+                await exp.locator('[data-atlas-directory]').selectOption(await others.first().getAttribute('data-territory'));
+                await exp.locator('[data-atlas-command=destination]').click();
+                const planned=page.waitForResponse(r=>r.url().includes('/map/routes/'));
+                await exp.locator('[data-atlas-command=route]').click();
+                const result=await planned;expect(result.status(),await result.text()).toBe(200);
+                const routeData=(await result.json()).data.route;
+                await expect(exp).toHaveAttribute('data-route-state',routeData?'found':'none');
+                if(routeData)await expect(exp.locator('.atlas-route-summary')).toContainText('Cost '+routeData.cost);
+                else await expect(exp.locator('.atlas-route-summary')).toContainText('No directed route found by the server');
+                await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+            }
+            await atlas.focus();
+            await page.keyboard.press('Home');
+            const initialView=await atlas.getAttribute('viewBox');
+            await page.keyboard.press('+');
+            await expect(atlas).not.toHaveAttribute('viewBox',initialView);
+            await page.keyboard.press('Home');
+            await captureScene(page,'g14-'+pack+'-strategic-atlas');
+            await exp.locator('[data-atlas-directory]').selectOption(await territory.getAttribute('data-territory'));
+            await exp.locator('[data-atlas-command=domain]').click();
+            await expect(page.locator('.scene-district')).toBeVisible();
+            await expect(exp).toBeHidden();
             await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             await page.locator('[data-game-nav=construction]').click();
             await captureScene(page,'local-'+pack+'-construction');
