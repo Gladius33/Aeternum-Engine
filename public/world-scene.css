@@ -46,3 +46,25 @@ main:has(#game:not([hidden])){max-width:78rem}
 #world-scene[aria-busy=true] .scene-holding{cursor:wait}
 @media(prefers-reduced-motion:reduce){.scene-confirmed-route,.scene-scaffold{animation:none}}
 @media(max-width:520px){.scene-hud{grid-template-columns:repeat(2,minmax(0,1fr))}.scene-holding svg{height:95px}}
+
+/* G03: responsive interactive settlement workspaces and canonical objective meters. */
+.scene-workspace{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin-top:1rem}
+.scene-workshop{border:1px solid #a5b9a65c;border-radius:.65rem;padding:.8rem;background:linear-gradient(145deg,var(--scene-surface),#152229);min-width:0}
+.scene-workshop h4{color:var(--scene-accent);font:600 1.1rem Georgia,serif;margin:.15rem 0 .6rem}
+.scene-workshop-body{display:grid;gap:.45rem;min-width:0}
+.scene-resource{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.25rem .5rem;font-size:.82rem;align-items:center;padding:.4rem 0;border-bottom:1px solid #ffffff17}
+.scene-resource span{font-variant-numeric:tabular-nums}
+.scene-resource small{grid-column:1/-1;color:#cbd9d4}
+.scene-meter{grid-column:1/-1;width:100%;height:.55rem;accent-color:var(--scene-accent)}
+.scene-resource[data-achieved=true] strong,.scene-victory{color:#bce8b5}
+.scene-plot{background:#17252b;color:#fff;border:1px solid #94a59a;border-radius:.35rem}
+.scene-catalogue{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,100px),1fr));gap:.4rem}
+#world-scene .scene-catalogue-card,#world-scene .scene-offer{display:grid;gap:.3rem;text-align:left;min-width:0;overflow-wrap:anywhere;background:#152229;color:#f0f2ed;border:1px solid #758a80;border-radius:.4rem;padding:.45rem;margin:0}
+.scene-catalogue-card svg{width:100%;height:70px;background:radial-gradient(ellipse,#8c987326,transparent 72%)}
+.scene-catalogue-card small,.scene-offer small,.scene-receipt small{font-size:.72rem;color:#d1dcd5}
+.scene-catalogue-card[aria-pressed=true],.scene-offer[aria-pressed=true]{outline:2px solid var(--scene-accent)}
+.scene-trade-list{display:grid;gap:.4rem}
+.scene-receipt{display:grid;grid-template-columns:auto 1fr;gap:.2rem .5rem;align-items:center;font-size:.8rem}
+.scene-receipt-mark{color:#bce8b5}.scene-receipt small{grid-column:2}
+#world-scene[aria-busy=true] .scene-catalogue-card,#world-scene[aria-busy=true] .scene-offer{cursor:wait}
+@media(max-width:640px){.scene-workspace{grid-template-columns:1fr}.scene-catalogue{grid-template-columns:repeat(2,minmax(0,1fr))}}

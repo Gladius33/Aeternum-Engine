@@ -662,6 +662,7 @@ async function loadMarketHistory(after=null) {
 
 function clearMarketPage(message='') {
     marketOffers=[]; marketAfter=null;
+    window.dispatchEvent(new CustomEvent('aeternum:market-snapshot',{detail:{count:null,offers:[],more:false}}));
     options(marketChoice,[['','Choose an offer']]);
     marketNext.hidden=true;
     marketNotice.textContent=message;
@@ -690,7 +691,7 @@ async function loadMarket(after=null) {
     const data=await api(base(f)+path+(after===null?'':'/'+encodeURIComponent(after)));
     if (f.world!==balance.elements.world.value || f.account!==balance.elements.account.value) return;
     marketOffers=data.offers; marketAfter=data.nextAfter;
-    window.dispatchEvent(new CustomEvent('aeternum:market-snapshot',{detail:{count:data.offers.length}}));
+    window.dispatchEvent(new CustomEvent('aeternum:market-snapshot',{detail:{count:data.offers.length,offers:data.offers,more:data.nextAfter!==null}}));
     options(marketChoice,[['','Choose an offer'],...marketOffers.map(o=>[o.id,o.seller+': '+o.giveUnits+' '+o.giveResource+' for '+o.wantUnits+' '+o.wantResource])]);
     marketNext.hidden=marketAfter===null;
     marketNotice.textContent=marketOffers.length?'Choose an offer to accept, or cancel your own offer.':'No open offers.';

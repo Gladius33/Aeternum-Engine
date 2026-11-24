@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+const {captureScene}=require('./visual-capture.cjs');
 const {execFileSync}=require('node:child_process');
 const origin='http://127.0.0.1:8769';
 const world='e2e-industrial-v3';
@@ -157,6 +158,14 @@ test('M06 two players complete an isolated industrial network and freight victor
     await operation(a,'industry.ship','Dispatch freight');
     await expect(a.locator('#industrial-victory')).toContainText('VICTORY');
     await expect(a.locator('#industrial-details')).toContainText('Goods delivered45 / 45');
+    await a.locator('#world-scene [data-label=allStages]').click();
+    await expect(a.locator('#status')).toHaveText('Success');
+    await a.locator('#world-scene [data-label=allStocks]').click();
+    await expect(a.locator('#status')).toHaveText('Success');
+    await expect(a.locator('[data-reserve]').first()).toBeVisible();
+    await expect(a.locator('[data-objective][data-achieved=false]')).toHaveCount(0);
+    await expect(a.locator('[data-building=m06-power]')).toHaveAttribute('data-level','2');
+    await captureScene(a,'industrial-victory');
     await b.getByRole('button',{name:'Review industrial network'}).click();
     await expect(b.locator('#industrial-victory')).not.toContainText('VICTORY');
     await expect(b.locator('#industrial-details')).toContainText('Goods delivered0 / 45');
