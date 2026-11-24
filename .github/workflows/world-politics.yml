@@ -1,16 +1,18 @@
-name: World Politics WP01 prototype
+name: World Politics headless backend
 on:
-  pull_request:
+  push:
+    branches:
+      - 'feat/world-politics-*'
     paths:
       - 'games/world-politics/**'
-      - 'tests/wp01-political-roster.php'
-      - 'docs/WORLD_POLITICS.md'
+      - 'tests/wp01-*.php'
+      - 'docs/WORLD_POLITICS*.md'
       - '.github/workflows/world-politics.yml'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  identity-domain:
+  headless-contract:
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:
@@ -19,9 +21,11 @@ jobs:
         with:
           php-version: '8.4'
           coverage: none
-      - name: Validate new PHP files
+      - name: PHP syntax check
         run: |
-          php -l games/world-politics/src/PoliticalRoster.php
-          php -l tests/wp01-political-roster.php
-      - name: WP01 positive and negative acceptance
+          find games/world-politics/src -name '*.php' -print0 | xargs -0 -n1 php -l
+          find tests -maxdepth 1 -name 'wp01-*.php' -print0 | xargs -0 -n1 php -l
+      - name: Political identity domain tests
         run: php tests/wp01-political-roster.php
+      - name: REST contract tests (no running server)
+        run: php tests/wp01-rest-contract.php
