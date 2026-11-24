@@ -63,6 +63,7 @@ jobs:
         run: |
           php tests/wp03-store-db.php
           php tests/wp04-rest-db.php
+          php tests/wp06-institutions-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4
