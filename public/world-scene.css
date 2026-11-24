@@ -103,3 +103,10 @@ main:has(#game:not([hidden])){max-width:78rem}
 .scene-economy-actions{grid-column:1/-1;display:flex;gap:.3rem;align-items:center;flex-wrap:wrap}
 .scene-economy-actions .scene-button{font-size:.76rem}
 @media(max-width:640px){.scene-resource-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.scene-resource-icon{width:22px;height:22px}.scene-resource-values strong{font-size:.95rem}}
+
+/* G07: independent district navigation and confirmed-action feedback. */
+.scene-district{touch-action:none}
+.scene-district:focus-visible{outline:3px solid var(--scene-accent);outline-offset:3px}
+.district-receipt{animation:district-receipt-in .35s ease-out;pointer-events:none}
+@keyframes district-receipt-in{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.district-receipt{animation:none}}

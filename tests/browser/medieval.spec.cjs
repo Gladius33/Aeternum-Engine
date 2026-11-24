@@ -190,6 +190,11 @@ test('M05 two newly registered players complete an isolated browser colony campa
     await a.locator('[data-district-building=m05-keep]').click();
     await expect(a.locator('[data-district-building=m05-keep]')).toHaveAttribute('aria-pressed','true');
     await captureScene(a,'medieval-district');
+    await a.locator('#world-scene [data-label=districtZoomIn]').click();
+    await expect(a.locator('.scene-district')).toHaveAttribute('data-zoom','1.25');
+    await a.locator('.scene-district').focus();
+    await a.keyboard.press('Home');
+    await expect(a.locator('.scene-district')).toHaveAttribute('data-zoom','1');
     await a.locator('#world-scene [data-label=district]').click();
     await b.getByRole('button',{name:'Review your colony'}).click();
     await expect(b.locator('#medieval-victory')).not.toContainText('VICTORY');
