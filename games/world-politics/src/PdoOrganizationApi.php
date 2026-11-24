@@ -24,6 +24,10 @@ final class PdoOrganizationApi
             return self::problem(404,'route_not_found');
         }
         $world=$m[1];$organization=$m[2]??'';$operationPath=$m[3]??'';
+        if ($organization==='clock' && $operationPath==='') {
+            $organization='';
+            $operationPath='clock';
+        }
         $headersNormalized=[];
         foreach ($headers as $name=>$value) {
             if (is_string($name) && is_string($value)) $headersNormalized[strtolower($name)]=$value;
