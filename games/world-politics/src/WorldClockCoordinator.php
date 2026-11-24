@@ -143,6 +143,43 @@ final class WorldClockCoordinator
         }
         $this->trust($world,'world.clock.advance');
         $key=$this->commandKey($world,$idempotencyKey);
+        return $this->runTick($world,$targetDay,$key,$ifMatch);
+    }
+
+    /**
+     * WP27: service-side recovery from durable pending intent.
+     *
+     * An ordinary HTTP client may not invoke this method: the world-clock
+     * principal is verified again for each resume. The original raw
+     * idempotency key is NOT stored or required for crash recovery.
+     *
+     * @return array{status:int,result:array<string,mixed>,etag:string}|null
+     */
+    public function resumePending(string $world):?array
+    {
+        self::id($world);
+        $this->trust($world,'world.clock.advance');
+        $pending=$this->row($world,false);
+        if ($pending===null) {
+            throw new \DomainException('World clock does not exist');
+        }
+        if ($pending['pending_key']===null) return null;
+        $key=$pending['pending_key'];
+        if (!is_string($key) || !preg_match('/^[a-f0-9]{64}$/D',$key)) {
+            throw new \UnexpectedValueException('Corrupted durable world clock command key');
+        }
+        $day=$pending['pending_day'];
+        self::day($day);
+        return $this->runTick($world,$day,$key,self::etag($pending));
+    }
+
+    /**
+     * Only called with a hash derived from the original authenticated
+     * idempotency key, or a previously recorded pending hash in MariaDB.
+     */
+    private function runTick(
+        string $world,string $targetDay,string $key,string $ifMatch
+    ):array {
         $this->pdo->beginTransaction();
         try {
             // Order: fence row FIRST, then authoritative world-clock row.
