@@ -131,7 +131,7 @@ final class WorldPoliticsApi
         }
         try {
             if ($ability === 'create_fictional_person') {
-                if (($payload['kind'] ?? null) !== 'fictional') {
+                if (isset($payload['kind']) && $payload['kind'] !== 'fictional') {
                     return self::problem(422, 'only_fictional_profiles_can_be_player_created');
                 }
                 $person = PoliticalProfileTemplate::normalizeFictional($payload, $country);
