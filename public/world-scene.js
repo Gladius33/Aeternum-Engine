@@ -469,7 +469,7 @@
         const ids=districtIds();
         districtToggle.textContent=t(districtMode?'atlasView':'district');
         districtToggle.setAttribute('aria-pressed',String(districtMode));
-        districtSvg.hidden=!districtMode;svg.hidden=districtMode;districtCaption.hidden=!districtMode;
+        districtSvg.toggleAttribute('hidden',!districtMode);svg.toggleAttribute('hidden',districtMode);districtCaption.hidden=!districtMode;
         districtPrev.hidden=districtNext.hidden=!districtMode||ids.length<2;
         pagePrev.hidden=pageNext.hidden=true;
         districtCaption.textContent=t('districtNote');
