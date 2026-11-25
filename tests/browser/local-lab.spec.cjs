@@ -444,6 +444,72 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
 
             await page.locator('[data-game-nav=construction]').click();
             await captureScene(page,'local-'+pack+'-construction');
+
+            // G25: durable reconnection, real token revocation, independent
+            // account selection and bounded rendering evidence. No token is
+            // written to the report or printed to the console.
+            await page.locator('[data-game-nav=domain]').click();
+            const ownAccount=await page.locator('#balance select[name=account]').inputValue();
+            const confirmed=await page.locator('.scene-district [data-district-building]').evaluateAll(nodes=>nodes.map(n=>({id:n.dataset.districtBuilding,level:n.dataset.districtLevel})).filter(n=>Number(n.level)>0).sort((a,b)=>a.id.localeCompare(b.id)));
+            expect(confirmed.length).toBeGreaterThan(0);
+            const revoked=await page.locator('[data-game-exit]').count();
+            expect(revoked).toBe(1);
+            const logoutResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/logout')&&r.request().method()==='POST');
+            await page.locator('[data-game-exit]').click();
+            const logout=await logoutResponse;
+            expect(logout.status()).toBe(200);
+            const oldAuth=(await logout.request().allHeaders()).authorization;
+            expect(Boolean(oldAuth)).toBe(true);
+            await expect(page.locator('#game')).toBeHidden();
+            await expect(page.locator('#login')).toBeVisible();
+            await expect(page.locator('#balance select[name=account] option')).toHaveCount(0);
+            const rejected=await context.request.get(origin+'/v1/me/worlds',{headers:{Authorization:oldAuth}});
+            expect(rejected.status()).toBe(401);
+            async function enter(profile){
+                await page.locator('[data-choose-game='+pack+']').click();
+                await page.locator('[data-profile='+profile+']').click();
+                await page.locator('#login input[name=password]').fill(password);
+                await page.locator('#login button').click();
+                await expect(page.locator('#world-scene')).toHaveAttribute('data-theme',theme);
+                await expect(page.locator('.scene-district')).toBeVisible({timeout:30000});
+                await expect(page.locator('[data-resource-tile='+resource+'] strong')).not.toHaveText('—',{timeout:30000});
+                await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+            }
+            await enter('bob');
+            const bobAccount=await page.locator('#balance select[name=account]').inputValue();
+            expect(bobAccount.length).toBeGreaterThan(0);
+            expect(bobAccount).not.toBe(ownAccount);
+            const bobIds=await page.locator('.scene-district [data-district-building]').evaluateAll(nodes=>nodes.map(n=>n.dataset.districtBuilding));
+            expect(bobIds.filter(id=>confirmed.some(n=>n.id===id))).toEqual([]);
+            await page.locator('[data-game-exit]').click();
+            await expect(page.locator('#game')).toBeHidden();
+            await enter('alice');
+            await expect(page.locator('#balance select[name=account]')).toHaveValue(ownAccount);
+            await expect.poll(()=>page.locator('.scene-district [data-district-building]').evaluateAll(nodes=>nodes.map(n=>({id:n.dataset.districtBuilding,level:n.dataset.districtLevel})).filter(n=>Number(n.level)>0).sort((a,b)=>a.id.localeCompare(b.id))),{timeout:30000}).toEqual(confirmed);
+            const measurements=[];
+            for(const [device,width,height] of [['desktop',1440,900],['mobile',390,844]]){
+                await page.setViewportSize({width,height});
+                await expect(page.locator('.scene-district')).toBeVisible();
+                await page.emulateMedia({reducedMotion:'reduce'});
+                const sample=await page.evaluate(async()=>{
+                    const scene=document.querySelector('.scene-district');
+                    const nodes=scene.querySelectorAll('*').length;
+                    const gaps=[];
+                    let prev=await new Promise(requestAnimationFrame);
+                    for(let i=0;i<30;i++){const now=await new Promise(requestAnimationFrame);gaps.push(now-prev);prev=now;}
+                    gaps.sort((a,b)=>a-b);
+                    return {nodes,frameP95Ms:Math.round(gaps[Math.ceil(gaps.length*.95)-1]*100)/100,overflow:document.documentElement.scrollWidth>innerWidth};
+                });
+                expect(sample.nodes).toBeGreaterThan(0);
+                expect(sample.nodes).toBeLessThan(10000);
+                expect(sample.frameP95Ms).toBeLessThan(250);
+                expect(sample.overflow).toBe(false);
+                measurements.push({device,width,height,...sample});
+                await page.locator('.scene-district').screenshot({path:'browser-captures/g25-'+pack+'-reconnected-'+device+'.png',animations:'disabled'});
+            }
+            await page.emulateMedia({reducedMotion:'no-preference'});
+            require('node:fs').writeFileSync('browser-captures/g25-'+pack+'-metrics.json',JSON.stringify({pack,confirmedBuildings:confirmed.length,revokedSessionRejected:true,independentAccount:true,measurements},null,2)+'\n');
+
             expect((await context.request.get(origin+'/v1/public/worlds')).status()).toBe(404);
             expect((await context.request.get(origin+'/lab/init.sh')).status()).toBe(404);
         }finally{await context.close();}
