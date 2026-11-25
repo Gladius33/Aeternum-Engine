@@ -80,6 +80,8 @@ jobs:
         run: php tests/wp28-french-parliament.php
       - name: Domestic policy fiscal ledger and multi-day scenario WP29A
         run: php tests/wp29a-domestic-policy.php
+      - name: WP49 debt stock flow and creditor regression
+        run: php tests/wp49-debt.php
       - name: WP48 observed baseline and lagged fiscal loop regression
         run: php tests/wp48-fiscal-loop.php
       - name: WP47 macroeconomic identity and source regression

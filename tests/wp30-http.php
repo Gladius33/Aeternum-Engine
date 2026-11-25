@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===20,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===21,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -493,6 +493,24 @@ ck30($m48['status']===200&&$d48['status']===200&&$f48['status']===200,'WP48 all 
 ck30($m48['body']['latest']['cash']===$d48['body']['balance']&&$m48['body']['latest']['debt']===$f48['body']['treasury']['debt'],'WP48 cash debt consistency');
 ck30($m48['body']['latest']['tax_feedback']!==0,'WP48 endogenous receipts enter persisted daily ledger');
 ck30(req30('GET',$p48,null,$ta2)['status']===404&&!req30('GET',$p47,null,$tb)['body']['feedback_to_domestic_ledger'],'WP48 isolation and WP47 compatibility');
+$g49=req30('POST','/worlds',['label'=>'Sovereign debt ledger','scenario'=>'fr-debt-v1'],$tc48,['Idempotency-Key'=>'debt-world-001']);
+if($g49['status']!==201)throw new RuntimeException('WP49 creation HTTP '.$g49['status'].' '.json_encode($g49['body'],JSON_THROW_ON_ERROR));
+ck30(true,'WP49 world creation');
+$w49=$g49['body']['world_id'];$r49='/worlds/'.$w49;$p49=$r49.'/countries/FR/debt';
+$d49=req30('GET',$p49,null,$tc48);
+ck30($d49['status']===200&&array_sum($d49['body']['creditors'])===$d49['body']['debt']&&count($d49['body']['reference']['observations'])===41,'WP49 debt pack and opening claims');
+$q49=$pdo->prepare('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?');$q49->execute([$w49]);
+$cfg49=json_decode($q49->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck30($cfg49['debt_model']['source_sha']===$d49['body']['source_sha'],'WP49 durable debt provenance');
+$c49=req30('GET',$r49.'/clock',null,$tc48);
+foreach(['2026-11-26','2026-11-27','2026-11-28','2026-11-29','2026-11-30','2026-12-01','2026-12-02'] as $n49=>$day49){
+    $c49=req30('POST',$r49.'/clock/advances',['target_day'=>$day49],$tc48,['If-Match'=>$c49['etag'],'Idempotency-Key'=>'debt-tick-00'.($n49+1)]);
+    ck30($c49['status']===200&&$c49['body']['coherent'],'WP49 coherent day');
+}
+$d49=req30('GET',$p49,null,$tc48);$f49=req30('GET',$r49.'/countries/FR/finance',null,$tc48);$m49=req30('GET',$r49.'/countries/FR/macro',null,$tc48);
+ck30($d49['status']===200&&count($d49['body']['months'])===2&&$d49['body']['days'][5]['scheduled_principal']>0,'WP49 monthly maturity and aggregation');
+ck30($f49['status']===200&&$m49['status']===200&&$d49['body']['debt']===$f49['body']['treasury']['debt']&&$d49['body']['debt']===$m49['body']['latest']['debt'],'WP49 debt and macro consistency');
+ck30(req30('GET',$p49,null,$ta2)['status']===404&&req30('GET',$r48.'/countries/FR/debt',null,$tc48)['status']===404,'WP49 isolation and legacy');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

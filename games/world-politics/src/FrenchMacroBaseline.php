@@ -88,7 +88,7 @@ final class MacroFiscalLoop
      * day's macro row. No uncommitted values, implicit circular equation
      * or read-side mutation. No trade/monetary feedback in this first loop.
      */
-    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment):array
+    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null):array
     {
         $prior=$previous['macro']??null;$debt=$previous['treasury']['debt']??$b['opening_debt'];
         $price=$prior['price_index_scaled']??100000000;
@@ -124,6 +124,13 @@ final class MacroFiscalLoop
         $unfinanced=$cash+$primary-$interest;
         $borrow=max(0,-$unfinanced);$closing=$unfinanced+$borrow;$closingDebt=$debt+$borrow;
         if($closingDebt>1000000000000000||$closing>1000000000000000)throw new \DomainException('Treasury magnitude limit');
+        $treasury=['opening_cash'=>$cash,'opening_debt'=>$debt,'primary_balance'=>$primary,'interest'=>$interest,
+            'new_borrowing'=>$borrow,'cash'=>$closing,'debt'=>$closingDebt];
+        if($debtModel!==null){
+            if($target===null)throw new \DomainException('Missing debt clock day');
+            $treasury=SovereignDebtLedger::step($debtModel,$target,$previous,$cash,$actualRevenue,$primaryExpense);
+            $closing=$treasury['cash'];
+        }
         return ['revenue'=>$actualRevenue,'expense'=>$primaryExpense,'balance'=>$closing,
             'macro'=>['version'=>self::VERSION,'real_gdp'=>$real,'nominal_gdp'=>$nominal,'consumption'=>$consumption,
                 'npish_consumption'=>$b['daily_npish_consumption'],'investment'=>$investment,'government_consumption'=>$government,'exports'=>$b['daily_exports'],'imports'=>$b['daily_imports'],
@@ -132,8 +139,7 @@ final class MacroFiscalLoop
                 'annual_inflation_bps'=>$inflation,'unemployment_bps'=>$unemployment,'real_wage_index_bps'=>intdiv($wage*10000,$price),
                 'statutory_revenue'=>$revenue,'statutory_primary_expense'=>$expense,'tax_feedback'=>$taxFeedback,
                 'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap],
-            'treasury'=>['opening_cash'=>$cash,'opening_debt'=>$debt,'primary_balance'=>$primary,'interest'=>$interest,
-                'new_borrowing'=>$borrow,'cash'=>$closing,'debt'=>$closingDebt]];
+            'treasury'=>$treasury];
     }
     public static function project(array $dom):array
     {

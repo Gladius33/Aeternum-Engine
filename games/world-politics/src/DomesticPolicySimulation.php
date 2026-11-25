@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrenchMacroBaseline.php';
+require_once __DIR__.'/SovereignDebtLedger.php';
 
 /**
  * WP29A: scenario-only domestic policy ledger. All monetary amounts are
@@ -40,7 +41,8 @@ final class DomesticPolicySimulation
         private readonly int $baselineExpense,
         private readonly array $cohorts,
         private readonly array $catalog,
-        private readonly ?array $macroBaseline=null
+        private readonly ?array $macroBaseline=null,
+        private readonly ?array $debtModel=null
     ) {
         self::id($world); self::date($startDay);
         if (!preg_match('/^[A-Z]{3}$/D', $currency)) throw new \InvalidArgumentException('Invalid currency');
@@ -81,6 +83,10 @@ final class DomesticPolicySimulation
             if($currency!=='EUR'||$baselineRevenue!==$this->macroBaseline['daily_revenue']
                 ||$baselineExpense!==$this->macroBaseline['daily_primary_expense']||$openingBalance!==$this->macroBaseline['assumed_opening_cash'])
                 throw new \DomainException('Macro baseline and fiscal assumptions disagree');
+        }
+        if($this->debtModel!==null){
+            if($this->macroBaseline===null)throw new \DomainException('Debt model needs macro baseline');
+            SovereignDebtLedger::assertValid($this->debtModel,$this->macroBaseline,$startDay);
         }
         $this->pressure = $cohorts;
         $this->balance = $openingBalance;
@@ -152,7 +158,7 @@ final class DomesticPolicySimulation
         $loop=null;
         if($this->macroBaseline!==null){
             $prior=$this->days===[]?null:$this->days[array_key_last($this->days)];
-            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment);
+            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target);
             $revenue=$loop['revenue'];$expense=$loop['expense'];
         }
         $closing = $loop===null?$balance+$revenue-$expense:$loop['balance'];
@@ -189,7 +195,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel])]);
     }
 
     public function snapshot(): array
@@ -197,7 +203,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline])];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }
