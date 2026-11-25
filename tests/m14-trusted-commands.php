@@ -123,3 +123,19 @@ rejects(fn()=> \Aeternum\Core\TrustedWorldRules::bind(
 
 check(\Aeternum\Core\TrustedWorldRules::bind([])===[],
     'M14 unconfigured installation retains empty-world discovery semantics');
+
+// F01: shared composition pins the same manifest and reviewed code, with
+// no new digest input in RuleSet::key for legacy or extended worlds.
+$runtime=new \Aeternum\Core\WorldRuntime(['guild-world'=>$m14Pack,'plain-world'=>$m14Pack],['guild-world'=>[$actorModule]]);
+check($runtime->rule('guild-world')->key===$actorRules->key && $runtime->rule('plain-world')->key===$historical->key,
+    'F01 shared composition preserves both exact historical identities');
+check($runtime->rule('guild-world')->packDigest===$m14Pack->digest,
+    'F01 extended rule retains source manifest provenance');
+rejects(fn()=> $runtime->rule('missing-world'),InvalidArgumentException::class,'F01 unknown runtime world fails closed');
+$otherFixture=$m14Fixture;$otherFixture['name']='Different manifest with the same ID and version';
+$otherPack=GamePackLoader::load(json_encode($otherFixture,JSON_THROW_ON_ERROR));
+rejects(fn()=> \Aeternum\Core\WorldRuntime::assertBindings(['guild-world'=>$otherPack],['guild-world'=>$actorRules]),
+    InvalidArgumentException::class,'F01 rejects same ID/version with different manifest bytes');
+rejects(fn()=> \Aeternum\Core\WorldRuntime::assertBindings(['plain-world'=>$m14Pack],['missing-world'=>$historical]),
+    InvalidArgumentException::class,'F01 rejects unrelated world rule binding');
+check((new \Aeternum\Core\WorldRuntime([]))->rules===[],'F01 empty runtime remains valid');
