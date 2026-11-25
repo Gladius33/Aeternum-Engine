@@ -61,19 +61,7 @@ final class EconomyCommandHandler implements CommandHandler, EconomyGameplayPort
                 }
             }
         }
-        // Legacy adapters are deliberately registered by the trusted pack
-        // constructor. Generic dispatch itself knows no theme-specific logic.
-        if ($settlement!==null) {
-            $module=new ReferenceSettlementCommand($this,$settlement);
-            $this->referenceGameplay['settlement.feed']=$module;
-            $this->referenceGameplay['settlement.work']=$module;
-        }
-        if ($industry!==null) {
-            $module=new ReferenceIndustryCommand($this,$industry);
-            foreach (['industry.generate','industry.refine','industry.ship'] as $type) {
-                $this->referenceGameplay[$type]=$module;
-            }
-        }
+        $this->referenceGameplay=ReferenceGameplayCompatibility::bind($this,$settlement,$industry);
     }
 
     /** Immutable, pinned building costs; null for packs without construction. */
