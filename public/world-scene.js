@@ -1845,9 +1845,19 @@
                     // while nothing changed. Refresh them once completion is
                     // observed from the authoritative progression endpoint.
                     if(![...details.values()].some(d=>d.pending!=null)){
-                        await readInventory();
-                        if(theme==='medieval')await reviewMedieval();
-                        else if(theme==='industrial')await reviewIndustrial();
+                        try{
+                            await readInventory();
+                            if(theme==='medieval')await reviewMedieval();
+                            else if(theme==='industrial')await reviewIndustrial();
+                        }catch(error){
+                            // Construction is confirmed, but a later read is
+                            // not. Keep the last confirmed data marked stale,
+                            // offer explicit read-only recovery, and surface
+                            // the actual failure rather than claiming success.
+                            stale=true;campaignStale=true;sceneReadFailed=true;
+                            renderHud();renderWorkspace();renderSceneReload();
+                            throw error;
+                        }
                     }
                 });
             }finally{scheduleConstructionPoll();}

@@ -15,7 +15,7 @@ Ouvrir https://127.0.0.1:8443/play.html. Certificat autosigné de laboratoire, g
 | Industriel | industrial-alice | industrial-bob |
 | Guild Caravans | guild-alice | guild-bob |
 
-Mot de passe de démonstration commun : `aeternum-local-playtest-only`. Les six comptes sont provisionnés par CLI, pas par un contournement de l'inscription. L'inscription publique est désactivée. Le registre épingle médiéval et industriel à 0.3.0, Guild à 0.1.0 ; aucun fichier de règles n'est modifié. MariaDB reste sans port publié, HTTPS est publié uniquement sur 127.0.0.1:8443. Le worker traite chaque monde toutes les quelques secondes ; le joueur n'exécute pas de commande CLI. Les données persistent dans un volume Compose. Réservé à un poste isolé : ne jamais connecter de données réelles ni changer le bind en 0.0.0.0.
+Mot de passe de démonstration commun : consultez la configuration jetable dans `compose.lab.yml` du dépôt source (non fournie dans le paquet de distribution). Les six comptes sont provisionnés par CLI, pas par un contournement de l'inscription. L'inscription publique est désactivée. Le registre épingle médiéval et industriel à 0.3.0, Guild à 0.1.0 ; aucun fichier de règles n'est modifié. MariaDB reste sans port publié, HTTPS est publié uniquement sur 127.0.0.1:8443. Le worker traite chaque monde toutes les quelques secondes ; le joueur n'exécute pas de commande CLI. Les données persistent dans un volume Compose. Réservé à un poste isolé : ne jamais connecter de données réelles ni changer le bind en 0.0.0.0.
 
 ```bash
 docker compose -f compose.lab.yml logs -f worker

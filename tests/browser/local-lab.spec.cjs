@@ -8,6 +8,17 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
         const context=await browser.newContext({ignoreHTTPSErrors:true,hasTouch:true});
         try{
             const page=await context.newPage();
+            // Retain only stable response categories, never URL account
+            // identifiers, authorization, payload or private state.
+            page.on('response',async response=>{
+                if(![409,429,503].includes(response.status())||!response.url().includes('/v1/'))return;
+                try{
+                    const body=await response.json();
+                    const category=response.url().includes('/economy/overview/')?'overview':
+                        response.url().includes('/economy/commands')?'command':'other';
+                    console.log('G08 response '+pack+' '+category+' '+response.status()+' retryable='+(body.retryable===true));
+                }catch{}
+            });
             const artResponse=page.waitForResponse(r=>r.url()===origin+'/living-art.js');
             const audioResponse=page.waitForResponse(r=>r.url()===origin+'/game-audio.js');
             const tutorialResponse=page.waitForResponse(r=>r.url()===origin+'/game-tutorial.js');

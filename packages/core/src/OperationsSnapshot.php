@@ -22,8 +22,9 @@ final class OperationsSnapshot
     }
 
     /** @return array<string,mixed> */
-    public function snapshot(array $configuredWorlds): array
+    public function snapshot(array $configuredWorlds,array $approvedRules=[]): array
     {
+        WorldRuntime::assertBindings($configuredWorlds,$approvedRules);
         if ($this->pdo->inTransaction()) throw new \LogicException('Snapshot within transaction');
         if (count($configuredWorlds)>32) throw new \InvalidArgumentException('Too many configured worlds');
         $now=$this->clock->now();
@@ -49,9 +50,10 @@ final class OperationsSnapshot
                 || !preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$id)
                 || !$pack instanceof GamePack)
                 throw new \InvalidArgumentException('Invalid approved world');
-            $world=$this->statement('SELECT 1 FROM engine_worlds WHERE world_id=?',[$id])->fetchColumn()!==false;
-            if (!$world) {
-                $worlds[]=['world'=>$id,'initialized'=>false,'dueEvents'=>0,
+            $key=$this->statement('SELECT rules_key FROM engine_worlds WHERE world_id=?',[$id])->fetchColumn();
+            $verified=$key!==false&&hash_equals(($approvedRules[$id]??$pack->rules())->key,(string)$key);
+            if ($key===false) {
+                $worlds[]=['world'=>$id,'initialized'=>false,'rulesVerified'=>false,'dueEvents'=>0,
                     'dueEventsCapped'=>false,'oldestDueSeconds'=>null,'outboxPending'=>0];
                 continue;
             }
@@ -63,7 +65,7 @@ final class OperationsSnapshot
             $pending=$this->bounded('SELECT journal_no FROM engine_outbox
                 WHERE world_id=? AND delivered_at IS NULL LIMIT 10001',[$id]);
             $worlds[]=[
-                'world'=>$id,'initialized'=>true,
+                'world'=>$id,'initialized'=>true,'rulesVerified'=>$verified,
                 'dueEvents'=>min($due,self::CAP),
                 'dueEventsCapped'=>$due>self::CAP,
                 'oldestDueSeconds'=>$oldest===null?null:max(0,$now-(int)$oldest),
@@ -89,6 +91,7 @@ final class OperationsSnapshot
             'pendingOnboardingCapped'=>$pendingOnboarding>self::CAP,
             'worlds'=>$worlds,
             'healthy'=>$schemaGood && $worlds!==[] && !in_array(false,array_column($worlds,'initialized'),true)
+                && !in_array(false,array_column($worlds,'rulesVerified'),true)
         ];
     }
 

@@ -27,6 +27,8 @@ final class OperationsAlerts
                 $alerts[]=['code'=>'world_uninitialized','world'=>$world];
                 continue;
             }
+            if (($row['rulesVerified']??true)!==true)
+                $alerts[]=['code'=>'world_rules_mismatch','world'=>$world];
             // Never turn a malformed or incomplete monitoring snapshot into
             // a reassuring green result. Validate numeric values before use:
             // casts such as (int)'broken' would silently turn an outage into 0.

@@ -14,12 +14,16 @@ CREDS="$(printenv M11_CREDENTIALS_FILE || true)"
 DB="$(printenv M11_SOURCE_DATABASE || true)"
 [[ "$CREDS" == /* && -f "$CREDS" && ! -L "$CREDS" && "$DB" =~ ^[a-zA-Z][a-zA-Z0-9_]{0,63}$ ]] ||
   { echo 'Invalid private option file or database name' >&2; exit 2; }
+CREDS="$(realpath "$CREDS")"
+[[ "$CREDS" != "$ROOT/public/"* ]] || { echo 'Public credential file forbidden' >&2; exit 2; }
 mode="$(stat -c '%a' "$CREDS")"
 (( (8#$mode & 077) == 0 )) || { echo 'Database option file too permissive' >&2; exit 2; }
 mkdir -p -m 700 -- "$1"
 DEST="$(cd "$1" && pwd -P)"
 [[ "$DEST/" != "$ROOT/public/"* && "$DEST" != "$ROOT/public" ]] ||
   { echo 'Backup inside public document root forbidden' >&2; exit 2; }
+mode="$(stat -c '%a' "$DEST")"
+(( (8#$mode & 077) == 0 )) || { echo 'Backup destination too permissive' >&2; exit 2; }
 WORK="$(mktemp -d "$DEST/.m11-dump.XXXXXXXX")"
 trap 'rm -rf -- "$WORK"' EXIT
 BASENAME="aeternum-$(date -u +%Y%m%dT%H%M%SZ)-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n').sql.gz"
