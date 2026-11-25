@@ -74,8 +74,7 @@ lectures, mais le JSON canonique et le verrou mondial subsistent pour
 l'ordonnancement des écritures, les mutations et le rejeu. Leur
 suppression complète, les verrous ciblés par compte et une mesure de
 capacité représentative exigent une nouvelle phase de travail.
-Les épreuves CI sur MariaDB/Chromium sont nécessaires. Une CI verte
-n'est pas une preuve de migration ou de sauvegarde sur O2Switch/VPS.
+Les épreuves CI sur MariaDB/Chromium sont nécessaires ; conserver les preuves de migration et de sauvegarde.
 
 ## Format compact des reçus M03
 
@@ -121,8 +120,7 @@ Les tests à quatre processus vérifient des commandes d'acteurs distincts
 avec verrouillage concurrent, et le replay reconstitue leur ordre final.
 **Limite :** les commits conservent un court point de sérialisation mondial
 pour préserver un journal unique ; le snapshot JSON complet est encore
-matérialisé. La montée en charge longue durée et les conditions réelles
-O2Switch/VPS ne sont pas réputées vérifiées par la seule CI.
+matérialisé. La montée en charge longue durée fait partie de la recette de capacité.
 
 ## Épreuve de contention reproductible
 
