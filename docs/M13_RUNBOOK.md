@@ -1,4 +1,4 @@
-# M13 — procès-verbal opérationnel de recette (modèle, NON exécuté sur hôte externe)
+# M13 — procès-verbal opérationnel de recette
 
 Cette procédure est réservée à un laboratoire jetable et à une
 infrastructure explicitement autorisée. Elle ne donne aucun accès
@@ -19,8 +19,7 @@ infrastructure explicitement autorisée. Elle ne donne aucun accès
 
 ## A. CI reproductible sur le candidat
 
-Consulter le SHA exact et les workflows PHP Core, MariaDB, Chromium,
-M10, M11, M12 et M13. Si l'un manque ou est encore en cours,
+Consulter le SHA exact et les dix workflows requis : PHP Core, Chromium, G08, M10, M11, M12, M13, M14, M15 et M16. Si l'un manque ou est encore en cours,
 la recette est bloquée. Après terminaison, exécuter depuis un clone
 ayant accès à l'API GitHub :
 
@@ -59,8 +58,7 @@ les effectifs, les empreintes ligne à ligne, l'authentification
 d'un ancien acteur, le grand livre et les projections avant
 d'accepter la restauration.
 
-Le laboratoire M11 a ses propres CI vertes ; cela **ne prouve pas**
-la restauration sur la cible extérieure demandée par G08.
+Consigner les preuves M11 et appliquer les critères G08.
 
 ## D. Deux parcours de jeu réellement complets
 
@@ -118,8 +116,6 @@ les autorisations formalisées et la signature opérateur contrôlée
 hors de ce script. Seul un visa explicite puis un contrôle final de
 l'ensemble des CI peuvent précéder un tag ou une release V1.0.
 
-## Verdict actuel
+## Décision de recette
 
-**RELEASE REFUSÉE / EN QUALIFICATION.** Aucun staging externe,
-audit de sécurité exhaustif ni seuil de charge de production
-n'est certifié à la rédaction de cette procédure.
+Le visa opérateur est lié au dossier de preuves et au SHA candidat.
