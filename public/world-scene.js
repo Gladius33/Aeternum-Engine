@@ -509,7 +509,7 @@
         const root=html('div',workspace,'scene-workshop');
         return {root,title:html('h4',root,'scene-holdings-title'),body:html('div',root,'scene-workshop-body')};
     };
-    const inventoryBlock=block(),workshop=block(),objectiveBlock=block(),tradeBlock=block(),receiptBlock=block();
+    const inventoryBlock=block(),workshop=block(),objectiveBlock=block(),tradeBlock=block(),receiptBlock=block(),relationsBlock=block();
     const playActions=html('section',host,'domain-actions');playActions.hidden=true;
     playActions.setAttribute('aria-labelledby','domain-actions-title');
     const playTitle=html('h3',playActions,'');playTitle.id='domain-actions-title';
@@ -1041,7 +1041,7 @@
         }
         workspace.querySelectorAll('[data-label]').forEach(b=>b.textContent=t(b.dataset.label));
         renderPlayActions();
-        renderMission();
+        renderMission();renderRelations();
     }
     // Large illustrated district. No fake structures or invented simulation entities.
     // Display positions are presentation slots, not server world coordinates.
@@ -1402,7 +1402,7 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{resetTutorial();atlasGate.invalidate();districtGate.invalidate();holdingGate.invalidate();botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');audio.reset();audio.setTheme(theme);soundVisibility();soundSeen.clear();soundVictory=false;reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{relationsTab='alliances';resetTutorial();atlasGate.invalidate();districtGate.invalidate();holdingGate.invalidate();botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');audio.reset();audio.setTheme(theme);soundVisibility();soundSeen.clear();soundVictory=false;reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();clearAtlasRoute();selected=null;}for(const n of d.territories)territories.set(n.id,n);render();queueMicrotask(renderAtlasPanel);});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];routeCost=d?.cost??null;routeRead=true;render();});
@@ -1410,6 +1410,7 @@
     on('building',d=>{buildings.set(d.id,d);details.set(d.id,d);render();});
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
     on('campaign',d=>{if(d.kind==='progression'){scoreReading=d.data;if(theme==='guild')campaign=d;}else {campaign=d;const won=d.data?.victory?.achieved===true;if(won&&!soundVictory&&campaignStale)audio.cue('campaign.victory');soundVictory=won;}campaignStale=false;renderHud();renderWorkspace();renderDistrict();});
+    on('social-contact',d=>{if(classic||busy||d.world!==locationFields().world||!['message','block'].includes(d.kind)||typeof d.actor!=='string')return;relationsTab=d.kind==='message'?'messages':'safety';renderRelations();focusNode(relationsBlock.root);const input=document.getElementById(d.kind==='message'?'social-recipient':'social-block-target');input.value=d.actor;input.focus({preventScroll:true});});
     on('rank',d=>{const f=locationFields();if(d.world!==f.world||d.account!==f.account)return;rankReading=d.data;renderWorkspace();});
     on('trade-history',d=>{const f=locationFields();if(d.transactions!==null&&(d.world!==f.world||d.account!==f.account))return;tradeHistory=d.transactions;tradeHistoryMore=d.more===true;renderCommerce();});
     on('market-snapshot',d=>{marketReading=d.count;offers=d.offers??[];offerMore=d.more===true;chosenOffer='';renderHud();renderWorkspace();renderDistrict();updateSelection();});
@@ -1421,7 +1422,7 @@
         if(economicJournal.record(d,context)){lastEconomicEvent={id:d.id,type:d.type};selectedOperationId=d.id;}
         if(d.type==='building.place')referenceInput.value='';campaignStale=true;rankReading=null;reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();renderSound();renderTutorial();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load]'))b.disabled=false;}});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();renderSound();renderTutorial();renderRelations();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load]'))b.disabled=false;}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();if(!classic&&!districtMode&&selected?.type==='territory')centerAtlas(selected.id);});
     document.getElementById('map-location').addEventListener('input',updateSelection);
@@ -1464,7 +1465,79 @@
             select.parentElement.hidden=Boolean(selectedGame&&key!=='resource'&&original.options.length<=1);
         }
     }
-    const panels=new Map([['holdings',holdingList],['construction',workshop.root],['reserves',inventoryBlock.root],['objectives',objectiveBlock.root],['market',tradeBlock.root],['activity',receiptBlock.root]]);
+    // G23: relocate, never duplicate, the original authenticated social
+    // forms. All authorization, validation, rate limits and mutations remain
+    // in their original API handlers. Classic mode retains its exact DOM.
+    let relationsTab='alliances';
+    const relationTabs=new Map(),relationViews=new Map();
+    let relationsTitle=null,relationsDescription=null,relationsArt=null,relationsArtTheme=null;
+    function setupRelations(){
+        relationsBlock.root.hidden=classic;
+        if(classic)return;
+        const root=relationsBlock.body;
+        const header=html('div',root,'relations-header');
+        relationsArt=el('svg',{viewBox:'0 0 480 130','aria-hidden':'true',class:'relations-art'},header);
+        relationsTitle=html('h3',header,'');
+        relationsDescription=html('p',header,'relations-note');
+        const nav=html('div',root,'relations-tabs');nav.setAttribute('role','group');
+        const alliances=document.getElementById('social-panel'),mail=document.getElementById('social-mail-panel');
+        const add=(key,section)=>{
+            const button=html('button',nav,'scene-button');button.type='button';button.dataset.relationsTab=key;
+            const view=html('div',root,'relations-view');view.dataset.relationsView=key;view.append(section);
+            relationTabs.set(key,button);relationViews.set(key,view);
+            button.addEventListener('click',()=>{if(!busy){relationsTab=key;renderRelations();}});
+            return view;
+        };
+        add('alliances',alliances);
+        // Preserve the mail section and its existing status. Group its
+        // direct children by purpose without changing form or element IDs.
+        const inbox=document.createElement('section'),safety=document.createElement('section'),standing=document.createElement('section');
+        inbox.className=safety.className=standing.className='relations-section';
+        const move=(target,ids)=>{for(const id of ids)target.append(document.getElementById(id));};
+        move(inbox,['social-send-form','social-messages-refresh','social-messages-list','social-messages-next']);
+        move(safety,['social-block-form','social-blocks-refresh','social-block-list','social-blocks-next','social-report-form']);
+        move(standing,['social-leaderboard-refresh','social-leaderboard-list','social-leaderboard-next']);
+        // The notification label is a direct sibling, not part of a form.
+        const notificationLabel=mail.querySelector('label[for=social-notification-id]');
+        move(inbox,['social-notifications-refresh']);inbox.append(notificationLabel);
+        move(inbox,['social-notification-id','social-notification-read','social-notifications-list','social-notifications-next']);
+        const status=document.getElementById('social-mail-notice');root.append(status);
+        mail.hidden=true;
+        add('messages',inbox);add('safety',safety);add('standing',standing);
+        for(const [section,en,frText] of [[inbox,'Messages and notifications','Messages et notifications'],[safety,'Player safety','Protection des joueurs'],[standing,'Alliance leaderboard','Classement des alliances']]){const heading=document.createElement('h2');heading.dataset.relationsEn=en;heading.dataset.relationsFr=frText;section.prepend(heading);}
+        // Keep the original report flow: a message can open moderation with
+        // the exact selected message ID, not a guessed or retyped identifier.
+        inbox.addEventListener('click',e=>{
+            if(e.target.closest('[data-social-report]')){
+                relationsTab='safety';renderRelations();
+                document.getElementById('social-report-reason').focus();
+            }
+        });
+        // Explicitly clear privately typed drafts when the context changes.
+        document.getElementById('social-role-choice').dataset.relationsRole='true';
+    }
+    function renderRelations(){
+        if(classic||!relationsTitle)return;
+        const fr=lang()==='fr',label=(en,f)=>fr?f:en;
+        relationsBlock.root.hidden=!locationFields().world;
+        relationsBlock.title.textContent=label('Relations','Relations');
+        relationsTitle.textContent={medieval:label('Council of the realm','Conseil du royaume'),industrial:label('Industrial consortium','Consortium industriel'),guild:label('Merchant council','Conseil des marchands')}[theme]??label('Player relations','Relations entre joueurs');
+        relationsDescription.textContent=label('Alliances, private correspondence and world-scoped diplomacy. Use a known player identifier for invitations or messages. Member and message records provide contact shortcuts. The server checks every permission.','Alliances, correspondance privée et diplomatie à l’échelle du monde. Utilisez un identifiant de joueur connu pour les invitations ou les messages. Les membres et messages fournissent des raccourcis de contact. Le serveur contrôle chaque autorisation.');
+        if(relationsArtTheme!==theme){
+            relationsArt.replaceChildren();window.AeternumLivingArt.marketHall(relationsArt,theme);relationsArtTheme=theme;
+        }
+        const names={alliances:label('Alliances','Alliances'),messages:label('Correspondence','Correspondance'),safety:label('Safety & reports','Blocages et signalements'),standing:label('Alliance ranking','Classement des alliances')};
+        for(const [key,button] of relationTabs){
+            button.textContent=names[key];button.setAttribute('aria-pressed',String(relationsTab===key));
+            button.disabled=busy;relationViews.get(key).hidden=relationsTab!==key;
+        }
+        for(const heading of relationsBlock.body.querySelectorAll('[data-relations-en]'))heading.textContent=fr?heading.dataset.relationsFr:heading.dataset.relationsEn;
+        for(const option of document.getElementById('social-role-choice').options){
+            option.textContent=option.value==='officer'?label('Officer','Officier'):label('Member','Membre');
+        }
+    }
+    const panels=new Map([['holdings',holdingList],['construction',workshop.root],['reserves',inventoryBlock.root],['objectives',objectiveBlock.root],['market',tradeBlock.root],['activity',receiptBlock.root],['relations',relationsBlock.root]]);
+    setupRelations();
     for(const [key,node] of panels)node.dataset.workspacePanel=key;
     holdingTitle.dataset.workspacePanel='holdings';
     function revealPanel(key){host.dataset.workspace=key;for(const button of host.querySelectorAll('[data-game-nav]'))button.setAttribute('aria-pressed',String(button.dataset.gameNav===key));}
@@ -1630,7 +1703,7 @@
     }
     const ui=window.AeternumGameUI.create({host,profile:window.AeternumUIProfiles[theme],locale:lang(),
         slots:{introduction:[mission,tutorial],resources:[hud],context:[contextControls,soundPanel],stage:[districtBar,svg,atlasPanel,districtSvg,districtCaption,ambiencePanel,districtCommand,architecturalInspector,livingScene,hint,toolbar,playActions],side:[panel,nav],lower:[holdingTitle,holdingList,workspace]},
-        actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>{focusNode(objectiveBlock.root);if(theme==='guild'&&!busy&&!document.getElementById('progression-panel').hidden)document.getElementById('progression-load').click();},market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root)}
+        actions:{domain:()=>showDistrict(true),atlas:()=>showDistrict(false),holdings:()=>focusNode(holdingList),construction:()=>focusNode(workshop.root),reserves:()=>focusNode(inventoryBlock.root),objectives:()=>{focusNode(objectiveBlock.root);if(theme==='guild'&&!busy&&!document.getElementById('progression-panel').hidden)document.getElementById('progression-load').click();},market:()=>{focusNode(tradeBlock.root);if(!busy)document.getElementById('market-load').click();},activity:()=>focusNode(receiptBlock.root),relations:()=>{renderRelations();focusNode(relationsBlock.root);}}
     });
     header.hidden=true;
     if(!classic)revealPanel('domain');
@@ -1661,7 +1734,7 @@
     document.getElementById('locale-select').addEventListener('change',refreshShell);
     for(const key of Object.keys(mirrors))balance.elements[key].addEventListener('change',syncMirrors);
     // Existing Vue navigation opens the relevant advanced controls when requested.
-    document.addEventListener('click',e=>{const link=e.target.closest?.('.player-nav a');if(link&&link.hash&&legacy.contains(document.getElementById(link.hash.slice(1))))legacy.open=true;});
+    document.addEventListener('click',e=>{const link=e.target.closest?.('.player-nav a');if(link&&link.hash){const target=document.getElementById(link.hash.slice(1));if(!classic&&['social-panel','social-mail-panel'].includes(target?.id)){e.preventDefault();relationsTab=target.id==='social-panel'?'alliances':'messages';renderRelations();focusNode(relationsBlock.root);}else if(legacy.contains(target))legacy.open=true;}});
     // Refresh only while a visible, authenticated player has a confirmed pending
     // construction. No local completion, no mutation, and no background requests.
     let constructionPoll=null;

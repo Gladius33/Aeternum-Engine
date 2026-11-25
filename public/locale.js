@@ -229,6 +229,9 @@
     ["Only the newest 50 notifications are visible.","Seules les 50 notifications les plus récentes sont affichées."],
     ["Only the top 50 alliances are shown.","Seules les 50 premières alliances sont affichées."],
     ["Report submitted to moderation.","Signalement transmis à la modération."],
+    ["Player safety","Protection des joueurs"],
+    ["Write to this player","Écrire à ce joueur"],
+    ["Block this player","Bloquer ce joueur"],
     ['Never expires','Sans expiration']
   ];
   const toFr = new Map(entries), toEn = new Map(entries.map(([a,b])=>[b,a]));

@@ -4,8 +4,8 @@ const origin='http://127.0.0.1:8765';
 const pass='browser-only test password';
 const world='e2e-medieval';
 const root=origin+'/v1/worlds/'+world+'/social';
-async function signin(page,login) {
-  await page.goto(origin+'/play.html?view=classic');
+async function signin(page,login,modern=false) {
+  await page.goto(origin+'/play.html'+(modern?'':'?view=classic'));
   await page.getByLabel('Login',{exact:true}).fill(login);
   await page.getByLabel('Password',{exact:true}).fill(pass);
   for(let attempt=0;attempt<3;attempt++) {
@@ -240,4 +240,84 @@ test('M09 real Chromium: world-scoped alliance invite, role, transfer and logout
   await owner.getByRole('button',{name:'Inspect my alliance'}).click();
   await expect(owner.locator('#social-member-list')).toContainText(ownerActor+' — member');
   await owner.close();await member.close();
+});
+
+test('G23 real modern multiplayer: bilingual council, private mail, invitations and safety',async({browser})=>{
+  test.setTimeout(250000);
+  const a=await browser.newPage(),b=await browser.newPage();
+  try{
+    a.setDefaultTimeout(20000);b.setDefaultTimeout(20000);
+    const alice=await signin(a,'browser-social-owner',true);
+    const bob=await signin(b,'browser-social-member',true);
+    for(const page of [a,b]){
+      await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+      await page.locator('[data-game-nav=relations]').click();
+      await expect(page.locator('[data-workspace-panel=relations]')).toBeVisible();
+      await expect(page.locator('#social-create')).toHaveCount(1);
+      await expect(page.locator('#social-panel')).toBeVisible();
+      await expect(page.locator('.game-ui-legacy')).not.toHaveAttribute('open','');
+      await expect(page.locator('[data-relations-tab]')).toHaveCount(4);
+    }
+    await a.locator('#social-new-id').fill('g23-browser-crew');
+    await a.locator('#social-new-name').fill('G23 council <img src=x>');
+    const created=a.waitForResponse(r=>r.url()===root+'/alliances'&&r.request().method()==='POST');
+    await a.locator('#social-create button[type=submit]').click();
+    expect((await created).status()).toBe(200);
+    await expect(a.locator('#social-member-list')).toContainText(alice);
+    await a.locator('#social-invite-actor').fill(bob);
+    const invited=a.waitForResponse(r=>r.url()===root+'/alliances/g23-browser-crew/invite');
+    await a.locator('#social-invite-form button').click();
+    expect((await invited).status()).toBe(200);
+    await b.locator('#locale-select').selectOption('fr');
+    // The pinned legacy medieval pack has no settlement module: neutral presentation is intentional.
+    await expect(b.locator('.relations-header h3')).toHaveText('Relations entre joueurs');
+    await b.locator('#social-inbox-load').click();
+    await b.locator('#social-inbox').selectOption('g23-browser-crew');
+    const accepted=b.waitForResponse(r=>r.url()===root+'/alliances/g23-browser-crew/respond');
+    await b.locator('#social-accept').click();
+    expect((await accepted).status()).toBe(200);
+    await expect(b.locator('#social-member-list')).toContainText(bob+' — membre');
+    await expect(b.locator('#social-member-list')).toContainText(alice+' — propriétaire');
+    const contact=b.locator('#social-member-list li').filter({hasText:alice}).locator('[data-social-contact=message]');
+    await contact.click();
+    await expect(b.locator('[data-relations-view=messages]')).toBeVisible();
+    await expect(b.locator('#social-recipient')).toHaveValue(alice);
+    await b.locator('#social-message-text').fill('G23 Bonjour <script>literal</script>');
+    const sent=b.waitForResponse(r=>r.url()===root+'/messages'&&r.request().method()==='POST');
+    await b.locator('#social-send-form button').click();
+    expect((await sent).status()).toBe(200);
+    await a.locator('[data-relations-tab=messages]').click();
+    await a.locator('#social-messages-refresh').click();
+    const message=a.locator('#social-messages-list li').filter({hasText:'G23 Bonjour'});
+    await expect(message).toContainText('<script>literal</script>');
+    await expect(message.locator('script')).toHaveCount(0);
+    await message.locator('[data-social-contact=block]').click();
+    await expect(a.locator('[data-relations-view=safety]')).toBeVisible();
+    await expect(a.locator('#social-block-target')).toHaveValue(bob);
+    const blocked=a.waitForResponse(r=>r.url()===root+'/blocks'&&r.request().method()==='POST');
+    await a.locator('#social-block-form button[type=submit]').click();
+    expect((await blocked).status()).toBe(200);
+    await expect(a.locator('#social-block-list')).toContainText(bob);
+    await a.locator('#social-unblock').click();
+    await expect(a.locator('#social-block-list')).not.toContainText(bob);
+    await a.locator('[data-relations-tab=messages]').click();
+    await expect(message).toBeVisible();
+    await message.locator('[data-social-report]').click();
+    await expect(a.locator('[data-relations-view=safety]')).toBeVisible();
+    await expect(a.locator('#social-report-id')).not.toHaveValue('');
+    await b.locator('[data-relations-tab=standing]').click();
+    await b.locator('#social-leaderboard-refresh').click();
+    await expect(b.locator('#social-leaderboard-list')).toContainText('membre(s) actif(s)');
+    await b.setViewportSize({width:390,height:844});
+    expect(await b.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await b.locator('[data-workspace-panel=relations]').screenshot({path:'browser-captures/g23-council-fr-mobile.png',animations:'disabled'});
+    await a.locator('[data-relations-tab=messages]').click();
+    await a.locator('#social-message-text').fill('private unsent draft');
+    await a.locator('#social-recipient').fill(bob);
+    await a.locator('[data-game-exit]').click();
+    await expect(a.locator('#login')).toBeVisible();
+    await expect(a.locator('#social-message-text')).toHaveValue('');
+    await expect(a.locator('#social-recipient')).toHaveValue('');
+    await expect(a.locator('#social-messages-list li')).toHaveCount(0);
+  }finally{await Promise.allSettled([a.close(),b.close()]);}
 });
