@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{ConfiguredWorlds,PdoScheduler,SystemClock,PdoEconomyProjection};
+use Aeternum\Core\{WorldRuntime,PdoScheduler,SystemClock,PdoEconomyProjection};
 if (PHP_SAPI!=='cli') {http_response_code(404);exit(1);}
 try {
     require __DIR__.'/../vendor/autoload.php';
@@ -16,7 +16,7 @@ try {
     $pdo=new PDO($dsn,getenv('AETERNUM_DB_USER')?:'',getenv('AETERNUM_DB_PASSWORD')?:'',
         [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
     $pdo->exec('SET SESSION innodb_lock_wait_timeout=3');
-    $rules=$pack->rules();
+    $rules=$runtime->rule($world);
     $scheduler=new PdoScheduler($pdo,$world,new SystemClock(),$rules);
     $report=$scheduler->materialize();
     $replay=$scheduler->verifyReplay($rules->commands,$rules->events,100000);
