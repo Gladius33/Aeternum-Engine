@@ -15,7 +15,7 @@
 | Diagnostics | Structured low-cardinality API error category, no raw SQL, exception message, credentials or request payload returned |
 | Supply chain | Locked npm audit at high severity, CycloneDX client dependency inventory, declared PHP runtime inventory; no PHP package dependency accepted silently |
 
-The HTTP request policy runs before database setup. It is defense in depth,
+Handled PHP diagnostics are converted to generic errors at the HTTP boundary; server access logs and uncatchable engine-level failures retain their own operational policy. The HTTP request policy runs before database setup. It is defense in depth,
 not a substitute for authorization. Native clients may omit Fetch Metadata;
 browser cross-origin requests are denied and no CORS grants are emitted.
 The approved API uses application/json (optional UTF-8 charset); bodyless
@@ -31,7 +31,7 @@ Transient SQL lock timeout, deadlock and connection loss are classified as
 503 with retryable indication and no raw exception. The client automatically
 retries GET and exact durable economy command IDs only; authentication,
 password/recovery and other writes are not automatically repeated. A lost
-response is not proof of rollback; reconcile using original command identity.
+response is not proof of rollback; reconcile using original command identity. A retryable due barrier also preserves the pending client command after its bounded automatic attempts.
 
 ## Real fault-injection acceptance
 

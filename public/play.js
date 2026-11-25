@@ -638,7 +638,7 @@ async function sendPending() {
         pending=null;
         window.dispatchEvent(new CustomEvent('aeternum:confirmed', {detail:{type:saved.body.type,world:saved.world,account:saved.account,id:saved.body.id}}));
     }
-    catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
+    catch(e) { if (!e.retryable && [400,401,404,409,413,415].includes(e.status)) pending=null; throw e; }
     finally { syncPendingRetry(); }
 }
 async function submitCommand(f,type,payload) {

@@ -8,6 +8,11 @@ require_once __DIR__.'/../packages/core/src/ApiRequestSecurity.php';
 require_once __DIR__.'/../packages/core/src/ApiErrorPolicy.php';
 // Never permit PHP warning/stack output to corrupt JSON or expose secrets.
 ini_set('display_errors','0');
+set_error_handler(static function(int $severity): bool {
+    if ((error_reporting() & $severity)===0) return true;
+    // Route handled diagnostics through the same redacted exception policy.
+    throw new ErrorException('PHP request diagnostic',0,$severity);
+});
 \Aeternum\Core\ApiResponseSecurity::emit(in_array($_SERVER['HTTPS'] ?? '', ['on','1'], true));
 try {
     // Deny plaintext before loading Composer or connecting to a database.
@@ -15,6 +20,7 @@ try {
     if (!in_array($_SERVER['HTTPS'] ?? '',['on','1'],true)) {
         $status=403; $body=['error'=>'https_required'];
     } elseif (($rejection=ApiRequestSecurity::reject($_SERVER))!==null) {
+        $path=is_string($_SERVER['REQUEST_URI']??null)?explode('?',$_SERVER['REQUEST_URI'],2)[0]:'';
         [$status,$body]=$rejection;
     } else {
         require __DIR__.'/../vendor/autoload.php';

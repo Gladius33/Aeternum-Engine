@@ -260,7 +260,7 @@ try {
     $response=file_get_contents('http://'.$address.$path,false,$context);
     check(is_string($response)&&str_contains($http_response_header[0]??'',' 200 '),'F03 reconnect recovers committed HTTP receipt');
     $receipt=json_decode($response,true,8,JSON_THROW_ON_ERROR);
-    check(($receipt['data']['id']??null)==='lost-reply' || ($receipt['data']['requestId']??null)==='lost-reply','F03 response names original request');
+    check(($receipt['data']['requestId']??null)==='lost-reply' && array_keys($receipt['data'])===['requestId','effectiveAt','scheduledIds'],'F03 response names original request without exposing world state');
     check($fingerprint()===$snapshot,'F03 recovered HTTP receipt does not repeat effects');
     // Same live HTTPS-equivalent ingress rejects browser cross-site and forms
     // before any database connection or mutation.
