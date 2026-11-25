@@ -51,15 +51,17 @@ use Aeternum\Core\{ActorPackCommand,ApprovedPackEvent,Command,CommandResult,Econ
         }
     };
     $world='m14-event-world';
-    $rules=TrustedWorldRules::bind([$world=>$pack],[$world=>[$commands]],[$world=>[$events]])[$world];
+    $runtime=new \Aeternum\Core\WorldRuntime([$world=>$pack],[$world=>[$commands]],[$world=>[$events]]);
+    $rules=$runtime->rule($world);
     $clock=new FrozenClock(9200);
     $pdo=db();
-    $actor=(new PdoIdentity($pdo))->register('m14-event-player','m14 event player long test password');
-    (new PlayerProvisioner($pdo,$clock))->provision($world,$actor,$pack,$rules);
+    $claim=(new \Aeternum\Core\PdoOnboarding($pdo,$clock))->enroll($world,$runtime->pack($world),'m14-event-player','m14 event player long test password',null,$rules);
+    $actor=$claim['actor'];
+    check($claim['created']===true,'F01 onboarding uses the exact extended world composition');
     $token=(new PdoSessions($pdo,$clock))->login('m14-event-player','m14 event player long test password');
     check(is_string($token) && strlen($token)===64,
         'M14 delayed third-pack actor can authenticate after approved provisioning');
-    $api=new EconomyHttpApi($pdo,$clock,[$world=>$rules]);
+    $api=new EconomyHttpApi($pdo,$clock,$runtime->rules);
     $path='/v1/worlds/'.$world.'/economy/commands';
     $body=json_encode(['id'=>'m14-delayed-train','type'=>'pack.guild.train',
         'payload'=>['account'=>$actor,'units'=>3]],JSON_THROW_ON_ERROR);
