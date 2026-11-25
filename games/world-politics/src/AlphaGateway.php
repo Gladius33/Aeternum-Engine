@@ -182,7 +182,7 @@ final class AlphaGateway
             }
             if($method==='GET'&&$suffix==='/countries/FR/finance'&&$scenario->id===AlphaScenario::FINANCE){
                 $r=(new PdoInstitutionalStore($this->db(),$principal))->read($world,'FR');
-                $dr=(new PdoDomesticPolicyStore($this->db(),new AlphaDomesticPrincipal($session,$world)))->read($world);
+                $dr=(new PdoDomesticPolicyStore($this->db(),new AlphaDomesticPrincipal($session,$world,$this->db())))->read($world);
                 $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);$c=$q->fetch(\PDO::FETCH_ASSOC);
                 if($c===false||$c['pending_day']!==null||$c['committed_day']!==$r['state']['day']||$c['committed_day']!==$dr['state']['day'])throw new AlphaHttpError(409,'world_advancing');
                 $f=$r['state']['legislation']['finance'];
