@@ -173,6 +173,7 @@ require __DIR__ . "/m15-engagement-db.php";
 require __DIR__ . "/m15-truce-db.php";
 require __DIR__ . "/f01-sdk-db.php";
 require __DIR__ . "/m16-bots-db.php";
+require __DIR__ . "/f04-campaign-db.php";
 require __DIR__ . "/actors.php";
 require __DIR__ . "/entities.php";
 require __DIR__ . "/m04-territories.php";

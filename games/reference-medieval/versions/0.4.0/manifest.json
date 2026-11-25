@@ -176,6 +176,23 @@
         "job": "string",
         "level": "integer"
       }
+    },
+    {
+      "type": "building.complete",
+      "payload": {
+        "account": "string",
+        "building": "string",
+        "level": "integer",
+        "type": "string"
+      }
+    },
+    {
+      "type": "economy.upgrade.complete",
+      "payload": {
+        "account": "string",
+        "level": "integer",
+        "resource": "string"
+      }
     }
   ]
 }

@@ -813,7 +813,7 @@
             if(!response.ok)return;
             const data=await response.json(),rows=data.worlds?.[world];
             if(locationFields().world!==world||data.version!==1||!Array.isArray(rows)||rows.length!==10)return;
-            if(!rows.every(b=>/^Bot \d{2}$/.test(b.name)&&['builder','producer','merchant','balanced'].includes(b.profile)&&['ready','active','blocked','idle'].includes(b.status)&&Number.isSafeInteger(b.built)&&b.built>=0))return;
+            if(!rows.every(b=>/^Bot \d{2}$/.test(b.name)&&['builder','producer','merchant','balanced'].includes(b.profile)&&['ready','active','blocked','idle','paused'].includes(b.status)&&Number.isSafeInteger(b.built)&&b.built>=0))return;
             botReport={world,updatedAt:data.updatedAt,rows};renderHud();
         }catch{/* Missing lab roster is not a gameplay error. */}
     }
@@ -828,7 +828,7 @@
             for(const b of botReport.rows){
                 const row=html('div',roster,'scene-bot-row');row.dataset.botName=b.name;row.dataset.botStatus=b.status;row.dataset.botBuilt=String(b.built);
                 html('strong',row,'',b.name+' · '+t('bot'+b.profile[0].toUpperCase()+b.profile.slice(1)));
-                html('span',row,'',t('bot'+b.status[0].toUpperCase()+b.status.slice(1))+' · '+t('botBuilt')+': '+b.built);
+                html('span',row,'',(b.status==='paused'?(lang()==='fr'?'En pause':'Paused'):t('bot'+b.status[0].toUpperCase()+b.status.slice(1)))+' · '+t('botBuilt')+': '+b.built);
                 if(b.lastAction&&actionLabels[b.lastAction])html('small',row,'',actionLabels[b.lastAction][lang()==='fr'?1:0]);
             }
         }
@@ -906,7 +906,9 @@
             await readStages();
             if(theme==='medieval')await reviewMedieval();
             else if(theme==='industrial')await reviewIndustrial();
-            else if(!document.getElementById('progression-panel').hidden)await loadProgression();
+            else if(!document.getElementById('progression-panel').hidden){
+                try{await loadProgression();}catch(e){if(e.status!==404)throw e;scoreReading=null;}
+            }
             await loadCampaignModule();
         }));
         html('p',journal,'campaign-note',guild&&projection.guide?label('Suggested milestones, not an official victory campaign. No additional rewards are granted.','Jalons suggérés, sans condition de victoire officielle ni récompense supplémentaire.'):label('Chapters group the existing server victory objectives. Artwork illustrates goals; no new rules or rewards.','Les chapitres regroupent les objectifs de victoire existants du serveur. Le décor illustre les objectifs ; aucune règle ni récompense ajoutée.'));
@@ -933,7 +935,7 @@
             html('h5',body,'',copy[fr?1:0]);html('p',body,'',copy[fr?3:2]);
             for(const g of ch.goals){
                 const row=html('div',body,'campaign-goal');row.dataset.chapterGoal=g.key;row.dataset.goalState=g.state;
-                const title=g.kind==='population'?t('residents'):g.kind==='delivery'?t('freight'):displayName(g.key);
+                const title=g.kind==='population'?t('residents'):g.kind==='delivery'?t('freight'):g.kind==='trade'?label('Completed exchanges','Échanges achevés'):g.kind==='research'?label('Research','Recherche'):g.kind==='expedition'?label('Expeditions','Expéditions'):displayName(g.key);
                 html('span',row,'',title);html('strong',row,'',String(g.current??'—')+' / '+g.required);
                 const meter=html('progress',row,'scene-meter');meter.max=g.required;
                 if(g.current!==null)meter.value=Math.min(g.current,g.required);
@@ -944,6 +946,8 @@
                     go.disabled=busy;
                     go.addEventListener('click',()=>{
                         if(busy)return;
+                        if(g.kind==='trade'){revealPanel('market');return;}
+                        if(g.kind==='research'||g.kind==='expedition'){focusNode(journal.querySelector('[data-campaign-module]'));return;}
                         if(g.kind!=='building'){showDistrict(true);focusNode(playActions);return;}
                         const b=[...buildings.values()].filter(b=>b.type===g.key).sort((a,b)=>(details.get(b.id)?.level??-1)-(details.get(a.id)?.level??-1))[0];
                         if(b){districtId=b.territory;showDistrict(true);select('building',b.id);}
