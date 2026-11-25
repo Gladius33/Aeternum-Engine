@@ -236,3 +236,29 @@ local HTTPS; external target TLS remains an operator gate.
 The package and sanitized evidence are CI artifacts, not a public
 release. The independent M13 release acceptance and operator
 authorization are not bypassed.
+
+## Observed initial F06 package qualification
+
+Exact candidate `79fd2e71cbe43b81d1bb65e79aa06893625f8b7b`,
+[M11 run 45670981471](https://github.com/Gladius33/Aeternum-Engine/actions/runs/45670981471),
+job 139405841118, checkout `bb0a47a9cab20710b10fc454385e28b77ad3111b`.
+The extracted-package acceptance passed: fresh install, strict preflight,
+runtime DDL denied, 42 tables and 132 row fingerprints identical on
+restore, 13 replay entries, zero pending events, 6 projected balances,
+1 offer, 2 score rows, existing player login and test grant/revoke replay.
+The populated upgrade job also passed. These results apply to this
+specific initial candidate, not a subsequent SHA.
+
+G08 run 45670981532 failed in the industrial post-construction
+refresh (confirmed level 1, then a generic 409 status). The original
+log did not retain the response's retryable flag; its precise cause
+cannot be proven. A concrete client defect was identified: retryable
+409 responses on modern GET projections were not retried although the
+scheduler's world-wide due-event barrier applies to reads too. Bounded
+read retries now honor only the explicit retryable flag. Exhausted
+post-construction reads expose read-only reload and stale indicators.
+The regression injects a transport-level retryable response followed
+by a real server read, and verifies a terminal 409 is not retried.
+G08 diagnostics retain status categories and retryable flags, not
+private request fields. All ten workflows must pass on the corrected
+head before merging.

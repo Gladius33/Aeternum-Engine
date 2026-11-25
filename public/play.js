@@ -26,8 +26,11 @@ async function api(path, method='GET', data) {
         const durableCommand=method==='POST' && path.endsWith('/economy/commands')
             && typeof data?.id==='string' && data.id.length>0;
         const read=method==='GET';
+        // A modern read can encounter another player's due event between
+        // two projections. Only the explicit retryable server response
+        // permits a bounded retry; ordinary authorization/conflict does not.
         if(result.retryable!==true||attempt===3
-            || !(response.status===409&&selectedGame&&durableCommand
+            || !(response.status===409&&selectedGame&&(read||durableCommand)
                 || response.status===503&&(read||durableCommand)))break;
         await new Promise(resolve=>setTimeout(resolve,650*(attempt+1)));
     }

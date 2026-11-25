@@ -46,7 +46,14 @@ async function escrow(page,world,who,give,want){
     // resource to leave headroom even after a long preceding playtest.
     const base=origin+'/v1/worlds/'+world+'/economy/';
     const headers={Authorization:who.auth};
-    const stock=await page.request.get(base+'overview/'+who.actor+'/'+give,{headers});
+    let stock;
+    for(let attempt=0;attempt<8;attempt++){
+        stock=await page.request.get(base+'overview/'+who.actor+'/'+give,{headers});
+        if(stock.status()===200)break;
+        const failure=await stock.json();
+        expect([409,503]).toContain(stock.status());expect(failure.retryable).toBe(true);
+        if(attempt<7)await page.waitForTimeout(1000);
+    }
     expect(stock.status()).toBe(200);
     const balance=(await stock.json()).data;
     const units=Math.min(Math.floor(balance.stock/2),Math.floor(balance.capacity/4),450);
@@ -71,6 +78,39 @@ for(const [pack,give,want] of fixtures)test('F05 '+pack+' independent players, a
         expect(alice.actor).not.toBe(bob.actor);
         const world='lab-'+pack+'-f04',root=origin+'/v1/worlds/'+world;
         const command=root+'/economy/commands',social=root+'/social';
+        // Deterministic transport-level regression: emulate a single
+        // retryable due-event response, then require a real server read.
+        // The separate PHP suites exercise the actual due-event barrier.
+        const overview=root+'/economy/overview/'+alice.actor+'/'+give;
+        let reads=0;
+        const delayed=async route=>{
+            reads++;
+            if(reads===1){
+                await route.fulfill({status:409,contentType:'application/json',
+                    body:JSON.stringify({error:'command_or_access_conflict',retryable:true})});
+            }else await route.continue();
+        };
+        await a.route(overview,delayed);
+        try{
+            const current=await a.evaluate(path=>api(path),overview.slice(origin.length));
+            expect(Number.isSafeInteger(current.stock)).toBe(true);
+            expect(reads).toBeGreaterThanOrEqual(2);expect(reads).toBeLessThanOrEqual(4);
+        }finally{await a.unroute(overview,delayed);}
+        // A terminal conflict must never be treated as a transient one.
+        let terminalReads=0;
+        const denied=async route=>{
+            terminalReads++;
+            await route.fulfill({status:409,contentType:'application/json',
+                body:JSON.stringify({error:'command_or_access_conflict'})});
+        };
+        await a.route(overview,denied);
+        try{
+            const result=await a.evaluate(async path=>{
+                try{await api(path);return null;}
+                catch(error){return {status:error.status,retryable:error.retryable};}
+            },overview.slice(origin.length));
+            expect(result).toEqual({status:409,retryable:false});expect(terminalReads).toBe(1);
+        }finally{await a.unroute(overview,denied);}
         // One real trade in each of the three themes. The first HTTP reply
         // is deliberately lost after a verified server success, not mocked.
         await escrow(a,world,alice,want,give);await escrow(b,world,bob,give,want);
