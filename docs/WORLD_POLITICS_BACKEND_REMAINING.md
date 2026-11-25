@@ -403,3 +403,8 @@ MariaDB assumptions, daily lagged tax/social feedback, prices, wages,
 activity, employment and authoritative debt/cash financing. Prior scenarios
 unchanged. Coefficients fictional; trade, energy, monetary policy and full
 budget instruments remain open. See WORLD_POLITICS_FISCAL_LOOP.md.
+
+
+## Sovereign debt and financial crisis scope for WP80
+
+See WORLD_POLITICS_SOVEREIGN_DEBT.md and data/2026-11-25-fr-sovereign-debt-staging-v1.json. Daily instrument and creditor accounting; observed aggregate coverage and fictional residual ownership, maturity, cash constraints, default/restructuring, abstract nationalisation and contested transfers, autonomous support and systemic spillovers. No real creditor asset targeting, no automatic game over, no automatic unlimited financing. WP49–50 and WP66–80. Study only. WP48 HTTP failed on world creation; dedicated test account preserves runtime ten-world limit, new CI required.

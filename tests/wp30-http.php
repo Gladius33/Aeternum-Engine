@@ -468,20 +468,27 @@ ck30($again47['etag']===$m47['etag']&&$again47['body']===$m47['body'],'WP47 dete
 $f47=req30('GET',$r47.'/countries/FR/finance',null,$tb);
 ck30($f47['status']===200&&$f47['body']['treasury']['debt']===$row47['debt'],'WP47 finance source reconciliation');
 ck30(req30('GET',$p47,null,$ta2)['status']===404&&req30('GET',$r46.'/countries/FR/macro',null,$tb)['status']===404,'WP47 membership and legacy isolation');
-$g48=req30('POST','/worlds',['label'=>'France fiscal loop','scenario'=>'fr-fiscal-loop-v1'],$tb,['Idempotency-Key'=>'fiscal-world-001']);
-ck30($g48['status']===201,'WP48 observed baseline world');
+// WP48 is the eleventh world for Bob. Use a separate real test account;
+// keep production world and request quotas unchanged.
+$pdo->exec('DELETE FROM wp_http_limits');
+$reg48=req30('POST','/accounts',['username'=>'fiscaltester','password'=>'strong-password-fiscal-48','invite'=>$invite]);
+ck30($reg48['status']===201,'WP48 dedicated isolated test account');
+$tc48=req30('POST','/sessions',['username'=>'fiscaltester','password'=>'strong-password-fiscal-48'])['body']['access_token'];
+$g48=req30('POST','/worlds',['label'=>'France fiscal loop','scenario'=>'fr-fiscal-loop-v1'],$tc48,['Idempotency-Key'=>'fiscal-world-001']);
+if($g48['status']!==201)throw new RuntimeException('WP48 world creation HTTP '.$g48['status'].' '.json_encode($g48['body'],JSON_THROW_ON_ERROR));
+ck30(true,'WP48 observed baseline world');
 $w48=$g48['body']['world_id'];$r48='/worlds/'.$w48;$p48=$r48.'/countries/FR/macro';
-$m48=req30('GET',$p48,null,$tb);
+$m48=req30('GET',$p48,null,$tc48);
 ck30($m48['status']===200&&$m48['body']['feedback_to_domestic_ledger']&&count($m48['body']['baseline']['source_pack']['observations'])===40,'WP48 persisted observed pack');
 $q48=$pdo->prepare('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?');$q48->execute([$w48]);
 $cfg48=json_decode($q48->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
 ck30($cfg48['macro_baseline']['source_sha']===$m48['body']['baseline']['source_sha'],'WP48 MariaDB pinned provenance');
-$c48=req30('GET',$r48.'/clock',null,$tb);
+$c48=req30('GET',$r48.'/clock',null,$tc48);
 foreach(['2026-11-26','2026-11-27','2026-11-28','2026-11-29','2026-11-30','2026-12-01','2026-12-02'] as $n48=>$day48){
-    $c48=req30('POST',$r48.'/clock/advances',['target_day'=>$day48],$tb,['If-Match'=>$c48['etag'],'Idempotency-Key'=>'fiscal-tick-00'.($n48+1)]);
+    $c48=req30('POST',$r48.'/clock/advances',['target_day'=>$day48],$tc48,['If-Match'=>$c48['etag'],'Idempotency-Key'=>'fiscal-tick-00'.($n48+1)]);
     ck30($c48['status']===200&&$c48['body']['coherent'],'WP48 coherent fiscal day');
 }
-$m48=req30('GET',$p48,null,$tb);$d48=req30('GET',$r48.'/domestic',null,$tb);$f48=req30('GET',$r48.'/countries/FR/finance',null,$tb);
+$m48=req30('GET',$p48,null,$tc48);$d48=req30('GET',$r48.'/domestic',null,$tc48);$f48=req30('GET',$r48.'/countries/FR/finance',null,$tc48);
 ck30($m48['status']===200&&$d48['status']===200&&$f48['status']===200,'WP48 all read contracts');
 ck30($m48['body']['latest']['cash']===$d48['body']['balance']&&$m48['body']['latest']['debt']===$f48['body']['treasury']['debt'],'WP48 cash debt consistency');
 ck30($m48['body']['latest']['tax_feedback']!==0,'WP48 endogenous receipts enter persisted daily ledger');

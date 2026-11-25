@@ -1,0 +1,462 @@
+{
+  "schema": "wp-fr-sovereign-debt-staging-v1",
+  "as_of": "2026-11-25",
+  "classification": "staged_observations_and_separately_marked_forecasts",
+  "sources": {
+    "insee_series": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/2830301",
+      "published_on": "2026-10-30",
+      "scope": "Maastricht consolidated gross general government debt; nominal EUR; quarterly vintage"
+    },
+    "insee_q2": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/9053525",
+      "published_on": null,
+      "scope": "2026 Q2 debt by government subsector and instrument; nominal EUR"
+    },
+    "aft_oct": {
+      "provider": "Agence France Trésor",
+      "url": "https://www.aft.gouv.fr/fr",
+      "observed_on": "2026-11-25",
+      "scope": "State negotiable outstanding at 2026-10-31, exact EUR"
+    },
+    "aft_bulletin": {
+      "provider": "AFT / Banque de France",
+      "url": "https://www.aft.gouv.fr/files/medias-aft/7_Publications/7.2_BM/438_Bulletin_mensuel_novembre_2026.pdf",
+      "edition": "2026-11",
+      "page": 3,
+      "scope": "Holder shares at market value; stock rounded billion EUR; maturity"
+    },
+    "bdf": {
+      "provider": "Banque de France",
+      "url": "https://www.banque-france.fr/fr/communiques-de-presse/precisions-sur-le-programme-de-detention-de-la-dette-publique-par-la-banque-de-france",
+      "published_on": "2026-09-12",
+      "scope": "APP/PEPP public debt holdings at amortised cost, not directly comparable with market-value shares"
+    },
+    "aft_plan": {
+      "provider": "Agence France Trésor",
+      "url": "https://www.aft.gouv.fr/fr/publications/communiques-presse/29092026-besoins-et-ressources-financement-letat-en-2027-et-point",
+      "published_on": "2026-09-29",
+      "scope": "Budget forecasts as of publication; not observed outturn"
+    }
+  },
+  "observations": [
+    {
+      "metric": "maastricht_gross_debt",
+      "value": 2955600000000,
+      "unit": "EUR",
+      "period": "2022-Q4",
+      "source_id": "insee_series",
+      "scope": "General government; consolidated",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_gross_debt",
+      "value": 3103200000000,
+      "unit": "EUR",
+      "period": "2023-Q4",
+      "source_id": "insee_series",
+      "scope": "General government; consolidated",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_gross_debt",
+      "value": 3306100000000,
+      "unit": "EUR",
+      "period": "2024-Q4",
+      "source_id": "insee_series",
+      "scope": "General government; consolidated",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_gross_debt",
+      "value": 3346300000000,
+      "unit": "EUR",
+      "period": "2025-Q1",
+      "source_id": "insee_series",
+      "scope": "General government; consolidated",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_gross_debt",
+      "value": 3417200000000,
+      "unit": "EUR",
+      "period": "2025-Q2",
+      "source_id": "insee_series",
+      "scope": "General government; consolidated",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_gross_debt",
+      "value": 3484100000000,
+      "unit": "EUR",
+      "period": "2025-Q3",
+      "source_id": "insee_series",
+      "scope": "General government; consolidated",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_gross_debt",
+      "value": 3460100000000,
+      "unit": "EUR",
+      "period": "2025-Q4",
+      "source_id": "insee_series",
+      "scope": "General government; consolidated",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_gross_debt",
+      "value": 3535900000000,
+      "unit": "EUR",
+      "period": "2026-Q1",
+      "source_id": "insee_series",
+      "scope": "General government; consolidated",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_gross_debt",
+      "value": 3595500000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_series",
+      "scope": "General government; consolidated",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_contribution_state",
+      "value": 2942100000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Contribution to consolidated general government debt; rounded",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_contribution_central_other",
+      "value": 69200000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Contribution to consolidated general government debt; rounded",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_contribution_local",
+      "value": 274900000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Contribution to consolidated general government debt; rounded",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_contribution_social_security",
+      "value": 309400000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Contribution to consolidated general government debt; rounded",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_instrument_deposits",
+      "value": 42700000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Consolidated general government instrument; subcategories overlap totals",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_instrument_securities",
+      "value": 3229000000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Consolidated general government instrument; subcategories overlap totals",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_instrument_loans",
+      "value": 323800000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Consolidated general government instrument; subcategories overlap totals",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_instrument_short_term_securities",
+      "value": 291700000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Consolidated general government instrument; subcategories overlap totals",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_instrument_long_term_securities",
+      "value": 2937300000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Consolidated general government instrument; subcategories overlap totals",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_instrument_short_term_loans",
+      "value": 20600000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Consolidated general government instrument; subcategories overlap totals",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_instrument_long_term_loans",
+      "value": 303200000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "Consolidated general government instrument; subcategories overlap totals",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "maastricht_net_debt",
+      "value": 3366800000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "insee_q2",
+      "scope": "General government net debt",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "state_negotiable_outstanding",
+      "value": 2921146886290,
+      "unit": "EUR",
+      "period": "2026-10-31",
+      "source_id": "aft_oct",
+      "scope": "State only, nominal outstanding",
+      "kind": "observed",
+      "reported_precision": "1 EUR"
+    },
+    {
+      "metric": "state_negotiable_holder_share_nonresident",
+      "value": 5966,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value; chart rounded shares sum 100.1%; precise nonresident from separate series",
+      "kind": "observed",
+      "reported_precision": "1 bp"
+    },
+    {
+      "metric": "state_negotiable_holder_share_nonresident_rounded_chart",
+      "value": 5970,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value; chart rounded shares sum 100.1%; precise nonresident from separate series",
+      "kind": "observed",
+      "reported_precision": "10 bp"
+    },
+    {
+      "metric": "state_negotiable_holder_share_other_french",
+      "value": 1870,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value; chart rounded shares sum 100.1%; precise nonresident from separate series",
+      "kind": "observed",
+      "reported_precision": "10 bp"
+    },
+    {
+      "metric": "state_negotiable_holder_share_french_credit_institutions",
+      "value": 1050,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value; chart rounded shares sum 100.1%; precise nonresident from separate series",
+      "kind": "observed",
+      "reported_precision": "10 bp"
+    },
+    {
+      "metric": "state_negotiable_holder_share_french_insurers",
+      "value": 920,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value; chart rounded shares sum 100.1%; precise nonresident from separate series",
+      "kind": "observed",
+      "reported_precision": "10 bp"
+    },
+    {
+      "metric": "state_negotiable_holder_share_french_funds",
+      "value": 200,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value; chart rounded shares sum 100.1%; precise nonresident from separate series",
+      "kind": "observed",
+      "reported_precision": "10 bp"
+    },
+    {
+      "metric": "nonresident_share_oat",
+      "value": 5780,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value within instrument class",
+      "kind": "observed",
+      "reported_precision": "10 bp"
+    },
+    {
+      "metric": "nonresident_share_oatei",
+      "value": 3490,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value within instrument class",
+      "kind": "observed",
+      "reported_precision": "10 bp"
+    },
+    {
+      "metric": "nonresident_share_oati",
+      "value": 1820,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value within instrument class",
+      "kind": "observed",
+      "reported_precision": "10 bp"
+    },
+    {
+      "metric": "nonresident_share_btf",
+      "value": 7990,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "aft_bulletin",
+      "scope": "Market value within instrument class",
+      "kind": "observed",
+      "reported_precision": "10 bp"
+    },
+    {
+      "metric": "bdf_app_pepp_public_debt_holdings",
+      "value": 546000000000,
+      "unit": "EUR",
+      "period": "2025-12-31",
+      "source_id": "bdf",
+      "scope": "Public debt APP/PEPP amortised cost; overlapping portfolio, no addition to state holder shares",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "bdf_app_pepp_public_debt_holdings",
+      "value": 488000000000,
+      "unit": "EUR",
+      "period": "2026-06-30",
+      "source_id": "bdf",
+      "scope": "Public debt APP/PEPP amortised cost; overlapping portfolio, no addition to state holder shares",
+      "kind": "observed",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "state_financing_need",
+      "value": 311700000000,
+      "unit": "EUR",
+      "period": "2026",
+      "source_id": "aft_plan",
+      "scope": "State budget forecast published 2026-09-29",
+      "kind": "forecast",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "state_financing_need",
+      "value": 339700000000,
+      "unit": "EUR",
+      "period": "2027",
+      "source_id": "aft_plan",
+      "scope": "State budget forecast published 2026-09-29",
+      "kind": "forecast",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "state_debt_budget_charge",
+      "value": 62600000000,
+      "unit": "EUR",
+      "period": "2026",
+      "source_id": "aft_plan",
+      "scope": "State budget forecast published 2026-09-29",
+      "kind": "forecast",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "state_debt_budget_charge",
+      "value": 72900000000,
+      "unit": "EUR",
+      "period": "2027",
+      "source_id": "aft_plan",
+      "scope": "State budget forecast published 2026-09-29",
+      "kind": "forecast",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "medium_long_term_net_issuance",
+      "value": 310000000000,
+      "unit": "EUR",
+      "period": "2026",
+      "source_id": "aft_plan",
+      "scope": "State budget forecast published 2026-09-29",
+      "kind": "forecast",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "medium_long_term_net_issuance",
+      "value": 340000000000,
+      "unit": "EUR",
+      "period": "2027",
+      "source_id": "aft_plan",
+      "scope": "State budget forecast published 2026-09-29",
+      "kind": "forecast",
+      "reported_precision": "100000000 EUR"
+    },
+    {
+      "metric": "state_new_medium_long_term_issuance_rate",
+      "value": 355,
+      "unit": "basis_points",
+      "period": "2026-to-09-29",
+      "source_id": "aft_plan",
+      "scope": "Weighted average issuance rate; not effective rate on stock",
+      "kind": "observed",
+      "reported_precision": "1 bp"
+    }
+  ],
+  "notes": [
+    "October nominal stock must not be multiplied by June market-value holder shares to claim exact creditor balances.",
+    "Latest quarterly vintage revises 2025-Q4 debt to 3460.1bn EUR vs earlier 3460.5bn staged observation; retain vintages, do not mutate pinned scenarios.",
+    "No personal creditor identities or inventories of assets for seizure. Unknown beneficial ownership remains unknown. No MariaDB import in this study.",
+    "Verify source-specific licensing before production redistribution. Rounded observations retained; residual explicit."
+  ]
+}
