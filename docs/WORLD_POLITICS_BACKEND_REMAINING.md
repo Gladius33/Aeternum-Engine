@@ -303,3 +303,12 @@ ordinary session renewal, fictional 577-district electoral roster, archived
 previous legislature and certified coalition changes. Repeated elections,
 full session calendar, autonomous agenda and coalition bargaining remain
 open. See WORLD_POLITICS_PARLIAMENT.md.
+
+
+## WP44 cabinet candidate
+
+Fictional named cabinet, certified voluntary and constitutional succession,
+portfolio appointments/removals, cohabitation and current declared support,
+incumbent prime-minister gates for selected legislative procedures, archive
+and read API. Certified internal events only; autonomous formation and full
+competence execution remain open. See WORLD_POLITICS_CABINET.md.

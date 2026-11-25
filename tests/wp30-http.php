@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===15,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===16,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -366,6 +366,28 @@ ck30($a43['body']['lifecycle']['slots']['motion-calendar']['status']==='resolved
 ck30($a43['body']['lifecycle']['installed_on']==='2026-12-03'&&count($a43['body']['assembly']['deputies'])===577,'WP43 election roster installed');
 ck30(count($a43['body']['lifecycle']['archives'][0]['assembly']['matters']['motion-calendar']['roll_call'])===577,'WP43 historical roll preserved');
 ck30(req30('GET',$p43,null,$ta2)['status']===404&&!isset(req30('GET',$ap42,null,$tb)['body']['lifecycle']),'WP43 membership and legacy');
+$g44=req30('POST','/worlds',['label'=>'Cabinet lifecycle','scenario'=>'fr-cabinet-v1'],$tb,['Idempotency-Key'=>'cabinet-world-001']);
+ck30($g44['status']===201,'WP44 cabinet world');
+$w44=$g44['body']['world_id'];$r44='/worlds/'.$w44;$p44=$r44.'/countries/FR/cabinet';
+$b44=req30('GET',$p44,null,$tb);
+ck30($b44['status']===200&&$b44['body']['cabinet']['prime_minister']==='pm-initial'&&!$b44['body']['cohabitation'],'WP44 initial cabinet');
+$events44=[
+    ['assembly_cabinet_resign',['at'=>'2026-11-25T10:00:00Z','prime_minister'=>'pm-initial','resignation_id'=>'resignation-one','resignation_presented'=>true]],
+    ['assembly_cabinet_appoint',['at'=>'2026-11-25T11:00:00Z','appointment_id'=>'appointment-one','prime_minister'=>'pm-social','president'=>'campaign-president','resignation_presented'=>true,'presidential_act_certified'=>true,'incompatibilities_cleared'=>true]],
+    ['assembly_cabinet_portfolio',['at'=>'2026-11-25T12:00:00Z','prime_minister'=>'pm-social','president'=>'campaign-president','portfolio'=>'education','person'=>'social-education','pm_proposal_certified'=>true,'presidential_act_certified'=>true,'incompatibilities_cleared'=>true]]
+];
+foreach($events44 as $n44=>[$k44,$d44]){
+    $id44='cabinet-proof-'.($n44+1);
+    $e44=['world_id'=>$w44,'country'=>'FR','day'=>'2026-11-25','evidence_id'=>$id44,'bill_id'=>null,'kind'=>$k44,'procedure_certified'=>true,'data'=>$d44];
+    $s44=new \Aeternum\WorldPolitics\PdoInstitutionalStore($pdo,new \Aeternum\WorldPolitics\LocalLegislationClerk($e44));$rd44=$s44->read($w44,'FR');
+    ck30($s44->decide($w44,'FR','legislation_evidence',['evidence_id'=>$id44],'cabinet-key-'.($n44+1),$rd44['etag'])['status']===202,'WP44 durable '.$k44);
+}
+$b44=req30('GET',$p44,null,$tb);
+ck30($b44['body']['cohabitation']&&$b44['body']['cabinet']['ministers']['education']==='social-education','WP44 cohabitation and ministry persisted');
+$c44=req30('GET',$r44.'/clock',null,$tb);
+$c44=req30('POST',$r44.'/clock/advances',['target_day'=>'2026-11-26'],$tb,['If-Match'=>$c44['etag'],'Idempotency-Key'=>'cabinet-tick-001']);
+ck30($c44['status']===200&&!$c44['body']['game_over'],'WP44 presidency remains active');
+ck30(req30('GET',$p44,null,$ta2)['status']===404&&req30('GET',$r43.'/countries/FR/cabinet',null,$tb)['status']===404,'WP44 isolation and legacy');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

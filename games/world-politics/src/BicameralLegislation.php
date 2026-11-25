@@ -48,6 +48,12 @@ final class BicameralLegislation
             $this->s['responsibility']['crisis']=$c->snapshot();
         }
     }
+    public function enableCabinet():void
+    {
+        if(!isset($this->s['responsibility']['lifecycle'])||isset($this->s['responsibility']['cabinet'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Cabinet must be pinned at bootstrap');
+        $this->s['responsibility']['cabinet']=FrenchCabinet::initial($this->s['day']);
+    }
     public function installElection(array $e):void
     {
         if(!isset($this->s['responsibility']['lifecycle']))throw new \DomainException('No parliamentary lifecycle');
@@ -128,6 +134,11 @@ final class BicameralLegislation
             ||count($this->s['history'])>=2000)throw new \DomainException('Uncertified legislative evidence');
         foreach($this->s['history'] as $h)if(($h['evidence']['evidence_id']??null)===$e['evidence_id'])throw new \DomainException('Duplicate evidence');
         $original=$e;
+        if(isset($this->s['responsibility']['cabinet'])&&in_array($e['kind'],['file','responsibility_engage','assembly_confidence_open','cmp','last_word'],true)){
+            if(!is_array($e['data']))throw new \DomainException('Missing incumbent authority');
+            FrenchCabinet::requirePrimeMinister($this->s['responsibility']['cabinet'],$e['data']['prime_minister_id']??null);
+            unset($e['data']['prime_minister_id']);
+        }
         $scheduled=isset($this->s['responsibility']['lifecycle']);
         if($scheduled&&in_array($e['kind'],['responsibility_vote','assembly_censure_vote'],true))
             throw new \DomainException('Scheduled motion votes are clock resolved');
@@ -243,7 +254,7 @@ final class BicameralLegislation
                 $b['published_on']=$this->s['day'];$b['effect_on']=$d['effective_on'];$b['status']='published';break;
             default:throw new \InvalidArgumentException('Unknown legislative event');
         }
-        $this->s['bills'][$b['id']]=$b;$this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$e];
+        $this->s['bills'][$b['id']]=$b;$this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$original];
         return ['bill'=>$b,'policy_authorized'=>false];
     }
     private static function adopt(array $b,string $v,string $day):array
@@ -270,6 +281,7 @@ final class BicameralLegislation
         if(array_key_exists('responsibility',$s))$x->enableResponsibility();
         if(isset($s['responsibility']['assembly']))$x->enableAssembly();
         if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();
+        if(isset($s['responsibility']['cabinet']))$x->enableCabinet();
         foreach($s['history'] as $h){
             $x->advance($h['day']);
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);

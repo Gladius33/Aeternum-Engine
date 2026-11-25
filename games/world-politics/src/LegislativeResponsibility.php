@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrenchConstitutionalCrisis.php';
 require_once __DIR__.'/AssemblyRollCalls.php';
 require_once __DIR__.'/ParliamentaryLifecycle.php';
+require_once __DIR__.'/FrenchCabinet.php';
 
 /** A replay-only principal, built exclusively from clerk-certified scenario
  * evidence inside the legislative aggregate. No HTTP credential or role grant. */
@@ -43,6 +44,7 @@ final class LegislativeResponsibility
         FrenchConstitutionalCrisis::instant($at);
         if(isset($r['lifecycle'])&&$k==='responsibility_engage'&&!ParliamentaryLifecycle::quiet($r))throw new \DomainException('Pending proceeding');
         if(isset($r['lifecycle'])&&in_array($k,['responsibility_engage','responsibility_file'],true)&&$r['lifecycle']['session']===null)throw new \DomainException('No active session');
+        if(isset($r['cabinet'])&&$k==='responsibility_appoint')throw new \DomainException('Use cabinet succession procedure');
         switch($k){
             case 'responsibility_engage':
                 self::fields($d,['at','council_deliberated','version','text_sha','reading_delay_certified']);
@@ -89,7 +91,9 @@ final class LegislativeResponsibility
             default:throw new \InvalidArgumentException('Unknown responsibility action');
         }
         if($assembly!==null)$r['assembly']=$assembly->snapshot();
-        $r['crisis']=$c->snapshot();return self::settle($r,$b,$day);
+        $r['crisis']=$c->snapshot();
+        if(isset($r['cabinet']))$r['cabinet']=FrenchCabinet::sync($r['cabinet'],$r['crisis'],$day);
+        return self::settle($r,$b,$day);
     }
     /** Independent confidence/censure procedures, not artificially attached
      * to a bill. This pilot serializes independent and linked proceedings. */
@@ -104,6 +108,29 @@ final class LegislativeResponsibility
         if(isset($r['lifecycle'])&&in_array($e['kind'],['assembly_confidence_open','assembly_censure_file'],true)
             &&($r['lifecycle']['session']===null||!ParliamentaryLifecycle::quiet($r)))throw new \DomainException('No active session or proceeding already pending');
         switch($e['kind']){
+            case 'assembly_cabinet_resign':
+                if(!isset($r['cabinet']))throw new \DomainException('No cabinet pilot');
+                self::fields($d,['at','prime_minister','resignation_id','resignation_presented']);
+                if(!ParliamentaryLifecycle::quiet($r)||$d['resignation_presented']!==true||FrenchConstitutionalCrisis::instant($at)<$c->snapshot()['now'])
+                    throw new \DomainException('Certified presentation and quiet proceedings required');
+                $r['cabinet']=FrenchCabinet::resignation($r['cabinet'],$day,$d['prime_minister']);
+                if($c->snapshot()['government']==='in_office')$c->presentResignation($principal,$d['resignation_id'],$at,$id);
+                $result=['government'=>'caretaker','regime_changed'=>false];break;
+            case 'assembly_cabinet_appoint':
+                if(!isset($r['cabinet']))throw new \DomainException('No cabinet pilot');
+                self::fields($d,['at','appointment_id','prime_minister','president','resignation_presented','presidential_act_certified','incompatibilities_cleared']);
+                if(!ParliamentaryLifecycle::quiet($r)||$d['president']!==$r['cabinet']['president']||$d['presidential_act_certified']!==true||$d['incompatibilities_cleared']!==true)
+                    throw new \DomainException('Certified presidential appointment required');
+                $r['cabinet']=FrenchCabinet::appoint($r['cabinet'],$day,$d['prime_minister'],$p->snapshot());
+                $result=$c->appointPrimeMinister($principal,$d['appointment_id'],$at,$id);
+                break;
+            case 'assembly_cabinet_portfolio':
+                if(!isset($r['cabinet']))throw new \DomainException('No cabinet pilot');
+                self::fields($d,['at','prime_minister','president','portfolio','person','pm_proposal_certified','presidential_act_certified','incompatibilities_cleared']);
+                if(!ParliamentaryLifecycle::quiet($r)||FrenchConstitutionalCrisis::instant($at)<$c->snapshot()['now'])
+                    throw new \DomainException('Portfolio change unavailable');
+                $r['cabinet']=FrenchCabinet::reshuffle($r['cabinet'],$day,$d,$p->snapshot());
+                $result=['portfolio'=>$d['portfolio'],'person'=>$d['person'],'regime_changed'=>false];break;
             case 'assembly_coalition':
                 if(!isset($r['lifecycle']))throw new \DomainException('No lifecycle pilot');
                 self::fields($d,['at','coalition_id','groups','active','agreement_certified']);
@@ -147,12 +174,14 @@ final class LegislativeResponsibility
                 $result=$c->voteSpontaneousMotion(new LegislativeResponsibilityPrincipal($world,['votes_for'=>$roll['tally']['for']]),$d['motion_id'],$at,$id);
                 break;
             case 'assembly_appoint':
+                if(isset($r['cabinet']))throw new \DomainException('Use cabinet succession procedure');
                 self::fields($d,['at','appointment_id','prime_minister','resignation_presented']);
                 $result=$c->appointPrimeMinister($principal,$d['appointment_id'],$at,$id);
                 $r['last_appointment']=['day'=>$day,'prime_minister'=>$d['prime_minister'],'appointment_id'=>$d['appointment_id']];break;
             default:throw new \InvalidArgumentException('Unknown Assembly procedure');
         }
         $r['assembly']=$p->snapshot();$r['crisis']=$c->snapshot();
+        if(isset($r['cabinet']))$r['cabinet']=FrenchCabinet::sync($r['cabinet'],$r['crisis'],$day);
         return [$r,['procedure'=>$result,'responsibility'=>self::observation($r),'policy_authorized'=>false,
             ... (isset($roll)?['roll_call'=>$roll]:[])]];
     }

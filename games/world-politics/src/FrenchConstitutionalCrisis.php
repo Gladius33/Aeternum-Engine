@@ -496,6 +496,23 @@ final class FrenchConstitutionalCrisis
         ]);
     }
 
+    /** Certified voluntary resignation, distinct from presidential dismissal.
+     * Existing scenarios never invoke this optional pathway. */
+    public function presentResignation(FrenchPresidentialAppointmentPrincipal $principal,string $reference,string $at,string $commandId):array
+    {
+        self::id($reference);self::id($commandId);
+        $when=$this->at($at);
+        $this->require($principal,'fr.president.appoint_pm');
+        if(!$principal->verifiedResignationPresented($this->state['world_id'],$reference))
+            throw new \DomainException('Resignation not certified');
+        if($this->state['government']!=='in_office'||$this->state['current_bill']!==null||$this->state['confidence']!==null)
+            throw new \DomainException('Cannot resign during unresolved pilot proceedings');
+        foreach(['motions','spontaneous_motions'] as $collection)foreach($this->state[$collection] as $motion)
+            if($motion['status']==='filed')throw new \DomainException('Pending motion');
+        $this->state['government']='resignation_required';$this->state['now']=$when;
+        return $this->record($commandId,'voluntary_resignation',[$reference,$when],['government'=>'resignation_required','regime_changed'=>false]);
+    }
+
     /** Deterministic housekeeping: 24h window expires, pending votes remain pending. */
     public function advance(
         FrenchConstitutionalPrincipal $scheduler,string $target,
