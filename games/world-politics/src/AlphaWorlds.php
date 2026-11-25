@@ -15,6 +15,7 @@ final class AlphaScenario
     public const GLOBAL='fr-global-v1';
     public const COMPARATIVE='fr-comparative-v1';
     public const ELECTORAL='fr-electoral-v1';
+    public const POLITICAL='fr-political-v1';
     public readonly array $countries;
     public readonly string $id;
     public readonly string $day;
@@ -26,9 +27,9 @@ final class AlphaScenario
     public function __construct(string $id=self::ID,?GlobalReferenceBundle $bundle=null,?string $bundleSha=null)
     {
         $this->id=$id;$this->bundle=$bundle;$this->bundleSha=$bundleSha;
-        $this->countries=in_array($id,[self::COMPARATIVE,self::ELECTORAL],true)?['DE','ES','FR','GB','IT','JP','US']:['FR'];
-        $this->day=in_array($id,[self::GLOBAL,self::COMPARATIVE,self::ELECTORAL],true)?GlobalReferenceBundle::DATE:self::DAY;
-        if (in_array($id,[self::GLOBAL,self::COMPARATIVE,self::ELECTORAL],true) && $bundle!==null) {
+        $this->countries=in_array($id,[self::COMPARATIVE,self::ELECTORAL,self::POLITICAL],true)?['DE','ES','FR','GB','IT','JP','US']:['FR'];
+        $this->day=in_array($id,[self::GLOBAL,self::COMPARATIVE,self::ELECTORAL,self::POLITICAL],true)?GlobalReferenceBundle::DATE:self::DAY;
+        if (in_array($id,[self::GLOBAL,self::COMPARATIVE,self::ELECTORAL,self::POLITICAL],true) && $bundle!==null) {
             $this->actors=$bundle->actors;$this->references=$bundle->references;$this->charters=[];return;
         }
         if ($id!==self::ID || $bundle!==null || $bundleSha!==null) throw new \DomainException('Unknown scenario configuration');
@@ -66,13 +67,13 @@ final class AlphaWorlds
 
     public function create(AlphaSession $session,array $body,string $key):array
     {
-        AlphaAccounts::fields($body,in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario']);
+        AlphaAccounts::fields($body,in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario']);
         if (!is_string($body['label']) || trim($body['label'])==='' || mb_strlen($body['label'])>100
             || preg_match('/[\x00-\x1f\x7f]/',$body['label']) || $body['scenario']!==$this->scenario->id
             || !preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)) throw new AlphaHttpError(422,'invalid_world');
         $label=trim($body['label']);
         $request=[$label,$this->scenario->id];
-        if (in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL],true)) $request[]=$this->scenario->bundleSha;
+        if (in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL],true)) $request[]=$this->scenario->bundleSha;
         $fingerprint=hash('sha256',self::json($request));
         $key=hash('sha256',$key);
         $this->db->beginTransaction();
@@ -110,7 +111,8 @@ final class AlphaWorlds
                     };
                     $inst->enableAccountability('initial-government',$seats);
                 }
-                if($this->scenario->id===AlphaScenario::ELECTORAL)$inst->enableElectoral(ElectoralScenario::config($country,$day));
+                if(in_array($this->scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL],true))$inst->enableElectoral(ElectoralScenario::config($country,$day));
+                if($this->scenario->id===AlphaScenario::POLITICAL)$inst->enablePoliticalAI();
                 $this->insert('INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
                     [$world,$country,self::json($inst->snapshot()),$inst->hash()]);
             }

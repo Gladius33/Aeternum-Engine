@@ -117,7 +117,7 @@ paths:
               required: [label, scenario]
               properties:
                 label: { type: string, maxLength: 100 }
-                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1, fr-comparative-v1, fr-electoral-v1] }
+                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1, fr-comparative-v1, fr-electoral-v1, fr-political-v1] }
                 reference_bundle_sha: { type: string, pattern: '^[a-f0-9]{64}$', description: Optional operator-installed reference bundle for global or comparative scenarios }
       responses:
         '201': { description: Atomically created or replayed private world }

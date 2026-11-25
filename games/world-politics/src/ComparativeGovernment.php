@@ -76,7 +76,7 @@ final class ComparativeGovernment
         if ($instant===false||$instant->format('Y-m-d\TH:i:s\Z')!==$e['at']||substr($e['at'],0,10)!==$this->state['day'])
             throw new \DomainException('Evidence must be certified for current game day');
         foreach ($this->state['history'] as $h) {
-            if ($h['evidence']['evidence_id']===$e['evidence_id']||$h['evidence']['at']>$e['at'])
+            if ($h['evidence']['evidence_id']===$e['evidence_id']||($h['evidence']['at']??$h['evidence']['day'].'T00:00:00Z')>$e['at'])
                 throw new \DomainException('Replayed or backdated evidence');
             if ($action==='accountability_file'&&$h['action']===$action&&$h['evidence']['motion_id']===$e['motion_id'])
                 throw new \DomainException('Duplicate motion identity');
@@ -142,12 +142,39 @@ final class ComparativeGovernment
         return ['government_status'=>$this->state['status'],'incumbent'=>$this->state['incumbent'],'pending'=>$this->state['pending'],
             'regime_changed'=>false]+($result??[]);
     }
+    /** Verified formation evidence originates in the institutional store;
+     * this route is not available to a player or ordinary confidence clerk.
+     */
+    public function installCertifiedFormation(array $e,array $formation):void
+    {
+        self::fields($e,['world_id','country','evidence_id','coalition_id','candidate','day','procedure_certified']);
+        self::fields($formation,['candidate','parties','support_seats','programme','on','status','evidence_id']);
+        if($this->state['country']==='US'||$this->state['status']!=='in_office'||$this->state['pending']!==null
+            ||$e['world_id']!==$this->state['world_id']||$e['country']!==$this->state['country']||$e['day']!==$this->state['day']
+            ||$e['procedure_certified']!==true||$formation['candidate']!==$e['candidate']||$formation['evidence_id']!==$e['evidence_id']
+            ||$formation['on']!==$e['day']||$formation['status']!=='certified_scenario_formation')
+            throw new \DomainException('Formation cannot supersede unresolved constitutional procedure');
+        self::id($e['evidence_id']);self::id($e['candidate']);self::id($e['coalition_id']);
+        $lower=$this->state['seats'][self::rules($this->state['country'])['chambers'][0]];
+        if(!is_int($formation['support_seats'])||$formation['support_seats']<=intdiv($lower,2)||$formation['support_seats']>$lower)
+            throw new \DomainException('Formation lacks certified majority');
+        foreach($this->state['history'] as $h){
+            if($h['evidence']['evidence_id']===$e['evidence_id']||substr($h['evidence']['at']??$h['evidence']['day'],0,10)>$e['day'])
+                throw new \DomainException('Replayed or backdated formation');
+        }
+        $this->state['incumbent']=$e['candidate'];
+        $this->state['history'][]=['action'=>'certified_electoral_formation','role'=>'constitutional_clerk','evidence'=>$e,'formation'=>$formation];
+    }
     public static function restore(array $s):self
     {
         $x=new self($s['world_id'],$s['country'],$s['start_day'],$s['initial_incumbent'],$s['seats']);
         if (!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>10000)throw new \DomainException('Invalid government journal');
         foreach($s['history'] as $h) {
-            $x->advance(substr($h['evidence']['at'],0,10));$x->apply($h['action'],$h['role'],$h['evidence']);
+            if($h['action']==='certified_electoral_formation'){
+                $x->advance($h['evidence']['day']);$x->installCertifiedFormation($h['evidence'],$h['formation']);
+            }else{
+                $x->advance(substr($h['evidence']['at'],0,10));$x->apply($h['action'],$h['role'],$h['evidence']);
+            }
         }
         $x->advance($s['day']);
         if ($x->snapshot()!==$s)throw new \DomainException('Government snapshot failed deterministic replay');

@@ -217,3 +217,11 @@ results, coalition negotiation and separate trusted formation evidence.
 Opt-in scenario and private French coalition negotiation route. Actual electoral
 laws/data, multiple cycles, authenticated appointment and individual deputy
 integration remain future work. See WORLD_POLITICS_ELECTORAL.md.
+
+
+## WP34 political AI candidate
+
+Bounded fictional party coalition search, opposition projections and an opt-in
+scenario with automatic foreign negotiation. Verified formation bridge to the
+comparative incumbent; no public self-appointment or legal effects from vote
+projections. See WORLD_POLITICS_POLITICAL_AI.md.

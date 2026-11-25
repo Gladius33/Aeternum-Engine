@@ -6,6 +6,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/InstitutionalRulebook.php';
 require_once __DIR__.'/ComparativeGovernment.php';
 require_once __DIR__.'/ElectoralCycle.php';
+require_once __DIR__.'/PoliticalNegotiator.php';
 
 /**
  * WP05: small deterministic institution/event aggregate. Illustrates exactly
@@ -48,6 +49,7 @@ final class InstitutionalSimulation
           'last_dissolution','last_election','consultations','bills','agenda','events','constitutional_breaches'];
         if (array_key_exists('accountability',$state)) $expected[]='accountability';
         if (array_key_exists('electoral',$state)) $expected[]='electoral';
+        if (array_key_exists('political_ai',$state)) $expected[]='political_ai';
         $keys=array_keys($state);sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
         $self=new self($state['world_id'],$state['country_code'],$state['day']);
@@ -90,6 +92,10 @@ final class InstitutionalSimulation
             if($el['world_id']!==$state['world_id']||$el['country']!==$state['country_code']||$el['day']!==$state['day'])
                 throw new \DomainException('Electoral state scope mismatch');
         } elseif(array_key_exists('electoral',$state))throw new \DomainException('Null electoral state');
+        if(array_key_exists('political_ai',$state)){
+            if(!isset($state['electoral'])||$state['political_ai']!==PoliticalNegotiator::evaluate($state['electoral']))
+                throw new \DomainException('Political AI projection mismatch');
+        }
         $self->state=$state;
         return $self;
     }
@@ -220,6 +226,12 @@ final class InstitutionalSimulation
         if(isset($this->state['electoral'])||$this->state['events']!==[])throw new \DomainException('Electoral rules must be pinned at bootstrap');
         $this->state['electoral']=(new ElectoralCycle($this->state['world_id'],$this->state['country_code'],$this->state['day'],$config))->snapshot();
     }
+    public function enablePoliticalAI():void
+    {
+        if(isset($this->state['political_ai'])||!isset($this->state['electoral'])||$this->state['events']!==[])
+            throw new \DomainException('Political AI must be pinned at bootstrap');
+        $this->state['political_ai']=PoliticalNegotiator::evaluate($this->state['electoral']);
+    }
     public function electoral(string $role,string $action,array $payload,string $commandId):array
     {
         self::id($commandId);
@@ -231,7 +243,15 @@ final class InstitutionalSimulation
             $result=$el->coalition($commandId,$payload['parties'],$payload['programme'],$payload['candidate']);
         }elseif($action==='electoral_certify'&&$role==='constitutional_clerk')$result=$el->certify($commandId,$payload);
         else throw new \DomainException('Electoral command forbidden');
+        // Only a verified formation certificate may change the comparative
+        // incumbent. Never infer legal appointment from an AI recommendation.
+        if($action==='electoral_certify'&&isset($this->state['political_ai'],$this->state['accountability'])){
+            $g=ComparativeGovernment::restore($this->state['accountability']);
+            $g->installCertifiedFormation($payload,$result);
+            $this->state['accountability']=$g->snapshot();
+        }
         $this->state['electoral']=$el->snapshot();
+        if(isset($this->state['political_ai']))$this->state['political_ai']=PoliticalNegotiator::evaluate($this->state['electoral']);
         $this->state['events'][]=['id'=>$commandId,'on'=>$this->state['day'],'kind'=>$action,'actor_role'=>$role,'result'=>$result];
         return $result;
     }
@@ -278,7 +298,26 @@ final class InstitutionalSimulation
             $this->state['accountability']=$g->snapshot();
         }
         if(isset($this->state['electoral'])){
-            $el=ElectoralCycle::restore($this->state['electoral']);$el->advance($targetDay);$this->state['electoral']=$el->snapshot();
+            $el=ElectoralCycle::restore($this->state['electoral']);
+            // Pin automatic negotiation to the actual result day, including
+            // when an administrative clock jumps across multiple dates.
+            if(isset($this->state['political_ai'])&&$this->state['country_code']!=='FR'){
+                $before=$el->snapshot();
+                if($before['status']!=='results'){
+                    $finalDay=$before['config']['runoff_day']??$before['config']['poll_day'];
+                    if($finalDay<=$targetDay&&$finalDay>=$before['day']){
+                        $el->advance($finalDay);
+                        $suggestion=PoliticalNegotiator::evaluate($el->snapshot())['recommendation'];
+                        if($suggestion!==null&&$el->snapshot()['coalition']===null){
+                            $id='ai-coalition-wp34';
+                            $result=$el->coalition($id,$suggestion['parties'],$suggestion['programme'],$suggestion['candidate']);
+                            $this->state['events'][]=['id'=>$id,'on'=>$finalDay,'kind'=>'electoral_coalition','actor_role'=>'simulation_political_ai','result'=>$result];
+                        }
+                    }
+                }
+            }
+            $el->advance($targetDay);$this->state['electoral']=$el->snapshot();
+            if(isset($this->state['political_ai']))$this->state['political_ai']=PoliticalNegotiator::evaluate($this->state['electoral']);
         }
         $this->state['day']=$targetDay;
         $this->state['agenda']=$remain;
