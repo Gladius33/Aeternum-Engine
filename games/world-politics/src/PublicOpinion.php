@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CivicDialogue.php';
 require_once __DIR__.'/CampaignLifecycle.php';
+require_once __DIR__.'/PresidentialMandate.php';
 
 /** Fictional aggregate public mood, not survey data or a model for targeting real people.
  * Institutional continuity, approval and peaceful civic dissatisfaction are distinct.
@@ -61,6 +62,12 @@ final class PublicOpinion
             throw new \DomainException('Campaign must be pinned at bootstrap');
         $this->s['campaign']=CampaignLifecycle::initial($this->s['world_id'],$this->s['day']);
     }
+    public function enablePresidentialMandate(array $config):void
+    {
+        if(!isset($this->s['campaign'])||isset($this->s['presidency'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Presidential rules must be pinned at bootstrap');
+        $this->s['presidency']=PresidentialMandate::initial($this->s['world_id'],$this->s['day'],$config);
+    }
     /** Trusted inputs from the committed domestic and national stores, never player JSON. */
     public static function observe(array $dom,array $inst):array
     {
@@ -97,6 +104,19 @@ final class PublicOpinion
         $campaign=null;
         if(isset($this->s['campaign']))$campaign=CampaignLifecycle::advance($this->s['campaign'],$e['day'],$campaignEvent);
         elseif($campaignEvent!==null)throw new \DomainException('No campaign enabled');
+        $presidency=null;
+        if(isset($this->s['presidency'])){
+            if($campaignEvent!==null&&in_array($campaignEvent['type'],['presidential_election_lost','presidential_mandate_ended'],true))
+                throw new \DomainException('Presidential calendar owns electoral outcomes');
+            $presidency=PresidentialMandate::advance($this->s['presidency'],$e['day']);
+            if($campaign['status']==='game_over'){
+                // A prior independently certified terminal event takes precedence.
+                if($presidency['status']!=='ended')$presidency=PresidentialMandate::interrupt($presidency,$e['day'],$campaign['reason']);
+                else {$presidency['officeholder']=null;$presidency['successor']=null;$presidency['reason']=$campaign['reason'];}
+            }elseif($presidency['status']==='ended'){
+                $campaign=CampaignLifecycle::applyPresidentialOutcome($campaign,$presidency);
+            }
+        }
         ksort($e['pressure'],SORT_STRING);sort($e['active_policies'],SORT_STRING);
         $economic=0;
         foreach(['production_index_bps','employment_index_bps'] as $k)
@@ -129,6 +149,11 @@ final class PublicOpinion
             $this->s['dialogue']=CivicDialogue::advance($this->s['dialogue'],$e['day'],$e['pressure'],$b['pressure']);
             $r['dialogue']=$this->s['dialogue'];
         }
+        if($presidency!==null){
+            $this->s['presidency']=$presidency;
+            $r['presidency']=['status'=>$presidency['status'],'term_end'=>$presidency['term_end'],
+                'consecutive_terms'=>$presidency['consecutive_terms'],'officeholder'=>$presidency['officeholder'],'reason'=>$presidency['reason']];
+        }
         if($campaign!==null){
             $this->s['campaign']=$campaign;
             $r['campaign']=CampaignLifecycle::summary($campaign);
@@ -159,6 +184,7 @@ final class PublicOpinion
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>3650)throw new \DomainException('Invalid opinion journal');
         if(array_key_exists('dialogue',$s))$x->enableDialogue();
         if(array_key_exists('campaign',$s))$x->enableCampaign();
+        if(array_key_exists('presidency',$s))$x->enablePresidentialMandate($s['presidency']['config']);
         foreach($s['history'] as $r)$x->advance($r['source'],$r['campaign_event']??null);
         if($x->snapshot()!==$s)throw new \DomainException('Opinion replay mismatch');
         return $x;

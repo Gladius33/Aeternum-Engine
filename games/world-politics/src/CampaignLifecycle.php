@@ -85,6 +85,17 @@ final class CampaignLifecycle
     {
         $s['status']='game_over';$s['office_retained']=false;$s['ended_on']=$day;$s['reason']=$reason;
     }
+    /** Called only by the replayed, scope-bound presidential calendar. */
+    public static function applyPresidentialOutcome(array $s,array $p):array
+    {
+        if($s['status']!=='active'||$p['world_id']!==$s['world_id']||$p['day']!==$s['day']||$p['status']!=='ended'
+            ||$p['officeholder']===self::PLAYER||!in_array($p['reason'],['presidential_election_lost','presidential_mandate_ended'],true))
+            throw new \DomainException('Invalid presidential outcome');
+        self::end($s,$s['day'],$p['reason']);
+        $s['events'][]=['world_id'=>$s['world_id'],'country'=>'FR','day'=>$s['day'],'id'=>'presidential-calendar-outcome',
+            'type'=>$p['reason'],'source'=>'simulated_presidential_calendar'];
+        return $s;
+    }
     public static function summary(array $s):array
     {
         return ['status'=>$s['status'],'office_retained'=>$s['office_retained'],'office'=>$s['office'],

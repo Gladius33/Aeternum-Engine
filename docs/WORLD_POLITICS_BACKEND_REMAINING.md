@@ -251,3 +251,12 @@ narrative queue, terminal publication and world gameplay lock. A separate
 scripted case exercises revolutionary defeat. Actual automatic revolutionary
 outcome generation and presidential election/succession integration remain
 open. See WORLD_POLITICS_CAMPAIGN.md.
+
+
+## WP38 presidential calendar candidate
+
+Opt-in French presidential mandate and two-round fictional election cycle,
+five-year terms, two consecutive term limit, result/transfer separation,
+and replayed terminal outcome at expiry. Actual dynamic vote generation,
+vacancy calendar, constitutional adjudication and roster succession remain
+open. See WORLD_POLITICS_PRESIDENCY.md.

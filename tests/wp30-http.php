@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===9,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===10,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -191,6 +191,30 @@ ck30(req30('POST',$rr.'/domestic/proposals',['policy_id'=>'education-reform','ef
     ['If-Match'=>$domEnd['etag'],'Idempotency-Key'=>'terminal-policy-001'])['status']===409,'WP37 terminal mutations blocked');
 ck30(req30('GET',$rr.'/campaign',null,$tb)['status']===404&&req30('GET',$dr.'/campaign',null,$ta2)['status']===404,'WP37 isolated and opt-in');
 ck30(req30('GET',$sr.'/campaign',null,$ta2)['body']['status']==='active','WP37 defeat does not affect another world');
+$pres=req30('POST','/worlds',['label'=>'Presidential test','scenario'=>'fr-presidential-v1'],$tb,['Idempotency-Key'=>'presidential-world-001']);
+ck30($pres['status']===201,'WP38 presidential world provisioned');
+$ps='/worlds/'.$pres['body']['world_id'];$ppath=$ps.'/countries/FR/presidency';
+$pv=req30('GET',$ppath,null,$tb);
+ck30($pv['status']===200&&$pv['body']['term_end']==='2026-12-21'&&!isset($pv['body']['config']),'WP38 presidential calendar');
+$pc=req30('GET',$ps.'/clock',null,$tb);
+for($n=1;$n<=26;$n++){
+    $day=(new DateTimeImmutable('2026-11-25'))->modify('+'.$n.' days')->format('Y-m-d');
+    $pc=req30('POST',$ps.'/clock/advances',['target_day'=>$day],$tb,['If-Match'=>$pc['etag'],'Idempotency-Key'=>'presidential-tick-'.sprintf('%03d',$n)]);
+    if($pc['status']!==200||!$pc['body']['coherent']||$pc['body']['game_over'])throw new RuntimeException('WP38 presidential clock failed '.$n.' '.json_encode($pc));
+    if($n===1){
+        $pv=req30('GET',$ppath,null,$tb);
+        ck30($pv['body']['status']==='runoff_pending'&&$pv['body']['result']===null,'WP38 first round persisted');
+    }
+    if($n===15){
+        $pv=req30('GET',$ppath,null,$tb);
+        ck30($pv['body']['result']['winner']==='campaign-president'&&$pv['body']['consecutive_terms']===1,'WP38 results separate from handover');
+    }
+}
+$pv=req30('GET',$ppath,null,$tb);
+ck30($pv['body']['consecutive_terms']===2&&!$pv['body']['eligible_for_re_election']&&$pv['body']['term_end']==='2031-12-21','WP38 reelection and term cap persisted');
+ck30(req30('GET',$ps.'/campaign',null,$tb)['body']['status']==='active','WP38 reelected player remains active');
+ck30(req30('POST',$ppath,['winner'=>'campaign-president'],$tb)['status']===404,'WP38 no player ballot submission');
+ck30(req30('GET',$ppath,null,$ta2)['status']===404&&req30('GET',$sr.'/countries/FR/presidency',null,$ta2)['status']===404,'WP38 isolation and legacy compatibility');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

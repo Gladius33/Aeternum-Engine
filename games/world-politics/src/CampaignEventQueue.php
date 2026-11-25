@@ -40,6 +40,8 @@ final class CampaignEventQueue
             $s=$op->snapshot();
             if(!hash_equals($r['state_sha'],$op->hash())||$s['world_id']!==$world||$s['day']!==$clock['committed_day']||!isset($s['campaign']))
                 throw new \UnexpectedValueException('Campaign snapshot mismatch');
+            if(isset($s['presidency'])&&in_array($e['type'],['presidential_election_lost','presidential_mandate_ended'],true))
+                throw new \DomainException('Presidential calendar owns electoral outcomes');
             $q=$this->db->prepare('SELECT event_json,event_sha FROM wp_campaign_events WHERE world_id=? AND event_day>? ORDER BY event_day');
             $q->execute([$world,$clock['committed_day']]);$future=[];
             foreach($q->fetchAll(\PDO::FETCH_ASSOC) as $row)$future[]=self::decode($row);
