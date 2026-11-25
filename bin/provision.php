@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{ConfiguredWorlds,PdoIdentity,PlayerProvisioner,SystemClock};
+use Aeternum\Core\{WorldRuntime,PdoIdentity,PlayerProvisioner,SystemClock};
 if (PHP_SAPI!=='cli') { http_response_code(404); exit(1); }
 try {
     require __DIR__.'/../vendor/autoload.php';
@@ -19,7 +19,7 @@ try {
     $identity=new PdoIdentity($pdo);
     $actor=$identity->authenticate($argv[3],$password);
     if ($actor===null) $actor=$identity->register($argv[3],$password);
-    (new PlayerProvisioner($pdo,new SystemClock()))->provision($argv[2],$actor,$pack);
+    (new PlayerProvisioner($pdo,new SystemClock()))->provision($argv[2],$actor,$pack,$runtime->rule($argv[2]));
     echo json_encode(['world'=>$argv[2],'account'=>$actor,'entity'=>$actor],JSON_THROW_ON_ERROR).PHP_EOL;
 } catch (Throwable) {
     fwrite(STDERR,"Provisioning failed. Verify approved world registry, credentials, schema and pinned rules.\n");
