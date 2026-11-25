@@ -12,7 +12,9 @@ final class M13ActionsAudit
     public const REQUIRED=[
         'PHP core CI','Browser E2E','M10 isolated acceptance',
         'M11 isolated operations acceptance','M12 security and supply-chain',
-        'M13 release readiness contract'
+        'M13 release readiness contract', 'G08 private local playtest',
+        'M14 third-pack browser acceptance', 'M15 progression browser acceptance',
+        'M16 isolated bot acceptance'
     ];
 
     public static function evaluate(array $runs,string $sha): array
