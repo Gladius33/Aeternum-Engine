@@ -962,11 +962,12 @@
             html('h5',panel,'',label('Research and expeditions','Recherche et expéditions'));
             html('p',panel,'campaign-note',label('Study completed facilities, then prepare an expedition. Confirmed research unlocks expeditions; no cargo or land is granted.','Étudiez les installations achevées, puis préparez une expédition. La recherche confirmée débloque les expéditions ; aucun bien ni territoire n’est attribué.'));
             const snapshot=moduleReading;
+            panel.dataset.moduleResearch=String(snapshot?.research??'unknown');panel.dataset.moduleExpeditions=String(snapshot?.expeditions??'unknown');panel.dataset.modulePending=snapshot?.pending??'none';
             html('p',panel,'',label('Research: ','Recherche : ')+(snapshot?.research??'—')+' / 2 · '+label('Expeditions: ','Expéditions : ')+(snapshot?.expeditions??'—')+' / 3');
             if(snapshot?.pending)html('p',panel,'',label('Awaiting worker: ','En attente du worker : ')+displayName(snapshot.pending));
             for(const [key,caption,frText,allowed] of [['research','Start research','Lancer la recherche',snapshot?.canResearch],['expedition','Start expedition','Lancer une expédition',snapshot?.canExpedition]]){
                 const control=html('button',panel,'scene-button');control.type='button';control.dataset.moduleAction=key;
-                control.textContent=label(caption,frText);control.disabled=busy||allowed!==true;
+                control.textContent=label(caption,frText);control.disabled=busy||allowed!==true;control.dataset.moduleAllowed=String(allowed===true);
                 control.addEventListener('click',()=>run(()=>campaignCommand('pack.campaign.'+key)));
             }
             const reload=html('button',panel,'scene-button');reload.type='button';reload.dataset.moduleRefresh='true';reload.textContent=label('Read confirmed progress','Lire la progression confirmée');reload.disabled=busy;
@@ -981,7 +982,7 @@
                 fetchTargets.addEventListener('click',()=>run(async()=>{const f=locationFields();const response=await api('/v1/worlds/'+encodeURIComponent(f.world).replaceAll('%3A',':')+'/recipients');if(f.world===locationFields().world&&f.account===locationFields().account){moduleTargets=response.accounts;renderWorkspace();}}));
                 for(const [key,type,en,frText] of [['challenge','pack.guild.challenge','Issue challenge','Lancer un défi'],['offer','pack.diplomacy.offer','Offer truce (120s)','Proposer une trêve (120 s)'],['accept','pack.diplomacy.accept','Accept truce','Accepter la trêve']]){
                     if(!currentPackCapabilities().packActions.includes(type))continue;
-                    const control=html('button',panel,'scene-button');control.type='button';control.dataset.moduleAction=key;control.textContent=label(en,frText);control.disabled=busy||!moduleTarget;
+                    const control=html('button',panel,'scene-button');control.type='button';control.dataset.moduleAction=key;control.textContent=label(en,frText);control.disabled=busy||!moduleTarget;control.dataset.moduleAllowed=String(Boolean(moduleTarget));
                     control.addEventListener('click',()=>run(()=>campaignCommand(type,{target:moduleTarget,...(key==='offer'?{duration:120}:{})})));
                 }
             }
@@ -1448,7 +1449,7 @@
     on('buildings',d=>{catalogue={sites:d.sites,types:d.types};buildings=new Map(d.buildings.map(b=>[b.id,b]));for(const id of details.keys())if(!buildings.has(id))details.delete(id);render();});
     on('building',d=>{buildings.set(d.id,d);details.set(d.id,d);render();});
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
-    on('campaign-module',d=>{const f=locationFields();if(d.world!==f.world||d.account!==f.account)return;moduleReading=d.data;renderWorkspace();});
+    on('campaign-module',d=>{const f=locationFields();if(d.world!==f.world||d.account!==f.account)return;moduleReading=d.data;if(theme==='guild'){const won=d.data?.victory?.achieved===true;if(won&&!soundVictory&&campaignStale)audio.cue('campaign.victory');soundVictory=won;campaignStale=false;}renderWorkspace();});
     on('campaign',d=>{if(d.kind==='progression'){scoreReading=d.data;if(theme==='guild')campaign=d;}else {campaign=d;const won=d.data?.victory?.achieved===true;if(won&&!soundVictory&&campaignStale)audio.cue('campaign.victory');soundVictory=won;}campaignStale=false;renderHud();renderWorkspace();renderDistrict();});
     on('social-contact',d=>{if(classic||busy||d.world!==locationFields().world||!['message','block'].includes(d.kind)||typeof d.actor!=='string')return;relationsTab=d.kind==='message'?'messages':'safety';renderRelations();focusNode(relationsBlock.root);const input=document.getElementById(d.kind==='message'?'social-recipient':'social-block-target');input.value=d.actor;input.focus({preventScroll:true});});
     on('rank',d=>{const f=locationFields();if(d.world!==f.world||d.account!==f.account)return;rankReading=d.data;renderWorkspace();});
@@ -1462,7 +1463,7 @@
         if(economicJournal.record(d,context)){lastEconomicEvent={id:d.id,type:d.type};selectedOperationId=d.id;}
         if(d.type==='building.place')referenceInput.value='';campaignStale=true;rankReading=null;reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();renderSound();renderTutorial();renderRelations();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load]'))b.disabled=false;}});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();renderSound();renderTutorial();renderRelations();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load],[data-module-refresh],[data-module-targets]'))b.disabled=false;for(const b of objectiveBlock.body.querySelectorAll('[data-module-action]'))b.disabled=b.dataset.moduleAllowed!=='true';}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();if(!classic&&!districtMode&&selected?.type==='territory')centerAtlas(selected.id);});
     document.getElementById('map-location').addEventListener('input',updateSelection);

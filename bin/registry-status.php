@@ -1,14 +1,15 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\WorldPackRegistry;
+use Aeternum\Core\{WorldPackRegistry,WorldModuleRegistry,WorldRuntime};
 if (PHP_SAPI!=='cli') { http_response_code(404); exit(1); }
 try {
     require __DIR__.'/../vendor/autoload.php';
-    if ($argc!==2) throw new InvalidArgumentException('Usage: php bin/registry-status.php ABSOLUTE_CONFIG_PATH');
+    if ($argc!==2 && $argc!==3) throw new InvalidArgumentException('Usage: php bin/registry-status.php ABSOLUTE_CONFIG_PATH [ABSOLUTE_MODULE_REGISTRY]');
     $worlds=WorldPackRegistry::loadFile($argv[1],__DIR__.'/../games');
+    $runtime=$argc===3?WorldModuleRegistry::loadFile($argv[2],$worlds):new WorldRuntime($worlds);
     $rows=[];
     foreach ($worlds as $world=>$pack) {
-        $rows[]=['world'=>$world,'pack'=>$pack->id,'version'=>$pack->version,'sha256'=>$pack->digest,'rulesKey'=>$pack->rules()->key];
+        $rows[]=['world'=>$world,'pack'=>$pack->id,'version'=>$pack->version,'sha256'=>$pack->digest,'rulesKey'=>$runtime->rule($world)->key];
     }
     echo json_encode(['registry_api'=>'1','worlds'=>$rows],JSON_THROW_ON_ERROR|JSON_PRETTY_PRINT).PHP_EOL;
 } catch (Throwable) {

@@ -81,3 +81,15 @@ infrastructure secrets, physical backup policy and target capacity require
 operator configuration and acceptance. Review the dependency artifact and
 all ten exact-head workflows before merging. Any release authorization
 remains separate.
+
+## Observed F03 qualification
+
+PR head `caa7f43bcb62cd1f99ebfbd6bb7206a1b64d60ff`,
+[M12 run 45607286491](https://github.com/Gladius33/Aeternum-Engine/actions/runs/45607286491).
+Defensive HTTP job 139181338657, resilience job 139181339011 and dependency
+audit job 139181339186 passed. 512 deterministic transfers: 224 accepted,
+288 correctly denied. All six fault cases passed; 4 restarting workers,
+18 journal entries and 18 outbox entries, one notification, 0 pending
+events, 2 score rows and verified conservation/projection. Checkout
+`846448a87f675c24d3c29bfe4b1eab2fa8e952e5`. All ten pre-merge workflows passed,
+merged at `5c6b93fa`.

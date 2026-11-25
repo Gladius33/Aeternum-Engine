@@ -31,4 +31,4 @@ RUN mkdir -p /var/lib/aeternum-bot-secrets /var/lib/aeternum-bot-public /opt/aet
 RUN chmod 755 lab/init.sh lab/worker.sh lab/web.sh \
     && php lab/registry.php /etc/aeternum-lab/worlds.json /etc/aeternum-lab/modules.json \
     && chmod 644 /etc/aeternum-lab/worlds.json /etc/aeternum-lab/modules.json \
-    && php bin/registry-status.php /etc/aeternum-lab/worlds.json
+    && php bin/registry-status.php /etc/aeternum-lab/worlds.json /etc/aeternum-lab/modules.json
