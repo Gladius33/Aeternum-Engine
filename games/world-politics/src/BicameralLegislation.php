@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/LegislativeResponsibility.php';
 
 /** Ordinary government bill procedural pilot; not finance, organic, Art 49(3),
  * or constitutional legislation. Certified fictional procedural facts only.
@@ -24,10 +25,20 @@ final class BicameralLegislation
         $this->s=['version'=>self::VERSION,'source'=>self::SOURCE,'classification'=>'fictional_scenario',
             'world_id'=>$world,'country'=>'FR','start_day'=>$day,'day'=>$day,'bills'=>[],'history'=>[]];
     }
+    public function enableResponsibility():void
+    {
+        if(isset($this->s['responsibility'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])throw new \DomainException('Responsibility must be pinned at bootstrap');
+        $this->s['responsibility']=LegislativeResponsibility::initial($this->s['world_id'],$this->s['day']);
+    }
     public function snapshot():array{return $this->s;}
     public function advance(string $day):void
     {
         self::day($day);if($day<$this->s['day'])throw new \DomainException('Legislative clock regression');
+        if(isset($this->s['responsibility']['pending'])){
+            $id=$this->s['responsibility']['pending']['bill_id'];
+            [$r,$b]=LegislativeResponsibility::advance($this->s['responsibility'],$this->s['bills'][$id],$day);
+            $this->s['responsibility']=$r;$this->s['bills'][$id]=$b;
+        }
         $this->s['day']=$day;
     }
     public function draft(string $id,string $policy):array
@@ -52,6 +63,15 @@ final class BicameralLegislation
         foreach($this->s['history'] as $h)if(($h['evidence']['evidence_id']??null)===$e['evidence_id'])throw new \DomainException('Duplicate evidence');
         $b=$this->s['bills'][$e['bill_id']]??throw new \DomainException('Unknown bill');
         $d=$e['data'];if(!is_array($d))throw new \InvalidArgumentException('Invalid evidence data');
+        if(is_string($e['kind'])&&str_starts_with($e['kind'],'responsibility_')){
+            if(!isset($this->s['responsibility']))throw new \DomainException('Responsibility pilot not enabled');
+            [$r,$b]=LegislativeResponsibility::apply($this->s['responsibility'],$b,$e);
+            $this->s['responsibility']=$r;$this->s['bills'][$b['id']]=$b;
+            $this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$e];
+            return ['bill'=>$b,'responsibility'=>LegislativeResponsibility::observation($r),'policy_authorized'=>false];
+        }
+        if(isset($this->s['responsibility'])&&$this->s['responsibility']['crisis']['government']!=='in_office'&&in_array($e['kind'],['file','cmp','last_word'],true))
+            throw new \DomainException('Active government required for this pilot');
         if(in_array($b['status'],['published','rejected'],true))throw new \DomainException('Terminal bill');
         switch($e['kind']){
             case 'file':
@@ -162,6 +182,7 @@ final class BicameralLegislation
     {
         $x=new self($s['world_id'],$s['start_day']);
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>2000)throw new \DomainException('Invalid legislation history');
+        if(array_key_exists('responsibility',$s))$x->enableResponsibility();
         foreach($s['history'] as $h){
             $x->advance($h['day']);
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);

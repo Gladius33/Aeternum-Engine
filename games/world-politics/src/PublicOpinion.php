@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CivicDialogue.php';
 require_once __DIR__.'/CampaignLifecycle.php';
 require_once __DIR__.'/PresidentialMandate.php';
+require_once __DIR__.'/LegislativeResponsibility.php';
 
 /** Fictional aggregate public mood, not survey data or a model for targeting real people.
  * Institutional continuity, approval and peaceful civic dissatisfaction are distinct.
@@ -81,12 +82,13 @@ final class PublicOpinion
             'production_index_bps'=>$last['economic']['production_index_bps']??null,
             'employment_index_bps'=>$last['economic']['employment_index_bps']??null,
             'constitutional_breaches'=>$i['constitutional_breaches'],'legislature'=>$i['legislature'],
-            'election_status'=>$i['election']['status']??null];
+            'election_status'=>$i['election']['status']??null,
+            ...(isset($i['legislation']['responsibility'])?['responsibility'=>LegislativeResponsibility::observation($i['legislation']['responsibility'])]:[])];
     }
     public function advance(array $e,?array $campaignEvent=null):array
     {
         self::fields($e,['world_id','day','domestic_sha','institutional_sha','pressure','active_policies','production_index_bps',
-            'employment_index_bps','constitutional_breaches','legislature','election_status']);
+            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[])]);
         self::day($e['day']);
         if($e['world_id']!==$this->s['world_id']||$e['day']!==(new \DateTimeImmutable($this->s['day']))->modify('+1 day')->format('Y-m-d')
             ||count($this->s['history'])>=3650)throw new \DomainException('Invalid daily opinion transition');
@@ -117,6 +119,22 @@ final class PublicOpinion
                 $campaign=CampaignLifecycle::applyPresidentialOutcome($campaign,$presidency);
             }
         }
+        $responsibilityPenalty=0;
+        if(isset($e['responsibility'])){
+            $g=$e['responsibility'];self::fields($g,['government','engagement_count','last_engagement_day','last_appointment']);
+            if(!is_array($g)||!in_array($g['government'],['in_office','resignation_required'],true)||$campaign===null)
+                throw new \DomainException('Invalid government observation');
+            self::range($g['engagement_count'],0,2000);
+            if($g['last_engagement_day']!==null){
+                self::day($g['last_engagement_day']);
+                if($g['last_engagement_day']>$e['day'])throw new \DomainException('Future engagement');
+                $age=(int)(new \DateTimeImmutable($g['last_engagement_day']))->diff(new \DateTimeImmutable($e['day']))->days;
+                // Fictional modest transient opinion response; not calibrated.
+                $responsibilityPenalty=max(0,30-2*$age);
+            }
+            // The mandate remains active when the cabinet is censured.
+            $campaign['cabinet_status']=$g['government'];
+        }
         ksort($e['pressure'],SORT_STRING);sort($e['active_policies'],SORT_STRING);
         $economic=0;
         foreach(['production_index_bps','employment_index_bps'] as $k)
@@ -126,7 +144,7 @@ final class PublicOpinion
         $breachPenalty=min(300,50*$e['constitutional_breaches']);
         $cohorts=[];
         foreach($e['pressure'] as $id=>$value){
-            $target=self::clamp($b['approval'][$id]-intdiv($value-$b['pressure'][$id],2)+$economic-intdiv($breachPenalty,2));
+            $target=self::clamp($b['approval'][$id]-intdiv($value-$b['pressure'][$id],2)+$economic-intdiv($breachPenalty,2)-$responsibilityPenalty);
             $cohorts[$id]=self::toward($this->s['cohort_approval'][$id],$target,5);
         }
         $approval=self::weighted($cohorts,$b['weights']);
@@ -154,6 +172,7 @@ final class PublicOpinion
             $r['presidency']=['status'=>$presidency['status'],'term_end'=>$presidency['term_end'],
                 'consecutive_terms'=>$presidency['consecutive_terms'],'officeholder'=>$presidency['officeholder'],'reason'=>$presidency['reason']];
         }
+        if(isset($e['responsibility']))$r['responsibility']=$e['responsibility'];
         if($campaign!==null){
             $this->s['campaign']=$campaign;
             $r['campaign']=CampaignLifecycle::summary($campaign);

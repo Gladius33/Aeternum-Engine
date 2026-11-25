@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===12,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===13,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -287,6 +287,38 @@ $ds=req30('GET',$lr.'/domestic',null,$tb)['body'];
 ck30(in_array('education-reform',$ds['days'][0]['active_policies'],true)&&$ds['days'][0]['expense']===11200000,'WP40 enacted law has actual budget effect');
 ck30(req30('POST',$li,['action'=>'legislation_evidence','payload'=>['evidence_id'=>'fake']],$tb)['status']===404,'WP40 player cannot certify vote');
 ck30(req30('GET',$lp,null,$ta2)['status']===404&&req30('GET',$rvp.'/legislation',null,$tb)['status']===404,'WP40 membership isolation');
+$resp=req30('POST','/worlds',['label'=>'Responsibility test','scenario'=>'fr-responsibility-v1'],$tb,['Idempotency-Key'=>'responsibility-world-001']);
+ck30($resp['status']===201,'WP41 responsibility world provisioned');
+$rw=$resp['body']['world_id'];$rp='/worlds/'.$rw;$rl=$rp.'/countries/FR/legislation';$ri=$rp.'/countries/FR/institutions/decisions';
+$read=req30('GET',$rl,null,$tb);
+$draft=req30('POST',$ri,['action'=>'legislation_draft','payload'=>['policy_id'=>'education-reform']],$tb,['If-Match'=>$read['etag'],'Idempotency-Key'=>'responsibility-draft-001']);
+ck30($draft['status']===202,'WP41 ordinary bill draft');
+$bill=$draft['body']['bill']['id'];$hash=$draft['body']['bill']['texts']['standard'];
+$events=[['file',['government_project'=>true,'accelerated'=>true,'joint_opposition'=>false,'filing_certified'=>true]],
+    ['responsibility_engage',['at'=>'2026-11-25T10:00:00Z','council_deliberated'=>true,'version'=>'standard','text_sha'=>$hash,'reading_delay_certified'=>true]],
+    ['responsibility_file',['at'=>'2026-11-25T11:00:00Z','motion_id'=>'motion-one','signatures'=>58]]];
+foreach($events as $n=>[$kind,$data]){
+    $id='responsibility-proof-'.($n+1);
+    $e=['world_id'=>$rw,'country'=>'FR','day'=>'2026-11-25','evidence_id'=>$id,'bill_id'=>$bill,'kind'=>$kind,'procedure_certified'=>true,'data'=>$data];
+    $st=new \Aeternum\WorldPolitics\PdoInstitutionalStore($pdo,new \Aeternum\WorldPolitics\LocalLegislationClerk($e));
+    $rd=$st->read($rw,'FR');ck30($st->decide($rw,'FR','legislation_evidence',['evidence_id'=>$id],'responsibility-key-'.($n+1),$rd['etag'])['status']===202,'WP41 trusted '.$kind);
+}
+$cl=req30('GET',$rp.'/clock',null,$tb);
+foreach(['2026-11-26','2026-11-27'] as $n=>$day){
+    $cl=req30('POST',$rp.'/clock/advances',['target_day'=>$day],$tb,['If-Match'=>$cl['etag'],'Idempotency-Key'=>'responsibility-tick-00'.($n+1)]);
+    ck30($cl['status']===200&&$cl['body']['coherent']&&!$cl['body']['game_over'],'WP41 coherent pending motion');
+}
+$e=['world_id'=>$rw,'country'=>'FR','day'=>'2026-11-27','evidence_id'=>'responsibility-vote','bill_id'=>$bill,'kind'=>'responsibility_vote','procedure_certified'=>true,
+    'data'=>['at'=>'2026-11-27T11:00:00Z','motion_id'=>'motion-one','votes_for'=>289]];
+$st=new \Aeternum\WorldPolitics\PdoInstitutionalStore($pdo,new \Aeternum\WorldPolitics\LocalLegislationClerk($e));$rd=$st->read($rw,'FR');
+$vr=$st->decide($rw,'FR','legislation_evidence',['evidence_id'=>'responsibility-vote'],'responsibility-vote-001',$rd['etag']);
+ck30($vr['result']['bill']['status']==='rejected','WP41 censured bill persists');
+$cl=req30('POST',$rp.'/clock/advances',['target_day'=>'2026-11-28'],$tb,['If-Match'=>$cl['etag'],'Idempotency-Key'=>'responsibility-tick-003']);
+ck30($cl['status']===200&&!$cl['body']['game_over'],'WP41 presidential campaign survives censure');
+$camp=req30('GET',$rp.'/campaign',null,$tb)['body'];
+ck30($camp['cabinet_status']==='resignation_required'&&$camp['office_retained'],'WP41 cabinet status projected');
+ck30(req30('POST',$ri,['action'=>'legislation_evidence','payload'=>['evidence_id'=>'fake']],$tb)['status']===404,'WP41 no public certification');
+ck30(!isset(req30('GET',$lp,null,$tb)['body']['legislation']['responsibility']),'WP41 prior legislative world unchanged');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

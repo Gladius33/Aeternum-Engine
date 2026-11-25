@@ -278,3 +278,11 @@ last word, constitutional review, promulgation and publication, verified
 bridge to domestic enactment. Local certified evidence and operator apply;
 full amendment tree, autonomous votes, 49(3) and all bill classes remain open.
 See WORLD_POLITICS_LEGISLATION.md.
+
+
+## WP41 government responsibility candidate
+
+Existing 49(3) crisis aggregate linked to ordinary Assembly reading, certified
+motions, censure, appointment and daily campaign/opinion projection. No
+automatic law or presidential defeat. Single pinned session, certified
+aggregate ballots only. See WORLD_POLITICS_RESPONSIBILITY.md.
