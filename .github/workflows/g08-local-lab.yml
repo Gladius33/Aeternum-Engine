@@ -11,7 +11,7 @@ concurrency:
 jobs:
   lab:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-node@v4
@@ -34,7 +34,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: g08-local-game-screenshots
-          path: browser-captures/*.png
+          path: |
+            browser-captures/*.png
+            browser-captures/g25-*-metrics.json
           retention-days: 30
           if-no-files-found: warn
       - name: Stop isolated stack
