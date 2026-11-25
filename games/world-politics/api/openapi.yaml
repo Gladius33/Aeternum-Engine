@@ -1484,6 +1484,81 @@ paths:
         '422': { $ref: '#/components/responses/invalid' }
         '428': { $ref: '#/components/responses/missingPrecondition' }
 
+  /worlds/{world}/domestic:
+    get:
+      operationId: readDomesticPolicyState
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Source-pinned domestic state
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object } }
+        '404': { description: Unavailable world }
+  /worlds/{world}/domestic/summary:
+    get:
+      operationId: readDomesticPolicySummary
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Cumulative fictional fiscal flows and social indicators
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object } }
+        '404': { description: Unavailable world }
+  /worlds/{world}/domestic/proposals:
+    post:
+      operationId: proposeDomesticPolicy
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - { name: If-Match, in: header, required: true, schema: { type: string } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 12, maxLength: 100 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [policy_id, effective_day]
+              properties:
+                policy_id: { $ref: '#/components/schemas/Identifier' }
+                effective_day: { type: string, format: date }
+      responses:
+        '202': { description: Proposal recorded }
+        '403': { description: Forbidden }
+        '409': { description: State conflict }
+        '412': { description: Stale ETag }
+        '422': { description: Invalid request }
+        '428': { description: Preconditions required }
+  /worlds/{world}/domestic/enactments:
+    post:
+      operationId: authorizeDomesticEnactment
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - { name: If-Match, in: header, required: true, schema: { type: string } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 12, maxLength: 100 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [policy_id]
+              properties:
+                policy_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200': { description: Verified simulated final act applied }
+        '403': { description: Forbidden }
+        '409': { description: Missing final act or state conflict }
+        '412': { description: Stale ETag }
+        '422': { description: Invalid request }
+        '428': { description: Preconditions required }
 components:
   securitySchemes:
     bearerAuth:
@@ -1556,7 +1631,7 @@ components:
         completed_subsystems:
           type: array
           uniqueItems: true
-          items: { type: string, enum: [organizations, diplomacy, economy] }
+          items: { type: string, enum: [organizations, diplomacy, economy, domestic] }
         countries:
           type: array
           uniqueItems: true
@@ -1570,6 +1645,7 @@ components:
         france_parliament_enabled:
           type: boolean
           description: Whether the French constitutional day is a mandatory global-clock step.
+        domestic_enabled: { type: boolean }
         france_parliament_completed:
           type: boolean
           description: Whether the French constitutional checkpoint is durable for this pending game day.

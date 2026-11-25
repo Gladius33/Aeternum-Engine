@@ -12,10 +12,10 @@ interface PersistentDomesticPolicyAuthority extends DomesticPolicyAuthority
 }
 
 /**
- * WP29B: durable standalone aggregate. Server-curated configuration,
+ * WP29: durable domestic policy aggregate. Server-curated configuration,
  * revalidated world/actor permissions, optimistic ETag, transactionally
  * paired state, journal and receipts. No HTTP transport.
- * Clock-managed worlds are intentionally not writable until WP29D.
+ * Clock-managed worlds require an explicitly pinned domestic subsystem.
  */
 final class PdoDomesticPolicyStore
 {
@@ -26,6 +26,8 @@ final class PdoDomesticPolicyStore
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
     }
+
+    public function principalId(): string { return $this->principal->actorId(); }
 
     /** Trusted scenario bootstrap, never a player command. */
     public function seed(string $world, array $config): void
@@ -79,8 +81,7 @@ final class PdoDomesticPolicyStore
         $receiptKey = hash('sha256',$key);
 
         return $this->transaction(function () use ($world,$operation,$payload,$ifMatch,$ability,$actor,$request,$requestSha,$receiptKey): array {
-            // No admission as a coordinated clock step until WP29D.
-            $this->admit($world,$actor,'domestic_'.$operation,$ability);
+            $this->admit($world,$actor,$operation==='clock'?'clock':'domestic_'.$operation,$ability,$payload['target_day']??null);
             $row = $this->row($world,true);
             $this->sameActor($world,$ability,$actor);
             $this->sameActor($world,'domestic.read',$actor);
@@ -135,16 +136,25 @@ final class PdoDomesticPolicyStore
         return ['policy_id'=>$id,'policy'=>$sim->snapshot()['policies'][$id]];
     }
 
-    private function admit(string $world,string $actor,string $operation,string $ability): void
+    private function admit(string $world,string $actor,string $operation,string $ability,?string $target=null): void
     {
-        WorldMutationFence::admit($this->pdo,$world,$actor,$operation);
+        WorldMutationFence::admit($this->pdo,$world,$actor,$operation,$target);
         $this->sameActor($world,$ability,$actor);
-        // Require the world clock schema, even for standalone worlds.
-        // Until the coordinator pins this aggregate, do not mutate a world
-        // that already has a globally managed day.
-        $q=$this->pdo->prepare('SELECT 1 FROM wp_world_clock WHERE world_id=? FOR UPDATE');
+        // The fence is held. Do not lock the coordinator row for a clock
+        // step: the coordinator holds it on its separate PDO connection.
+        $q=$this->pdo->prepare('SELECT * FROM wp_world_clock WHERE world_id=?'.($operation==='bootstrap'?' FOR UPDATE':''));
         $q->execute([$world]);
-        if ($q->fetchColumn()!==false) throw new \DomainException('Domestic clock integration not enabled');
+        $clock=$q->fetch(\PDO::FETCH_ASSOC);
+        if ($clock===false) return;
+        if ($operation==='bootstrap' || (int)($clock['domestic_enabled']??0)!==1) {
+            throw new \DomainException('Domestic clock integration not enabled');
+        }
+        if ($operation==='clock' && ($clock['pending_day']===null || $clock['pending_day']!==$target)) {
+            throw new \DomainException('Coordinated domestic clock requires matching pending tick');
+        }
+        if ($operation==='domestic_enact' && !($this->principal instanceof VerifiedDomesticPolicyAuthority)) {
+            throw new \DomainException('Coordinated enactment requires verified legislative registry');
+        }
     }
 
     private function row(string $world,bool $lock): array

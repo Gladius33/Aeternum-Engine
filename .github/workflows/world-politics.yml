@@ -78,6 +78,8 @@ jobs:
         run: php tests/wp28-french-parliament.php
       - name: Domestic policy fiscal ledger and multi-day scenario WP29A
         run: php tests/wp29a-domestic-policy.php
+      - name: WP29E extended fiscal and social scenarios
+        run: php tests/wp29e-economic.php
       - name: Sectoral social and economic reaction WP20
         run: php tests/wp20-france-social.php
 
@@ -127,6 +129,7 @@ jobs:
           php tests/wp25-fr-parliament-world-clock-db.php
           php tests/wp26-fr-sitting-calendar-db.php
           php tests/wp28-french-parliament-db.php
+          php tests/wp29-final-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4

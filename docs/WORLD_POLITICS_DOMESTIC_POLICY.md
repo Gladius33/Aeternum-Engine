@@ -39,3 +39,28 @@ The DB tests cover isolated worlds, reconnection, rollback at receipt insert,
 retries, stale revisions, permission revocation and integrity failures.
 The journal is append-only at application level, not tamper-proof against
 privileged SQL administrators. No scale or concurrent stress claim is made.
+
+
+## WP29C/D/E — combined final candidate
+
+* C: immutable simulated final-act registry, server-authorized publication,
+  optional France 49.3 source snapshot and explicit Assembly-adoption check.
+  Adoption alone is never final publication. The final text/review digests
+  remain trusted curated inputs; ordinary French legislative navette,
+  constitutional review and promulgation workflow are NOT implemented fully.
+* D: migration 018 pins an optional domestic clock step at world bootstrap;
+  a restarted worker cannot omit it. Reuses existing saga checkpoints and
+  recovery; domestic worlds advance one day per tick, not a multi-day jump.
+  REST is in-process, without public HTTP or publication/clock endpoint.
+* E: optional pinned concessions and their daily cost, aggregate hypothetical
+  production/employment indices, and cumulative fiscal summaries. No calibrated
+  macroeconomic forecast, tax-base model or demographic research dataset.
+  Concessions are pre-curated packages, not an interactive amendment system.
+* Legacy WP29A/B snapshots without extended assumptions retain their shape.
+  Standalone WP29B test authority remains available only outside coordinated
+  enactment. New worlds need migrations 017 and 018 before bootstrap;
+  existing domestic standalone worlds can be pinned at first clock seed,
+  not automatically migrated into already running clock-governed worlds.
+
+CI contains the previous domain/DB suite plus extended domain and coordinated
+crash/recovery tests. The final candidate is not production-ready.

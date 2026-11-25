@@ -9,6 +9,7 @@ require_once __DIR__.'/PdoEconomicStore.php';
 require_once __DIR__.'/PdoInstitutionalStore.php';
 require_once __DIR__.'/PdoFrenchConstitutionalStore.php';
 require_once __DIR__.'/WorldMutationFence.php';
+require_once __DIR__.'/PdoDomesticPolicyStore.php';
 
 /**
  * WP17/WP18: recoverable WORLD clock for diplomacy, organizations,
@@ -40,7 +41,8 @@ final class WorldClockCoordinator
         private readonly DiplomaticPrincipal $principal,
         ?PdoInstitutionalStore $institutions=null,
         array $countries=[],
-        ?PdoFrenchConstitutionalStore $franceParliament=null
+        ?PdoFrenchConstitutionalStore $franceParliament=null,
+        private readonly ?PdoDomesticPolicyStore $domestic=null
     ) {
         if (!array_is_list($countries) || count($countries)>193
             || count(array_unique($countries))!==count($countries)) {
@@ -77,6 +79,7 @@ final class WorldClockCoordinator
     {
         self::id($world);self::day($startingDay);
         $this->trust($world,'world.clock.bootstrap');
+        $this->assertDomesticConfiguration($world,null);
         $days=$this->componentStates($world);
         foreach ($days as $name=>$record) {
             if ($record['day']!==$startingDay) {
@@ -92,6 +95,9 @@ final class WorldClockCoordinator
             );
             $q->execute([$world,$startingDay]);
             WorldMutationFence::seed($this->pdo,$world);
+            if ($this->domestic!==null) {
+                $this->pdo->prepare('UPDATE wp_world_clock SET domestic_enabled=1 WHERE world_id=?')->execute([$world]);
+            }
             $roster=$this->pdo->prepare(
                 'INSERT INTO wp_world_clock_countries(world_id,country_code) VALUES(?,?)'
             );
@@ -127,6 +133,7 @@ final class WorldClockCoordinator
         if ($row===null) throw new \DomainException('No world clock');
         $this->assertCountryRoster($world);
         $this->assertFranceRoster($world);
+        $this->assertDomesticConfiguration($world,$row);
         $state=$this->publicState($row);
         return ['state'=>$state,'etag'=>self::etag($row)];
     }
@@ -190,6 +197,7 @@ final class WorldClockCoordinator
             if ($row===null) throw new \DomainException('No world clock');
             $this->assertCountryRoster($world);
             $this->assertFranceRoster($world);
+            $this->assertDomesticConfiguration($world,$row);
 
             // Revocations must be checked even when replaying a receipt.
             $this->trust($world,'world.clock.advance');
@@ -230,6 +238,9 @@ final class WorldClockCoordinator
                 }
                 $start=new \DateTimeImmutable($row['committed_day'],new \DateTimeZone('UTC'));
                 $target=new \DateTimeImmutable($targetDay,new \DateTimeZone('UTC'));
+                if ($this->domestic!==null && $start->diff($target)->days!==1) {
+                    throw new \InvalidArgumentException('Domestic policy worlds advance exactly one day per tick');
+                }
                 if ($start->diff($target)->days>366) {
                     throw new \InvalidArgumentException('A world tick may not exceed 366 days');
                 }
@@ -256,7 +267,7 @@ final class WorldClockCoordinator
 
         // Each step can independently commit in its own PDO transaction.
         // This method may throw at any step without losing pending intent.
-        foreach (self::STEPS as $step) {
+        foreach ($this->steps() as $step) {
             $this->completeStep($world,$targetDay,$key,$step);
             if ($step==='organizations') {
                 foreach ($this->countries as $country) {
@@ -277,6 +288,7 @@ final class WorldClockCoordinator
                 throw new \DomainException('World clock intent changed before publication');
             }
             $this->trust($world,'world.clock.advance');
+            $this->assertDomesticConfiguration($world,$row);
             $this->assertDomainsAt($world,$targetDay);
             $this->assertCountryDaysAt($world,$targetDay);
             $this->assertFranceDayAt($world,$targetDay,true);
@@ -288,7 +300,7 @@ final class WorldClockCoordinator
             if ($this->completedCountryNames($world,$key)!==$this->countries) {
                 throw new \DomainException('National institutions must reach the same day before publication');
             }
-            if (count($progress)!==count(self::STEPS)) {
+            if (count($progress)!==count($this->steps())) {
                 throw new \DomainException('All domains must be checkpointed before publication');
             }
 
@@ -299,9 +311,10 @@ final class WorldClockCoordinator
                     'world_id'=>$world,
                     'committed_day'=>$targetDay,
                     'revision'=>$revision,
-                    'completed_subsystems'=>self::STEPS,
+                    'completed_subsystems'=>$this->steps(),
                     'countries'=>$this->countries,
                     'france_parliament_enabled'=>$this->franceParliament!==null,
+                    'domestic_enabled'=>$this->domestic!==null,
                     'coherent'=>true
                 ],
                 'etag'=>self::etagFrom($world,$targetDay,null,$revision)
@@ -331,7 +344,7 @@ final class WorldClockCoordinator
     private function componentStates(string $world):array
     {
         $result=[];
-        foreach (self::STEPS as $step) {
+        foreach ($this->steps() as $step) {
             $store=$this->store($step);
             $record=$store->read($world);
             $day=$record['state']['day']??null;
@@ -681,12 +694,36 @@ final class WorldClockCoordinator
         }
     }
 
+    private function steps():array
+    {
+        return $this->domestic===null?self::STEPS:[...self::STEPS,'domestic'];
+    }
+
+    /** Legacy worlds without the domestic schema continue unchanged. */
+    private function assertDomesticConfiguration(string $world,?array $clock):void
+    {
+        $exists=false;
+        try {
+            $q=$this->pdo->prepare('SELECT 1 FROM wp_domestic_states WHERE world_id=?');
+            $q->execute([$world]);
+            $exists=$q->fetchColumn()!==false;
+        } catch (\PDOException $e) {
+            if ($e->getCode()!=='42S02' || (int)($e->errorInfo[1]??0)!==1146
+                || $this->domestic!==null || (int)($clock['domestic_enabled']??0)===1) throw $e;
+        }
+        if ($exists!==($this->domestic!==null)
+            || ($clock!==null && ((int)($clock['domestic_enabled']??0)===1)!==$exists)) {
+            throw new \DomainException('Domestic policy configuration differs from pinned world');
+        }
+    }
+
     private function store(string $step):object
     {
         return match($step) {
             'organizations'=>$this->organizations,
             'diplomacy'=>$this->diplomacy,
             'economy'=>$this->economy,
+            'domestic'=>$this->domestic??throw new \DomainException('Domestic store missing'),
             default=>throw new \InvalidArgumentException('Unknown world clock subsystem')
         };
     }
@@ -706,7 +743,8 @@ final class WorldClockCoordinator
             || ($this->institutions!==null
                 && $this->institutions->principalId()!==$principalId)
             || ($this->franceParliament!==null
-                && $this->franceParliament->principalId()!==$principalId)) {
+                && $this->franceParliament->principalId()!==$principalId)
+            || ($this->domestic!==null && $this->domestic->principalId()!==$principalId)) {
             throw new \DomainException('Mismatch between clock and verified domain principals');
         }
     }
@@ -741,7 +779,7 @@ final class WorldClockCoordinator
         $q->execute([$world,$key]);
         $steps=$q->fetchAll(\PDO::FETCH_COLUMN,0);
         sort($steps,SORT_STRING);
-        $expected=self::STEPS;sort($expected,SORT_STRING);
+        $expected=$this->steps();sort($expected,SORT_STRING);
         if ($steps!==$expected) return [];
         return $steps;
     }
@@ -764,6 +802,7 @@ final class WorldClockCoordinator
             'completed_country_clocks'=>$pending
                 ?$this->completedCountryNames($row['world_id'],$row['pending_key']):[],
             'france_parliament_enabled'=>$this->franceParliament!==null,
+                    'domestic_enabled'=>$this->domestic!==null,
             'france_parliament_completed'=>$pending
                 && $this->franceParliament!==null
                 && $this->franceStepComplete($row['world_id'],$row['pending_key']),

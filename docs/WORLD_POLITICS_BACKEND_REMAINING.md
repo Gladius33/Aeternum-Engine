@@ -170,3 +170,13 @@ revalidation and deterministic restoration. Standalone world only; coordinated
 world writes remain disabled until WP29D. Pending CI acceptance. Next WP29C:
 real simulated legislative evidence and legally enacted instruments, not
 mere Assembly adoption. WP29D: world-clock saga integration and REST contracts.
+
+
+## WP29 final candidate — C/D/E in one commit
+
+Simulated enactment registry, optional pinned domestic world-clock step,
+REST facade, extended curated concessions, fiscal summaries and fictional
+production/employment indices. Full real legislative procedures, validated
+national macroeconomic modelling and interactive negotiation are still future
+work. WP29 acceptance is contingent on final CI; WP30 remains the next
+transport/authentication milestone.

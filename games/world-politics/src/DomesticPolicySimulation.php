@@ -53,7 +53,19 @@ final class DomesticPolicySimulation
         foreach ($catalog as $id => $p) {
             self::id($id);
             if (!is_array($p)) throw new \InvalidArgumentException('Invalid assumption');
-            self::fields($p, ['revenue_delta','expense_delta','pressure_delta','duration_days']);
+            $base=['revenue_delta','expense_delta','pressure_delta','duration_days'];
+            $extra=['concessions','concession_daily_cost','production_delta_bps','employment_delta_bps'];
+            $extended=array_key_exists('concessions',$p);
+            self::fields($p,$extended?[...$base,...$extra]:$base);
+            if ($extended) {
+                self::amount($p['concession_daily_cost']);
+                if (!is_array($p['concessions'])) throw new \InvalidArgumentException('Invalid concessions');
+                self::fields($p['concessions'],array_keys($cohorts));
+                foreach ($p['concessions'] as $v) self::score($v);
+                foreach (['production_delta_bps','employment_delta_bps'] as $field) {
+                    if (!is_int($p[$field]) || abs($p[$field])>10000) throw new \InvalidArgumentException('Invalid economic index shift');
+                }
+            }
             self::amount($p['revenue_delta'], true); self::amount($p['expense_delta'], true);
             if (!is_int($p['duration_days']) || $p['duration_days'] < 1 || $p['duration_days'] > 3650
                 || !is_array($p['pressure_delta'])) throw new \InvalidArgumentException('Invalid duration or cohort assumptions');
@@ -113,7 +125,8 @@ final class DomesticPolicySimulation
     {
         $revenue = $this->baselineRevenue; $expense = $this->baselineExpense;
         $deltas = array_fill_keys(array_keys($this->cohorts), 0);
-        $active = [];
+        $active = []; $extended=false; $concessionCost=0; $production=10000; $employment=10000;
+        foreach ($this->catalog as $a) if (isset($a['concessions'])) $extended=true;
         foreach ($this->policies as $id => $p) {
             if ($p['authorized_on'] === null || $p['authorized_on'] >= $target || $p['effective_on'] > $target) continue;
             $elapsed = (int)(new \DateTimeImmutable($p['effective_on'], new \DateTimeZone('UTC')))
@@ -122,9 +135,12 @@ final class DomesticPolicySimulation
             if ($elapsed >= $a['duration_days']) continue;
             $active[] = $id;
             $revenue += $a['revenue_delta']; $expense += $a['expense_delta'];
-            foreach ($a['pressure_delta'] as $sector => $delta) $deltas[$sector] += $delta;
+            foreach ($a['pressure_delta'] as $sector => $delta) $deltas[$sector] += $delta-($a['concessions'][$sector]??0);
+            $concessionCost+=$a['concession_daily_cost']??0;
+            $production+=$a['production_delta_bps']??0; $employment+=$a['employment_delta_bps']??0;
         }
         if ($revenue < 0 || $expense < 0) throw new \DomainException('Scenario implies negative gross fiscal flow');
+        $expense+=$concessionCost;
         $closing = $balance + $revenue - $expense;
         self::amount($closing, true);
         foreach ($pressure as $id => $previous) {
@@ -135,9 +151,12 @@ final class DomesticPolicySimulation
             $pressure[$id] = $previous + $step;
         }
         ksort($pressure, SORT_STRING);
-        return ['day'=>$target,'classification'=>'fictional_scenario','currency'=>$this->currency,
+        $row=['day'=>$target,'classification'=>'fictional_scenario','currency'=>$this->currency,
             'active_policies'=>$active,'opening_balance'=>$balance,'revenue'=>$revenue,'expense'=>$expense,
             'closing_balance'=>$closing,'pressure'=>$pressure];
+        if ($extended) $row['economic']=['net_flow'=>$revenue-$expense,'concession_cost'=>$concessionCost,
+            'production_index_bps'=>max(0,$production),'employment_index_bps'=>max(0,$employment)];
+        return $row;
     }
 
     public function assumptionsHash(): string
@@ -146,6 +165,7 @@ final class DomesticPolicySimulation
         ksort($catalog, SORT_STRING); ksort($cohorts, SORT_STRING);
         foreach ($catalog as &$a) {
             ksort($a, SORT_STRING); ksort($a['pressure_delta'], SORT_STRING);
+            if (isset($a['concessions'])) ksort($a['concessions'],SORT_STRING);
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
