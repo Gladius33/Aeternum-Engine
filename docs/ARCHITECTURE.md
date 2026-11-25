@@ -1,5 +1,11 @@
 # Architecture
 
+## Current architecture after F06
+
+The implemented runtime is a framework-independent PHP 8.4 modular monolith with MariaDB 11.4, authenticated REST and a hybrid Vue/TypeScript/JavaScript browser client. `WorldRuntime` selects immutable manifests and reviewed module artifacts for HTTP, provisioning, workers and replay. `ReferenceGameplayCompatibility` contains the historical API-1 thematic boundary. New private modules have bounded declared state/event effects and explicit own-account views; trusted PHP is not sandboxed. Indexed economy and scores are derived transactionally from canonical journaled state. Canonical JSON writes and world locks still constrain throughput. See [SDK](F01_SDK.md), [capacity](F02_CAPACITY.md), [gameplay](F04_GAMEPLAY.md) and [deployment](F06_DISTRIBUTION.md).
+
+The remaining text is the historical development record; older statements of missing functionality refer to their original iteration, not the current runtime.
+
 Aeternum is a framework-independent PHP 8.4 domain engine, with a planned Laravel HTTP/CLI adapter, Vue/TypeScript frontend and MariaDB/InnoDB persistence. Use a modular monolith with ports and adapters, not mandatory services or daemons.
 
 Game packs define resources, entities, actions, progression, localization, presentation and versioned rules. Core never depends on themes. Multiple games and worlds use explicit world IDs in repositories and authorization. Domain modules: Core, World, Entities, Economy, Actions, Progression, Interactions, Market, Social, Rules, Identity, Ranking, Monetization, Administration, SDK.

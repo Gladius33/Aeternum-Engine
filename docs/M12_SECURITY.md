@@ -1,4 +1,6 @@
-# M12 — hardening code merged; final qualification remains OPEN
+# M12 — security history and independent review gate
+
+The subsequent [F03 security and resilience qualification](F03_SECURITY_RESILIENCE.md) and F06 exact-head dependency audit passed. The historical pending notes below describe their original revisions; the independent security review and authorized target acceptance remain open. Automated dependency checks cover the declared npm lockfile, not every possible vulnerability in hosting, OS or custom modules.
 
 ## First real increment
 - JSON-only response policy uses immutable reusable headers for all API routes,

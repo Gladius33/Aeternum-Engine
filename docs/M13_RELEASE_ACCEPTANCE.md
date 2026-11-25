@@ -1,6 +1,6 @@
 # M13 — Qualification et recette V1.0 (en cours)
 
-Le [plan F01–F07](FINALIZATION_ROADMAP.md) centralise les travaux de développement.
+Le [plan F01–F07](FINALIZATION_ROADMAP.md) centralise les travaux de développement. Le [dossier F07](F07_RELEASE_DOSSIER.md) décrit les preuves F01–F06 obtenues, la collecte des dix CI exactes sur le candidat et main, et la génération du manifeste externe non signé. Les statuts de sortie finale ci-dessous demeurent en attente de revue opérateur.
 
 **Base de M13 :** `main` au SHA `b9b7c2ca878d4b8b785753b4d9e691d29ca8fabd` (PR #52 fusionnée).
 Les cinq CI de PR ont réussi sur `a8de29fb5bf98b76cbbeb8202a2c6dc03203ea35`.

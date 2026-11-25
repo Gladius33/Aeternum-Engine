@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0 release candidate — F01–F07 (unreleased)
+
+- Immutable world/module registry, approved independent SDK and private event effects; legacy API-1 replay preserved.
+- Journal-watermarked indexed ranking beyond 128 accounts; migration 032, rebuild and audit, mixed HTTP load and recovery evidence.
+- Stronger JSON and origin boundaries, proof-bound enrollment, redacted diagnostics, exact request-ID retries, transactional interruption tests and CycloneDX inventory.
+- New medieval/industrial 0.4.0 and guild 0.5.0 packs: research, expeditions, authoritative guild victory, diplomacy, bot planning and pause.
+- Original SVG visual refinements, accessible keyboard and touch controls, bilingual feedback and real three-pack multiplayer/reconnect acceptance.
+- Reproducible private distribution, strict preflight, rule-bound health, metrics, migration and complete independent restoration checks; cosmetic payment simulation only.
+- F07 adds exact-merge evidence assembly, final API/player/developer/operator documentation and an unsigned operator review draft. No tag or release authorization.
+
+Historical entries below describe their original development snapshots.
+
 ## Unreleased — macro M04 (monde stratégique)
 
 - Geographical world graph: directed weighted routes, territories, immutable ownership and bounded route exploration.

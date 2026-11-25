@@ -47,10 +47,9 @@ Ces seuils n'ont PAS la valeur d'objectifs de performance en production.
 Les mesures indiquées appartiennent uniquement au commit ci-dessus ;
 une CI sur un nouveau SHA doit être contrôlée séparément.
 
-## Lacunes restant obligatoires pour G09
+## Limites de cette mesure historique pour G09
 
-- Profils 1/4/16/32 concurrents, écritures réelles, mix lecture/écriture,
-  profils de requêtes HTTP et effets des verrous transactionnels.
+- Les profils 1/4/16/32 et les écritures HTTP ont depuis été mesurés dans [F02](F02_CAPACITY.md) ; les essais cible restent à dimensionner.
 - Répétitions sur plusieurs exécuteurs et équipement de capacité connue,
   avec moyenne, dispersion, p95/p99, CPU, RAM, I/O, connexions SQL et
   saturation explicite.

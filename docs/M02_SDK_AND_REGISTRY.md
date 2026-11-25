@@ -1,5 +1,7 @@
 # M02 — Registre des mondes, SDK typé et règles immuables
 
+Mise à jour : [F01 SDK](F01_SDK.md) décrit l'interface actuelle et `WorldRuntime`, qui compose les deux registres approuvés (mondes et modules). Guild est désormais un troisième pack distribué. Le passage ci-dessous conserve la documentation historique M02 ; utilisez les outils F01 pour sélectionner des modules.
+
 ## Frontière de confiance
 
 Les packs restent des manifestes JSON déclaratifs. Ni une requête publique, ni

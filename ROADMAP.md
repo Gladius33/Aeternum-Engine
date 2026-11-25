@@ -16,7 +16,13 @@ A checklist item is complete only when implemented, documented and supported by 
 - [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, portable package and deployment instructions.
 - [ ] G09 Release: integration/concurrency/replay/security/performance/E2E tests, dependency audit, documented capacity and signed-off V1.0 acceptance; no known critical/high defects.
 
-## Current development
+## Current status — F07 qualification
+
+See [the exact-SHA evidence matrix](docs/F07_RELEASE_DOSSIER.md) for implemented engineering scope, remaining limitations and operator gates. The nine boxes above represent final acceptance, not feature implementation. They remain unsigned until the independent acceptance procedure is complete.
+
+## Historical development log (original snapshots)
+
+### Early implementation
 Persistent world memberships and immutable account ownership; actor-scoped economy command IDs, transactional authorization, private receipts and own-balance projection with due-event barrier. Relational locations and immutable actor-owned entities are now implemented. G02 still needs typed component rules, topology and relational balance scaling. Immutable bounded scalar components support trusted composition and private reads. G05 needs actual authenticated HTTP transport and identity lifecycle, rate limits and UI; no public service yet.
 
 Application identities now have unique canonical logins and Argon2id password hashes; Opaque sessions support expiry and revocation; abuse controls remain open.

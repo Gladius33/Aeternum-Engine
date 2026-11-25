@@ -262,3 +262,12 @@ by a real server read, and verifies a terminal 409 is not retried.
 G08 diagnostics retain status categories and retryable flags, not
 private request fields. All ten workflows must pass on the corrected
 head before merging.
+
+## Corrected F06 candidate
+
+Exact head `5f2a8ec53c9ea3aafc75546323d257cd806f517e` passed all ten
+workflows, including [M11 45681844096](https://github.com/Gladius33/Aeternum-Engine/actions/runs/45681844096)
+and G08 45681844019, merged at `3d43c003`. M11 job 139444128544
+confirmed the same 42 tables, 132 matching row fingerprints, 13 replay
+entries and zero pending events, with restored player login. See the
+[F07 dossier](F07_RELEASE_DOSSIER.md) for final candidate collection.

@@ -7,7 +7,10 @@ if ($repo===false) throw new RuntimeException('Repository unavailable');
 $docs=[
     'README.md','docs/M12_SECURITY.md','docs/M13_RELEASE_ACCEPTANCE.md',
     'docs/M13_PLAYER_GUIDE.md','docs/M13_CAPACITY_LAB.md',
-    'docs/M13_RUNBOOK.md'
+    'docs/M13_RUNBOOK.md','docs/F01_SDK.md','docs/F02_CAPACITY.md',
+    'docs/F03_SECURITY_RESILIENCE.md','docs/F04_GAMEPLAY.md','docs/F05_PLAYER_EXPERIENCE.md',
+    'docs/F06_DISTRIBUTION.md','docs/F07_RELEASE_DOSSIER.md','docs/API_V1.md',
+    'docs/FINALIZATION_ROADMAP.md','ROADMAP.md'
 ];
 $links=0;
 foreach ($docs as $relative) {
@@ -31,6 +34,8 @@ $manifest=json_decode(file_get_contents($repo.'/docs/release-evidence-v1.json'),
 if (!array_key_exists('candidate_sha',$manifest) || $manifest['candidate_sha']!==null
     || !array_key_exists('operator',$manifest['signoff']??[]) || $manifest['signoff']['operator']!==null
     || count($manifest['gates']??[])!==9
+    || array_unique(array_column($manifest['gates'],'result'))!==['pending']
+    || array_filter(array_column($manifest['gates'],'evidence'))!==[]
     || in_array(true,$manifest['checks']??[],true))
     throw new RuntimeException('Committed template must remain explicitly non-authorizing');
 echo "PASS M13 $links local links resolve; committed release template remains unsigned\n";

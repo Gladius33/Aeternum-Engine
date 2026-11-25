@@ -30,7 +30,7 @@ while IFS= read -r -d '' rel; do
   [[ -f "$rel" && ! -L "$rel" ]] || { echo 'Missing/symlink tracked source' >&2; exit 1; }
   mkdir -p "$STAGE/$(dirname "$rel")"
   cp -- "$rel" "$STAGE/$rel"
-done < <(git ls-files -z -- LICENSE.md NOTICE README.md composer.json \
+done < <(git ls-files -z -- LICENSE.md NOTICE README.md CHANGELOG.md ROADMAP.md CONTRIBUTING.md CLA.md SECURITY.md composer.json \
   bin/ packages/core/src/ database/migrations/ games/ schemas/ docs/ \
   tools/m11-backup.sh tools/m11-restore-lab.sh tools/f06-verify-package.sh \
   public/.htaccess public/index.php public/play.html public/play.js public/play.css public/locale.js \
