@@ -65,8 +65,8 @@ Provide archive, preflight/configuration instructions, validation commands, secu
 |---|---|---|
 | G25 | Merged | PR #86, 10/10 pre-merge workflows, merge df37cc0 |
 | F01 | Merged | #88 and #89, each 10/10 pre-merge CI; final merge 09a2bd36; [SDK and compatibility](F01_SDK.md) |
-| F02 | CI qualification | [Indexed scoring and capacity protocol](F02_CAPACITY.md) |
-| F03 | Planned | — |
+| F02 | Merged | #90, 10/10 pre-merge CI, merge 31e845ad; [capacity protocol and measured results](F02_CAPACITY.md) |
+| F03 | CI qualification | [Security and resilience acceptance](F03_SECURITY_RESILIENCE.md) |
 | F04 | Planned | — |
 | F05 | Planned | — |
 | F06 | Planned | — |

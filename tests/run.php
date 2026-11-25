@@ -49,6 +49,7 @@ require __DIR__ . "/peer-key.php";
 require __DIR__ . "/proxy-peer.php";
 require __DIR__ . "/m12-security-headers.php";
 require __DIR__ . "/f03-request-security.php";
+require __DIR__ . "/f03-properties.php";
 require __DIR__ . "/m12-strict-json.php";
 require __DIR__ . "/production.php";
 require __DIR__ . "/packs.php";
