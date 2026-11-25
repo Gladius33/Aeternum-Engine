@@ -11,10 +11,11 @@ $make=static fn(string $name,int $id,string $result='success',?string $head=null
     'name'=>$name,'id'=>$id,'head_sha'=>$head??$sha,'event'=>'pull_request',
     'status'=>'completed','conclusion'=>$result
 ];
+m13ActionCheck(count(M13ActionsAudit::REQUIRED)===10,'all ten required workflows are tracked');
 $all=[];
 foreach (M13ActionsAudit::REQUIRED as $i=>$name) $all[]=$make($name,101+$i);
 m13ActionCheck(M13ActionsAudit::evaluate($all,$sha)['all_required_ci_green'],
-    'six distinct workflows succeed on exact candidate SHA');
+    'ten distinct workflows succeed on exact candidate SHA');
 $missing=$all;array_pop($missing);
 m13ActionCheck(!M13ActionsAudit::evaluate($missing,$sha)['all_required_ci_green']
     && count(M13ActionsAudit::evaluate($missing,$sha)['missing'])===1,
