@@ -385,3 +385,12 @@ games/world-politics/data/2026-11-25-france-russia-trade-staging-v1.json.
 WP47 completed CI run 45711143046, all three jobs succeeded, 21 specific
 assertions, no GitHub CI warnings. Study and reference staging are
 documentation/data only, not a claim that the gameplay exists.
+
+
+## Complement: systemic European and monetary consequences
+
+See WORLD_POLITICS_EU_EURO_SPILLOVERS.md. All withdrawal and normalisation
+branches must compute independent remaining-EU and euro-area responses,
+fixed-geography versus membership aggregates, EU budget, central bank
+balance sheets, financial spillovers and autonomous institutional choices.
+No automatic collapse or forced secondary exits. WP80 acceptance.

@@ -250,3 +250,12 @@ independent foreign actor decision engine; WP66–69 multilateral legal
 decision rules, treaty/normalisation and licensed trade/logistics;
 WP74–76 observed data and sensitivity/calibration; WP77–80 long-run
 acceptance and security. This study adds no new implementation claim.
+
+
+## Complement: systemic European and monetary consequences
+
+See WORLD_POLITICS_EU_EURO_SPILLOVERS.md. All withdrawal and normalisation
+branches must compute independent remaining-EU and euro-area responses,
+fixed-geography versus membership aggregates, EU budget, central bank
+balance sheets, financial spillovers and autonomous institutional choices.
+No automatic collapse or forced secondary exits. WP80 acceptance.

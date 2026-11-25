@@ -152,3 +152,12 @@ transitions négociées, états terminaux légaux, pas de perte ou création
 artificielle d'actif au changement d'unité, tests de non double comptage,
 sensibilité et stress sur 10 ans, comparaison contrefactuelle, absence de
 biais par défaut. Ce document n'est pas le moteur livré.
+
+
+## Complement: systemic European and monetary consequences
+
+See WORLD_POLITICS_EU_EURO_SPILLOVERS.md. All withdrawal and normalisation
+branches must compute independent remaining-EU and euro-area responses,
+fixed-geography versus membership aggregates, EU budget, central bank
+balance sheets, financial spillovers and autonomous institutional choices.
+No automatic collapse or forced secondary exits. WP80 acceptance.

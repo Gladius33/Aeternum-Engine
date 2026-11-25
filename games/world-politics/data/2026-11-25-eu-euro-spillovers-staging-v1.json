@@ -1,0 +1,140 @@
+{
+  "schema": "wp-eu-spillovers-staging-v1",
+  "as_of": "2026-11-25",
+  "classification": "observed_statistics_staging_not_active_game_state",
+  "license_status": "verify individual source redistribution terms before production ingestion",
+  "sources": {
+    "eurostat": "https://ec.europa.eu/eurostat/fr/web/products-eurostat-news/w/wdn-20260806-1",
+    "insee": "https://www.insee.fr/fr/statistiques/2123313",
+    "ecb": "https://www.ecb.europa.eu/ecb/orga/capital/html/index.en.html",
+    "accession": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.pr260101~c830245e42.en.html",
+    "parliament": "https://www.europarl.europa.eu/factsheets/fr/sheet/20/le-parlement-europeen-organisation-et-fonctionnement",
+    "senate": "https://www.senat.fr/rap/l26-156-22/l26-156-220.html",
+    "budget": "https://www.budget.gouv.fr/documentation/file-download/34459",
+    "reserve": "https://www.ecb.europa.eu/press/other-publications/ire/html/ecb.ire202606.en.html"
+  },
+  "observations": [
+    {
+      "metric": "eu_gdp_nominal",
+      "value": 18800000000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "eurostat",
+      "scope": "EU27, rounded to 0.1 trillion EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "fr_share_eu_gdp",
+      "value": 1580,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "eurostat",
+      "scope": "current-price GDP EU27",
+      "kind": "observed"
+    },
+    {
+      "metric": "fr_share_euro_area_gdp_pps",
+      "value": 1840,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "insee",
+      "scope": "PPS, euro area as in 2025 observation",
+      "kind": "observed"
+    },
+    {
+      "metric": "fr_ecb_all_eu_capital_key",
+      "value": 163575,
+      "unit": "millionths",
+      "period": "2026-01-01",
+      "source_id": "ecb",
+      "scope": "all EU NCB capital key",
+      "kind": "observed"
+    },
+    {
+      "metric": "fr_eurosystem_key",
+      "value": 197682,
+      "unit": "millionths",
+      "period": "2026-01-01",
+      "source_id": "ecb",
+      "scope": "Eurosystem-only key",
+      "kind": "observed"
+    },
+    {
+      "metric": "de_eurosystem_key",
+      "value": 263152,
+      "unit": "millionths",
+      "period": "2026-01-01",
+      "source_id": "ecb",
+      "scope": "Eurosystem-only key",
+      "kind": "observed"
+    },
+    {
+      "metric": "euro_area_members",
+      "value": 21,
+      "unit": "states",
+      "period": "2026-01-01",
+      "source_id": "accession",
+      "scope": "after Bulgaria accession",
+      "kind": "observed"
+    },
+    {
+      "metric": "fr_ep_seats",
+      "value": 81,
+      "unit": "seats",
+      "period": "2024-2029",
+      "source_id": "parliament",
+      "scope": "initial term allocation",
+      "kind": "observed"
+    },
+    {
+      "metric": "ep_seats",
+      "value": 720,
+      "unit": "seats",
+      "period": "2024-2029",
+      "source_id": "parliament",
+      "scope": "initial term allocation",
+      "kind": "observed"
+    },
+    {
+      "metric": "fr_eu_budget_contribution",
+      "value": 25900000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "budget",
+      "scope": "accounting method, gross comparable ordinary flows",
+      "kind": "observed"
+    },
+    {
+      "metric": "fr_eu_budget_returns",
+      "value": 16400000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "budget",
+      "scope": "ordinary flows excluding NGEU",
+      "kind": "observed"
+    },
+    {
+      "metric": "fr_eu_budget_net_contribution",
+      "value": 9500000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "senate",
+      "scope": "accounting method, positive outflow, excluding NGEU",
+      "kind": "observed"
+    },
+    {
+      "metric": "eur_global_reserve_share",
+      "value": 2020,
+      "unit": "basis_points",
+      "period": "2025-Q4",
+      "source_id": "reserve",
+      "scope": "constant Q4 2025 exchange rates",
+      "kind": "observed"
+    }
+  ],
+  "notes": [
+    "Different units, geographies and dates are not interchangeable.",
+    "Millionths encode shares of one, not percent.",
+    "No scenario projections or future probabilities in observation rows."
+  ]
+}
