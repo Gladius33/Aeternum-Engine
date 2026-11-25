@@ -180,3 +180,13 @@ production/employment indices. Full real legislative procedures, validated
 national macroeconomic modelling and interactive negotiation are still future
 work. WP29 acceptance is contingent on final CI; WP30 remains the next
 transport/authentication milestone.
+
+
+## WP30 private alpha candidate
+
+Real HTTP entry point, account enrollment, Argon2id credentials, hashed expiring
+sessions, revocation, role-scoped worlds, atomic FR sandbox creation, durable
+resume and authenticated selected REST routes. Dedicated HTTP/MariaDB CI.
+Advanced constitutional roles, 49.3 gameplay mounting, portable save export,
+public deployment hardening and full worldwide data remain open. See
+WORLD_POLITICS_ALPHA.md. WP31 data curation remains the next planned package.
