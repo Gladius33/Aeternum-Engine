@@ -9,7 +9,8 @@ try {
         throw new InvalidArgumentException('Usage: php bin/m03-materialize.php WORLD --backup-verified');
     }
     $world=$argv[1];
-    $pack=ConfiguredWorlds::load()[$world]??null;
+    $runtime=WorldRuntime::load();
+    $pack=$runtime->packs[$world]??null;
     if ($pack===null) throw new DomainException('World not approved');
     $dsn=getenv('AETERNUM_DSN');
     if (!$dsn) throw new RuntimeException('Missing database connection');
