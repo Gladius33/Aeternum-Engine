@@ -10,9 +10,20 @@ async function enter(page,pack,profile){
     await page.locator('[data-choose-game='+pack+']').click();
     await page.locator('[data-profile='+profile+']').click();
     await page.locator('#login input[name=password]').fill(password);
-    const reply=page.waitForResponse(r=>r.url()===origin+'/v1/auth/login');
-    await page.locator('#login button').click();
-    const response=await reply;expect(response.status()).toBe(200);
+    let response;
+    for(let attempt=0;attempt<2;attempt++){
+        const reply=page.waitForResponse(r=>r.url()===origin+'/v1/auth/login');
+        await page.locator('#login button').click();
+        response=await reply;
+        if(response.status()===200)break;
+        expect(response.status()).toBe(429);
+        if(attempt===0){
+            // Respect the real one-minute peer quota; login clears password.
+            await page.waitForTimeout(61000);
+            await page.locator('#login input[name=password]').fill(password);
+        }
+    }
+    expect(response.status()).toBe(200);
     const token=(await response.json()).data.token;
     await expect(page.locator('#world-scene')).toHaveAttribute('data-theme',pack);
     await expect(page.locator('.scene-district')).toBeVisible({timeout:30000});
@@ -24,7 +35,8 @@ async function nav(page,key){
 }
 async function post(page,url,click){
     await idle(page);
-    const reply=page.waitForResponse(r=>r.url()===url&&r.request().method()==='POST');
+    const reply=page.waitForResponse(async r=>r.url()===url&&r.request().method()==='POST'&&
+        !(url.endsWith('/economy/commands')&&[409,503].includes(r.status())&&(await r.json()).retryable===true));
     await click();
     const r=await reply;expect(r.status()).toBe(200);
     await idle(page);return r;
@@ -37,7 +49,7 @@ async function escrow(page,world,who,give,want){
     const stock=await page.request.get(base+'overview/'+who.actor+'/'+give,{headers});
     expect(stock.status()).toBe(200);
     const balance=(await stock.json()).data;
-    const units=Math.min(Math.floor(balance.stock/2),Math.floor(balance.capacity/4),200);
+    const units=Math.min(Math.floor(balance.stock/2),Math.floor(balance.capacity/4),450);
     expect(units).toBeGreaterThanOrEqual(1);
     const id='f05-hold-'+give+'-'+who.actor.slice(0,12);
     const payload={offer:id,seller:who.actor,giveResource:give,giveUnits:units,wantResource:want,wantUnits:units+1};
@@ -157,9 +169,15 @@ for(const [pack,give,want] of fixtures)test('F05 '+pack+' independent players, a
             const sample=await a.evaluate(async()=>{
                 const scene=document.querySelector('.scene-district');
                 const buttons=[...document.querySelectorAll('.game-ui-nav-button')];
-                const color=s=>s.match(/\d+(?:\.\d+)?/g).slice(0,3).map(Number);
+                const color=s=>s.match(/\d+(?:\.\d+)?/g).map(Number);
                 const luminance=rgb=>rgb.map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
-                const contrast=buttons.map(b=>{const style=getComputedStyle(b),f=luminance(color(style.color)),bg=luminance(color(style.backgroundColor));return (Math.max(f,bg)+.05)/(Math.min(f,bg)+.05);});
+                const background=node=>{
+                    const c=color(getComputedStyle(node).backgroundColor);
+                    if(c.length<4||c[3]===1)return c.slice(0,3);
+                    const under=node.parentElement?background(node.parentElement):[255,255,255];
+                    return under.map((v,i)=>c[i]*c[3]+v*(1-c[3]));
+                };
+                const contrast=buttons.map(b=>{const style=getComputedStyle(b),f=luminance(color(style.color).slice(0,3)),bg=luminance(background(b));return (Math.max(f,bg)+.05)/(Math.min(f,bg)+.05);});
                 const intervals=[];let last=await new Promise(requestAnimationFrame);
                 for(let i=0;i<30;i++){const now=await new Promise(requestAnimationFrame);intervals.push(now-last);last=now;}
                 intervals.sort((a,b)=>a-b);

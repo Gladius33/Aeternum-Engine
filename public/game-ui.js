@@ -37,7 +37,10 @@
         invalid_response:['The server response could not be verified.','La réponse du serveur n’a pas pu être vérifiée.'],
         unauthorized:['Your session has ended. Sign in again.','Votre session a expiré. Reconnectez-vous.'],
         due_events_pending:['Awaiting the world worker. Retry the same action.','Le monde doit terminer ses événements. Réessayez la même action.'],
-        not_found:['This item is unavailable. Refresh your view.','Cet élément est indisponible. Actualisez votre vue.']
+        not_found:['This item is unavailable. Refresh your view.','Cet élément est indisponible. Actualisez votre vue.'],
+        invalid_credentials:['Check your login and password.','Vérifiez votre identifiant et votre mot de passe.'],
+        invalid_request:['Check the fields and try again.','Vérifiez les champs puis réessayez.'],
+        'Retry the previous action with identical fields first.':['Retry the saved action before starting a new one.','Réessayez l’action enregistrée avant d’en lancer une nouvelle.']
     };
     function feedback(locale,key){
         return failures[key]?.[locale==='fr'?1:0]??(locale==='fr'?'Action non terminée. Vérifiez votre connexion et vos droits.':'Action not completed. Check your connection and permissions.');
