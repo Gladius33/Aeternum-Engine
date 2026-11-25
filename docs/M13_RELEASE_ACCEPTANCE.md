@@ -45,8 +45,8 @@ des fonctionnalités ni les tests intermédiaires déjà exécutés.
 
 La commande `php tools/m13-actions-audit.php SHA_COMPLET` interroge
 directement l'API GitHub Actions publique du dépôt (optionnellement avec
-`GITHUB_TOKEN` privé). Elle exige six workflows distincts : PHP Core,
-Chromium E2E, M10, M11, M12 et le contrat M13, tous terminés avec
+`GITHUB_TOKEN` privé). Elle exige dix workflows distincts : PHP Core,
+Chromium E2E, M10, M11, M12, M13, G08, M14, M15 et M16, tous terminés avec
 `conclusion=success` sur **le même SHA**, sans emprunter de preuves à
 un commit antérieur. Toute exécution manquante, annulée, défaillante ou
 encore en cours entraîne un code de sortie 2, une erreur de collecte
