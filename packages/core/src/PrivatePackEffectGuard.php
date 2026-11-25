@@ -4,6 +4,12 @@ namespace Aeternum\Core;
 
 final class PrivatePackEffectGuard
 {
+    /** Pin the opt-in guard implementation without altering legacy identities. */
+    public static function fingerprint(): string
+    {
+        return hash_file('sha256',__FILE__)?:throw new \RuntimeException('Private effects digest unavailable');
+    }
+
     /** @param non-empty-list<string> $accounts */
     public static function state(PrivatePackEffects $module,array $accounts,array $before,array $after,array $movements): void
     {

@@ -15,10 +15,16 @@ try {
     }
     if ($op==='validate' && $argc>=3 && $argc<=19) {
         $result=PackDevelopment::inspect($load($argv[2]),array_slice($argv,3));
-    } elseif ($op==='upgrade-plan' && $argc===4) {
-        $result=PackDevelopment::upgradePlan($load($argv[2]),$load($argv[3]));
+    } elseif ($op==='upgrade-plan' && $argc>=4 && $argc<=6) {
+        $selections=['from'=>[],'to'=>[]];$seen=[];
+        foreach (array_slice($argv,4) as $arg) {
+            if (!preg_match('/^--(from|to)=([a-z0-9_-]+(?:,[a-z0-9_-]+)*)$/D',$arg,$m) || isset($seen[$m[1]]))
+                throw new InvalidArgumentException('Invalid upgrade module selection');
+            $seen[$m[1]]=true;$selections[$m[1]]=explode(',',$m[2]);
+        }
+        $result=PackDevelopment::upgradePlan($load($argv[2]),$load($argv[3]),$selections['from'],$selections['to']);
     } else {
-        throw new InvalidArgumentException('Usage: pack-sdk.php scaffold ID VERSION NAME | validate MANIFEST [MODULE ...] | upgrade-plan OLD_MANIFEST NEW_MANIFEST');
+        throw new InvalidArgumentException('Usage: pack-sdk.php scaffold ID VERSION NAME | validate MANIFEST [MODULE ...] | upgrade-plan OLD_MANIFEST NEW_MANIFEST [--from=MODULE,...] [--to=MODULE,...]');
     }
     echo json_encode($result,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR).PHP_EOL;
 } catch (Throwable $e) {

@@ -49,7 +49,8 @@ final class TrustedPackEvents implements EventEffectsHandler
                 }
                 $this->handlers[$type]=$handler;
                 $this->schemas[$type]=$declaredHooks[$type];
-                $identities[$type]=$digest;
+                $identities[$type]=$handler instanceof PrivatePackEffects
+                    ?hash('sha256',$digest."\0".PrivatePackEffectGuard::fingerprint()):$digest;
             }
         }
         ksort($identities,SORT_STRING);

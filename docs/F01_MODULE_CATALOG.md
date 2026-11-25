@@ -9,7 +9,7 @@ CRON and workers. Unset the module variable to retain default composition.
 ## Reviewed module selection
 
 Only code explicitly included in ReviewedModuleCatalog may be selected.
-The first registered module is `bilateral-truce-v1`, compatible with packs
+The reviewed modules include `survey-v1` (independent SDK example) and `bilateral-truce-v1`, the latter compatible with packs
 that explicitly declare the two diplomacy schemas and enable diplomacy.
 The registry cannot select PHP paths, class names, arbitrary callbacks or
 executable manifest content. Each world has a unique entry with the exact
@@ -55,9 +55,6 @@ MariaDB cases cover selected truce module, authenticated ownership,
 durable idempotency, canonical replay and rejection of removed modules.
 The existing medieval and industrial campaigns exercise unchanged aliases.
 
-## Remaining F01
+## Final F01 increment
 
-Complete generic theme boundaries (including data model and status API
-adapters), independent SDK scaffolding and additional command/event
-examples, side-effect/concurrency policies, explicit migration tooling
-and exact-SHA qualification. See [the active plan](FINALIZATION_ROADMAP.md).
+See [SDK, private effects and version planning](F01_SDK.md) for the independent command/event pack, bounded effect policy, legacy adapter boundary and acceptance tests. Historical API-1 signatures remain compatible. Cross-version state transformation requires an explicitly reviewed migrator; the supported upgrade strategy preserves old worlds and provisions a new world for a different key.
