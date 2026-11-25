@@ -472,8 +472,20 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 await page.locator('#login button').click();
                 await expect(page.locator('#world-scene')).toHaveAttribute('data-theme',theme);
                 await expect(page.locator('.scene-district')).toBeVisible({timeout:30000});
-                await expect(page.locator('[data-resource-tile='+resource+'] strong')).not.toHaveText('—',{timeout:30000});
+                const stock=page.locator('[data-resource-tile='+resource+'] strong');
+                const reload=page.locator('[data-scene-reload]');
+                await expect.poll(async()=>await stock.textContent()!=='—'||await reload.isVisible(),{timeout:30000}).toBe(true);
                 await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+                if(await reload.isVisible()){
+                    const reason=await page.locator('#status').textContent();
+                    expect(['rate_limited','database_busy','network_unavailable','invalid_response']).toContain(reason);
+                    console.log('F05 reconnect read interrupted: '+reason);
+                    if(reason==='rate_limited')await page.waitForTimeout(65000);
+                    await reload.click();
+                    await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+                    await expect(reload).toBeHidden();
+                }
+                await expect(stock).not.toHaveText('—',{timeout:30000});
             }
             await expect(page.locator('#world-scene')).toBeHidden();
             await enter('bob');

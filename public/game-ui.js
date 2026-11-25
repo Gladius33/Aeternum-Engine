@@ -12,6 +12,39 @@
         const p=document.createElementNS(svg.namespaceURI,'path');p.setAttribute('d',icons[key]??icons.settings);p.setAttribute('fill','none');p.setAttribute('stroke','currentColor');p.setAttribute('stroke-width','1.6');p.setAttribute('stroke-linejoin','round');p.setAttribute('stroke-linecap','round');svg.append(p);parent.append(svg);
     }
     const tr=(v,locale)=>typeof v==='string'?v:v?.[locale]??v?.en??'';
+    // Presentation-only helpers shared across the shell and scene. Preserve
+    // focus across authoritative redraws without interpolating selectors.
+    function focusKey(root,attributes){
+        const active=document.activeElement;
+        if(!active||!root.contains(active))return null;
+        for(const key of attributes){
+            const value=active.getAttribute(key);
+            if(value!==null)return {key,value};
+        }
+        return null;
+    }
+    function restoreFocus(root,saved){
+        if(!saved)return false;
+        const next=[...root.querySelectorAll('['+saved.key+']')].find(n=>n.getAttribute(saved.key)===saved.value);
+        if(!next||next.disabled||!next.getClientRects().length)return false;
+        next.focus({preventScroll:true});return true;
+    }
+    const failures={
+        command_or_access_conflict:['Check resources, permissions and prerequisites.','Vérifiez vos ressources, vos droits et les prérequis.'],
+        database_busy:['The server is busy. Retry the saved action if offered.','Le serveur est occupé. Réessayez l’action enregistrée si elle est proposée.'],
+        rate_limited:['Too many requests. Try again shortly.','Trop de requêtes. Réessayez dans un instant.'],
+        network_unavailable:['Connection interrupted. The result is not confirmed.','Connexion interrompue. Le résultat n’est pas confirmé.'],
+        invalid_response:['The server response could not be verified.','La réponse du serveur n’a pas pu être vérifiée.'],
+        unauthorized:['Your session has ended. Sign in again.','Votre session a expiré. Reconnectez-vous.'],
+        due_events_pending:['Awaiting the world worker. Retry the same action.','Le monde doit terminer ses événements. Réessayez la même action.'],
+        not_found:['This item is unavailable. Refresh your view.','Cet élément est indisponible. Actualisez votre vue.'],
+        invalid_credentials:['Check your login and password.','Vérifiez votre identifiant et votre mot de passe.'],
+        invalid_request:['Check the fields and try again.','Vérifiez les champs puis réessayez.'],
+        'Retry the previous action with identical fields first.':['Retry the saved action before starting a new one.','Réessayez l’action enregistrée avant d’en lancer une nouvelle.']
+    };
+    function feedback(locale,key){
+        return failures[key]?.[locale==='fr'?1:0]??(locale==='fr'?'Action non terminée. Vérifiez votre connexion et vos droits.':'Action not completed. Check your connection and permissions.');
+    }
     function create({host,slots,actions={},profile,locale='en'}){
         if(!(host instanceof HTMLElement)||!slots||!profile)throw TypeError('Game UI requires host, slots and profile');
         const root=node('div','game-ui',null);root.dataset.uiTemplate='1';
@@ -19,7 +52,7 @@
         const brand=node('div','game-ui-brand',mast);
         const name=node('h2','game-ui-title',brand),subtitle=node('p','game-ui-subtitle',brand);
         const context=node('div','game-ui-context',mast);
-        const status=node('p','game-ui-status',mast);status.setAttribute('role','status');
+        const status=node('p','game-ui-status',mast);status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.setAttribute('aria-atomic','true');
         const introduction=node('div','game-ui-introduction',root);
         const resources=node('div','game-ui-resources',root);
         const layout=node('div','game-ui-layout',root);
@@ -34,6 +67,14 @@
         }
         host.prepend(root);
         let current=profile,language=locale,active='',locked=false;
+        nav.addEventListener('keydown',event=>{
+            if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)||locked)return;
+            const buttons=[...nav.querySelectorAll('button:not([disabled])')];
+            const at=buttons.indexOf(document.activeElement);if(at<0||!buttons.length)return;
+            const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:
+                (at+(event.key==='ArrowLeft'||event.key==='ArrowUp'?-1:1)+buttons.length)%buttons.length;
+            event.preventDefault();buttons[next].focus();
+        });
         function renderNav(){
             const previous=document.activeElement?.dataset?.gameNav;
             nav.replaceChildren();nav.setAttribute('aria-label',language==='fr'?'Navigation du jeu':'Game navigation');
@@ -55,5 +96,5 @@
         update();
         return Object.freeze({root,update,setBusy(value){locked=Boolean(value);for(const b of nav.querySelectorAll('button'))b.disabled=locked;},setStatus(value){status.textContent=String(value??'');}});
     }
-    window.AeternumGameUI=Object.freeze({create,version:1});
+    window.AeternumGameUI=Object.freeze({create,focusKey,restoreFocus,feedback,version:1});
 })();

@@ -15,7 +15,12 @@ const commands: Record<string,{en:string;fr:string}> = {
   'settlement.work': {en:'Lumber shift organized',fr:'Travail du bois organisé'},
   'industry.generate': {en:'Electricity generated',fr:'Électricité produite'},
   'industry.refine': {en:'Goods manufactured',fr:'Marchandises fabriquées'},
-  'industry.ship': {en:'Freight dispatched',fr:'Marchandises expédiées'}
+  'industry.ship': {en:'Freight dispatched',fr:'Marchandises expédiées'},
+  'pack.campaign.research': {en:'Research scheduled',fr:'Recherche planifiée'},
+  'pack.campaign.expedition': {en:'Expedition scheduled',fr:'Expédition planifiée'},
+  'pack.guild.challenge': {en:'Challenge confirmed',fr:'Défi confirmé'},
+  'pack.diplomacy.offer': {en:'Truce proposed',fr:'Trêve proposée'},
+  'pack.diplomacy.accept': {en:'Truce accepted',fr:'Trêve acceptée'}
 };
 export function actionLabel(language: Language, action: string): string {
   return commands[action]?.[language] ?? action.replaceAll('.', ' ');

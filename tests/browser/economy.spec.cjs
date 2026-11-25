@@ -114,7 +114,7 @@ async function industrialMarketSmoke(page) {
     },{times:1});
     await page.getByRole('button',{name:'Cancel selected offer',exact:true}).click();
     await lost;
-    await expect(page.locator('#status')).toHaveText('Failed to fetch');
+    await expect(page.locator('#status')).toHaveText('network_unavailable');
     await expect(page.getByRole('button',{name:'Retry pending action',exact:true})).toBeVisible();
     // Reload removes the cancelled offer, but the saved command remains retryable.
     expect((await marketPage(page)).offers).toEqual([]);
@@ -595,7 +595,13 @@ test('public signup provisions real players, supports retry, reconnect and accou
         expect(rotated.recoveryCode).not.toBe(recovered.recoveryCode);
         await expect(page.locator('#recovery-secret')).toContainText(rotated.recoveryCode);
         // Rotation invalidates the previous code but keeps the session usable.
-        const replay=await page.request.post(url+'/v1/auth/recover',{data:{login:'browser-public-first',code:recovered.recoveryCode,newPassword:'browser attempted recovery replay'}});
+        let replay;
+        for(let attempt=0;attempt<3;attempt++){
+            replay=await page.request.post(url+'/v1/auth/recover',{data:{login:'browser-public-first',code:recovered.recoveryCode,newPassword:'browser attempted recovery replay'}});
+            if(replay.status()!==429)break;
+            if(attempt===2)throw Error('Recovery replay quota exhausted');
+            await page.waitForTimeout(65000);
+        }
         expect(replay.status()).toBe(401);
         await expect(page.locator('#game')).toBeVisible();
         await expect(page.locator('#balance select[name=account]')).toHaveValue(first.account);

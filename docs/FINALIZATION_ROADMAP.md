@@ -67,8 +67,8 @@ Provide archive, preflight/configuration instructions, validation commands, secu
 | F01 | Merged | #88 and #89, each 10/10 pre-merge CI; final merge 09a2bd36; [SDK and compatibility](F01_SDK.md) |
 | F02 | Merged | #90, 10/10 pre-merge CI, merge 31e845ad; [capacity protocol and measured results](F02_CAPACITY.md) |
 | F03 | Merged | #91, 10/10 pre-merge CI, merge 5c6b93fa; [security and recovery evidence](F03_SECURITY_RESILIENCE.md) |
-| F04 | CI qualification | [Versioned campaigns and gameplay](F04_GAMEPLAY.md) |
-| F05 | Planned | — |
+| F04 | Merged | #92, 10/10 exact-head CI, merge d8660e4b; [Versioned campaigns and gameplay](F04_GAMEPLAY.md) |
+| F05 | CI qualification | [Player experience and visual evidence](F05_PLAYER_EXPERIENCE.md) |
 | F06 | Planned | — |
 | F07 | Planned | — |
 

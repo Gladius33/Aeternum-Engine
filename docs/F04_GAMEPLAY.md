@@ -83,3 +83,12 @@ indexed campaign history. Full territorial conquest, destructive combat,
 physical cargo logistics and combined long-duration fault campaigns are
 not represented as delivered. Additional balance calibration and device
 review are separate acceptance activities.
+
+## Observed F04 qualification
+
+Exact head `d6127c4e32c89aad071c67555293edaca292bc6b` passed all ten
+pre-merge workflows and merged at `d8660e4b`. [G08 run 45614401520](https://github.com/Gladius33/Aeternum-Engine/actions/runs/45614401520),
+artifact 15022580696: the three F04 campaign JSON records each show victory,
+reconnection, research level 2 and two expeditions. Screenshots cover
+desktop and mobile. The first G08 attempt did not start its tests due to a
+duplicate JS binding; the corrected head passed.

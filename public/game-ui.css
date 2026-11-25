@@ -373,3 +373,34 @@ html[data-game-presentation=play] #world-scene[data-workspace=relations] [data-w
  .player-first.in-game.library-chosen #world-scene .scene-resource-strip{grid-template-columns:repeat(auto-fit,minmax(85px,1fr))}
  .player-first.in-game.library-chosen #world-scene .scene-resource-tile{min-height:44px}
 }
+
+/* F05: a single map status badge, compact campaign/council and readable controls. */
+.scene-district .scene-level-seal,.scene-district .scene-level-badge{display:none}
+.scene-district .district-stage-marker{filter:none}
+#world-scene :is(button,select,input,textarea,summary,[role=button]):focus-visible{outline:3px solid var(--ui-accent,#f0d69a);outline-offset:3px}
+#world-scene .game-ui-retry{order:-1;display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;padding:.65rem;border:1px solid #d7b46d;border-radius:8px;background:var(--ui-bg);color:var(--ui-ink)}
+#world-scene .game-ui-retry[hidden]{display:none}
+.game-ui-retry p{flex:1 1 180px;margin:0;line-height:1.5;font-size:.85rem}
+.game-ui-retry button{min-height:44px}
+.player-first.in-game.library-chosen #world-scene:is([data-workspace=objectives],[data-workspace=relations]) .game-ui-layout{grid-template-columns:minmax(0,1fr)}
+.player-first.in-game.library-chosen #world-scene:is([data-workspace=objectives],[data-workspace=relations]) :is(.game-ui-stage,.game-ui-side,.game-ui-introduction){display:none}
+.player-first.in-game.library-chosen #world-scene:is([data-workspace=objectives],[data-workspace=relations]) .game-ui-nav{grid-template-columns:repeat(auto-fit,minmax(105px,1fr));grid-row:1}
+#world-scene .campaign-chronicle{gap:.65rem}
+#world-scene .campaign-goal[data-goal-state=complete] progress{height:.32rem}
+#world-scene .campaign-chapter[data-chapter-state=complete] .campaign-art{max-height:105px}
+#world-scene [data-campaign-module]{background:var(--ui-bg);color:var(--ui-ink)}
+#world-scene [data-campaign-module] :is(button,select){min-height:44px;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+#world-scene [data-campaign-module] select{width:100%;background:var(--ui-bg);color:var(--ui-ink);border:1px solid var(--ui-border);border-radius:6px}
+#world-scene [data-campaign-victory=true]{border:2px solid #b9dda4}
+@media(max-width:640px){
+ #world-scene .campaign-chapter[data-chapter-state=complete]{grid-template-columns:88px minmax(0,1fr);align-items:start}
+ #world-scene .campaign-chapter[data-chapter-state=complete] .campaign-art{max-height:85px}
+ #world-scene .campaign-chapter[data-chapter-state=complete] .campaign-chapter-body{padding:.45rem;min-width:0}
+ #world-scene .campaign-chapter[data-chapter-state=complete] .campaign-chapter-body p{font-size:.75rem}
+ #world-scene .campaign-goal{font-size:.79rem}
+ #world-scene .relations-view :is(input,textarea,select){font-size:16px}
+ #world-scene .game-ui-retry button{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ #world-scene *,#world-scene *::before,#world-scene *::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}
+}

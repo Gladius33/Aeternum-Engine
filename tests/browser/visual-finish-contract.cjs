@@ -30,3 +30,15 @@ assert.equal(art.terrainFinish(a,'neutral','day',360,490),false);
 assert.equal(art.terrainFinish(a,'guild','night',0,490),false);
 assert.equal(a.children.length,0);
 console.log('G24: 18 deterministic theme/light/viewport finishes; 8 paths per finish; input and non-interactive contracts passed.');
+
+for(const theme of ['medieval','industrial','guild'])for(const w of [360,900]){
+    const a=doc.createElementNS('','svg'),b=doc.createElementNS('','svg');
+    assert.ok(art.roadVerge(a,theme,w,250,w===360));
+    assert.ok(art.roadVerge(b,theme,w,250,w===360));
+    assert.equal(JSON.stringify(a),JSON.stringify(b));
+    assert.equal(walk(a.children[0]).length,3);
+    assert.equal(a.children[0].attrs['pointer-events'],'none');
+    assert.ok(walk(a).every(n=>Object.values(n.attrs).every(v=>!(/NaN|Infinity|undefined/.test(v)))));
+}
+assert.equal(art.roadVerge(a,'neutral',360,200,true),false);
+console.log('F05: six deterministic, bounded road verge variants.');
