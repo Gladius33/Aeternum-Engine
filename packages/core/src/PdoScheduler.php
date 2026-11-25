@@ -1025,6 +1025,20 @@ final class PdoScheduler
      *
      * @return array{development:int,military:int,global:int}
      */
+    public function packViewForActor(string $actor,string $account,string $view): array
+    {
+        PdoMemberships::validateId($actor);PdoMemberships::validateId($account);
+        $handler=$this->rules?->commands;
+        if (!$handler instanceof EconomyCommandHandler || $this->processing) throw new \DomainException('Player view unavailable');
+        return $this->transaction(function () use($actor,$account,$view,$handler):array {
+            $world=$this->lockedWorld();
+            $this->assertActiveActor($actor);$this->assertAccountOwner($account,$actor);
+            // Confirmed snapshot only: a pending due event remains pending
+            // until the worker commits it, not merely until time elapses.
+            return $handler->ownPackView($view,ScalarMap::decode($world['state_json']),$account);
+        });
+    }
+
     public function scoreForActor(string $actor,string $account,ScoreRules $policy): array
     {
         PdoMemberships::validateId($actor);
