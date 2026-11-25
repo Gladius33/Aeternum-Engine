@@ -22,6 +22,8 @@ grep -qx 'aeternum/bin/ops-alerts.php' "$OUT/files.txt"
 grep -qx 'aeternum/tools/m11-backup.sh' "$OUT/files.txt"
 grep -qx 'aeternum/tools/m11-restore-lab.sh' "$OUT/files.txt"
 grep -qx 'aeternum/database/migrations/031_admin_test_entitlements.sql' "$OUT/files.txt"
+grep -qx 'aeternum/database/migrations/032_score_projection.sql' "$OUT/files.txt"
+grep -qx 'aeternum/bin/score-index.php' "$OUT/files.txt"
 grep -qx 'aeternum/LICENSE.md' "$OUT/files.txt"
 if grep -E '(^|/)(tests|\.git|\.github|node_modules|client)/|(^|/)\.env|\.pem$|\.key$|\.sql\.gz$' "$OUT/files.txt"; then
   echo 'Forbidden path in package' >&2; exit 1

@@ -64,6 +64,8 @@ final class EconomyCommandHandler implements CommandHandler, EconomyGameplayPort
         $this->referenceGameplay=ReferenceGameplayCompatibility::bind($this,$settlement,$industry);
     }
 
+    public function progressionPolicy(): ?ScoreRules { return $this->scoreRules; }
+
     /** Immutable, pinned building costs; null for packs without construction. */
     public function buildingStages(string $type): ?array
     {

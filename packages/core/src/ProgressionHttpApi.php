@@ -50,6 +50,12 @@ final readonly class ProgressionHttpApi
                 'development'=>$scores['development'],
                 'military'=>$scores['military'],
                 'global'=>$scores['global']]]];
+        } catch (\PDOException $e) {
+            // Transient InnoDB contention is retryable, never a partial
+            // receipt. Mutating clients must reuse the exact request ID.
+            if (in_array((int)($e->errorInfo[1]??0),[1205,1213],true))
+                return [503,['error'=>'database_busy','retryable'=>true]];
+            throw $e;
         } catch (\DomainException|\InvalidArgumentException) {
             // No enumeration of actors, world state or foreign account scores.
             return [404,['error'=>'not_found']];

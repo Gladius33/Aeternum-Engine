@@ -57,6 +57,7 @@ require __DIR__ . "/f01-module-registry.php";
 require __DIR__ . "/f01-sdk.php";
 require __DIR__ . "/m14-trusted-events.php";
 require __DIR__ . "/m15-scoring.php";
+require __DIR__ . "/f02-score-delta.php";
 require __DIR__ . "/m15-engagement.php";
 require __DIR__ . "/m15-truce.php";
 require __DIR__ . "/m16-bots.php";

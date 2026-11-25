@@ -40,6 +40,12 @@ final class EconomyHttpApi
             if (str_starts_with($data->type,'pack.') && !$limiter->admit('pack-write:'.$actor,20,60)) return [429,['error'=>'rate_limited']];
             $receipt=$scheduler->executeForActor($actor,new Command($m[1],$data->id,$data->type,(array)$data->payload),$rules->commands);
             return [200,['data'=>$receipt]];
+        } catch (\PDOException $e) {
+            // Transient InnoDB contention is retryable, never a partial
+            // receipt. Mutating clients must reuse the exact request ID.
+            if (in_array((int)($e->errorInfo[1]??0),[1205,1213],true))
+                return [503,['error'=>'database_busy','retryable'=>true]];
+            throw $e;
         } catch (DueEventsPending) {
             return [409,['error'=>'command_or_access_conflict','retryable'=>true]];
         } catch (\DomainException) {
