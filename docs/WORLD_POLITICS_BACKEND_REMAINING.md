@@ -208,3 +208,12 @@ versioned deterministic nested state, four added basic rulebooks and an
 opt-in comparative alpha scenario. Player voting/office authorization,
 full election and legislative systems, monarchies outside the pilot and
 additional regimes remain open. See WORLD_POLITICS_COMPARATIVE.md.
+
+
+## WP33 electoral candidate
+
+Deterministic fictional election cycle with three counting methods, district
+results, coalition negotiation and separate trusted formation evidence.
+Opt-in scenario and private French coalition negotiation route. Actual electoral
+laws/data, multiple cycles, authenticated appointment and individual deputy
+integration remain future work. See WORLD_POLITICS_ELECTORAL.md.

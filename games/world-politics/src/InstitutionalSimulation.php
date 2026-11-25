@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/InstitutionalRulebook.php';
 require_once __DIR__.'/ComparativeGovernment.php';
+require_once __DIR__.'/ElectoralCycle.php';
 
 /**
  * WP05: small deterministic institution/event aggregate. Illustrates exactly
@@ -46,6 +47,7 @@ final class InstitutionalSimulation
         $expected=['world_id','country_code','ruleset','day','legislature','election',
           'last_dissolution','last_election','consultations','bills','agenda','events','constitutional_breaches'];
         if (array_key_exists('accountability',$state)) $expected[]='accountability';
+        if (array_key_exists('electoral',$state)) $expected[]='electoral';
         $keys=array_keys($state);sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
         $self=new self($state['world_id'],$state['country_code'],$state['day']);
@@ -83,6 +85,11 @@ final class InstitutionalSimulation
             if ($g['world_id']!==$state['world_id']||$g['country']!==$state['country_code']||$g['day']!==$state['day'])
                 throw new \DomainException('Accountability state scope or day mismatch');
         } elseif (array_key_exists('accountability',$state)) throw new \DomainException('Null accountability state');
+        if (isset($state['electoral'])) {
+            $el=ElectoralCycle::restore($state['electoral'])->snapshot();
+            if($el['world_id']!==$state['world_id']||$el['country']!==$state['country_code']||$el['day']!==$state['day'])
+                throw new \DomainException('Electoral state scope mismatch');
+        } elseif(array_key_exists('electoral',$state))throw new \DomainException('Null electoral state');
         $self->state=$state;
         return $self;
     }
@@ -208,6 +215,27 @@ final class InstitutionalSimulation
         return $result;
     }
 
+    public function enableElectoral(array $config):void
+    {
+        if(isset($this->state['electoral'])||$this->state['events']!==[])throw new \DomainException('Electoral rules must be pinned at bootstrap');
+        $this->state['electoral']=(new ElectoralCycle($this->state['world_id'],$this->state['country_code'],$this->state['day'],$config))->snapshot();
+    }
+    public function electoral(string $role,string $action,array $payload,string $commandId):array
+    {
+        self::id($commandId);
+        if(!isset($this->state['electoral']))throw new \DomainException('No electoral pilot');
+        $el=ElectoralCycle::restore($this->state['electoral']);
+        if($action==='electoral_coalition'&&$role==='scenario_negotiator'){
+            self::keys($payload,['parties','programme','candidate']);
+            if(!is_array($payload['parties'])||!is_array($payload['programme'])||!is_string($payload['candidate']))throw new \InvalidArgumentException('Invalid coalition payload');
+            $result=$el->coalition($commandId,$payload['parties'],$payload['programme'],$payload['candidate']);
+        }elseif($action==='electoral_certify'&&$role==='constitutional_clerk')$result=$el->certify($commandId,$payload);
+        else throw new \DomainException('Electoral command forbidden');
+        $this->state['electoral']=$el->snapshot();
+        $this->state['events'][]=['id'=>$commandId,'on'=>$this->state['day'],'kind'=>$action,'actor_role'=>$role,'result'=>$result];
+        return $result;
+    }
+
     /** Advance deterministic game clock, executing only approved due events. */
     public function advanceTo(string $targetDay):array
     {
@@ -248,6 +276,9 @@ final class InstitutionalSimulation
         if (isset($this->state['accountability'])) {
             $g=ComparativeGovernment::restore($this->state['accountability']);$g->advance($targetDay);
             $this->state['accountability']=$g->snapshot();
+        }
+        if(isset($this->state['electoral'])){
+            $el=ElectoralCycle::restore($this->state['electoral']);$el->advance($targetDay);$this->state['electoral']=$el->snapshot();
         }
         $this->state['day']=$targetDay;
         $this->state['agenda']=$remain;

@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===3,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===4,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -97,6 +97,26 @@ ck30($ct['status']===200 && $ct['body']['coherent']===true,'WP32 seven synchroni
 $jp=req30('GET',$cr.'/countries/JP/institutions',null,$ta2);
 ck30($jp['body']['accountability']['day']==='2026-11-26','WP32 nested accountability clock');
 ck30(req30('POST',$cr.'/countries/DE/institutions/decisions',['action'=>'accountability_vote','payload'=>['evidence_id'=>'spoof']],$ta2)['status']===404,'WP32 HTTP cannot invent votes');
+$el=req30('POST','/worlds',['label'=>'Electoral test','scenario'=>'fr-electoral-v1'],$ta2,['Idempotency-Key'=>'electoral-world-0001']);
+ck30($el['status']===201,'WP33 electoral scenario creation');
+$er='/worlds/'.$el['body']['world_id'];
+$ep=$er.'/countries/FR/institutions';
+$initial=req30('GET',$ep,null,$ta2);
+ck30($initial['status']===200&&$initial['body']['electoral']['status']==='scheduled','WP33 initial poll');
+$ec=req30('GET',$er.'/clock',null,$ta2);
+for($i=1;$i<=8;$i++){
+    $day=(new DateTimeImmutable('2026-11-25'))->modify('+'.$i.' days')->format('Y-m-d');
+    $ec=req30('POST',$er.'/clock/advances',['target_day'=>$day],$ta2,['If-Match'=>$ec['etag'],'Idempotency-Key'=>'electoral-tick-'.sprintf('%03d',$i)]);
+    ck30($ec['status']===200&&$ec['body']['coherent']===true,'WP33 daily tick '.$i);
+}
+$es=req30('GET',$ep,null,$ta2);
+ck30($es['status']===200&&$es['body']['electoral']['result']['seats']['civic']===40,'WP33 final French seats');
+$deal=['action'=>'electoral_coalition','payload'=>['parties'=>['civic','liberal'],'programme'=>['economy'=>575,'services'=>525],'candidate'=>'civic-leader']];
+$neg=req30('POST',$ep.'/decisions',$deal,$ta2,['If-Match'=>$es['etag'],'Idempotency-Key'=>'electoral-deal-001']);
+ck30($neg['status']===202&&$neg['body']['support_seats']===65&&!$neg['body']['appointed'],'WP33 owner negotiates fictional coalition');
+ck30(req30('POST',$ep.'/decisions',['action'=>'electoral_certify','payload'=>['evidence_id'=>'fake']],$ta2)['status']===404,'WP33 no self-certified government');
+ck30(req30('GET',$ep,null,$ta2)['body']['electoral']['government']===null,'WP33 majority remains separate from appointment');
+ck30(req30('GET',$cr.'/countries/JP/institutions',null,$ta2)['body']['accountability']['day']==='2026-11-26','WP33 old comparative saves unchanged');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";
