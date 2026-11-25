@@ -19,3 +19,23 @@ legislative/enactment evidence provider, world clock coordinator registration,
 REST/OpenAPI, concessions through legally adopted amendments, macroeconomic
 calibration, and multi-domain crash/recovery tests. No public endpoint exists.
 WP29A cannot be treated as completed WP29.
+
+
+## WP29B — durable standalone adapter candidate
+
+Migration 017 creates game-owned InnoDB state, journal and receipt tables.
+PdoDomesticPolicyStore persists the curated assumptions and their semantic
+digest, restores the domain ledger by deterministic replay, and writes the
+state, before/after journal and actor-scoped idempotency receipt atomically.
+Every command requires verified read and operation permissions plus a strong
+ETag and a receipt key. Replays recheck permissions and the world fence.
+
+The world clock and fence schema are required. This adapter refuses all
+mutations in clock-governed worlds until WP29D can pin and coordinate the
+aggregate; only standalone test/scenario worlds may be written. Do not
+enable a world clock on an existing domestic aggregate until that milestone.
+No authenticated HTTP endpoint or concrete legal evidence verifier is added.
+The DB tests cover isolated worlds, reconnection, rollback at receipt insert,
+retries, stale revisions, permission revocation and integrity failures.
+The journal is append-only at application level, not tamper-proof against
+privileged SQL administrators. No scale or concurrent stress claim is made.

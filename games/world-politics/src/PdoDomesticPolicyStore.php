@@ -1,0 +1,229 @@
+<?php
+declare(strict_types=1);
+
+namespace Aeternum\WorldPolitics;
+
+require_once __DIR__.'/DomesticPolicySimulation.php';
+require_once __DIR__.'/WorldMutationFence.php';
+
+interface PersistentDomesticPolicyAuthority extends DomesticPolicyAuthority
+{
+    public function actorId(): string;
+}
+
+/**
+ * WP29B: durable standalone aggregate. Server-curated configuration,
+ * revalidated world/actor permissions, optimistic ETag, transactionally
+ * paired state, journal and receipts. No HTTP transport.
+ * Clock-managed worlds are intentionally not writable until WP29D.
+ */
+final class PdoDomesticPolicyStore
+{
+    public function __construct(
+        private readonly \PDO $pdo,
+        private readonly PersistentDomesticPolicyAuthority $principal
+    ) {
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
+    }
+
+    /** Trusted scenario bootstrap, never a player command. */
+    public function seed(string $world, array $config): void
+    {
+        $actor = $this->permit($world,'domestic.admin');
+        $sim = self::build($world,$config);
+        $this->transaction(function () use ($world,$actor,$config,$sim): void {
+            $this->admit($world,$actor,'bootstrap','domestic.admin');
+            $q = $this->pdo->prepare('INSERT INTO wp_domestic_states
+                (world_id,assumptions_json,assumptions_sha,state_json,state_sha,revision)
+                VALUES(?,?,?,?,?,0)');
+            $q->execute([$world,self::json($config),$sim->assumptionsHash(),self::json($sim->snapshot()),$sim->hash()]);
+        });
+    }
+
+    public function read(string $world): array
+    {
+        $actor = $this->permit($world,'domestic.read');
+        $row = $this->row($world,false);
+        $sim = $this->restore($world,$row);
+        $this->sameActor($world,'domestic.read',$actor);
+        return ['state'=>$sim->snapshot(),'etag'=>'"'.$sim->hash().'"','revision'=>(int)$row['revision']];
+    }
+
+    /**
+     * Only a trusted controller can call the clock or enact operations;
+     * neither dates of authority nor proof hashes nor assumptions originate
+     * from client JSON. An idempotent replay returns the original receipt.
+     */
+    public function execute(string $world,string $operation,array $payload,string $key,string $ifMatch): array
+    {
+        $ability = match($operation) {
+            'propose'=>'domestic.propose','enact'=>'domestic.enact','clock'=>'domestic.clock',
+            default=>throw new \InvalidArgumentException('Unknown domestic operation')
+        };
+        $actor = $this->permit($world,$ability);
+        $this->sameActor($world,'domestic.read',$actor);
+        self::fields($payload,match($operation) {
+            'propose'=>['policy_id','effective_day'],'enact'=>['policy_id'],'clock'=>['target_day']
+        });
+        foreach ($payload as $value) {
+            if (!is_string($value) || strlen($value)>64) throw new \InvalidArgumentException('Invalid command value');
+        }
+        if (!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)
+            || !preg_match('/^"[a-f0-9]{64}"$/D',$ifMatch)) {
+            throw new \InvalidArgumentException('Invalid receipt key or strong ETag');
+        }
+        ksort($payload,SORT_STRING);
+        $request = self::json(['operation'=>$operation,'payload'=>$payload]);
+        $requestSha = hash('sha256',$request);
+        $receiptKey = hash('sha256',$key);
+
+        return $this->transaction(function () use ($world,$operation,$payload,$ifMatch,$ability,$actor,$request,$requestSha,$receiptKey): array {
+            // No admission as a coordinated clock step until WP29D.
+            $this->admit($world,$actor,'domestic_'.$operation,$ability);
+            $row = $this->row($world,true);
+            $this->sameActor($world,$ability,$actor);
+            $this->sameActor($world,'domestic.read',$actor);
+            $sim = $this->restore($world,$row);
+
+            $q = $this->pdo->prepare('SELECT request_sha,response_json FROM wp_domestic_receipts
+                WHERE world_id=? AND principal_id=? AND receipt_key=?');
+            $q->execute([$world,$actor,$receiptKey]);
+            $receipt = $q->fetch(\PDO::FETCH_ASSOC);
+            if ($receipt!==false) {
+                if (!hash_equals($receipt['request_sha'],$requestSha)) throw new \DomainException('Conflicting domestic idempotency key');
+                return self::decode($receipt['response_json']);
+            }
+            $before = $sim->hash();
+            if (!hash_equals('"'.$before.'"',$ifMatch)) throw new \DomainException('Stale domestic state');
+            $result = match($operation) {
+                'propose'=>$this->propose($sim,$payload),
+                'enact'=>$this->enact($sim,$payload),
+                'clock'=>$sim->advance($this->principal,$payload['target_day'])
+            };
+            $this->sameActor($world,$ability,$actor);
+            $this->sameActor($world,'domestic.read',$actor);
+            $after = $sim->hash();
+            $revision = (int)$row['revision']+1;
+            $response = ['status'=>$operation==='propose'?202:200,'result'=>$result,
+                'etag'=>'"'.$after.'"','revision'=>$revision];
+            $q = $this->pdo->prepare('UPDATE wp_domestic_states SET state_json=?,state_sha=?,revision=? WHERE world_id=?');
+            $q->execute([self::json($sim->snapshot()),$after,$revision,$world]);
+            if ($q->rowCount()!==1) throw new \UnexpectedValueException('Domestic state update lost');
+            $q = $this->pdo->prepare('INSERT INTO wp_domestic_journal
+                (world_id,revision,principal_id,operation,request_sha,request_json,before_sha,after_sha,result_json)
+                VALUES(?,?,?,?,?,?,?,?,?)');
+            $q->execute([$world,$revision,$actor,$operation,$requestSha,$request,$before,$after,self::json($result)]);
+            $q = $this->pdo->prepare('INSERT INTO wp_domestic_receipts
+                (world_id,principal_id,receipt_key,request_sha,response_json) VALUES(?,?,?,?,?)');
+            $q->execute([$world,$actor,$receiptKey,$requestSha,self::json($response)]);
+            return $response;
+        });
+    }
+
+    private function propose(DomesticPolicySimulation $sim,array $payload): array
+    {
+        $id=$payload['policy_id'];
+        $sim->propose($this->principal,$id,$payload['effective_day']);
+        return ['policy_id'=>$id,'policy'=>$sim->snapshot()['policies'][$id]];
+    }
+
+    private function enact(DomesticPolicySimulation $sim,array $payload): array
+    {
+        $id=$payload['policy_id'];
+        $sim->authorize($this->principal,$id);
+        return ['policy_id'=>$id,'policy'=>$sim->snapshot()['policies'][$id]];
+    }
+
+    private function admit(string $world,string $actor,string $operation,string $ability): void
+    {
+        WorldMutationFence::admit($this->pdo,$world,$actor,$operation);
+        $this->sameActor($world,$ability,$actor);
+        // Require the world clock schema, even for standalone worlds.
+        // Until the coordinator pins this aggregate, do not mutate a world
+        // that already has a globally managed day.
+        $q=$this->pdo->prepare('SELECT 1 FROM wp_world_clock WHERE world_id=? FOR UPDATE');
+        $q->execute([$world]);
+        if ($q->fetchColumn()!==false) throw new \DomainException('Domestic clock integration not enabled');
+    }
+
+    private function row(string $world,bool $lock): array
+    {
+        $q=$this->pdo->prepare('SELECT assumptions_json,assumptions_sha,state_json,state_sha,revision
+            FROM wp_domestic_states WHERE world_id=?'.($lock?' FOR UPDATE':''));
+        $q->execute([$world]);
+        $row=$q->fetch(\PDO::FETCH_ASSOC);
+        if ($row===false) throw new \DomainException('No domestic policy world');
+        return $row;
+    }
+
+    private function restore(string $world,array $row): DomesticPolicySimulation
+    {
+        $sim=self::build($world,self::decode($row['assumptions_json']));
+        if (!hash_equals($row['assumptions_sha'],$sim->assumptionsHash())) {
+            throw new \UnexpectedValueException('Pinned domestic assumptions changed');
+        }
+        $sim->restore(self::decode($row['state_json']),$row['state_sha']);
+        return $sim;
+    }
+
+    private static function build(string $world,array $config): DomesticPolicySimulation
+    {
+        self::fields($config,['start_day','currency','opening_balance','baseline_revenue',
+            'baseline_expense','cohorts','catalog']);
+        if (!is_string($config['start_day']) || !is_string($config['currency'])
+            || !is_int($config['opening_balance']) || !is_int($config['baseline_revenue'])
+            || !is_int($config['baseline_expense']) || !is_array($config['cohorts']) || !is_array($config['catalog'])) {
+            throw new \InvalidArgumentException('Invalid domestic configuration types');
+        }
+        return new DomesticPolicySimulation($world,$config['start_day'],$config['currency'],
+            $config['opening_balance'],$config['baseline_revenue'],$config['baseline_expense'],
+            $config['cohorts'],$config['catalog']);
+    }
+
+    private function permit(string $world,string $ability): string
+    {
+        if (!preg_match('/^[a-z][a-z0-9_-]{0,63}$/D',$world)) throw new \InvalidArgumentException('Invalid domestic world');
+        $actor=$this->principal->actorId();
+        if (!preg_match('/^[A-Za-z0-9_.:@-]{1,128}$/D',$actor)
+            || !$this->principal->allows($world,$ability)) throw new \DomainException('Unverified domestic permission');
+        return $actor;
+    }
+
+    private function sameActor(string $world,string $ability,string $actor): void
+    {
+        if ($this->permit($world,$ability)!==$actor) throw new \DomainException('Domestic principal changed');
+    }
+
+    private function transaction(callable $work): mixed
+    {
+        if ($this->pdo->inTransaction()) throw new \LogicException('Domestic store requires its own transaction');
+        $this->pdo->beginTransaction();
+        try {
+            $result=$work();
+            $this->pdo->commit();
+            return $result;
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
+    }
+
+    private static function fields(array $value,array $expected): void
+    {
+        $keys=array_keys($value);sort($keys,SORT_STRING);sort($expected,SORT_STRING);
+        if ($keys!==$expected) throw new \InvalidArgumentException('Unexpected domestic fields');
+    }
+
+    private static function decode(string $value): array
+    {
+        $decoded=json_decode($value,true,64,JSON_THROW_ON_ERROR);
+        if (!is_array($decoded)) throw new \UnexpectedValueException('Invalid domestic JSON');
+        return $decoded;
+    }
+
+    private static function json(array $value): string
+    {
+        return json_encode($value,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
+    }
+}

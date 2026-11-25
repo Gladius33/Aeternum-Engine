@@ -160,3 +160,13 @@ La France a désormais un premier scénario parlementaire cohérent de bout en b
 ## WP29A — domestic policy domain candidate
 
 New headless domain and regression tests: `DomesticPolicySimulation.php`, `tests/wp29a-domestic-policy.php`. See `docs/WORLD_POLITICS_DOMESTIC_POLICY.md`. Full WP29 remains open pending durable storage, legislative proof and coordinated clock integration. CI must confirm this candidate before acceptance.
+
+
+## WP29B — durable domestic policy candidate
+
+Migration 017 and PdoDomesticPolicyStore add MariaDB persistence, transactional
+state/journal/receipts, actor-scoped idempotency, strong ETags, permission
+revalidation and deterministic restoration. Standalone world only; coordinated
+world writes remain disabled until WP29D. Pending CI acceptance. Next WP29C:
+real simulated legislative evidence and legally enacted instruments, not
+mere Assembly adoption. WP29D: world-clock saga integration and REST contracts.

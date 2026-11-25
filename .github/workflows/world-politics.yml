@@ -108,6 +108,7 @@ jobs:
           coverage: none
       - name: Transactional persistent roster and journal regression
         run: |
+          php tests/wp29b-domestic-policy-db.php
           php tests/wp03-store-db.php
           php tests/wp04-rest-db.php
           php tests/wp06-institutions-db.php
