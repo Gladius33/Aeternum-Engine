@@ -1,6 +1,6 @@
 # M11 — Exploitation, observabilité et restauration (G08)
 
-**Statut : travail en qualification, et non autorisation de déploiement.** ROADMAP.md conserve les exigences normatives de la V1.0. Aucun hébergement O2Switch ou VPS n'a été modifié dans cette PR.
+**Statut : travail en qualification, et non autorisation de déploiement.** ROADMAP.md conserve les exigences normatives de la V1.0. 
 
 ## Architecture à installer
 
@@ -9,7 +9,7 @@ Le moteur exige PHP 8.4 CLI/FPM, PDO MySQL natif, MariaDB/InnoDB, un registre ex
 **Racine HTTP impérative : uniquement public/**. Ne jamais exposer la racine du dépôt, vendor, bin, tools, database, les configurations, les sauvegardes ou les secrets. Ne pas utiliser le serveur PHP intégré en production.
 
 - **VPS :** placer les releases dans un emplacement privé (exemple /srv/aeternum/releases/...), pointer le document root Nginx vers le sous-dossier public du code activé, utiliser PHP-FPM 8.4 en socket locale, refuser tout fichier PHP autre que index.php, imposer TLS et vérifier les en-têtes proxy. Le paramètre HTTPS doit être défini par le serveur UNIQUEMENT après un terminateur TLS fiable ; ne jamais faire confiance à X-Forwarded-Proto envoyé directement par un client.
-- **O2Switch mutualisé :** vérifier les versions PHP 8.4 CLI et web, l'accès PDO MySQL, les quotas mémoire/CPU, CRON, mod_rewrite et la possibilité d'avoir un document root pointant uniquement sur public/. public/.htaccess refuse les index et route les API via index.php. Si les sources ne peuvent pas être placées hors webroot, la configuration n'est PAS approuvée. L'hébergeur peut ne pas disposer de mariadb-dump ou du temps CRON requis ; dans ce cas utiliser ses procédures de sauvegarde officielles et en éprouver la restauration dans une base distincte.
+- **Hébergement mutualisé :** vérifier les versions PHP 8.4 CLI et web, l'accès PDO MySQL, les quotas mémoire/CPU, CRON, mod_rewrite et la possibilité d'avoir un document root pointant uniquement sur public/. public/.htaccess refuse les index et route les API via index.php. Si les sources ne peuvent pas être placées hors webroot, la configuration n'est PAS approuvée. L'hébergeur peut ne pas disposer de mariadb-dump ou du temps CRON requis ; dans ce cas utiliser ses procédures de sauvegarde officielles et en éprouver la restauration dans une base distincte.
 
 Exemple indicatif de locations Nginx à valider pour votre VPS :
 
@@ -93,7 +93,7 @@ Les deux commandes renvoient une ligne JSON sans données personnelles ni secret
 | CRON concurrent | Verrou de deux connexions MariaDB, exécution bornée, reprise sans double effet | Charge réelle à étalonner |
 | Horloge et échecs | Refus contrôlé de rollback d'horloge et libération du verrou | Arrêt brutal hôte à approfondir |
 | Paquet déployable | Tarball sans secrets, contenu et autoload vérifiés, construction répétée | Ne déploie pas l'infra |
-| O2Switch/VPS | Procédures séparées, préflight et restriction webroot | Validation humaine manquante |
+| mutualisé/VPS | Procédures séparées, préflight et restriction webroot | Validation humaine manquante |
 | Permissions et alertes | Recommandations et métriques produites | GRANT/alertes réelles non prouvées |
 
 Ne marquer M11 achevée que lorsque PHP 8.4, MariaDB, Chromium et la CI M11 spécifique sont verts sur **le même SHA**, qu'aucune anomalie critique n'est ouverte et que les limites non résolues sont explicitement indiquées sans diminuer les critères G08.
