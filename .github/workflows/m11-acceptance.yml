@@ -149,7 +149,7 @@ jobs:
           export M11_CREDENTIALS_FILE="$RUNNER_TEMP/m11-client.cnf"
           export M11_SOURCE_DATABASE=aeternum_m11
           export M11_BACKUP_APPROVED=YES
-          mkdir -p "$RUNNER_TEMP/m11-private-backups"
+          mkdir -m 700 "$RUNNER_TEMP/m11-private-backups"
           bash tools/m11-backup.sh "$RUNNER_TEMP/m11-private-backups" > "$RUNNER_TEMP/m11-backup-summary.json"
           archive="$(find "$RUNNER_TEMP/m11-private-backups" -maxdepth 1 -name '*.sql.gz' -type f -print -quit)"
           test -s "$archive"
@@ -253,7 +253,10 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq -y mariadb-client
           MYSQL_PWD=ci-f06-root-only mariadb --host=127.0.0.1 --user=root -e "
             CREATE DATABASE aeternum_restore_f06 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-            GRANT ALL PRIVILEGES ON aeternum_restore_f06.* TO 'aeternum_f06'@'%';"
+            GRANT ALL PRIVILEGES ON aeternum_restore_f06.* TO 'aeternum_f06'@'%';
+            CREATE USER 'aeternum_f06_runtime'@'%' IDENTIFIED BY 'ci-f06-runtime-only';
+            GRANT SELECT, INSERT, UPDATE, DELETE ON aeternum_f06.* TO 'aeternum_f06_runtime'@'%';
+            GRANT SELECT, INSERT, UPDATE, DELETE ON aeternum_restore_f06.* TO 'aeternum_f06_runtime'@'%';"
           mkdir -m 700 "$RUNNER_TEMP/f06-private"
           umask 077
           printf '%s\n' '[client]' 'host=127.0.0.1' 'port=3306' 'user=aeternum_f06' 'password=ci-f06-db-only' > "$RUNNER_TEMP/f06-private/client.cnf"
@@ -264,6 +267,8 @@ jobs:
           AETERNUM_RESTORE_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_restore_f06;charset=utf8mb4
           AETERNUM_DB_USER: aeternum_f06
           AETERNUM_DB_PASSWORD: ci-f06-db-only
+          AETERNUM_F06_RUNTIME_USER: aeternum_f06_runtime
+          AETERNUM_F06_RUNTIME_PASSWORD: ci-f06-runtime-only
           F06_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           F06_REPORT_PATH: ${{ runner.temp }}/f06-distribution.json
           M11_CREDENTIALS_FILE: ${{ runner.temp }}/f06-private/client.cnf

@@ -3,6 +3,7 @@
 # schema. Never drops a database and never targets a production DB by name.
 set -Eeuo pipefail
 umask 077
+ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 if [[ $# -ne 1 || "$1" != /* ||
   "$(printenv M11_RESTORE_DISPOSABLE || true)" != 'YES' ]]; then
   echo 'Explicit disposable restore acknowledgement and absolute archive required' >&2
@@ -16,11 +17,15 @@ DB="$(printenv M11_RESTORE_DATABASE || true)"
 [[ "$CREDS" == /* && -f "$CREDS" && ! -L "$CREDS" &&
   "$DB" =~ ^aeternum_restore(_[a-z0-9]{1,32})?$ ]] ||
   { echo 'Unsafe destination schema or credentials' >&2; exit 2; }
+CREDS="$(realpath "$CREDS")"
+[[ "$CREDS" != "$ROOT/public/"* ]] || { echo 'Public credential file forbidden' >&2; exit 2; }
 mode="$(stat -c '%a' "$CREDS")"
 (( (8#$mode & 077) == 0 )) || { echo 'Database option file too permissive' >&2; exit 2; }
 ARCHIVE="$1"
 [[ -f "$ARCHIVE" && ! -L "$ARCHIVE" && "$ARCHIVE" == *.sql.gz ]] ||
   { echo 'Invalid restore archive' >&2; exit 2; }
+ARCHIVE="$(realpath "$ARCHIVE")"
+[[ "$ARCHIVE" != "$ROOT/public/"* ]] || { echo 'Public backup forbidden' >&2; exit 2; }
 # Bind the checksum sidecar to the EXACT archive requested. A checksum
 # file naming another valid dump must not authorize importing this archive.
 SIDECAR="$ARCHIVE.sha256"

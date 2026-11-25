@@ -46,6 +46,16 @@ $json=static fn(string $s):array=>json_decode($s,true,32,JSON_THROW_ON_ERROR);
 $m=$json($cli(['bin/migrate.php'],$env));
 requireTrue(count($m['applied'])===count(glob($root.'/database/migrations/*.sql')),'fresh package migrations');
 requireTrue($json($cli(['bin/migrate.php'],$env))['applied']===[],'repeated migration no-op');
+$migrationEnv=$env;
+$env['AETERNUM_DB_USER']=$env['AETERNUM_F06_RUNTIME_USER'];
+$env['AETERNUM_DB_PASSWORD']=$env['AETERNUM_F06_RUNTIME_PASSWORD'];
+$runtimeDb=new PDO($dsn,$env['AETERNUM_DB_USER'],$env['AETERNUM_DB_PASSWORD'],[
+    PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
+$ddlDenied=false;
+try{$runtimeDb->exec('CREATE TABLE f06_forbidden_ddl (id INT)');}
+catch(PDOException $e){$ddlDenied=$e->getCode()==='42000';}
+requireTrue($ddlDenied,'packaged runtime credentials denied DDL');
+$runtimeDb=null;
 $pre=$json($cli(['bin/m01-preflight.php','--layout',$root.'/public',$private],$env));
 requireTrue($pre['configurationPassed'],'strict preflight accepts private configuration');
 $bad=$json($cli(['bin/m01-preflight.php','--layout',$root,$private],$env,'',true));
@@ -147,7 +157,7 @@ $rowCount=0;
 foreach($tables as $table){$x=$fingerprint($src,$table);$y=$fingerprint($dst,$table);if($x!==$y)throw new RuntimeException('Restored table differs: '.$table);$rowCount+=count($x);}
 requireTrue($rowCount>0,'all restored row fingerprints identical');
 $restEnv=array_replace($env,['AETERNUM_DSN'=>$restore]);
-requireTrue($json($cli(['bin/migrate.php'],$restEnv))['applied']===[],'restored migration ledger converges');
+requireTrue($json($cli(['bin/migrate.php'],array_replace($migrationEnv,['AETERNUM_DSN'=>$restore])))['applied']===[],'restored migration ledger converges');
 $after=$json($cli(['bin/ops-verify.php'],$restEnv));requireTrue($after===$before,'restored journal, canonical digest and projections identical');
 [$server,$url]=$start($restEnv);
 try{
@@ -157,7 +167,7 @@ try{
     requireTrue($json($http($url,'/v1/worlds/'.$world.'/premium/me',null,$token)[1])['data']['features']===[],'test revocation survives restore');
 }finally{$stop($server);}
 $proof=['status'=>'passed','sourceHead'=>getenv('F06_SOURCE_SHA')?:'local','checkout'=>getenv('GITHUB_SHA')?:'local',
-    'freshInstall'=>true,'strictPreflight'=>true,'tables'=>count($tables),'fingerprintedRows'=>$rowCount,
+    'freshInstall'=>true,'strictPreflight'=>true,'runtimeDdlDenied'=>true,'tables'=>count($tables),'fingerprintedRows'=>$rowCount,
     'restoredPlayer'=>true,'restoredModule'=>true,'testPaymentReplay'=>true,'testRevocation'=>true,'privateMetrics'=>true,
     'verification'=>$after];
 file_put_contents(getenv('F06_REPORT_PATH')?:'f06-distribution.json',json_encode($proof,JSON_THROW_ON_ERROR|JSON_PRETTY_PRINT).PHP_EOL);

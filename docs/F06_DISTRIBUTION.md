@@ -174,7 +174,7 @@ an alert sender containing tokens or player data in public paths.
   the tools cannot prove a globally quiescent database.
 - Use tools/m11-backup.sh with an absolute private destination,
   M11_BACKUP_APPROVED=YES, M11_SOURCE_DATABASE and an external private
-  M11_CREDENTIALS_FILE (chmod 600). Retain SHA-256 and off-instance
+  M11_CREDENTIALS_FILE (chmod 600). The destination must be mode 0700. Retain SHA-256 and off-instance
   encrypted copies with a documented retention policy. A backup is not
   verified until tested restoration.
 - Restore only a verified archive into a precreated EMPTY disposable
@@ -226,7 +226,7 @@ M11 preserves the existing actual populated pre-031 upgrade and
 least-privilege/backup corruption tests, now comparing canonical replay
 before/after migration. The added job builds the archive twice, extracts
 it, and runs the installed CLI and public front controller against two
-separate MariaDB schemas. Tests include two identities, actual guild
+separate MariaDB schemas using runtime credentials denied DDL. Tests include two identities, actual guild
 module completion, trade idempotence, private read isolation, simulated
 grant/revoke/replay and restored login. Complete row fingerprints and
 canonical state/projections must agree before reconnect. The HTTP
