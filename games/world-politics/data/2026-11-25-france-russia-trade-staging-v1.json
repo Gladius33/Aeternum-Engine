@@ -1,0 +1,275 @@
+{
+  "schema": "wp-fr-russia-trade-staging-v1",
+  "as_of": "2026-11-25",
+  "country": "FR",
+  "classification": "observed_statistics_staging_not_active_game_state",
+  "sources": {
+    "treasury": {
+      "provider": "Direction générale du Trésor",
+      "url": "https://www.tresor.economie.gouv.fr/Pays/RU/les-relations-commerciales-bilaterales-franco-russes-juin-2018",
+      "published_on": "2026-07-01",
+      "license_status": "verify redistribution terms before production ingestion"
+    },
+    "sdes2021": {
+      "provider": "SDES",
+      "url": "https://www.statistiques.developpement-durable.gouv.fr/bilan-energetique-de-la-france-pour-2021",
+      "published_on": null,
+      "license_status": "verify dataset-specific open licence before ingestion"
+    },
+    "gas2025": {
+      "provider": "SDES",
+      "url": "https://www.statistiques.developpement-durable.gouv.fr/edition-numerique/chiffres-cles-energie/13-gaz-naturel",
+      "published_on": null,
+      "edition": 2026,
+      "license_status": "verify dataset-specific open licence before ingestion"
+    },
+    "oil2025": {
+      "provider": "SDES",
+      "url": "https://www.statistiques.developpement-durable.gouv.fr/edition-numerique/chiffres-cles-energie/12-petrole",
+      "published_on": null,
+      "edition": 2026,
+      "license_status": "verify dataset-specific open licence before ingestion"
+    },
+    "coal2025": {
+      "provider": "SDES",
+      "url": "https://www.statistiques.developpement-durable.gouv.fr/edition-numerique/chiffres-cles-energie/14-charbon",
+      "published_on": null,
+      "edition": 2026,
+      "license_status": "verify dataset-specific open licence before ingestion"
+    }
+  },
+  "observations": [
+    {
+      "metric": "goods_imports",
+      "value": 4100000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "treasury",
+      "scope": "French customs goods from Russia",
+      "reported_precision": "100000000 EUR",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "goods_exports",
+      "value": 1890000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "treasury",
+      "scope": "French customs goods to Russia",
+      "reported_precision": "10000000 EUR",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "goods_import_change_vs_2021",
+      "value": -5960,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "treasury",
+      "scope": "nominal goods value vs 2021",
+      "reported_precision": "10 basis points",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "goods_export_change_vs_2021",
+      "value": -7090,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "treasury",
+      "scope": "nominal goods value vs 2021",
+      "reported_precision": "10 basis points",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "gas_goods_import_value",
+      "value": 3170000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "treasury",
+      "scope": "French customs gas natural/liquefied aggregate",
+      "reported_precision": "10000000 EUR",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "nitrogen_products_import_value",
+      "value": 431300000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "treasury",
+      "scope": "French customs nitrogen products",
+      "reported_precision": "100000 EUR",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "nonferrous_metals_import_value",
+      "value": 163700000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "treasury",
+      "scope": "French customs non-ferrous metals",
+      "reported_precision": "100000 EUR",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "gas_import_share",
+      "value": 2200,
+      "unit": "basis_points",
+      "period": "2021",
+      "source_id": "sdes2021",
+      "scope": "French gross imports by origin, SDES physical statistics",
+      "reported_precision": "100 basis points",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "gas_import_share",
+      "value": 1700,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "gas2025",
+      "scope": "French gross imports by origin, SDES physical statistics",
+      "reported_precision": "100 basis points",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "gas_import_total",
+      "value": 518,
+      "unit": "TWh_PCS",
+      "period": "2025",
+      "source_id": "gas2025",
+      "scope": "French gross gas imports, all origins; includes gas later re-exported",
+      "reported_precision": "1 TWh PCS",
+      "partner": null,
+      "kind": "observed"
+    },
+    {
+      "metric": "gas_export_total",
+      "value": 183,
+      "unit": "TWh_PCS",
+      "period": "2025",
+      "source_id": "gas2025",
+      "scope": "French gross gas exports, all destinations",
+      "reported_precision": "1 TWh PCS",
+      "partner": null,
+      "kind": "observed"
+    },
+    {
+      "metric": "gas_import_share",
+      "value": 3600,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "gas2025",
+      "scope": "French gross imports by origin",
+      "reported_precision": "100 basis points",
+      "partner": "NO",
+      "kind": "observed"
+    },
+    {
+      "metric": "gas_import_share",
+      "value": 3100,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "gas2025",
+      "scope": "French gross imports by origin",
+      "reported_precision": "100 basis points",
+      "partner": "US",
+      "kind": "observed"
+    },
+    {
+      "metric": "gas_import_share",
+      "value": 700,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "gas2025",
+      "scope": "French gross imports by origin",
+      "reported_precision": "100 basis points",
+      "partner": "DZ",
+      "kind": "observed"
+    },
+    {
+      "metric": "lng_share_of_gas_imports",
+      "value": 6400,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "gas2025",
+      "scope": "French gross gas imports, all origins",
+      "reported_precision": "100 basis points",
+      "partner": null,
+      "kind": "observed"
+    },
+    {
+      "metric": "crude_oil_import_share",
+      "value": 900,
+      "unit": "basis_points",
+      "period": "2021",
+      "source_id": "oil2025",
+      "scope": "French crude imports by origin",
+      "reported_precision": "100 basis points",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "crude_oil_import_share",
+      "value": 0,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "oil2025",
+      "scope": "French crude imports by origin; zero since 2023 according to SDES",
+      "reported_precision": "reported absence",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "coal_import_share",
+      "value": 3000,
+      "unit": "basis_points",
+      "period": "2021",
+      "source_id": "coal2025",
+      "scope": "French coal imports by origin",
+      "reported_precision": "100 basis points",
+      "partner": "RU",
+      "kind": "observed"
+    },
+    {
+      "metric": "coal_import_share",
+      "value": 0,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "coal2025",
+      "scope": "French coal imports by origin; zero since 2023 according to SDES",
+      "reported_precision": "reported absence",
+      "partner": "RU",
+      "kind": "observed"
+    }
+  ],
+  "derived_examples": [
+    {
+      "metric": "approx_goods_imports_2021",
+      "value": 10150000000,
+      "unit": "EUR",
+      "classification": "approximation_from_rounded_2025_value_and_change",
+      "formula": "4.1bn / (1 - 0.596)",
+      "not_observation": true
+    },
+    {
+      "metric": "approx_goods_exports_2021",
+      "value": 6490000000,
+      "unit": "EUR",
+      "classification": "approximation_from_rounded_2025_value_and_change",
+      "formula": "1.89bn / (1 - 0.709)",
+      "not_observation": true
+    }
+  ],
+  "notes": [
+    "Values are public reported facts with stated scope and precision; historical contract terms and route capacity are not observed here.",
+    "Do not sum physical import shares and customs monetary values; distinct definitions.",
+    "No authorization or route availability inferred; no production DB import in this commit."
+  ]
+}

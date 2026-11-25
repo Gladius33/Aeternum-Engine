@@ -370,3 +370,18 @@ Ce lot est prêt pour étude de l'import, PAS encore en base de données,
 et ne doit pas remplacer les fixtures des anciens scénarios. Voir
 WORLD_POLITICS_FR_EU_EURO_EXIT.md pour l'étude initiale demandée.
 WP80 est un objectif, pas un engagement de conformité exhaustive.
+
+
+## France–Russia normalisation study (25 November 2026)
+
+Added a France-first diplomacy/energy scenario: bilateral normalisation,
+independent Russia–Ukraine peace negotiations, multilateral legal lifting,
+separate EU gas phase-out law, France after effective EU withdrawal,
+partial/failed agreements, lawful aggregate commodity logistics, capacity
+constraints and independent foreign AI. No default political outcome or
+sanctions-evasion mechanism. Implement across WP48–50, WP57–69 and
+WP74–80. See WORLD_POLITICS_FR_RUSSIA_NORMALISATION.md and
+games/world-politics/data/2026-11-25-france-russia-trade-staging-v1.json.
+WP47 completed CI run 45711143046, all three jobs succeeded, 21 specific
+assertions, no GitHub CI warnings. Study and reference staging are
+documentation/data only, not a claim that the gameplay exists.
