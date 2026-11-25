@@ -177,8 +177,7 @@ concerné dans la boîte du destinataire sans le détruire.
 Le workflow CI comporte un dump MariaDB `--single-transaction`, la
 restauration de toutes les tables dans une base de laboratoire et
 `tests/restore-verify.php` qui vérifie les empreintes ligne par ligne et
-les anciens rejouages. Ce test ne constitue **pas** une preuve de
-restauration de production O2Switch/VPS.
+les anciens rejouages. Conserver le rapport de restauration et les empreintes.
 
 ## Preuves exigées avant la fusion
 
