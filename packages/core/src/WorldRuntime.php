@@ -42,7 +42,8 @@ final readonly class WorldRuntime
         foreach ($rules as $world=>$rule) {
             $pack=$packs[$world]??null;
             if (!$pack instanceof GamePack || !$rule instanceof RuleSet
-                || $rule->id!==$pack->id || $rule->version!==$pack->version) {
+                || $rule->id!==$pack->id || $rule->version!==$pack->version
+                || !hash_equals($pack->digest,$rule->packDigest??$rule->artifactDigest)) {
                 throw new \InvalidArgumentException('Invalid approved world rule binding');
             }
         }
