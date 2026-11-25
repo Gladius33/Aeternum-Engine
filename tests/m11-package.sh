@@ -25,6 +25,11 @@ grep -qx 'aeternum/database/migrations/031_admin_test_entitlements.sql' "$OUT/fi
 grep -qx 'aeternum/database/migrations/032_score_projection.sql' "$OUT/files.txt"
 grep -qx 'aeternum/bin/score-index.php' "$OUT/files.txt"
 grep -qx 'aeternum/LICENSE.md' "$OUT/files.txt"
+grep -qx 'aeternum/NOTICE' "$OUT/files.txt"
+grep -qx 'aeternum/PACKAGE.json' "$OUT/files.txt"
+grep -qx 'aeternum/PACKAGE.SHA256' "$OUT/files.txt"
+grep -qx 'aeternum/bin/ops-verify.php' "$OUT/files.txt"
+grep -qx 'aeternum/bin/ops-metrics.php' "$OUT/files.txt"
 if grep -E '(^|/)(tests|\.git|\.github|node_modules|client)/|(^|/)\.env|\.pem$|\.key$|\.sql\.gz$' "$OUT/files.txt"; then
   echo 'Forbidden path in package' >&2; exit 1
 fi
@@ -32,6 +37,19 @@ mkdir "$OUT/unpacked"
 tar -xzf "$archive" -C "$OUT/unpacked"
 test ! -e "$OUT/unpacked/aeternum/.env"
 test ! -e "$OUT/unpacked/aeternum/tests"
+stage="$OUT/unpacked/aeternum"
+bash "$stage/tools/f06-verify-package.sh" "$stage"
+printf 'tampered\n' >> "$stage/NOTICE"
+if bash "$stage/tools/f06-verify-package.sh" "$stage" >/dev/null 2>&1; then
+  echo 'Changed attribution file incorrectly accepted' >&2; exit 1
+fi
+tar -xzf "$archive" -C "$OUT/unpacked" aeternum/NOTICE
+touch "$stage/unexpected.txt"
+if bash "$stage/tools/f06-verify-package.sh" "$stage" >/dev/null 2>&1; then
+  echo 'Unexpected package file incorrectly accepted' >&2; exit 1
+fi
+rm "$stage/unexpected.txt"
+bash "$stage/tools/f06-verify-package.sh" "$stage"
 php -l "$OUT/unpacked/aeternum/public/index.php" >/dev/null
 php -r 'require $argv[1]; if (!class_exists("Aeternum\\Core\\OperationsSnapshot")) exit(1);' \
   "$OUT/unpacked/aeternum/vendor/autoload.php"
