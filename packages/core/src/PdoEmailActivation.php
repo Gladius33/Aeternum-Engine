@@ -58,12 +58,8 @@ final class PdoEmailActivation
     public static function permitsEnrollment(PDO $pdo,string $actor): bool
     {
         $s=$pdo->prepare('SELECT verified_at FROM engine_email_activations WHERE actor_id=?');
-        try { $s->execute([$actor]); }
-        catch (PDOException $e) {
-            // Legacy 016–018 schema predates mailbox claims entirely.
-            if ((int)($e->errorInfo[1]??0)===1146) return false;
-            throw $e;
-        }
+        // Missing proof schema is an installation failure, not permission.
+        $s->execute([$actor]);
         $row=$s->fetch(PDO::FETCH_ASSOC);
         return $row===false || $row['verified_at']!==null;
     }

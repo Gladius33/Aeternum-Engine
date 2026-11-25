@@ -46,16 +46,17 @@ final class PdoSessions
     public function resolve(string $token): ?string
     {
         if (!preg_match('/^[a-f0-9]{64}$/D',$token)) return null;
-        $s=$this->pdo->prepare('SELECT actor_id FROM engine_sessions WHERE token_hash=? AND revoked=0 AND expires_at>?');
+        // A stale token from an interrupted or incorrectly enrolled public
+        // claim must not confer access. One statement avoids a split snapshot.
+        $s=$this->pdo->prepare("SELECT s.actor_id FROM engine_sessions s
+            LEFT JOIN engine_onboarding o ON o.actor_id=s.actor_id
+            LEFT JOIN engine_email_activations a ON a.actor_id=s.actor_id
+            WHERE s.token_hash=? AND s.revoked=0 AND s.expires_at>?
+            AND (o.actor_id IS NULL OR o.status='ready')
+            AND (a.actor_id IS NULL OR a.verified_at IS NOT NULL)");
         $s->execute([hash('sha256',$token),$this->clock->now()]);
         $actor=$s->fetchColumn();
-        if ($actor===false) return null;
-        // A stale token from an interrupted or incorrectly enrolled public
-        // claim must not confer access. Historical operator tokens have no claim.
-        $claim=$this->pdo->prepare('SELECT status FROM engine_onboarding WHERE actor_id=?');
-        $claim->execute([$actor]);$status=$claim->fetchColumn();
-        if ($status!==false && ($status!=='ready' || !PdoEmailActivation::permitsEnrollment($this->pdo,$actor))) return null;
-        return $actor;
+        return $actor===false?null:$actor;
     }
     public function revoke(string $token): void
     {
