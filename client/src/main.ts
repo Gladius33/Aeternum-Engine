@@ -1,9 +1,9 @@
 import {createApp, h, onBeforeUnmount, onMounted, ref} from 'vue';
 import {languageOf, translate, type Language, type MessageKey} from './messages';
 import {actionLabel} from './command-labels';
+import {playerContext,playerReceipt,playerFlag,type PlayerContext,type PlayerReceipt} from './player-events';
 
-type Context = {world?:string; account?:string};
-type Receipt = {type?:string; world?:string; id?:string};
+
 const Shell = {
   setup() {
     const locale = ref<Language>(languageOf(document.documentElement.lang));
@@ -13,8 +13,8 @@ const Shell = {
     const connected = ref(navigator.onLine);
     const networkChanged = ref(false);
     const active = ref(window.location.hash);
-    const context = ref<Context>({});
-    const receipt = ref<Receipt | null>(null);
+    const context = ref<PlayerContext|null>(null);
+    const receipt = ref<PlayerReceipt|null>(null);
     const busy = ref(false);
     const hasPending = ref(false);
     const rootGame = document.getElementById('game');
@@ -37,24 +37,21 @@ const Shell = {
     }
     function onHash() { active.value = window.location.hash; }
     function onContext(event: Event) {
-      const data = (event as CustomEvent<Context>).detail;
-      context.value = {world: String(data?.world ?? '').slice(0,128),
-        account: String(data?.account ?? '').slice(0,128)};
+      context.value=playerContext((event as CustomEvent<unknown>).detail);
       receipt.value = null;
     }
     function onConfirmed(event: Event) {
-      const data = (event as CustomEvent<Receipt>).detail;
-      receipt.value = {type:String(data?.type ?? '').slice(0,80),
-        world:String(data?.world ?? '').slice(0,128),id:String(data?.id ?? '').slice(0,80)};
+      const confirmed=playerReceipt((event as CustomEvent<unknown>).detail,context.value);
+      if(confirmed)receipt.value=confirmed;
     }
     function onActivity(event: Event) {
-      busy.value = (event as CustomEvent<{busy?:boolean}>).detail?.busy === true;
+      busy.value = playerFlag((event as CustomEvent<unknown>).detail,'busy');
     }
     function onRetry(event: Event) {
-      hasPending.value = (event as CustomEvent<{pending?:boolean}>).detail?.pending === true;
+      hasPending.value = playerFlag((event as CustomEvent<unknown>).detail,'pending');
     }
     function onReset() {
-      receipt.value = null; context.value = {}; hasPending.value = false; busy.value = false;
+      receipt.value = null; context.value = null; hasPending.value = false; busy.value = false;
     }
     onMounted(() => {
       sync();
@@ -97,7 +94,7 @@ const Shell = {
             key:link.href, href:link.href,
             'aria-current':active.value===link.href?'location':undefined
           }, text(link.label)))),
-        authenticated.value && context.value.world ? h('p', {class:'player-context'}, [
+        authenticated.value && context.value?.world ? h('p', {class:'player-context'}, [
           text('currentWorld')+': '+context.value.world,
           context.value.account ? ' · '+text('currentAccount')+': '+context.value.account : ''
         ]) : null,

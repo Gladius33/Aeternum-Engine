@@ -77,7 +77,12 @@
         'market.accept':['Barter settled','Troc exécuté'],
         'market.cancel':['Offer withdrawn','Offre retirée'],
         'economy.upgrade':['Upgrade authorized','Amélioration autorisée'],
-        'economy.settle':['Production settled','Production acquise']
+        'economy.settle':['Production settled','Production acquise'],
+        'pack.campaign.research':['Research scheduled','Recherche planifiée'],
+        'pack.campaign.expedition':['Expedition scheduled','Expédition planifiée'],
+        'pack.guild.challenge':['Challenge confirmed','Défi confirmé'],
+        'pack.diplomacy.offer':['Truce proposed','Trêve proposée'],
+        'pack.diplomacy.accept':['Truce accepted','Trêve acceptée']
     };
     const toolbar=html('div',host,'scene-toolbar');
     const button=(parent,key,fn)=>{const b=html('button',parent,'scene-button',t(key));b.type='button';b.dataset.label=key;b.addEventListener('click',fn);return b;};
@@ -964,7 +969,14 @@
             const snapshot=moduleReading;
             panel.dataset.moduleResearch=String(snapshot?.research??'unknown');panel.dataset.moduleExpeditions=String(snapshot?.expeditions??'unknown');panel.dataset.modulePending=snapshot?.pending??'none';
             html('p',panel,'',label('Research: ','Recherche : ')+(snapshot?.research??'—')+' / 2 · '+label('Expeditions: ','Expéditions : ')+(snapshot?.expeditions??'—')+' / 3');
-            if(snapshot?.pending)html('p',panel,'',label('Awaiting worker: ','En attente du worker : ')+displayName(snapshot.pending));
+            if(snapshot?.pending){
+                const job=snapshot.pending==='research'?label('research','recherche'):label('expedition','expédition');
+                html('p',panel,'campaign-job-pending',label('Awaiting server completion: ','En attente de validation du serveur : ')+job);
+                if(Number.isSafeInteger(snapshot.dueAt)&&snapshot.dueAt>=0){
+                    const due=new Date(snapshot.dueAt*1000);
+                    if(Number.isFinite(due.getTime()))html('small',panel,'',label('Scheduled time: ','Échéance prévue : ')+new Intl.DateTimeFormat(fr?'fr-FR':'en-GB',{dateStyle:'short',timeStyle:'medium',timeZone:'UTC'}).format(due)+' UTC');
+                }
+            }
             for(const [key,caption,frText,allowed] of [['research','Start research','Lancer la recherche',snapshot?.canResearch],['expedition','Start expedition','Lancer une expédition',snapshot?.canExpedition]]){
                 const control=html('button',panel,'scene-button');control.type='button';control.dataset.moduleAction=key;
                 control.textContent=label(caption,frText);control.disabled=busy||allowed!==true;control.dataset.moduleAllowed=String(allowed===true);

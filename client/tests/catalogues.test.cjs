@@ -34,3 +34,24 @@ test('server-acknowledged command types have human-readable bilingual names',()=
   assert.equal(actions.actionLabel('fr','industry.ship'),'Marchandises expédiées');
   assert.equal(actions.actionLabel('en','future.action'),'future action');
 });
+
+test('F05 campaign actions distinguish scheduled work from completion in both languages',()=>{
+  assert.equal(actions.actionLabel('en','pack.campaign.research'),'Research scheduled');
+  assert.equal(actions.actionLabel('fr','pack.campaign.expedition'),'Expédition planifiée');
+  assert.equal(actions.actionLabel('fr','pack.diplomacy.accept'),'Trêve acceptée');
+});
+const events=loadTypeScript('src/player-events.ts');
+test('F05 typed presentation contracts discard stale or malformed events',()=>{
+  const scope=events.playerContext({world:'lab-guild-f04',account:'alice'});
+  assert.equal(scope.world,'lab-guild-f04');
+  assert.equal(events.playerContext({world:'bad/world',account:'alice'}),null);
+  assert.equal(events.playerContext({world:'a'.repeat(129),account:'alice'}),null);
+  const good={world:scope.world,account:'alice',type:'pack.campaign.research',id:'cmd-1'};
+  assert.equal(events.playerReceipt(good,scope).id,'cmd-1');
+  assert.equal(events.playerReceipt({...good,account:'bob'},scope),null);
+  assert.equal(events.playerReceipt({...good,world:'other'},scope),null);
+  assert.equal(events.playerReceipt({...good,type:'<script>'},scope),null);
+  assert.equal(events.playerReceipt(good,null),null);
+  assert.equal(events.playerFlag({pending:'true'},'pending'),false);
+  assert.equal(events.playerFlag({pending:true},'pending'),true);
+});
