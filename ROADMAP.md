@@ -1,5 +1,7 @@
 # Roadmap — V1.0 release scope
 
+**Active remaining-work plan:** [F01–F07](docs/FINALIZATION_ROADMAP.md).
+
 **Execution plan:** [13 macro-iterations M01–M13](docs/MACRO_ROADMAP_V1.md). The historical 0001–0039 development increments are kept for traceability. Large functional delivery milestones, not one-commit "iterations", control the next work. No G01–G09 criterion is waived.
 
 A checklist item is complete only when implemented, documented and supported by passing tests. No percentage based on file counts.
@@ -11,7 +13,7 @@ A checklist item is complete only when implemented, documented and supported by 
 - [ ] G05 Platform: authenticated HTTP API, Vue UI, accessibility, internationalization, sessions, rate limiting and authorization.
 - [ ] G06 Multiplayer: organizations, messaging/moderation, markets, ranking and notifications.
 - [ ] G07 Commercial readiness: optional premium entitlements, safe payment integration (test mode), documentation and attribution.
-- [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, o2switch-compatible package and VPS instructions.
+- [ ] G08 Operations: MariaDB migrations, bounded CRON runtime, backup/restore drill, observability, portable package and deployment instructions.
 - [ ] G09 Release: integration/concurrency/replay/security/performance/E2E tests, dependency audit, documented capacity and signed-off V1.0 acceptance; no known critical/high defects.
 
 ## Current development
