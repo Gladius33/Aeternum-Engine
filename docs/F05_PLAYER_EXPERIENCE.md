@@ -107,3 +107,12 @@ read failures now expose a read-only world reload control, with the
 reconnect test logging the exact stable error and respecting quota windows.
 The specific cause of the first missing-stock observation was not captured
 in the original test log; it is not asserted to have been a quota failure.
+
+## Observed F05 qualification
+
+Corrected head `5f943bad5ee4f6b611d1ca6b66dcd388b2de849c` passed all
+ten exact-head workflows, including Browser E2E run 45625210081 and
+[G08 run 45625209953](https://github.com/Gladius33/Aeternum-Engine/actions/runs/45625209953).
+G08 artifact 15029740393 is retained by the workflow. Merge
+`118345bb`. Independent human and physical-device acceptance remain
+separate from automated browser qualification.

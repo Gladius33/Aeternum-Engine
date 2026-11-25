@@ -68,8 +68,8 @@ Provide archive, preflight/configuration instructions, validation commands, secu
 | F02 | Merged | #90, 10/10 pre-merge CI, merge 31e845ad; [capacity protocol and measured results](F02_CAPACITY.md) |
 | F03 | Merged | #91, 10/10 pre-merge CI, merge 5c6b93fa; [security and recovery evidence](F03_SECURITY_RESILIENCE.md) |
 | F04 | Merged | #92, 10/10 exact-head CI, merge d8660e4b; [Versioned campaigns and gameplay](F04_GAMEPLAY.md) |
-| F05 | CI qualification | [Player experience and visual evidence](F05_PLAYER_EXPERIENCE.md) |
-| F06 | Planned | — |
+| F05 | Merged | #93, 10/10 exact-head CI, merge 118345bb; [Player experience and visual evidence](F05_PLAYER_EXPERIENCE.md) |
+| F06 | CI qualification | [Portable install and distribution](F06_DISTRIBUTION.md) |
 | F07 | Planned | — |
 
 This is a scope and evidence contract, not a percentage or time estimate. Additional commercial-game content beyond the reference-game scope may be prioritized separately.
