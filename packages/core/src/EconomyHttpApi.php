@@ -36,7 +36,7 @@ final class EconomyHttpApi
             if (!in_array($data->type,['economy.open','economy.settle','economy.upgrade','economy.transfer','market.create','market.accept','market.cancel','market.claim','building.place','building.start','building.cancel','building.claim','settlement.feed','settlement.work','industry.generate','industry.refine','industry.ship'],true)
                 && !$rules->commands->allowsActorPackCommand($data->type)) return [400,['error'=>'invalid_command']];
             if (str_starts_with($data->type,'market.') && !$limiter->admit('market-write:'.$actor,20,60)) return [429,['error'=>'rate_limited']];
-            if ((str_starts_with($data->type,'building.') || str_starts_with($data->type,'settlement.') || str_starts_with($data->type,'industry.')) && !$limiter->admit('build-write:'.$actor,20,60)) return [429,['error'=>'rate_limited']];
+            if ((str_starts_with($data->type,'building.') || ReferenceGameplayCompatibility::isLegacyNamespace($data->type)) && !$limiter->admit('build-write:'.$actor,20,60)) return [429,['error'=>'rate_limited']];
             if (str_starts_with($data->type,'pack.') && !$limiter->admit('pack-write:'.$actor,20,60)) return [429,['error'=>'rate_limited']];
             $receipt=$scheduler->executeForActor($actor,new Command($m[1],$data->id,$data->type,(array)$data->payload),$rules->commands);
             return [200,['data'=>$receipt]];

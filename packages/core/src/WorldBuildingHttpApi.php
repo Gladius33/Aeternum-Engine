@@ -41,17 +41,12 @@ final class WorldBuildingHttpApi
             return [429,['error'=>'rate_limited']];
         }
         try {
-            if ($isStatus) {
+            if ($isStatus || $isIndustry) {
                 $pack=$this->worlds[$match[1]];
-                if (!$pack instanceof GamePack || $pack->settlement===null) return [404,['error'=>'not_found']];
-                return [200,['data'=>(new PdoSettlementStatus($this->pdo,$match[1],($this->approvedRules[$match[1]]??$pack->rules()),$pack->settlement))
-                    ->forActor($actor,$match[2])]];
-            }
-            if ($isIndustry) {
-                $pack=$this->worlds[$match[1]];
-                if (!$pack instanceof GamePack || $pack->industry===null) return [404,['error'=>'not_found']];
-                return [200,['data'=>(new PdoIndustryStatus($this->pdo,$match[1],($this->approvedRules[$match[1]]??$pack->rules()),$pack->industry))
-                    ->forActor($actor,$match[2])]];
+                if (!$pack instanceof GamePack) return [404,['error'=>'not_found']];
+                return [200,['data'=>ReferenceGameplayCompatibility::status(
+                    $this->pdo,$match[1],$pack,$this->approvedRules[$match[1]]??$pack->rules(),
+                    $isStatus?'settlement':'industrial',$actor,$match[2])]];
             }
             $service=new PdoBuildings($this->pdo,$match[1]);
             return [200,['data'=>$isOptions?$service->choicesFor($actor):($isProgress?$service->progressionFor($actor):$service->own($actor,$match[2]))]];
