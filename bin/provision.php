@@ -7,7 +7,8 @@ try {
     if ($argc!==4 || !preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$argv[2])) {
         throw new InvalidArgumentException('Usage: php bin/provision.php PACK WORLD LOGIN (password on stdin)');
     }
-    $worlds=ConfiguredWorlds::load();
+    $runtime=WorldRuntime::load();
+    $worlds=$runtime->packs;
     $pack=$worlds[$argv[2]]??null;
     if ($pack===null || $pack->id!==$argv[1]) throw new InvalidArgumentException('Unapproved pack/world pair');
     $password=fgets(STDIN,1026);
