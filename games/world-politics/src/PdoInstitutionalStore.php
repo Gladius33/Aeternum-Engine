@@ -16,6 +16,12 @@ interface InstitutionalActorAuthorizer extends PoliticsAuthorizer
     public function roleFor(string $world,string $country,string $action):string;
 }
 
+/** Only a trusted simulation evidence service implements this extension. */
+interface ComparativeInstitutionalAuthorizer extends InstitutionalActorAuthorizer
+{
+    public function verifiedAccountabilityEvidence(string $world,string $country,string $action,string $reference):array;
+}
+
 /**
  * Durable institution aggregate. Independent from the character roster until
  * a combined world transaction / Aeternum admission root is implemented.
@@ -84,7 +90,7 @@ final class PdoInstitutionalStore
         string $world,string $country,string $action,array $payload,
         string $idempotencyKey,string $ifMatch
     ):array {
-        if (!in_array($action,['record_consultation','submit_bill','dissolve_lower_house','hold_election'],true)) {
+        if (!in_array($action,['record_consultation','submit_bill','dissolve_lower_house','hold_election','accountability_file','accountability_vote','accountability_resolve'],true)) {
             throw new \DomainException('Unimplemented institutional decision');
         }
         return $this->write($world,$country,$action,$payload,$idempotencyKey,$ifMatch,false);
@@ -157,8 +163,18 @@ final class PdoInstitutionalStore
             if (!hash_equals('"'.$before.'"',$expected)) {
                 throw new \DomainException('Stale institutional precondition');
             }
-            $result=$clock ? $simulation->advanceTo($payload['target_day'])
-                :$simulation->decide($role,$action,$payload,$commandId);
+            if (str_starts_with($action,'accountability_')) {
+                if (!$this->auth instanceof ComparativeInstitutionalAuthorizer
+                    || array_keys($payload)!==['evidence_id'] || !is_string($payload['evidence_id'])
+                    || !preg_match('/^[a-z][a-z0-9_-]{0,63}$/D',$payload['evidence_id']))
+                    throw new \DomainException('Certified evidence reference required');
+                $e=$this->auth->verifiedAccountabilityEvidence($world,$country,$action,$payload['evidence_id']);
+                if (($e['evidence_id']??null)!==$payload['evidence_id'])throw new \DomainException('Evidence identity mismatch');
+                $result=$simulation->accountability($role,$action,$e,$commandId);
+            } else {
+                $result=$clock ? $simulation->advanceTo($payload['target_day'])
+                    :$simulation->decide($role,$action,$payload,$commandId);
+            }
             $after=$simulation->hash();
             $revision=(int)$row['revision']+1;
             $response=['status'=>$clock?200:202,'result'=>$result,

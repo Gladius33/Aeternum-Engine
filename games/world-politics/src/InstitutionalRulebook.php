@@ -51,12 +51,36 @@ final class InstitutionalRulebook
                 'bill_proposers'=>['member_of_congress'],
                 'dissolution'=>['mode'=>'unavailable'],
             ],
+            'GB'=>[
+                'country'=>'GB','version'=>'gb-wp32-v1','system'=>'parliamentary_constitutional_monarchy',
+                'head_of_state'=>'monarch','head_of_government'=>'prime_minister','legislature'=>'house_of_commons',
+                'policy_source'=>'https://commonslibrary.parliament.uk/research-briefings/cbp-10915/','source_articles'=>['confidence convention'],
+                'bill_proposers'=>['member_of_parliament'],'dissolution'=>['mode'=>'conditional_unimplemented'],
+            ],
+            'ES'=>[
+                'country'=>'ES','version'=>'es-wp32-v1','system'=>'parliamentary_constitutional_monarchy',
+                'head_of_state'=>'monarch','head_of_government'=>'prime_minister','legislature'=>'congress_of_deputies',
+                'policy_source'=>'https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229','source_articles'=>['87','113','114'],
+                'bill_proposers'=>['government'],'dissolution'=>['mode'=>'conditional_unimplemented'],
+            ],
+            'IT'=>[
+                'country'=>'IT','version'=>'it-wp32-v1','system'=>'parliamentary_republic',
+                'head_of_state'=>'president','head_of_government'=>'prime_minister','legislature'=>'parliament',
+                'policy_source'=>'https://www.senato.it/istituzione/il-senato-nel-sistema-bicamerale/il-parlamento','source_articles'=>['70','71','94'],
+                'bill_proposers'=>['government','member_of_parliament'],'dissolution'=>['mode'=>'conditional_unimplemented'],
+            ],
+            'JP'=>[
+                'country'=>'JP','version'=>'jp-wp32-v1','system'=>'parliamentary_constitutional_monarchy',
+                'head_of_state'=>'emperor','head_of_government'=>'prime_minister','legislature'=>'national_diet',
+                'policy_source'=>'https://www.sangiin.go.jp/eng/law/tcoj/','source_articles'=>['41','56','69'],
+                'bill_proposers'=>['diet_member'],'dissolution'=>['mode'=>'conditional_unimplemented'],
+            ],
             default => throw new \DomainException('No reviewed constitutional module for this country'),
         };
     }
 
     public static function hasRules(string $country):bool
     {
-        return in_array($country,['FR','DE','US'],true);
+        return in_array($country,['FR','DE','US','GB','ES','IT','JP'],true);
     }
 }

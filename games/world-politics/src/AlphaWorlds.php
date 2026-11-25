@@ -13,6 +13,8 @@ final class AlphaScenario
     public const ID='fr-sandbox-v1';
     public const DAY='2026-11-24';
     public const GLOBAL='fr-global-v1';
+    public const COMPARATIVE='fr-comparative-v1';
+    public readonly array $countries;
     public readonly string $id;
     public readonly string $day;
     public readonly ?GlobalReferenceBundle $bundle;
@@ -23,8 +25,9 @@ final class AlphaScenario
     public function __construct(string $id=self::ID,?GlobalReferenceBundle $bundle=null,?string $bundleSha=null)
     {
         $this->id=$id;$this->bundle=$bundle;$this->bundleSha=$bundleSha;
-        $this->day=$id===self::GLOBAL?GlobalReferenceBundle::DATE:self::DAY;
-        if ($id===self::GLOBAL && $bundle!==null) {
+        $this->countries=$id===self::COMPARATIVE?['DE','ES','FR','GB','IT','JP','US']:['FR'];
+        $this->day=in_array($id,[self::GLOBAL,self::COMPARATIVE],true)?GlobalReferenceBundle::DATE:self::DAY;
+        if (in_array($id,[self::GLOBAL,self::COMPARATIVE],true) && $bundle!==null) {
             $this->actors=$bundle->actors;$this->references=$bundle->references;$this->charters=[];return;
         }
         if ($id!==self::ID || $bundle!==null || $bundleSha!==null) throw new \DomainException('Unknown scenario configuration');
@@ -62,13 +65,13 @@ final class AlphaWorlds
 
     public function create(AlphaSession $session,array $body,string $key):array
     {
-        AlphaAccounts::fields($body,$this->scenario->id===AlphaScenario::GLOBAL && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario']);
+        AlphaAccounts::fields($body,in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario']);
         if (!is_string($body['label']) || trim($body['label'])==='' || mb_strlen($body['label'])>100
             || preg_match('/[\x00-\x1f\x7f]/',$body['label']) || $body['scenario']!==$this->scenario->id
             || !preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)) throw new AlphaHttpError(422,'invalid_world');
         $label=trim($body['label']);
         $request=[$label,$this->scenario->id];
-        if ($this->scenario->id===AlphaScenario::GLOBAL) $request[]=$this->scenario->bundleSha;
+        if (in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE],true)) $request[]=$this->scenario->bundleSha;
         $fingerprint=hash('sha256',self::json($request));
         $key=hash('sha256',$key);
         $this->db->beginTransaction();
@@ -93,12 +96,22 @@ final class AlphaWorlds
             // One transaction for the entire initial world. The domain classes
             // generate and validate snapshots; individual store seed methods
             // commit separately and cannot provide atomic provisioning.
-            $roster=new PoliticalRoster($world,'FR',['prime_minister','economy','education']);
-            $this->insert("INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,'FR',?,?,0)",
-                [$world,self::json($roster->snapshot()),$roster->snapshotHash()]);
-            $inst=new InstitutionalSimulation($world,'FR',$day);
-            $this->insert("INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,'FR',?,?,0)",
-                [$world,self::json($inst->snapshot()),$inst->hash()]);
+            foreach ($this->scenario->countries as $country) {
+                $roster=new PoliticalRoster($world,$country,$country==='FR'?['prime_minister','economy','education']:['government']);
+                $this->insert('INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
+                    [$world,$country,self::json($roster->snapshot()),$roster->snapshotHash()]);
+                $inst=new InstitutionalSimulation($world,$country,$day);
+                // Fictional chamber sizes, not contemporary election results.
+                if ($country!=='FR') {
+                    $seats=match($country) {
+                        'DE'=>['bundestag'=>100],'ES'=>['congress'=>100],'GB'=>['commons'=>100],
+                        'IT'=>['chamber'=>100,'senate'=>50],'JP'=>['representatives'=>100],'US'=>['house'=>100,'senate'=>50]
+                    };
+                    $inst->enableAccountability('initial-government',$seats);
+                }
+                $this->insert('INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
+                    [$world,$country,self::json($inst->snapshot()),$inst->hash()]);
+            }
             $dip=new DiplomaticSimulation($world,$day,$this->scenario->actors);
             $this->insert('INSERT INTO wp_diplomatic_states(world_id,state_json,state_sha,actor_registry_sha,revision) VALUES(?,?,?,?,0)',
                 [$world,self::json($dip->snapshot()),$dip->hash(),$this->scenario->actors->hash()]);
@@ -115,7 +128,7 @@ final class AlphaWorlds
                 [$world,self::json($c),$dom->assumptionsHash(),self::json($dom->snapshot()),$dom->hash()]);
             $this->insert('INSERT INTO wp_world_clock(world_id,committed_day,revision,domestic_enabled) VALUES(?,?,0,1)',[$world,$day]);
             WorldMutationFence::seed($this->db,$world);
-            $this->insert("INSERT INTO wp_world_clock_countries(world_id,country_code) VALUES(?,'FR')",[$world]);
+            foreach ($this->scenario->countries as $country) $this->insert('INSERT INTO wp_world_clock_countries(world_id,country_code) VALUES(?,?)',[$world,$country]);
             $this->db->commit();
             return ['world_id'=>$world,'scenario'=>$this->scenario->id,'label'=>$label,'role'=>'owner'];
         } catch (\Throwable $e) {

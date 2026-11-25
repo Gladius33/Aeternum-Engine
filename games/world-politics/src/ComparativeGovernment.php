@@ -1,0 +1,159 @@
+<?php
+declare(strict_types=1);
+namespace Aeternum\WorldPolitics;
+
+/** Comparative accountability subset. Every count and procedural attestation
+ * is certified by a simulation-side clerk, not submitted by a player.
+ * Dates use UTC game days; hours are conservative scenario time boundaries.
+ */
+final class ComparativeGovernment
+{
+    public const VERSION='wp32-accountability-v1';
+    public const COUNTRIES=['DE','ES','GB','IT','JP','US'];
+    private array $state;
+    public static function rules(string $country):array
+    {
+        return match($country) {
+            'DE'=>['chambers'=>['bundestag'],'constructive'=>true,'wait_hours'=>48,'signatures_tenths'=>false,'majority'=>'members',
+                'source'=>'https://www.gesetze-im-internet.de/gg/art_67.html','articles'=>['67'],'route'=>'constructive'],
+            'ES'=>['chambers'=>['congress'],'constructive'=>true,'wait_hours'=>120,'signatures_tenths'=>true,'majority'=>'members',
+                'source'=>'https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229','articles'=>['113','114','115'],'route'=>'constructive'],
+            'GB'=>['chambers'=>['commons'],'constructive'=>false,'wait_hours'=>0,'signatures_tenths'=>false,'majority'=>'cast',
+                'source'=>'https://commonslibrary.parliament.uk/research-briefings/cbp-10915/','articles'=>['confidence convention'],'route'=>'resign_or_dissolve'],
+            'IT'=>['chambers'=>['chamber','senate'],'constructive'=>false,'wait_hours'=>72,'signatures_tenths'=>true,'majority'=>'cast',
+                'source'=>'https://www.senato.it/istituzione/la-costituzione/parte-ii/titolo-iii/sezione-i/articolo-94','articles'=>['94'],'route'=>'resign'],
+            'JP'=>['chambers'=>['representatives'],'constructive'=>false,'wait_hours'=>0,'signatures_tenths'=>false,'majority'=>'present',
+                'source'=>'https://www.sangiin.go.jp/eng/law/tcoj/','articles'=>['56','69'],'route'=>'resign_or_dissolve_10'],
+            'US'=>['chambers'=>['house','senate'],'constructive'=>false,'wait_hours'=>0,'signatures_tenths'=>false,'majority'=>'cast',
+                'source'=>'https://www.senate.gov/civics/constitution_item/constitution.htm','articles'=>['I.2','I.3','II.4'],'route'=>'impeachment'],
+            default=>throw new \DomainException('No comparative accountability rulebook')
+        };
+    }
+    public function __construct(string $world,string $country,string $day,string $incumbent,array $seats)
+    {
+        self::id($world);self::id($incumbent);self::day($day);
+        $rules=self::rules($country);
+        $keys=array_keys($seats);sort($keys);$ch=$rules['chambers'];sort($ch);
+        if ($keys!==$ch) throw new \InvalidArgumentException('Chamber roster mismatch');
+        foreach ($seats as $n) if (!is_int($n)||$n<1||$n>5000) throw new \InvalidArgumentException('Invalid certified seat count');
+        ksort($seats);
+        $this->state=['version'=>self::VERSION,'world_id'=>$world,'country'=>$country,'start_day'=>$day,'day'=>$day,
+            'initial_incumbent'=>$incumbent,'incumbent'=>$incumbent,'seats'=>$seats,'status'=>'in_office','pending'=>null,
+            'history'=>[],'breaches'=>0];
+    }
+    public function snapshot():array{return $this->state;}
+    public function advance(string $day):void
+    {
+        self::day($day);
+        if ($day<$this->state['day']) throw new \DomainException('Government clock cannot regress');
+        if ($this->state['status']==='response_required' && $this->state['pending']['deadline']!==null
+            && $day>$this->state['pending']['deadline']) {
+            $this->state['status']='deadline_breached';$this->state['breaches']++;
+        }
+        $this->state['day']=$day;
+    }
+    /** Trusted evidence fields are fixed. Parliament clerk certifies filing,
+     * ballot and trial procedure; constitutional clerk certifies succession
+     * or resignation/dissolution. Evidence source is server-owned.
+     */
+    public function apply(string $action,string $role,array $e):array
+    {
+        $common=['world_id','country','evidence_id','motion_id','at','procedure_certified'];
+        $specific=match($action) {
+            'accountability_file'=>['chamber','signatures','candidate','kind'],
+            'accountability_vote'=>['chamber','present','yes','no','abstain'],
+            'accountability_resolve'=>['outcome','successor'],
+            default=>throw new \InvalidArgumentException('Unknown accountability action')
+        };
+        self::fields($e,[...$common,...$specific]);
+        if ($role!==($action==='accountability_resolve'?'constitutional_clerk':'parliament_clerk')
+            || $e['world_id']!==$this->state['world_id']||$e['country']!==$this->state['country']
+            || $e['procedure_certified']!==true) throw new \DomainException('Uncertified institutional evidence');
+        self::id($e['evidence_id']);self::id($e['motion_id']);
+        if (!is_string($e['at'])||!preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/D',$e['at']))
+            throw new \InvalidArgumentException('Expected UTC evidence instant');
+        $instant=\DateTimeImmutable::createFromFormat('!Y-m-d\TH:i:s\Z',$e['at'],new \DateTimeZone('UTC'));
+        if ($instant===false||$instant->format('Y-m-d\TH:i:s\Z')!==$e['at']||substr($e['at'],0,10)!==$this->state['day'])
+            throw new \DomainException('Evidence must be certified for current game day');
+        foreach ($this->state['history'] as $h) {
+            if ($h['evidence']['evidence_id']===$e['evidence_id']||$h['evidence']['at']>$e['at'])
+                throw new \DomainException('Replayed or backdated evidence');
+            if ($action==='accountability_file'&&$h['action']===$action&&$h['evidence']['motion_id']===$e['motion_id'])
+                throw new \DomainException('Duplicate motion identity');
+        }
+        $r=self::rules($this->state['country']);$p=$this->state['pending'];$status=$this->state['status'];
+        if ($action==='accountability_file') {
+            if ($status!=='in_office'||$p!==null) throw new \DomainException('An accountability procedure is already unresolved');
+            $ch=$e['chamber'];$seats=$this->state['seats'][$ch]??null;
+            if ($seats===null||($r['route']==='impeachment'&&$ch!=='house')) throw new \DomainException('Incompetent chamber');
+            if ($e['kind']!==($r['route']==='impeachment'?'impeachment':'no_confidence')) throw new \DomainException('Wrong constitutional procedure');
+            if (!is_int($e['signatures'])||$e['signatures']<0||$e['signatures']>$seats
+                ||($r['signatures_tenths']&&$e['signatures']<intdiv($seats+9,10))) throw new \DomainException('Insufficient filing signatures');
+            if ($r['constructive']) {self::id($e['candidate']);if($e['candidate']===$this->state['incumbent'])throw new \DomainException('Successor must differ');}
+            elseif($e['candidate']!==null)throw new \DomainException('This procedure does not elect a successor');
+            $this->state['pending']=['id'=>$e['motion_id'],'chamber'=>$ch,'filed_at'=>$e['at'],'candidate'=>$e['candidate'],
+                'deadline'=>null,'stage'=>'filed'];
+            $this->state['status']='motion_pending';
+        } elseif ($action==='accountability_vote') {
+            if ($p===null||$e['motion_id']!==$p['id']||!in_array($status,['motion_pending','senate_trial_pending'],true))
+                throw new \DomainException('No matching pending vote');
+            $senate=$status==='senate_trial_pending';
+            if ($e['chamber']!==($senate?'senate':$p['chamber'])) throw new \DomainException('Wrong voting chamber');
+            $seats=$this->state['seats'][$e['chamber']];
+            foreach (['present','yes','no','abstain'] as $f) if(!is_int($e[$f])||$e[$f]<0||$e[$f]>$seats)throw new \InvalidArgumentException('Invalid ballot counts');
+            if ($e['present']===0||$e['yes']+$e['no']+$e['abstain']!==$e['present'])
+                throw new \DomainException('Invalid certified ballot arithmetic');
+            $filed=new \DateTimeImmutable($p['filed_at']);
+            if ($instant->getTimestamp()-$filed->getTimestamp()<$r['wait_hours']*3600)
+                throw new \DomainException('Minimum procedural delay not elapsed');
+            // Clerk certifies applicable quorum and eligibility rules.
+            $threshold=$senate?intdiv(2*$e['present']+2,3):match($r['majority']) {
+                'members'=>intdiv($seats,2)+1,'present'=>intdiv($e['present'],2)+1,
+                'cast'=>intdiv($e['yes']+$e['no'],2)+1
+            };
+            $passed=$e['yes']>=$threshold;
+            if (!$passed) {$this->state['pending']=null;$this->state['status']='in_office';}
+            elseif ($r['route']==='impeachment'&&!$senate) {
+                $this->state['status']='senate_trial_pending';$this->state['pending']['stage']='house_impeached';
+            } else {
+                $this->state['pending']['stage']=$senate?'convicted':'adopted';
+                $this->state['status']=$senate?'removed_successor_pending':($r['constructive']?'appointment_required':'response_required');
+                if($r['route']==='resign_or_dissolve_10')
+                    $this->state['pending']['deadline']=$instant->modify('+10 days')->format('Y-m-d');
+            }
+            $result=['passed'=>$passed,'threshold'=>$threshold];
+        } else {
+            if ($p===null||$p['id']!==$e['motion_id'])throw new \DomainException('No matching constitutional resolution');
+            if ($status==='appointment_required') {
+                if($e['outcome']!=='appoint_successor'||$e['successor']!==$p['candidate'])throw new \DomainException('Constructive successor is binding');
+                $this->state['incumbent']=$e['successor'];$this->state['status']='in_office';$this->state['pending']=null;
+            } elseif (in_array($status,['response_required','deadline_breached'],true)) {
+                $allowed=$r['route']==='resign'?['resign']:['resign','dissolve'];
+                if(!in_array($e['outcome'],$allowed,true)||$e['successor']!==null
+                    ||($status==='deadline_breached'&&$e['outcome']==='dissolve'))throw new \DomainException('Invalid constitutional response');
+                $this->state['status']=$e['outcome']==='resign'?'caretaker':'election_pending';
+            } elseif (in_array($status,['caretaker','election_pending','removed_successor_pending'],true)) {
+                if($e['outcome']!=='certified_succession')throw new \DomainException('Certified succession required');
+                self::id($e['successor']);
+                $this->state['incumbent']=$e['successor'];$this->state['status']='in_office';$this->state['pending']=null;
+            } else throw new \DomainException('No valid resolution at this stage');
+        }
+        $this->state['history'][]=['action'=>$action,'role'=>$role,'evidence'=>$e];
+        return ['government_status'=>$this->state['status'],'incumbent'=>$this->state['incumbent'],'pending'=>$this->state['pending'],
+            'regime_changed'=>false]+($result??[]);
+    }
+    public static function restore(array $s):self
+    {
+        $x=new self($s['world_id'],$s['country'],$s['start_day'],$s['initial_incumbent'],$s['seats']);
+        if (!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>10000)throw new \DomainException('Invalid government journal');
+        foreach($s['history'] as $h) {
+            $x->advance(substr($h['evidence']['at'],0,10));$x->apply($h['action'],$h['role'],$h['evidence']);
+        }
+        $x->advance($s['day']);
+        if ($x->snapshot()!==$s)throw new \DomainException('Government snapshot failed deterministic replay');
+        return $x;
+    }
+    private static function fields(array $a,array $b):void{$k=array_keys($a);sort($k);sort($b);if($k!==$b)throw new \InvalidArgumentException('Unexpected evidence fields');}
+    private static function id(mixed $id):void{if(!is_string($id)||!preg_match('/^[a-z][a-z0-9_-]{0,63}$/D',$id))throw new \InvalidArgumentException('Invalid evidence identifier');}
+    private static function day(string $day):void{$d=\DateTimeImmutable::createFromFormat('!Y-m-d',$day);if($d===false||$d->format('Y-m-d')!==$day)throw new \InvalidArgumentException('Invalid date');}
+}

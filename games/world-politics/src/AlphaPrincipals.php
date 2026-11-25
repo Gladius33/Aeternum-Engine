@@ -7,18 +7,19 @@ require_once __DIR__.'/AlphaWorlds.php';
 final class AlphaPrincipal implements InstitutionalActorAuthorizer,EconomicPolicyPrincipal
 {
     public function __construct(private readonly AlphaSession $session,private readonly string $world,
-        private readonly bool $scheduler=false) {}
+        private readonly bool $scheduler=false,private readonly array $countries=['FR']) {}
     public function actorId():string {return $this->scheduler?'alpha-clock-'.$this->world:$this->session->id;}
     public function allows(string $world,string $actor,string $ability):bool
     {
         if ($world!==$this->world || ($role=$this->session->role($world))===null) return false;
         if ($this->scheduler) {
-            if ($actor==='FR') return in_array($ability,['read_institutions','advance_clock'],true)
+            if (in_array($actor,$this->countries,true)) return in_array($ability,['read_institutions','advance_clock'],true)
                 && ($ability!=='advance_clock'||$role==='owner');
             if ($actor!==$this->actorId()) return false;
             return in_array($ability,['world.clock.read','organizations.read','diplomacy.read','economy.read'],true)
                 || ($role==='owner' && in_array($ability,['world.clock.advance','organizations.clock','diplomacy.clock','economy.clock'],true));
         }
+        if ($actor!=='FR' && in_array($actor,$this->countries,true)) return $ability==='read_institutions';
         if ($actor==='FR') {
             return in_array($ability,['read','read_institutions'],true)
                 || ($role==='owner' && in_array($ability,['create_fictional_person','initialize_scenario'],true));

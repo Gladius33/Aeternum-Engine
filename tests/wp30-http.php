@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===2,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===3,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -83,6 +83,20 @@ ck30($gc['status']===200 && $gc['body']['committed_day']==='2026-11-25','WP31 pi
 $next=req30('POST',$gr.'/clock/advances',['target_day'=>'2026-11-26'],$ta2,['If-Match'=>$gc['etag'],'Idempotency-Key'=>'global-tick-0001']);
 ck30($next['status']===200 && $next['body']['coherent']===true,'WP31 global clock regression');
 ck30(req30('GET',$gr.'/references',null,$tb)['status']===404,'WP31 no cross-world reference access');
+$comp=req30('POST','/worlds',['label'=>'Comparative test','scenario'=>'fr-comparative-v1'],$ta2,['Idempotency-Key'=>'comparative-world-01']);
+ck30($comp['status']===201,'WP32 comparative world created');
+$cr='/worlds/'.$comp['body']['world_id'];
+foreach(['DE','ES','GB','IT','JP','US'] as $cc) {
+    $state=req30('GET',$cr.'/countries/'.$cc.'/institutions',null,$ta2);
+    ck30($state['status']===200 && $state['body']['accountability']['status']==='in_office','WP32 state '.$cc);
+}
+$cc=req30('GET',$cr.'/clock',null,$ta2);
+ck30(count($cc['body']['countries'])===7,'WP32 pinned seven national clocks');
+$ct=req30('POST',$cr.'/clock/advances',['target_day'=>'2026-11-26'],$ta2,['If-Match'=>$cc['etag'],'Idempotency-Key'=>'comparative-tick-01']);
+ck30($ct['status']===200 && $ct['body']['coherent']===true,'WP32 seven synchronized institutions');
+$jp=req30('GET',$cr.'/countries/JP/institutions',null,$ta2);
+ck30($jp['body']['accountability']['day']==='2026-11-26','WP32 nested accountability clock');
+ck30(req30('POST',$cr.'/countries/DE/institutions/decisions',['action'=>'accountability_vote','payload'=>['evidence_id'=>'spoof']],$ta2)['status']===404,'WP32 HTTP cannot invent votes');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

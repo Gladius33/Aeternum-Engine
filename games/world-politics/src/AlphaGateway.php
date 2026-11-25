@@ -55,7 +55,8 @@ final class AlphaGateway
                 $base=new GlobalReferenceBundle();
                 return self::ok(200,['scenarios'=>[['id'=>AlphaScenario::ID,'start_day'=>AlphaScenario::DAY],
                     ['id'=>AlphaScenario::GLOBAL,'start_day'=>GlobalReferenceBundle::DATE,'reference_sha'=>$base->sha(),
-                    'coverage'=>$base->coverage()]]]);
+                    'coverage'=>$base->coverage()],['id'=>AlphaScenario::COMPARATIVE,'start_day'=>GlobalReferenceBundle::DATE,
+                    'institutional_countries'=>['DE','ES','FR','GB','IT','JP','US'],'reference_sha'=>$base->sha()]]]);
             }
             $worlds=new AlphaWorlds($this->db(),$scenario);
             if ($path==='/api/v1/worlds') {
@@ -63,13 +64,13 @@ final class AlphaGateway
                 if ($method==='POST') {
                     $key=$h['idempotency-key']??'';
                     if ($key==='') throw new AlphaHttpError(428,'precondition_required');
-                    if (($body['scenario']??null)===AlphaScenario::GLOBAL) {
+                    if (in_array($body['scenario']??null,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE],true)) {
                         $sha=$body['reference_bundle_sha']??null;
                         if (array_key_exists('reference_bundle_sha',$body) && (!is_string($sha)||!preg_match('/^[a-f0-9]{64}$/D',$sha)))
                             throw new AlphaHttpError(422,'invalid_reference_bundle');
                         try {$bundle=$sha===null?new GlobalReferenceBundle():(new PdoGlobalReferenceBundles($this->db()))->load($sha);}
                         catch (\DomainException $e) {throw new AlphaHttpError(422,'unknown_reference_bundle');}
-                        $scenario=new AlphaScenario(AlphaScenario::GLOBAL,$bundle,$sha);
+                        $scenario=new AlphaScenario($body['scenario'],$bundle,$sha);
                         $worlds=new AlphaWorlds($this->db(),$scenario);
                     }
                     return self::ok(201,$worlds->create($session,$body,$key));
@@ -84,10 +85,10 @@ final class AlphaGateway
             $q=$this->db()->prepare('SELECT scenario,reference_bundle_sha FROM wp_alpha_worlds WHERE world_id=?');
             $q->execute([$world]);$definition=$q->fetch(\PDO::FETCH_ASSOC);
             if ($definition===false) throw new AlphaHttpError(404,'not_found');
-            if ($definition['scenario']===AlphaScenario::GLOBAL) {
+            if (in_array($definition['scenario'],[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE],true)) {
                 $sha=$definition['reference_bundle_sha'];
                 $bundle=$sha===null?new GlobalReferenceBundle():(new PdoGlobalReferenceBundles($this->db()))->load($sha);
-                $scenario=new AlphaScenario(AlphaScenario::GLOBAL,$bundle,$sha);
+                $scenario=new AlphaScenario($definition['scenario'],$bundle,$sha);
                 if ($suffix==='/references' && $method==='GET') {
                     // Verify the same hashes as the durable economy before exposing data.
                     $q=$this->db()->prepare('SELECT actor_registry_sha,reference_sha FROM wp_economic_states WHERE world_id=?');
@@ -98,15 +99,15 @@ final class AlphaGateway
                         'countries'=>$bundle->countries->all()]);
                 }
             } elseif ($definition['scenario']!==AlphaScenario::ID) throw new \UnexpectedValueException('Unknown saved scenario');
-            $principal=new AlphaPrincipal($session,$world);
-            $service=new AlphaPrincipal($session,$world,true);
+            $principal=new AlphaPrincipal($session,$world,false,$scenario->countries);
+            $service=new AlphaPrincipal($session,$world,true,$scenario->countries);
             if ($suffix==='/clock' || $suffix==='/clock/advances') {
                 $dom=new PdoDomesticPolicyStore($this->db(),new AlphaDomesticPrincipal($session,$world,$this->db(),true));
                 $clock=new WorldClockCoordinator($this->db(),
                     new PdoOrganizationStore($this->db(),$scenario->actors,$scenario->charters,$service),
                     new PdoDiplomaticStore($this->db(),$scenario->actors,$service),
                     new PdoEconomicStore($this->db(),$scenario->actors,$scenario->references,$service),$service,
-                    new PdoInstitutionalStore($this->db(),$service),['FR'],null,$dom);
+                    new PdoInstitutionalStore($this->db(),$service),$scenario->countries,null,$dom);
                 return (new WorldClockApi($clock))->handle($method,$path,$body,$h);
             }
             // Partial cross-domain days are not advertised as a coherent view.
@@ -119,7 +120,8 @@ final class AlphaGateway
                     throw new AlphaHttpError(422,'server_generated_identity');
                 return (new PdoWorldPoliticsApi(new PdoPoliticalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
             }
-            if ($method==='GET' && in_array($suffix,['/countries/FR/institutions','/countries/FR/institutions/rulebook'],true))
+            if ($method==='GET' && preg_match('~^/countries/([A-Z]{2})/institutions(?:/rulebook)?$~D',$suffix,$countryMatch)
+                && in_array($countryMatch[1],$scenario->countries,true))
                 return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
             if (($method==='GET' && in_array($suffix,['/diplomacy','/diplomacy/actors','/diplomacy/proposals'],true))
                 || ($method==='POST' && in_array($suffix,['/diplomacy/proposals','/diplomacy/responses'],true)))

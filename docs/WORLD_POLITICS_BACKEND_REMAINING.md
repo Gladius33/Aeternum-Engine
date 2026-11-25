@@ -199,3 +199,12 @@ versioned global scenario, optional content-addressed WDI archives, coverage
 API and legacy-save regression. Raw WDI observations still require a reviewed
 operator archive; no invented values or complete world institutions claimed.
 See WORLD_POLITICS_GLOBAL_REFERENCES.md. CI acceptance pending.
+
+
+## WP32 comparative constitutional candidate
+
+Seven national clocks, six additional certified accountability routes,
+versioned deterministic nested state, four added basic rulebooks and an
+opt-in comparative alpha scenario. Player voting/office authorization,
+full election and legislative systems, monarchies outside the pilot and
+additional regimes remain open. See WORLD_POLITICS_COMPARATIVE.md.

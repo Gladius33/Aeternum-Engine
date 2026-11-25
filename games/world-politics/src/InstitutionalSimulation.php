@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/InstitutionalRulebook.php';
+require_once __DIR__.'/ComparativeGovernment.php';
 
 /**
  * WP05: small deterministic institution/event aggregate. Illustrates exactly
@@ -44,6 +45,7 @@ final class InstitutionalSimulation
     {
         $expected=['world_id','country_code','ruleset','day','legislature','election',
           'last_dissolution','last_election','consultations','bills','agenda','events','constitutional_breaches'];
+        if (array_key_exists('accountability',$state)) $expected[]='accountability';
         $keys=array_keys($state);sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
         $self=new self($state['world_id'],$state['country_code'],$state['day']);
@@ -76,6 +78,11 @@ final class InstitutionalSimulation
                 throw new \InvalidArgumentException('Unknown scheduled event');
             }
         }
+        if (isset($state['accountability'])) {
+            $g=ComparativeGovernment::restore($state['accountability'])->snapshot();
+            if ($g['world_id']!==$state['world_id']||$g['country']!==$state['country_code']||$g['day']!==$state['day'])
+                throw new \DomainException('Accountability state scope or day mismatch');
+        } elseif (array_key_exists('accountability',$state)) throw new \DomainException('Null accountability state');
         $self->state=$state;
         return $self;
     }
@@ -181,6 +188,26 @@ final class InstitutionalSimulation
         return $result;
     }
 
+    /** Trusted scenario bootstrap only; never an HTTP action. */
+    public function enableAccountability(string $incumbent,array $seats):void
+    {
+        if (isset($this->state['accountability'])||$this->state['events']!==[])throw new \DomainException('Accountability must be pinned at bootstrap');
+        $g=new ComparativeGovernment($this->state['world_id'],$this->state['country_code'],$this->state['day'],$incumbent,$seats);
+        $this->state['accountability']=$g->snapshot();
+    }
+
+    /** Evidence is obtained from the server-side provider by the durable store. */
+    public function accountability(string $role,string $action,array $evidence,string $commandId):array
+    {
+        self::id($commandId);
+        if (!isset($this->state['accountability'])) throw new \DomainException('Comparative government not enabled');
+        $g=ComparativeGovernment::restore($this->state['accountability']);
+        $result=$g->apply($action,$role,$evidence);
+        $this->state['accountability']=$g->snapshot();
+        $this->state['events'][]=['id'=>$commandId,'on'=>$this->state['day'],'kind'=>$action,'actor_role'=>$role,'result'=>$result];
+        return $result;
+    }
+
     /** Advance deterministic game clock, executing only approved due events. */
     public function advanceTo(string $targetDay):array
     {
@@ -217,6 +244,10 @@ final class InstitutionalSimulation
                 'result'=>['processed'=>true],
             ];
             $applied[]=$event['id'];
+        }
+        if (isset($this->state['accountability'])) {
+            $g=ComparativeGovernment::restore($this->state['accountability']);$g->advance($targetDay);
+            $this->state['accountability']=$g->snapshot();
         }
         $this->state['day']=$targetDay;
         $this->state['agenda']=$remain;
