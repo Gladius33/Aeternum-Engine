@@ -30,7 +30,7 @@ php -r '
 '
 test -s LICENSE.md;test -s NOTICE;test -s public/client-dist/aeternum-shell.js
 # Known disposable lab credentials must not escape in docs, scripts or assets.
-if grep -rIlE 'aeternum-local-playtest-only|local-lab-db-only|local-lab-root-only' . | grep -q .; then
+if grep -rIlE 'aeternum-local-playtest[-]only|local-lab-db[-]only|local-lab-root[-]only' . | grep -q .; then
     echo 'Disposable lab credential in package' >&2; exit 1
 fi
 printf '{"verified":true,"files":%s}\n' "$(wc -l < "$WORK/actual" | tr -d ' ')"
