@@ -10,8 +10,21 @@ final class ReviewedModuleCatalog
     {
         return match ($id) {
             'bilateral-truce-v1'=>self::truce($pack),
+            'survey-v1'=>self::survey($pack),
             default=>throw new \InvalidArgumentException('Unknown reviewed module'),
         };
+    }
+
+    private static function survey(GamePack $pack): array
+    {
+        $schema=PackFields::load((object)['account'=>'string'])->types;
+        if (($pack->actions['pack.survey.start']->types??null)!==$schema
+            || ($pack->eventHooks['pack.survey.complete']->types??null)!==$schema) {
+            throw new \InvalidArgumentException('Survey module requires exact action and event schemas');
+        }
+        $command=new SurveyModuleV1();$event=new SurveyEventV1();
+        return ['commands'=>[$command],'events'=>[$event],
+            'sha256'=>hash('sha256',$command->codeDigest()."\0".$event->codeDigest())];
     }
 
     private static function truce(GamePack $pack): array

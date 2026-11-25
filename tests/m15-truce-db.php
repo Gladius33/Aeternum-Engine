@@ -137,9 +137,13 @@ use Aeternum\Core\{BilateralTruceCommands,Command,CommandResult,
         'F01 module registry cannot bypass ownership');
     $accept=['account'=>$b,'target'=>$a];
     $first=$send($tb,'f01-accept','pack.diplomacy.accept',$accept);
-    check($first[0]===200 && $send($tb,'f01-accept','pack.diplomacy.accept',$accept)===$first,
-        'F01 reviewed module retains durable idempotency');
     $scheduler=new PdoScheduler($pdo,$world,$clock,$rules);
+    $beforeRetry=$scheduler->verifyReplay($rules->commands,$rules->events)->entries;
+    $retry=$send($tb,'f01-accept','pack.diplomacy.accept',$accept);
+    check($first[0]===200 && $retry[0]===200
+        && json_encode($retry[1],JSON_THROW_ON_ERROR)===json_encode($first[1],JSON_THROW_ON_ERROR)
+        && $scheduler->verifyReplay($rules->commands,$rules->events)->entries===$beforeRetry,
+        'F01 reviewed module retains durable idempotency without a second journal entry');
     check(($scheduler->state()['diplomacy:truce:'.min($a,$b).':'.max($a,$b).':until']??null)===19220,
         'F01 registry-selected truce persists its authoritative deadline');
     check($scheduler->verifyReplay($rules->commands,$rules->events)->entries>2,
