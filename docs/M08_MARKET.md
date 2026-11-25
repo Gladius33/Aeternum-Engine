@@ -31,7 +31,7 @@ DDL may commit implicitly, a failed upgrade requires restoration of the
 **complete backup**, not merely rolling back an SQL session.
 
 PHP 8.4, MariaDB, concurrent accepts/claims, legacy migration and Chromium
-E2E must all pass on the exact release SHA. External O2Switch/VPS tests
+E2E must all pass on the exact release SHA. Installation acceptance
 and V1.0 certification are separate acceptance gates.
 
 ## Browser controls
