@@ -472,12 +472,12 @@ $g48=req30('POST','/worlds',['label'=>'France fiscal loop','scenario'=>'fr-fisca
 ck30($g48['status']===201,'WP48 observed baseline world');
 $w48=$g48['body']['world_id'];$r48='/worlds/'.$w48;$p48=$r48.'/countries/FR/macro';
 $m48=req30('GET',$p48,null,$tb);
-ck30($m48['status']===200&&$m48['body']['feedback_to_domestic_ledger']&&count($m48['body']['baseline']['source_pack']['observations'])===32,'WP48 persisted observed pack');
+ck30($m48['status']===200&&$m48['body']['feedback_to_domestic_ledger']&&count($m48['body']['baseline']['source_pack']['observations'])===40,'WP48 persisted observed pack');
 $q48=$pdo->prepare('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?');$q48->execute([$w48]);
 $cfg48=json_decode($q48->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
 ck30($cfg48['macro_baseline']['source_sha']===$m48['body']['baseline']['source_sha'],'WP48 MariaDB pinned provenance');
 $c48=req30('GET',$r48.'/clock',null,$tb);
-foreach(['2026-11-26','2026-11-27','2026-11-28'] as $n48=>$day48){
+foreach(['2026-11-26','2026-11-27','2026-11-28','2026-11-29','2026-11-30','2026-12-01','2026-12-02'] as $n48=>$day48){
     $c48=req30('POST',$r48.'/clock/advances',['target_day'=>$day48],$tb,['If-Match'=>$c48['etag'],'Idempotency-Key'=>'fiscal-tick-00'.($n48+1)]);
     ck30($c48['status']===200&&$c48['body']['coherent'],'WP48 coherent fiscal day');
 }

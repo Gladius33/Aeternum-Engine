@@ -2,18 +2,18 @@
 
 Opt-in fr-fiscal-loop-v1, only France playable; same prior institutional
 modules, foreign institutional participants remain non-player. Existing
-32-observation staging pack is validated (source, units, period, identity,
+40-observation versioned pack is validated (source, units, period, identity,
 scope, duplicate guards), embedded in immutable per-world assumptions
 in wp_domestic_states and exposed with the source hash. No SQL migration.
 Legacy scenario hashes and rows unchanged. This is an observed-anchored
 fictional economy, not the actual 2026 French public accounts: annual
 flows use 2025 nominal observations divided into daily minor units;
-GDP residual is explicit. Debt uses T2 2026, unemployment T3 2026,
+GDP includes NPISH consumption separately; rounding residual is explicit. Debt uses T2 2026, unemployment T3 2026,
 inflation Oct 2026, cash EUR 10bn and effective annual interest 2%
 are assumptions. Source dates differ intentionally. Aggregate general
 government flows are not solely the central state's budget. No annual
-GDP ratio mixing different dates. No newly verified source collection
-in this commit; uses the existing staged pack. Other packs still staged.
+GDP ratio mixing different dates. Eight additional Insee observations collected, including NPISH, household
+savings, purchasing power, and trade balances. v1 preserved for provenance. Other packs still staged.
 
 Lagged nominal GDP changes tax receipts, unemployment and price levels
 modify social outlays, real wages influence consumption, activity affects

@@ -11,12 +11,12 @@ final class FrenchMacroBaseline
     public const VERSION='wp48-fr-baseline-v1';
     public static function load():array
     {
-        $pack=json_decode(file_get_contents(__DIR__.'/../data/2026-11-25-france-observations-v1.json'),true,32,JSON_THROW_ON_ERROR);
+        $pack=json_decode(file_get_contents(__DIR__.'/../data/2026-11-25-france-observations-v2.json'),true,32,JSON_THROW_ON_ERROR);
         return self::build($pack);
     }
     public static function build(array $pack):array
     {
-        if(($pack['schema']??null)!=='wp-fr-reference-staging-v1'||($pack['country']??null)!=='FR'
+        if(($pack['schema']??null)!=='wp-fr-reference-v2'||($pack['country']??null)!=='FR'
             ||($pack['as_of']??null)!=='2026-11-25'||!is_array($pack['observations']??null)||count($pack['observations'])>256)
             throw new \DomainException('Invalid French source pack');
         $rows=[];
@@ -39,11 +39,11 @@ final class FrenchMacroBaseline
             return $r['value'];
         };
         $annual=fn(string $k):int=>$get($k,'2025','EUR');
-        $gdp=$annual('gdp_nominal');$c=$annual('household_consumption');
+        $gdp=$annual('gdp_nominal');$c=$annual('household_consumption');$npish=$annual('npish_consumption');
         $g=$annual('government_individual_consumption')+$annual('government_collective_consumption');
         $i=$annual('gross_fixed_capital_formation')+$annual('inventory_change');
         $x=$annual('exports_goods_services');$m=$annual('imports_goods_services');
-        $residual=$gdp-($c+$i+$g+$x-$m);
+        $residual=$gdp-($c+$npish+$i+$g+$x-$m);
         if(abs($residual)>1000000000)throw new \DomainException('Excessive national accounts residual');
         $daily=fn(int $v):int=>intdiv($v*100,365);
         $revenue=$annual('public_revenue');$expense=$annual('public_expenditure');$interest=$annual('public_interest_excluding_sifim_correction');
@@ -51,7 +51,7 @@ final class FrenchMacroBaseline
         $b=['version'=>self::VERSION,'classification'=>'observed_anchors_with_fictional_initialization',
             'source_sha'=>hash('sha256',json_encode($pack,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
             'source_pack'=>$pack,'currency'=>'EUR','unit'=>'minor','annual_reference_period'=>'2025',
-            'daily_real_gdp'=>$daily($gdp),'daily_consumption'=>$daily($c),'daily_investment'=>$daily($i),
+            'daily_real_gdp'=>$daily($gdp),'daily_consumption'=>$daily($c),'daily_npish_consumption'=>$daily($npish),'daily_investment'=>$daily($i),
             'daily_government_consumption'=>$daily($g),'daily_exports'=>$daily($x),'daily_imports'=>$daily($m),
             'annual_rounding_residual_eur'=>$residual,
             'daily_revenue'=>$daily($revenue),'daily_primary_expense'=>$daily($expense-$interest),
@@ -63,7 +63,7 @@ final class FrenchMacroBaseline
             'assumed_opening_cash'=>1000000000000,'assumed_annual_interest_bps'=>200,
             'coefficient_status'=>'fictional_uncalibrated','tax_elasticity_bps'=>8000,
             'benefit_unemployment_sensitivity_bps'=>3000,'benefit_price_pass_through_bps'=>5000];
-        $b['daily_statistical_discrepancy']=$b['daily_real_gdp']-($b['daily_consumption']+$b['daily_investment']
+        $b['daily_statistical_discrepancy']=$b['daily_real_gdp']-($b['daily_consumption']+$b['daily_npish_consumption']+$b['daily_investment']
             +$b['daily_government_consumption']+$b['daily_exports']-$b['daily_imports']);
         return $b;
     }
@@ -111,7 +111,7 @@ final class MacroFiscalLoop
         $investment=max(0,$b['daily_investment']+self::scale($b['daily_investment'],
             self::clamp(intdiv(self::gap($priorReal,$b['daily_real_gdp']),3)+$production-10000,-2500,2500)));
         $government=max(0,$b['daily_government_consumption']+intdiv($expense-$b['daily_primary_expense'],2));
-        $real=$consumption+$investment+$government+$b['daily_exports']-$b['daily_imports']+$b['daily_statistical_discrepancy'];
+        $real=$consumption+$b['daily_npish_consumption']+$investment+$government+$b['daily_exports']-$b['daily_imports']+$b['daily_statistical_discrepancy'];
         if($real<=0)throw new \DomainException('Nonpositive output');
         $outputGap=self::clamp(self::gap($real,$b['daily_real_gdp']),-3000,3000);
         $inflation=self::move($inflation,self::clamp($b['initial_annual_inflation_bps']+intdiv($outputGap,4),-500,2000),20);
@@ -126,7 +126,7 @@ final class MacroFiscalLoop
         if($closingDebt>1000000000000000||$closing>1000000000000000)throw new \DomainException('Treasury magnitude limit');
         return ['revenue'=>$actualRevenue,'expense'=>$primaryExpense,'balance'=>$closing,
             'macro'=>['version'=>self::VERSION,'real_gdp'=>$real,'nominal_gdp'=>$nominal,'consumption'=>$consumption,
-                'investment'=>$investment,'government_consumption'=>$government,'exports'=>$b['daily_exports'],'imports'=>$b['daily_imports'],
+                'npish_consumption'=>$b['daily_npish_consumption'],'investment'=>$investment,'government_consumption'=>$government,'exports'=>$b['daily_exports'],'imports'=>$b['daily_imports'],
                 'statistical_discrepancy'=>$b['daily_statistical_discrepancy'],'real_output_index_bps'=>self::gap($real,$b['daily_real_gdp'])+10000,
                 'daily_real_growth_bps'=>self::gap($real,$priorReal),'price_index_scaled'=>$price,'wage_index_scaled'=>$wage,
                 'annual_inflation_bps'=>$inflation,'unemployment_bps'=>$unemployment,'real_wage_index_bps'=>intdiv($wage*10000,$price),

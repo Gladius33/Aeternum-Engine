@@ -12,8 +12,8 @@ final class A48 implements DomesticPolicyAuthority{
     public function clockDay(string $w):string{return $this->day;}
 }
 $b=FrenchMacroBaseline::load();
-ck48(count($b['source_pack']['observations'])===32&&$b['opening_debt']===359550000000000,'observations and units');
-ck48($b['daily_real_gdp']===$b['daily_consumption']+$b['daily_investment']+$b['daily_government_consumption']+$b['daily_exports']-$b['daily_imports']+$b['daily_statistical_discrepancy'],'observed anchors reconcile');
+ck48(count($b['source_pack']['observations'])===40&&$b['opening_debt']===359550000000000,'observations and units');
+ck48($b['daily_real_gdp']===$b['daily_consumption']+$b['daily_npish_consumption']+$b['daily_investment']+$b['daily_government_consumption']+$b['daily_exports']-$b['daily_imports']+$b['daily_statistical_discrepancy'],'observed anchors reconcile');
 $bad=$b;$bad['opening_debt']++;no48(fn()=>FrenchMacroBaseline::assertValid($bad),'altered baseline denied');
 $catalog=['tax-test'=>['revenue_delta'=>10000000000,'expense_delta'=>0,'pressure_delta'=>['workers'=>0],'duration_days'=>10,
     'concessions'=>['workers'=>0],'concession_daily_cost'=>0,'production_delta_bps'=>-1000,'employment_delta_bps'=>-1000]];
@@ -26,12 +26,12 @@ ck48($first['macro']['real_gdp']<$base['macro']['real_gdp'],'effective policy sh
 $a->day='2026-11-27';$second=$s->advance($a,$a->day);$other=$control->advance($a,$a->day);
 ck48($second['macro']['tax_feedback']<$other['macro']['tax_feedback'],'lagged output reduces receipts');
 ck48($second['macro']['social_expense_feedback']>=$other['macro']['social_expense_feedback'],'lagged unemployment and prices change social expense');
-for($n=0;$n<20;$n++){$a->day=(new DateTimeImmutable($a->day))->modify('+1 day')->format('Y-m-d');$s->advance($a,$a->day);}
+for($n=0;$n<40;$n++){$a->day=(new DateTimeImmutable($a->day))->modify('+1 day')->format('Y-m-d');$s->advance($a,$a->day);}
 $snap=$s->snapshot();$borrow=0;
 foreach($snap['days'] as $row){$t=$row['treasury'];$m=$row['macro'];
     if($row['closing_balance']!==$t['opening_cash']+$row['revenue']-$row['expense']-$t['interest']+$t['new_borrowing']||$t['debt']!==$t['opening_debt']+$t['new_borrowing'])
         throw new RuntimeException('Treasury mismatch');
-    if($m['real_gdp']!==$m['consumption']+$m['investment']+$m['government_consumption']+$m['exports']-$m['imports']+$m['statistical_discrepancy'])throw new RuntimeException('GDP identity');
+    if($m['real_gdp']!==$m['consumption']+$m['npish_consumption']+$m['investment']+$m['government_consumption']+$m['exports']-$m['imports']+$m['statistical_discrepancy'])throw new RuntimeException('GDP identity');
     $borrow+=$t['new_borrowing'];
 }
 ck48($borrow>0,'borrowing and interest enter authoritative cash ledger');
