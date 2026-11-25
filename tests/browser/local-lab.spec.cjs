@@ -552,7 +552,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             };
             const domain=async(key,type)=>{
                 await page.locator('[data-game-nav=domain]').click();await idle();
-                await perform(type,()=>page.locator('[data-domain-perform='+key+']').click());
+                await perform(type,()=>page.locator('[data-domain-action='+key+']').click());
             };
             if(pack==='medieval'){
                 await buildTo('lumberyard',2);await buildTo('farm',2);await buildTo('granary',1);
@@ -602,7 +602,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await refreshCampaign();
             const modulePanel=page.locator('[data-campaign-module]');
             const job=async(kind,attribute,level)=>{
-                await perform('pack.campaign.'+kind,()=>modulePanel.locator('[data-module-perform='+kind+']').click());
+                await perform('pack.campaign.'+kind,()=>modulePanel.locator('[data-module-action='+kind+']').click());
                 await expect.poll(async()=>{
                     await idle();await modulePanel.locator('[data-module-refresh]').click();await idle();
                     return modulePanel.getAttribute(attribute);
