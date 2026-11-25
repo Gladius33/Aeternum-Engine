@@ -85,6 +85,20 @@ paths:
       responses:
         '200': { description: Authenticated account identity }
         '401': { description: Authentication required }
+  /scenarios:
+    get:
+      operationId: listAlphaScenarios
+      responses:
+        '200': { description: Supported scenario versions and reference coverage }
+        '401': { description: Authentication required }
+  /worlds/{world}/references:
+    get:
+      operationId: readPinnedWorldReferences
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Pinned country catalog and economic provenance coverage }
+        '404': { description: Inaccessible world or unsupported scenario }
   /worlds:
     get:
       responses:
@@ -103,7 +117,8 @@ paths:
               required: [label, scenario]
               properties:
                 label: { type: string, maxLength: 100 }
-                scenario: { type: string, const: fr-sandbox-v1 }
+                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1] }
+                reference_bundle_sha: { type: string, pattern: '^[a-f0-9]{64}$', description: Optional operator-installed reference bundle for fr-global-v1 }
       responses:
         '201': { description: Atomically created or replayed private world }
         '409': { description: World quota or idempotency conflict }

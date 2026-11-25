@@ -51,12 +51,27 @@ final class AlphaGateway
             }
             if ($path==='/api/v1/me' && $method==='GET') return self::ok(200,['account_id'=>$session->id,'username'=>$session->username]);
             $scenario=new AlphaScenario();
+            if ($path==='/api/v1/scenarios' && $method==='GET') {
+                $base=new GlobalReferenceBundle();
+                return self::ok(200,['scenarios'=>[['id'=>AlphaScenario::ID,'start_day'=>AlphaScenario::DAY],
+                    ['id'=>AlphaScenario::GLOBAL,'start_day'=>GlobalReferenceBundle::DATE,'reference_sha'=>$base->sha(),
+                    'coverage'=>$base->coverage()]]]);
+            }
             $worlds=new AlphaWorlds($this->db(),$scenario);
             if ($path==='/api/v1/worlds') {
                 if ($method==='GET') return self::ok(200,$worlds->list($session));
                 if ($method==='POST') {
                     $key=$h['idempotency-key']??'';
                     if ($key==='') throw new AlphaHttpError(428,'precondition_required');
+                    if (($body['scenario']??null)===AlphaScenario::GLOBAL) {
+                        $sha=$body['reference_bundle_sha']??null;
+                        if (array_key_exists('reference_bundle_sha',$body) && (!is_string($sha)||!preg_match('/^[a-f0-9]{64}$/D',$sha)))
+                            throw new AlphaHttpError(422,'invalid_reference_bundle');
+                        try {$bundle=$sha===null?new GlobalReferenceBundle():(new PdoGlobalReferenceBundles($this->db()))->load($sha);}
+                        catch (\DomainException $e) {throw new AlphaHttpError(422,'unknown_reference_bundle');}
+                        $scenario=new AlphaScenario(AlphaScenario::GLOBAL,$bundle,$sha);
+                        $worlds=new AlphaWorlds($this->db(),$scenario);
+                    }
                     return self::ok(201,$worlds->create($session,$body,$key));
                 }
                 throw new AlphaHttpError(405,'method_not_allowed');
@@ -66,6 +81,23 @@ final class AlphaGateway
             if ($role===null) throw new AlphaHttpError(404,'not_found');
             if ($method!=='GET' && $role!=='owner') throw new AlphaHttpError(403,'forbidden');
             if ($suffix==='/members' && $method==='POST') return self::ok(200,$worlds->share($session,$world,$body));
+            $q=$this->db()->prepare('SELECT scenario,reference_bundle_sha FROM wp_alpha_worlds WHERE world_id=?');
+            $q->execute([$world]);$definition=$q->fetch(\PDO::FETCH_ASSOC);
+            if ($definition===false) throw new AlphaHttpError(404,'not_found');
+            if ($definition['scenario']===AlphaScenario::GLOBAL) {
+                $sha=$definition['reference_bundle_sha'];
+                $bundle=$sha===null?new GlobalReferenceBundle():(new PdoGlobalReferenceBundles($this->db()))->load($sha);
+                $scenario=new AlphaScenario(AlphaScenario::GLOBAL,$bundle,$sha);
+                if ($suffix==='/references' && $method==='GET') {
+                    // Verify the same hashes as the durable economy before exposing data.
+                    $q=$this->db()->prepare('SELECT actor_registry_sha,reference_sha FROM wp_economic_states WHERE world_id=?');
+                    $q->execute([$world]);$pins=$q->fetch(\PDO::FETCH_ASSOC);
+                    if ($pins===false || $pins['actor_registry_sha']!==$bundle->actors->hash() || $pins['reference_sha']!==$bundle->references->hash())
+                        throw new \UnexpectedValueException('Pinned references differ');
+                    return self::ok(200,['bundle_sha'=>$bundle->sha(),'manifest'=>$bundle->manifest,'coverage'=>$bundle->coverage(),
+                        'countries'=>$bundle->countries->all()]);
+                }
+            } elseif ($definition['scenario']!==AlphaScenario::ID) throw new \UnexpectedValueException('Unknown saved scenario');
             $principal=new AlphaPrincipal($session,$world);
             $service=new AlphaPrincipal($session,$world,true);
             if ($suffix==='/clock' || $suffix==='/clock/advances') {

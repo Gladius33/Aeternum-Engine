@@ -5,17 +5,29 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/AlphaAccounts.php';
 require_once __DIR__.'/WorldClockCoordinator.php';
 require_once __DIR__.'/PoliticalRoster.php';
+require_once __DIR__.'/GlobalReferenceBundle.php';
 
 /** Immutable private alpha scenario. No real economic data is invented. */
 final class AlphaScenario
 {
     public const ID='fr-sandbox-v1';
     public const DAY='2026-11-24';
+    public const GLOBAL='fr-global-v1';
+    public readonly string $id;
+    public readonly string $day;
+    public readonly ?GlobalReferenceBundle $bundle;
+    public readonly ?string $bundleSha;
     public readonly GeopoliticalActorRegistry $actors;
     public readonly EconomicReferenceRegistry $references;
     public readonly array $charters;
-    public function __construct()
+    public function __construct(string $id=self::ID,?GlobalReferenceBundle $bundle=null,?string $bundleSha=null)
     {
+        $this->id=$id;$this->bundle=$bundle;$this->bundleSha=$bundleSha;
+        $this->day=$id===self::GLOBAL?GlobalReferenceBundle::DATE:self::DAY;
+        if ($id===self::GLOBAL && $bundle!==null) {
+            $this->actors=$bundle->actors;$this->references=$bundle->references;$this->charters=[];return;
+        }
+        if ($id!==self::ID || $bundle!==null || $bundleSha!==null) throw new \DomainException('Unknown scenario configuration');
         $data=json_decode(file_get_contents(__DIR__.'/../data/2026-11-24-special-actors.json'),true,32,JSON_THROW_ON_ERROR);
         $data['entities'][]=['id'=>'state_fr','label'=>'France','iso2'=>'FR','kind'=>'state','un_status'=>'un_member',
             'parent_id'=>null,'controller'=>'human_or_ai','representation'=>'international_state_actor',
@@ -26,7 +38,7 @@ final class AlphaScenario
     }
     public function domestic():array
     {
-        return ['start_day'=>self::DAY,'currency'=>'EUR','opening_balance'=>1000000000,
+        return ['start_day'=>$this->day,'currency'=>'EUR','opening_balance'=>1000000000,
             'baseline_revenue'=>10000000,'baseline_expense'=>11000000,
             'cohorts'=>['workers'=>400,'retired'=>300],
             'catalog'=>['education-reform'=>['revenue_delta'=>0,'expense_delta'=>200000,
@@ -42,7 +54,7 @@ final class AlphaWorlds
     public function list(AlphaSession $session):array
     {
         if (!$session->active()) throw new AlphaHttpError(401,'authentication_required');
-        $q=$this->db->prepare('SELECT w.world_id,w.label,w.scenario,m.role,c.committed_day,c.pending_day
+        $q=$this->db->prepare('SELECT w.world_id,w.label,w.scenario,w.reference_bundle_sha,m.role,c.committed_day,c.pending_day
             FROM wp_alpha_members m JOIN wp_alpha_worlds w ON w.world_id=m.world_id
             JOIN wp_world_clock c ON c.world_id=w.world_id WHERE m.account_id=? ORDER BY w.world_id LIMIT 100');
         $q->execute([$session->id]);return ['worlds'=>$q->fetchAll(\PDO::FETCH_ASSOC)];
@@ -50,11 +62,14 @@ final class AlphaWorlds
 
     public function create(AlphaSession $session,array $body,string $key):array
     {
-        AlphaAccounts::fields($body,['label','scenario']);
+        AlphaAccounts::fields($body,$this->scenario->id===AlphaScenario::GLOBAL && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario']);
         if (!is_string($body['label']) || trim($body['label'])==='' || mb_strlen($body['label'])>100
-            || preg_match('/[\x00-\x1f\x7f]/',$body['label']) || $body['scenario']!==AlphaScenario::ID
+            || preg_match('/[\x00-\x1f\x7f]/',$body['label']) || $body['scenario']!==$this->scenario->id
             || !preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)) throw new AlphaHttpError(422,'invalid_world');
-        $label=trim($body['label']);$fingerprint=hash('sha256',self::json([$label,AlphaScenario::ID]));
+        $label=trim($body['label']);
+        $request=[$label,$this->scenario->id];
+        if ($this->scenario->id===AlphaScenario::GLOBAL) $request[]=$this->scenario->bundleSha;
+        $fingerprint=hash('sha256',self::json($request));
         $key=hash('sha256',$key);
         $this->db->beginTransaction();
         try {
@@ -65,14 +80,14 @@ final class AlphaWorlds
             $q->execute([$session->id,$key]);$prior=$q->fetch(\PDO::FETCH_ASSOC);
             if ($prior!==false) {
                 if (!hash_equals($prior['request_sha'],$fingerprint)) throw new AlphaHttpError(409,'idempotency_conflict');
-                $this->db->commit();return ['world_id'=>$prior['world_id'],'scenario'=>AlphaScenario::ID,'label'=>$label,'role'=>'owner'];
+                $this->db->commit();return ['world_id'=>$prior['world_id'],'scenario'=>$this->scenario->id,'label'=>$label,'role'=>'owner'];
             }
             $q=$this->db->prepare('SELECT COUNT(*) FROM wp_alpha_worlds WHERE owner_id=?');
             $q->execute([$session->id]);
             if ((int)$q->fetchColumn()>=10) throw new AlphaHttpError(409,'world_limit');
-            $world='world-'.bin2hex(random_bytes(16));$day=AlphaScenario::DAY;
-            $this->insert('INSERT INTO wp_alpha_worlds(world_id,owner_id,create_key,request_sha,label,scenario) VALUES(?,?,?,?,?,?)',
-                [$world,$session->id,$key,$fingerprint,$label,AlphaScenario::ID]);
+            $world='world-'.bin2hex(random_bytes(16));$day=$this->scenario->day;
+            $this->insert('INSERT INTO wp_alpha_worlds(world_id,owner_id,create_key,request_sha,label,scenario,reference_bundle_sha) VALUES(?,?,?,?,?,?,?)',
+                [$world,$session->id,$key,$fingerprint,$label,$this->scenario->id,$this->scenario->bundleSha]);
             $this->insert("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'owner')",[$world,$session->id]);
 
             // One transaction for the entire initial world. The domain classes
@@ -102,7 +117,7 @@ final class AlphaWorlds
             WorldMutationFence::seed($this->db,$world);
             $this->insert("INSERT INTO wp_world_clock_countries(world_id,country_code) VALUES(?,'FR')",[$world]);
             $this->db->commit();
-            return ['world_id'=>$world,'scenario'=>AlphaScenario::ID,'label'=>$label,'role'=>'owner'];
+            return ['world_id'=>$world,'scenario'=>$this->scenario->id,'label'=>$label,'role'=>'owner'];
         } catch (\Throwable $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
             throw $e;

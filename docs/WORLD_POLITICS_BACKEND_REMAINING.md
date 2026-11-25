@@ -190,3 +190,12 @@ resume and authenticated selected REST routes. Dedicated HTTP/MariaDB CI.
 Advanced constitutional roles, 49.3 gameplay mounting, portable save export,
 public deployment hardening and full worldwide data remain open. See
 WORLD_POLITICS_ALPHA.md. WP31 data curation remains the next planned package.
+
+
+## WP31 global reference candidate
+
+193 UN members, two observer states, one separate governing authority; new
+versioned global scenario, optional content-addressed WDI archives, coverage
+API and legacy-save regression. Raw WDI observations still require a reviewed
+operator archive; no invented values or complete world institutions claimed.
+See WORLD_POLITICS_GLOBAL_REFERENCES.md. CI acceptance pending.

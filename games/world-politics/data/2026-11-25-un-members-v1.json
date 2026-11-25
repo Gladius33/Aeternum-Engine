@@ -1,0 +1,984 @@
+{
+  "version": "wp31-un-2026-11-25-v1",
+  "as_of": "2026-11-25",
+  "membership_source": "https://www.un.org/en/about-us/member-states",
+  "observer_source": "https://www.un.org/en/about-us/non-member-states",
+  "code_source": "https://unstats.un.org/unsd/methodology/m49/overview/",
+  "countries": [
+    {
+      "iso2": "AD",
+      "name": "Andorra",
+      "un_member": true
+    },
+    {
+      "iso2": "AE",
+      "name": "United Arab Emirates",
+      "un_member": true
+    },
+    {
+      "iso2": "AF",
+      "name": "Afghanistan",
+      "un_member": true
+    },
+    {
+      "iso2": "AG",
+      "name": "Antigua and Barbuda",
+      "un_member": true
+    },
+    {
+      "iso2": "AL",
+      "name": "Albania",
+      "un_member": true
+    },
+    {
+      "iso2": "AM",
+      "name": "Armenia",
+      "un_member": true
+    },
+    {
+      "iso2": "AO",
+      "name": "Angola",
+      "un_member": true
+    },
+    {
+      "iso2": "AR",
+      "name": "Argentina",
+      "un_member": true
+    },
+    {
+      "iso2": "AT",
+      "name": "Austria",
+      "un_member": true
+    },
+    {
+      "iso2": "AU",
+      "name": "Australia",
+      "un_member": true
+    },
+    {
+      "iso2": "AZ",
+      "name": "Azerbaijan",
+      "un_member": true
+    },
+    {
+      "iso2": "BA",
+      "name": "Bosnia and Herzegovina",
+      "un_member": true
+    },
+    {
+      "iso2": "BB",
+      "name": "Barbados",
+      "un_member": true
+    },
+    {
+      "iso2": "BD",
+      "name": "Bangladesh",
+      "un_member": true
+    },
+    {
+      "iso2": "BE",
+      "name": "Belgium",
+      "un_member": true
+    },
+    {
+      "iso2": "BF",
+      "name": "Burkina Faso",
+      "un_member": true
+    },
+    {
+      "iso2": "BG",
+      "name": "Bulgaria",
+      "un_member": true
+    },
+    {
+      "iso2": "BH",
+      "name": "Bahrain",
+      "un_member": true
+    },
+    {
+      "iso2": "BI",
+      "name": "Burundi",
+      "un_member": true
+    },
+    {
+      "iso2": "BJ",
+      "name": "Benin",
+      "un_member": true
+    },
+    {
+      "iso2": "BN",
+      "name": "Brunei Darussalam",
+      "un_member": true
+    },
+    {
+      "iso2": "BO",
+      "name": "Bolivia",
+      "un_member": true
+    },
+    {
+      "iso2": "BR",
+      "name": "Brazil",
+      "un_member": true
+    },
+    {
+      "iso2": "BS",
+      "name": "Bahamas",
+      "un_member": true
+    },
+    {
+      "iso2": "BT",
+      "name": "Bhutan",
+      "un_member": true
+    },
+    {
+      "iso2": "BW",
+      "name": "Botswana",
+      "un_member": true
+    },
+    {
+      "iso2": "BY",
+      "name": "Belarus",
+      "un_member": true
+    },
+    {
+      "iso2": "BZ",
+      "name": "Belize",
+      "un_member": true
+    },
+    {
+      "iso2": "CA",
+      "name": "Canada",
+      "un_member": true
+    },
+    {
+      "iso2": "CD",
+      "name": "Democratic Republic of the Congo",
+      "un_member": true
+    },
+    {
+      "iso2": "CF",
+      "name": "Central African Republic",
+      "un_member": true
+    },
+    {
+      "iso2": "CG",
+      "name": "Congo",
+      "un_member": true
+    },
+    {
+      "iso2": "CH",
+      "name": "Switzerland",
+      "un_member": true
+    },
+    {
+      "iso2": "CI",
+      "name": "Côte d’Ivoire",
+      "un_member": true
+    },
+    {
+      "iso2": "CL",
+      "name": "Chile",
+      "un_member": true
+    },
+    {
+      "iso2": "CM",
+      "name": "Cameroon",
+      "un_member": true
+    },
+    {
+      "iso2": "CN",
+      "name": "China",
+      "un_member": true
+    },
+    {
+      "iso2": "CO",
+      "name": "Colombia",
+      "un_member": true
+    },
+    {
+      "iso2": "CR",
+      "name": "Costa Rica",
+      "un_member": true
+    },
+    {
+      "iso2": "CU",
+      "name": "Cuba",
+      "un_member": true
+    },
+    {
+      "iso2": "CV",
+      "name": "Cabo Verde",
+      "un_member": true
+    },
+    {
+      "iso2": "CY",
+      "name": "Cyprus",
+      "un_member": true
+    },
+    {
+      "iso2": "CZ",
+      "name": "Czechia",
+      "un_member": true
+    },
+    {
+      "iso2": "DE",
+      "name": "Germany",
+      "un_member": true
+    },
+    {
+      "iso2": "DJ",
+      "name": "Djibouti",
+      "un_member": true
+    },
+    {
+      "iso2": "DK",
+      "name": "Denmark",
+      "un_member": true
+    },
+    {
+      "iso2": "DM",
+      "name": "Dominica",
+      "un_member": true
+    },
+    {
+      "iso2": "DO",
+      "name": "Dominican Republic",
+      "un_member": true
+    },
+    {
+      "iso2": "DZ",
+      "name": "Algeria",
+      "un_member": true
+    },
+    {
+      "iso2": "EC",
+      "name": "Ecuador",
+      "un_member": true
+    },
+    {
+      "iso2": "EE",
+      "name": "Estonia",
+      "un_member": true
+    },
+    {
+      "iso2": "EG",
+      "name": "Egypt",
+      "un_member": true
+    },
+    {
+      "iso2": "ER",
+      "name": "Eritrea",
+      "un_member": true
+    },
+    {
+      "iso2": "ES",
+      "name": "Spain",
+      "un_member": true
+    },
+    {
+      "iso2": "ET",
+      "name": "Ethiopia",
+      "un_member": true
+    },
+    {
+      "iso2": "FI",
+      "name": "Finland",
+      "un_member": true
+    },
+    {
+      "iso2": "FJ",
+      "name": "Fiji",
+      "un_member": true
+    },
+    {
+      "iso2": "FM",
+      "name": "Micronesia (Federated States of)",
+      "un_member": true
+    },
+    {
+      "iso2": "FR",
+      "name": "France",
+      "un_member": true
+    },
+    {
+      "iso2": "GA",
+      "name": "Gabon",
+      "un_member": true
+    },
+    {
+      "iso2": "GB",
+      "name": "United Kingdom",
+      "un_member": true
+    },
+    {
+      "iso2": "GD",
+      "name": "Grenada",
+      "un_member": true
+    },
+    {
+      "iso2": "GE",
+      "name": "Georgia",
+      "un_member": true
+    },
+    {
+      "iso2": "GH",
+      "name": "Ghana",
+      "un_member": true
+    },
+    {
+      "iso2": "GM",
+      "name": "Gambia",
+      "un_member": true
+    },
+    {
+      "iso2": "GN",
+      "name": "Guinea",
+      "un_member": true
+    },
+    {
+      "iso2": "GQ",
+      "name": "Equatorial Guinea",
+      "un_member": true
+    },
+    {
+      "iso2": "GR",
+      "name": "Greece",
+      "un_member": true
+    },
+    {
+      "iso2": "GT",
+      "name": "Guatemala",
+      "un_member": true
+    },
+    {
+      "iso2": "GW",
+      "name": "Guinea-Bissau",
+      "un_member": true
+    },
+    {
+      "iso2": "GY",
+      "name": "Guyana",
+      "un_member": true
+    },
+    {
+      "iso2": "HN",
+      "name": "Honduras",
+      "un_member": true
+    },
+    {
+      "iso2": "HR",
+      "name": "Croatia",
+      "un_member": true
+    },
+    {
+      "iso2": "HT",
+      "name": "Haiti",
+      "un_member": true
+    },
+    {
+      "iso2": "HU",
+      "name": "Hungary",
+      "un_member": true
+    },
+    {
+      "iso2": "ID",
+      "name": "Indonesia",
+      "un_member": true
+    },
+    {
+      "iso2": "IE",
+      "name": "Ireland",
+      "un_member": true
+    },
+    {
+      "iso2": "IL",
+      "name": "Israel",
+      "un_member": true
+    },
+    {
+      "iso2": "IN",
+      "name": "India",
+      "un_member": true
+    },
+    {
+      "iso2": "IQ",
+      "name": "Iraq",
+      "un_member": true
+    },
+    {
+      "iso2": "IR",
+      "name": "Iran",
+      "un_member": true
+    },
+    {
+      "iso2": "IS",
+      "name": "Iceland",
+      "un_member": true
+    },
+    {
+      "iso2": "IT",
+      "name": "Italy",
+      "un_member": true
+    },
+    {
+      "iso2": "JM",
+      "name": "Jamaica",
+      "un_member": true
+    },
+    {
+      "iso2": "JO",
+      "name": "Jordan",
+      "un_member": true
+    },
+    {
+      "iso2": "JP",
+      "name": "Japan",
+      "un_member": true
+    },
+    {
+      "iso2": "KE",
+      "name": "Kenya",
+      "un_member": true
+    },
+    {
+      "iso2": "KG",
+      "name": "Kyrgyzstan",
+      "un_member": true
+    },
+    {
+      "iso2": "KH",
+      "name": "Cambodia",
+      "un_member": true
+    },
+    {
+      "iso2": "KI",
+      "name": "Kiribati",
+      "un_member": true
+    },
+    {
+      "iso2": "KM",
+      "name": "Comoros",
+      "un_member": true
+    },
+    {
+      "iso2": "KN",
+      "name": "Saint Kitts and Nevis",
+      "un_member": true
+    },
+    {
+      "iso2": "KP",
+      "name": "Democratic People’s Republic of Korea",
+      "un_member": true
+    },
+    {
+      "iso2": "KR",
+      "name": "Republic of Korea",
+      "un_member": true
+    },
+    {
+      "iso2": "KW",
+      "name": "Kuwait",
+      "un_member": true
+    },
+    {
+      "iso2": "KZ",
+      "name": "Kazakhstan",
+      "un_member": true
+    },
+    {
+      "iso2": "LA",
+      "name": "Lao People’s Democratic Republic",
+      "un_member": true
+    },
+    {
+      "iso2": "LB",
+      "name": "Lebanon",
+      "un_member": true
+    },
+    {
+      "iso2": "LC",
+      "name": "Saint Lucia",
+      "un_member": true
+    },
+    {
+      "iso2": "LI",
+      "name": "Liechtenstein",
+      "un_member": true
+    },
+    {
+      "iso2": "LK",
+      "name": "Sri Lanka",
+      "un_member": true
+    },
+    {
+      "iso2": "LR",
+      "name": "Liberia",
+      "un_member": true
+    },
+    {
+      "iso2": "LS",
+      "name": "Lesotho",
+      "un_member": true
+    },
+    {
+      "iso2": "LT",
+      "name": "Lithuania",
+      "un_member": true
+    },
+    {
+      "iso2": "LU",
+      "name": "Luxembourg",
+      "un_member": true
+    },
+    {
+      "iso2": "LV",
+      "name": "Latvia",
+      "un_member": true
+    },
+    {
+      "iso2": "LY",
+      "name": "Libya",
+      "un_member": true
+    },
+    {
+      "iso2": "MA",
+      "name": "Morocco",
+      "un_member": true
+    },
+    {
+      "iso2": "MC",
+      "name": "Monaco",
+      "un_member": true
+    },
+    {
+      "iso2": "MD",
+      "name": "Republic of Moldova",
+      "un_member": true
+    },
+    {
+      "iso2": "ME",
+      "name": "Montenegro",
+      "un_member": true
+    },
+    {
+      "iso2": "MG",
+      "name": "Madagascar",
+      "un_member": true
+    },
+    {
+      "iso2": "MH",
+      "name": "Marshall Islands",
+      "un_member": true
+    },
+    {
+      "iso2": "MK",
+      "name": "North Macedonia",
+      "un_member": true
+    },
+    {
+      "iso2": "ML",
+      "name": "Mali",
+      "un_member": true
+    },
+    {
+      "iso2": "MM",
+      "name": "Myanmar",
+      "un_member": true
+    },
+    {
+      "iso2": "MN",
+      "name": "Mongolia",
+      "un_member": true
+    },
+    {
+      "iso2": "MR",
+      "name": "Mauritania",
+      "un_member": true
+    },
+    {
+      "iso2": "MT",
+      "name": "Malta",
+      "un_member": true
+    },
+    {
+      "iso2": "MU",
+      "name": "Mauritius",
+      "un_member": true
+    },
+    {
+      "iso2": "MV",
+      "name": "Maldives",
+      "un_member": true
+    },
+    {
+      "iso2": "MW",
+      "name": "Malawi",
+      "un_member": true
+    },
+    {
+      "iso2": "MX",
+      "name": "Mexico",
+      "un_member": true
+    },
+    {
+      "iso2": "MY",
+      "name": "Malaysia",
+      "un_member": true
+    },
+    {
+      "iso2": "MZ",
+      "name": "Mozambique",
+      "un_member": true
+    },
+    {
+      "iso2": "NA",
+      "name": "Namibia",
+      "un_member": true
+    },
+    {
+      "iso2": "NE",
+      "name": "Niger",
+      "un_member": true
+    },
+    {
+      "iso2": "NG",
+      "name": "Nigeria",
+      "un_member": true
+    },
+    {
+      "iso2": "NI",
+      "name": "Nicaragua",
+      "un_member": true
+    },
+    {
+      "iso2": "NL",
+      "name": "Netherlands",
+      "un_member": true
+    },
+    {
+      "iso2": "NO",
+      "name": "Norway",
+      "un_member": true
+    },
+    {
+      "iso2": "NP",
+      "name": "Nepal",
+      "un_member": true
+    },
+    {
+      "iso2": "NR",
+      "name": "Nauru",
+      "un_member": true
+    },
+    {
+      "iso2": "NZ",
+      "name": "New Zealand",
+      "un_member": true
+    },
+    {
+      "iso2": "OM",
+      "name": "Oman",
+      "un_member": true
+    },
+    {
+      "iso2": "PA",
+      "name": "Panama",
+      "un_member": true
+    },
+    {
+      "iso2": "PE",
+      "name": "Peru",
+      "un_member": true
+    },
+    {
+      "iso2": "PG",
+      "name": "Papua New Guinea",
+      "un_member": true
+    },
+    {
+      "iso2": "PH",
+      "name": "Philippines",
+      "un_member": true
+    },
+    {
+      "iso2": "PK",
+      "name": "Pakistan",
+      "un_member": true
+    },
+    {
+      "iso2": "PL",
+      "name": "Poland",
+      "un_member": true
+    },
+    {
+      "iso2": "PS",
+      "name": "State of Palestine",
+      "un_member": false
+    },
+    {
+      "iso2": "PT",
+      "name": "Portugal",
+      "un_member": true
+    },
+    {
+      "iso2": "PW",
+      "name": "Palau",
+      "un_member": true
+    },
+    {
+      "iso2": "PY",
+      "name": "Paraguay",
+      "un_member": true
+    },
+    {
+      "iso2": "QA",
+      "name": "Qatar",
+      "un_member": true
+    },
+    {
+      "iso2": "RO",
+      "name": "Romania",
+      "un_member": true
+    },
+    {
+      "iso2": "RS",
+      "name": "Serbia",
+      "un_member": true
+    },
+    {
+      "iso2": "RU",
+      "name": "Russian Federation",
+      "un_member": true
+    },
+    {
+      "iso2": "RW",
+      "name": "Rwanda",
+      "un_member": true
+    },
+    {
+      "iso2": "SA",
+      "name": "Saudi Arabia",
+      "un_member": true
+    },
+    {
+      "iso2": "SB",
+      "name": "Solomon Islands",
+      "un_member": true
+    },
+    {
+      "iso2": "SC",
+      "name": "Seychelles",
+      "un_member": true
+    },
+    {
+      "iso2": "SD",
+      "name": "Sudan",
+      "un_member": true
+    },
+    {
+      "iso2": "SE",
+      "name": "Sweden",
+      "un_member": true
+    },
+    {
+      "iso2": "SG",
+      "name": "Singapore",
+      "un_member": true
+    },
+    {
+      "iso2": "SI",
+      "name": "Slovenia",
+      "un_member": true
+    },
+    {
+      "iso2": "SK",
+      "name": "Slovakia",
+      "un_member": true
+    },
+    {
+      "iso2": "SL",
+      "name": "Sierra Leone",
+      "un_member": true
+    },
+    {
+      "iso2": "SM",
+      "name": "San Marino",
+      "un_member": true
+    },
+    {
+      "iso2": "SN",
+      "name": "Senegal",
+      "un_member": true
+    },
+    {
+      "iso2": "SO",
+      "name": "Somalia",
+      "un_member": true
+    },
+    {
+      "iso2": "SR",
+      "name": "Suriname",
+      "un_member": true
+    },
+    {
+      "iso2": "SS",
+      "name": "South Sudan",
+      "un_member": true
+    },
+    {
+      "iso2": "ST",
+      "name": "Sao Tome and Principe",
+      "un_member": true
+    },
+    {
+      "iso2": "SV",
+      "name": "El Salvador",
+      "un_member": true
+    },
+    {
+      "iso2": "SY",
+      "name": "Syrian Arab Republic",
+      "un_member": true
+    },
+    {
+      "iso2": "SZ",
+      "name": "Eswatini",
+      "un_member": true
+    },
+    {
+      "iso2": "TD",
+      "name": "Chad",
+      "un_member": true
+    },
+    {
+      "iso2": "TG",
+      "name": "Togo",
+      "un_member": true
+    },
+    {
+      "iso2": "TH",
+      "name": "Thailand",
+      "un_member": true
+    },
+    {
+      "iso2": "TJ",
+      "name": "Tajikistan",
+      "un_member": true
+    },
+    {
+      "iso2": "TL",
+      "name": "Timor-Leste",
+      "un_member": true
+    },
+    {
+      "iso2": "TM",
+      "name": "Turkmenistan",
+      "un_member": true
+    },
+    {
+      "iso2": "TN",
+      "name": "Tunisia",
+      "un_member": true
+    },
+    {
+      "iso2": "TO",
+      "name": "Tonga",
+      "un_member": true
+    },
+    {
+      "iso2": "TR",
+      "name": "Türkiye",
+      "un_member": true
+    },
+    {
+      "iso2": "TT",
+      "name": "Trinidad and Tobago",
+      "un_member": true
+    },
+    {
+      "iso2": "TV",
+      "name": "Tuvalu",
+      "un_member": true
+    },
+    {
+      "iso2": "TZ",
+      "name": "United Republic of Tanzania",
+      "un_member": true
+    },
+    {
+      "iso2": "UA",
+      "name": "Ukraine",
+      "un_member": true
+    },
+    {
+      "iso2": "UG",
+      "name": "Uganda",
+      "un_member": true
+    },
+    {
+      "iso2": "US",
+      "name": "United States of America",
+      "un_member": true
+    },
+    {
+      "iso2": "UY",
+      "name": "Uruguay",
+      "un_member": true
+    },
+    {
+      "iso2": "UZ",
+      "name": "Uzbekistan",
+      "un_member": true
+    },
+    {
+      "iso2": "VA",
+      "name": "Holy See",
+      "un_member": false
+    },
+    {
+      "iso2": "VC",
+      "name": "Saint Vincent and the Grenadines",
+      "un_member": true
+    },
+    {
+      "iso2": "VE",
+      "name": "Venezuela",
+      "un_member": true
+    },
+    {
+      "iso2": "VN",
+      "name": "Viet Nam",
+      "un_member": true
+    },
+    {
+      "iso2": "VU",
+      "name": "Vanuatu",
+      "un_member": true
+    },
+    {
+      "iso2": "WS",
+      "name": "Samoa",
+      "un_member": true
+    },
+    {
+      "iso2": "YE",
+      "name": "Yemen",
+      "un_member": true
+    },
+    {
+      "iso2": "ZA",
+      "name": "South Africa",
+      "un_member": true
+    },
+    {
+      "iso2": "ZM",
+      "name": "Zambia",
+      "un_member": true
+    },
+    {
+      "iso2": "ZW",
+      "name": "Zimbabwe",
+      "un_member": true
+    }
+  ]
+}
