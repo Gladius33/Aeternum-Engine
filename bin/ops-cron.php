@@ -14,7 +14,7 @@ try {
     ]);
     $pdo->exec('SET SESSION innodb_lock_wait_timeout=3');
     $runtime=WorldRuntime::load();
-    $result=(new OperationsCron($pdo,new SystemClock()))->run(ConfiguredWorlds::load());
+    $result=(new OperationsCron($pdo,new SystemClock()))->run($runtime->packs,approvedRules:$runtime->rules);
     echo json_encode($result,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES).PHP_EOL;
 } catch (Throwable $e) {
     // No raw SQL, DSN, credentials or user input in operational logs.
