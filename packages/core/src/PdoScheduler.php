@@ -9,6 +9,7 @@ final class PdoScheduler
 {
     private bool $processing = false;
     private ?bool $projectionInstalled = null;
+    private ?bool $scoreProjectionInstalled = null;
 
     public function __construct(
         private readonly PDO $pdo,
@@ -123,6 +124,7 @@ final class PdoScheduler
                 VALUES (?,?,?,?,?,?,?,?,?)',
                 [$this->worldId,$command->id,$command->type,$payload,$at,'{}',
                     json_encode($ids,JSON_THROW_ON_ERROR),$actor,$clientRequest]);
+            $this->syncScores($candidate['before'],$result->state,$candidate['changed_keys'],$candidate['journal_sequence']);
             $this->journal(['journal_sequence'=>$candidate['journal_sequence']],
                 'command',$command->id,$command->type,$at,$payload,$stateJson,
                 $result->events,$result->movements);
@@ -167,6 +169,79 @@ final class PdoScheduler
     private function syncProjection(array $before,array $after,?array $changedKeys=null): void
     {
         if ($this->hasProjection()) (new PdoEconomyProjection($this->pdo,$this->worldId))->sync($before,$after,$changedKeys);
+    }
+
+    private function scoreProjection(): ?PdoScoreProjection
+    {
+        $handler=$this->rules?->commands;
+        if (!$handler instanceof EconomyCommandHandler || ($policy=$handler->progressionPolicy())===null) return null;
+        if ($this->scoreProjectionInstalled===null) {
+            $this->scoreProjectionInstalled=$this->pdo->query("SHOW TABLES LIKE 'engine_score_watermarks'")->fetchColumn()!==false;
+        }
+        return $this->scoreProjectionInstalled?new PdoScoreProjection($this->pdo,$this->worldId,$policy):null;
+    }
+
+    private function syncScores(array $before,array $after,?array $keys,int $previous): void
+    {
+        $projection=$this->scoreProjection();
+        if ($projection!==null) $projection->sync($before,$after,$keys,$previous);
+    }
+
+    /** Shared metadata lock on indexed reads; full JSON only for a stale/missing watermark. */
+    private function indexedScores(string $actor,string $account,ScoreRules $policy,bool $rank): ?array
+    {
+        $handler=$this->rules?->commands;
+        if (!$handler instanceof EconomyCommandHandler || $handler->progressionPolicy()!=$policy)
+            throw new \DomainException('Score policy differs from pinned rules');
+        $projection=$this->scoreProjection();
+        if ($projection===null) return null;
+        foreach ([false,true] as $repair) {
+            $result=$this->transaction(function () use($projection,$actor,$account,$rank,$repair): ?array {
+                $world=$this->query('SELECT journal_sequence,watermark,rules_key FROM engine_worlds WHERE world_id=? '
+                    .($repair?'FOR UPDATE':'LOCK IN SHARE MODE'),[$this->worldId])->fetch(PDO::FETCH_ASSOC);
+                if ($world===false || $world['rules_key']!==$this->rulesKey()) throw new \DomainException('World rules mismatch');
+                $this->assertActiveActor($actor);
+                $this->assertAccountOwner($account,$actor);
+                $now=$this->clock->now();
+                if ($now<0 || $now<(int)$world['watermark']
+                    || $this->query('SELECT event_id FROM engine_events WHERE world_id=? AND completed=0 AND due_at<=? LIMIT 1',
+                        [$this->worldId,$now])->fetchColumn()!==false)
+                    throw new \DomainException('Progression requires completed due events');
+                $journal=(int)$world['journal_sequence'];
+                if (!$projection->current($journal,$repair)) {
+                    if (!$repair) return null;
+                    $json=$this->query('SELECT state_json FROM engine_worlds WHERE world_id=?',[$this->worldId])->fetchColumn();
+                    $projection->rebuild(ScalarMap::decode($json),$journal);
+                }
+                return $rank?$projection->rank($account):$projection->score($account);
+            });
+            if ($result!==null) return $result;
+        }
+        throw new \LogicException('Score rebuild did not complete');
+    }
+
+    /** Operator-only derived-index rebuild; canonical history is unchanged. */
+    public function rebuildScores(): int
+    {
+        if ($this->processing) throw new \LogicException('Reentrant score rebuild');
+        $projection=$this->scoreProjection()??throw new \DomainException('Indexed scoring unavailable');
+        return $this->transaction(function () use($projection): int {
+            $world=$this->lockedWorld();$state=ScalarMap::decode($world['state_json']);
+            $journal=(int)$world['journal_sequence'];
+            $projection->rebuild($state,$journal);
+            return $projection->assertConsistent($state,$journal);
+        });
+    }
+
+    /** Operator-only audit of the derived score index. */
+    public function auditScores(): int
+    {
+        if ($this->processing) throw new \LogicException('Reentrant score audit');
+        $projection=$this->scoreProjection()??throw new \DomainException('Indexed scoring unavailable');
+        return $this->transaction(function () use($projection): int {
+            $world=$this->lockedWorld();
+            return $projection->assertConsistent(ScalarMap::decode($world['state_json']),(int)$world['journal_sequence']);
+        });
     }
 
     /**
@@ -298,6 +373,7 @@ final class PdoScheduler
                     $this->query('UPDATE engine_worlds SET state_json = ?, watermark = ? WHERE world_id = ?', [$newState,$event->dueAt,$this->worldId]);
                     $changed = $this->query('UPDATE engine_events SET completed = 1 WHERE world_id = ? AND event_id = ? AND completed = 0', [$this->worldId,$event->id])->rowCount();
                     if ($changed !== 1) throw new \LogicException('Event completion invariant violated');
+                    $this->syncScores($before,$eventResult->state,$changedKeys,(int)$world['journal_sequence']);
                     $this->journal($world,'event',$event->id,$event->type,$event->dueAt,ScalarMap::encode($event->payload),$newState,[],$eventResult->movements);
                     return $event->id;
                 });
@@ -879,6 +955,7 @@ final class PdoScheduler
                 // and trusted-system receipts retain their original format.
                 $receiptState=$actor!==null && $this->hasProjection() ? '{}' : $stateJson;
                 $this->query('INSERT INTO engine_commands (world_id,command_id,command_type,payload_json,effective_at,result_state_json,scheduled_ids_json,actor_id,client_request_id) VALUES (?,?,?,?,?,?,?,?,?)',[$this->worldId,$command->id,$command->type,$payload,$at,$receiptState,json_encode($ids,JSON_THROW_ON_ERROR),$actor,$clientRequest]);
+                $this->syncScores($before,$result->state,$changedKeys,(int)$world['journal_sequence']);
                 $this->journal($world,'command',$command->id,$command->type,$at,$payload,$stateJson,$result->events,$result->movements);
                 return new CommandReceipt($at,ScalarMap::decode($stateJson),$ids);
             });
@@ -917,6 +994,8 @@ final class PdoScheduler
         if ($this->rules===null || $this->processing) {
             throw new \DomainException('Ranking requires pinned rules');
         }
+        $indexed=$this->indexedScores($actor,$account,$policy,true);
+        if ($indexed!==null) return $indexed;
         return $this->transaction(function () use($actor,$account,$policy): array {
             $world=$this->lockedWorld();
             $this->assertActiveActor($actor);
@@ -952,6 +1031,8 @@ final class PdoScheduler
         PdoMemberships::validateId($account);
         if ($this->rules===null) throw new \DomainException('Progression requires pinned world rules');
         if ($this->processing) throw new \LogicException('Reentrant progression read denied');
+        $indexed=$this->indexedScores($actor,$account,$policy,false);
+        if ($indexed!==null) return $indexed;
         return $this->transaction(function () use($actor,$account,$policy): array {
             $world=$this->lockedWorld();
             $this->assertActiveActor($actor);
