@@ -225,3 +225,11 @@ Bounded fictional party coalition search, opposition projections and an opt-in
 scenario with automatic foreign negotiation. Verified formation bridge to the
 comparative incumbent; no public self-appointment or legal effects from vote
 projections. See WORLD_POLITICS_POLITICAL_AI.md.
+
+
+## WP35 public opinion candidate
+
+Optional fifth clock subsystem for fictional French opinion, domestic and
+institutional source hashes, gradual cohort approval and trust, conserved
+intention distribution and independent institutional status. No direct client
+writes or automatic regime transitions. See WORLD_POLITICS_OPINION.md.

@@ -10,6 +10,7 @@ require_once __DIR__.'/PdoInstitutionalStore.php';
 require_once __DIR__.'/PdoFrenchConstitutionalStore.php';
 require_once __DIR__.'/WorldMutationFence.php';
 require_once __DIR__.'/PdoDomesticPolicyStore.php';
+require_once __DIR__.'/PdoPublicOpinionStore.php';
 
 /**
  * WP17/WP18: recoverable WORLD clock for diplomacy, organizations,
@@ -42,7 +43,8 @@ final class WorldClockCoordinator
         ?PdoInstitutionalStore $institutions=null,
         array $countries=[],
         ?PdoFrenchConstitutionalStore $franceParliament=null,
-        private readonly ?PdoDomesticPolicyStore $domestic=null
+        private readonly ?PdoDomesticPolicyStore $domestic=null,
+        private readonly ?PdoPublicOpinionStore $opinion=null
     ) {
         if (!array_is_list($countries) || count($countries)>193
             || count(array_unique($countries))!==count($countries)) {
@@ -63,6 +65,9 @@ final class WorldClockCoordinator
             throw new \DomainException(
                 'French parliamentary calendar requires FR among pinned institutional countries'
             );
+        }
+        if ($this->opinion!==null && ($this->domestic===null || !in_array('FR',$countries,true))) {
+            throw new \DomainException('Opinion requires domestic and French institutional clocks');
         }
         $this->countries=$countries;
         $this->institutions=$institutions;
@@ -98,6 +103,7 @@ final class WorldClockCoordinator
             if ($this->domestic!==null) {
                 $this->pdo->prepare('UPDATE wp_world_clock SET domestic_enabled=1 WHERE world_id=?')->execute([$world]);
             }
+            if ($this->opinion!==null) $this->pdo->prepare('UPDATE wp_world_clock SET opinion_enabled=1 WHERE world_id=?')->execute([$world]);
             $roster=$this->pdo->prepare(
                 'INSERT INTO wp_world_clock_countries(world_id,country_code) VALUES(?,?)'
             );
@@ -315,6 +321,7 @@ final class WorldClockCoordinator
                     'countries'=>$this->countries,
                     'france_parliament_enabled'=>$this->franceParliament!==null,
                     'domestic_enabled'=>$this->domestic!==null,
+                    ...($this->opinion!==null?['opinion_enabled'=>true]:[]),
                     'coherent'=>true
                 ],
                 'etag'=>self::etagFrom($world,$targetDay,null,$revision)
@@ -696,7 +703,8 @@ final class WorldClockCoordinator
 
     private function steps():array
     {
-        return $this->domestic===null?self::STEPS:[...self::STEPS,'domestic'];
+        $steps=$this->domestic===null?self::STEPS:[...self::STEPS,'domestic'];
+        return $this->opinion===null?$steps:[...$steps,'opinion'];
     }
 
     /** Legacy worlds without the domestic schema continue unchanged. */
@@ -715,6 +723,22 @@ final class WorldClockCoordinator
             || ($clock!==null && ((int)($clock['domestic_enabled']??0)===1)!==$exists)) {
             throw new \DomainException('Domestic policy configuration differs from pinned world');
         }
+        $this->assertOpinionConfiguration($world,$clock);
+    }
+
+    private function assertOpinionConfiguration(string $world,?array $clock):void
+    {
+        $exists=false;
+        try {
+            $q=$this->pdo->prepare('SELECT 1 FROM wp_opinion_states WHERE world_id=?');
+            $q->execute([$world]);$exists=$q->fetchColumn()!==false;
+        } catch (\PDOException $e) {
+            if ($e->getCode()!=='42S02'||(int)($e->errorInfo[1]??0)!==1146
+                ||$this->opinion!==null||(int)($clock['opinion_enabled']??0)===1)throw $e;
+        }
+        if ($exists!==($this->opinion!==null)
+            ||($clock!==null&&((int)($clock['opinion_enabled']??0)===1)!==$exists))
+            throw new \DomainException('Opinion configuration differs from pinned world');
     }
 
     private function store(string $step):object
@@ -724,6 +748,7 @@ final class WorldClockCoordinator
             'diplomacy'=>$this->diplomacy,
             'economy'=>$this->economy,
             'domestic'=>$this->domestic??throw new \DomainException('Domestic store missing'),
+            'opinion'=>$this->opinion??throw new \DomainException('Opinion store missing'),
             default=>throw new \InvalidArgumentException('Unknown world clock subsystem')
         };
     }
@@ -744,7 +769,8 @@ final class WorldClockCoordinator
                 && $this->institutions->principalId()!==$principalId)
             || ($this->franceParliament!==null
                 && $this->franceParliament->principalId()!==$principalId)
-            || ($this->domestic!==null && $this->domestic->principalId()!==$principalId)) {
+            || ($this->domestic!==null && $this->domestic->principalId()!==$principalId)
+            || ($this->opinion!==null && $this->opinion->principalId()!==$principalId)) {
             throw new \DomainException('Mismatch between clock and verified domain principals');
         }
     }
@@ -803,6 +829,7 @@ final class WorldClockCoordinator
                 ?$this->completedCountryNames($row['world_id'],$row['pending_key']):[],
             'france_parliament_enabled'=>$this->franceParliament!==null,
                     'domestic_enabled'=>$this->domestic!==null,
+                    ...($this->opinion!==null?['opinion_enabled'=>true]:[]),
             'france_parliament_completed'=>$pending
                 && $this->franceParliament!==null
                 && $this->franceStepComplete($row['world_id'],$row['pending_key']),

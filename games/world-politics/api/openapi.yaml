@@ -31,6 +31,16 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /worlds/{world}/countries/FR/opinion:
+    get:
+      operationId: readFrenchScenarioOpinion
+      summary: Read fictional aggregate opinion and source-attributed daily history
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Fictional opinion indices and daily history }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
   /health:
     get:
       security: []
@@ -117,7 +127,7 @@ paths:
               required: [label, scenario]
               properties:
                 label: { type: string, maxLength: 100 }
-                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1, fr-comparative-v1, fr-electoral-v1, fr-political-v1] }
+                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1, fr-comparative-v1, fr-electoral-v1, fr-political-v1, fr-opinion-v1] }
                 reference_bundle_sha: { type: string, pattern: '^[a-f0-9]{64}$', description: Optional operator-installed reference bundle for global or comparative scenarios }
       responses:
         '201': { description: Atomically created or replayed private world }
@@ -1743,7 +1753,7 @@ components:
         completed_subsystems:
           type: array
           uniqueItems: true
-          items: { type: string, enum: [organizations, diplomacy, economy, domestic] }
+          items: { type: string, enum: [organizations, diplomacy, economy, domestic, opinion] }
         countries:
           type: array
           uniqueItems: true
@@ -1758,6 +1768,7 @@ components:
           type: boolean
           description: Whether the French constitutional day is a mandatory global-clock step.
         domestic_enabled: { type: boolean }
+        opinion_enabled: { type: boolean }
         france_parliament_completed:
           type: boolean
           description: Whether the French constitutional checkpoint is durable for this pending game day.
