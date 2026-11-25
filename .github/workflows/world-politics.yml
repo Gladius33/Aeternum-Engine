@@ -80,6 +80,8 @@ jobs:
         run: php tests/wp28-french-parliament.php
       - name: Domestic policy fiscal ledger and multi-day scenario WP29A
         run: php tests/wp29a-domestic-policy.php
+      - name: WP45 executive acts and ordinance regression
+        run: php tests/wp45-executive.php
       - name: WP44 cabinet and cohabitation regression
         run: php tests/wp44-cabinet.php
       - name: WP43 parliamentary calendar and elected Assembly regression

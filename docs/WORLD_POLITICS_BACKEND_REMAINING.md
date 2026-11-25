@@ -312,3 +312,12 @@ portfolio appointments/removals, cohabitation and current declared support,
 incumbent prime-minister gates for selected legislative procedures, archive
 and read API. Certified internal events only; autonomous formation and full
 competence execution remain open. See WORLD_POLITICS_CABINET.md.
+
+
+## WP45 executive acts candidate
+
+Reviewed regulatory acts and delegated ordinance lifecycle, incumbent and
+competent countersignature checks, publication, lapse/express ratification,
+and verified regulatory domestic implementation. Clerk-certified law digests;
+full delegated authority, litigation and autonomous agenda remain open.
+See WORLD_POLITICS_EXECUTIVE.md.

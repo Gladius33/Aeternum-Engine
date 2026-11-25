@@ -13,7 +13,7 @@ final class LocalLegislativePublisher implements PersistentDomesticPolicyAuthori
     public function clockDay(string $world):string{throw new \DomainException('No clock authority');}
     /** Recoverable two-transaction publication then authorization; same proof
      * may be reused after an interruption, never fabricated by the client. */
-    public static function apply(\PDO $db,string $world,string $billId):array
+    public static function apply(\PDO $db,string $world,string $billId,bool $regulatory=false):array
     {
         $base=new self($world);$registry=new DomesticEnactmentRegistry($db,$base);
         $q=$db->prepare("SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code='FR'");
@@ -21,13 +21,22 @@ final class LocalLegislativePublisher implements PersistentDomesticPolicyAuthori
         if($row===false)throw new \DomainException('No national state');
         $inst=InstitutionalSimulation::restore(json_decode($row['state_json'],true,64,JSON_THROW_ON_ERROR));
         if($inst->snapshot()['world_id']!==$world||!hash_equals($row['state_sha'],$inst->hash()))throw new \DomainException('National scope mismatch');
-        $bill=$inst->snapshot()['legislation']['bills'][$billId]??null;
-        if($bill===null||$bill['status']!=='published'||$bill['final_version']!=='standard')throw new \DomainException('No matching published standard bill');
+        $l=$inst->snapshot()['legislation']??[];
+        if($regulatory){
+            $bill=$l['executive']['acts'][$billId]??null;
+            if($bill===null||$bill['status']!=='published'||$bill['policy_id']!==ExecutiveActs::POLICY||$bill['kind']==='ordinance')
+                throw new \DomainException('No matching published regulatory act');
+            $text=$bill['text_sha'];$effective=$bill['effective_on'];$route='fr_regulatory';
+        }else{
+            $bill=$l['bills'][$billId]??null;
+            if($bill===null||$bill['status']!=='published'||$bill['final_version']!=='standard')throw new \DomainException('No matching published standard bill');
+            $text=$bill['texts']['standard'];$effective=$bill['effect_on'];$route='fr_bicameral';
+        }
         $policy=$bill['policy_id'];$store=new PdoDomesticPolicyStore($db,new VerifiedDomesticPolicyAuthority($base,$registry));
         $read=$store->read($world);$p=$read['state']['policies'][$policy]??null;
-        if($p===null||$p['effective_on']!==$bill['effect_on'])throw new \DomainException('No matching domestic proposal');
+        if($p===null||$p['effective_on']!==$effective)throw new \DomainException('No matching domestic proposal');
         $proof=$registry->proof($world,$policy);
-        if($proof===null)$proof=$registry->publish($world,$policy,'fr_bicameral',$bill['texts']['standard'],
+        if($proof===null)$proof=$registry->publish($world,$policy,$route,$text,
             hash('sha256',json_encode($bill,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)));
         if($p['authorized_on']!==null){
             if($p['instrument_sha']!==$proof)throw new \DomainException('Policy proof conflict');

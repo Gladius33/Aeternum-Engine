@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/LegislativeResponsibility.php';
+require_once __DIR__.'/ExecutiveActs.php';
 
 /** Ordinary government bill procedural pilot; not finance, organic, Art 49(3),
  * or constitutional legislation. Certified fictional procedural facts only.
@@ -53,6 +54,12 @@ final class BicameralLegislation
         if(!isset($this->s['responsibility']['lifecycle'])||isset($this->s['responsibility']['cabinet'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
             throw new \DomainException('Cabinet must be pinned at bootstrap');
         $this->s['responsibility']['cabinet']=FrenchCabinet::initial($this->s['day']);
+    }
+    public function enableExecutive():void
+    {
+        if(!isset($this->s['responsibility']['cabinet'])||isset($this->s['executive'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Executive pilot must be pinned at bootstrap');
+        $this->s['executive']=ExecutiveActs::initial();
     }
     public function installElection(array $e):void
     {
@@ -108,6 +115,7 @@ final class BicameralLegislation
             [$r,$b]=LegislativeResponsibility::advance($this->s['responsibility'],$this->s['bills'][$id],$day);
             $this->s['responsibility']=$r;$this->s['bills'][$id]=$b;
         }
+        if(isset($this->s['executive']))$this->s['executive']=ExecutiveActs::advance($this->s['executive'],$day);
         $this->s['day']=$day;
     }
     public function draft(string $id,string $policy):array
@@ -127,12 +135,19 @@ final class BicameralLegislation
     {
         self::fields($e,['world_id','country','day','evidence_id','bill_id','kind','procedure_certified','data']);
         self::id($e['evidence_id']);
-        $independent=is_string($e['kind'])&&str_starts_with($e['kind'],'assembly_');
+        $executive=is_string($e['kind'])&&str_starts_with($e['kind'],'executive_');
+        $independent=$executive||(is_string($e['kind'])&&str_starts_with($e['kind'],'assembly_'));
         if($independent){if($e['bill_id']!==null)throw new \DomainException('Independent proceedings have no bill');}
         else self::id($e['bill_id']);
         if($e['world_id']!==$this->s['world_id']||$e['country']!=='FR'||$e['day']!==$this->s['day']||$e['procedure_certified']!==true
             ||count($this->s['history'])>=2000)throw new \DomainException('Uncertified legislative evidence');
         foreach($this->s['history'] as $h)if(($h['evidence']['evidence_id']??null)===$e['evidence_id'])throw new \DomainException('Duplicate evidence');
+        if($executive){
+            if(!isset($this->s['executive']))throw new \DomainException('Executive pilot unavailable');
+            [$s,$result]=ExecutiveActs::apply($this->s['executive'],$this->s['responsibility']['cabinet'],$e);
+            $this->s['executive']=$s;$this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$e];
+            return $result;
+        }
         $original=$e;
         if(isset($this->s['responsibility']['cabinet'])&&in_array($e['kind'],['file','responsibility_engage','assembly_confidence_open','cmp','last_word'],true)){
             if(!is_array($e['data']))throw new \DomainException('Missing incumbent authority');
@@ -282,6 +297,7 @@ final class BicameralLegislation
         if(isset($s['responsibility']['assembly']))$x->enableAssembly();
         if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();
         if(isset($s['responsibility']['cabinet']))$x->enableCabinet();
+        if(isset($s['executive']))$x->enableExecutive();
         foreach($s['history'] as $h){
             $x->advance($h['day']);
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);
