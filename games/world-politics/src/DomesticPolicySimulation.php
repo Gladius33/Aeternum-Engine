@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/FrenchMacroBaseline.php';
 
 /**
  * WP29A: scenario-only domestic policy ledger. All monetary amounts are
@@ -38,7 +39,8 @@ final class DomesticPolicySimulation
         private readonly int $baselineRevenue,
         private readonly int $baselineExpense,
         private readonly array $cohorts,
-        private readonly array $catalog
+        private readonly array $catalog,
+        private readonly ?array $macroBaseline=null
     ) {
         self::id($world); self::date($startDay);
         if (!preg_match('/^[A-Z]{3}$/D', $currency)) throw new \InvalidArgumentException('Invalid currency');
@@ -73,6 +75,12 @@ final class DomesticPolicySimulation
             foreach ($p['pressure_delta'] as $v) {
                 if (!is_int($v) || abs($v) > 1000) throw new \InvalidArgumentException('Invalid pressure delta');
             }
+        }
+        if($this->macroBaseline!==null){
+            FrenchMacroBaseline::assertValid($this->macroBaseline);
+            if($currency!=='EUR'||$baselineRevenue!==$this->macroBaseline['daily_revenue']
+                ||$baselineExpense!==$this->macroBaseline['daily_primary_expense']||$openingBalance!==$this->macroBaseline['assumed_opening_cash'])
+                throw new \DomainException('Macro baseline and fiscal assumptions disagree');
         }
         $this->pressure = $cohorts;
         $this->balance = $openingBalance;
@@ -141,7 +149,13 @@ final class DomesticPolicySimulation
         }
         if ($revenue < 0 || $expense < 0) throw new \DomainException('Scenario implies negative gross fiscal flow');
         $expense+=$concessionCost;
-        $closing = $balance + $revenue - $expense;
+        $loop=null;
+        if($this->macroBaseline!==null){
+            $prior=$this->days===[]?null:$this->days[array_key_last($this->days)];
+            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment);
+            $revenue=$loop['revenue'];$expense=$loop['expense'];
+        }
+        $closing = $loop===null?$balance+$revenue-$expense:$loop['balance'];
         self::amount($closing, true);
         foreach ($pressure as $id => $previous) {
             $desired = max(0, min(1000, $this->cohorts[$id] + $deltas[$id]));
@@ -156,6 +170,12 @@ final class DomesticPolicySimulation
             'closing_balance'=>$closing,'pressure'=>$pressure];
         if ($extended) $row['economic']=['net_flow'=>$revenue-$expense,'concession_cost'=>$concessionCost,
             'production_index_bps'=>max(0,$production),'employment_index_bps'=>max(0,$employment)];
+        if($loop!==null){
+            $row['macro']=$loop['macro'];$row['treasury']=$loop['treasury'];
+            $row['classification']='fictional_simulation_observed_anchors';
+            $row['economic']['production_index_bps']=$loop['macro']['real_output_index_bps'];
+            $row['economic']['employment_index_bps']=max(0,10000-($loop['macro']['unemployment_bps']-$this->macroBaseline['initial_unemployment_bps']));
+        }
         return $row;
     }
 
@@ -169,7 +189,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline])]);
     }
 
     public function snapshot(): array
@@ -177,7 +197,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }

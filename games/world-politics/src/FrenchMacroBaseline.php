@@ -1,0 +1,147 @@
+<?php
+declare(strict_types=1);
+namespace Aeternum\WorldPolitics;
+
+/** WP48: version-pinned observations and a lagged, fictional fiscal loop.
+ * The observations are not predictions, nor all dated to the game start.
+ * EUR minor units, integer arithmetic, no external service at runtime.
+ */
+final class FrenchMacroBaseline
+{
+    public const VERSION='wp48-fr-baseline-v1';
+    public static function load():array
+    {
+        $pack=json_decode(file_get_contents(__DIR__.'/../data/2026-11-25-france-observations-v1.json'),true,32,JSON_THROW_ON_ERROR);
+        return self::build($pack);
+    }
+    public static function build(array $pack):array
+    {
+        if(($pack['schema']??null)!=='wp-fr-reference-staging-v1'||($pack['country']??null)!=='FR'
+            ||($pack['as_of']??null)!=='2026-11-25'||!is_array($pack['observations']??null)||count($pack['observations'])>256)
+            throw new \DomainException('Invalid French source pack');
+        $rows=[];
+        foreach($pack['observations'] as $o){
+            if(($o['kind']??null)!=='observed'||!is_int($o['value']??null)||!is_string($o['metric']??null)
+                ||!is_string($o['period']??null)||!is_string($o['unit']??null)||!isset($pack['sources'][$o['source_id']??'']))
+                throw new \DomainException('Unattributed observation');
+            $src=$pack['sources'][$o['source_id']];
+            if(!is_string($src['url']??null)||!str_starts_with($src['url'],'https://www.insee.fr/')
+                ||($src['published_on']!==null&&$src['published_on']>$pack['as_of'])
+                ||($o['released_on']??$pack['as_of'])>$pack['as_of'])
+                throw new \DomainException('Unverified observation source/date');
+            $k=$o['metric'].'/'.$o['period'];
+            if(isset($rows[$k]))throw new \DomainException('Duplicate French observation');
+            $rows[$k]=$o;
+        }
+        $get=function(string $metric,string $period,string $unit)use($rows):int{
+            $r=$rows[$metric.'/'.$period]??throw new \DomainException('Missing required observation');
+            if($r['unit']!==$unit||$r['value']<0)throw new \DomainException('Wrong observation unit');
+            return $r['value'];
+        };
+        $annual=fn(string $k):int=>$get($k,'2025','EUR');
+        $gdp=$annual('gdp_nominal');$c=$annual('household_consumption');
+        $g=$annual('government_individual_consumption')+$annual('government_collective_consumption');
+        $i=$annual('gross_fixed_capital_formation')+$annual('inventory_change');
+        $x=$annual('exports_goods_services');$m=$annual('imports_goods_services');
+        $residual=$gdp-($c+$i+$g+$x-$m);
+        if(abs($residual)>1000000000)throw new \DomainException('Excessive national accounts residual');
+        $daily=fn(int $v):int=>intdiv($v*100,365);
+        $revenue=$annual('public_revenue');$expense=$annual('public_expenditure');$interest=$annual('public_interest_excluding_sifim_correction');
+        if($revenue-$expense!==-$annual('public_deficit')||$interest>$expense)throw new \DomainException('Public accounts mismatch');
+        $b=['version'=>self::VERSION,'classification'=>'observed_anchors_with_fictional_initialization',
+            'source_sha'=>hash('sha256',json_encode($pack,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
+            'source_pack'=>$pack,'currency'=>'EUR','unit'=>'minor','annual_reference_period'=>'2025',
+            'daily_real_gdp'=>$daily($gdp),'daily_consumption'=>$daily($c),'daily_investment'=>$daily($i),
+            'daily_government_consumption'=>$daily($g),'daily_exports'=>$daily($x),'daily_imports'=>$daily($m),
+            'annual_rounding_residual_eur'=>$residual,
+            'daily_revenue'=>$daily($revenue),'daily_primary_expense'=>$daily($expense-$interest),
+            'daily_tax_base'=>$daily($annual('public_taxes_and_social_contributions')),
+            'daily_social_benefits'=>$daily($annual('public_social_benefits')),
+            'opening_debt'=>$get('public_gross_debt','2026-Q2','EUR')*100,'opening_debt_period'=>'2026-Q2',
+            'initial_unemployment_bps'=>$get('unemployment_ilo','2026-Q3','basis_points'),
+            'initial_annual_inflation_bps'=>$get('consumer_price_yoy','2026-10','basis_points'),
+            'assumed_opening_cash'=>1000000000000,'assumed_annual_interest_bps'=>200,
+            'coefficient_status'=>'fictional_uncalibrated','tax_elasticity_bps'=>8000,
+            'benefit_unemployment_sensitivity_bps'=>3000,'benefit_price_pass_through_bps'=>5000];
+        $b['daily_statistical_discrepancy']=$b['daily_real_gdp']-($b['daily_consumption']+$b['daily_investment']
+            +$b['daily_government_consumption']+$b['daily_exports']-$b['daily_imports']);
+        return $b;
+    }
+    public static function assertValid(array $b):void
+    {
+        if(!isset($b['source_pack'])||self::build($b['source_pack'])!==$b)
+            throw new \DomainException('French baseline replay mismatch');
+    }
+}
+
+final class MacroFiscalLoop
+{
+    public const VERSION='wp48-fiscal-loop-v1';
+    private static function clamp(int $n,int $min,int $max):int{return max($min,min($max,$n));}
+    private static function scale(int $n,int $ratio,int $denom=10000):int
+    {return intdiv($n,$denom)*$ratio+intdiv(($n%$denom)*$ratio,$denom);}
+    private static function move(int $v,int $target,int $div):int
+    {return $v===$target?$v:$v+($target>$v?1:-1)*max(1,intdiv(abs($target-$v),$div));}
+    private static function gap(int $actual,int $base):int
+    {return intdiv(($actual-$base)*10000,$base);}
+    /** Called after statutory policy deltas, using only the prior committed
+     * day's macro row. No uncommitted values, implicit circular equation
+     * or read-side mutation. No trade/monetary feedback in this first loop.
+     */
+    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment):array
+    {
+        $prior=$previous['macro']??null;$debt=$previous['treasury']['debt']??$b['opening_debt'];
+        $price=$prior['price_index_scaled']??100000000;
+        $wage=$prior['wage_index_scaled']??100000000;
+        $unemployment=$prior['unemployment_bps']??$b['initial_unemployment_bps'];
+        $inflation=$prior['annual_inflation_bps']??$b['initial_annual_inflation_bps'];
+        $priorReal=$prior['real_gdp']??$b['daily_real_gdp'];
+        $priorNominal=$prior['nominal_gdp']??$b['daily_real_gdp'];
+        $nominalGap=self::clamp(self::gap($priorNominal,$b['daily_real_gdp']),-3000,3000);
+        $taxFeedback=self::scale($b['daily_tax_base'],self::scale($nominalGap,$b['tax_elasticity_bps']));
+        $jobGap=$unemployment-$b['initial_unemployment_bps'];
+        $socialFeedback=self::scale($b['daily_social_benefits'],self::scale($jobGap,$b['benefit_unemployment_sensitivity_bps'])
+            +self::scale(self::clamp(intdiv($price-100000000,10000),-2000,4000),$b['benefit_price_pass_through_bps']));
+        $actualRevenue=max(0,$revenue+$taxFeedback);$primaryExpense=max(0,$expense+$socialFeedback);
+        $taxFeedback=$actualRevenue-$revenue;$socialFeedback=$primaryExpense-$expense;
+        $realWageBps=intdiv($wage*10000,$price);
+        $consumption=max(0,$b['daily_consumption']-intdiv($revenue-$b['daily_revenue'],2)
+            +self::scale($b['daily_consumption'],self::clamp($realWageBps-10000-intdiv($jobGap,2)+intdiv($employment-10000,2),-2500,2500))
+            +intdiv($socialFeedback,3));
+        $investment=max(0,$b['daily_investment']+self::scale($b['daily_investment'],
+            self::clamp(intdiv(self::gap($priorReal,$b['daily_real_gdp']),3)+$production-10000,-2500,2500)));
+        $government=max(0,$b['daily_government_consumption']+intdiv($expense-$b['daily_primary_expense'],2));
+        $real=$consumption+$investment+$government+$b['daily_exports']-$b['daily_imports']+$b['daily_statistical_discrepancy'];
+        if($real<=0)throw new \DomainException('Nonpositive output');
+        $outputGap=self::clamp(self::gap($real,$b['daily_real_gdp']),-3000,3000);
+        $inflation=self::move($inflation,self::clamp($b['initial_annual_inflation_bps']+intdiv($outputGap,4),-500,2000),20);
+        $price=max(10000000,$price+intdiv($price*$inflation,3650000));
+        $wage=self::move($wage,$price,180);
+        $unemployment=self::move($unemployment,self::clamp($b['initial_unemployment_bps']-intdiv($outputGap,4)-intdiv($employment-10000,5),100,3000),30);
+        $nominal=self::scale($real,$price,100000000);
+        $interest=self::scale($debt,$b['assumed_annual_interest_bps'],3650000);
+        $primary=$actualRevenue-$primaryExpense;
+        $unfinanced=$cash+$primary-$interest;
+        $borrow=max(0,-$unfinanced);$closing=$unfinanced+$borrow;$closingDebt=$debt+$borrow;
+        if($closingDebt>1000000000000000||$closing>1000000000000000)throw new \DomainException('Treasury magnitude limit');
+        return ['revenue'=>$actualRevenue,'expense'=>$primaryExpense,'balance'=>$closing,
+            'macro'=>['version'=>self::VERSION,'real_gdp'=>$real,'nominal_gdp'=>$nominal,'consumption'=>$consumption,
+                'investment'=>$investment,'government_consumption'=>$government,'exports'=>$b['daily_exports'],'imports'=>$b['daily_imports'],
+                'statistical_discrepancy'=>$b['daily_statistical_discrepancy'],'real_output_index_bps'=>self::gap($real,$b['daily_real_gdp'])+10000,
+                'daily_real_growth_bps'=>self::gap($real,$priorReal),'price_index_scaled'=>$price,'wage_index_scaled'=>$wage,
+                'annual_inflation_bps'=>$inflation,'unemployment_bps'=>$unemployment,'real_wage_index_bps'=>intdiv($wage*10000,$price),
+                'statutory_revenue'=>$revenue,'statutory_primary_expense'=>$expense,'tax_feedback'=>$taxFeedback,
+                'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap],
+            'treasury'=>['opening_cash'=>$cash,'opening_debt'=>$debt,'primary_balance'=>$primary,'interest'=>$interest,
+                'new_borrowing'=>$borrow,'cash'=>$closing,'debt'=>$closingDebt]];
+    }
+    public static function project(array $dom):array
+    {
+        $b=$dom['macro_baseline'];$rows=[];
+        foreach($dom['days'] as $d)$rows[]=['day'=>$d['day'],...$d['macro'],...$d['treasury'],
+            'actual_revenue'=>$d['revenue'],'primary_expense'=>$d['expense']];
+        return ['version'=>self::VERSION,'classification'=>'fictional_simulation_observed_anchors','world_id'=>$dom['world_id'],
+            'day'=>$dom['day'],'baseline'=>$b,'latest'=>$rows===[]?null:$rows[array_key_last($rows)],'days'=>$rows,
+            'feedback_to_domestic_ledger'=>true,'trade_feedback_enabled'=>false,'not_a_forecast'=>true];
+    }
+}

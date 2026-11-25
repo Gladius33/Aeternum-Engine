@@ -108,11 +108,17 @@ final class FinanceBudget
         // Independent treasury projection from the verified actual domestic
         // ledger. Debt is not double-counted as tax receipts. Fixed rate;
         // interest is added here, not written back to the domestic ledger.
-        $cash=$dom['days'][0]['opening_balance']??$dom['balance'];$debt=2000000000;
+        $b=$dom['macro_baseline']??null;
+        $openingDebt=$b['opening_debt']??2000000000;$rate=$b['assumed_annual_interest_bps']??300;
+        $cash=$dom['days'][0]['opening_balance']??$dom['balance'];$debt=$openingDebt;
         $interest=0;$issued=0;$primary=0;$rows=[];
         foreach($dom['days'] as $d){
-            $i=intdiv($debt*300,3650000);$flow=$d['revenue']-$d['expense'];
-            $cash+=$flow-$i;$borrow=max(0,-$cash);$cash+=$borrow;$debt+=$borrow;
+            $flow=$d['revenue']-$d['expense'];
+            if($b!==null){
+                $t=$d['treasury'];$i=$t['interest'];$borrow=$t['new_borrowing'];$cash=$t['cash'];$debt=$t['debt'];
+            }else{
+                $i=intdiv($debt*300,3650000);$cash+=$flow-$i;$borrow=max(0,-$cash);$cash+=$borrow;$debt+=$borrow;
+            }
             $interest+=$i;$issued+=$borrow;$primary+=$flow;
             $rows[]=['day'=>$d['day'],'primary_balance'=>$flow,'interest'=>$i,'new_borrowing'=>$borrow,'cash'=>$cash,'debt'=>$debt];
         }
@@ -120,8 +126,8 @@ final class FinanceBudget
             $b['seventy_day_review_due']=$dom['day']>=$b['parliament_deadline']&&in_array($b['status'],['assembly_pending','assembly_decided','senate_pending','senate_decided'],true);
             $b['implementation_authorized']=($dom['policies'][$b['policy_id']]['authorized_on']??null)!==null;
         }unset($b);
-        return ['classification'=>'fictional_treasury_projection','currency'=>'EUR','unit'=>'minor','annual_interest_bps'=>300,
-            'opening_debt'=>2000000000,'cash'=>$cash,'debt'=>$debt,'interest_total'=>$interest,'borrowing_total'=>$issued,
+        return ['classification'=>'fictional_treasury_projection','currency'=>'EUR','unit'=>'minor','annual_interest_bps'=>$rate,
+            'opening_debt'=>$openingDebt,'cash'=>$cash,'debt'=>$debt,'interest_total'=>$interest,'borrowing_total'=>$issued,
             'primary_balance_total'=>$primary,'days'=>$rows,'bills'=>$bills,
             'continuity_review_required'=>$dom['day']>='2027-01-01'&&!array_filter($bills,fn($b)=>$b['status']==='published'&&$b['implementation_authorized'])];
     }

@@ -394,3 +394,12 @@ branches must compute independent remaining-EU and euro-area responses,
 fixed-geography versus membership aggregates, EU budget, central bank
 balance sheets, financial spillovers and autonomous institutional choices.
 No automatic collapse or forced secondary exits. WP80 acceptance.
+
+
+## WP48 fiscal loop candidate
+
+France observed-anchored opt-in world, 32 observations persisted in per-world
+MariaDB assumptions, daily lagged tax/social feedback, prices, wages,
+activity, employment and authoritative debt/cash financing. Prior scenarios
+unchanged. Coefficients fictional; trade, energy, monetary policy and full
+budget instruments remain open. See WORLD_POLITICS_FISCAL_LOOP.md.

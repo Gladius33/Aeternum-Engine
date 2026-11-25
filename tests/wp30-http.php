@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===19,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===20,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -468,6 +468,24 @@ ck30($again47['etag']===$m47['etag']&&$again47['body']===$m47['body'],'WP47 dete
 $f47=req30('GET',$r47.'/countries/FR/finance',null,$tb);
 ck30($f47['status']===200&&$f47['body']['treasury']['debt']===$row47['debt'],'WP47 finance source reconciliation');
 ck30(req30('GET',$p47,null,$ta2)['status']===404&&req30('GET',$r46.'/countries/FR/macro',null,$tb)['status']===404,'WP47 membership and legacy isolation');
+$g48=req30('POST','/worlds',['label'=>'France fiscal loop','scenario'=>'fr-fiscal-loop-v1'],$tb,['Idempotency-Key'=>'fiscal-world-001']);
+ck30($g48['status']===201,'WP48 observed baseline world');
+$w48=$g48['body']['world_id'];$r48='/worlds/'.$w48;$p48=$r48.'/countries/FR/macro';
+$m48=req30('GET',$p48,null,$tb);
+ck30($m48['status']===200&&$m48['body']['feedback_to_domestic_ledger']&&count($m48['body']['baseline']['source_pack']['observations'])===32,'WP48 persisted observed pack');
+$q48=$pdo->prepare('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?');$q48->execute([$w48]);
+$cfg48=json_decode($q48->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck30($cfg48['macro_baseline']['source_sha']===$m48['body']['baseline']['source_sha'],'WP48 MariaDB pinned provenance');
+$c48=req30('GET',$r48.'/clock',null,$tb);
+foreach(['2026-11-26','2026-11-27','2026-11-28'] as $n48=>$day48){
+    $c48=req30('POST',$r48.'/clock/advances',['target_day'=>$day48],$tb,['If-Match'=>$c48['etag'],'Idempotency-Key'=>'fiscal-tick-00'.($n48+1)]);
+    ck30($c48['status']===200&&$c48['body']['coherent'],'WP48 coherent fiscal day');
+}
+$m48=req30('GET',$p48,null,$tb);$d48=req30('GET',$r48.'/domestic',null,$tb);$f48=req30('GET',$r48.'/countries/FR/finance',null,$tb);
+ck30($m48['status']===200&&$d48['status']===200&&$f48['status']===200,'WP48 all read contracts');
+ck30($m48['body']['latest']['cash']===$d48['body']['balance']&&$m48['body']['latest']['debt']===$f48['body']['treasury']['debt'],'WP48 cash debt consistency');
+ck30($m48['body']['latest']['tax_feedback']!==0,'WP48 endogenous receipts enter persisted daily ledger');
+ck30(req30('GET',$p48,null,$ta2)['status']===404&&!req30('GET',$p47,null,$tb)['body']['feedback_to_domestic_ledger'],'WP48 isolation and WP47 compatibility');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";
