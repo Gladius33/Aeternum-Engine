@@ -3,7 +3,7 @@
 This is the active, consolidated engineering backlog after G25. Historical M01–M16 and G01–G25 records are retained for traceability. The nine release gates in [ROADMAP.md](../ROADMAP.md) remain normative. All implementation, automated validation, reproducible evidence, packaging and documentation below are repository development tasks.
 
 ## Execution contract
-- [ ] Close G25 after all ten exact-head workflows succeed, merge, then check main.
+- G25 merged after all ten exact-head workflows succeeded (PR #86).
 - Resume the first incomplete milestone and any open PR before starting another. Deliver large coherent changes, including tests and documentation, not one iteration per fix.
 - Inspect source and CI, implement, test, open/update PR, fix failures, require all ten exact-head workflows green, merge and check main. Record PR, SHA, runs, results and residual work here. A PR alone is not completion.
 - Preserve ACCL-1.0, attribution, transaction boundaries, immutable rules, old-world replay, isolation and resource conservation. No secrets, live payment or external action without permission. New balance rules require new pinned versions.
@@ -64,8 +64,8 @@ Provide archive, preflight/configuration instructions, validation commands, secu
 | Milestone | Status | Evidence |
 |---|---|---|
 | G25 | Merged | PR #86, 10/10 pre-merge workflows, merge df37cc0 |
-| F01 | CI qualification | #88 merged, 10/10 CI; #89 candidate: [runtime](F01_WORLD_RUNTIME.md), [catalog](F01_MODULE_CATALOG.md), [SDK and compatibility](F01_SDK.md) |
-| F02 | Planned | — |
+| F01 | Merged | #88 and #89, each 10/10 pre-merge CI; final merge 09a2bd36; [SDK and compatibility](F01_SDK.md) |
+| F02 | CI qualification | [Indexed scoring and capacity protocol](F02_CAPACITY.md) |
 | F03 | Planned | — |
 | F04 | Planned | — |
 | F05 | Planned | — |

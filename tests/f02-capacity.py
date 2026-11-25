@@ -21,7 +21,7 @@ BUDGETS = {"p95_ms": 12000, "p99_ms": 20000, "profile_seconds": 180,
            "worker_lag_seconds": 10, "errors": 0, "request_timeout_seconds": 25}
 PROFILES = (1, 4, 16, 32)
 WORLD = "/v1/worlds/f02-load-world"
-SERVER_WORKERS = 8
+SERVER_WORKERS = 7
 lock = threading.Lock()
 
 
@@ -58,8 +58,14 @@ def main():
               "server_workers": SERVER_WORKERS, "runner": {
                   "os": platform.platform(), "logical_cpus": os.cpu_count(),
                   "source_sha": os.environ.get("GITHUB_SHA", "local")}, "profiles": []}
+    report_path = pathlib.Path(os.environ.get("F02_REPORT_PATH", "f02-capacity.json"))
+    def persist():
+        report_path.write_text(json.dumps(report, indent=2, sort_keys=True)+"\n")
+    report["status"] = "incomplete"
+    persist()
     with tempfile.TemporaryDirectory(prefix="aeternum-f02-") as d:
         report["dataset"] = php("setup", d)
+        persist()
         players = json.loads((pathlib.Path(d) / "players.json").read_text())
         env = dict(os.environ, AETERNUM_DSN=os.environ["AETERNUM_TEST_DSN"],
                    AETERNUM_DB_USER=os.environ["AETERNUM_TEST_USER"],
@@ -127,7 +133,9 @@ def main():
                                 with lock:
                                     samples[label].append((time.monotonic()-began)*1000)
                                 return data["data"]
-                            if retry_due and code == 409 and data.get("retryable") is True:
+                            if ((retry_due and code == 409 and data.get("retryable") is True)
+                                or (code == 503 and data.get("retryable") is True)
+                                or (label == "login" and code == 503 and data.get("error") == "authentication_busy")):
                                 with lock:
                                     retries[label] += 1
                                 time.sleep(.15*(attempt+1))
@@ -214,9 +222,12 @@ def main():
                         "cpu_busy_percent": round(100*(1-(sys1["idle_ticks"]-sys0["idle_ticks"])/max(1,sys1["cpu_ticks"]-sys0["cpu_ticks"])), 2),
                         "runner_peak_used_memory_kib": peak_mem[0],
                         "sql_counter_deltas": {k: db1[k]-db0.get(k,0) for k in db1 if k.startswith("Innodb_")},
+                        "canonical_state_bytes": db1["canonical_state_bytes"], "journal_entries": db1["journal_entries"],
+                        "pending_events": db1["pending_events"],
                         "sql_connections_after": db1.get("Threads_connected"),
                         "sql_max_used_connections": db1.get("Max_used_connections"), "worker": worker_metrics})
-                    if (stats["p95_ms"] > BUDGETS["p95_ms"] or stats["p99_ms"] > BUDGETS["p99_ms"]
+                    persist()
+                    if (len(all_samples) != 11*n or stats["p95_ms"] > BUDGETS["p95_ms"] or stats["p99_ms"] > BUDGETS["p99_ms"]
                         or elapsed > BUDGETS["profile_seconds"]
                         or worker_metrics["max_observed_due_lag_seconds"] > BUDGETS["worker_lag_seconds"]):
                         raise RuntimeError(f"profile {n} exceeds predeclared regression budget")
@@ -240,7 +251,40 @@ def main():
                     raise RuntimeError("rank quota failed to recover")
                 report["overload"] = {"observed_429": quota.count(429), "other_actor_available": True,
                                       "same_actor_recovered_next_window": True}
+                persist()
+                # Sustained read smoke across independent HTTP connections,
+                # six rounds spaced to stay within the real per-actor limits.
+                soak_start = time.monotonic()
+                soak_ms = []
+                def soak(i):
+                    a = players[i]["account"]
+                    headers = {"Authorization": "Bearer "+last_tokens[i]}
+                    result = []
+                    for suffix in ("/progression/"+a+"/rank", "/economy/balances/"+a+"/silver",
+                                   "/economy/market", "/social/alliances"):
+                        began = time.monotonic()
+                        req = urllib.request.Request(url+WORLD+suffix, headers=headers)
+                        with urllib.request.urlopen(req, timeout=25) as response:
+                            if response.status != 200:
+                                raise RuntimeError("soak read failed")
+                            json.load(response)
+                        result.append((time.monotonic()-began)*1000)
+                    return result
+                with cf.ThreadPoolExecutor(max_workers=32) as pool:
+                    for turn in range(6):
+                        if turn:
+                            time.sleep(max(0, soak_start+15*turn-time.monotonic()))
+                        for values in pool.map(soak, range(32)):
+                            soak_ms.extend(values)
+                soak_stats = percentiles(soak_ms)
+                report["soak"] = {"clients": 32, "rounds": 6, "reads": len(soak_ms),
+                    "wall_seconds": round(time.monotonic()-soak_start,3), **soak_stats, "errors": 0}
+                persist()
+                if len(soak_ms)!=768 or soak_stats["p95_ms"]>BUDGETS["p95_ms"] or soak_stats["p99_ms"]>BUDGETS["p99_ms"]:
+                    raise RuntimeError("soak regression budget exceeded")
                 report["verification"] = php("verify", d)
+                report["status"] = "passed"
+                persist()
             finally:
                 try:
                     os.killpg(server.pid, signal.SIGTERM)

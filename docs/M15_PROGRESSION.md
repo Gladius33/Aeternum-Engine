@@ -147,3 +147,7 @@ manifest versions and non-engagement games are not modified.
 Remaining work: indexed large-world leaderboards; a full diplomacy
 workflow with alliances/war declarations; specialized concurrent load
 and graceful migrations; and the V1.0 operator sign-offs in #55.
+
+## F02 indexed scoring
+
+With migration 032, authenticated score and rank reads use a journal-watermarked indexed SQL projection. The 128-account roster limit described in the historical M15 section applies only to the pre-032 fallback. See [F02 capacity and rebuild protocol](F02_CAPACITY.md). The API shape, deterministic ties, due-event barrier and actor privacy remain unchanged.

@@ -67,7 +67,12 @@ if ($mode==='setup') {
 } elseif ($mode==='metrics') {
     $names=['Innodb_row_lock_waits','Innodb_row_lock_time','Innodb_data_read','Innodb_data_written','Threads_connected','Max_used_connections','Innodb_buffer_pool_reads','Innodb_buffer_pool_read_requests'];
     $rows=$pdo->query("SHOW GLOBAL STATUS WHERE Variable_name IN ('".implode("','",$names)."')")->fetchAll(PDO::FETCH_KEY_PAIR);
-    $emit(array_map('intval',$rows));
+    $result=array_map('intval',$rows);
+    $worldStats=$q('SELECT LENGTH(state_json) AS bytes,journal_sequence FROM engine_worlds WHERE world_id=?',[$world])->fetch(PDO::FETCH_ASSOC);
+    $result['canonical_state_bytes']=(int)$worldStats['bytes'];
+    $result['journal_entries']=(int)$worldStats['journal_sequence'];
+    $result['pending_events']=$scheduler->pendingCount();
+    $emit($result);
 } elseif ($mode==='verify') {
     $state=$scheduler->state();$replay=$scheduler->verifyReplay($rules->commands,$rules->events);
     $rows=$scheduler->auditScores();
@@ -92,5 +97,6 @@ if ($mode==='setup') {
     $plan=$q('EXPLAIN SELECT COUNT(*) FROM engine_account_scores s JOIN engine_account_owners o ON o.world_id=s.world_id AND o.account_id=s.account_id JOIN engine_memberships m ON m.world_id=o.world_id AND m.actor_id=o.actor_id AND m.active=1 WHERE s.world_id=? AND s.global_score>?',[$world,6])->fetchAll(PDO::FETCH_ASSOC);
     $emit(['replay_entries'=>$replay->entries,'score_rows'=>$rows,'filled_trades'=>$filled,'completed_buildings'=>$completed,
         'pending_events'=>0,'ledger_conserved'=>true,'economy_projection'=>$economy,
+        'canonical_state_bytes'=>strlen(\Aeternum\Core\ScalarMap::encode($state)),
         'rank_explain'=>array_map(static fn($r)=>['table'=>$r['table'],'access'=>$r['type'],'index'=>$r['key'],'estimated_rows'=>(int)$r['rows']],$plan)]);
 } else throw new InvalidArgumentException('Unknown F02 operation');
