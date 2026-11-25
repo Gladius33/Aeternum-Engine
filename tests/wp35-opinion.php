@@ -34,14 +34,22 @@ ck35(array_sum($r['intentions'])===10000&&$r['intentions']['undecided']>$c['inte
 ck35($a->snapshot()['cohort_approval']['workers']<520&&$a->snapshot()['cohort_approval']['retired']<540,'heterogeneous cohort response');
 no35(fn()=>$a->advance(obs35($d,$i)),'same day cannot be applied twice');
 $p->day='2026-11-27';$d->advance($p,$p->day);$i->advanceTo($p->day);$a->advance(obs35($d,$i));
-$low=$a->snapshot()['approval'];
-for($n=28;$n<=30;$n++){
-    $p->day='2026-11-'.$n;$d->advance($p,$p->day);$i->advanceTo($p->day);$a->advance(obs35($d,$i));
+$atSunset=$a->snapshot()['approval'];
+$minimum=$atSunset;
+// Pressure itself decays gradually before opinion catches up. Recovery is
+// not guaranteed within three days of expiry; check the full lagged path.
+for($n=1;$n<=25;$n++){
+    $p->day=(new DateTimeImmutable('2026-11-27'))->modify('+'.$n.' days')->format('Y-m-d');
+    $d->advance($p,$p->day);$i->advanceTo($p->day);
+    $r=$a->advance(obs35($d,$i));
+    $minimum=min($minimum,$r['approval']);
+    ck35($d->snapshot()['days'][count($d->snapshot()['days'])-1]['active_policies']===[],'expired policy stays inactive day '.$n);
 }
-ck35($a->snapshot()['approval']>$low,'sunset permits gradual recovery');
+ck35($a->snapshot()['approval']>$minimum&&$a->snapshot()['approval']>$atSunset
+    &&$a->snapshot()['approval']<=$initial,'sunset permits lagged gradual recovery');
 ck35(PublicOpinion::restore($a->snapshot())->hash()===$a->hash(),'deterministic replay');
 $bad=$a->snapshot();$bad['approval']=1000;no35(fn()=>PublicOpinion::restore($bad),'tampered projection rejected');
 $other=new InstitutionalSimulation('other-world','FR',$p->day);
 no35(fn()=>obs35($d,$other),'cross-world source rejected');
-$e=obs35($d,$i);$e['day']='2026-12-01';$e['constitutional_breaches']=1;$e['election_status']='constitutional_deadline_missed';$e['legislature']='dissolved';
+$e=obs35($d,$i);$e['day']=(new DateTimeImmutable($p->day))->modify('+1 day')->format('Y-m-d');$e['constitutional_breaches']=1;$e['election_status']='constitutional_deadline_missed';$e['legislature']='dissolved';
 $r=$a->advance($e);ck35($r['institutional_status']==='constitutional_deadline_breached'&&!$r['regime_changed'],'separate constitutional observation');
