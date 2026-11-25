@@ -24,7 +24,7 @@ try{
     if(!in_array($mode,['init','run'],true))throw new RuntimeException('Unknown bot mode');
     $pdo=new PDO(getenv('AETERNUM_DSN'),getenv('AETERNUM_DB_USER'),getenv('AETERNUM_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
     $pdo->exec('SET SESSION innodb_lock_wait_timeout=3');
-    $worlds=ConfiguredWorlds::load();$clock=new SystemClock();
+    $runtime=WorldRuntime::load();$worlds=$runtime->packs;$clock=new SystemClock();
     if($mode==='init'){
         if(!is_file($secrets)){
             $credentials=[];
