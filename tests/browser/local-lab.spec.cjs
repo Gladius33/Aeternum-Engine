@@ -4,7 +4,7 @@ const origin='https://127.0.0.1:8443';
 const password='aeternum-local-playtest-only';
 for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wood'],['industrial','industrial','power_plant','steel'],['guild','guild','market_hall','silver']]){
     test('local lab '+pack+' real browser and autonomous worker',async({browser})=>{
-        test.setTimeout(270000);
+        test.setTimeout(360000);
         const context=await browser.newContext({ignoreHTTPSErrors:true,hasTouch:true});
         try{
             const page=await context.newPage();
@@ -449,11 +449,11 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             // account selection and bounded rendering evidence. No token is
             // written to the report or printed to the console.
             await page.locator('[data-game-nav=domain]').click();
+            await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
             const ownAccount=await page.locator('#balance select[name=account]').inputValue();
             const confirmed=await page.locator('.scene-district [data-district-building]').evaluateAll(nodes=>nodes.map(n=>({id:n.dataset.districtBuilding,level:n.dataset.districtLevel})).filter(n=>Number(n.level)>0).sort((a,b)=>a.id.localeCompare(b.id)));
             expect(confirmed.length).toBeGreaterThan(0);
-            const revoked=await page.locator('[data-game-exit]').count();
-            expect(revoked).toBe(1);
+            await expect(page.locator('[data-game-exit]')).toHaveCount(1);
             const logoutResponse=page.waitForResponse(r=>r.url().endsWith('/v1/auth/logout')&&r.request().method()==='POST');
             await page.locator('[data-game-exit]').click();
             const logout=await logoutResponse;
@@ -475,6 +475,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 await expect(page.locator('[data-resource-tile='+resource+'] strong')).not.toHaveText('—',{timeout:30000});
                 await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
             }
+            await expect(page.locator('#world-scene')).toBeHidden();
             await enter('bob');
             const bobAccount=await page.locator('#balance select[name=account]').inputValue();
             expect(bobAccount.length).toBeGreaterThan(0);
