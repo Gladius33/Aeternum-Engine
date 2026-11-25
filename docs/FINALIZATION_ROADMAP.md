@@ -63,8 +63,8 @@ Provide archive, preflight/configuration instructions, validation commands, secu
 ## Progress
 | Milestone | Status | Evidence |
 |---|---|---|
-| G25 | CI/review | PR #86 |
-| F01 | Planned | — |
+| G25 | Merged | PR #86, 10/10 pre-merge workflows, merge df37cc0 |
+| F01 | In progress | [Shared runtime composition](F01_WORLD_RUNTIME.md) |
 | F02 | Planned | — |
 | F03 | Planned | — |
 | F04 | Planned | — |
