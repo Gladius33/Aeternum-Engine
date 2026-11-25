@@ -34,6 +34,14 @@ use Aeternum\Core\{OperationsSnapshot,OperationsCron,PdoScheduler,PdoMemberships
         && $view['worlds'][0]['dueEvents']===1
         && $view['worlds'][0]['oldestDueSeconds']>0,
         'M11 due job backlog and lag are observed without processing');
+    $q=$pdo->prepare("UPDATE engine_worlds SET rules_key=? WHERE world_id=?");
+    $q->execute([str_repeat('a',64),$world]);
+    try {
+        $mismatch=$monitor->snapshot([$world=>$pack],[$world=>$rules]);
+        check(!$mismatch['healthy']&&!$mismatch['worlds'][0]['rulesVerified']
+            &&in_array('world_rules_mismatch',array_column((new \Aeternum\Core\OperationsAlerts())->evaluate($mismatch)['alerts'],'code'),true),
+            'F06 operational health detects wrong effective pinned rules');
+    } finally {$q->execute([$rules->key,$world]);}
     check($monitor->snapshot([])['healthy']===false
         && $monitor->snapshot([])['worlds']===[],
         'M11 no approved worlds is never reported as healthy');

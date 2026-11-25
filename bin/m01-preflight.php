@@ -13,6 +13,7 @@ $email=getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1';
 $record('public_signup_has_identity_proof',!$public||$invited||$email);
 $record('no_unverified_browser_bypass_on_host',getenv('AETERNUM_LAB_ALLOW_UNVERIFIED_SIGNUP')!=='1');
 // A test-only mailbox sink must never be enabled on a host.
+$record('no_lab_runtime',getenv('AETERNUM_LAB_ONLY')!=='1');
 $record('no_test_mail_sink',getenv('AETERNUM_BROWSER_TEST')!=='1'
     && (getenv('AETERNUM_TEST_ACTIVATION_OUTBOX')===false||getenv('AETERNUM_TEST_ACTIVATION_OUTBOX')===''));
 $mailFrom=getenv('AETERNUM_ACTIVATION_MAIL_FROM');
@@ -34,8 +35,8 @@ $parallel=$parallel===false?8:(int)$parallel;
 $record('parallel_hash_limit',1<=$parallel&&$parallel<=32);
 try {
     require __DIR__.'/../vendor/autoload.php';
-    $worlds=\Aeternum\Core\ConfiguredWorlds::load();
-    $record('configured_approved_worlds',count($worlds)>0);
+    $runtime=\Aeternum\Core\WorldRuntime::load();
+    $record('configured_approved_worlds',count($runtime->packs)>0&&count($runtime->packs)<=16);
 } catch(Throwable) { $record('configured_approved_worlds',false); }
 try {
     $trusted=getenv('AETERNUM_TRUSTED_PROXY_IPS');
@@ -62,9 +63,40 @@ try {
         }
     }
     $record('completed_unchanged_schema_migrations',$consistent);
+    $bound=isset($runtime);
+    if($bound)foreach($runtime->rules as $world=>$rules){
+        $q=$pdo->prepare('SELECT rules_key FROM engine_worlds WHERE world_id=?');$q->execute([$world]);$key=$q->fetchColumn();
+        if($key!==false&&!hash_equals($rules->key,(string)$key)){$bound=false;break;}
+    }
+    $record('existing_world_rules_match',$bound);
 } catch(Throwable) {
+    $record('existing_world_rules_match',false);
     $record('mariadb_engine',false);
     $record('completed_unchanged_schema_migrations',false);
+}
+// Optional strict layout checks: the operator supplies the actual webroot
+// and private runtime directory. CLI cannot discover a vhost's active root.
+if($argc!==1){
+    $valid=$argc===4&&$argv[1]==='--layout';
+    $publicRoot=$valid?realpath($argv[2]):false;
+    $privateRoot=$valid?realpath($argv[3]):false;
+    $install=realpath(__DIR__.'/..');
+    $record('document_root_is_public',$publicRoot!==false&&$publicRoot===$install.'/public');
+    $private=$privateRoot!==false&&is_dir($privateRoot)&&$privateRoot!==$install
+        &&!str_starts_with($privateRoot.'/', $install.'/')
+        &&!str_starts_with($install.'/', $privateRoot.'/')
+        &&(fileperms($privateRoot)&0007)===0;
+    $record('private_runtime_directory',$private);
+    $safe=$private;
+    foreach(['AETERNUM_WORLD_REGISTRY','AETERNUM_MODULE_REGISTRY'] as $name){
+        $path=getenv($name);
+        if($path===false&&$name==='AETERNUM_MODULE_REGISTRY')continue;
+        $real=is_string($path)&&str_starts_with($path,'/')&&!is_link($path)?realpath($path):false;
+        $safe=$safe&&$real!==false&&is_file($real)&&str_starts_with($real,$privateRoot.'/')
+            &&(fileperms($real)&0027)===0;
+    }
+    $record('private_read_only_registries',$safe);
+    $record('client_bundle_present',is_file($install.'/public/client-dist/aeternum-shell.js'));
 }
 $pass=!in_array(false,$checks,true);
 echo json_encode([
