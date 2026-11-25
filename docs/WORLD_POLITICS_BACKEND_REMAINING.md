@@ -330,3 +330,11 @@ publication and verified domestic enactment, coherent treasury projection
 with fixed-rate interest and borrowing. Full LOLF, 49(3) finance pathway,
 continuity and ordinance routes, recurring years and debt markets remain
 open. See WORLD_POLITICS_FINANCE.md.
+
+
+## WP47 macroeconomic candidate
+
+Opt-in deterministic macro read projection from verified fiscal and trade
+states; GDP expenditure identity, prices, unemployment, growth, tax proxy
+and treasury reconciliation. Fictional coefficients; no feedback to the
+underlying authoritative ledgers. See WORLD_POLITICS_MACRO.md.

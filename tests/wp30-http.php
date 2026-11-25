@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===18,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===19,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -445,6 +445,23 @@ ck30($c46['status']===200&&$c46['body']['coherent'],'WP46 coherent finance clock
 $f46=req30('GET',$p46,null,$tb);
 ck30($f46['body']['treasury']['bills']['finance-bill']['implementation_authorized']&&count($f46['body']['treasury']['days'])===1,'WP46 coherent treasury projection');
 ck30(req30('GET',$p46,null,$ta2)['status']===404&&req30('GET',$r45.'/countries/FR/finance',null,$tb)['status']===404,'WP46 isolation and legacy');
+$g47=req30('POST','/worlds',['label'=>'Macroeconomic pilot','scenario'=>'fr-macro-v1'],$tb,['Idempotency-Key'=>'macro-world-001']);
+ck30($g47['status']===201,'WP47 macro world');
+$w47=$g47['body']['world_id'];$r47='/worlds/'.$w47;$p47=$r47.'/countries/FR/macro';
+$m47=req30('GET',$p47,null,$tb);
+ck30($m47['status']===200&&$m47['body']['latest']===null&&count($m47['body']['source_hashes'])===3,'WP47 initial scoped projection');
+$c47=req30('GET',$r47.'/clock',null,$tb);
+foreach(['2026-11-26','2026-11-27','2026-11-28'] as $n47=>$day47){
+    $c47=req30('POST',$r47.'/clock/advances',['target_day'=>$day47],$tb,['If-Match'=>$c47['etag'],'Idempotency-Key'=>'macro-tick-00'.($n47+1)]);
+    ck30($c47['status']===200&&$c47['body']['coherent'],'WP47 coherent day');
+}
+$m47=req30('GET',$p47,null,$tb);$row47=$m47['body']['latest'];
+ck30($m47['status']===200&&count($m47['body']['days'])===3&&$row47['real_gdp']===$row47['consumption']+$row47['investment']+$row47['government_consumption']+$row47['exports']-$row47['imports'],'WP47 national accounting identity');
+$again47=req30('GET',$p47,null,$tb);
+ck30($again47['etag']===$m47['etag']&&$again47['body']===$m47['body'],'WP47 deterministic ETag and history');
+$f47=req30('GET',$r47.'/countries/FR/finance',null,$tb);
+ck30($f47['status']===200&&$f47['body']['treasury']['debt']===$row47['debt'],'WP47 finance source reconciliation');
+ck30(req30('GET',$p47,null,$ta2)['status']===404&&req30('GET',$r46.'/countries/FR/macro',null,$tb)['status']===404,'WP47 membership and legacy isolation');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";
