@@ -53,6 +53,7 @@ require __DIR__ . "/production.php";
 require __DIR__ . "/packs.php";
 require __DIR__ . "/m02-registry.php";
 require __DIR__ . "/m14-trusted-commands.php";
+require __DIR__ . "/f01-module-registry.php";
 require __DIR__ . "/m14-trusted-events.php";
 require __DIR__ . "/m15-scoring.php";
 require __DIR__ . "/m15-engagement.php";
