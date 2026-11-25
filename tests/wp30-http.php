@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===17,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===18,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -415,6 +415,36 @@ ck30($c45['status']===200&&$c45['body']['coherent'],'WP45 coherent clock');
 $ds45=req30('GET',$r45.'/domestic',null,$tb)['body'];
 ck30(in_array('administration-report',$ds45['days'][0]['active_policies'],true)&&$ds45['days'][0]['expense']===11050000,'WP45 actual administrative expense');
 ck30(req30('GET',$p45,null,$ta2)['status']===404&&req30('GET',$r44.'/countries/FR/executive',null,$tb)['status']===404,'WP45 isolation and legacy');
+$g46=req30('POST','/worlds',['label'=>'Finance budget','scenario'=>'fr-finance-v1'],$tb,['Idempotency-Key'=>'finance-world-001']);
+ck30($g46['status']===201,'WP46 finance world');
+$w46=$g46['body']['world_id'];$r46='/worlds/'.$w46;$p46=$r46.'/countries/FR/finance';
+$f46=req30('GET',$p46,null,$tb);
+ck30($f46['status']===200&&count($f46['body']['catalog'])===2,'WP46 initial finance catalog');
+$d46=req30('GET',$r46.'/domestic',null,$tb);
+ck30(req30('POST',$r46.'/domestic/proposals',['policy_id'=>'budget-2027-balance','effective_day'=>'2027-01-01'],$tb,['If-Match'=>$d46['etag'],'Idempotency-Key'=>'finance-policy-001'])['status']===202,'WP46 owner budget proposal');
+$sha46=\Aeternum\WorldPolitics\FinanceBudget::digest('budget-2027-balance');
+$v46=['bill_id'=>'finance-bill','text_sha'=>$sha46,'yes'=>180,'no'=>140,'abstain'=>20,'blank_invalid'=>0];
+$events46=[
+ ['finance-bill','finance_file',['policy_id'=>'budget-2027-balance','prime_minister'=>'pm-initial','finance_minister'=>'civic-economy','government_project_certified'=>true]],
+ ['finance-a','finance_assembly',$v46],['finance-t','finance_transfer',['bill_id'=>'finance-bill','prime_minister'=>'pm-initial','transmission_certified'=>true]],
+ ['finance-s','finance_senate',$v46],
+ ['finance-final','finance_final',['bill_id'=>'finance-bill','text_sha'=>$sha46,'route'=>'identical','navette_certified'=>true,'yes'=>0,'no'=>0,'abstain'=>0,'blank_invalid'=>0]],
+ ['finance-review','finance_review',['bill_id'=>'finance-bill','text_sha'=>$sha46,'constitutional'=>true,'decision_certified'=>true]],
+ ['finance-publish','finance_publish',['bill_id'=>'finance-bill','text_sha'=>$sha46,'president'=>'campaign-president','promulgation_certified'=>true,'publication_certified'=>true]]
+];
+foreach($events46 as [$id46,$k46,$data46]){
+ $e46=['world_id'=>$w46,'country'=>'FR','day'=>'2026-11-25','evidence_id'=>$id46,'bill_id'=>null,'kind'=>$k46,'procedure_certified'=>true,'data'=>$data46];
+ $st46=new \Aeternum\WorldPolitics\PdoInstitutionalStore($pdo,new \Aeternum\WorldPolitics\LocalLegislationClerk($e46));$rd46=$st46->read($w46,'FR');
+ ck30($st46->decide($w46,'FR','legislation_evidence',['evidence_id'=>$id46],'key-'.$id46,$rd46['etag'])['status']===202,'WP46 durable '.$k46);
+}
+$ap46=\Aeternum\WorldPolitics\LocalLegislativePublisher::apply($pdo,$w46,'finance-bill',false,true);
+ck30($ap46['result']['policy']['authorized_on']==='2026-11-25','WP46 verified finance implementation');
+$c46=req30('GET',$r46.'/clock',null,$tb);
+$c46=req30('POST',$r46.'/clock/advances',['target_day'=>'2026-11-26'],$tb,['If-Match'=>$c46['etag'],'Idempotency-Key'=>'finance-tick-001']);
+ck30($c46['status']===200&&$c46['body']['coherent'],'WP46 coherent finance clock');
+$f46=req30('GET',$p46,null,$tb);
+ck30($f46['body']['treasury']['bills']['finance-bill']['implementation_authorized']&&count($f46['body']['treasury']['days'])===1,'WP46 coherent treasury projection');
+ck30(req30('GET',$p46,null,$ta2)['status']===404&&req30('GET',$r45.'/countries/FR/finance',null,$tb)['status']===404,'WP46 isolation and legacy');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

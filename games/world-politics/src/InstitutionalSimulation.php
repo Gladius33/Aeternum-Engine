@@ -299,7 +299,7 @@ final class InstitutionalSimulation
         return $result;
     }
 
-    public function enableLegislation(bool $responsibility=false,bool $assembly=false,bool $lifecycle=false,bool $cabinet=false,bool $executive=false):void
+    public function enableLegislation(bool $responsibility=false,bool $assembly=false,bool $lifecycle=false,bool $cabinet=false,bool $executive=false,bool $finance=false):void
     {
         if($this->state['country_code']!=='FR'||isset($this->state['legislation'])||$this->state['events']!==[])throw new \DomainException('Legislation must be pinned at bootstrap');
         $l=new BicameralLegislation($this->state['world_id'],$this->state['day']);
@@ -308,6 +308,7 @@ final class InstitutionalSimulation
         if($lifecycle)$l->enableLifecycle();
         if($cabinet)$l->enableCabinet();
         if($executive)$l->enableExecutive();
+        if($finance)$l->enableFinance();
         $this->state['legislation']=$l->snapshot();
     }
     public function legislation(string $role,string $action,array $payload,string $commandId):array

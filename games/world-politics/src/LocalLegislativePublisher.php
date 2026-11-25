@@ -13,7 +13,7 @@ final class LocalLegislativePublisher implements PersistentDomesticPolicyAuthori
     public function clockDay(string $world):string{throw new \DomainException('No clock authority');}
     /** Recoverable two-transaction publication then authorization; same proof
      * may be reused after an interruption, never fabricated by the client. */
-    public static function apply(\PDO $db,string $world,string $billId,bool $regulatory=false):array
+    public static function apply(\PDO $db,string $world,string $billId,bool $regulatory=false,bool $finance=false):array
     {
         $base=new self($world);$registry=new DomesticEnactmentRegistry($db,$base);
         $q=$db->prepare("SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code='FR'");
@@ -22,7 +22,12 @@ final class LocalLegislativePublisher implements PersistentDomesticPolicyAuthori
         $inst=InstitutionalSimulation::restore(json_decode($row['state_json'],true,64,JSON_THROW_ON_ERROR));
         if($inst->snapshot()['world_id']!==$world||!hash_equals($row['state_sha'],$inst->hash()))throw new \DomainException('National scope mismatch');
         $l=$inst->snapshot()['legislation']??[];
-        if($regulatory){
+        if($finance){
+            if($regulatory)throw new \DomainException('Conflicting publication routes');
+            $bill=$l['finance']['bills'][$billId]??null;
+            if($bill===null||$bill['status']!=='published')throw new \DomainException('No published finance law');
+            $text=$bill['text_sha'];$effective=$bill['effective_on'];$route='fr_finance';
+        }elseif($regulatory){
             $bill=$l['executive']['acts'][$billId]??null;
             if($bill===null||$bill['status']!=='published'||$bill['policy_id']!==ExecutiveActs::POLICY||$bill['kind']==='ordinance')
                 throw new \DomainException('No matching published regulatory act');

@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/LegislativeResponsibility.php';
 require_once __DIR__.'/ExecutiveActs.php';
+require_once __DIR__.'/FinanceBudget.php';
 
 /** Ordinary government bill procedural pilot; not finance, organic, Art 49(3),
  * or constitutional legislation. Certified fictional procedural facts only.
@@ -60,6 +61,12 @@ final class BicameralLegislation
         if(!isset($this->s['responsibility']['cabinet'])||isset($this->s['executive'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
             throw new \DomainException('Executive pilot must be pinned at bootstrap');
         $this->s['executive']=ExecutiveActs::initial();
+    }
+    public function enableFinance():void
+    {
+        if(!isset($this->s['executive'])||isset($this->s['finance'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Finance pilot must be pinned at bootstrap');
+        $this->s['finance']=FinanceBudget::initial();
     }
     public function installElection(array $e):void
     {
@@ -136,12 +143,19 @@ final class BicameralLegislation
         self::fields($e,['world_id','country','day','evidence_id','bill_id','kind','procedure_certified','data']);
         self::id($e['evidence_id']);
         $executive=is_string($e['kind'])&&str_starts_with($e['kind'],'executive_');
-        $independent=$executive||(is_string($e['kind'])&&str_starts_with($e['kind'],'assembly_'));
+        $finance=is_string($e['kind'])&&str_starts_with($e['kind'],'finance_');
+        $independent=$finance||$executive||(is_string($e['kind'])&&str_starts_with($e['kind'],'assembly_'));
         if($independent){if($e['bill_id']!==null)throw new \DomainException('Independent proceedings have no bill');}
         else self::id($e['bill_id']);
         if($e['world_id']!==$this->s['world_id']||$e['country']!=='FR'||$e['day']!==$this->s['day']||$e['procedure_certified']!==true
             ||count($this->s['history'])>=2000)throw new \DomainException('Uncertified legislative evidence');
         foreach($this->s['history'] as $h)if(($h['evidence']['evidence_id']??null)===$e['evidence_id'])throw new \DomainException('Duplicate evidence');
+        if($finance){
+            if(!isset($this->s['finance']))throw new \DomainException('Finance pilot unavailable');
+            [$s,$result]=FinanceBudget::apply($this->s['finance'],$this->s['responsibility']['cabinet'],$e);
+            $this->s['finance']=$s;$this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$e];
+            return $result;
+        }
         if($executive){
             if(!isset($this->s['executive']))throw new \DomainException('Executive pilot unavailable');
             [$s,$result]=ExecutiveActs::apply($this->s['executive'],$this->s['responsibility']['cabinet'],$e);
@@ -298,6 +312,7 @@ final class BicameralLegislation
         if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();
         if(isset($s['responsibility']['cabinet']))$x->enableCabinet();
         if(isset($s['executive']))$x->enableExecutive();
+        if(isset($s['finance']))$x->enableFinance();
         foreach($s['history'] as $h){
             $x->advance($h['day']);
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);

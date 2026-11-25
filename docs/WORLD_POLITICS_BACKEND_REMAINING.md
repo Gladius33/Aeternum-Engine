@@ -321,3 +321,12 @@ competent countersignature checks, publication, lapse/express ratification,
 and verified regulatory domestic implementation. Clerk-certified law digests;
 full delegated authority, litigation and autonomous agenda remain open.
 See WORLD_POLITICS_EXECUTIVE.md.
+
+
+## WP46 finance candidate
+
+Annual fictional finance variants, Article 47 deadline guards, reviewed
+publication and verified domestic enactment, coherent treasury projection
+with fixed-rate interest and borrowing. Full LOLF, 49(3) finance pathway,
+continuity and ordinance routes, recurring years and debt markets remain
+open. See WORLD_POLITICS_FINANCE.md.

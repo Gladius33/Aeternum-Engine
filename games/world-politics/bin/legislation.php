@@ -15,5 +15,6 @@ if($argv[1]==='certify'&&$argc===3){
     $r=$s->decide($e['world_id'],'FR','legislation_evidence',['evidence_id'=>$e['evidence_id']],'legislation-'.hash('sha256',$e['evidence_id']),$read['etag']);
 }elseif($argv[1]==='apply'&&$argc===4)$r=LocalLegislativePublisher::apply($db,$argv[2],$argv[3]);
 elseif($argv[1]==='apply-decree'&&$argc===4)$r=LocalLegislativePublisher::apply($db,$argv[2],$argv[3],true);
+elseif($argv[1]==='apply-budget'&&$argc===4)$r=LocalLegislativePublisher::apply($db,$argv[2],$argv[3],false,true);
 else throw new RuntimeException('Invalid command');
 echo json_encode($r,JSON_THROW_ON_ERROR|JSON_PRETTY_PRINT).PHP_EOL;
