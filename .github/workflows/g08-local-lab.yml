@@ -11,7 +11,7 @@ concurrency:
 jobs:
   lab:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-node@v4
@@ -29,6 +29,8 @@ jobs:
           curl -kfSs https://127.0.0.1:8443/play.html >/dev/null
       - name: Three actual game domains with independent automatic worker
         run: npx playwright test tests/browser/local-lab.spec.cjs --workers=1 --reporter=github,line
+      - name: Three modern multiplayer experiences, recovery and accessibility
+        run: npx playwright test tests/browser/f05-player.spec.cjs --workers=1 --reporter=github,line
       - name: Preserve graphical evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -38,6 +40,7 @@ jobs:
             browser-captures/*.png
             browser-captures/g25-*-metrics.json
             browser-captures/f04-*-campaign.json
+            browser-captures/f05-*-experience.json
           retention-days: 30
           if-no-files-found: warn
       - name: Stop isolated stack
