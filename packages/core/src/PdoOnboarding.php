@@ -16,8 +16,9 @@ final class PdoOnboarding
     /**
      * @return array{actor:string,created:bool,recoveryCode:?string}
      */
-    public function enroll(string $world,GamePack $pack,string $login,string $password,?string $inviteCode=null): array
+    public function enroll(string $world,GamePack $pack,string $login,string $password,?string $inviteCode=null,?RuleSet $approvedRules=null): array
     {
+        WorldRuntime::assertBindings([$world=>$pack],$approvedRules===null?[]:[$world=>$approvedRules]);
         if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$world)
             || !preg_match('/^[a-z0-9][a-z0-9_-]{2,63}$/D',$login)
             || strlen($password)<12 || strlen($password)>1024
@@ -61,7 +62,7 @@ final class PdoOnboarding
 
         // Existing provisioner has world locks, stable account/resource IDs and
         // durable idempotency keys. Crashes leave a retriable pending claim.
-        (new PlayerProvisioner($this->pdo,$this->clock))->provision($world,$actor,$pack);
+        (new PlayerProvisioner($this->pdo,$this->clock))->provision($world,$actor,$pack,$approvedRules);
         $s=$this->pdo->prepare("UPDATE engine_onboarding SET status='ready' WHERE actor_id=? AND world_id=? AND status='pending'");
         $s->execute([$actor,$world]);
         return ['actor'=>$actor,'created'=>$created,'recoveryCode'=>(new PdoRecovery($this->pdo,$this->clock))->issueIfMissing($actor)];

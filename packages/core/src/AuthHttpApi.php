@@ -5,8 +5,9 @@ use PDO;
 
 final class AuthHttpApi
 {
-    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120,private readonly array $registrationWorlds=[],private readonly bool $requireInvitation=false,private readonly int $registrationWorldHourlyLimit=30,private readonly int $parallelSignupLimit=8,private readonly bool $requireEmailActivation=false,private readonly ?ActivationMailer $activationMailer=null)
+    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly int $globalLoginLimit=120,private readonly array $registrationWorlds=[],private readonly bool $requireInvitation=false,private readonly int $registrationWorldHourlyLimit=30,private readonly int $parallelSignupLimit=8,private readonly bool $requireEmailActivation=false,private readonly ?ActivationMailer $activationMailer=null,private readonly array $approvedRules=[])
     {
+        WorldRuntime::assertBindings($registrationWorlds,$approvedRules);
         if ($globalLoginLimit<1 || $globalLoginLimit>100000) throw new \InvalidArgumentException('Invalid global verification limit');
         if ($registrationWorldHourlyLimit<1 || $registrationWorldHourlyLimit>100000) throw new \InvalidArgumentException('Invalid world registration limit');
         if ($parallelSignupLimit<1 || $parallelSignupLimit>32) throw new \InvalidArgumentException('Invalid parallel signup limit');
@@ -69,7 +70,7 @@ final class AuthHttpApi
                     if ($verified===null) return null;
                     if (!isset($this->registrationWorlds[$verified['world']])) throw new \DomainException('World no longer approved');
                     $claim=(new PdoOnboarding($this->pdo,$this->clock))->enroll(
-                        $verified['world'],$this->registrationWorlds[$verified['world']],$data['login'],$data['password']);
+                        $verified['world'],$this->registrationWorlds[$verified['world']],$data['login'],$data['password'],null,$this->approvedRules[$verified['world']]??null);
                     $proof->consume($claim['actor']);
                     $token=$sessions->login($data['login'],$data['password']);
                     if ($token===null) throw new \RuntimeException('Activation session unavailable');
@@ -120,7 +121,7 @@ final class AuthHttpApi
                 [$claim,$token]=(new PdoSignupSlots($this->pdo,$this->parallelSignupLimit))->run(function() use($data,$sessions):array {
                     $claim=(new PdoOnboarding($this->pdo,$this->clock))->enroll(
                         $data['world'],$this->registrationWorlds[$data['world']],$data['login'],$data['password'],
-                        $this->requireInvitation?$data['inviteCode']:null
+                        $this->requireInvitation?$data['inviteCode']:null,$this->approvedRules[$data['world']]??null
                     );
                     // Include the second Argon2id verification and token creation
                     // in the same resource budget. No expensive post-slot gap.

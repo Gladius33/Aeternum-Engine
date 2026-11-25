@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ProgressionHttpApi,ConfiguredWorlds,TrustedWorldRules,SystemClock,PeerAddressResolver};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ProgressionHttpApi,WorldRuntime,SystemClock,PeerAddressResolver};
 // The JSON API has a strict, separately testable response policy.
 // Load before Composer: plaintext rejection must also work without database setup.
 require_once __DIR__.'/../packages/core/src/ApiResponseSecurity.php';
@@ -29,6 +29,8 @@ try {
             && PHP_SAPI==='cli-server'
             && ($_SERVER['REMOTE_ADDR']??'')==='127.0.0.1';
         $publicSignupAllowed=$publicEnabled && ($identityProofEnabled || $unverifiedLab);
+        $runtime=null;
+        $worldRuntime=static function() use (&$runtime): WorldRuntime { return $runtime??=WorldRuntime::load(); };
         $path=explode('?',$_SERVER['REQUEST_URI'] ?? '',2)[0];
         if ($path==='/v1/public/worlds') {
             if ($_SERVER['REQUEST_METHOD']!=='GET') {
@@ -37,7 +39,7 @@ try {
                 $status=404; $body=['error'=>'not_found'];
             } else {
                 $worlds=[];
-                foreach (ConfiguredWorlds::load() as $world=>$pack) {
+                foreach ($worldRuntime()->packs as $world=>$pack) {
                     $worlds[]=['world'=>$world,'pack'=>$pack->id,'name'=>$pack->name];
                 }
                 $status=200; $body=['data'=>['worlds'=>$worlds,'invitationRequired'=>getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1','activationRequired'=>getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1']];
@@ -47,7 +49,7 @@ try {
             $peer=PeerAddressResolver::resolve($_SERVER['REMOTE_ADDR'] ?? '',
                 $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',
                 $trustedProxies===false?'':$trustedProxies);
-            [$status,$body]=(new PublicWorldMapHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
+            [$status,$body]=(new PublicWorldMapHttpApi($pdo,new SystemClock(),$worldRuntime()->packs))
                 ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$peer ?? '');
         } elseif (str_starts_with($path,'/v1/auth/')) {
             $globalLimit=getenv('AETERNUM_AUTH_GLOBAL_LIMIT');
@@ -58,31 +60,32 @@ try {
             if ($parallelSignup!==false && (!preg_match('/^[1-9][0-9]?$/D',$parallelSignup) || (int)$parallelSignup>32)) throw new RuntimeException('Invalid signup parallel configuration');
             $trustedProxyIps=getenv('AETERNUM_TRUSTED_PROXY_IPS');
             $resolvedPeer=PeerAddressResolver::resolve($_SERVER['REMOTE_ADDR'] ?? '',$_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',$trustedProxyIps===false?'':$trustedProxyIps);
-            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,$publicSignupAllowed?ConfiguredWorlds::load():[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit,$parallelSignup===false?8:(int)$parallelSignup,getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1'))->handle(
+            $registration=$publicSignupAllowed?$worldRuntime():null;
+            [$status,$body]=(new AuthHttpApi($pdo,new SystemClock(),$globalLimit===false?120:(int)$globalLimit,$registration?->packs??[],getenv('AETERNUM_SIGNUP_REQUIRE_INVITE')==='1',$worldLimit===false?30:(int)$worldLimit,$parallelSignup===false?8:(int)$parallelSignup,getenv('AETERNUM_SIGNUP_REQUIRE_EMAIL_ACTIVATION')==='1',approvedRules:$registration?->rules??[]))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                 file_get_contents('php://input',false,null,0,4097) ?: '',$resolvedPeer ?? ''
             );
         } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/progression/')) {
-            [$status,$body]=(new ProgressionHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
+            [$status,$body]=(new ProgressionHttpApi($pdo,new SystemClock(),$worldRuntime()->packs,$worldRuntime()->rules))
                 ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '');
         } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/premium/')) {
-            [$status,$body]=(new PremiumHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
+            [$status,$body]=(new PremiumHttpApi($pdo,new SystemClock(),$worldRuntime()->packs))
                 ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '');
         } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/social/')) {
-            [$status,$body]=(new SocialHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))
+            [$status,$body]=(new SocialHttpApi($pdo,new SystemClock(),$worldRuntime()->packs))
                 ->handle($_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',
                     file_get_contents('php://input',false,null,0,4097) ?: '');
         } elseif (str_starts_with($path,'/v1/worlds/') && (str_contains($path,'/buildings/') || str_contains($path,'/construction/') || str_contains($path,'/settlement/') || str_contains($path,'/industrial/'))) {
-            [$status,$body]=(new WorldBuildingHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))->handle(
+            [$status,$body]=(new WorldBuildingHttpApi($pdo,new SystemClock(),$worldRuntime()->packs,$worldRuntime()->rules))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? ''
             );
         } elseif (str_starts_with($path,'/v1/worlds/') && str_contains($path,'/map/')) {
-            [$status,$body]=(new WorldMapHttpApi($pdo,new SystemClock(),ConfiguredWorlds::load()))->handle(
+            [$status,$body]=(new WorldMapHttpApi($pdo,new SystemClock(),$worldRuntime()->packs))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? ''
             );
         } elseif ($path==='/v1/me/worlds' || preg_match('~^/v1/worlds/([A-Za-z0-9][A-Za-z0-9_.:-]{0,127})/recipients$~D',$path,$recipientMatch) || preg_match('~^/v1/worlds/[^/]+/economy/~',$path)) {
-            $packs=ConfiguredWorlds::load();
-            $rules=TrustedWorldRules::bind($packs);
+            $packs=$worldRuntime()->packs;
+            $rules=$worldRuntime()->rules;
             if ($path==='/v1/me/worlds' || !empty($recipientMatch)) {
                 [$status,$body]=(new PlayerDiscoveryApi($pdo,new SystemClock(),$packs))->handle($_SERVER['REQUEST_METHOD'] ?? '',$_SERVER['HTTP_AUTHORIZATION'] ?? '',$recipientMatch[1] ?? null);
             } else {

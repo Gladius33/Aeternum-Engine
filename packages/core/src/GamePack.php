@@ -68,6 +68,6 @@ final readonly class GamePack
             $hooks['market.expire']=$builtin;
         }
         return new RuleSet($this->id,$this->version,$rulesDigest,$economy,
-            $hooks===[]?$events:new TypedPackEventHandler($events,$hooks));
+            $hooks===[]?$events:new TypedPackEventHandler($events,$hooks),$this->digest);
     }
 }

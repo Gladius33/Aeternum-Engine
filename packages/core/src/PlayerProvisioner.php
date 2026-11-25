@@ -15,6 +15,7 @@ final class PlayerProvisioner
         if ($s->fetchColumn()===false) throw new \DomainException('Unknown identity');
         // Optional reviewed rules must come from a trusted operator-built
         // registry, never from a request or a data-only pack manifest.
+        WorldRuntime::assertBindings([$world=>$pack],$approvedRules===null?[]:[$world=>$approvedRules]);
         $rules=$approvedRules??$pack->rules();
         if ($rules->id!==$pack->id || $rules->version!==$pack->version) {
             throw new \InvalidArgumentException('Approved world rules do not match pinned pack');

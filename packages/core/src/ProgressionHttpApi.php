@@ -10,7 +10,7 @@ use PDO;
 final readonly class ProgressionHttpApi
 {
     /** @param array<string,GamePack> $packs */
-    public function __construct(private PDO $pdo,private Clock $clock,private array $packs,private array $approvedRules=[]) {}
+    public function __construct(private PDO $pdo,private Clock $clock,private array $packs,private array $approvedRules=[]) { WorldRuntime::assertBindings($packs,$approvedRules); }
 
     public function handle(string $method,string $path,string $authorization): array
     {

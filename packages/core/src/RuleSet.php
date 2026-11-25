@@ -13,10 +13,12 @@ final readonly class RuleSet
         public string $artifactDigest,
         public CommandHandler $commands,
         public EventHandler $events,
+        public ?string $packDigest=null,
     ) {
         if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/D',$id)
             || !preg_match('/^[A-Za-z0-9][A-Za-z0-9_.+-]{0,63}$/D',$version)
-            || !preg_match('/^[0-9a-f]{64}$/D',$artifactDigest)) {
+            || !preg_match('/^[0-9a-f]{64}$/D',$artifactDigest)
+            || ($packDigest!==null && !preg_match('/^[0-9a-f]{64}$/D',$packDigest))) {
             throw new \InvalidArgumentException('Invalid rule set identity');
         }
         $this->key = hash('sha256',json_encode([$id,$version,$artifactDigest],JSON_THROW_ON_ERROR));

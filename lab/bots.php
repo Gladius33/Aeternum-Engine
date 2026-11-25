@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{ConfiguredWorlds,EconomyHttpApi,PdoIdentity,PdoSessions,PlayerProvisioner,SystemClock,WorldBuildingHttpApi};
+use Aeternum\Core\{WorldRuntime,EconomyHttpApi,PdoIdentity,PdoSessions,PlayerProvisioner,SystemClock,WorldBuildingHttpApi};
 if(PHP_SAPI!=='cli'||getenv('AETERNUM_LAB_ONLY')!=='1'||getenv('AETERNUM_DSN')!=='mysql:host=db;port=3306;dbname=aeternum_lab;charset=utf8mb4')exit(2);
 require dirname(__DIR__).'/vendor/autoload.php';
 require __DIR__.'/bot-policy.php';
@@ -24,7 +24,7 @@ try{
     if(!in_array($mode,['init','run'],true))throw new RuntimeException('Unknown bot mode');
     $pdo=new PDO(getenv('AETERNUM_DSN'),getenv('AETERNUM_DB_USER'),getenv('AETERNUM_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
     $pdo->exec('SET SESSION innodb_lock_wait_timeout=3');
-    $worlds=ConfiguredWorlds::load();$clock=new SystemClock();
+    $runtime=WorldRuntime::load();$worlds=$runtime->packs;$clock=new SystemClock();
     if($mode==='init'){
         if(!is_file($secrets)){
             $credentials=[];
@@ -39,7 +39,7 @@ try{
             $login=sprintf('%s-bot-%02d',$pack,$i);
             $password=$credentials[$login]??throw new RuntimeException('Missing bot credentials');
             $actor=$ids->authenticate($login,$password)??$ids->register($login,$password);
-            $provisioner->provision('lab-'.$pack,$actor,$worlds['lab-'.$pack]);
+            $provisioner->provision('lab-'.$pack,$actor,$worlds['lab-'.$pack],$runtime->rule('lab-'.$pack));
             $status['worlds']['lab-'.$pack][]=['name'=>sprintf('Bot %02d',$i),'profile'=>LabBotPolicy::PROFILES[($i-1)%4],
                 'status'=>'ready','built'=>0,'lastAction'=>null];
         }
@@ -50,8 +50,8 @@ try{
     if(!hash_equals($approved,hash_file('sha256',__DIR__.'/bot-policy.php')))throw new RuntimeException('Policy digest mismatch');
     $credentials=json_decode(file_get_contents($secrets),true,8,JSON_THROW_ON_ERROR);
     $sessions=new PdoSessions($pdo,$clock);
-    $rules=[];foreach($worlds as $world=>$pack)$rules[$world]=$pack->rules();
-    $economy=new EconomyHttpApi($pdo,$clock,$rules);$buildingApi=new WorldBuildingHttpApi($pdo,$clock,$worlds);
+    $rules=$runtime->rules;
+    $economy=new EconomyHttpApi($pdo,$clock,$rules);$buildingApi=new WorldBuildingHttpApi($pdo,$clock,$worlds,$rules);
     $status=json_decode(file_get_contents($roster),true,12,JSON_THROW_ON_ERROR);
     $lastTick=-1;
     while(true){

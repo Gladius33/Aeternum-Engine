@@ -19,8 +19,9 @@ final class OperationsCron
     }
 
     /** @param array<string,GamePack> $worlds */
-    public function run(array $worlds,int $eventLimit=50,int $batch=100,int $budgetMs=9000): array
+    public function run(array $worlds,int $eventLimit=50,int $batch=100,int $budgetMs=9000,array $approvedRules=[]): array
     {
+        WorldRuntime::assertBindings($worlds,$approvedRules);
         if (count($worlds)>16 || $eventLimit<1 || $eventLimit>100
             || $batch<1 || $batch>500 || $budgetMs<100 || $budgetMs>15000)
             throw new \InvalidArgumentException('Invalid bounded CRON policy');
@@ -50,7 +51,7 @@ final class OperationsCron
                     continue;
                 }
                 $completed=(new WorldWorker($this->pdo,$this->clock))
-                    ->run($id,$pack,$eventLimit,min($remaining,3000));
+                    ->run($id,$pack,$eventLimit,min($remaining,3000),$approvedRules[$id]??null);
                 $processed[]=['world'=>$id,'processed'=>count($completed),'deferred'=>false];
             }
             $remaining=$budgetMs-(int)((hrtime(true)-$begin)/1000000);
