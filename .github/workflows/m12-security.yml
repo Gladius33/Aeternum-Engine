@@ -36,6 +36,68 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Audit locked client dependencies, including dev toolchain
-        run: npm audit --prefix client --audit-level=high
+      - name: Install exact client lockfile and audit including dev toolchain
+        run: |
+          npm ci --prefix client --no-audit --no-fund
+          npm audit --prefix client --audit-level=high --json > f03-npm-audit.json
+      - name: Build CycloneDX dependency inventory
+        run: |
+          npm sbom --prefix client --sbom-format=cyclonedx > f03-client-sbom.json
+          node -e 'const fs=require("fs");const c=JSON.parse(fs.readFileSync("composer.json"));if(Object.keys(c.require).some(k=>k!=="php"&&!k.startsWith("ext-")))process.exit(1);fs.writeFileSync("f03-php-runtime.json",JSON.stringify({scope:"declared PHP runtime requirements",require:c.require,suggest:c.suggest||{}},null,2));'
+      - name: Retain dependency evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f03-dependency-evidence
+          path: |
+            f03-npm-audit.json
+            f03-client-sbom.json
+            f03-php-runtime.json
+          if-no-files-found: warn
+          retention-days: 30
 
+
+  resilience:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci-f03-local-only
+          MARIADB_DATABASE: aeternum_f03
+          MARIADB_USER: aeternum_f03
+          MARIADB_PASSWORD: ci-f03-test-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          coverage: none
+          tools: composer:v2
+      - run: composer dump-autoload --no-interaction
+      - name: Isolated MariaDB interruption and recovery acceptance
+        env:
+          AETERNUM_F03_DISPOSABLE: '1'
+          AETERNUM_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=aeternum_f03;charset=utf8mb4
+          AETERNUM_TEST_USER: aeternum_f03
+          AETERNUM_TEST_PASSWORD: ci-f03-test-only
+          F03_REPORT_PATH: f03-resilience.json
+          F03_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: php tests/f03-resilience.php
+      - name: Retain recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f03-resilience-evidence
+          path: f03-resilience.json
+          if-no-files-found: warn
+          retention-days: 30

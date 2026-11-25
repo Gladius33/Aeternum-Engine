@@ -32,7 +32,7 @@ final class PdoSessions
             $s=$this->pdo->prepare('SELECT status FROM engine_onboarding WHERE actor_id=?');
             $s->execute([$actor]);
             $claim=$s->fetchColumn();
-            if ($claim!==false && $claim!=='ready') { $this->pdo->commit(); return null; }
+            if ($claim!==false && ($claim!=='ready' || !PdoEmailActivation::permitsEnrollment($this->pdo,$actor))) { $this->pdo->commit(); return null; }
             $token=bin2hex(random_bytes(32));
             $s=$this->pdo->prepare('INSERT INTO engine_sessions(token_hash,actor_id,expires_at) VALUES (?,?,?)');
             $s->execute([hash('sha256',$token),$actor,$now+$ttl]);
@@ -46,10 +46,17 @@ final class PdoSessions
     public function resolve(string $token): ?string
     {
         if (!preg_match('/^[a-f0-9]{64}$/D',$token)) return null;
-        $s=$this->pdo->prepare('SELECT actor_id FROM engine_sessions WHERE token_hash=? AND revoked=0 AND expires_at>?');
+        // A stale token from an interrupted or incorrectly enrolled public
+        // claim must not confer access. One statement avoids a split snapshot.
+        $s=$this->pdo->prepare("SELECT s.actor_id FROM engine_sessions s
+            LEFT JOIN engine_onboarding o ON o.actor_id=s.actor_id
+            LEFT JOIN engine_email_activations a ON a.actor_id=s.actor_id
+            WHERE s.token_hash=? AND s.revoked=0 AND s.expires_at>?
+            AND (o.actor_id IS NULL OR o.status='ready')
+            AND (a.actor_id IS NULL OR a.verified_at IS NOT NULL)");
         $s->execute([hash('sha256',$token),$this->clock->now()]);
         $actor=$s->fetchColumn();
-        return $actor===false ? null : $actor;
+        return $actor===false?null:$actor;
     }
     public function revoke(string $token): void
     {

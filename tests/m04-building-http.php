@@ -20,7 +20,7 @@ $tokenBuilding=(new PdoSessions(db(),$buildingClock))->login('building-http-acto
 $authBuilding='Bearer '.$tokenBuilding;
 $buildingApi=new WorldBuildingHttpApi(db(),$buildingClock,['entity-A'=>true,'entity-B'=>true]);
 $buildingPath='/v1/worlds/entity-A/buildings/building-api-site';
-$developmentApi=new \Aeternum\Core\HttpApi(db(),$buildingClock);
+$developmentApi=new \Aeternum\Core\HttpApi(db(),$buildingClock,['entity-A'=>true,'entity-B'=>true]);
 [$devCode,$devBody]=$developmentApi->handle('GET',
     '/v1/worlds/entity-A/entities/building-api-unit/development',$authBuilding);
 check($devCode===200 && $devBody['data']->development['buildingCount']===1

@@ -95,3 +95,30 @@ The evidence must be read before selecting operational capacity targets.
 Long-running fault injection and recovery under interrupted writes are
 tracked in F03; deployment-specific sizing and acceptance remain in F06–F07.
 No release-evidence flag is promoted by this change alone.
+
+## Observed F02 qualification
+
+Exact PR head `4553097acd4c965702e3ae71560c89e23692ad23`;
+[PHP Core CI run 45600743753](https://github.com/Gladius33/Aeternum-Engine/actions/runs/45600743753),
+capacity job 139158686746, checkout `68c03d2160c950e24f69f076030f143ff298097e`.
+All ten pre-merge workflows passed; merge `31e845ad`. The JSON report
+recorded four logical CPUs and seven PHP workers.
+
+| Clients | Operations | op/s | p50 ms | p95 ms | p99 ms | Lock waits | CPU busy % |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 11 | 9.966 | 18.029 | 237.859 | 237.859 | 0 | 17.05 |
+| 4 | 44 | 18.461 | 24.885 | 275.159 | 482.429 | 28 | 22.52 |
+| 16 | 176 | 47.543 | 63.727 | 714.669 | 1215.593 | 165 | 54.98 |
+| 32 | 352 | 56.251 | 140.558 | 1192.141 | 2305.106 | 367 | 66.17 |
+
+32-client observed private rank p95 99.252 ms; 768-read soak p95 90.776 ms,
+p99 101.030 ms; no unhandled errors. 30 retryable due barriers, zero
+remaining events, maximum observed due lag 0 s, 6 intentional 429 responses
+and successful quota recovery. At 32 clients the sampled runner peak used
+memory was 1,736,132 KiB, maximum SQL connections 9 and aggregate row lock
+time delta 10,838 ms. Physical I/O counters were zero in these short warmed
+profiles; do not infer storage throughput. Canonical state 69,338 bytes,
+367 journal entries, 54 filled trades, 53 completed buildings, 33 nonzero
+scores; ledger and economy projection verified. SQL EXPLAIN selected
+actor_accounts and primary-key joins for this small dataset. These are
+observations of that exact run, not a service commitment or maximum capacity.

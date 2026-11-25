@@ -30,6 +30,8 @@ check($emailApi->handle('POST','/v1/auth/login','',$emailJson([
 check($emailApi->handle('POST','/v1/auth/register','',$emailJson($emailReg),'203.0.113.103')[0]===202,
     'duplicate signup returns nonrevealing accepted response');
 check(count($fakeMailer->deliveries)===1,'duplicate signup sends no new activation');
+$withoutMail=new AuthHttpApi(db(),$emailApiClock,120,[$emailWorld=>$emailPack]);
+check($withoutMail->handle('POST','/v1/auth/register','',$emailJson(['login'=>$emailReg['login'],'password'=>$emailReg['password'],'world'=>$emailWorld]),'203.0.113.119')[0]===409,'F03 policy downgrade cannot finish unverified email reservation');
 $emailApiClock->advanceTo(30061);
 $resend=$emailApi->handle('POST','/v1/auth/activation/resend','',$emailJson([
     'login'=>$emailReg['login'],'password'=>$emailReg['password'],'email'=>$emailReg['email']

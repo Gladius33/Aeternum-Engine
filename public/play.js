@@ -12,10 +12,15 @@ async function api(path, method='GET', data) {
     for(let attempt=0;attempt<4;attempt++){
         response=await fetch(path,{method,headers,body,cache:'no-store',redirect:'error',credentials:'omit'});
         result=await response.json();
-        // Only an explicit server consistency barrier is retryable. The body,
-        // including the idempotency ID, remains identical. Never retry access or
-        // funding failures and never bypass the independent worker.
-        if(!selectedGame||response.status!==409||result.retryable!==true||attempt===3)break;
+        // Only read requests and the durable economy command route can
+        // automatically retry transient database failures. Authentication,
+        // recovery and other mutations need explicit user reconciliation.
+        const durableCommand=method==='POST' && path.endsWith('/economy/commands')
+            && typeof data?.id==='string' && data.id.length>0;
+        const read=method==='GET';
+        if(result.retryable!==true||attempt===3
+            || !(response.status===409&&selectedGame&&durableCommand
+                || response.status===503&&(read||durableCommand)))break;
         await new Promise(resolve=>setTimeout(resolve,650*(attempt+1)));
     }
     if (!response.ok) { const error=new Error(response.status===503 && result.error==='registration_busy' ? 'Registration server is busy. Please retry shortly.' : response.status===503 && result.error==='authentication_busy' ? 'Authentication server is busy. Please retry shortly.' : (result.error || 'Request failed')); error.status=response.status; error.retryable=result.retryable===true; throw error; }
@@ -633,7 +638,7 @@ async function sendPending() {
         pending=null;
         window.dispatchEvent(new CustomEvent('aeternum:confirmed', {detail:{type:saved.body.type,world:saved.world,account:saved.account,id:saved.body.id}}));
     }
-    catch(e) { if ([400,401,404,409,413].includes(e.status)) pending=null; throw e; }
+    catch(e) { if (!e.retryable && [400,401,404,409,413,415].includes(e.status)) pending=null; throw e; }
     finally { syncPendingRetry(); }
 }
 async function submitCommand(f,type,payload) {
