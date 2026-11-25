@@ -10,6 +10,8 @@ x-runtime: &runtime
     AETERNUM_DB_USER: aeternum_lab
     AETERNUM_DB_PASSWORD: local-lab-db-only
     AETERNUM_WORLD_REGISTRY: /etc/aeternum-lab/worlds.json
+    AETERNUM_MODULE_REGISTRY: /etc/aeternum-lab/modules.json
+    AETERNUM_LAB_BOTS_PAUSED: '${AETERNUM_LAB_BOTS_PAUSED:-0}'
     AETERNUM_PUBLIC_REGISTRATION: '0'
     AETERNUM_LAB_PLAYER_PASSWORD: 'aeternum-local-playtest-only'
 services:

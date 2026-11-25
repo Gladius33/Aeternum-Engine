@@ -344,6 +344,22 @@ function resetProgression() {
     progressionDetails.replaceChildren();
     document.querySelector('#progression-rank-result').textContent='—';
 }
+function currentPackCapabilities(){
+    return worlds.find(w=>w.world===balance.elements.world.value)??{};
+}
+async function loadCampaignModule(){
+    const f=locationFields();
+    if(!currentPackCapabilities().packViews?.includes('campaign')||!f.account)return;
+    const data=await api(base(f)+'pack-view/campaign/'+encodeURIComponent(f.account));
+    if(f.world!==balance.elements.world.value||f.account!==balance.elements.account.value)return;
+    window.dispatchEvent(new CustomEvent('aeternum:campaign-module',{detail:{world:f.world,account:f.account,data}}));
+}
+async function campaignCommand(type,extra={}){
+    const f=locationFields();
+    if(!currentPackCapabilities().packActions?.includes(type))throw new Error('Unavailable action');
+    await submitCommand(f,type,{account:f.account,...extra});
+    await loadCampaignModule();
+}
 async function loadProgression() {
     const selected=locationFields();
     if (!selected.world || !selected.account) throw new Error('Select your world and account');
@@ -1244,7 +1260,7 @@ document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>
     locale.addEventListener('change',render);render();sync();
     // This marker is served only by the private Compose laboratory, not by the public API.
     if(['localhost','127.0.0.1','[::1]'].includes(location.hostname))fetch('/lab-bots/roster.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{
-        lab=data?.version===1&&['medieval','industrial','guild'].every(k=>Array.isArray(data.worlds?.['lab-'+k])&&data.worlds['lab-'+k].length===10);
+        lab=data?.version===1&&['medieval','industrial','guild'].every(k=>Array.isArray(data.worlds?.['lab-'+k+'-f04'])&&data.worlds['lab-'+k+'-f04'].length===10);
         if(lab&&selectedGame){login.elements.login.value=selectedGame+'-'+profile;render();}
         else render();
     }).catch(()=>{});

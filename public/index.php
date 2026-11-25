@@ -99,7 +99,7 @@ try {
             $packs=$worldRuntime()->packs;
             $rules=$worldRuntime()->rules;
             if ($path==='/v1/me/worlds' || !empty($recipientMatch)) {
-                [$status,$body]=(new PlayerDiscoveryApi($pdo,new SystemClock(),$packs))->handle($_SERVER['REQUEST_METHOD'] ?? '',$_SERVER['HTTP_AUTHORIZATION'] ?? '',$recipientMatch[1] ?? null);
+                [$status,$body]=(new PlayerDiscoveryApi($pdo,new SystemClock(),$packs,$rules))->handle($_SERVER['REQUEST_METHOD'] ?? '',$_SERVER['HTTP_AUTHORIZATION'] ?? '',$recipientMatch[1] ?? null);
             } else {
             [$status,$body]=(new EconomyHttpApi($pdo,new SystemClock(),$rules))->handle(
                 $_SERVER['REQUEST_METHOD'] ?? '',$path,$_SERVER['HTTP_AUTHORIZATION'] ?? '',

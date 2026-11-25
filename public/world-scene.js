@@ -62,6 +62,7 @@
     const hud=html('div',host,'scene-hud');
     let reading=null,campaign=null,marketReading=null,stale=false,lastEconomicEvent=null;
     let stagesKnown=false,scoreReading=null,rankReading=null,campaignStale=false;
+    let moduleReading=null,moduleTarget='',moduleTargets=[];
     let inventory=new Map(),catalogue={sites:[],types:[]},chosenSite='',chosenType='',offers=[],offerMore=false,chosenOffer='',receipts=[];
     const actionLabels={
         'building.place':['Foundation established','Fondation établie'],
@@ -806,13 +807,13 @@
     let botReport=null,botExpanded=false;
     async function readBotRoster(){
         const world=locationFields().world;
-        if(!['lab-medieval','lab-industrial','lab-guild'].includes(world))return;
+        if(!['lab-medieval-f04','lab-industrial-f04','lab-guild-f04'].includes(world))return;
         try{
             const response=await fetch('/lab-bots/roster.json',{cache:'no-store'});
             if(!response.ok)return;
             const data=await response.json(),rows=data.worlds?.[world];
             if(locationFields().world!==world||data.version!==1||!Array.isArray(rows)||rows.length!==10)return;
-            if(!rows.every(b=>/^Bot \d{2}$/.test(b.name)&&['builder','producer','merchant','balanced'].includes(b.profile)&&['ready','active','blocked','idle'].includes(b.status)&&Number.isSafeInteger(b.built)&&b.built>=0))return;
+            if(!rows.every(b=>/^Bot \d{2}$/.test(b.name)&&['builder','producer','merchant','balanced'].includes(b.profile)&&['ready','active','blocked','idle','paused'].includes(b.status)&&Number.isSafeInteger(b.built)&&b.built>=0))return;
             botReport={world,updatedAt:data.updatedAt,rows};renderHud();
         }catch{/* Missing lab roster is not a gameplay error. */}
     }
@@ -827,7 +828,7 @@
             for(const b of botReport.rows){
                 const row=html('div',roster,'scene-bot-row');row.dataset.botName=b.name;row.dataset.botStatus=b.status;row.dataset.botBuilt=String(b.built);
                 html('strong',row,'',b.name+' · '+t('bot'+b.profile[0].toUpperCase()+b.profile.slice(1)));
-                html('span',row,'',t('bot'+b.status[0].toUpperCase()+b.status.slice(1))+' · '+t('botBuilt')+': '+b.built);
+                html('span',row,'',(b.status==='paused'?(lang()==='fr'?'En pause':'Paused'):t('bot'+b.status[0].toUpperCase()+b.status.slice(1)))+' · '+t('botBuilt')+': '+b.built);
                 if(b.lastAction&&actionLabels[b.lastAction])html('small',row,'',actionLabels[b.lastAction][lang()==='fr'?1:0]);
             }
         }
@@ -882,6 +883,7 @@
         'industrial-manufacture':['II · The manufacturing frontier','II · La frontière productive','Expand the factory network to its required capacity.','Développez le réseau industriel selon les objectifs fixés.','steelworks'],
         'industrial-freight':['III · The freight corridor','III · Le corridor logistique','Complete the terminal and meet the delivery target.','Achevez le terminal et atteignez l’objectif de livraison.','freight_terminal'],
         'guild-foundation':['I · The trading house','I · La maison de commerce','Open a market hall to begin your trading enterprise.','Ouvrez une halle pour lancer votre entreprise marchande.','market_hall'],
+        'guild-mastery':['III · Merchant mastery','III · Maîtrise marchande','Complete verified exchanges, research and expeditions.','Achevez des échanges, recherches et expéditions confirmés.',null],
         'guild-caravan':['II · The caravan routes','II · Les routes caravanières','Establish a caravan hub and expand your trading estate.','Établissez un relais caravanier et développez votre domaine commercial.','caravan_hub'],
         additional:['Further objectives','Objectifs complémentaires','Complete the remaining requirements recorded by the server.','Remplissez les autres exigences enregistrées par le serveur.',null]
     };
@@ -895,7 +897,7 @@
             const own=[...buildings.values()].filter(b=>b.type===key);
             holdings[key]=own.every(b=>Number.isSafeInteger(details.get(b.id)?.level))?Math.max(0,...own.map(b=>details.get(b.id).level)):null;
         }
-        const projection=window.AeternumLivingArt.campaignChapters(theme,campaign?.kind===theme?campaign.data:null,guild&&stagesKnown?holdings:null);
+        const projection=window.AeternumLivingArt.campaignChapters(theme,guild?moduleReading:campaign?.kind===theme?campaign.data:null,guild&&stagesKnown?holdings:null);
         const header=html('div',journal,'campaign-heading');
         html('h4',header,'',guild?label('Merchant chronicle','Chronique marchande'):label('Campaign chronicle','Chronique de campagne'));
         const refresh=html('button',header,'scene-button');refresh.type='button';refresh.dataset.campaignRefresh='true';
@@ -904,9 +906,12 @@
             await readStages();
             if(theme==='medieval')await reviewMedieval();
             else if(theme==='industrial')await reviewIndustrial();
-            else if(!document.getElementById('progression-panel').hidden)await loadProgression();
+            else if(!document.getElementById('progression-panel').hidden){
+                try{await loadProgression();}catch(e){if(e.status!==404)throw e;scoreReading=null;}
+            }
+            await loadCampaignModule();
         }));
-        html('p',journal,'campaign-note',guild?label('Suggested milestones, not an official victory campaign. No additional rewards are granted.','Jalons suggérés, sans condition de victoire officielle ni récompense supplémentaire.'):label('Chapters group the existing server victory objectives. Artwork illustrates goals; no new rules or rewards.','Les chapitres regroupent les objectifs de victoire existants du serveur. Le décor illustre les objectifs ; aucune règle ni récompense ajoutée.'));
+        html('p',journal,'campaign-note',guild&&projection.guide?label('Suggested milestones, not an official victory campaign. No additional rewards are granted.','Jalons suggérés, sans condition de victoire officielle ni récompense supplémentaire.'):label('Chapters group the existing server victory objectives. Artwork illustrates goals; no new rules or rewards.','Les chapitres regroupent les objectifs de victoire existants du serveur. Le décor illustre les objectifs ; aucune règle ni récompense ajoutée.'));
         if(campaignStale)html('p',journal,'campaign-note',label('Last reading; refresh after your latest action.','Dernier relevé ; actualisez après votre dernière action.'));
         const all=projection.chapters.flatMap(ch=>ch.goals),done=all.filter(g=>g.state==='complete').length;
         const summary=html('div',journal,'campaign-summary');
@@ -930,7 +935,7 @@
             html('h5',body,'',copy[fr?1:0]);html('p',body,'',copy[fr?3:2]);
             for(const g of ch.goals){
                 const row=html('div',body,'campaign-goal');row.dataset.chapterGoal=g.key;row.dataset.goalState=g.state;
-                const title=g.kind==='population'?t('residents'):g.kind==='delivery'?t('freight'):displayName(g.key);
+                const title=g.kind==='population'?t('residents'):g.kind==='delivery'?t('freight'):g.kind==='trade'?label('Completed exchanges','Échanges achevés'):g.kind==='research'?label('Research','Recherche'):g.kind==='expedition'?label('Expeditions','Expéditions'):displayName(g.key);
                 html('span',row,'',title);html('strong',row,'',String(g.current??'—')+' / '+g.required);
                 const meter=html('progress',row,'scene-meter');meter.max=g.required;
                 if(g.current!==null)meter.value=Math.min(g.current,g.required);
@@ -941,12 +946,44 @@
                     go.disabled=busy;
                     go.addEventListener('click',()=>{
                         if(busy)return;
+                        if(g.kind==='trade'){revealPanel('market');return;}
+                        if(g.kind==='research'||g.kind==='expedition'){focusNode(journal.querySelector('[data-campaign-module]'));return;}
                         if(g.kind!=='building'){showDistrict(true);focusNode(playActions);return;}
                         const b=[...buildings.values()].filter(b=>b.type===g.key).sort((a,b)=>(details.get(b.id)?.level??-1)-(details.get(a.id)?.level??-1))[0];
                         if(b){districtId=b.territory;showDistrict(true);select('building',b.id);}
                         else if(catalogue.types.some(x=>x.id===g.key)){chosenType=g.key;renderWorkspace();focusNode(workshop.root);}
                     });
                     if(g.kind==='building'&&![...buildings.values()].some(b=>b.type===g.key)&&!catalogue.types.some(x=>x.id===g.key))go.disabled=true;
+                }
+            }
+        }
+        if(currentPackCapabilities().packViews?.includes('campaign')){
+            const panel=html('section',journal,'campaign-score');panel.dataset.campaignModule='true';
+            html('h5',panel,'',label('Research and expeditions','Recherche et expéditions'));
+            html('p',panel,'campaign-note',label('Study completed facilities, then prepare an expedition. Confirmed research unlocks expeditions; no cargo or land is granted.','Étudiez les installations achevées, puis préparez une expédition. La recherche confirmée débloque les expéditions ; aucun bien ni territoire n’est attribué.'));
+            const snapshot=moduleReading;
+            panel.dataset.moduleResearch=String(snapshot?.research??'unknown');panel.dataset.moduleExpeditions=String(snapshot?.expeditions??'unknown');panel.dataset.modulePending=snapshot?.pending??'none';
+            html('p',panel,'',label('Research: ','Recherche : ')+(snapshot?.research??'—')+' / 2 · '+label('Expeditions: ','Expéditions : ')+(snapshot?.expeditions??'—')+' / 3');
+            if(snapshot?.pending)html('p',panel,'',label('Awaiting worker: ','En attente du worker : ')+displayName(snapshot.pending));
+            for(const [key,caption,frText,allowed] of [['research','Start research','Lancer la recherche',snapshot?.canResearch],['expedition','Start expedition','Lancer une expédition',snapshot?.canExpedition]]){
+                const control=html('button',panel,'scene-button');control.type='button';control.dataset.moduleAction=key;
+                control.textContent=label(caption,frText);control.disabled=busy||allowed!==true;control.dataset.moduleAllowed=String(allowed===true);
+                control.addEventListener('click',()=>run(()=>campaignCommand('pack.campaign.'+key)));
+            }
+            const reload=html('button',panel,'scene-button');reload.type='button';reload.dataset.moduleRefresh='true';reload.textContent=label('Read confirmed progress','Lire la progression confirmée');reload.disabled=busy;
+            reload.addEventListener('click',()=>run(loadCampaignModule));
+            if(guild&&currentPackCapabilities().packActions?.includes('pack.guild.challenge')){
+                html('h5',panel,'',label('Diplomacy and challenges','Diplomatie et défis'));
+                html('p',panel,'campaign-note',label('Challenges are immediate and non-destructive. Protection and cooldown are enforced by the server. A truce requires consent.','Les défis sont immédiats et non destructifs. Protection et délai sont imposés par le serveur. Une trêve exige un consentement.'));
+                const targets=html('select',panel,'');targets.setAttribute('aria-label',label('Other account','Autre compte'));targets.dataset.moduleTarget='true';
+                for(const value of ['',...moduleTargets]){const option=html('option',targets,'',value||label('Choose account','Choisir un compte'));option.value=value;}
+                targets.value=moduleTarget;targets.addEventListener('change',()=>{moduleTarget=targets.value;renderWorkspace();});
+                const fetchTargets=html('button',panel,'scene-button');fetchTargets.type='button';fetchTargets.textContent=label('Find accounts','Rechercher les comptes');fetchTargets.disabled=busy;fetchTargets.dataset.moduleTargets='true';
+                fetchTargets.addEventListener('click',()=>run(async()=>{const f=locationFields();const response=await api('/v1/worlds/'+encodeURIComponent(f.world).replaceAll('%3A',':')+'/recipients');if(f.world===locationFields().world&&f.account===locationFields().account){moduleTargets=response.accounts;renderWorkspace();}}));
+                for(const [key,type,en,frText] of [['challenge','pack.guild.challenge','Issue challenge','Lancer un défi'],['offer','pack.diplomacy.offer','Offer truce (120s)','Proposer une trêve (120 s)'],['accept','pack.diplomacy.accept','Accept truce','Accepter la trêve']]){
+                    if(!currentPackCapabilities().packActions.includes(type))continue;
+                    const control=html('button',panel,'scene-button');control.type='button';control.dataset.moduleAction=key;control.textContent=label(en,frText);control.disabled=busy||!moduleTarget;control.dataset.moduleAllowed=String(Boolean(moduleTarget));
+                    control.addEventListener('click',()=>run(()=>campaignCommand(type,{target:moduleTarget,...(key==='offer'?{duration:120}:{})})));
                 }
             }
         }
@@ -1405,13 +1442,14 @@
         renderWorkspace();view();renderDistrict();updateSelection();
     }
     const on=(name,fn)=>window.addEventListener('aeternum:'+name,e=>fn(e.detail));
-    on('context',d=>{relationsTab='alliances';resetTutorial();atlasGate.invalidate();districtGate.invalidate();holdingGate.invalidate();botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');audio.reset();audio.setTheme(theme);soundVisibility();soundSeen.clear();soundVictory=false;reading=null;campaign=null;stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
+    on('context',d=>{relationsTab='alliances';resetTutorial();atlasGate.invalidate();districtGate.invalidate();holdingGate.invalidate();botReport=null;botExpanded=false;theme=d.theme??(d.world?theme:'neutral');audio.reset();audio.setTheme(theme);soundVisibility();soundSeen.clear();soundVictory=false;reading=null;campaign=null;moduleReading=null;moduleTarget='';moduleTargets=[];stagesKnown=false;scoreReading=null;rankReading=null;campaignStale=false;marketReading=null;stale=false;inventory.clear();catalogue={sites:[],types:[]};chosenSite='';chosenType='';referenceInput.value='';districtMode=false;districtId='';districtPage=0;domainCamera.reset();offers=[];offerMore=false;chosenOffer='';tradeHistory=null;tradeHistoryMore=false;for(const {input} of Object.values(filters))input.value='';receipts=[];lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;territories.clear();buildings.clear();details.clear();links.clear();clearAtlasRoute();selected=null;camera={x:0,y:0,z:1};render();});
     on('territories',d=>{if(!d.append){territories.clear();links.clear();clearAtlasRoute();selected=null;}for(const n of d.territories)territories.set(n.id,n);render();queueMicrotask(renderAtlasPanel);});
     on('links',d=>{links.set(d.location,d.neighbors);render();});
     on('route',d=>{route=d?.locations??[];routeCost=d?.cost??null;routeRead=true;render();});
     on('buildings',d=>{catalogue={sites:d.sites,types:d.types};buildings=new Map(d.buildings.map(b=>[b.id,b]));for(const id of details.keys())if(!buildings.has(id))details.delete(id);render();});
     on('building',d=>{buildings.set(d.id,d);details.set(d.id,d);render();});
     on('reserve',d=>{reading=d;inventory.set(d.resource,d.data);stale=false;renderHud();renderWorkspace();updateSelection();});
+    on('campaign-module',d=>{const f=locationFields();if(d.world!==f.world||d.account!==f.account)return;moduleReading=d.data;if(theme==='guild'){const won=d.data?.victory?.achieved===true;if(won&&!soundVictory&&campaignStale)audio.cue('campaign.victory');soundVictory=won;campaignStale=false;}renderWorkspace();});
     on('campaign',d=>{if(d.kind==='progression'){scoreReading=d.data;if(theme==='guild')campaign=d;}else {campaign=d;const won=d.data?.victory?.achieved===true;if(won&&!soundVictory&&campaignStale)audio.cue('campaign.victory');soundVictory=won;}campaignStale=false;renderHud();renderWorkspace();renderDistrict();});
     on('social-contact',d=>{if(classic||busy||d.world!==locationFields().world||!['message','block'].includes(d.kind)||typeof d.actor!=='string')return;relationsTab=d.kind==='message'?'messages':'safety';renderRelations();focusNode(relationsBlock.root);const input=document.getElementById(d.kind==='message'?'social-recipient':'social-block-target');input.value=d.actor;input.focus({preventScroll:true});});
     on('rank',d=>{const f=locationFields();if(d.world!==f.world||d.account!==f.account)return;rankReading=d.data;renderWorkspace();});
@@ -1425,7 +1463,7 @@
         if(economicJournal.record(d,context)){lastEconomicEvent={id:d.id,type:d.type};selectedOperationId=d.id;}
         if(d.type==='building.place')referenceInput.value='';campaignStale=true;rankReading=null;reading=null;marketReading=null;offers=[];offerMore=false;chosenOffer='';stale=true;receipts=[{type:d.type},...receipts].slice(0,8);renderHud();renderWorkspace();renderDistrict();});
     on('resource-change',()=>{reading=null;renderHud();});
-    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();renderSound();renderTutorial();renderRelations();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load]'))b.disabled=false;}});
+    on('activity',d=>{host.setAttribute('aria-busy',String(d.busy));renderAmbience();renderSound();renderTutorial();renderRelations();districtPrimary.disabled=districtDismiss.disabled=d.busy;if(!d.busy){renderPlayActions();updateSelection();renderMission();refreshDraft();updateCommerceFilters();for(const b of objectiveBlock.body.querySelectorAll('[data-campaign-refresh],[data-campaign-rank-load],[data-module-refresh],[data-module-targets]'))b.disabled=false;for(const b of objectiveBlock.body.querySelectorAll('[data-module-action]'))b.disabled=b.dataset.moduleAllowed!=='true';}});
     document.getElementById('locale-select').addEventListener('change',render);
     narrow.addEventListener('change',()=>{camera={x:0,y:0,z:1};render();if(!classic&&!districtMode&&selected?.type==='territory')centerAtlas(selected.id);});
     document.getElementById('map-location').addEventListener('input',updateSelection);
@@ -1722,7 +1760,7 @@
         legacySummary.textContent=detailLabel;legacyLink.textContent=detailLabel;
         exit.textContent=lang()==='fr'?'Changer de jeu':'Change game';
     }
-    async function loadInitialScene(){await loadMap();await readStages();districtMode=true;render();await readInventory();if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();await readBotRoster();}
+    async function loadInitialScene(){await loadMap();await readStages();districtMode=true;render();await readInventory();if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();await loadCampaignModule();await readBotRoster();}
     let initialLoad=false;
     on('context',()=>{refreshShell();if(!classic)revealPanel('domain');initialLoad=!classic&&Boolean(locationFields().world);});
     on('activity',d=>{

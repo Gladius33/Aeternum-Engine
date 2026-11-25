@@ -4,7 +4,7 @@ const origin='https://127.0.0.1:8443';
 const password='aeternum-local-playtest-only';
 for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wood'],['industrial','industrial','power_plant','steel'],['guild','guild','market_hall','silver']]){
     test('local lab '+pack+' real browser and autonomous worker',async({browser})=>{
-        test.setTimeout(360000);
+        test.setTimeout(650000);
         const context=await browser.newContext({ignoreHTTPSErrors:true,hasTouch:true});
         try{
             const page=await context.newPage();
@@ -104,7 +104,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await page.locator('[data-first-mission]').click();
             await expect(page.locator('[data-catalogue='+type+']')).toHaveAttribute('aria-pressed','true');
             await captureScene(page,'local-'+pack+'-first-build');
-            const command=origin+'/v1/worlds/lab-'+pack+'/economy/commands';
+            const command=origin+'/v1/worlds/lab-'+pack+'-f04/economy/commands';
             const isFinal=async(r,type)=>r.url()===command&&r.request().postDataJSON()?.type===type&&(r.status()!==409||!(await r.json()).retryable);
             const placed=page.waitForResponse(r=>isFinal(r,'building.place'));
             await page.locator('#world-scene [data-label=place]').click();
@@ -390,7 +390,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(relations.locator('#social-send-form button')).toHaveText('Envoyer un message privé');
             await page.locator('#locale-select').selectOption('en');
             await page.locator('[data-game-nav=domain]').click();
-            await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
+            await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack+'-f04'];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             // G18: real market, illustrations and a non-mutating draft.
             await page.locator('[data-game-nav=market]').click();
             await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
@@ -424,18 +424,18 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
             const chronicle=page.locator('.campaign-chronicle');
             await expect(chronicle).toBeVisible();
-            await expect(chronicle.locator('[data-chapter]')).toHaveCount(pack==='guild'?2:3);
+            await expect(chronicle.locator('[data-chapter]')).toHaveCount(3);
             const refreshPath=pack==='medieval'?'/settlement/status/':pack==='industrial'?'/industrial/status/':'/construction/progression';
             const refreshed=page.waitForResponse(r=>r.url().includes(refreshPath));
             await chronicle.locator('[data-campaign-refresh]').click();
             expect((await refreshed).status()).toBe(200);
             await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
             const firstGoal=chronicle.locator('[data-chapter-goal='+type+']');
-            await expect(firstGoal.locator('strong')).toHaveText(pack==='guild'?'1 / 1':'1 / 2');
-            await expect(firstGoal).toHaveAttribute('data-goal-state',pack==='guild'?'complete':'incomplete');
+            await expect(firstGoal.locator('strong')).toHaveText('1 / 2');
+            await expect(firstGoal).toHaveAttribute('data-goal-state','incomplete');
             if(pack==='medieval')await expect(chronicle.locator('[data-chapter-goal=population] strong')).toHaveText('2 / 6');
             if(pack==='industrial')await expect(chronicle.locator('[data-chapter-goal=delivery] strong')).toHaveText('0 / 45');
-            if(pack==='guild')await expect(chronicle.locator('[data-campaign-victory]')).toHaveAttribute('data-campaign-victory','unknown');
+            if(pack==='guild')await expect(chronicle.locator('[data-campaign-victory]')).toHaveAttribute('data-campaign-victory','false');
             await captureScene(page,'g19-'+pack+'-campaign');
             const shortcut=pack==='medieval'?'granary':pack==='industrial'?'warehouse':'caravan_hub';
             await chronicle.locator('[data-chapter-action='+shortcut+']').click();
@@ -510,6 +510,120 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             }
             await page.emulateMedia({reducedMotion:'no-preference'});
             require('node:fs').writeFileSync('browser-captures/g25-'+pack+'-metrics.json',JSON.stringify({pack,confirmedBuildings:confirmed.length,revokedSessionRejected:true,independentAccount:true,measurements},null,2)+'\n');
+
+            // F04: complete the actual campaign through modern controls.
+            // No test-only resource grants, fabricated progress, or clock jumps.
+            await page.setViewportSize({width:1440,height:900});
+            const world='lab-'+pack+'-f04';
+            const idle=async()=>await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
+            const perform=async(type,click)=>{
+                await idle();
+                const reply=page.waitForResponse(async r=>r.url()===command&&r.request().postDataJSON()?.type===type
+                    && !([409,503].includes(r.status())&&(await r.json()).retryable),{timeout:30000});
+                await click();
+                const response=await reply;
+                expect(response.status(),type+': '+await response.text()).toBe(200);
+                await idle();await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+            };
+            const refreshCampaign=async()=>{
+                await idle();await page.locator('[data-game-nav=objectives]').click();await idle();
+                await page.locator('[data-campaign-refresh]').click();await idle();
+                await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
+            };
+            const buildTo=async(type,target)=>{
+                await idle();await page.locator('[data-game-nav=domain]').click();await idle();
+                const node=page.locator('[data-district-building]').filter({has:page.locator('[data-model="'+type+'"]')});
+                if(await node.count()===0){
+                    await page.locator('[data-game-nav=construction]').click();await idle();
+                    await page.locator('[data-catalogue="'+type+'"]').click();
+                    await perform('building.place',()=>page.locator('#world-scene [data-label=place]').click());
+                    await page.locator('[data-game-nav=domain]').click();await idle();
+                }
+                await expect(node).toHaveCount(1);
+                while(Number(await node.getAttribute('data-district-level'))<target){
+                    const level=Number(await node.getAttribute('data-district-level'));
+                    await node.click();await idle();
+                    const button=page.locator('.district-command [data-district-command=primary]');
+                    await expect(button).toHaveText(level===0?'Start construction':'Upgrade');
+                    await perform('building.start',()=>button.click());
+                    await expect(node).toHaveAttribute('data-district-level',String(level+1),{timeout:90000});
+                    await idle();
+                }
+            };
+            const campaignDomain=async(key,type)=>{
+                await page.locator('[data-game-nav=domain]').click();await idle();
+                await perform(type,()=>page.locator('[data-domain-action='+key+']').click());
+            };
+            if(pack==='medieval'){
+                await buildTo('lumberyard',2);await buildTo('farm',2);await buildTo('granary',1);
+                await buildTo('keep',2);
+                await refreshCampaign();
+                for(let i=0;i<4;i++)await campaignDomain('feed','settlement.feed');
+            }else if(pack==='industrial'){
+                await buildTo('steelworks',1);await buildTo('warehouse',1);await buildTo('power_plant',2);
+                await campaignDomain('generate','industry.generate');
+                await buildTo('steelworks',2);await buildTo('warehouse',2);await buildTo('freight_terminal',1);
+                await campaignDomain('generate','industry.generate');
+                await campaignDomain('refine','industry.refine');await campaignDomain('ship','industry.ship');
+                await page.waitForTimeout(3500);
+                await campaignDomain('refine','industry.refine');await campaignDomain('ship','industry.ship');
+                await page.waitForTimeout(3500);await campaignDomain('ship','industry.ship');
+            }else{
+                await buildTo('market_hall',2);await buildTo('caravan_hub',2);await buildTo('watchtower',1);
+                // Independently authenticated Bob supplies real escrow offers
+                // at a ratio that the existing bot planner will not accept.
+                const bobLogin=await context.request.post(origin+'/v1/auth/login',{data:{login:'guild-bob',password}});
+                expect(bobLogin.status()).toBe(200);
+                const bobAuth='Bearer '+(await bobLogin.json()).data.token;
+                try{
+                    for(let i=0;i<3;i++){
+                        const offer='f04-browser-offer-'+i;
+                        const body={id:'f04-browser-sell-'+i,type:'market.create',payload:{offer,seller:bobAccount,giveResource:'spice',giveUnits:1,wantResource:'silver',wantUnits:2}};
+                        let response;
+                        for(let retry=0;retry<8;retry++){
+                            response=await context.request.post(command,{headers:{Authorization:bobAuth},data:body});
+                            if(response.status()===200)break;
+                            const failure=await response.json();
+                            expect([409,503]).toContain(response.status());expect(failure.retryable).toBe(true);
+                            await page.waitForTimeout(1000);
+                        }
+                        expect(response.status()).toBe(200);
+                        await page.locator('[data-game-nav=market]').click();await idle();
+                        // Use a real market read even when the panel is already open.
+                        await page.locator('[data-commerce-refresh]').click();
+                        await idle();
+                        await page.locator('[data-offer="'+offer+'"]').click();
+                        await perform('market.accept',()=>page.locator('[data-label=acceptTrade]').click());
+                    }
+                }finally{await context.request.post(origin+'/v1/auth/logout',{headers:{Authorization:bobAuth}});}
+                await refreshCampaign();
+            }
+            // All three worlds expose the same reviewed own-account job API.
+            await refreshCampaign();
+            const modulePanel=page.locator('[data-campaign-module]');
+            const job=async(kind,attribute,level)=>{
+                await perform('pack.campaign.'+kind,()=>modulePanel.locator('[data-module-action='+kind+']').click());
+                await expect.poll(async()=>{
+                    await idle();await modulePanel.locator('[data-module-refresh]').click();await idle();
+                    return modulePanel.getAttribute(attribute);
+                },{timeout:30000,intervals:[1500,2500]}).toBe(String(level));
+            };
+            await job('research','data-module-research',1);
+            await job('research','data-module-research',2);
+            await job('expedition','data-module-expeditions',1);
+            await job('expedition','data-module-expeditions',2);
+            await refreshCampaign();
+            await expect(page.locator('[data-campaign-victory]')).toHaveAttribute('data-campaign-victory','true');
+            await expect(page.locator('[data-goal-state=incomplete]')).toHaveCount(0);
+            await captureScene(page,'f04-'+pack+'-victory');
+            // Reconnect to retrieve the persisted victory and job counters.
+            await page.locator('[data-game-exit]').click();await expect(page.locator('#game')).toBeHidden();
+            await enter('alice');await refreshCampaign();
+            await expect(page.locator('[data-campaign-victory]')).toHaveAttribute('data-campaign-victory','true');
+            await expect(modulePanel).toHaveAttribute('data-module-research','2');
+            await expect(modulePanel).toHaveAttribute('data-module-expeditions','2');
+            await captureScene(page,'f04-'+pack+'-victory-reconnected');
+            require('node:fs').writeFileSync('browser-captures/f04-'+pack+'-campaign.json',JSON.stringify({world,pack,victory:true,reconnected:true,research:2,expeditions:2},null,2)+'\n');
 
             expect((await context.request.get(origin+'/v1/public/worlds')).status()).toBe(404);
             expect((await context.request.get(origin+'/lab/init.sh')).status()).toBe(404);

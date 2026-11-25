@@ -23,6 +23,7 @@ final class TrustedPackCommands
     /** @var array<string,string> */
     private array $diplomacyTargets=[];
     private string $fingerprint;
+    private array $views=[];
 
     /**
      * @param list<ApprovedPackCommand> $handlers
@@ -37,6 +38,12 @@ final class TrustedPackCommands
         foreach ($handlers as $handler) {
             if (!$handler instanceof ApprovedPackCommand) {
                 throw new \InvalidArgumentException('Only approved PHP handlers are accepted');
+            }
+            if ($handler instanceof PlayerPackView) {
+                $view=$handler->viewId();
+                if (!$handler instanceof ActorPackCommand || !preg_match('/^[a-z][a-z0-9_-]{0,31}$/D',$view)||isset($this->views[$view]))
+                    throw new \InvalidArgumentException('Unapproved or duplicate player view');
+                $this->views[$view]=$handler;
             }
             $digest=$handler->codeDigest();
             if (!preg_match('/^[a-f0-9]{64}$/D',$digest)) {
@@ -99,6 +106,15 @@ final class TrustedPackCommands
         ksort($identities,SORT_STRING);
         $this->fingerprint=hash('sha256',json_encode($identities,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));
     }
+
+    public function ownView(string $id,array $state,string $account): array
+    {
+        $view=$this->views[$id]??throw new \DomainException('Player view unavailable');
+        return $view->ownView($state,$account);
+    }
+
+    public function viewIds(): array {return array_keys($this->views);}
+    public function actorTypes(): array {return array_keys($this->actorOwnedFields);}
 
     public function fingerprint(): string { return $this->fingerprint; }
 

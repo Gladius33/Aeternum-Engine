@@ -486,6 +486,14 @@ final class EconomyCommandHandler implements CommandHandler, EconomyGameplayPort
     }
 
     /** @return ?list<string> All actor-owned accounts to verify in SQL. */
+    public function packViewIds(): array {return $this->trustedPackCommands?->viewIds()??[];}
+    public function actorPackTypes(): array {return $this->trustedPackCommands?->actorTypes()??[];}
+    public function ownPackView(string $id,array $state,string $account): array
+    {
+        if ($this->trustedPackCommands===null) throw new \DomainException('Player view unavailable');
+        return $this->trustedPackCommands->ownView($id,$state,$account);
+    }
+
     public function actorPackAccounts(Command $command): ?array
     {
         return $this->trustedPackCommands?->actorOwnedAccounts($command);

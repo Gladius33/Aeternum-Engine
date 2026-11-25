@@ -453,8 +453,18 @@
             const complete=rows.filter(x=>x.state==='complete').length;
             chapters.push(Object.freeze({key,goals:Object.freeze(rows),complete,total:rows.length,state:complete===rows.length?'complete':rows.some(x=>x.state==='unknown')?'unknown':'incomplete'}));
         };
+        if(theme==='guild'&&snapshot?.victory?.buildings){
+            const b=snapshot.victory.buildings;
+            const building=k=>goal(k,b[k]?.current,b[k]?.required);
+            add('guild-foundation',[building('market_hall')]);
+            add('guild-caravan',[building('caravan_hub'),building('watchtower')]);
+            add('guild-mastery',[goal('trades',snapshot.trades?.current,snapshot.trades?.required,'trade'),
+                goal('research',snapshot.research,snapshot.victory.researchRequired,'research'),
+                goal('expeditions',snapshot.expeditions,snapshot.victory.expeditionsRequired,'expedition')]);
+            return Object.freeze({chapters:Object.freeze(chapters),victory:typeof snapshot.victory.achieved==='boolean'?snapshot.victory.achieved:null,guide:false});
+        }
         if(theme==='guild'){
-            // Guild has no canonical victory campaign. These are only two
+            // Historical guild packs have no canonical victory campaign. These are only two
             // suggested development milestones, with confirmed owned levels.
             const level=key=>holdings&&Object.hasOwn(holdings,key)?holdings[key]:null;
             add('guild-foundation',[goal('market_hall',level('market_hall'),1)]);

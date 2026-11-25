@@ -29,6 +29,11 @@ assert.equal(g.chapters[0].state,'complete');
 assert.equal(g.chapters[1].state,'incomplete');
 assert.ok(art.campaignChapters('guild',null).chapters.every(c=>c.state==='unknown'));
 assert.equal(art.campaignChapters('guild',null,{market_hall:NaN,caravan_hub:-1}).chapters[0].state,'unknown');
+const guild={research:2,expeditions:2,trades:{current:3,required:3},victory:{achieved:true,researchRequired:2,expeditionsRequired:2,buildings:levels(['market_hall',2,2],['caravan_hub',2,2],['watchtower',1,1])}};
+const official=art.campaignChapters('guild',guild);
+assert.equal(official.guide,false);assert.equal(official.victory,true);assert.equal(official.chapters.length,3);
+assert.ok(official.chapters.every(c=>c.state==='complete'));
+assert.equal(art.campaignChapters('guild',{...guild,victory:{...guild.victory,achieved:false}}).victory,false);
 const extra=art.campaignChapters('medieval',{...medieval,victory:{...medieval.victory,buildings:{...medieval.victory.buildings,watchtower:{current:0,required:2}}}});
 assert.equal(extra.chapters[3].key,'additional');
 for(const [theme,projection] of [['medieval',m],['industrial',i],['guild',g]])for(const chapter of projection.chapters){

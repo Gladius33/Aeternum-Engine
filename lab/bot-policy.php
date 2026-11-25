@@ -11,7 +11,7 @@ final class LabBotPolicy
         $priority=match($pack){
             'medieval'=>$profile==='producer'?['farm','lumberyard','granary','keep']:['lumberyard','farm','granary','keep'],
             'industrial'=>['power_plant','warehouse','steelworks','freight_terminal'],
-            'guild'=>['market_hall','caravan_hub'],
+            'guild'=>['market_hall','caravan_hub','watchtower'],
         };
         $make=static fn(string $type,array $payload):array=>['type'=>$type,'payload'=>$payload];
         $afford=static function(array $costs)use($stocks):bool{
@@ -69,6 +69,11 @@ final class LabBotPolicy
                 &&$stock('goods')+20<=($campaign['warehouseCapacity']??0)&&$available('industry.refine'))
                 return $make('industry.refine',['account'=>$account]);
         }
+        // Research and expeditions use the exact player view; bots do not
+        // receive hidden data or issue hostile challenges.
+        $module=$campaign['module']??[];
+        if(($module['canResearch']??false)===true)return $make('pack.campaign.research',['account'=>$account]);
+        if(($module['canExpedition']??false)===true)return $make('pack.campaign.expedition',['account'=>$account]);
         $keys=array_keys($stocks);if(!$keys)return null;
         $resource=$keys[($tick+$index)%count($keys)];
         $plan=(new \Aeternum\Core\ResourceUpgradeBot())->choose($stocks[$resource],$account,$resource,$tick);

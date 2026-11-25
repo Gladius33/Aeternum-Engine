@@ -1,7 +1,6 @@
-# Optional gameplay modules — approved architecture (NOT yet delivered)
+# Optional gameplay modules — architecture and implementation boundaries
 
-Decision: 2026-11-23. These requirements are future implementation work, not
-V1.0 features silently marked as complete. Aeternum is a persistent asynchronous
+Decision: 2026-11-23. Historical requirements are retained below. M15/M16 and F01/F02 implement opt-in scoring, eligibility, mutual truce and bounded bot runtime. F04 adds versioned research, expedition and merchant campaign modules; see [F04_GAMEPLAY.md](F04_GAMEPLAY.md). Delayed hostile effects and destructive combat are not enabled. Aeternum is a persistent asynchronous
 multiplayer **strategy** engine, not a real-time FPS engine.
 
 ## Kernel / pack separation

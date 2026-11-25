@@ -1,0 +1,200 @@
+{
+  "engine_api": "1",
+  "id": "reference-industrial",
+  "version": "0.4.0",
+  "name": "Industrial networks — engineering and logistics",
+  "resources": [
+    {
+      "id": "steel",
+      "initial_stock": 450,
+      "capacity": 1800,
+      "amount": 60,
+      "interval_seconds": 10
+    },
+    {
+      "id": "energy",
+      "initial_stock": 250,
+      "capacity": 3000,
+      "amount": 0,
+      "interval_seconds": 60
+    },
+    {
+      "id": "goods",
+      "initial_stock": 0,
+      "capacity": 500,
+      "amount": 0,
+      "interval_seconds": 60
+    }
+  ],
+  "upgrades": [
+    {
+      "resource": "steel",
+      "level": 1,
+      "cost": 100,
+      "duration_seconds": 30,
+      "amount": 90
+    }
+  ],
+  "buildings": [
+    {
+      "type": "power_plant",
+      "stages": [
+        {
+          "costs": {
+            "steel": 20,
+            "energy": 30
+          },
+          "duration": 3,
+          "requires": {}
+        },
+        {
+          "costs": {
+            "steel": 70,
+            "energy": 110
+          },
+          "duration": 5,
+          "requires": {
+            "warehouse": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "steelworks",
+      "stages": [
+        {
+          "costs": {
+            "steel": 30,
+            "energy": 70
+          },
+          "duration": 4,
+          "requires": {
+            "power_plant": 1
+          }
+        },
+        {
+          "costs": {
+            "steel": 60,
+            "energy": 150
+          },
+          "duration": 7,
+          "requires": {
+            "power_plant": 2,
+            "warehouse": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "warehouse",
+      "stages": [
+        {
+          "costs": {
+            "steel": 25,
+            "energy": 30
+          },
+          "duration": 4,
+          "requires": {
+            "power_plant": 1
+          }
+        },
+        {
+          "costs": {
+            "steel": 55,
+            "energy": 90
+          },
+          "duration": 6,
+          "requires": {
+            "steelworks": 1
+          }
+        }
+      ]
+    },
+    {
+      "type": "freight_terminal",
+      "stages": [
+        {
+          "costs": {
+            "steel": 70,
+            "energy": 120
+          },
+          "duration": 8,
+          "requires": {
+            "power_plant": 2,
+            "steelworks": 2,
+            "warehouse": 2
+          }
+        }
+      ]
+    }
+  ],
+  "industry": {
+    "raw_resource": "steel",
+    "energy_resource": "energy",
+    "product_resource": "goods",
+    "generator_type": "power_plant",
+    "factory_type": "steelworks",
+    "warehouse_type": "warehouse",
+    "terminal_type": "freight_terminal",
+    "fuel_cost": 8,
+    "generation_per_level": 180,
+    "raw_per_batch": 12,
+    "energy_per_batch": 25,
+    "product_per_batch": 20,
+    "warehouse_per_level": 60,
+    "shipment_per_level": 15,
+    "energy_per_shipment": 15,
+    "power_per_level": 80,
+    "factory_power_draw": 30,
+    "terminal_power_draw": 15,
+    "cooldown_seconds": 3,
+    "delivery_goal": 45,
+    "victory_levels": {
+      "power_plant": 2,
+      "steelworks": 2,
+      "warehouse": 2,
+      "freight_terminal": 1
+    }
+  },
+  "actions": [
+    {
+      "type": "pack.campaign.research",
+      "payload": {
+        "account": "string"
+      }
+    },
+    {
+      "type": "pack.campaign.expedition",
+      "payload": {
+        "account": "string"
+      }
+    }
+  ],
+  "event_hooks": [
+    {
+      "type": "pack.campaign.complete",
+      "payload": {
+        "account": "string",
+        "job": "string",
+        "level": "integer"
+      }
+    },
+    {
+      "type": "building.complete",
+      "payload": {
+        "account": "string",
+        "building": "string",
+        "level": "integer",
+        "type": "string"
+      }
+    },
+    {
+      "type": "economy.upgrade.complete",
+      "payload": {
+        "account": "string",
+        "level": "integer",
+        "resource": "string"
+      }
+    }
+  ]
+}

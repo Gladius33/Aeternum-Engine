@@ -6,7 +6,7 @@ use PDO;
 final class PlayerDiscoveryApi
 {
     /** @param array<string,GamePack> $packs Explicit server-configured worlds. */
-    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly array $packs) {}
+    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly array $packs,private readonly array $approvedRules=[]) {WorldRuntime::assertBindings($packs,$approvedRules);}
     public function handle(string $method,string $authorization, ?string $recipientWorld=null): array
     {
         if ($method!=='GET') return [405,['error'=>'method_not_allowed']];
@@ -28,7 +28,10 @@ final class PlayerDiscoveryApi
             $query->execute([$world,$actor]);
             $accounts=$query->fetchAll(PDO::FETCH_COLUMN);
             if (!$accounts) continue;
-            $worlds[]=['world'=>$world,'pack'=>$pack->id,'name'=>$pack->name,...ReferenceGameplayCompatibility::capabilities($pack),'progressionEnabled'=>$pack->progression!==null,'accounts'=>array_slice($accounts,0,100),'truncated'=>count($accounts)>100,'resources'=>array_map(static fn($r)=>$r->id,array_values($pack->resources))];
+            $handler=($this->approvedRules[$world]??$pack->rules())->commands;
+            $worlds[]=['packViews'=>$handler instanceof EconomyCommandHandler?$handler->packViewIds():[],
+                'packActions'=>$handler instanceof EconomyCommandHandler?$handler->actorPackTypes():[],
+                'world'=>$world,'pack'=>$pack->id,'name'=>$pack->name,...ReferenceGameplayCompatibility::capabilities($pack),'progressionEnabled'=>$pack->progression!==null,'accounts'=>array_slice($accounts,0,100),'truncated'=>count($accounts)>100,'resources'=>array_map(static fn($r)=>$r->id,array_values($pack->resources))];
         }
         return [200,['data'=>['worlds'=>$worlds]]];
     }
