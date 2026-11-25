@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/CivicDialogue.php';
 
 /** Fictional aggregate public mood, not survey data or a model for targeting real people.
  * Institutional continuity, approval and peaceful civic dissatisfaction are distinct.
@@ -44,6 +45,14 @@ final class PublicOpinion
         return ['weights'=>['workers'=>6500,'retired'=>3500],'pressure'=>['workers'=>400,'retired'=>300],
             'approval'=>['workers'=>520,'retired'=>540],'trust'=>600,
             'intentions'=>['civic'=>3300,'liberal'=>2200,'regional'=>500,'social'=>3000,'undecided'=>1000]];
+    }
+    public function enableDialogue():void
+    {
+        if(array_key_exists('dialogue',$this->s)||$this->s['day']!==$this->s['start_day']||$this->s['history']!==[])
+            throw new \DomainException('Dialogue must be pinned at scenario bootstrap');
+        foreach(['workers','retired'] as $id)if(!isset($this->s['baseline']['pressure'][$id]))
+            throw new \DomainException('Dialogue needs its fictional cohorts');
+        $this->s['dialogue']=CivicDialogue::initial($this->s['day']);
     }
     /** Trusted inputs from the committed domestic and national stores, never player JSON. */
     public static function observe(array $dom,array $inst):array
@@ -106,6 +115,10 @@ final class PublicOpinion
         $r=['day'=>$e['day'],'approval'=>$approval,'trust'=>$trust,'pressure'=>$pressure,'civic_dissatisfaction'=>$civic,
             'intentions'=>$intentions,'institutional_status'=>$status,'constitutional_breaches'=>$e['constitutional_breaches'],
             'economic_data_available'=>$e['production_index_bps']!==null&&$e['employment_index_bps']!==null,'regime_changed'=>false];
+        if(isset($this->s['dialogue'])){
+            $this->s['dialogue']=CivicDialogue::advance($this->s['dialogue'],$e['day'],$e['pressure'],$b['pressure']);
+            $r['dialogue']=$this->s['dialogue'];
+        }
         $this->s['history'][]=['source'=>$e,'result'=>$r];return $r;
     }
     private static function allocate(array $base,int $undecided):array
@@ -126,6 +139,7 @@ final class PublicOpinion
     {
         $x=new self($s['world_id'],$s['start_day'],$s['baseline']);
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>3650)throw new \DomainException('Invalid opinion journal');
+        if(array_key_exists('dialogue',$s))$x->enableDialogue();
         foreach($s['history'] as $r)$x->advance($r['source']);
         if($x->snapshot()!==$s)throw new \DomainException('Opinion replay mismatch');
         return $x;

@@ -80,6 +80,8 @@ jobs:
         run: php tests/wp28-french-parliament.php
       - name: Domestic policy fiscal ledger and multi-day scenario WP29A
         run: php tests/wp29a-domestic-policy.php
+      - name: WP36 civic dialogue and collective action regression
+        run: php tests/wp36-dialogue.php
       - name: WP35 opinion dynamics and verified source regression
         run: php tests/wp35-opinion.php
       - name: WP34 political negotiation and opposition regression

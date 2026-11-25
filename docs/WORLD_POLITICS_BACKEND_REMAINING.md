@@ -233,3 +233,11 @@ Optional fifth clock subsystem for fictional French opinion, domestic and
 institutional source hashes, gradual cohort approval and trust, conserved
 intention distribution and independent institutional status. No direct client
 writes or automatic regime transitions. See WORLD_POLITICS_OPINION.md.
+
+
+## WP36 civic dialogue candidate
+
+Opt-in fictional union and civic association episodes, consultation, abstract
+collective action and observed relief, nested in the existing opinion checkpoint.
+No direct client mutation, no legal bargaining certification or automatic
+regime change. See WORLD_POLITICS_CIVIC_DIALOGUE.md.
