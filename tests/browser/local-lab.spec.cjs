@@ -550,7 +550,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                     await idle();
                 }
             };
-            const domain=async(key,type)=>{
+            const campaignDomain=async(key,type)=>{
                 await page.locator('[data-game-nav=domain]').click();await idle();
                 await perform(type,()=>page.locator('[data-domain-action='+key+']').click());
             };
@@ -558,16 +558,16 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 await buildTo('lumberyard',2);await buildTo('farm',2);await buildTo('granary',1);
                 await buildTo('keep',2);
                 await refreshCampaign();
-                for(let i=0;i<4;i++)await domain('feed','settlement.feed');
+                for(let i=0;i<4;i++)await campaignDomain('feed','settlement.feed');
             }else if(pack==='industrial'){
                 await buildTo('steelworks',1);await buildTo('warehouse',1);await buildTo('power_plant',2);
-                await domain('generate','industry.generate');
+                await campaignDomain('generate','industry.generate');
                 await buildTo('steelworks',2);await buildTo('warehouse',2);await buildTo('freight_terminal',1);
-                await domain('generate','industry.generate');
-                await domain('refine','industry.refine');await domain('ship','industry.ship');
+                await campaignDomain('generate','industry.generate');
+                await campaignDomain('refine','industry.refine');await campaignDomain('ship','industry.ship');
                 await page.waitForTimeout(3500);
-                await domain('refine','industry.refine');await domain('ship','industry.ship');
-                await page.waitForTimeout(3500);await domain('ship','industry.ship');
+                await campaignDomain('refine','industry.refine');await campaignDomain('ship','industry.ship');
+                await page.waitForTimeout(3500);await campaignDomain('ship','industry.ship');
             }else{
                 await buildTo('market_hall',2);await buildTo('caravan_hub',2);await buildTo('watchtower',1);
                 // Independently authenticated Bob supplies real escrow offers
