@@ -31,6 +31,10 @@ jobs:
         run: npx playwright test tests/browser/local-lab.spec.cjs --workers=1 --reporter=github,line
       - name: Three modern multiplayer experiences, recovery and accessibility
         run: npx playwright test tests/browser/f05-player.spec.cjs --workers=1 --reporter=github,line
+      - name: Verify complete three-pack release browser evidence
+        env:
+          F07_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 tests/f07-browser-evidence.py
       - name: Preserve graphical evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -41,6 +45,7 @@ jobs:
             browser-captures/g25-*-metrics.json
             browser-captures/f04-*-campaign.json
             browser-captures/f05-*-experience.json
+            browser-captures/f07-browser-evidence.json
           retention-days: 30
           if-no-files-found: warn
       - name: Stop isolated stack
