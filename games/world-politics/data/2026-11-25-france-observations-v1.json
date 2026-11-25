@@ -1,0 +1,397 @@
+{
+  "schema": "wp-fr-reference-staging-v1",
+  "as_of": "2026-11-25",
+  "country": "FR",
+  "classification": "observed_statistics_staging_not_active_game_state",
+  "license_policy": "Source: Insee; https://www.insee.fr/fr/information/2008466 ; retain source and update date where known; no endorsement; preserve statistical meaning.",
+  "notes": [
+    "Integer EUR values preserve published rounding, not false precision. Basis points encode percentages.",
+    "Publication dates unknown are null, never fabricated.",
+    "Do not combine annual and quarterly debt/GDP ratios or add overlapping state/general government accounts.",
+    "2025 demand identity may differ by 0.1 billion EUR due to rounding; preserve observations and a separate residual.",
+    "Not yet imported into MariaDB. The WDI registry supports only four annual metrics and USD for monetary metrics; a new typed FR observation importer is required.",
+    "No scenario parameters, projections or invented replacement observations in this pack."
+  ],
+  "sources": {
+    "national": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/8988793",
+      "published_on": "2026-05-29",
+      "table": "Comptes nationaux annuels 2025, PIB et opérations sur biens et services, base 2020",
+      "license": "Licence Ouverte 2.0 (Etalab)",
+      "status": "provisional"
+    },
+    "public_finance": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/8997691",
+      "published_on": "2026-05-29",
+      "table": "Figures 1, 4 et dette Maastricht",
+      "license": "Licence Ouverte 2.0 (Etalab)",
+      "status": "published"
+    },
+    "debt_q2": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/9053525",
+      "published_on": "2026-09-29",
+      "table": "Dette de Maastricht T2 2026",
+      "license": "Licence Ouverte 2.0 (Etalab)",
+      "status": "revisable"
+    },
+    "population": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/5225246",
+      "published_on": null,
+      "table": "Population au 1er janvier",
+      "license": "Licence Ouverte 2.0 (Etalab)",
+      "status": "estimated"
+    },
+    "conjuncture": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/2107840",
+      "published_on": "2026-11-25",
+      "table": "Principaux indicateurs conjoncturels, état consulté le 25 novembre 2026",
+      "license": "Licence Ouverte 2.0 (Etalab)",
+      "status": "published"
+    },
+    "cpi": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/9131332",
+      "published_on": "2026-11-13",
+      "table": "IPC octobre 2026 résultats définitifs",
+      "license": "Licence Ouverte 2.0 (Etalab)",
+      "status": "published"
+    },
+    "geography": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/2381418",
+      "published_on": "2026-09-25",
+      "table": "Échanges extérieurs 2025, périmètres fixes UE post-Brexit et zone euro au 1er janvier 2026",
+      "license": "Licence Ouverte 2.0 (Etalab)",
+      "status": "provisional"
+    }
+  },
+  "observations": [
+    {
+      "metric": "gdp_nominal",
+      "value": 2991100000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; national accounts base 2020, current prices",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "household_consumption",
+      "value": 1545900000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; national accounts base 2020, current prices",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "government_individual_consumption",
+      "value": 467100000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; national accounts base 2020, current prices",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "government_collective_consumption",
+      "value": 252500000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; national accounts base 2020, current prices",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "gross_fixed_capital_formation",
+      "value": 663600000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; national accounts base 2020, current prices",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_fixed_capital_formation",
+      "value": 132200000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; national accounts base 2020, current prices",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "inventory_change",
+      "value": 6800000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; national accounts base 2020, current prices",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "exports_goods_services",
+      "value": 1009400000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; national accounts base 2020, current prices",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "imports_goods_services",
+      "value": 1023800000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; national accounts base 2020, current prices",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "real_gdp_annual_growth",
+      "value": 80,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "national",
+      "scope": "France; annual volume growth",
+      "reported_precision": "10 basis points",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_revenue",
+      "value": 1561700000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "public_finance",
+      "scope": "France; general government consolidated",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_expenditure",
+      "value": 1714200000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "public_finance",
+      "scope": "France; general government consolidated",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_interest_excluding_sifim_correction",
+      "value": 64700000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "public_finance",
+      "scope": "France; general government consolidated",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_social_benefits",
+      "value": 771000000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "public_finance",
+      "scope": "France; general government consolidated",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_taxes_and_social_contributions",
+      "value": 1374100000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "public_finance",
+      "scope": "France; general government consolidated",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_deficit",
+      "value": 152500000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "public_finance",
+      "scope": "France; general government consolidated",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "state_deficit",
+      "value": 128100000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "public_finance",
+      "scope": "French State only",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_gross_debt",
+      "value": 3460500000000,
+      "unit": "EUR",
+      "period": "2025-12-31",
+      "source_id": "public_finance",
+      "scope": "France; Maastricht general government consolidated",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_debt_to_gdp",
+      "value": 11570,
+      "unit": "basis_points",
+      "period": "2025-12-31",
+      "source_id": "public_finance",
+      "scope": "France; Maastricht general government",
+      "reported_precision": "10 basis points",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_deficit_to_gdp",
+      "value": 510,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "public_finance",
+      "scope": "France; general government, deficit positive",
+      "reported_precision": "10 basis points",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_gross_debt",
+      "value": 3595500000000,
+      "unit": "EUR",
+      "period": "2026-Q2",
+      "source_id": "debt_q2",
+      "scope": "France; Maastricht general government consolidated",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "public_debt_to_gdp",
+      "value": 11900,
+      "unit": "basis_points",
+      "period": "2026-Q2",
+      "source_id": "debt_q2",
+      "scope": "France; Maastricht general government",
+      "reported_precision": "10 basis points",
+      "kind": "observed"
+    },
+    {
+      "metric": "population",
+      "value": 69082000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "population",
+      "scope": "France including Mayotte",
+      "reported_precision": "1000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "unemployment_ilo",
+      "value": 820,
+      "unit": "basis_points",
+      "period": "2026-Q3",
+      "source_id": "conjuncture",
+      "scope": "France excluding Mayotte, active population",
+      "reported_precision": "10 basis points",
+      "kind": "observed",
+      "released_on": "2026-11-10"
+    },
+    {
+      "metric": "real_gdp_quarterly_growth",
+      "value": -10,
+      "unit": "basis_points",
+      "period": "2026-Q3",
+      "source_id": "conjuncture",
+      "scope": "France; quarter on quarter volume",
+      "reported_precision": "10 basis points",
+      "kind": "observed",
+      "released_on": "2026-10-30"
+    },
+    {
+      "metric": "consumer_price_yoy",
+      "value": 340,
+      "unit": "basis_points",
+      "period": "2026-10",
+      "source_id": "cpi",
+      "scope": "France; IPC annual change",
+      "reported_precision": "10 basis points",
+      "kind": "observed"
+    },
+    {
+      "metric": "exports_eu",
+      "value": 515000000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "geography",
+      "scope": "France; goods and services, fixed geography as defined by source",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "imports_eu",
+      "value": 521900000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "geography",
+      "scope": "France; goods and services, fixed geography as defined by source",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "exports_euro_area_fixed_2026",
+      "value": 449900000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "geography",
+      "scope": "France; goods and services, fixed geography as defined by source",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "imports_euro_area_fixed_2026",
+      "value": 454300000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "geography",
+      "scope": "France; goods and services, fixed geography as defined by source",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "exports_non_eu",
+      "value": 494300000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "geography",
+      "scope": "France; goods and services, fixed geography as defined by source",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "imports_non_eu",
+      "value": 501900000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "geography",
+      "scope": "France; goods and services, fixed geography as defined by source",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    }
+  ]
+}

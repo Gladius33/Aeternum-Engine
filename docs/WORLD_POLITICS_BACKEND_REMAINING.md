@@ -338,3 +338,35 @@ Opt-in deterministic macro read projection from verified fiscal and trade
 states; GDP expenditure identity, prices, unemployment, growth, tax proxy
 and treasury reconciliation. Fictional coefficients; no feedback to the
 underlying authoritative ledgers. See WORLD_POLITICS_MACRO.md.
+
+
+## Décision de périmètre du 25 novembre 2026 — objectif WP80
+
+WP80 est l'objectif final prévisionnel du back-end. France seule jouable
+au lancement ; les autres acteurs restent présents et automatisés.
+Ne pas interpréter les modules des autres pays comme l'ouverture de
+leur contrôle joueur. Le développement de leurs IA est utile à la
+France, pas un prérequis pour leur jouabilité humaine. Aucune fusion
+dans main Aeternum, aucun front-end avant accord.
+
+- WP48–50 : boucle macro budgétaire, monnaie, banques, dette, secteurs ;
+  données françaises observées importées par un registre distinct.
+- WP51–53 : démographie, services, partenaires sociaux.
+- WP54–56 : crises, transitions politiques, continuité.
+- WP57–60 : actions du joueur, IA, campagne française de référence.
+- WP61–65 : interlocuteurs étrangers autonomes, institutions pertinentes
+  pour la France et interactions transfrontalières.
+- WP66–69 : diplomatie, traités, organisations, sortie UE et transition
+  euro/nouvelle devise, liens avec WP48–50. Cas de maintien et retrait
+  juridique distinct des calendriers opérationnels.
+- WP70–73 : défense et sécurité au niveau stratégique.
+- WP74–76 : enrichissement des données réelles françaises, personnalités,
+  calibration, études de sensibilité. Collecter les sources lors des CI,
+  pas de travail de fond asynchrone supposé.
+- WP77–80 : sécurité, performances, tests longs, dépôt propre, API stable.
+
+Première collecte France : games/world-politics/data/2026-11-25-france-observations-v1.json.
+Ce lot est prêt pour étude de l'import, PAS encore en base de données,
+et ne doit pas remplacer les fixtures des anciens scénarios. Voir
+WORLD_POLITICS_FR_EU_EURO_EXIT.md pour l'étude initiale demandée.
+WP80 est un objectif, pas un engagement de conformité exhaustive.

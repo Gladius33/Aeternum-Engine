@@ -445,6 +445,10 @@ ck30($c46['status']===200&&$c46['body']['coherent'],'WP46 coherent finance clock
 $f46=req30('GET',$p46,null,$tb);
 ck30($f46['body']['treasury']['bills']['finance-bill']['implementation_authorized']&&count($f46['body']['treasury']['days'])===1,'WP46 coherent treasury projection');
 ck30(req30('GET',$p46,null,$ta2)['status']===404&&req30('GET',$r45.'/countries/FR/finance',null,$tb)['status']===404,'WP46 isolation and legacy');
+// The isolated integration suite now exercises hundreds of requests in one
+// minute. Begin WP47 with a fresh rate-limit window, not a weakened runtime
+// limit. The WP_TEST_ISOLATED / wp_test guard at the top remains mandatory.
+$pdo->exec('DELETE FROM wp_http_limits');
 $g47=req30('POST','/worlds',['label'=>'Macroeconomic pilot','scenario'=>'fr-macro-v1'],$tb,['Idempotency-Key'=>'macro-world-001']);
 ck30($g47['status']===201,'WP47 macro world');
 $w47=$g47['body']['world_id'];$r47='/worlds/'.$w47;$p47=$r47.'/countries/FR/macro';
@@ -455,7 +459,9 @@ foreach(['2026-11-26','2026-11-27','2026-11-28'] as $n47=>$day47){
     $c47=req30('POST',$r47.'/clock/advances',['target_day'=>$day47],$tb,['If-Match'=>$c47['etag'],'Idempotency-Key'=>'macro-tick-00'.($n47+1)]);
     ck30($c47['status']===200&&$c47['body']['coherent'],'WP47 coherent day');
 }
-$m47=req30('GET',$p47,null,$tb);$row47=$m47['body']['latest'];
+$m47=req30('GET',$p47,null,$tb);
+if($m47['status']!==200)throw new RuntimeException('WP47 macro read HTTP '.$m47['status'].' '.json_encode($m47['body'],JSON_THROW_ON_ERROR));
+$row47=$m47['body']['latest']??throw new RuntimeException('WP47 macro latest missing');
 ck30($m47['status']===200&&count($m47['body']['days'])===3&&$row47['real_gdp']===$row47['consumption']+$row47['investment']+$row47['government_consumption']+$row47['exports']-$row47['imports'],'WP47 national accounting identity');
 $again47=req30('GET',$p47,null,$tb);
 ck30($again47['etag']===$m47['etag']&&$again47['body']===$m47['body'],'WP47 deterministic ETag and history');
