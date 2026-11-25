@@ -60,7 +60,7 @@ d'accepter la restauration.
 
 Consigner les preuves M11 et appliquer les critères G08.
 
-## D. Deux parcours de jeu réellement complets
+## D. Trois parcours de jeu réellement complets
 
 Exécuter les campagnes de
 [M05](M05_MEDIEVAL_GAMEPLAY.md) et
@@ -69,6 +69,8 @@ Observer toutes les opérations via Chromium et l'API PHP réelle,
 atteindre la condition d'objectif de chaque pack, se déconnecter,
 se reconnecter, puis refuser explicitement les lectures et
 transactions sur un compte d'un autre acteur ou monde.
+
+Ajouter la campagne Guild 0.5.0 et les recherches/expéditions des trois packs conformément à [F04](F04_GAMEPLAY.md).
 
 Vérifier en plus un échange multijoueur, une reprise après
 réponse perdue, un message, blocage et signalement, un droit
@@ -118,4 +120,4 @@ l'ensemble des CI peuvent précéder un tag ou une release V1.0.
 
 ## Décision de recette
 
-Le visa opérateur est lié au dossier de preuves et au SHA candidat.
+Le visa opérateur est lié au dossier de preuves et au SHA candidat. Pour collecter les rapports et le paquet après fusion, utiliser [F07](F07_RELEASE_DOSSIER.md) ; le collecteur ne signe aucune décision.

@@ -4,27 +4,25 @@ A modular engine for persistent multiplayer browser strategy games.
 
 By Sébastien TOUILLEUX · Source Available · ACCL-1.0
 
-## Status — M12 hardening merged, M13 release qualification started (V1.0 not released)
+## Status — F01–F06 merged; F07 release-candidate qualification
 
-Macro-iterations **M01–M11 are merged into main**: identity/onboarding,
-version-pinned packs/SDK, persistent economy and strategic worlds, two reference
-games, Vue client, multiplayer market/social features, simulated administration
-and premium, lab operations/backup/restore. **M12 hardening code was merged** in [PR #52](https://github.com/Gladius33/Aeternum-Engine/pull/52), with residual qualification still open.
-**M13 release acceptance is now in progress**; see [release evidence and mandatory gates](docs/M13_RELEASE_ACCEPTANCE.md). No V1.0 tag or release was approved. The
-[macro roadmap](docs/MACRO_ROADMAP_V1.md) and [G01–G09 gates](ROADMAP.md)
-remain authoritative.
+Aeternum is a generic persistent browser-game engine with three playable
+reference packs: medieval settlements, industrial networks and Guild
+Caravans. The runtime composes immutable manifests with explicitly
+reviewed PHP command/event modules. It includes transactional economy,
+scoring, research, expeditions, multiplayer market/social features,
+non-destructive guild challenges, mutual truces, bounded autonomous bots
+and a bilingual modern browser UI.
 
-**This repository is an engine, not two products:** medieval and industrial
-games under games/ are representative packs to validate reuse. Rules and
-handlers must continue moving toward a generic, trusted plug-in boundary;
-existing SettlementRules and IndustryRules in the core are documented
-architectural debt. Optional scoring/protection/bot capabilities are specified
-but **not implemented** in [the extension design](docs/OPTIONAL_GAMEPLAY_MODULES.md).
+F01–F06 have passed ten exact-head workflows each and are merged.
+F07 consolidates evidence, documentation and the reproducible package.
+The release is not authorized merely by a green CI. See the
+[final dossier and acceptance boundaries](docs/F07_RELEASE_DOSSIER.md).
 
-CI on PHP 8.4, MariaDB and Chromium is laboratory evidence, not external
-hosting or release certification. Production registration requires approved
-identity proof; never expose local testing bypasses. No real payments, outside
-deployment or public production claim has been approved.
+API-1 preserves historical settlement and industry compatibility.
+New modules do not require a thematic branch in generic economic dispatch.
+Physical cargo transport, destructive combat and territorial conquest are
+outside the reference-game delivery. No real payment integration is enabled.
 
 ## Active development plan
 
@@ -35,12 +33,12 @@ Theme-agnostic persistent worlds, asynchronous actions, deterministic simulation
 
 Implemented laboratory stack: PHP 8.4, MariaDB/InnoDB, REST, bounded CRON/CLI and a progressively enhanced Vue 3/TypeScript browser client. Laravel remains a possible future adapter; the engine does not depend on it.
 
-## Run the prototype tests
+## Run the engineering tests
 
 PHP 8.4 is required. Run `php tests/run.php` for dependency-free core regressions. For the MariaDB integration, concurrency and browser suites, consult [persistence](docs/PERSISTENCE.md), the GitHub Actions workflows and the tests in the selected commit. These are not installation instructions for a publicly accessible game. Do not put database credentials, activation tokens or recovery codes into logs.
 
 ## V1.0 release candidate documentation (M13, not yet approved)
-[Player guide](docs/M13_PLAYER_GUIDE.md) · [Operator acceptance runbook](docs/M13_RUNBOOK.md) · [Measured concurrent load baseline](docs/M13_CAPACITY_LAB.md) · [G01–G09 acceptance](docs/M13_RELEASE_ACCEPTANCE.md).
+[Player guide](docs/M13_PLAYER_GUIDE.md) · [API reference](docs/API_V1.md) · [SDK](docs/F01_SDK.md) · [Installation and distribution](docs/F06_DISTRIBUTION.md) · [Operator runbook](docs/M13_RUNBOOK.md) · [Measured load](docs/F02_CAPACITY.md) · [G01–G09 acceptance](docs/M13_RELEASE_ACCEPTANCE.md) · [Final dossier](docs/F07_RELEASE_DOSSIER.md).
 
 ## Documentation
 [Architecture](docs/ARCHITECTURE.md) · [ADRs](docs/adr/DECISIONS.md) · [Validation](docs/VALIDATION.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md).

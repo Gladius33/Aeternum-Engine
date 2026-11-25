@@ -1,7 +1,7 @@
 # Aeternum Engine — guide de démarrage des joueurs (candidat M13)
 
 **Statut : documentation de recette, non annonce de V1.0 publique.**
-Les deux jeux sont des packs de référence du même moteur, et non deux
+Les trois jeux sont des packs de référence du même moteur, et non trois
 applications indépendantes. Les mécanismes réels sont testés sur PHP 8.4,
 MariaDB 11.4 et Chromium dans des environnements jetables.
 
@@ -17,11 +17,9 @@ son compte puis se reconnecter avec son mot de passe.
 
 Un monde désigne une instance persistante, un pack ses règles immuables
 et un compte économique les ressources appartenant au joueur.
-La liste des mondes peut différer selon l'installation. La version
-`0.3.0` des jeux de référence propose des campagnes courtes de recette ;
-elle n'est pas présentée comme équilibrage définitif.
+La liste des mondes peut différer selon l'installation. Les versions actuelles 0.4.0 (médiéval et industriel) et 0.5.0 (Guild) proposent des campagnes courtes ; leurs règles épinglées ne constituent pas un équilibrage définitif.
 
-## Campagne médiévale (pack `reference-medieval@0.3.0`)
+## Campagne médiévale (pack `reference-medieval@0.4.0`)
 
 1. Sélectionner un monde médiéval approuvé, créer son compte et accéder
    au territoire initial. L'entité, le lieu et le compte de ressources
@@ -45,7 +43,7 @@ La procédure et les chiffres proviennent du
 pourraient changer dans une version future de pack, sans modification
 silencieuse d'un monde existant.
 
-## Campagne industrielle (pack `reference-industrial@0.3.0`)
+## Campagne industrielle (pack `reference-industrial@0.4.0`)
 
 1. Choisir un monde industriel compatible et installer les fondations
    d'une centrale, d'une aciérie, d'un entrepôt et d'un terminal de fret.
@@ -65,6 +63,25 @@ Les données de référence et limites figurent dans le
 simple habillage du médiéval : il exploite un réseau d'énergie, une
 raffinerie, le stockage et les expéditions.
 
+## Campagne marchande (reference-guild@0.5.0)
+
+Construire une halle marchande niveau 2, un dépôt caravanier niveau 2
+et une tour de guet niveau 1. Achever deux recherches et deux expéditions
+via le panneau Objectifs. Conclure trois échanges distincts avec
+d'autres comptes : seules les offres effectivement remplies comptent.
+Le serveur confirme la victoire, qui persiste après reconnexion.
+Une expédition est une étude logistique, sans gain de territoire ni
+transport physique. Les défis sont immédiats et non destructifs ;
+la protection, le délai et les trêves mutuelles sont appliqués par le serveur.
+
+## Recherche et expéditions dans les trois mondes
+
+La recherche exige une installation achevée au niveau requis ; une
+expédition exige une recherche confirmée et une installation appropriée.
+Le reçu signifie que l'action est planifiée, non achevée. Actualiser
+la progression pour constater la fin réelle du travail. Les anciennes
+versions n'exposent pas nécessairement ces commandes.
+
 ## Multijoueur, marché et communication
 
 Les marchés utilisent des offres à conditions fixes, réservations
@@ -72,7 +89,8 @@ transactionnelles et reçus idempotents. Les ressources disponibles
 doivent être vérifiées après une confirmation du serveur ; une réponse
 réseau perdue ne justifie **jamais** d'inventer une nouvelle commande.
 Utiliser la fonction de reprise conservant l'identifiant et la charge
-utile initiaux. Une annulation ou une expiration peut modifier l'offre
+utile initiaux. Après déconnexion, cet état local disparaît : vérifier
+l'historique et les stocks confirmés avant toute nouvelle commande. Une annulation ou une expiration peut modifier l'offre
 visible, et la pagination n'est pas un instantané figé entre pages.
 Voir le [fonctionnement M08](M08_MARKET.md).
 

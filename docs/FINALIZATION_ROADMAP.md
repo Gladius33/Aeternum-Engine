@@ -8,6 +8,8 @@ This is the active, consolidated engineering backlog after G25. Historical M01�
 - Inspect source and CI, implement, test, open/update PR, fix failures, require all ten exact-head workflows green, merge and check main. Record PR, SHA, runs, results and residual work here. A PR alone is not completion.
 - Preserve ACCL-1.0, attribution, transaction boundaries, immutable rules, old-world replay, isolation and resource conservation. No secrets, live payment or external action without permission. New balance rules require new pinned versions.
 
+The checklists below preserve the original planned scope; delivery evidence and residual limitations are reconciled in the progress table and F07 dossier. A merged milestone does not mean every aspirational feature or operator gate is complete.
+
 ## F01 — Modular engine and SDK (G01–G04)
 - [ ] Inventory and remove remaining thematic coupling from generic core, including GamePack rule references and compatibility dispatch, without changing legacy identities.
 - [ ] Complete trusted command/event composition across HTTP, provisioning, workers, registry and replay; strict schema and executable identity checks, no arbitrary manifest code loading.
@@ -69,7 +71,7 @@ Provide archive, preflight/configuration instructions, validation commands, secu
 | F03 | Merged | #91, 10/10 pre-merge CI, merge 5c6b93fa; [security and recovery evidence](F03_SECURITY_RESILIENCE.md) |
 | F04 | Merged | #92, 10/10 exact-head CI, merge d8660e4b; [Versioned campaigns and gameplay](F04_GAMEPLAY.md) |
 | F05 | Merged | #93, 10/10 exact-head CI, merge 118345bb; [Player experience and visual evidence](F05_PLAYER_EXPERIENCE.md) |
-| F06 | CI qualification | [Portable install and distribution](F06_DISTRIBUTION.md) |
-| F07 | Planned | — |
+| F06 | Merged | #94, 10/10 exact-head CI, merge 3d43c003; [Portable install and distribution](F06_DISTRIBUTION.md) |
+| F07 | CI qualification | [Release dossier and remaining independent gates](F07_RELEASE_DOSSIER.md) |
 
 This is a scope and evidence contract, not a percentage or time estimate. Additional commercial-game content beyond the reference-game scope may be prioritized separately.

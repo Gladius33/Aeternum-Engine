@@ -1,5 +1,7 @@
 # Validation and release gates
 
+Current acceptance: [F07 dossier](F07_RELEASE_DOSSIER.md), [F02 load](F02_CAPACITY.md), [F03 recovery](F03_SECURITY_RESILIENCE.md), [F05 browser evidence](F05_PLAYER_EXPERIENCE.md) and [F06 distribution](F06_DISTRIBUTION.md). The historical entries below record the tests and open items at their original iteration. Final qualification requires exact PR and main evidence, and independent operator review.
+
 For each iteration report exact commit SHA, tests actually run, result, open issues, and next increment. Never report unexecuted checks as passed.
 
 V1.0 requires all ROADMAP.md gates: deterministic ordering/replay, no duplicate execution under retries, atomic balances and concurrency tests on MariaDB, world isolation, rule migration, two playable packs, API/UI E2E, authentication and authorization, dependency audit, bounded cron and load tests, backup restoration, deployment guide, and verified license/attribution. Document environment, measured budgets and remaining limitations. Do not claim production readiness until verified. No live payments or third-party deployments in CI.
