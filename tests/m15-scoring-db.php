@@ -124,4 +124,39 @@ use Aeternum\Core\{Command,EconomyHttpApi,FrozenClock,GamePackLoader,PdoIdentity
         'M15 read-only scoring cannot mutate canonical world state');
     check($scheduler->verifyReplay($rules->commands,$rules->events)->entries>5,
         'M15 replay validates the progression source history after trade and buildings');
+    // Hundreds of active owned accounts, including zero-score accounts with
+    // no canonical state keys. No player identities are returned by ranking.
+    $members=new \Aeternum\Core\PdoMemberships($pdo,$world);
+    for ($i=0;$i<256;$i++) $members->assign('f02-account-'.$i,$alice);
+    check($rank($tokenA,$alice)[1]['data']===['position'=>1,'participants'=>258]
+        && $rank($tokenB,$bob)[1]['data']===['position'=>2,'participants'=>258],
+        'F02 indexed rank exceeds historical 128-account limit');
+    $zero=$scheduler->rankForActor($alice,'f02-account-0',$pack->progression);
+    check($zero===['position'=>3,'participants'=>258]
+        && $scheduler->scoreForActor($alice,'f02-account-0',$pack->progression)===['development'=>0,'military'=>0,'global'=>0],
+        'F02 zero-score accounts share deterministic competition rank');
+    check($scheduler->auditScores()===2,'F02 sparse index matches canonical replay sources');
+    $members->revoke($bob);
+    check($scheduler->rankForActor($alice,'f02-account-0',$pack->progression)===['position'=>2,'participants'=>257],
+        'F02 revoked membership immediately disappears from ranking');
+    $members->grant($bob);
+    check($scheduler->rankForActor($bob,$bob,$pack->progression)===['position'=>2,'participants'=>258],
+        'F02 reactivated membership restores same earned score and rank');
+
+    $pdo->prepare('UPDATE engine_account_scores SET development=development+1,global_score=global_score+1 WHERE world_id=? AND account_id=?')->execute([$world,$alice]);
+    rejects(fn()=> $scheduler->auditScores(),UnexpectedValueException::class,'F02 audit detects same-watermark corruption');
+    check($scheduler->rebuildScores()===2 && $scheduler->scoreForActor($alice,$alice,$pack->progression)['global']===56,
+        'F02 operator rebuild repairs index without changing canonical journal');
+    $pdo->prepare('DELETE FROM engine_score_watermarks WHERE world_id=?')->execute([$world]);
+    $pdo->prepare('DELETE FROM engine_account_scores WHERE world_id=?')->execute([$world]);
+    check($scheduler->rankForActor($bob,$bob,$pack->progression)===['position'=>2,'participants'=>258]
+        && $scheduler->auditScores()===2,
+        'F02 populated historical world lazily rebuilds missing projection on authorized read');
+    $pdo->prepare('UPDATE engine_score_watermarks SET journal_no=journal_no-1 WHERE world_id=?')->execute([$world]);
+    check($scheduler->scoreForActor($alice,$alice,$pack->progression)['global']===56 && $scheduler->auditScores()===2,
+        'F02 stale projection watermark after old executable is rebuilt');
+    check($scheduler->state()===$stateBefore,'F02 score rebuild and membership changes preserve canonical state');
+    $plan=$pdo->query("EXPLAIN SELECT account_id FROM engine_account_scores FORCE INDEX(score_rank) WHERE world_id='m15-scores-world' AND global_score>6")->fetch(PDO::FETCH_ASSOC);
+    check($plan!==false && $plan['key']==='score_rank','F02 rank index is available to MariaDB range scans');
+
 })();
