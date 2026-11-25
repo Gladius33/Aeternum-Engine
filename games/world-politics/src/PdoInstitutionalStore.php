@@ -27,6 +27,11 @@ interface ElectoralInstitutionalAuthorizer extends InstitutionalActorAuthorizer
     public function verifiedFormationEvidence(string $world,string $country,string $reference):array;
 }
 
+interface RevisionInstitutionalAuthorizer extends InstitutionalActorAuthorizer
+{
+    public function verifiedRevisionEvidence(string $world,string $country,string $reference):array;
+}
+
 /**
  * Durable institution aggregate. Independent from the character roster until
  * a combined world transaction / Aeternum admission root is implemented.
@@ -95,7 +100,7 @@ final class PdoInstitutionalStore
         string $world,string $country,string $action,array $payload,
         string $idempotencyKey,string $ifMatch
     ):array {
-        if (!in_array($action,['record_consultation','submit_bill','dissolve_lower_house','hold_election','accountability_file','accountability_vote','accountability_resolve','electoral_coalition','electoral_certify'],true)) {
+        if (!in_array($action,['record_consultation','submit_bill','dissolve_lower_house','hold_election','accountability_file','accountability_vote','accountability_resolve','electoral_coalition','electoral_certify','revision_draft','revision_evidence'],true)) {
             throw new \DomainException('Unimplemented institutional decision');
         }
         return $this->write($world,$country,$action,$payload,$idempotencyKey,$ifMatch,false);
@@ -168,7 +173,16 @@ final class PdoInstitutionalStore
             if (!hash_equals('"'.$before.'"',$expected)) {
                 throw new \DomainException('Stale institutional precondition');
             }
-            if ($action==='electoral_coalition') {
+            if($action==='revision_draft'){
+                $result=$simulation->revision($role,$action,$payload,$commandId);
+            }elseif($action==='revision_evidence'){
+                if(!$this->auth instanceof RevisionInstitutionalAuthorizer||array_keys($payload)!==['evidence_id']
+                    ||!is_string($payload['evidence_id'])||!preg_match('/^[a-z][a-z0-9_-]{0,63}$/D',$payload['evidence_id']))
+                    throw new \DomainException('Verified revision evidence reference required');
+                $e=$this->auth->verifiedRevisionEvidence($world,$country,$payload['evidence_id']);
+                if(($e['evidence_id']??null)!==$payload['evidence_id'])throw new \DomainException('Revision evidence identity mismatch');
+                $result=$simulation->revision($role,$action,$e,$commandId);
+            }elseif ($action==='electoral_coalition') {
                 $result=$simulation->electoral($role,$action,$payload,$commandId);
             } elseif($action==='electoral_certify') {
                 if(!$this->auth instanceof ElectoralInstitutionalAuthorizer||array_keys($payload)!==['evidence_id']

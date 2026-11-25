@@ -260,3 +260,12 @@ five-year terms, two consecutive term limit, result/transfer separation,
 and replayed terminal outcome at expiry. Actual dynamic vote generation,
 vacancy calendar, constitutional adjudication and roster succession remain
 open. See WORLD_POLITICS_PRESIDENCY.md.
+
+
+## WP39 constitutional revision candidate
+
+Opt-in Article 89 pilot, reviewed fictional clause catalog, separate certified
+initiative, identical chamber votes, referendum or Congress, suspension guards,
+publication and versioned effective constitutional corpus. Trusted local clerk
+and read/draft API only. Dynamic parliamentary/referendum evidence, full navette
+and rule propagation remain open. See WORLD_POLITICS_REVISION.md.

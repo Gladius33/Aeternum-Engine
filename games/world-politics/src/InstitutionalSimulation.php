@@ -7,6 +7,7 @@ require_once __DIR__.'/InstitutionalRulebook.php';
 require_once __DIR__.'/ComparativeGovernment.php';
 require_once __DIR__.'/ElectoralCycle.php';
 require_once __DIR__.'/PoliticalNegotiator.php';
+require_once __DIR__.'/ConstitutionalRevision.php';
 
 /**
  * WP05: small deterministic institution/event aggregate. Illustrates exactly
@@ -50,6 +51,7 @@ final class InstitutionalSimulation
         if (array_key_exists('accountability',$state)) $expected[]='accountability';
         if (array_key_exists('electoral',$state)) $expected[]='electoral';
         if (array_key_exists('political_ai',$state)) $expected[]='political_ai';
+        if (array_key_exists('revision',$state)) $expected[]='revision';
         $keys=array_keys($state);sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
         $self=new self($state['world_id'],$state['country_code'],$state['day']);
@@ -95,6 +97,11 @@ final class InstitutionalSimulation
         if(array_key_exists('political_ai',$state)){
             if(!isset($state['electoral'])||$state['political_ai']!==PoliticalNegotiator::evaluate($state['electoral']))
                 throw new \DomainException('Political AI projection mismatch');
+        }
+        if(array_key_exists('revision',$state)){
+            if(!is_array($state['revision'])||$state['country_code']!=='FR')throw new \DomainException('Invalid revision scope');
+            $r=ConstitutionalRevision::restore($state['revision'])->snapshot();
+            if($r['world_id']!==$state['world_id']||$r['day']!==$state['day'])throw new \DomainException('Revision scope or day mismatch');
         }
         $self->state=$state;
         return $self;
@@ -256,6 +263,29 @@ final class InstitutionalSimulation
         return $result;
     }
 
+    public function enableRevision():void
+    {
+        if($this->state['country_code']!=='FR'||isset($this->state['revision'])||$this->state['events']!==[])
+            throw new \DomainException('Revision must be pinned at bootstrap');
+        $this->state['revision']=(new ConstitutionalRevision($this->state['world_id'],$this->state['day']))->snapshot();
+    }
+    public function revision(string $role,string $action,array $payload,string $commandId):array
+    {
+        self::id($commandId);
+        if(!isset($this->state['revision']))throw new \DomainException('No revision pilot');
+        $r=ConstitutionalRevision::restore($this->state['revision']);
+        if($action==='revision_draft'&&$role==='scenario_revision_author'){
+            self::keys($payload,['template']);
+            if(!is_string($payload['template']))throw new \InvalidArgumentException('Invalid template');
+            $result=['procedure'=>$r->draft($commandId,$payload['template']),'legal_effect'=>false];
+        }elseif($action==='revision_evidence'&&$role==='revision_clerk'){
+            $result=$r->certify($payload);
+        }else throw new \DomainException('Revision action forbidden');
+        $this->state['revision']=$r->snapshot();
+        $this->state['events'][]=['id'=>$commandId,'on'=>$this->state['day'],'kind'=>$action,'actor_role'=>$role,'result'=>$result];
+        return $result;
+    }
+
     /** Advance deterministic game clock, executing only approved due events. */
     public function advanceTo(string $targetDay):array
     {
@@ -318,6 +348,9 @@ final class InstitutionalSimulation
             }
             $el->advance($targetDay);$this->state['electoral']=$el->snapshot();
             if(isset($this->state['political_ai']))$this->state['political_ai']=PoliticalNegotiator::evaluate($this->state['electoral']);
+        }
+        if(isset($this->state['revision'])){
+            $r=ConstitutionalRevision::restore($this->state['revision']);$r->advance($targetDay);$this->state['revision']=$r->snapshot();
         }
         $this->state['day']=$targetDay;
         $this->state['agenda']=$remain;

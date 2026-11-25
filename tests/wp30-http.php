@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===10,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===11,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -215,6 +215,42 @@ ck30($pv['body']['consecutive_terms']===2&&!$pv['body']['eligible_for_re_electio
 ck30(req30('GET',$ps.'/campaign',null,$tb)['body']['status']==='active','WP38 reelected player remains active');
 ck30(req30('POST',$ppath,['winner'=>'campaign-president'],$tb)['status']===404,'WP38 no player ballot submission');
 ck30(req30('GET',$ppath,null,$ta2)['status']===404&&req30('GET',$sr.'/countries/FR/presidency',null,$ta2)['status']===404,'WP38 isolation and legacy compatibility');
+$rv=req30('POST','/worlds',['label'=>'Revision test','scenario'=>'fr-revision-v1'],$tb,['Idempotency-Key'=>'revision-world-001']);
+ck30($rv['status']===201,'WP39 revision world provisioned');
+$rvw=$rv['body']['world_id'];$rvr='/worlds/'.$rvw;$rvp=$rvr.'/countries/FR/constitution';$rvi=$rvr.'/countries/FR/institutions/decisions';
+$rvb=req30('GET',$rvp,null,$tb);
+ck30($rvb['status']===200&&$rvb['body']['revision']['constitution_version']===0,'WP39 initial constitution');
+$draft=['action'=>'revision_draft','payload'=>['template'=>'environment-report']];
+$dh=['If-Match'=>$rvb['etag'],'Idempotency-Key'=>'revision-draft-001'];
+$drf=req30('POST',$rvi,$draft,$tb,$dh);
+ck30($drf['status']===202&&!$drf['body']['legal_effect'],'WP39 player draft only');
+ck30(req30('POST',$rvi,$draft,$tb,$dh)['body']===$drf['body'],'WP39 idempotent draft');
+ck30(req30('POST',$rvi,['action'=>'revision_evidence','payload'=>['evidence_id'=>'fake']],$tb)['status']===404,'WP39 no client certification');
+require_once __DIR__.'/../games/world-politics/src/LocalRevisionClerk.php';
+$rid=$drf['body']['procedure']['id'];$hash=$drf['body']['procedure']['text_sha'];$day='2026-11-25';
+$events=[
+    ['file',['initiative'=>'government_project','sponsor'=>'president','prime_minister_proposal'=>true,'republican_form_preserved'=>true]],
+    ['chamber_vote',['chamber'=>'assembly','text_sha'=>$hash,'yes'=>300,'no'=>250,'abstain'=>20,'blank_invalid'=>0]],
+    ['chamber_vote',['chamber'=>'senate','text_sha'=>$hash,'yes'=>180,'no'=>140,'abstain'=>20,'blank_invalid'=>0]],
+    ['route',['route'=>'congress','presidential_decision'=>true]],
+    ['ratify',['route'=>'congress','text_sha'=>$hash,'yes'=>480,'no'=>320,'abstain'=>40,'blank_invalid'=>0]],
+    ['promulgate',['text_sha'=>$hash,'published_on'=>$day]]
+];
+foreach($events as $n=>[$kind,$data]){
+    $id='revision-proof-'.($n+1);
+    $e=['world_id'=>$rvw,'country'=>'FR','day'=>$day,'evidence_id'=>$id,'revision_id'=>$rid,'kind'=>$kind,'procedure_certified'=>true,'data'=>$data];
+    $store=new \Aeternum\WorldPolitics\PdoInstitutionalStore($pdo,new \Aeternum\WorldPolitics\LocalRevisionClerk($e));
+    $state=$store->read($rvw,'FR');
+    $result=$store->decide($rvw,'FR','revision_evidence',['evidence_id'=>$id],'revision-key-'.($n+1),$state['etag']);
+    ck30($result['status']===202,'WP39 trusted clerk durable event '.$kind);
+}
+$rve=req30('GET',$rvp,null,$tb);
+ck30($rve['body']['revision']['constitution_version']===1&&$rve['body']['revision']['effective_clauses']['fictional-89-a']['text_sha']===$hash,'WP39 effective constitutional text persisted');
+$cc39=req30('GET',$rvr.'/clock',null,$tb);
+$tt39=req30('POST',$rvr.'/clock/advances',['target_day'=>'2026-11-26'],$tb,['If-Match'=>$cc39['etag'],'Idempotency-Key'=>'revision-tick-001']);
+ck30($tt39['status']===200&&$tt39['body']['coherent']===true,'WP39 synchronized constitutional clock');
+ck30(req30('GET',$rvp,null,$tb)['body']['revision']['day']==='2026-11-26','WP39 revision date advanced');
+ck30(req30('GET',$rvp,null,$ta2)['status']===404&&req30('GET',$ps.'/countries/FR/constitution',null,$tb)['status']===404,'WP39 membership and previous scenarios');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

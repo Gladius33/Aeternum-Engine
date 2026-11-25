@@ -7,7 +7,7 @@ require_once __DIR__.'/AlphaWorlds.php';
 final class AlphaPrincipal implements InstitutionalActorAuthorizer,EconomicPolicyPrincipal
 {
     public function __construct(private readonly AlphaSession $session,private readonly string $world,
-        private readonly bool $scheduler=false,private readonly array $countries=['FR'],private readonly bool $electoral=false) {}
+        private readonly bool $scheduler=false,private readonly array $countries=['FR'],private readonly bool $electoral=false,private readonly bool $revision=false) {}
     public function actorId():string {return $this->scheduler?'alpha-clock-'.$this->world:$this->session->id;}
     public function allows(string $world,string $actor,string $ability):bool
     {
@@ -21,6 +21,7 @@ final class AlphaPrincipal implements InstitutionalActorAuthorizer,EconomicPolic
         }
         if ($actor!=='FR' && in_array($actor,$this->countries,true)) return $ability==='read_institutions';
         if ($actor==='FR') {
+            if($this->revision&&$role==='owner'&&$ability==='revision_draft')return true;
             if($this->electoral&&$role==='owner'&&$ability==='electoral_coalition')return true;
             return in_array($ability,['read','read_institutions'],true)
                 || ($role==='owner' && in_array($ability,['create_fictional_person','initialize_scenario'],true));
@@ -29,6 +30,7 @@ final class AlphaPrincipal implements InstitutionalActorAuthorizer,EconomicPolic
         return $role==='owner' && $actor==='state_fr' && in_array($ability,['diplomacy.propose','diplomacy.respond'],true);
     }
     public function roleFor(string $world,string $country,string $action):string {
+        if($this->revision&&!$this->scheduler&&$country==='FR'&&$action==='revision_draft'&&$this->allows($world,$country,$action))return 'scenario_revision_author';
         if($this->electoral&&!$this->scheduler&&$country==='FR'&&$action==='electoral_coalition'&&$this->allows($world,$country,$action))return 'scenario_negotiator';
         throw new \DomainException('No legal office delegated');
     }
