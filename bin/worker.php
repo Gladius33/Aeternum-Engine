@@ -9,7 +9,8 @@ try {
     if ($argc!==3 || !preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$world)) {
         throw new InvalidArgumentException('Usage: php bin/worker.php PACK WORLD');
     }
-    $pack=ConfiguredWorlds::load()[$world]??null;
+    $runtime=WorldRuntime::load();
+    $pack=$runtime->packs[$world]??null;
     if ($pack===null || $pack->id!==$id) throw new InvalidArgumentException('Unapproved pack/world pair');
     $dsn=getenv('AETERNUM_DSN');
     if (!$dsn) throw new RuntimeException('Missing database configuration');
