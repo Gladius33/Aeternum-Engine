@@ -2,8 +2,7 @@
 
 **Portée** : jalons G02 et G03 de [ROADMAP.md](../ROADMAP.md), macro
 M04 du plan [M01–M13](MACRO_ROADMAP_V1.md).
-Cette recette **n'est pas** une validation de la V1.0 ni une recette
-d'hébergement O2Switch/VPS.
+Cette recette documente les critères d'acceptation M04.
 
 ## Parcours fonctionnels
 
@@ -47,6 +46,6 @@ exécution en production. **Aucune migration ni installation sur un
 hébergement réel n'est effectuée dans cette macro**.
 
 Des essais de charge longs, des tests de panne sur infrastructure réelle,
-un déploiement O2Switch/VPS et une recette complète des jeux médiéval et
+un déploiement mutualisé/VPS et une recette complète des jeux médiéval et
 industriel appartiennent aux jalons M05–M13. Ils restent ouverts pour la
 V1.0 et ne doivent pas être décrits comme accomplis par la CI M04 seule.
