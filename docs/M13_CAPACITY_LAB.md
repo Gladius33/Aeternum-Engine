@@ -58,7 +58,7 @@ une CI sur un nouveau SHA doit être contrôlée séparément.
   reprises idempotentes, cohérence des écritures et grand livre).
 - Seuils d'acceptation définis **avant** l'essai et validés dans
   l'environnement autorisé cible ; incident/retour arrière prévus.
-- Revue du dimensionnement propre à O2Switch et au VPS, non déductible
+- Revue du dimensionnement propre à l'hébergement mutualisé et au VPS, non déductible
   du matériel GitHub Actions.
 
 La case `load_limits` de
