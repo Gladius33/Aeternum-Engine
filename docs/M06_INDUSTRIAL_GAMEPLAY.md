@@ -85,8 +85,7 @@ TABLE` peut reconstruire un grand tableau InnoDB et mobiliser des verrous.
    sauvegarde sur la copie : ne jamais tenter de supprimer les valeurs
    d'ENUM sur une table recevant déjà des écritures industrielles.
 5. Ne procéder sur le serveur réel qu'après validation humaine du plan,
-   des sauvegardes et de l'environnement. Aucune migration réelle sur
-   O2Switch/VPS, publication ni paiement n'a été fait dans M06.
+   des sauvegardes et de l'environnement. 
 
 ## Réserves
 

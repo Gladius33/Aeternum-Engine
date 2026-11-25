@@ -1,5 +1,7 @@
 # Aeternum Engine — V1.0 : 13 macro-itérations (M01–M13)
 
+**Plan actif :** [F01–F07](FINALIZATION_ROADMAP.md). Ce document conserve le périmètre historique.
+
 **Base vérifiée :** `main` au commit `c711a6efc4a9b8672b2d25c5661ec56e4011bf4a`, après l'itération historique 0039. **Périmètre normatif :** les neuf jalons G01–G09 de [ROADMAP.md](../ROADMAP.md) ; aucun n'est déclaré intégralement validé à cette date. Ce plan regroupe le travail restant sans supprimer les exigences initiales.
 
 ## Mode d'exécution demandé par le propriétaire
@@ -73,7 +75,7 @@
 ### M11 — Exploitation, observabilité et restauration (G08)
 - Installation et mises à jour MariaDB contrôlées, sauvegardes cohérentes/restauration répétée, tests de crash/roulement d'horloge, permissions minimales.
 - Worker/CRON, rétention, logs structurés, métriques, alertes, commandes de diagnostic, secrets et configuration robuste.
-- Guides et procédures distinctes mutualisé compatible O2Switch et VPS ; empaquetage déployable sans dépendance au navigateur de CI.
+- Guides et procédures distinctes pour hébergement mutualisé et serveur dédié ; empaquetage déployable sans dépendance au navigateur de CI.
 - **Sortie :** installation depuis zéro, mise à niveau sur un monde existant et restauration documentées **et exécutées en labo**, avec preuves conservées.
 
 ### M12 — Sécurité, résilience et capacité (G01–G09)

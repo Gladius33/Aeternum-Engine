@@ -227,7 +227,5 @@ multi-ressources, exécutent un worker et observent séparément
 l'évolution de leurs entités. Les tests PHP/MariaDB et Chromium doivent
 être **entièrement verts sur le SHA exact** avant fusion.
 
-Une validation sur un hébergement O2Switch/VPS et sur une **copie des
-données persistantes réelles** reste à organiser avant déploiement.
-Ce point ne peut être présenté comme exécuté. Le périmètre de la V1.0
+Prévoir une recette d'installation et de migration sur une copie isolée des données persistantes. Le périmètre de la V1.0
 demeure celui des neuf jalons de ROADMAP.md, sans raccourci.

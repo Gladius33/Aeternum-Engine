@@ -1,5 +1,7 @@
 # M13 — Qualification et recette V1.0 (en cours)
 
+Le [plan F01–F07](FINALIZATION_ROADMAP.md) centralise les travaux de développement.
+
 **Base de M13 :** `main` au SHA `b9b7c2ca878d4b8b785753b4d9e691d29ca8fabd` (PR #52 fusionnée).
 Les cinq CI de PR ont réussi sur `a8de29fb5bf98b76cbbeb8202a2c6dc03203ea35`.
 La CI après fusion est un contrôle distinct.
@@ -27,7 +29,7 @@ des fonctionnalités ni les tests intermédiaires déjà exécutés.
 
 ## Politique « aucune release implicite »
 
-- CI PHP 8.4, MariaDB, M10, M11, Chromium, audit M12 et M13 sur SHA exact,
+- CI Dix workflows requis (PHP, MariaDB, Chromium, G08, M10–M16) sur SHA exact,
   puis contrôle `main` post-fusion.
 - Corriger toute vulnérabilité critique ou haute connue ; établir la portée
   et les limites de l'audit auth, CSRF, CSP, sessions, contenus et marché.
@@ -36,8 +38,7 @@ des fonctionnalités ni les tests intermédiaires déjà exécutés.
 - Exécuter la restauration et l'upgrade d'une base de recette peuplée.
 - Faire jouer deux parties complètes avec acteurs indépendants et rejets
   intermondes depuis la véritable interface navigateur.
-- Staging uniquement sur environnement **explicitement autorisé** ; aucun
-  hébergement O2Switch/VPS n'est réputé testé à ce jour.
+- Recette d'installation sur environnement explicitement autorisé, selon le protocole opérateur.
 - Vérifier licence et attribution ; approbation opérateur liée au SHA du
   candidat. Aucun vrai paiement ni publication sans autorisation.
 

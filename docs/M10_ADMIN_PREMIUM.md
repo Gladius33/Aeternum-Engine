@@ -170,9 +170,7 @@ avant une fusion.
 M10 ne peut être déclarée complète que lorsque la CI PHP 8.4,
 MariaDB/dump/restauration et Chromium est verte sur le MÊME SHA,
 et que les permissions minimales, le comportement en échec et la
-suffisance des outils de gestion sont qualifiés. L'authentification
-forte des opérateurs dépend de la configuration de l'hôte et n'a
-pas été éprouvée sur O2Switch ou VPS. Aucune communication à un PSP
+suffisance des outils de gestion sont qualifiés. L'authentification forte des opérateurs dépend de la configuration de l'hôte. Aucune communication à un PSP
 réel n'a été exécutée ni demandée.
 
 Une PR ouverte n'est pas une macro terminée. Maintenir la PR #50
