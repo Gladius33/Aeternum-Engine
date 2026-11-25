@@ -45,7 +45,17 @@ final readonly class GamePack
      */
     public function rules(array $trustedCommands=[],array $trustedEvents=[]): RuleSet
     {
-        $extensions=$trustedCommands===[]?null:new TrustedPackCommands($trustedCommands,$this->actions);
+        // An opt-in private command may only schedule declared, reviewed
+        // private events. Legacy handlers retain their existing contract.
+        $approvedEvents=[];
+        foreach ($trustedEvents as $handler) {
+            if (!$handler instanceof ApprovedPackEvent) throw new \InvalidArgumentException('Unapproved event handler');
+            foreach ($handler->supportedTypes() as $type) {
+                if (!is_string($type) || isset($approvedEvents[$type])) throw new \InvalidArgumentException('Duplicate approved event');
+                $approvedEvents[$type]=$handler;
+            }
+        }
+        $extensions=$trustedCommands===[]?null:new TrustedPackCommands($trustedCommands,$this->actions,$this->eventHooks,$approvedEvents);
         $rulesDigest=$extensions===null?$this->digest:hash('sha256',
             "aeternum-trusted-pack-commands-v1\0".$this->digest."\0".$extensions->fingerprint());
         $economy=new EconomyCommandHandler($this->resources,$this->upgrades,$this->buildings,$this->settlement,$this->industry,$extensions,$this->progression,$this->engagement);

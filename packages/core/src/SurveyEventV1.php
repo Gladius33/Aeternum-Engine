@@ -3,8 +3,9 @@ declare(strict_types=1);
 namespace Aeternum\Core;
 
 /** Explicit event adapter for the reviewed survey transition. */
-final readonly class SurveyEventV1 implements ApprovedPackEvent
+final readonly class SurveyEventV1 implements ApprovedPackEvent, PrivatePackEffects
 {
+    public function stateNamespace(): string {return 'survey';}
     public function supportedTypes(): array {return ['pack.survey.complete'];}
     public function codeDigest(): string
     {

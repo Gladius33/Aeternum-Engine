@@ -7,7 +7,7 @@ namespace Aeternum\Core;
  * A single pending job per account; no economy writes or foreign effects.
  * This class deliberately has no IO, wall clock, randomness or PDO.
  */
-final class SurveyModuleV1 implements ActorPackCommand
+final class SurveyModuleV1 implements ActorPackCommand, PrivatePackEffects
 {
     public function supportedTypes(): array
     {
@@ -18,6 +18,8 @@ final class SurveyModuleV1 implements ActorPackCommand
     {
         return hash_file('sha256',__FILE__)?:throw new \RuntimeException('Survey digest unavailable');
     }
+
+    public function stateNamespace(): string {return 'survey';}
 
     public function ownedAccountFields(string $type): array {return ['account'];}
 

@@ -28,7 +28,7 @@ final class TrustedPackCommands
      * @param list<ApprovedPackCommand> $handlers
      * @param array<string,PackFields> $declaredActions
      */
-    public function __construct(array $handlers,array $declaredActions)
+    public function __construct(array $handlers,array $declaredActions,private readonly array $declaredHooks=[],private readonly array $approvedEvents=[])
     {
         if (!array_is_list($handlers) || $handlers===[] || count($handlers)>16) {
             throw new \InvalidArgumentException('Invalid trusted handler list');
@@ -156,6 +156,13 @@ final class TrustedPackCommands
         // Normal pinned scheduler, receipts and replay remain authoritative.
         // This method is NOT an actor-authorization shortcut.
         $result=$handler->apply($command,$state,$effectiveAt);
+        if ($handler instanceof PrivatePackEffects) {
+            $accounts=$this->actorOwnedAccounts($command);
+            if ($accounts===null) throw new \DomainException('Private module requires owned accounts');
+            PrivatePackEffectGuard::state($handler,$accounts,$state,$result->state,$result->movements);
+            PrivatePackEffectGuard::events($handler,$command,$effectiveAt,$accounts,$result->events,
+                $this->declaredHooks,$this->approvedEvents);
+        }
         // No delayed effects can evade due-time re-evaluation of protection.
         // Such commands require a separately audited event admission hook.
         if (isset($this->engagementTargets[$command->type]) && $result->events!==[]) {

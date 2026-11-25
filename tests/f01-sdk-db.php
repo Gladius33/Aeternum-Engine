@@ -36,6 +36,30 @@ use Aeternum\Core\{GamePackLoader,PackDevelopment,WorldModuleRegistry,PdoOnboard
     check(($state['pack:survey:'.$a.':completed']??null)===1 && !isset($state['pack:survey:'.$b.':completed']),
         'F01 committed result is isolated to the originating account');
     check($scheduler->verifyReplay($rules->commands,$rules->events)->entries===4,'F01 independent module replays two provisions, one command and one event');
+    // Four independent PHP processes contend for the next survey slot.
+    $children=[];
+    for ($i=0;$i<4;$i++) {
+        $process=proc_open([PHP_BINARY,__DIR__.'/f01-survey-worker.php',$a,(string)$i],
+            [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+        if (!is_resource($process)) throw new RuntimeException('Cannot start F01 race worker');
+        fclose($pipes[0]);$children[]=[$process,$pipes];
+    }
+    $won=0;$denied=0;
+    foreach ($children as [$process,$pipes]) {
+        $out=trim(stream_get_contents($pipes[1]));$err=trim(stream_get_contents($pipes[2]));
+        fclose($pipes[1]);fclose($pipes[2]);$exit=proc_close($process);
+        if ($exit!==0) throw new RuntimeException('F01 race worker failed: '.$err);
+        if ($out==='won') $won++;
+        elseif ($out==='denied') $denied++;
+        else throw new RuntimeException('Unexpected F01 race output');
+    }
+    check($won===1 && $denied===3 && $scheduler->pendingCount()===1,
+        'F01 four independent writers share exactly one private pending slot');
+    $clock->advanceTo(19220);
+    check(count($worker->run($world,$pack,10,1000,$rules))===1
+        && ($scheduler->state()['pack:survey:'.$a.':completed']??null)===2
+        && $scheduler->verifyReplay($rules->commands,$rules->events)->entries===6,
+        'F01 concurrent command and completion replay without duplicate effects');
     $wrong=new PdoScheduler($pdo,$world,$clock,$pack->rules());
     rejects(fn()=> $wrong->state(),DomainException::class,'F01 changed rules cannot reopen the historical world');
 })();
