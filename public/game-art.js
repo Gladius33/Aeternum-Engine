@@ -274,7 +274,7 @@
         }else{
             if(architecturalTypes.includes(type))architecture(a,type,level);
             else house(a,0,0,p[4],p[3],40,28);
-            if(level>1){rect(a,31,-45,18,18,'#1a3034',{rx:3,stroke:'#e9cb86'});el('text',{x:40,y:-33,'text-anchor':'middle',fill:'#ffe3a4','font-size':10},a,String(level));}
+            if(level>1){const levelBadge=el('g',{class:'scene-level-badge','aria-hidden':'true'},a);rect(levelBadge,31,-45,18,18,'#1a3034',{rx:3,stroke:'#e9cb86'});el('text',{x:40,y:-33,'text-anchor':'middle',fill:'#ffe3a4','font-size':10},levelBadge,String(level));}
         }
         if(verified&&level>0&&!pending){
             // A level marker is a readout, not a simulation event.

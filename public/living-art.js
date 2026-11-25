@@ -551,5 +551,21 @@
         }
         return true;
     }
-    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,economicJournal,operationScene,cargo,marketHall,exchangeTerms,campaignChapters,chapterLandscape,terrainFinish,version:7});
+    // A small, theme-specific compound-path verge. Decorative only;
+    // no new roads, territory ownership, production or physical logistics.
+    function roadVerge(parent,theme,w,y,mobile){
+        if(!['medieval','industrial','guild'].includes(theme)||!Number.isFinite(w)||!Number.isFinite(y))return false;
+        const g=group(parent,0,0,1,{'data-road-verge':theme,'aria-hidden':'true','pointer-events':'none'});
+        const edge=mobile?14:23;let marks='',shadow='';
+        for(let i=0;i<18;i++){
+            const x=Math.round(w*(.07+i*.05)),side=i%2?1:-1,yy=Math.round(y+side*edge+5);
+            if(theme==='medieval'){marks+='M'+x+' '+yy+'l-3 -6m3 6v-8m0 8l4 -4 ';shadow+='M'+(x-5)+' '+(yy+2)+'h10 ';}
+            else if(theme==='industrial'){marks+='M'+x+' '+yy+'l6 -2 5 2 -6 2Z ';shadow+='M'+(x-3)+' '+(yy+4)+'h13 ';}
+            else {marks+='M'+x+' '+yy+'q4 -4 9 -1 ';shadow+='M'+(x-3)+' '+(yy+3)+'q7 -2 14 0 ';}
+        }
+        p(g,shadow,'none',theme==='medieval'?'#4b633a':theme==='industrial'?'#3e4d55':'#9c7546',1.4).setAttribute('opacity',.55);
+        p(g,marks,'none',theme==='medieval'?'#d6d49a':theme==='industrial'?'#d3d9cf':'#f1d4a1',1.2).setAttribute('opacity',.75);
+        return true;
+    }
+    window.AeternumLivingArt=Object.freeze({roadVerge,site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,economicJournal,operationScene,cargo,marketHall,exchangeTerms,campaignChapters,chapterLandscape,terrainFinish,version:8});
 })();

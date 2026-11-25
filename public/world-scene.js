@@ -1039,11 +1039,12 @@
             card.addEventListener('click',()=>{if(!busy){chosenType=type.id;renderWorkspace();}});
         }
         place.textContent=t('place');place.hidden=!chosenSite||!chosenType||!catalogue.types.some(x=>x.id===chosenType);
+        const campaignFocus=window.AeternumGameUI.focusKey(objectiveBlock.body,['data-campaign-refresh','data-module-refresh','data-module-action','data-module-target','data-module-targets','data-chapter-action','data-campaign-rank-load']);
         objectiveBlock.body.replaceChildren();
         objectiveBlock.root.hidden=theme==='neutral'||(classic&&theme==='guild');
         if(!classic&&theme!=='neutral')renderChronicle();
         if(!campaign||!['medieval','industrial'].includes(campaign.kind)){if(classic)html('p',objectiveBlock.body,'scene-caption',t('unknownReading'));}
-        else {
+        else if(classic) {
             const data=campaign.data;
             const rows=Object.entries(data.victory.buildings).map(([name,v])=>[name,v.current,v.required]);
             if(campaign.kind==='medieval')rows.push([t('residents'),data.population,data.victory.populationRequired]);
@@ -1056,6 +1057,7 @@
             }
             if(data.victory.achieved)html('p',objectiveBlock.body,'scene-victory',t('achieved'));
         }
+        window.AeternumGameUI.restoreFocus(objectiveBlock.body,campaignFocus);
         tradeBlock.root.hidden=theme==='neutral';refreshTradeComposer();renderCommerce();
         tradeList.replaceChildren();
         if(!offers.length)html('p',tradeList,'scene-caption',t('noOffers'));
@@ -1204,6 +1206,7 @@
         districtSvg.setAttribute('aria-label',t('districtTitle'));
         const signature=[locationFields().world,locationFields().account,theme,lang(),lighting,w,h,districtId,districtPage,Boolean(selectedGame),classic,[...territories.values()],[...buildings.values()].map(stageSignature),catalogue.sites,campaign,marketReading,lastEconomicEvent?.type,receipts[0]?.type];
         districtGate.run(signature,()=>{
+        const previousFocus=window.AeternumGameUI.focusKey(districtSvg,['data-district-building','data-district-site']);
         districtSvg.replaceChildren();ground(districtSvg,w,h);
         if(!classic)window.AeternumLivingArt.atmosphereDepth(districtSvg,theme,lighting,w,h);
         const n=territories.get(districtId),p=palettes[theme];
@@ -1230,13 +1233,14 @@
                 path(approach,d,'none',{stroke:edge,'stroke-width':mobile?24:39,'stroke-linecap':'round','stroke-opacity':.8});
                 path(approach,d,'none',{stroke:road,'stroke-width':mobile?19:32,'stroke-linecap':'round'});
                 if(theme==='industrial')path(approach,d,'none',{stroke:'#e9c77c','stroke-width':1.5,'stroke-dasharray':'8 8'});
+                if(!classic)window.AeternumLivingArt.roadVerge(approach,theme,w,yy,mobile);
             }
         }
         visible.forEach((b,i)=>{
             const row=Math.floor(i/cols),col=i%cols;
             const x=w/2+(col-(Math.min(cols,visible.length-row*cols)-1)/2)*spacing,y=h*(rows===1?.57:.43)+row*(h*.30/Math.max(1,rows-1));
             const d=details.get(b.id),scale=mobile?(visible.length===1?1.85:1.28):(visible.length===1?2.55:1.85);
-            const plot=el('g',{transform:'translate('+x+' '+y+')',class:'district-building',tabindex:0,role:'button','aria-label':buildingName(b),'aria-pressed':'false','data-district-building':b.id,'data-district-level':d?.level??'unknown'},districtSvg);
+            const plot=el('g',{transform:'translate('+x+' '+y+')',class:'district-building',tabindex:0,role:'button','aria-label':buildingName(b)+' · '+(d?t('level')+' '+d.level+' · '+t(d.pending?'pending':d.level===0?'foundation':'ready'):t('planned')),'aria-pressed':'false','data-district-building':b.id,'data-district-level':d?.level??'unknown'},districtSvg);
             const hit=rect(plot,-spacing*.42,-spacing*.43,spacing*.84,spacing*.69,'transparent',{rx:12,class:'architectural-plot-hit'});
             hit.setAttribute('aria-hidden','true');
             ellipse(plot,spacing*.055,spacing*.065,spacing*.44,spacing*.17,'#14252255');
@@ -1246,7 +1250,7 @@
             const art=el('g',{transform:'scale('+scale+')',class:'ambience-lit-model'},plot);model(art,b.type,d);
             // Signal only authoritative building stages, with distinct silhouettes
             // and an animated pending ring that does not imply completion.
-            const marker=el('g',{transform:'translate('+(-spacing*.34)+' '+(-spacing*.32)+')','aria-hidden':'true','pointer-events':'none',class:'district-stage-marker','data-stage':!d?'unknown':d.pending?'pending':d.level>0?'built':'foundation'},plot);
+            const marker=el('g',{transform:'translate('+(-spacing*.32)+' '+(spacing*.23+15)+') scale(.69)','aria-hidden':'true','pointer-events':'none',class:'district-stage-marker','data-stage':!d?'unknown':d.pending?'pending':d.level>0?'built':'foundation'},plot);
             ellipse(marker,0,2,14,13,'#101b24e8',{stroke:'#d5c89f','stroke-width':1.2});
             if(d?.pending){
                 const ring=ellipse(marker,0,2,10,9,'none',{stroke:'#ffd081','stroke-width':2,'stroke-dasharray':'9 5'});ring.setAttribute('class','district-pending-ring');
@@ -1290,8 +1294,11 @@
                 model(annex,b.type,{level:1,pending:null});
             }
             rect(plot,-spacing*.41,spacing*.23,spacing*.82,36,'#14232bea',{rx:8,stroke:p[2]});
-            el('text',{x:0,y:spacing*.23+14,'text-anchor':'middle',class:'district-label'},plot,buildingName(b));
-            el('text',{x:0,y:spacing*.23+27,'text-anchor':'middle',class:'district-subheading'},plot,d?t('level')+' '+d.level+' · '+t(d.pending?'pending':d.level===0?'foundation':'ready'):t('planned'));
+            el('text',{x:spacing*.055,y:spacing*.23+14,'text-anchor':'middle',class:'district-label'},plot,buildingName(b));
+            el('text',{x:spacing*.055,y:spacing*.23+27,'text-anchor':'middle',class:'district-subheading'},plot,d?t('level')+' '+d.level+' · '+t(d.pending?'pending':d.level===0?'foundation':'ready'):t('planned'));
+            // Place one stage marker in the caption, above its background.
+            // Full-size architecture retains its own level badges elsewhere.
+            plot.append(marker);
             el('title',{},plot,buildingName(b));
             const choose=()=>select('building',b.id);
             plot.addEventListener('click',choose);plot.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}});
@@ -1337,6 +1344,7 @@
             rect(notification,12,h-44,w-24,32,'#172b24ed',{rx:6,stroke:'#9eb887'});
             el('text',{x:24,y:h-24,class:'district-label'},notification,'✓ '+label);
         }
+        window.AeternumGameUI.restoreFocus(districtSvg,previousFocus);
         });renderCounts(districtSvg,districtGate);updateSelection();
     }
     function tile(g,x,y,territory,index){
@@ -1750,11 +1758,26 @@
     if(!classic)revealPanel('domain');
     const legacyLink=html('button',ui.root,'scene-button game-ui-diagnostic',lang()==='fr'?'Commandes détaillées':'Detailed controls');legacyLink.type='button';
     legacyLink.addEventListener('click',()=>{legacy.open=!legacy.open;if(legacy.open)legacy.scrollIntoView({block:'start'});});
+    const retryNotice=html('div',ui.root,'game-ui-retry');retryNotice.hidden=true;
+    retryNotice.setAttribute('role','status');
+    const retryText=html('p',retryNotice,'');
+    const retryAction=html('button',retryNotice,'scene-button');retryAction.type='button';retryAction.dataset.gameRetry='true';
+    retryAction.addEventListener('click',()=>{if(!busy)document.getElementById('retry-command').click();});
+    let retryPending=false;
+    function renderRetry(){
+        retryNotice.hidden=classic||!retryPending||!locationFields().world;
+        retryText.textContent=lang()==='fr'?'Action sans confirmation. Réessayez avec le même identifiant ; ne créez pas une nouvelle action.':'Action not confirmed. Retry with the same identifier; do not create a new action.';
+        retryAction.textContent=lang()==='fr'?'Réessayer l’action enregistrée':'Retry saved action';
+        retryAction.disabled=busy;
+    }
+    on('retry',d=>{retryPending=d.pending===true;renderRetry();});
+    on('activity',renderRetry);
+    on('reset',()=>{retryPending=false;renderRetry();});
     const exit=html('button',contextControls,'scene-button',lang()==='fr'?'Déconnexion':'Sign out');exit.type='button';exit.dataset.gameExit='true';exit.addEventListener('click',()=>document.getElementById('logout').click());
     // The original sign-out label is retained in classic mode for existing accessible controls.
     exit.hidden=classic;
     function refreshShell(){
-        ui.update(window.AeternumUIProfiles[theme],lang());syncMirrors();
+        ui.update(window.AeternumUIProfiles[theme],lang());syncMirrors();renderRetry();
         for(const button of host.querySelectorAll('[data-game-nav]'))button.setAttribute('aria-pressed',String(button.dataset.gameNav===host.dataset.workspace));
         const detailLabel=lang()==='fr'?'Commandes détaillées':'Detailed controls';
         legacySummary.textContent=detailLabel;legacyLink.textContent=detailLabel;
@@ -1768,8 +1791,8 @@
         if(d.busy){ui.setStatus(lang()==='fr'?'Synchronisation…':'Synchronizing…');return;}
         const ok=document.getElementById('status').textContent==='Success';
         const message=document.getElementById('status').textContent;
-        const friendly=message==='command_or_access_conflict'?(lang()==='fr'?'Action refusée. Vérifiez les ressources et les prérequis, puis réessayez.':'Action refused. Check your resources and prerequisites, then try again.'):message;
-        ui.setStatus(ok?'':(lang()==='fr'?'Action non terminée : ':'Action not completed: ')+friendly);
+        const friendly=window.AeternumGameUI.feedback(lang(),message);
+        ui.setStatus(ok?'':friendly);
         if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
     on('reset',()=>{resetTutorial();audio.reset();soundSeen.clear();soundVictory=false;initialLoad=false;lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;livingScene.hidden=true;ui.setStatus('');});

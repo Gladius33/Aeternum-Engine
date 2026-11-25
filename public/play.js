@@ -10,8 +10,16 @@ async function api(path, method='GET', data) {
     let response,result;
     const body=data===undefined?undefined:JSON.stringify(data);
     for(let attempt=0;attempt<4;attempt++){
-        response=await fetch(path,{method,headers,body,cache:'no-store',redirect:'error',credentials:'omit'});
-        result=await response.json();
+        try {
+            response=await fetch(path,{method,headers,body,cache:'no-store',redirect:'error',credentials:'omit'});
+        } catch {
+            // The server may have committed a mutation. Keep the original
+            // pending command in memory; never invent a second request ID.
+            throw new Error('network_unavailable');
+        }
+        try{result=await response.json();}catch{throw new Error('invalid_response');}
+        if(!result||typeof result!=='object'||Array.isArray(result)||response.ok&&!Object.hasOwn(result,'data'))
+            throw new Error('invalid_response');
         // Only read requests and the durable economy command route can
         // automatically retry transient database failures. Authentication,
         // recovery and other mutations need explicit user reconciliation.
