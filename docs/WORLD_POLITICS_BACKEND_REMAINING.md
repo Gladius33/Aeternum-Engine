@@ -269,3 +269,12 @@ initiative, identical chamber votes, referendum or Congress, suspension guards,
 publication and versioned effective constitutional corpus. Trusted local clerk
 and read/draft API only. Dynamic parliamentary/referendum evidence, full navette
 and rule propagation remain open. See WORLD_POLITICS_REVISION.md.
+
+
+## WP40 ordinary legislation candidate
+
+Reviewed ordinary bill text versions, alternate chamber readings, CMP and
+last word, constitutional review, promulgation and publication, verified
+bridge to domestic enactment. Local certified evidence and operator apply;
+full amendment tree, autonomous votes, 49(3) and all bill classes remain open.
+See WORLD_POLITICS_LEGISLATION.md.

@@ -70,7 +70,9 @@ final class AlphaGateway
                     ['id'=>AlphaScenario::PRESIDENTIAL,'start_day'=>GlobalReferenceBundle::DATE,'campaign'=>CampaignLifecycle::VERSION,
                     'presidential_calendar'=>PresidentialMandate::VERSION,'electoral_data'=>'fictional_scenario','reference_sha'=>$base->sha()],
                     ['id'=>AlphaScenario::REVISION,'start_day'=>GlobalReferenceBundle::DATE,'campaign'=>CampaignLifecycle::VERSION,
-                    'constitutional_revision'=>ConstitutionalRevision::VERSION,'reference_sha'=>$base->sha()]]]);
+                    'constitutional_revision'=>ConstitutionalRevision::VERSION,'reference_sha'=>$base->sha()],
+                    ['id'=>AlphaScenario::LEGISLATIVE,'start_day'=>GlobalReferenceBundle::DATE,'campaign'=>CampaignLifecycle::VERSION,
+                    'legislation'=>BicameralLegislation::VERSION,'reference_sha'=>$base->sha()]]]);
             }
             $worlds=new AlphaWorlds($this->db(),$scenario);
             if ($path==='/api/v1/worlds') {
@@ -78,7 +80,7 @@ final class AlphaGateway
                 if ($method==='POST') {
                     $key=$h['idempotency-key']??'';
                     if ($key==='') throw new AlphaHttpError(428,'precondition_required');
-                    if (in_array($body['scenario']??null,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION],true)) {
+                    if (in_array($body['scenario']??null,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true)) {
                         $sha=$body['reference_bundle_sha']??null;
                         if (array_key_exists('reference_bundle_sha',$body) && (!is_string($sha)||!preg_match('/^[a-f0-9]{64}$/D',$sha)))
                             throw new AlphaHttpError(422,'invalid_reference_bundle');
@@ -99,7 +101,7 @@ final class AlphaGateway
             $q=$this->db()->prepare('SELECT scenario,reference_bundle_sha FROM wp_alpha_worlds WHERE world_id=?');
             $q->execute([$world]);$definition=$q->fetch(\PDO::FETCH_ASSOC);
             if ($definition===false) throw new AlphaHttpError(404,'not_found');
-            if (in_array($definition['scenario'],[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION],true)) {
+            if (in_array($definition['scenario'],[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true)) {
                 $sha=$definition['reference_bundle_sha'];
                 $bundle=$sha===null?new GlobalReferenceBundle():(new PdoGlobalReferenceBundles($this->db()))->load($sha);
                 $scenario=new AlphaScenario($definition['scenario'],$bundle,$sha);
@@ -113,12 +115,12 @@ final class AlphaGateway
                         'countries'=>$bundle->countries->all()]);
                 }
             } elseif ($definition['scenario']!==AlphaScenario::ID) throw new \UnexpectedValueException('Unknown saved scenario');
-            $principal=new AlphaPrincipal($session,$world,false,$scenario->countries,in_array($scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION],true),$scenario->id===AlphaScenario::REVISION);
+            $principal=new AlphaPrincipal($session,$world,false,$scenario->countries,in_array($scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true),in_array($scenario->id,[AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true),$scenario->id===AlphaScenario::LEGISLATIVE);
             $service=new AlphaPrincipal($session,$world,true,$scenario->countries);
             if ($suffix==='/clock' || $suffix==='/clock/advances') {
                 $dom=new PdoDomesticPolicyStore($this->db(),new AlphaDomesticPrincipal($session,$world,$this->db(),true));
                 $inst=new PdoInstitutionalStore($this->db(),$service);
-                $opinion=in_array($scenario->id,[AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION],true)?new PdoPublicOpinionStore($this->db(),$service,$dom,$inst):null;
+                $opinion=in_array($scenario->id,[AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true)?new PdoPublicOpinionStore($this->db(),$service,$dom,$inst):null;
                 $clock=new WorldClockCoordinator($this->db(),
                     new PdoOrganizationStore($this->db(),$scenario->actors,$scenario->charters,$service),
                     new PdoDiplomaticStore($this->db(),$scenario->actors,$service),
@@ -132,10 +134,10 @@ final class AlphaGateway
             if($current['pending_day']!==null)throw new AlphaHttpError(409,'world_advancing');
             if($method!=='GET'&&(int)$current['game_over']===1)throw new AlphaHttpError(409,'game_over');
             if($method==='GET'&&(
-                ($suffix==='/countries/FR/opinion'&&in_array($scenario->id,[AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION],true))
-                ||($suffix==='/countries/FR/dialogue'&&in_array($scenario->id,[AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION],true))
+                ($suffix==='/countries/FR/opinion'&&in_array($scenario->id,[AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true))
+                ||($suffix==='/countries/FR/dialogue'&&in_array($scenario->id,[AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true))
                 ||($suffix==='/campaign'&&$scenario->campaign())
-                ||($suffix==='/countries/FR/presidency'&&in_array($scenario->id,[AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION],true)))){
+                ||($suffix==='/countries/FR/presidency'&&in_array($scenario->id,[AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true)))){
 
                 // Authorize reads with a request-local scheduler identity that
                 // may read, but cannot execute through this GET route.
@@ -166,7 +168,17 @@ final class AlphaGateway
                     throw new AlphaHttpError(422,'server_generated_identity');
                 return (new PdoWorldPoliticsApi(new PdoPoliticalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
             }
-            if($method==='GET'&&$suffix==='/countries/FR/constitution'&&$scenario->id===AlphaScenario::REVISION){
+            if($method==='GET'&&$suffix==='/countries/FR/legislation'&&$scenario->id===AlphaScenario::LEGISLATIVE){
+                $r=(new PdoInstitutionalStore($this->db(),$principal))->read($world,'FR');
+                $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);$c=$q->fetch(\PDO::FETCH_ASSOC);
+                if($c===false||$c['pending_day']!==null||$c['committed_day']!==$r['state']['day'])throw new AlphaHttpError(409,'world_advancing');
+                $response=self::ok(200,['legislation'=>$r['state']['legislation'],'catalog'=>BicameralLegislation::catalog()]);
+                $response['headers']['ETag']=$r['etag'];return $response;
+            }
+            if($method==='POST'&&$scenario->id===AlphaScenario::LEGISLATIVE&&$suffix==='/countries/FR/institutions/decisions'
+                &&($body['action']??null)==='legislation_draft')
+                return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
+            if($method==='GET'&&$suffix==='/countries/FR/constitution'&&in_array($scenario->id,[AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true)){
                 $r=(new PdoInstitutionalStore($this->db(),$principal))->read($world,'FR');
                 $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);
                 $c=$q->fetch(\PDO::FETCH_ASSOC);
@@ -174,10 +186,10 @@ final class AlphaGateway
                 $response=self::ok(200,['revision'=>$r['state']['revision'],'catalog'=>ConstitutionalRevision::catalog()]);
                 $response['headers']['ETag']=$r['etag'];return $response;
             }
-            if($method==='POST'&&$scenario->id===AlphaScenario::REVISION&&$suffix==='/countries/FR/institutions/decisions'
+            if($method==='POST'&&in_array($scenario->id,[AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true)&&$suffix==='/countries/FR/institutions/decisions'
                 &&($body['action']??null)==='revision_draft')
                 return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
-            if($method==='POST'&&in_array($scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION],true)&&$suffix==='/countries/FR/institutions/decisions'
+            if($method==='POST'&&in_array($scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE],true)&&$suffix==='/countries/FR/institutions/decisions'
                 &&($body['action']??null)==='electoral_coalition')
                 return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
             if ($method==='GET' && preg_match('~^/countries/([A-Z]{2})/institutions(?:/rulebook)?$~D',$suffix,$countryMatch)

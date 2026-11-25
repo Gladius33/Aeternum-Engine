@@ -8,6 +8,7 @@ require_once __DIR__.'/ComparativeGovernment.php';
 require_once __DIR__.'/ElectoralCycle.php';
 require_once __DIR__.'/PoliticalNegotiator.php';
 require_once __DIR__.'/ConstitutionalRevision.php';
+require_once __DIR__.'/BicameralLegislation.php';
 
 /**
  * WP05: small deterministic institution/event aggregate. Illustrates exactly
@@ -52,6 +53,7 @@ final class InstitutionalSimulation
         if (array_key_exists('electoral',$state)) $expected[]='electoral';
         if (array_key_exists('political_ai',$state)) $expected[]='political_ai';
         if (array_key_exists('revision',$state)) $expected[]='revision';
+        if (array_key_exists('legislation',$state)) $expected[]='legislation';
         $keys=array_keys($state);sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
         $self=new self($state['world_id'],$state['country_code'],$state['day']);
@@ -102,6 +104,11 @@ final class InstitutionalSimulation
             if(!is_array($state['revision'])||$state['country_code']!=='FR')throw new \DomainException('Invalid revision scope');
             $r=ConstitutionalRevision::restore($state['revision'])->snapshot();
             if($r['world_id']!==$state['world_id']||$r['day']!==$state['day'])throw new \DomainException('Revision scope or day mismatch');
+        }
+        if(array_key_exists('legislation',$state)){
+            if(!is_array($state['legislation'])||$state['country_code']!=='FR')throw new \DomainException('Invalid legislation scope');
+            $l=BicameralLegislation::restore($state['legislation'])->snapshot();
+            if($l['world_id']!==$state['world_id']||$l['day']!==$state['day'])throw new \DomainException('Legislation scope or day mismatch');
         }
         $self->state=$state;
         return $self;
@@ -286,6 +293,27 @@ final class InstitutionalSimulation
         return $result;
     }
 
+    public function enableLegislation():void
+    {
+        if($this->state['country_code']!=='FR'||isset($this->state['legislation'])||$this->state['events']!==[])throw new \DomainException('Legislation must be pinned at bootstrap');
+        $this->state['legislation']=(new BicameralLegislation($this->state['world_id'],$this->state['day']))->snapshot();
+    }
+    public function legislation(string $role,string $action,array $payload,string $commandId):array
+    {
+        self::id($commandId);
+        if(!isset($this->state['legislation']))throw new \DomainException('No legislation pilot');
+        $l=BicameralLegislation::restore($this->state['legislation']);
+        if($action==='legislation_draft'&&$role==='scenario_bill_author'){
+            self::keys($payload,['policy_id']);
+            if(!is_string($payload['policy_id']))throw new \InvalidArgumentException('Invalid policy id');
+            $result=['bill'=>$l->draft($commandId,$payload['policy_id']),'policy_authorized'=>false];
+        }elseif($action==='legislation_evidence'&&$role==='legislation_clerk')$result=$l->certify($payload);
+        else throw new \DomainException('Legislation action forbidden');
+        $this->state['legislation']=$l->snapshot();
+        $this->state['events'][]=['id'=>$commandId,'on'=>$this->state['day'],'kind'=>$action,'actor_role'=>$role,'result'=>$result];
+        return $result;
+    }
+
     /** Advance deterministic game clock, executing only approved due events. */
     public function advanceTo(string $targetDay):array
     {
@@ -351,6 +379,9 @@ final class InstitutionalSimulation
         }
         if(isset($this->state['revision'])){
             $r=ConstitutionalRevision::restore($this->state['revision']);$r->advance($targetDay);$this->state['revision']=$r->snapshot();
+        }
+        if(isset($this->state['legislation'])){
+            $l=BicameralLegislation::restore($this->state['legislation']);$l->advance($targetDay);$this->state['legislation']=$l->snapshot();
         }
         $this->state['day']=$targetDay;
         $this->state['agenda']=$remain;

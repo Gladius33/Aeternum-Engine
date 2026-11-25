@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===11,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===12,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -251,6 +251,42 @@ $tt39=req30('POST',$rvr.'/clock/advances',['target_day'=>'2026-11-26'],$tb,['If-
 ck30($tt39['status']===200&&$tt39['body']['coherent']===true,'WP39 synchronized constitutional clock');
 ck30(req30('GET',$rvp,null,$tb)['body']['revision']['day']==='2026-11-26','WP39 revision date advanced');
 ck30(req30('GET',$rvp,null,$ta2)['status']===404&&req30('GET',$ps.'/countries/FR/constitution',null,$tb)['status']===404,'WP39 membership and previous scenarios');
+$lg=req30('POST','/worlds',['label'=>'Legislation test','scenario'=>'fr-legislative-v1'],$tb,['Idempotency-Key'=>'legislation-world-001']);
+ck30($lg['status']===201,'WP40 legislation world');
+$lw=$lg['body']['world_id'];$lr='/worlds/'.$lw;$lp=$lr.'/countries/FR/legislation';$li=$lr.'/countries/FR/institutions/decisions';
+$lb=req30('GET',$lp,null,$tb);
+$ld=req30('POST',$li,['action'=>'legislation_draft','payload'=>['policy_id'=>'education-reform']],$tb,['If-Match'=>$lb['etag'],'Idempotency-Key'=>'legislation-draft-001']);
+ck30($ld['status']===202&&!$ld['body']['policy_authorized'],'WP40 draft not law');
+$dd=req30('GET',$lr.'/domestic',null,$tb);
+$dp40=req30('POST',$lr.'/domestic/proposals',['policy_id'=>'education-reform','effective_day'=>'2026-11-26'],$tb,['If-Match'=>$dd['etag'],'Idempotency-Key'=>'legislation-policy-001']);
+ck30($dp40['status']===202,'WP40 domestic proposal');
+require_once __DIR__.'/../games/world-politics/src/LocalLegislationClerk.php';
+require_once __DIR__.'/../games/world-politics/src/LocalLegislativePublisher.php';
+$bid=$ld['body']['bill']['id'];$sha=$ld['body']['bill']['texts']['standard'];
+try{\Aeternum\WorldPolitics\LocalLegislativePublisher::apply($pdo,$lw,$bid);throw new RuntimeException('Premature enactment');}
+catch(DomainException $e){ck30(true,'WP40 draft cannot enact');}
+$events=[['file',['government_project'=>true,'accelerated'=>true,'joint_opposition'=>false,'filing_certified'=>true]]];
+foreach(['assembly','senate'] as $ch)$events[]=['reading',['chamber'=>$ch,'version'=>'standard','text_sha'=>$sha,'yes'=>180,'no'=>140,'abstain'=>20,'blank_invalid'=>0,'amendment_certified'=>false,'reading_delay_certified'=>true]];
+$events[]=['transmit',['text_sha'=>$sha]];
+$events[]=['promulgate',['text_sha'=>$sha,'presidential_act_certified'=>true]];
+$events[]=['publish',['text_sha'=>$sha,'effective_on'=>'2026-11-26','publication_certified'=>true]];
+foreach($events as $n=>[$kind,$data]){
+    $id='legislation-proof-'.($n+1);
+    $e=['world_id'=>$lw,'country'=>'FR','day'=>'2026-11-25','evidence_id'=>$id,'bill_id'=>$bid,'kind'=>$kind,'procedure_certified'=>true,'data'=>$data];
+    $st=new \Aeternum\WorldPolitics\PdoInstitutionalStore($pdo,new \Aeternum\WorldPolitics\LocalLegislationClerk($e));
+    $read=$st->read($lw,'FR');
+    ck30($st->decide($lw,'FR','legislation_evidence',['evidence_id'=>$id],'legislation-key-'.($n+1),$read['etag'])['status']===202,'WP40 durable '.$kind);
+}
+$auth=\Aeternum\WorldPolitics\LocalLegislativePublisher::apply($pdo,$lw,$bid);
+ck30($auth['result']['policy']['authorized_on']==='2026-11-25','WP40 verified publication authorizes exact domestic proposal');
+ck30(\Aeternum\WorldPolitics\LocalLegislativePublisher::apply($pdo,$lw,$bid)['result']===$auth['result'],'WP40 safe enactment retry');
+$lc=req30('GET',$lr.'/clock',null,$tb);
+$lt=req30('POST',$lr.'/clock/advances',['target_day'=>'2026-11-26'],$tb,['If-Match'=>$lc['etag'],'Idempotency-Key'=>'legislation-tick-001']);
+ck30($lt['status']===200&&$lt['body']['coherent']===true,'WP40 synchronized legislation');
+$ds=req30('GET',$lr.'/domestic',null,$tb)['body'];
+ck30(in_array('education-reform',$ds['days'][0]['active_policies'],true)&&$ds['days'][0]['expense']===11200000,'WP40 enacted law has actual budget effect');
+ck30(req30('POST',$li,['action'=>'legislation_evidence','payload'=>['evidence_id'=>'fake']],$tb)['status']===404,'WP40 player cannot certify vote');
+ck30(req30('GET',$lp,null,$ta2)['status']===404&&req30('GET',$rvp.'/legislation',null,$tb)['status']===404,'WP40 membership isolation');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/PdoDomesticPolicyStore.php';
 require_once __DIR__.'/PdoFrenchConstitutionalStore.php';
+require_once __DIR__.'/InstitutionalSimulation.php';
 
 /** Server-only simulated final-act publisher; no REST publication endpoint. */
 final class DomesticEnactmentRegistry
@@ -31,7 +32,7 @@ final class DomesticEnactmentRegistry
         foreach ([$finalTextSha,$reviewSha] as $sha) {
             if (!preg_match('/^[a-f0-9]{64}$/D',$sha)) throw new \InvalidArgumentException('Invalid final evidence');
         }
-        if (!in_array($route,['fr_49_3','curated_final_act'],true)) throw new \InvalidArgumentException('Unknown legal route');
+        if (!in_array($route,['fr_49_3','curated_final_act','fr_bicameral'],true)) throw new \InvalidArgumentException('Unknown legal route');
         $actor=$this->publisher->actorId();
         $this->permit($world,$actor);
         if ($this->pdo->inTransaction()) throw new \LogicException('Registry requires independent transaction');
@@ -49,7 +50,26 @@ final class DomesticEnactmentRegistry
                 throw new \DomainException('No timely pending domestic proposal');
             }
             $source=null;
-            if ($route==='fr_49_3') {
+            // A pinned WP40 world cannot use an older shortcut to publication.
+            $national=false;
+            try{
+                $q=$this->pdo->prepare("SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code='FR'");
+                $q->execute([$world]);$national=$q->fetch(\PDO::FETCH_ASSOC);
+            }catch(\PDOException $ex){if($ex->getCode()!=='42S02'||(int)($ex->errorInfo[1]??0)!==1146||$route==='fr_bicameral')throw $ex;}
+            $legislation=null;
+            if($national!==false){
+                $inst=InstitutionalSimulation::restore(json_decode($national['state_json'],true,64,JSON_THROW_ON_ERROR));
+                if(!hash_equals($national['state_sha'],$inst->hash())||$inst->snapshot()['world_id']!==$world)throw new \DomainException('Unverified national state');
+                if(isset($inst->snapshot()['legislation']))$legislation=BicameralLegislation::restore($inst->snapshot()['legislation']);
+            }
+            if($legislation!==null&&$route!=='fr_bicameral')throw new \DomainException('Bicameral publication required');
+            if($route==='fr_bicameral'){
+                if($legislation===null||$legislation->snapshot()['day']!==$state['day'])throw new \DomainException('Missing coherent legislation');
+                $bill=$legislation->proof($policy,$finalTextSha,$p['effective_on']);
+                if($bill===null)throw new \DomainException('No matching published policy text');
+                $source=$national['state_sha'];
+                if($reviewSha!==hash('sha256',json_encode($bill,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)))throw new \DomainException('Publication evidence mismatch');
+            } elseif ($route==='fr_49_3') {
                 if ($this->constitution===null || $this->constitution->principalId()!==$actor)
                     throw new \DomainException('Verified constitutional reader required');
                 $legal=$this->constitution->read($world);
