@@ -35,7 +35,7 @@ mais ne prouve pas un déploiement en environnement réel.
   opérateur : une partie réelle nécessite leur disponibilité pour
   achever les constructions.
 - Vue/TypeScript, internationalisation, mobile, tests de charge prolongés,
-  installation O2Switch/VPS et qualification V1.0 appartiennent aux
+  installation mutualisé/VPS et qualification V1.0 appartiennent aux
   macros ultérieures M07, M11, M12 et M13.
 - Aucune dépense, publication publique ni migration d'hébergement réel
   n'est entreprise ici.
