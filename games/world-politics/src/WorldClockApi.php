@@ -69,6 +69,7 @@ final class WorldClockApi
                     ? self::problem(404,'not_found')
                     : self::problem(403,'forbidden');
             }
+            if ($reason==='Campaign game over') return self::problem(409,'game_over');
             if ($reason==='Stale world clock precondition') {
                 return self::problem(412,'stale_precondition');
             }

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/PublicOpinion.php';
+require_once __DIR__.'/CampaignEventQueue.php';
 require_once __DIR__.'/PdoDomesticPolicyStore.php';
 require_once __DIR__.'/PdoInstitutionalStore.php';
 require_once __DIR__.'/DiplomaticSimulation.php';
@@ -50,7 +51,7 @@ final class PdoPublicOpinionStore
         $this->db->beginTransaction();
         try{
             WorldMutationFence::admit($this->db,$world,$this->principalId(),'clock',$day);
-            $q=$this->db->prepare('SELECT pending_day,opinion_enabled FROM wp_world_clock WHERE world_id=?');
+            $q=$this->db->prepare('SELECT * FROM wp_world_clock WHERE world_id=?');
             $q->execute([$world]);$clock=$q->fetch(\PDO::FETCH_ASSOC);
             if($clock===false||$clock['pending_day']!==$day||(int)$clock['opinion_enabled']!==1)throw new \DomainException('No pinned pending opinion day');
             $r=$this->row($world,true);$this->permit($world,'world.clock.advance');$x=$this->restore($world,$r);
@@ -62,7 +63,10 @@ final class PdoPublicOpinionStore
             if(!hash_equals('"'.$x->hash().'"',$etag))throw new \DomainException('Stale opinion precondition');
             $e=PublicOpinion::observe($this->domestic->read($world),$this->institutions->read($world,'FR'));
             if($e['day']!==$day)throw new \DomainException('Opinion sources must reach pending day first');
-            $result=$x->advance($e);$rev=(int)$r['revision']+1;
+            $campaign=isset($x->snapshot()['campaign']);
+            if($campaign!==((int)($clock['campaign_enabled']??0)===1))throw new \DomainException('Campaign pin mismatch');
+            $event=$campaign?(new CampaignEventQueue($this->db))->readDay($world,$day):null;
+            $result=$x->advance($e,$event);$rev=(int)$r['revision']+1;
             $receipt=['status'=>200,'result'=>$result,'etag'=>'"'.$x->hash().'"','revision'=>$rev];
             $q=$this->db->prepare('UPDATE wp_opinion_states SET state_json=?,state_sha=?,revision=?,last_key_sha=?,last_receipt_json=? WHERE world_id=?');
             $q->execute([PublicOpinion::json($x->snapshot()),$x->hash(),$rev,$keySha,PublicOpinion::json($receipt),$world]);

@@ -221,6 +221,7 @@ final class WorldClockCoordinator
                 return $result;
             }
 
+            if ((int)($row['game_over']??0)===1) throw new \DomainException('Campaign game over');
             if ($row['pending_key']!==null) {
                 if (!hash_equals($row['pending_key'],$key)
                     || $row['pending_day']!==$targetDay) {
@@ -310,6 +311,10 @@ final class WorldClockCoordinator
                 throw new \DomainException('All domains must be checkpointed before publication');
             }
 
+            $campaign=$this->opinion===null?null:($this->opinion->read($world)['state']['campaign']??null);
+            if(($campaign!==null)!==((int)($row['campaign_enabled']??0)===1))
+                throw new \DomainException('Campaign configuration differs from pinned world');
+            $ended=$campaign!==null&&$campaign['status']==='game_over';
             $revision=(int)$row['revision']+1;
             $result=[
                 'status'=>200,
@@ -322,6 +327,7 @@ final class WorldClockCoordinator
                     'france_parliament_enabled'=>$this->franceParliament!==null,
                     'domestic_enabled'=>$this->domestic!==null,
                     ...($this->opinion!==null?['opinion_enabled'=>true]:[]),
+                    ...($campaign!==null?['campaign'=>CampaignLifecycle::summary($campaign),'game_over'=>$ended]:[]),
                     'coherent'=>true
                 ],
                 'etag'=>self::etagFrom($world,$targetDay,null,$revision)
@@ -335,6 +341,7 @@ final class WorldClockCoordinator
             $update->execute([
                 $targetDay,$revision,$key,$targetDay,self::json($result),$world
             ]);
+            if($ended)$this->pdo->prepare('UPDATE wp_world_clock SET game_over=1 WHERE world_id=?')->execute([$world]);
             WorldMutationFence::finish(
                 $this->pdo,$world,$fence,$key,$targetDay,
                 $this->principal->actorId()
@@ -833,6 +840,7 @@ final class WorldClockCoordinator
             'france_parliament_completed'=>$pending
                 && $this->franceParliament!==null
                 && $this->franceStepComplete($row['world_id'],$row['pending_key']),
+            ...((int)($row['campaign_enabled']??0)===1?['game_over'=>(int)($row['game_over']??0)===1]:[]),
             'coherent'=>!$pending
         ];
     }

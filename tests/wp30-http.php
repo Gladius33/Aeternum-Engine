@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===7,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===9,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -166,6 +166,31 @@ ck30($dv['body']['dialogue']['day']==='2026-11-26'&&$opv['body']['dialogue']===$
 ck30($opv['body']['history'][0]['result']['dialogue']===$dv['body']['dialogue'],'WP36 dialogue daily journal');
 ck30(req30('POST',$dp,['phase'=>'unresolved'],$ta2)['status']===404,'WP36 no client mutation');
 ck30(req30('GET',$dp,null,$tb)['status']===404&&req30('GET',$or.'/countries/FR/dialogue',null,$ta2)['status']===404,'WP36 membership and legacy isolation');
+$sur=req30('POST','/worlds',['label'=>'Survival test','scenario'=>'fr-survival-v1'],$ta2,['Idempotency-Key'=>'survival-world-001']);
+ck30($sur['status']===201,'WP37 survival world provisioned');
+$sr='/worlds/'.$sur['body']['world_id'];$sc=req30('GET',$sr.'/campaign',null,$ta2);
+ck30($sc['body']['status']==='active'&&$sc['body']['office_retained'],'WP37 active mandate');
+ck30(req30('GET',$sr.'/countries/FR/politics',null,$ta2)['body']['head_of_state']==='campaign-president','WP37 pinned player character');
+ck30(req30('POST',$sr.'/campaign',['type'=>'revolution_succeeded'],$ta2)['status']===404,'WP37 no player outcome authoring');
+$rev=req30('POST','/worlds',['label'=>'Revolution narrative case','scenario'=>'fr-revolution-case-v1'],$ta2,['Idempotency-Key'=>'revolution-world-001']);
+ck30($rev['status']===201,'WP37 scripted crisis case');
+$rr='/worlds/'.$rev['body']['world_id'];$rc=req30('GET',$rr.'/clock',null,$ta2);
+for($n=1;$n<=4;$n++){
+    $day=(new DateTimeImmutable('2026-11-25'))->modify('+'.$n.' days')->format('Y-m-d');
+    $rh=['If-Match'=>$rc['etag'],'Idempotency-Key'=>'revolution-tick-'.sprintf('%03d',$n)];
+    $rc=req30('POST',$rr.'/clock/advances',['target_day'=>$day],$ta2,$rh);
+    ck30($rc['status']===200&&$rc['body']['coherent']===true&&$rc['body']['game_over']===($n===4),'WP37 distinct terminal tick '.$n);
+}
+$end=req30('GET',$rr.'/campaign',null,$ta2);
+ck30($end['body']['status']==='game_over'&&$end['body']['regime_changed']&&$end['body']['reason']==='revolution_succeeded','WP37 archived revolutionary defeat');
+ck30(req30('POST',$rr.'/clock/advances',['target_day'=>'2026-11-29'],$ta2,$rh)['body']===$rc['body'],'WP37 terminal receipt remains replayable');
+$locked=req30('POST',$rr.'/clock/advances',['target_day'=>'2026-11-30'],$ta2,['If-Match'=>$rc['etag'],'Idempotency-Key'=>'revolution-tick-005']);
+ck30($locked['status']===409&&$locked['body']['code']==='game_over','WP37 terminal clock locked');
+$domEnd=req30('GET',$rr.'/domestic',null,$ta2);
+ck30(req30('POST',$rr.'/domestic/proposals',['policy_id'=>'education-reform','effective_day'=>'2026-11-30'],$ta2,
+    ['If-Match'=>$domEnd['etag'],'Idempotency-Key'=>'terminal-policy-001'])['status']===409,'WP37 terminal mutations blocked');
+ck30(req30('GET',$rr.'/campaign',null,$tb)['status']===404&&req30('GET',$dr.'/campaign',null,$ta2)['status']===404,'WP37 isolated and opt-in');
+ck30(req30('GET',$sr.'/campaign',null,$ta2)['body']['status']==='active','WP37 defeat does not affect another world');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

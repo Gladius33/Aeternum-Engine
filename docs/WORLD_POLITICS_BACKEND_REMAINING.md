@@ -241,3 +241,13 @@ Opt-in fictional union and civic association episodes, consultation, abstract
 collective action and observed relief, nested in the existing opinion checkpoint.
 No direct client mutation, no legal bargaining certification or automatic
 regime change. See WORLD_POLITICS_CIVIC_DIALOGUE.md.
+
+
+## WP37 campaign candidate
+
+Opt-in survival objective, pinned fictional president, distinct cabinet,
+constitutional crisis and revolutionary outcome states, immutable curated
+narrative queue, terminal publication and world gameplay lock. A separate
+scripted case exercises revolutionary defeat. Actual automatic revolutionary
+outcome generation and presidential election/succession integration remain
+open. See WORLD_POLITICS_CAMPAIGN.md.

@@ -164,13 +164,14 @@ final class WorldMutationFence
         // A broken migration, partial manual repair or corrupted intent
         // must not turn a still-pending world into a writable one.
         $clock=$pdo->prepare(
-            'SELECT pending_key,pending_day FROM wp_world_clock WHERE world_id=?'
+            'SELECT * FROM wp_world_clock WHERE world_id=?'
         );
         $clock->execute([$world]);
         $clockRow=$clock->fetch(\PDO::FETCH_ASSOC);
         if ($clockRow===false) {
             throw new \UnexpectedValueException('Orphaned world write fence');
         }
+        if ((int)($clockRow['game_over']??0)===1) throw new \DomainException('Campaign game over');
         if ($row['state']==='idle') {
             if ($clockRow['pending_key']!==null
                 || $clockRow['pending_day']!==null) {

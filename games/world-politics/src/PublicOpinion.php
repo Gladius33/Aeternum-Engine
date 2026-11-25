@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CivicDialogue.php';
+require_once __DIR__.'/CampaignLifecycle.php';
 
 /** Fictional aggregate public mood, not survey data or a model for targeting real people.
  * Institutional continuity, approval and peaceful civic dissatisfaction are distinct.
@@ -54,6 +55,12 @@ final class PublicOpinion
             throw new \DomainException('Dialogue needs its fictional cohorts');
         $this->s['dialogue']=CivicDialogue::initial($this->s['day']);
     }
+    public function enableCampaign():void
+    {
+        if(isset($this->s['campaign'])||!isset($this->s['dialogue'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Campaign must be pinned at bootstrap');
+        $this->s['campaign']=CampaignLifecycle::initial($this->s['world_id'],$this->s['day']);
+    }
     /** Trusted inputs from the committed domestic and national stores, never player JSON. */
     public static function observe(array $dom,array $inst):array
     {
@@ -69,7 +76,7 @@ final class PublicOpinion
             'constitutional_breaches'=>$i['constitutional_breaches'],'legislature'=>$i['legislature'],
             'election_status'=>$i['election']['status']??null];
     }
-    public function advance(array $e):array
+    public function advance(array $e,?array $campaignEvent=null):array
     {
         self::fields($e,['world_id','day','domestic_sha','institutional_sha','pressure','active_policies','production_index_bps',
             'employment_index_bps','constitutional_breaches','legislature','election_status']);
@@ -87,6 +94,9 @@ final class PublicOpinion
         if($e['constitutional_breaches']<$this->s['constitutional_breaches']||!in_array($e['legislature'],['sitting','dissolved'],true)
             ||!in_array($e['election_status'],[null,'scheduled','voting_window_open','voting_recorded_results_pending','constitutional_deadline_missed'],true))
             throw new \DomainException('Invalid institutional observation');
+        $campaign=null;
+        if(isset($this->s['campaign']))$campaign=CampaignLifecycle::advance($this->s['campaign'],$e['day'],$campaignEvent);
+        elseif($campaignEvent!==null)throw new \DomainException('No campaign enabled');
         ksort($e['pressure'],SORT_STRING);sort($e['active_policies'],SORT_STRING);
         $economic=0;
         foreach(['production_index_bps','employment_index_bps'] as $k)
@@ -119,7 +129,15 @@ final class PublicOpinion
             $this->s['dialogue']=CivicDialogue::advance($this->s['dialogue'],$e['day'],$e['pressure'],$b['pressure']);
             $r['dialogue']=$this->s['dialogue'];
         }
-        $this->s['history'][]=['source'=>$e,'result'=>$r];return $r;
+        if($campaign!==null){
+            $this->s['campaign']=$campaign;
+            $r['campaign']=CampaignLifecycle::summary($campaign);
+            // Preserve distinction: opinion never causes regime change;
+            // a separate certified fictional outcome can record one.
+            $r['regime_changed']=$campaign['regime_changed'];
+            $this->s['history'][]=['source'=>$e,'campaign_event'=>$campaignEvent,'result'=>$r];
+        }else $this->s['history'][]=['source'=>$e,'result'=>$r];
+        return $r;
     }
     private static function allocate(array $base,int $undecided):array
     {
@@ -140,7 +158,8 @@ final class PublicOpinion
         $x=new self($s['world_id'],$s['start_day'],$s['baseline']);
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>3650)throw new \DomainException('Invalid opinion journal');
         if(array_key_exists('dialogue',$s))$x->enableDialogue();
-        foreach($s['history'] as $r)$x->advance($r['source']);
+        if(array_key_exists('campaign',$s))$x->enableCampaign();
+        foreach($s['history'] as $r)$x->advance($r['source'],$r['campaign_event']??null);
         if($x->snapshot()!==$s)throw new \DomainException('Opinion replay mismatch');
         return $x;
     }

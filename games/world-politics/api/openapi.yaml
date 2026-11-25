@@ -31,6 +31,29 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /worlds/{world}/campaign:
+    get:
+      operationId: readCampaignLifecycle
+      summary: Read fictional player mandate and terminal outcome
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Current or terminal archived campaign
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [world_id, status, office_retained, regime_changed]
+                properties:
+                  world_id: { type: string }
+                  status: { type: string, enum: [active, game_over] }
+                  office_retained: { type: boolean }
+                  regime_changed: { type: boolean }
+                  ended_on: { type: [string, 'null'], format: date }
+                  reason: { type: [string, 'null'] }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/dialogue:
     get:
       operationId: readFrenchCivicDialogue
@@ -137,7 +160,7 @@ paths:
               required: [label, scenario]
               properties:
                 label: { type: string, maxLength: 100 }
-                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1, fr-comparative-v1, fr-electoral-v1, fr-political-v1, fr-opinion-v1, fr-dialogue-v1] }
+                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1, fr-comparative-v1, fr-electoral-v1, fr-political-v1, fr-opinion-v1, fr-dialogue-v1, fr-survival-v1, fr-revolution-case-v1] }
                 reference_bundle_sha: { type: string, pattern: '^[a-f0-9]{64}$', description: Optional operator-installed reference bundle for global or comparative scenarios }
       responses:
         '201': { description: Atomically created or replayed private world }
@@ -1779,6 +1802,8 @@ components:
           description: Whether the French constitutional day is a mandatory global-clock step.
         domestic_enabled: { type: boolean }
         opinion_enabled: { type: boolean }
+        game_over: { type: boolean }
+        campaign: { type: object, description: Optional terminal-aware campaign summary }
         france_parliament_completed:
           type: boolean
           description: Whether the French constitutional checkpoint is durable for this pending game day.
