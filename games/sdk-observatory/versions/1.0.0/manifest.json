@@ -1,0 +1,41 @@
+{
+  "engine_api": "1",
+  "id": "sdk-observatory",
+  "version": "1.0.0",
+  "name": "SDK Observatory",
+  "resources": [
+    {
+      "id": "supplies",
+      "initial_stock": 10,
+      "capacity": 100,
+      "amount": 1,
+      "interval_seconds": 60
+    }
+  ],
+  "upgrades": [],
+  "components": [
+    {
+      "id": "observatory",
+      "fields": {
+        "owner": "string",
+        "completed": "integer"
+      }
+    }
+  ],
+  "actions": [
+    {
+      "type": "pack.survey.start",
+      "payload": {
+        "account": "string"
+      }
+    }
+  ],
+  "event_hooks": [
+    {
+      "type": "pack.survey.complete",
+      "payload": {
+        "account": "string"
+      }
+    }
+  ]
+}

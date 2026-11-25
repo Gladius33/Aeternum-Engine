@@ -23,7 +23,9 @@ final readonly class WorldRuntime
     {
         // Explicit application composition point. Never resolve a class name,
         // executable path or callback supplied by a manifest or HTTP request.
-        return new self(ConfiguredWorlds::load());
+        $packs=ConfiguredWorlds::load();
+        $registry=getenv('AETERNUM_MODULE_REGISTRY');
+        return $registry===false?new self($packs):WorldModuleRegistry::loadFile($registry,$packs);
     }
 
     public function pack(string $world): GamePack

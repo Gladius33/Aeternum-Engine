@@ -26,8 +26,9 @@ use Aeternum\Core\{BilateralTruceCommands,Command,CommandResult,
         }
     };
     $world='m15-diplomacy-world';
+    $reviewed=\Aeternum\Core\ReviewedModuleCatalog::module('bilateral-truce-v1',$pack);
     $rules=TrustedWorldRules::bind([$world=>$pack],[
-        $world=>[$challenge,new BilateralTruceCommands()]
+        $world=>array_merge([$challenge],$reviewed['commands'])
     ])[$world];
     $pdo=db();$clock=new FrozenClock(19000);
     $identity=new PdoIdentity($pdo);
@@ -100,4 +101,53 @@ use Aeternum\Core\{BilateralTruceCommands,Command,CommandResult,
         'M15 last accepted engagement is persisted for audit and deterministic replay');
     check($scheduler->verifyReplay($rules->commands,$rules->events)->entries>5,
         'M15 truce, cooldown and protected actions verify by canonical journal replay');
+})();
+
+
+// F01: actual operator registry selection, not an injected custom handler.
+// Exercise provisioning, authenticated action, persistent identity and replay.
+(static function():void {
+    $pack=GamePackLoader::load(file_get_contents(
+        __DIR__.'/../games/reference-guild/versions/0.4.0/manifest.json'));
+    $world='f01-registry-truce';
+    $module=new BilateralTruceCommands();
+    $key=$pack->rules([$module])->key;
+    $runtime=\Aeternum\Core\WorldModuleRegistry::load(json_encode([
+        'module_api'=>'1','worlds'=>[[
+            'world'=>$world,'pack_sha256'=>$pack->digest,'rules_key'=>$key,
+            'modules'=>[['id'=>'bilateral-truce-v1','sha256'=>$module->codeDigest()]]
+        ]]
+    ],JSON_THROW_ON_ERROR),[$world=>$pack]);
+    $rules=$runtime->rule($world);$pdo=db();$clock=new FrozenClock(19100);
+    $onboard=new \Aeternum\Core\PdoOnboarding($pdo,$clock);
+    $a=$onboard->enroll($world,$pack,'f01-module-alice','f01 module password alice',null,$rules)['actor'];
+    $b=$onboard->enroll($world,$pack,'f01-module-bobby','f01 module password bobby',null,$rules)['actor'];
+    $sessions=new PdoSessions($pdo,$clock);
+    $ta=$sessions->login('f01-module-alice','f01 module password alice');
+    $tb=$sessions->login('f01-module-bobby','f01 module password bobby');
+    check(is_string($ta)&&is_string($tb),'F01 registry-enabled world provisions independent actors');
+    $api=new EconomyHttpApi($pdo,$clock,$runtime->rules);
+    $send=static fn(string $token,string $id,string $type,array $payload):array =>
+        $api->handle('POST','/v1/worlds/'.$world.'/economy/commands','Bearer '.$token,
+            json_encode(['id'=>$id,'type'=>$type,'payload'=>$payload],JSON_THROW_ON_ERROR));
+    $offer=['account'=>$a,'target'=>$b,'duration'=>120];
+    check($send($ta,'f01-offer','pack.diplomacy.offer',$offer)[0]===200,
+        'F01 reviewed registry module runs through real HTTP adapter');
+    check($send($ta,'f01-forged','pack.diplomacy.accept',['account'=>$b,'target'=>$a])[0]===409,
+        'F01 module registry cannot bypass ownership');
+    $accept=['account'=>$b,'target'=>$a];
+    $first=$send($tb,'f01-accept','pack.diplomacy.accept',$accept);
+    $scheduler=new PdoScheduler($pdo,$world,$clock,$rules);
+    $beforeRetry=$scheduler->verifyReplay($rules->commands,$rules->events)->entries;
+    $retry=$send($tb,'f01-accept','pack.diplomacy.accept',$accept);
+    check($first[0]===200 && $retry[0]===200
+        && json_encode($retry[1],JSON_THROW_ON_ERROR)===json_encode($first[1],JSON_THROW_ON_ERROR)
+        && $scheduler->verifyReplay($rules->commands,$rules->events)->entries===$beforeRetry,
+        'F01 reviewed module retains durable idempotency without a second journal entry');
+    check(($scheduler->state()['diplomacy:truce:'.min($a,$b).':'.max($a,$b).':until']??null)===19220,
+        'F01 registry-selected truce persists its authoritative deadline');
+    check($scheduler->verifyReplay($rules->commands,$rules->events)->entries>2,
+        'F01 registry-selected module supports deterministic replay');
+    $wrong=new PdoScheduler($pdo,$world,$clock,$pack->rules());
+    rejects(fn()=> $wrong->state(),DomainException::class,'F01 cannot silently remove a module from a pinned world');
 })();

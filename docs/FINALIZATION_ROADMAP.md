@@ -64,7 +64,7 @@ Provide archive, preflight/configuration instructions, validation commands, secu
 | Milestone | Status | Evidence |
 |---|---|---|
 | G25 | Merged | PR #86, 10/10 pre-merge workflows, merge df37cc0 |
-| F01 | In progress | [Shared runtime composition](F01_WORLD_RUNTIME.md) |
+| F01 | CI qualification | #88 merged, 10/10 CI; #89 candidate: [runtime](F01_WORLD_RUNTIME.md), [catalog](F01_MODULE_CATALOG.md), [SDK and compatibility](F01_SDK.md) |
 | F02 | Planned | — |
 | F03 | Planned | — |
 | F04 | Planned | — |

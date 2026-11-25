@@ -475,17 +475,16 @@ final class PdoScheduler
     private function authorizeActor(string $actor,Command $command,?array $lockedWorld=null): void
     {
         $this->assertActiveActor($actor);
+        if (ReferenceGameplayCompatibility::isLegacyAction($command->type)) {
+            $this->assertAccountOwner($command->payload['account']??null,$actor);
+            return;
+        }
         switch ($command->type) {
             case 'economy.open':
             case 'economy.settle':
             case 'economy.upgrade':
             case 'market.claim':
             case 'building.claim':
-            case 'settlement.feed':
-            case 'settlement.work':
-            case 'industry.generate':
-            case 'industry.refine':
-            case 'industry.ship':
                 $this->assertAccountOwner($command->payload['account']??null,$actor);
                 break;
             case 'economy.transfer':

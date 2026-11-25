@@ -49,7 +49,8 @@ final class TrustedPackEvents implements EventEffectsHandler
                 }
                 $this->handlers[$type]=$handler;
                 $this->schemas[$type]=$declaredHooks[$type];
-                $identities[$type]=$digest;
+                $identities[$type]=$handler instanceof PrivatePackEffects
+                    ?hash('sha256',$digest."\0".PrivatePackEffectGuard::fingerprint()):$digest;
             }
         }
         ksort($identities,SORT_STRING);
@@ -64,7 +65,13 @@ final class TrustedPackEvents implements EventEffectsHandler
         $handler=$this->handlers[$event->type]??null;
         if ($handler===null) return $this->builtin->resolve($event,$state);
         $this->schemas[$event->type]->assertPayload($event->payload);
-        return $handler->resolve($event,$state);
+        $result=$handler->resolve($event,$state);
+        if ($handler instanceof PrivatePackEffects) {
+            $account=$event->payload['account']??null;
+            if (!is_string($account)) throw new \DomainException('Private event requires account');
+            PrivatePackEffectGuard::state($handler,[$account],$state,$result->state,$result->movements);
+        }
+        return $result;
     }
 
     public function apply(ScheduledEvent $event,array $state): array
