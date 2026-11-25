@@ -502,5 +502,44 @@
         }
         return true;
     }
-    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,economicJournal,operationScene,cargo,marketHall,exchangeTerms,campaignChapters,chapterLandscape,version:6});
+    // G24 original ground detailing. Compound paths keep SVG cost bounded;
+    // no additional gameplay entities, fields, paths or production claims.
+    function terrainFinish(parent,theme,phase,w,h){
+        const profile=atmosphereProfile(theme,phase);
+        if(!profile||!Number.isFinite(w)||!Number.isFinite(h)||w<1||h<1)return false;
+        const g=group(parent,0,0,1,{'data-terrain-finish':theme,'aria-hidden':'true','pointer-events':'none'});
+        const rnd=i=>{const v=Math.sin(i*127.1+73.29)*43758.5453;return v-Math.floor(v);};
+        const f=v=>Number(v.toFixed(2));
+        // Depth-dependent texture: tiny marks at the horizon, larger
+        // foreground marks, all in a small number of compound paths.
+        let dark='',light='',detail='';
+        const size=Math.min(w/360,h/490);
+        for(let i=0;i<150;i++){
+            const x=w*rnd(i+20),y=h*(.405+.58*rnd(i+250)),depth=(y/h-.35)/.65,k=(.45+depth*1.8)*size;
+            if(theme==='medieval'){
+                dark+='M'+f(x)+' '+f(y)+'q'+f(-2*k)+' '+f(-5*k)+' '+f(-4*k)+' '+f(-6*k)+'m'+f(4*k)+' '+f(6*k)+'q0 '+f(-6*k)+' '+f(3*k)+' '+f(-9*k)+' ';
+                light+='M'+f(x+k)+' '+f(y)+'q'+f(3*k)+' '+f(-4*k)+' '+f(6*k)+' '+f(-3*k)+' ';
+                if(i%6===0)detail+='M'+f(x-3*k)+' '+f(y+2*k)+'q'+f(5*k)+' '+f(-1*k)+' '+f(10*k)+' 0 ';
+            }else if(theme==='industrial'){
+                dark+='M'+f(x)+' '+f(y)+'l'+f(3*k)+' '+f(-2*k)+' '+f(4*k)+' '+f(2*k)+' '+f(-3*k)+' '+f(3*k)+'Z ';
+                light+='M'+f(x+k)+' '+f(y-k)+'l'+f(3*k)+' '+f(-k)+' '+f(3*k)+' '+f(k)+' ';
+                if(i%7===0)detail+='M'+f(x)+' '+f(y)+'l'+f(8*k)+' '+f(-3*k)+' '+f(6*k)+' '+f(k)+' ';
+            }else{
+                dark+='M'+f(x)+' '+f(y)+'q'+f(4*k)+' '+f(-2*k)+' '+f(8*k)+' 0t'+f(6*k)+' '+f(k)+' ';
+                light+='M'+f(x)+' '+f(y-k)+'q'+f(5*k)+' '+f(-2*k)+' '+f(10*k)+' 0 ';
+                if(i%6===0)detail+='M'+f(x)+' '+f(y)+'l'+f(3*k)+' '+f(-2*k)+' '+f(2*k)+' '+f(2*k)+'Z ';
+            }
+        }
+        p(g,dark,'none',profile.shadow,theme==='industrial'?.7:1).setAttribute('opacity',.35);
+        p(g,light,'none',profile.light,.7).setAttribute('opacity',phase==='night'?.18:.43);
+        p(g,detail,'none',profile.shadow,.6).setAttribute('opacity',.24);
+        // Foreground contouring, without suggesting traversable routes.
+        for(let i=0;i<5;i++){
+            const y=h*(.73+i*.058),amp=h*.016;
+            const d='M0 '+f(y)+' Q'+f(w*.17)+' '+f(y-amp)+' '+f(w*.34)+' '+f(y+amp/2)+' T'+f(w*.68)+' '+f(y-amp/2)+' T'+w+' '+f(y+amp/3);
+            p(g,d,'none',profile.light,1+i*.35).setAttribute('opacity',.09);
+        }
+        return true;
+    }
+    window.AeternumLivingArt=Object.freeze({site,event,eventTypes,atlasTerrain,atlasRegion,atlasEdge,atmosphereProfile,atmosphere,atmosphereDepth,phases,economicJournal,operationScene,cargo,marketHall,exchangeTerms,campaignChapters,chapterLandscape,terrainFinish,version:7});
 })();

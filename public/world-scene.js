@@ -1065,7 +1065,9 @@
         const horizon=h*.26;
         for(let i=0;i<3;i++){
             let d='M0 '+(horizon+i*22);
-            for(let x=0;x<=w+90;x+=90)d+=' L'+x+' '+(horizon+i*22-25-Math.sin(x*.011+i*2)*35-Math.cos(x*.023+i)*12);
+            const hill=x=>horizon+i*22-25-Math.sin(x*.011+i*2)*35-Math.cos(x*.023+i)*12;
+            if(classic){for(let x=0;x<=w+90;x+=90)d+=' L'+x+' '+hill(x);}
+            else{d='M0 '+hill(0);for(let x=0;x<w;x+=45){const end=Math.min(w,x+45);d+=' Q'+(x+end)/2+' '+hill((x+end)/2)+' '+end+' '+hill(end);}}
             d+=' L'+w+' '+h+' H0 Z';
             path(g,d,[p[5],p[0],p[1]][i],{'fill-opacity':.82});
         }
@@ -1080,6 +1082,7 @@
             const x=(i*197+31)%w,y=h*(.42+((i*31)%56)/100);
             ellipse(floor,x,y,10+i%6*4,2+i%3,theme==='medieval'?'#2a583c':theme==='industrial'?'#2e4650':'#926943',{'fill-opacity':.12});
         }
+        if(!classic)window.AeternumLivingArt.terrainFinish(floor,theme,lighting,w,h);
         // G10 visual review: painted landscape details, not invented buildings or production.
         // A seeded sampler keeps the scenery stable when real game state changes.
         if(theme!=='neutral'){
@@ -1714,6 +1717,7 @@
     exit.hidden=classic;
     function refreshShell(){
         ui.update(window.AeternumUIProfiles[theme],lang());syncMirrors();
+        for(const button of host.querySelectorAll('[data-game-nav]'))button.setAttribute('aria-pressed',String(button.dataset.gameNav===host.dataset.workspace));
         const detailLabel=lang()==='fr'?'Commandes détaillées':'Detailed controls';
         legacySummary.textContent=detailLabel;legacyLink.textContent=detailLabel;
         exit.textContent=lang()==='fr'?'Changer de jeu':'Change game';

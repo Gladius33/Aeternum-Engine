@@ -47,8 +47,10 @@
             }
         }
         function update(next=current,lang=language){
-            current=next;language=lang==='fr'?'fr':'en';root.dataset.skin=current.id;
-            name.textContent=tr(current.title,language);subtitle.textContent=tr(current.subtitle,language);renderNav();
+            const nextLanguage=lang==='fr'?'fr':'en';
+            const unchanged=current===next&&language===nextLanguage&&nav.childElementCount>0;
+            current=next;language=nextLanguage;root.dataset.skin=current.id;
+            name.textContent=tr(current.title,language);subtitle.textContent=tr(current.subtitle,language);if(!unchanged)renderNav();
         }
         update();
         return Object.freeze({root,update,setBusy(value){locked=Boolean(value);for(const b of nav.querySelectorAll('button'))b.disabled=locked;},setStatus(value){status.textContent=String(value??'');}});

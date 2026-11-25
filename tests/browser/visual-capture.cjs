@@ -4,7 +4,7 @@ async function captureScene(page,name){
     try{
         for(const [device,width,height] of [['desktop',1440,900],['mobile',390,844]]){
             await page.setViewportSize({width,height});
-            await page.locator('#world-scene').scrollIntoViewIfNeeded();
+            await page.evaluate(()=>window.scrollTo(0,0));
             await expect(page.locator('#world-scene')).toBeVisible();
             expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
             const scene=page.locator('#world-scene');
