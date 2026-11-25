@@ -26,6 +26,10 @@ hosting or release certification. Production registration requires approved
 identity proof; never expose local testing bypasses. No real payments, outside
 deployment or public production claim has been approved.
 
+## Active development plan
+
+[Finalization roadmap F01–F07](docs/FINALIZATION_ROADMAP.md) — remaining engineering work and acceptance evidence, in execution order.
+
 ## Vision
 Theme-agnostic persistent worlds, asynchronous actions, deterministic simulation, lazy resource production, transactional economy, composable entities, versioned game packs, multiplayer social features and scalable shared-hosting-compatible deployment.
 
