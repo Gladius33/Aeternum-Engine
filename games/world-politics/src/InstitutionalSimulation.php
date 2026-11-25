@@ -109,6 +109,12 @@ final class InstitutionalSimulation
             if(!is_array($state['legislation'])||$state['country_code']!=='FR')throw new \DomainException('Invalid legislation scope');
             $l=BicameralLegislation::restore($state['legislation'])->snapshot();
             if($l['world_id']!==$state['world_id']||$l['day']!==$state['day'])throw new \DomainException('Legislation scope or day mismatch');
+            if(isset($l['responsibility']['lifecycle'])){
+                $digest=$l['responsibility']['lifecycle']['election_digest'];
+                if(!isset($state['electoral'])||$state['electoral']['seats_total']!==577||
+                    ($digest!==null&&($state['electoral']['status']!=='results'||$digest!==ParliamentaryLifecycle::digest($state['electoral']))))
+                    throw new \DomainException('Assembly election source mismatch');
+            }
         }
         $self->state=$state;
         return $self;
@@ -293,12 +299,13 @@ final class InstitutionalSimulation
         return $result;
     }
 
-    public function enableLegislation(bool $responsibility=false,bool $assembly=false):void
+    public function enableLegislation(bool $responsibility=false,bool $assembly=false,bool $lifecycle=false):void
     {
         if($this->state['country_code']!=='FR'||isset($this->state['legislation'])||$this->state['events']!==[])throw new \DomainException('Legislation must be pinned at bootstrap');
         $l=new BicameralLegislation($this->state['world_id'],$this->state['day']);
         if($responsibility)$l->enableResponsibility();
         if($assembly)$l->enableAssembly();
+        if($lifecycle)$l->enableLifecycle();
         $this->state['legislation']=$l->snapshot();
     }
     public function legislation(string $role,string $action,array $payload,string $commandId):array
@@ -384,7 +391,11 @@ final class InstitutionalSimulation
             $r=ConstitutionalRevision::restore($this->state['revision']);$r->advance($targetDay);$this->state['revision']=$r->snapshot();
         }
         if(isset($this->state['legislation'])){
-            $l=BicameralLegislation::restore($this->state['legislation']);$l->advance($targetDay);$this->state['legislation']=$l->snapshot();
+            $l=BicameralLegislation::restore($this->state['legislation']);$l->advance($targetDay);
+            $r=$l->snapshot()['responsibility']??null;$e=$this->state['electoral']??null;
+            if(isset($r['lifecycle'])&&$r['lifecycle']['election_digest']===null&&($e['status']??null)==='results'&&ParliamentaryLifecycle::quiet($r))
+                $l->installElection($e);
+            $this->state['legislation']=$l->snapshot();
         }
         $this->state['day']=$targetDay;
         $this->state['agenda']=$remain;

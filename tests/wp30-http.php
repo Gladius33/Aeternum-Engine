@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===14,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===15,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -344,6 +344,28 @@ ck30($receipt42['status']===202&&array_sum($receipt42['result']['roll_call']['ta
 $ab42=req30('GET',$ap42,null,$tb);
 ck30($ab42['body']['assembly']['matters']['motion-one']['result']===$receipt42['result']['roll_call'],'WP42 exact archived individual votes');
 ck30(req30('GET',$ap42,null,$ta2)['status']===404&&req30('GET',$rp.'/countries/FR/assembly',null,$tb)['status']===404,'WP42 isolation and legacy');
+$par43=req30('POST','/worlds',['label'=>'Parliament lifecycle','scenario'=>'fr-parliament-v1'],$tb,['Idempotency-Key'=>'parliament-world-001']);
+ck30($par43['status']===201,'WP43 parliament world');
+$w43=$par43['body']['world_id'];$r43='/worlds/'.$w43;$p43=$r43.'/countries/FR/assembly';
+$a43=req30('GET',$p43,null,$tb);
+ck30($a43['status']===200&&$a43['body']['lifecycle']['session']['id']==='ordinary-2026','WP43 session pinned');
+$names43=array_slice(array_keys($a43['body']['assembly']['deputies']),0,58);
+$ev43=['world_id'=>$w43,'country'=>'FR','day'=>'2026-11-25','evidence_id'=>'calendar-motion','bill_id'=>null,'kind'=>'assembly_censure_file','procedure_certified'=>true,
+    'data'=>['at'=>'2026-11-25T10:00:00Z','motion_id'=>'motion-calendar','signatories'=>$names43,'vote_at'=>'2026-11-30T10:00:00Z',
+        'sitting_days'=>['2026-11-27','2026-11-30','2026-12-01','2026-12-02','2026-12-03']]];
+$st43=new \Aeternum\WorldPolitics\PdoInstitutionalStore($pdo,new \Aeternum\WorldPolitics\LocalLegislationClerk($ev43));$rd43=$st43->read($w43,'FR');
+ck30($st43->decide($w43,'FR','legislation_evidence',['evidence_id'=>'calendar-motion'],'calendar-motion-001',$rd43['etag'])['status']===202,'WP43 motion filed with certified agenda');
+$c43=req30('GET',$r43.'/clock',null,$tb);
+for($n43=1;$n43<=8;$n43++){
+    $day43=(new DateTimeImmutable('2026-11-25'))->modify('+'.$n43.' days')->format('Y-m-d');
+    $c43=req30('POST',$r43.'/clock/advances',['target_day'=>$day43],$tb,['If-Match'=>$c43['etag'],'Idempotency-Key'=>'parliament-tick-'.sprintf('%03d',$n43)]);
+    if($c43['status']!==200||!$c43['body']['coherent'])throw new RuntimeException('WP43 clock failed '.$day43.' '.json_encode($c43));
+}
+$a43=req30('GET',$p43,null,$tb);
+ck30($a43['body']['lifecycle']['slots']['motion-calendar']['status']==='resolved','WP43 automatic vote');
+ck30($a43['body']['lifecycle']['installed_on']==='2026-12-03'&&count($a43['body']['assembly']['deputies'])===577,'WP43 election roster installed');
+ck30(count($a43['body']['lifecycle']['archives'][0]['assembly']['matters']['motion-calendar']['roll_call'])===577,'WP43 historical roll preserved');
+ck30(req30('GET',$p43,null,$ta2)['status']===404&&!isset(req30('GET',$ap42,null,$tb)['body']['lifecycle']),'WP43 membership and legacy');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

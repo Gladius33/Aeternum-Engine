@@ -294,3 +294,12 @@ Pinned 577-deputy fictional roster, individual roll calls for linked and
 independent censure and confidence votes, signed rolls, verified legal
 outcomes and independent appointment. Certified agenda still required;
 calendar and dynamic roster integration remain open. See WORLD_POLITICS_ASSEMBLY.md.
+
+
+## WP43 parliamentary lifecycle candidate
+
+Opt-in certified sitting slots and automatic scheduled censure roll calls,
+ordinary session renewal, fictional 577-district electoral roster, archived
+previous legislature and certified coalition changes. Repeated elections,
+full session calendar, autonomous agenda and coalition bargaining remain
+open. See WORLD_POLITICS_PARLIAMENT.md.

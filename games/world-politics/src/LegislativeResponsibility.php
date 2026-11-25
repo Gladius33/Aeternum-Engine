@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrenchConstitutionalCrisis.php';
 require_once __DIR__.'/AssemblyRollCalls.php';
+require_once __DIR__.'/ParliamentaryLifecycle.php';
 
 /** A replay-only principal, built exclusively from clerk-certified scenario
  * evidence inside the legislative aggregate. No HTTP credential or role grant. */
@@ -11,14 +12,14 @@ final class LegislativeResponsibilityPrincipal implements FrenchPresidentialAppo
     public function __construct(private readonly string $world,private readonly array $d=[]){}
     public function actorId():string{return 'legislative-responsibility-clerk';}
     public function allows(string $world,string $ability):bool{return $world===$this->world&&in_array($ability,
-        ['fr.49_3.engage','fr.censure.file','fr.censure.vote','fr.constitution.clock','fr.president.appoint_pm','fr.49_1.engage','fr.49_1.vote','fr.49_2.file','fr.49_2.vote'],true);}
+        ['fr.49_3.engage','fr.censure.file','fr.censure.vote','fr.constitution.clock','fr.president.appoint_pm','fr.49_1.engage','fr.49_1.vote','fr.49_2.file','fr.49_2.vote','fr.constitution.session'],true);}
     public function councilDeliberated(string $world,string $billId):bool{return $world===$this->world&&($this->d['council_deliberated']??false)===true;}
     public function verifiedBillCategory(string $world,string $billId):string{return 'ordinary';}
     public function verifiedSignatures(string $world,string $motionId):int{return $this->d['signatures']??0;}
     public function verifiedVotesFor(string $world,string $motionId):int{return $this->d['votes_for']??0;}
     public function verifiedDeputySignatories(string $world,string $motionId):array{return $this->d['signatories']??[];}
     public function verifiedConfidenceBallot(string $world,string $statementId):array{return $this->d['confidence_ballot']??[];}
-    public function verifiedSessionKind(string $world,string $session):string{return 'ordinary';}
+    public function verifiedSessionKind(string $world,string $session):string{return $this->d['session_kind']??'ordinary';}
     public function verifiedInstant(string $world,string $operation):string{return $this->d['at']??throw new \DomainException('No certified instant');}
     public function verifiedResignationPresented(string $world,string $appointmentId):bool{return ($this->d['resignation_presented']??false)===true;}
     public function verifiedPrimeMinisterAppointee(string $world,string $appointmentId):string{return $this->d['prime_minister']??'';}
@@ -40,6 +41,8 @@ final class LegislativeResponsibility
         $at=$d['at']??null;
         if(!is_string($at)||substr($at,0,10)!==$day||!str_ends_with($at,'Z'))throw new \DomainException('Certified UTC instant must match game day');
         FrenchConstitutionalCrisis::instant($at);
+        if(isset($r['lifecycle'])&&$k==='responsibility_engage'&&!ParliamentaryLifecycle::quiet($r))throw new \DomainException('Pending proceeding');
+        if(isset($r['lifecycle'])&&in_array($k,['responsibility_engage','responsibility_file'],true)&&$r['lifecycle']['session']===null)throw new \DomainException('No active session');
         switch($k){
             case 'responsibility_engage':
                 self::fields($d,['at','council_deliberated','version','text_sha','reading_delay_certified']);
@@ -98,7 +101,32 @@ final class LegislativeResponsibility
         FrenchConstitutionalCrisis::instant($at);
         $c=FrenchConstitutionalCrisis::restore($r['crisis']);$p=FrenchParliament::restore($r['assembly']);
         $principal=new LegislativeResponsibilityPrincipal($world,$d);
+        if(isset($r['lifecycle'])&&in_array($e['kind'],['assembly_confidence_open','assembly_censure_file'],true)
+            &&($r['lifecycle']['session']===null||!ParliamentaryLifecycle::quiet($r)))throw new \DomainException('No active session or proceeding already pending');
         switch($e['kind']){
+            case 'assembly_coalition':
+                if(!isset($r['lifecycle']))throw new \DomainException('No lifecycle pilot');
+                self::fields($d,['at','coalition_id','groups','active','agreement_certified']);
+                if(!ParliamentaryLifecycle::quiet($r)||$d['agreement_certified']!==true||!is_bool($d['active'])||!is_array($d['groups']))
+                    throw new \DomainException('Uncertified or overlapping coalition change');
+                if(FrenchConstitutionalCrisis::instant($at)<$c->snapshot()['now'])throw new \DomainException('Backdated agreement');
+                $result=$p->coalition($d['coalition_id'],$d['groups'],$d['active']);
+                $r['lifecycle']['coalition_history'][]=['day'=>$day,'at'=>$at,'agreement'=>$result];break;
+            case 'assembly_session':
+                if(!isset($r['lifecycle']))throw new \DomainException('No lifecycle pilot');
+                self::fields($d,['at','session_id','session_kind','end_day','opening_certified']);
+                if(!ParliamentaryLifecycle::quiet($r)||$d['opening_certified']!==true)throw new \DomainException('Cannot change pending session');
+                if($d['session_kind']==='ordinary'){
+                    $session=ParliamentaryLifecycle::ordinarySession($day);
+                    if($session===null||$day!==$session['start']||$d['session_id']!==$session['id']||$d['end_day']!==$session['end'])throw new \DomainException('Wrong ordinary session boundary');
+                }elseif($d['session_kind']==='extraordinary'){
+                    $end=\DateTimeImmutable::createFromFormat('!Y-m-d',$d['end_day']);
+                    if(ParliamentaryLifecycle::ordinarySession($day)!==null||$end===false||$end->format('Y-m-d')!==$d['end_day']||$d['end_day']<$day
+                        ||$d['end_day']>(new \DateTimeImmutable($day))->modify('+12 days')->format('Y-m-d')
+                        ||$r['lifecycle']['session']!==null)throw new \DomainException('Invalid extraordinary session window');
+                    $session=['id'=>$d['session_id'],'kind'=>'extraordinary','start'=>$day,'end'=>$d['end_day']];
+                }else throw new \DomainException('Unknown session');
+                $result=$c->openSession($principal,$d['session_id'],$at,$id);$r['lifecycle']['session']=$session;break;
             case 'assembly_confidence_open':
                 self::fields($d,['at','statement_id','statement_kind','council_deliberated']);
                 $result=$c->engageConfidence($principal,$d['statement_id'],$d['statement_kind'],$at,$id);break;

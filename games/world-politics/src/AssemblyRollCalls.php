@@ -27,6 +27,31 @@ final class AssemblyRollCalls
         $p->coalition('initial-government',['government'],true);
         return $p->snapshot();
     }
+    public static function fromElection(array $e,string $day):FrenchParliament
+    {
+        if($e['status']!=='results'||$e['seats_total']!==577||$e['result']['vacant_seats']!==0)
+            throw new \DomainException('Full fictional Assembly required');
+        $groups=[];
+        foreach($e['config']['parties'] as $id=>$p){
+            if(($e['result']['seats'][$id]??0)===0)continue;
+            $position=$id==='civic'?200:($id==='social'?-200:0);
+            $groups[]=['id'=>$id,'name'=>'Fictional '.$id,'alignment'=>$id==='civic'?'government':($id==='social'?'opposition':'nonaligned'),
+                'positions'=>array_fill_keys(FrenchParliament::TOPICS,$position),'whip_bps'=>7500];
+        }
+        $members=[];$seat=0;$counts=array_fill_keys(array_keys($e['config']['parties']),0);
+        foreach($e['result']['districts'] as $district=>$d){
+            $seat++;
+            if(array_sum($d['seats'])!==1)throw new \DomainException('Invalid elected district');
+            $winner=array_key_first(array_filter($d['seats'],fn($n)=>$n===1));
+            if($winner===null||!isset($counts[$winner]))throw new \DomainException('Unknown elected group');
+            $counts[$winner]++;
+            $members[]=['id'=>sprintf('elected-%03d',$seat),'seat'=>$seat,'group'=>$winner,'control'=>'ai',
+                'loyalty_bps'=>6000+($seat%5)*500,'attendance_bps'=>9500,'independence'=>(($seat*37)%301)-150];
+        }
+        if($seat!==577||$counts!==$e['result']['seats'])throw new \DomainException('Elected seat conservation failed');
+        return new FrenchParliament($e['world_id'],'fictional-elected-assembly',$day,'fictional_scenario',
+            'https://www.assemblee-nationale.fr/',$groups,$members);
+    }
     public static function resolve(FrenchParliament $p,FrenchConstitutionalCrisis $c,string $id,string $kind):array
     {
         // The matter is bound to the exact pre-vote constitutional snapshot.

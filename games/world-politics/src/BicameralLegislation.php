@@ -36,10 +36,67 @@ final class BicameralLegislation
             throw new \DomainException('Assembly must be pinned at bootstrap');
         $this->s['responsibility']['assembly']=AssemblyRollCalls::initial($this->s['world_id'],$this->s['day']);
     }
+    public function enableLifecycle():void
+    {
+        if(!isset($this->s['responsibility']['assembly'])||isset($this->s['responsibility']['lifecycle'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Lifecycle must be pinned at bootstrap');
+        $this->s['responsibility']['lifecycle']=ParliamentaryLifecycle::initial($this->s['day']);
+        $session=$this->s['responsibility']['lifecycle']['session'];
+        if($session!==null){
+            $c=FrenchConstitutionalCrisis::restore($this->s['responsibility']['crisis']);
+            $c->openSession(new LegislativeResponsibilityPrincipal($this->s['world_id']),$session['id'],$this->s['day'].'T00:00:00Z','initial-session');
+            $this->s['responsibility']['crisis']=$c->snapshot();
+        }
+    }
+    public function installElection(array $e):void
+    {
+        if(!isset($this->s['responsibility']['lifecycle']))throw new \DomainException('No parliamentary lifecycle');
+        $this->s['responsibility']=ParliamentaryLifecycle::install($this->s['responsibility'],$e,$this->s['day']);
+        $this->s['history'][]=['kind'=>'election_install','day'=>$this->s['day'],'election'=>$e];
+    }
     public function snapshot():array{return $this->s;}
     public function advance(string $day):void
     {
         self::day($day);if($day<$this->s['day'])throw new \DomainException('Legislative clock regression');
+        if(isset($this->s['responsibility']['lifecycle'])){
+            $r=$this->s['responsibility'];
+            foreach($r['lifecycle']['slots'] as $motion=>$entry){
+                if($entry['status']!=='scheduled'||$entry['slot']['vote_at']>=FrenchConstitutionalCrisis::instant($day.'T00:00:00Z'))continue;
+                $voteDay=substr($entry['vote_at'],0,10);
+                if($r['pending']!==null){
+                    $bid=$r['pending']['bill_id'];
+                    [$r,$b]=LegislativeResponsibility::advance($r,$this->s['bills'][$bid],$voteDay);
+                    $this->s['bills'][$bid]=$b;
+                }
+                $c=$r['crisis'];$m=$c['motions'][$motion]??$c['spontaneous_motions'][$motion]??null;
+                if(($m['status']??null)==='filed'){
+                    FrenchSittingCalendar::restore($entry['calendar'])->assertVoteAllowed($c,$motion,$entry['slot']['vote_at']);
+                    $linked=isset($c['motions'][$motion]);$bid=$linked?$m['bill_id']:null;
+                    $e=['world_id'=>$this->s['world_id'],'country'=>'FR','day'=>$voteDay,
+                        'evidence_id'=>'auto-vote-'.substr(hash('sha256',$motion.'/'.$entry['vote_at']),0,32),
+                        'bill_id'=>$bid,'kind'=>$linked?'responsibility_vote':'assembly_censure_vote','procedure_certified'=>true,
+                        'data'=>['at'=>$entry['vote_at'],'motion_id'=>$motion]];
+                    if($linked){[$r,$b]=LegislativeResponsibility::apply($r,$this->s['bills'][$bid],$e);$this->s['bills'][$bid]=$b;}
+                    else [$r,$result]=LegislativeResponsibility::independent($r,$e);
+                    $r['lifecycle']['slots'][$motion]['status']='resolved';
+                }else $r['lifecycle']['slots'][$motion]['status']='moot';
+            }
+            $session=$r['lifecycle']['session'];
+            if($session!==null&&$day>$session['end']&&ParliamentaryLifecycle::quiet($r))$r['lifecycle']['session']=null;
+            // Open ordinary sessions automatically, once per boundary.
+            $next=ParliamentaryLifecycle::ordinarySession($day);
+            if($next!==null&&$r['lifecycle']['session']===null&&ParliamentaryLifecycle::quiet($r)){
+                $c=FrenchConstitutionalCrisis::restore($r['crisis']);
+                if($c->snapshot()['session']!==$next['id']){
+                    $at=$next['start'].'T00:00:00Z';
+                    if(FrenchConstitutionalCrisis::instant($at)<$c->snapshot()['now'])$at=$day.'T00:00:00Z';
+                    $c->openSession(new LegislativeResponsibilityPrincipal($this->s['world_id']),$next['id'],$at,'session-'.$next['id']);
+                    $r['crisis']=$c->snapshot();
+                }
+                $r['lifecycle']['session']=$next;
+            }
+            $this->s['responsibility']=$r;
+        }
         if(isset($this->s['responsibility']['pending'])){
             $id=$this->s['responsibility']['pending']['bill_id'];
             [$r,$b]=LegislativeResponsibility::advance($this->s['responsibility'],$this->s['bills'][$id],$day);
@@ -70,10 +127,22 @@ final class BicameralLegislation
         if($e['world_id']!==$this->s['world_id']||$e['country']!=='FR'||$e['day']!==$this->s['day']||$e['procedure_certified']!==true
             ||count($this->s['history'])>=2000)throw new \DomainException('Uncertified legislative evidence');
         foreach($this->s['history'] as $h)if(($h['evidence']['evidence_id']??null)===$e['evidence_id'])throw new \DomainException('Duplicate evidence');
+        $original=$e;
+        $scheduled=isset($this->s['responsibility']['lifecycle']);
+        if($scheduled&&in_array($e['kind'],['responsibility_vote','assembly_censure_vote'],true))
+            throw new \DomainException('Scheduled motion votes are clock resolved');
+        $isFiling=$scheduled&&in_array($e['kind'],['responsibility_file','assembly_censure_file'],true);
+        if($isFiling){
+            if(!is_array($e['data'])||!is_string($e['data']['vote_at']??null)||!is_array($e['data']['sitting_days']??null))
+                throw new \DomainException('Certified sitting agenda required');
+            foreach($this->s['responsibility']['lifecycle']['slots'] as $slot)if($slot['status']==='scheduled')throw new \DomainException('Pilot permits one scheduled motion at a time');
+            unset($e['data']['vote_at'],$e['data']['sitting_days']);
+        }
         if($independent){
             if(!is_array($e['data'])||!isset($this->s['responsibility']))throw new \DomainException('Assembly not enabled');
             [$r,$result]=LegislativeResponsibility::independent($this->s['responsibility'],$e);
-            $this->s['responsibility']=$r;$this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$e];
+            if($isFiling)$r['lifecycle']['slots'][$e['data']['motion_id']]=ParliamentaryLifecycle::slot($r,$e['data']['motion_id'],$original['data']['vote_at'],$original['data']['sitting_days']);
+            $this->s['responsibility']=$r;$this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$original];
             return $result;
         }
         $b=$this->s['bills'][$e['bill_id']]??throw new \DomainException('Unknown bill');
@@ -81,8 +150,9 @@ final class BicameralLegislation
         if(is_string($e['kind'])&&str_starts_with($e['kind'],'responsibility_')){
             if(!isset($this->s['responsibility']))throw new \DomainException('Responsibility pilot not enabled');
             [$r,$b]=LegislativeResponsibility::apply($this->s['responsibility'],$b,$e);
+            if($isFiling)$r['lifecycle']['slots'][$e['data']['motion_id']]=ParliamentaryLifecycle::slot($r,$e['data']['motion_id'],$original['data']['vote_at'],$original['data']['sitting_days']);
             $this->s['responsibility']=$r;$this->s['bills'][$b['id']]=$b;
-            $this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$e];
+            $this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$original];
             return ['bill'=>$b,'responsibility'=>LegislativeResponsibility::observation($r),'policy_authorized'=>false];
         }
         if(isset($this->s['responsibility'])&&$this->s['responsibility']['crisis']['government']!=='in_office'&&in_array($e['kind'],['file','cmp','last_word'],true))
@@ -199,10 +269,12 @@ final class BicameralLegislation
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>2000)throw new \DomainException('Invalid legislation history');
         if(array_key_exists('responsibility',$s))$x->enableResponsibility();
         if(isset($s['responsibility']['assembly']))$x->enableAssembly();
+        if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();
         foreach($s['history'] as $h){
             $x->advance($h['day']);
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);
             elseif($h['kind']==='evidence')$x->certify($h['evidence']);
+            elseif($h['kind']==='election_install')$x->installElection($h['election']);
             else throw new \DomainException('Unknown history kind');
         }
         $x->advance($s['day']);if($x->snapshot()!==$s)throw new \DomainException('Legislative replay mismatch');return $x;
