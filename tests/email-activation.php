@@ -19,6 +19,7 @@ check((new PdoSessions(db(),$actClock))->login('email-new-player','valid activat
     'unverified email player cannot obtain session');
 $on=db()->prepare('SELECT status FROM engine_onboarding WHERE actor_id=?');
 $on->execute([$actor]);check($on->fetchColumn()==='pending','unverified email player is never provisioned');
+rejects(fn()=>(new PdoOnboarding(db(),$actClock))->enroll($world,$pack,'email-new-player','valid activation registration password'),DomainException::class,'F03 changing registration policy cannot bypass pending mailbox proof');
 check($act->verify('email-new-player','wrong password',$beg['code'])===null,'activation requires original password');
 check($act->verify('email-new-player','valid activation registration password',str_repeat('b',64))===null,
     'activation rejects forged code');

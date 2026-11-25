@@ -57,6 +57,7 @@ final class PdoOnboarding
         $s->execute([$actor]);
         $claim=$s->fetch(PDO::FETCH_ASSOC);
         if ($claim===false || $claim['world_id']!==$world) throw new \DomainException('Registration unavailable');
+        if (!PdoEmailActivation::permitsEnrollment($this->pdo,$actor)) throw new \DomainException('Registration unavailable');
         if ($claim['status']==='ready') return ['actor'=>$actor,'created'=>false,'recoveryCode'=>(new PdoRecovery($this->pdo,$this->clock))->issueIfMissing($actor)];
         if ($claim['status']!=='pending') throw new \DomainException('Invalid registration state');
 

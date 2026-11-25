@@ -32,7 +32,7 @@ final class PdoSessions
             $s=$this->pdo->prepare('SELECT status FROM engine_onboarding WHERE actor_id=?');
             $s->execute([$actor]);
             $claim=$s->fetchColumn();
-            if ($claim!==false && $claim!=='ready') { $this->pdo->commit(); return null; }
+            if ($claim!==false && ($claim!=='ready' || !PdoEmailActivation::permitsEnrollment($this->pdo,$actor))) { $this->pdo->commit(); return null; }
             $token=bin2hex(random_bytes(32));
             $s=$this->pdo->prepare('INSERT INTO engine_sessions(token_hash,actor_id,expires_at) VALUES (?,?,?)');
             $s->execute([hash('sha256',$token),$actor,$now+$ttl]);
@@ -49,7 +49,13 @@ final class PdoSessions
         $s=$this->pdo->prepare('SELECT actor_id FROM engine_sessions WHERE token_hash=? AND revoked=0 AND expires_at>?');
         $s->execute([hash('sha256',$token),$this->clock->now()]);
         $actor=$s->fetchColumn();
-        return $actor===false ? null : $actor;
+        if ($actor===false) return null;
+        // A stale token from an interrupted or incorrectly enrolled public
+        // claim must not confer access. Historical operator tokens have no claim.
+        $claim=$this->pdo->prepare('SELECT status FROM engine_onboarding WHERE actor_id=?');
+        $claim->execute([$actor]);$status=$claim->fetchColumn();
+        if ($status!==false && ($status!=='ready' || !PdoEmailActivation::permitsEnrollment($this->pdo,$actor))) return null;
+        return $actor;
     }
     public function revoke(string $token): void
     {

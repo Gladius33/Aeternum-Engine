@@ -1,15 +1,21 @@
 <?php
 declare(strict_types=1);
-use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ProgressionHttpApi,WorldRuntime,SystemClock,PeerAddressResolver};
+use Aeternum\Core\{HttpApi,AuthHttpApi,EconomyHttpApi,PlayerDiscoveryApi,WorldMapHttpApi,PublicWorldMapHttpApi,WorldBuildingHttpApi,SocialHttpApi,PremiumHttpApi,ProgressionHttpApi,WorldRuntime,SystemClock,PeerAddressResolver,ApiRequestSecurity,ApiErrorPolicy};
 // The JSON API has a strict, separately testable response policy.
 // Load before Composer: plaintext rejection must also work without database setup.
 require_once __DIR__.'/../packages/core/src/ApiResponseSecurity.php';
+require_once __DIR__.'/../packages/core/src/ApiRequestSecurity.php';
+require_once __DIR__.'/../packages/core/src/ApiErrorPolicy.php';
+// Never permit PHP warning/stack output to corrupt JSON or expose secrets.
+ini_set('display_errors','0');
 \Aeternum\Core\ApiResponseSecurity::emit(in_array($_SERVER['HTTPS'] ?? '', ['on','1'], true));
 try {
     // Deny plaintext before loading Composer or connecting to a database.
     // HTTPS comes only from the trusted web server, never X-Forwarded-Proto.
     if (!in_array($_SERVER['HTTPS'] ?? '',['on','1'],true)) {
         $status=403; $body=['error'=>'https_required'];
+    } elseif (($rejection=ApiRequestSecurity::reject($_SERVER))!==null) {
+        [$status,$body]=$rejection;
     } else {
         require __DIR__.'/../vendor/autoload.php';
         $dsn=getenv('AETERNUM_DSN');
@@ -95,18 +101,22 @@ try {
             );
             }
         } else {
-        [$status,$body]=(new HttpApi($pdo,new SystemClock()))->handle(
+        [$status,$body]=(new HttpApi($pdo,new SystemClock(),$worldRuntime()->packs))->handle(
             $_SERVER['REQUEST_METHOD'] ?? '',
             explode('?',$_SERVER['REQUEST_URI'] ?? '',2)[0],
             $_SERVER['HTTP_AUTHORIZATION'] ?? ''
         );
         }
     }
+    if ($status===503 && ($body['retryable']??false)===true) header('Retry-After: 1');
     if ($status===401) header('WWW-Authenticate: Bearer');
     if ($status===405) header('Allow: '.(str_contains($path ?? '','/social/') ? 'GET, POST' : ((str_starts_with($path ?? '','/v1/auth/') || str_ends_with($path ?? '','/economy/commands')) ? 'POST' : 'GET')));
     http_response_code($status);
     echo json_encode($body,JSON_THROW_ON_ERROR);
-} catch (Throwable) {
-    http_response_code(500);
-    echo '{"error":"internal_error"}';
+} catch (Throwable $e) {
+    [$status,$body]=ApiErrorPolicy::response($e);
+    error_log(ApiErrorPolicy::logRecord($e));
+    if ($status===503) header('Retry-After: 1');
+    http_response_code($status);
+    echo json_encode($body,JSON_THROW_ON_ERROR);
 }

@@ -27,7 +27,7 @@ final class PdoEmailActivation
      */
     public function begin(string $world,string $login,string $password,string $email,?string $invite=null): ?array
     {
-        PdoMemberships::validateId($world);
+        if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/D',$world)) throw new \InvalidArgumentException('Invalid activation world');
         if (!preg_match('/^[a-z0-9][a-z0-9_-]{2,63}$/D',$login)
             || strlen($password)<12 || strlen($password)>1024) throw new \InvalidArgumentException('Invalid signup');
         $email=self::normalizeEmail($email);
@@ -54,6 +54,20 @@ final class PdoEmailActivation
         }
         return ['email'=>$email,'code'=>$code];
     }
+    /** A reservation remains proof-bound across configuration changes. */
+    public static function permitsEnrollment(PDO $pdo,string $actor): bool
+    {
+        $s=$pdo->prepare('SELECT verified_at FROM engine_email_activations WHERE actor_id=?');
+        try { $s->execute([$actor]); }
+        catch (PDOException $e) {
+            // Legacy 016–018 schema predates mailbox claims entirely.
+            if ((int)($e->errorInfo[1]??0)===1146) return false;
+            throw $e;
+        }
+        $row=$s->fetch(PDO::FETCH_ASSOC);
+        return $row===false || $row['verified_at']!==null;
+    }
+
     /** Rate-limited by the HTTP adapter. No leakage for unknown or mismatched users. */
     public function resend(string $login,string $password,string $email): ?array
     {
