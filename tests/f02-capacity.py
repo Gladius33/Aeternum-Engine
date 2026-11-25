@@ -57,7 +57,8 @@ def main():
     report = {"scope": "isolated CI HTTP and MariaDB", "budgets": BUDGETS,
               "server_workers": SERVER_WORKERS, "runner": {
                   "os": platform.platform(), "logical_cpus": os.cpu_count(),
-                  "source_sha": os.environ.get("GITHUB_SHA", "local")}, "profiles": []}
+                  "source_sha": os.environ.get("F02_SOURCE_SHA", os.environ.get("GITHUB_SHA", "local")),
+                  "checkout_sha": os.environ.get("GITHUB_SHA", "local")}, "profiles": []}
     report_path = pathlib.Path(os.environ.get("F02_REPORT_PATH", "f02-capacity.json"))
     def persist():
         report_path.write_text(json.dumps(report, indent=2, sort_keys=True)+"\n")
@@ -192,7 +193,12 @@ def main():
                                                       cwd=ROOT, stdout=subprocess.PIPE,
                                                       stderr=subprocess.PIPE, text=True)
                             list(pool.map(build, range(n)))
-                            time.sleep(2.5)
+                            # Give the worker a bounded drain interval, not an
+                            # assumed exact scheduler latency.
+                            for _ in range(25):
+                                time.sleep(.4)
+                                if php("metrics", d)["pending_events"] == 0:
+                                    break
                         stop_path.touch()
                         out, err = worker.communicate(timeout=15)
                         if worker.returncode:

@@ -159,6 +159,7 @@ jobs:
           AETERNUM_TEST_USER: aeternum_f02
           AETERNUM_TEST_PASSWORD: ci-f02-test-only
           F02_REPORT_PATH: f02-capacity.json
+          F02_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: python3 tests/f02-capacity.py
       - name: Preserve sanitized capacity evidence
         if: always()

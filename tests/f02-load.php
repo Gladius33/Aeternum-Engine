@@ -53,17 +53,25 @@ if ($mode==='setup') {
     ]],JSON_THROW_ON_ERROR));chmod($dir.'/worlds.json',0600);
     $emit(['accounts'=>count($players),'migration'=>'populated-031-to-032','historical_replay'=>true]);
 } elseif ($mode==='worker') {
-    $processed=0;$maxLag=0;$iterations=0;$started=hrtime(true);
+    $maxLag=0;$iterations=0;$lockRetries=0;$started=hrtime(true);
+    $countCompleted=static fn():int=>(int)$q("SELECT COUNT(*) FROM engine_events WHERE world_id=? AND completed=1",[$world])->fetchColumn();
+    $beforeCompleted=$countCompleted();
     $worker=new WorldWorker($pdo,$clock);
     while (!is_file($dir.'/stop-worker') && (hrtime(true)-$started)/1e9<240) {
         $oldest=$q('SELECT MIN(due_at) FROM engine_events WHERE world_id=? AND completed=0 AND due_at<=?',[$world,time()])->fetchColumn();
         if ($oldest!==null && $oldest!==false) {
             $maxLag=max($maxLag,time()-(int)$oldest);
-            $processed+=count($worker->run($world,$pack,64,2000,$rules));
+            try {
+                $worker->run($world,$pack,64,2000,$rules);
+            } catch (PDOException $e) {
+                if (!in_array((int)($e->errorInfo[1]??0),[1205,1213],true) || ++$lockRetries>20) throw $e;
+                usleep(100000);
+            }
+            $maxLag=max($maxLag,time()-(int)$oldest);
         }
         $iterations++;usleep(100000);
     }
-    $emit(['processed'=>$processed,'max_observed_due_lag_seconds'=>$maxLag,'polls'=>$iterations]);
+    $emit(['processed'=>$countCompleted()-$beforeCompleted,'max_observed_due_lag_seconds'=>$maxLag,'polls'=>$iterations,'lock_retries'=>$lockRetries]);
 } elseif ($mode==='metrics') {
     $names=['Innodb_row_lock_waits','Innodb_row_lock_time','Innodb_data_read','Innodb_data_written','Threads_connected','Max_used_connections','Innodb_buffer_pool_reads','Innodb_buffer_pool_read_requests'];
     $rows=$pdo->query("SHOW GLOBAL STATUS WHERE Variable_name IN ('".implode("','",$names)."')")->fetchAll(PDO::FETCH_KEY_PAIR);

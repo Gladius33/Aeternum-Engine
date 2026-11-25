@@ -59,7 +59,7 @@ real pre-032 state. The same growing world is used across profiles of
 1, 4, 16 and 32 concurrent client threads. Per client: login, private rank,
 balance, market read, social read, market creation, foundation placement,
 barter acceptance, duplicate receipt, own score, construction start.
-A separate bounded worker drains due construction events. Expected mixed
+A separate bounded worker drains due construction events and records observed lock retries. Expected mixed
 operations: 583, excluding intentional overload probes and soak.
 The final audit expects 54 filled trades (including the migration trade),
 53 completed constructions, no pending events, ledger/stock conservation,
@@ -77,7 +77,7 @@ Predeclared isolated-runner guards (not service commitments):
   bounded; 1205/1213 failures return retryable 503 only after rollback
   and clients retain the exact original request ID.
 
-The sanitized JSON artifact records source SHA, runner, workload, p50/p95/p99
+The sanitized JSON artifact records source HEAD and checkout SHA, runner, workload, p50/p95/p99
 per operation and aggregate, throughput, response status counts, retry
 counts, runner CPU and sampled RAM, MariaDB I/O and lock counter deltas,
 connections, observed due lag, snapshot size and journal length, rank
