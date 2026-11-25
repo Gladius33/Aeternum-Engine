@@ -104,7 +104,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await page.locator('[data-first-mission]').click();
             await expect(page.locator('[data-catalogue='+type+']')).toHaveAttribute('aria-pressed','true');
             await captureScene(page,'local-'+pack+'-first-build');
-            const command=origin+'/v1/worlds/lab-'+pack+'/economy/commands';
+            const command=origin+'/v1/worlds/lab-'+pack+'-f04/economy/commands';
             const isFinal=async(r,type)=>r.url()===command&&r.request().postDataJSON()?.type===type&&(r.status()!==409||!(await r.json()).retryable);
             const placed=page.waitForResponse(r=>isFinal(r,'building.place'));
             await page.locator('#world-scene [data-label=place]').click();
@@ -390,7 +390,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(relations.locator('#social-send-form button')).toHaveText('Envoyer un message privé');
             await page.locator('#locale-select').selectOption('en');
             await page.locator('[data-game-nav=domain]').click();
-            await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
+            await expect.poll(async()=>{const response=await context.request.get(origin+'/lab-bots/roster.json',{maxRetries:2,timeout:10000,headers:{'Cache-Control':'no-cache','Connection':'close'}});expect(response.status()).toBe(200);const rows=(await response.json()).worlds['lab-'+pack+'-f04'];return rows.filter(b=>b.built>0&&b.lastAction!==null).length;},{timeout:120000,intervals:[3000,5000]}).toBe(10);
             // G18: real market, illustrations and a non-mutating draft.
             await page.locator('[data-game-nav=market]').click();
             await expect(page.locator('#status')).toHaveText('Success',{timeout:30000});
@@ -424,18 +424,18 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
             const chronicle=page.locator('.campaign-chronicle');
             await expect(chronicle).toBeVisible();
-            await expect(chronicle.locator('[data-chapter]')).toHaveCount(pack==='guild'?2:3);
+            await expect(chronicle.locator('[data-chapter]')).toHaveCount(3);
             const refreshPath=pack==='medieval'?'/settlement/status/':pack==='industrial'?'/industrial/status/':'/construction/progression';
             const refreshed=page.waitForResponse(r=>r.url().includes(refreshPath));
             await chronicle.locator('[data-campaign-refresh]').click();
             expect((await refreshed).status()).toBe(200);
             await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
             const firstGoal=chronicle.locator('[data-chapter-goal='+type+']');
-            await expect(firstGoal.locator('strong')).toHaveText(pack==='guild'?'1 / 1':'1 / 2');
-            await expect(firstGoal).toHaveAttribute('data-goal-state',pack==='guild'?'complete':'incomplete');
+            await expect(firstGoal.locator('strong')).toHaveText('1 / 2');
+            await expect(firstGoal).toHaveAttribute('data-goal-state','incomplete');
             if(pack==='medieval')await expect(chronicle.locator('[data-chapter-goal=population] strong')).toHaveText('2 / 6');
             if(pack==='industrial')await expect(chronicle.locator('[data-chapter-goal=delivery] strong')).toHaveText('0 / 45');
-            if(pack==='guild')await expect(chronicle.locator('[data-campaign-victory]')).toHaveAttribute('data-campaign-victory','unknown');
+            if(pack==='guild')await expect(chronicle.locator('[data-campaign-victory]')).toHaveAttribute('data-campaign-victory','false');
             await captureScene(page,'g19-'+pack+'-campaign');
             const shortcut=pack==='medieval'?'granary':pack==='industrial'?'warehouse':'caravan_hub';
             await chronicle.locator('[data-chapter-action='+shortcut+']').click();

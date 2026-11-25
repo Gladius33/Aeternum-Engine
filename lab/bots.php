@@ -39,8 +39,8 @@ try{
             $login=sprintf('%s-bot-%02d',$pack,$i);
             $password=$credentials[$login]??throw new RuntimeException('Missing bot credentials');
             $actor=$ids->authenticate($login,$password)??$ids->register($login,$password);
-            $provisioner->provision('lab-'.$pack,$actor,$worlds['lab-'.$pack],$runtime->rule('lab-'.$pack));
-            $status['worlds']['lab-'.$pack][]=['name'=>sprintf('Bot %02d',$i),'profile'=>LabBotPolicy::PROFILES[($i-1)%4],
+            $provisioner->provision('lab-'.$pack.'-f04',$actor,$worlds['lab-'.$pack.'-f04'],$runtime->rule('lab-'.$pack.'-f04'));
+            $status['worlds']['lab-'.$pack.'-f04'][]=['name'=>sprintf('Bot %02d',$i),'profile'=>LabBotPolicy::PROFILES[($i-1)%4],
                 'status'=>'ready','built'=>0,'lastAction'=>null];
         }
         atomicJson($roster,$status,0644);
@@ -57,9 +57,16 @@ try{
     while(true){
         $tick=intdiv(time(),30);
         if($tick===$lastTick){sleep(1);continue;}$lastTick=$tick;
-        foreach($packs as $pack=>$resources)for($i=1;$i<=10;$i++){
-            $world='lab-'.$pack;$login=sprintf('%s-bot-%02d',$pack,$i);
+        $cycleStart=hrtime(true);
+        $jobs=[];foreach($packs as $pack=>$resources)for($i=1;$i<=10;$i++)$jobs[]=[$pack,$resources,$i];
+        for($offset=0;$offset<count($jobs);$offset++){
+            [$pack,$resources,$i]=$jobs[($tick+$offset)%count($jobs)];
+            if((hrtime(true)-$cycleStart)/1e9>=25)break;
+            $world='lab-'.$pack.'-f04';$login=sprintf('%s-bot-%02d',$pack,$i);
             $row=$status['worlds'][$world][$i-1];$token=null;
+            if(getenv('AETERNUM_LAB_BOTS_PAUSED')==='1'){
+                $row['status']='paused';$status['worlds'][$world][$i-1]=$row;continue;
+            }
             try{
                 $token=$sessions->login($login,$credentials[$login],120);
                 if($token===null)throw new RuntimeException('Bot login denied');
@@ -70,6 +77,7 @@ try{
                 $stocks=[];
                 foreach($resources as $resource)$stocks[$resource]=readData($economy,$root.'/economy/overview/'.$actor.'/'.$resource,$bearer);
                 $campaign=$pack==='guild'?[]:readData($buildingApi,$root.($pack==='medieval'?'/settlement/status/':'/industrial/status/').$actor,$bearer);
+                $campaign['module']=readData($economy,$root.'/economy/pack-view/campaign/'.$actor,$bearer);
                 $offers=$pack==='guild'?readData($economy,$root.'/economy/market',$bearer)['offers']:[];
                 $row['built']=count(array_filter($progress['buildings'],static fn($b)=>$b['level']>0));
                 $row['status']='idle';
@@ -78,7 +86,12 @@ try{
                     // Stable journal ID across restarts and changing plans; no second action.
                     $id='lab-bot-'.hash('sha256',$world."\0".$actor."\0".$tick);
                     if($plan['type']==='market.create')$plan['payload']['offer']=substr($id,0,64);
-                    [$code,]=$economy->handle('POST',$root.'/economy/commands',$bearer,json_encode(['id'=>$id]+$plan,JSON_THROW_ON_ERROR));
+                    $body=json_encode(['id'=>$id]+$plan,JSON_THROW_ON_ERROR);
+                    for($attempt=0;$attempt<2;$attempt++){
+                        [$code,$reply]=$economy->handle('POST',$root.'/economy/commands',$bearer,$body);
+                        if(!in_array($code,[409,503],true)||($reply['retryable']??false)!==true||$attempt===1)break;
+                        usleep(150000);
+                    }
                     $row['status']=$code===200?'active':'blocked';
                     if($code===200)$row['lastAction']=$plan['type'];
                 }
@@ -91,7 +104,7 @@ try{
         }
         $sessions->purgeExpired(500);$status['updatedAt']=time();
         atomicJson($roster,$status,0644);
-        $counts=['active'=>0,'idle'=>0,'blocked'=>0,'ready'=>0];
+        $counts=['active'=>0,'idle'=>0,'blocked'=>0,'ready'=>0,'paused'=>0];
         foreach($status['worlds'] as $rows)foreach($rows as $row)$counts[$row['status']]++;
         echo json_encode(['tick'=>$tick,'worlds'=>3,'bots'=>30,'counts'=>$counts],JSON_THROW_ON_ERROR).PHP_EOL;
         sleep(max(1,30-time()%30));
