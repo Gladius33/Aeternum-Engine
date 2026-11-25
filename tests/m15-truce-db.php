@@ -26,8 +26,9 @@ use Aeternum\Core\{BilateralTruceCommands,Command,CommandResult,
         }
     };
     $world='m15-diplomacy-world';
+    $reviewed=\Aeternum\Core\ReviewedModuleCatalog::module('bilateral-truce-v1',$pack);
     $rules=TrustedWorldRules::bind([$world=>$pack],[
-        $world=>[$challenge,new BilateralTruceCommands()]
+        $world=>array_merge([$challenge],$reviewed['commands'])
     ])[$world];
     $pdo=db();$clock=new FrozenClock(19000);
     $identity=new PdoIdentity($pdo);
