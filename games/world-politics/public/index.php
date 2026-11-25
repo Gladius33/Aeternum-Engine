@@ -9,7 +9,7 @@ header('Content-Security-Policy: default-src \'none\'; frame-ancestors \'none\''
 header('Cache-Control: no-store');
 $peer=$_SERVER['REMOTE_ADDR']??'unknown';
 $local=PHP_SAPI==='cli-server' && getenv('WP_ALPHA_LOOPBACK')==='YES' && in_array($peer,['127.0.0.1','::1'],true)
-    && in_array($_SERVER['SERVER_ADDR']??'',['127.0.0.1','::1'],true);
+    && in_array($_SERVER['SERVER_NAME']??'',['127.0.0.1','::1'],true);
 if (getenv('WP_ALPHA_ENABLED')!=='YES') {
     $result=AlphaGateway::problem(503,'alpha_disabled');
 } elseif (!$local && !in_array($_SERVER['HTTPS']??'',['on','1'],true)) {
