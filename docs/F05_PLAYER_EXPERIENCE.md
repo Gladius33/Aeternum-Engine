@@ -94,3 +94,16 @@ HTTPS loopback Docker stack; no production data or external deployment.
 This is an engineering refinement of original procedural SVG artwork.
 No new 3D renderer, external asset license, or claim of AAA visual quality.
 Physical-device and independent human acceptance remain operator gates.
+
+## Qualification follow-up
+
+The first F05 candidate returned the new stable `network_unavailable` code
+instead of the browser-specific `Failed to fetch` text. The existing
+lost-reply assertion now checks that code while retaining all receipt
+and retry checks. A recovery replay received 429 before authentication;
+the test now waits for the real quota window and still requires 401.
+The medieval reconnect scenario stopped before loading stock. Initial
+read failures now expose a read-only world reload control, with the
+reconnect test logging the exact stable error and respecting quota windows.
+The specific cause of the first missing-stock observation was not captured
+in the original test log; it is not asserted to have been a quota failure.

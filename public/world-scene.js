@@ -1795,11 +1795,28 @@
         legacySummary.textContent=detailLabel;legacyLink.textContent=detailLabel;
         exit.textContent=lang()==='fr'?'Changer de jeu':'Change game';
     }
-    async function loadInitialScene(){await loadMap();await readStages();districtMode=true;render();await readInventory();if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();await loadCampaignModule();await readBotRoster();}
+    // A failed initial read must not leave a permanent, empty domain after
+    // reconnect. Explicit read-only recovery, preserving server quotas.
+    let sceneReadFailed=false;
+    const sceneReload=html('button',contextControls,'scene-button');sceneReload.type='button';sceneReload.dataset.sceneReload='true';sceneReload.hidden=true;
+    function renderSceneReload(){
+        sceneReload.hidden=classic||!sceneReadFailed||!locationFields().world;
+        sceneReload.disabled=busy;
+        sceneReload.textContent=lang()==='fr'?'Recharger le monde':'Reload world';
+    }
+    sceneReload.addEventListener('click',()=>{if(!busy)run(loadInitialScene);});
+    async function loadInitialScene(){
+        try{
+            await loadMap();await readStages();districtMode=true;render();await readInventory();
+            if(theme==='medieval')await reviewMedieval();else if(theme==='industrial')await reviewIndustrial();
+            await loadCampaignModule();await readBotRoster();sceneReadFailed=false;
+        }catch(e){sceneReadFailed=true;throw e;}
+        finally{renderSceneReload();}
+    }
     let initialLoad=false;
-    on('context',()=>{refreshShell();if(!classic)revealPanel('domain');initialLoad=!classic&&Boolean(locationFields().world);});
+    on('context',()=>{sceneReadFailed=false;renderSceneReload();refreshShell();if(!classic)revealPanel('domain');initialLoad=!classic&&Boolean(locationFields().world);});
     on('activity',d=>{
-        ui.setBusy(d.busy);syncMirrors();
+        ui.setBusy(d.busy);syncMirrors();renderSceneReload();
         if(d.busy){ui.setStatus(lang()==='fr'?'Synchronisation…':'Synchronizing…');return;}
         const ok=document.getElementById('status').textContent==='Success';
         const message=document.getElementById('status').textContent;
@@ -1807,8 +1824,8 @@
         ui.setStatus(ok?'':friendly);
         if(initialLoad){initialLoad=false;queueMicrotask(()=>{if(!busy&&!rootGame.hidden)run(loadInitialScene);});}
     });
-    on('reset',()=>{resetTutorial();audio.reset();soundSeen.clear();soundVictory=false;initialLoad=false;lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;livingScene.hidden=true;ui.setStatus('');});
-    document.getElementById('locale-select').addEventListener('change',refreshShell);
+    on('reset',()=>{resetTutorial();audio.reset();soundSeen.clear();soundVictory=false;initialLoad=false;sceneReadFailed=false;renderSceneReload();lastEconomicEvent=null;economicJournal.reset();selectedOperationId=renderedOperationId=null;operationView.replaceChildren();operationHistory.replaceChildren();operationPanel.hidden=true;livingScene.hidden=true;ui.setStatus('');});
+    document.getElementById('locale-select').addEventListener('change',()=>{refreshShell();renderSceneReload();});
     for(const key of Object.keys(mirrors))balance.elements[key].addEventListener('change',syncMirrors);
     // Existing Vue navigation opens the relevant advanced controls when requested.
     document.addEventListener('click',e=>{const link=e.target.closest?.('.player-nav a');if(link&&link.hash){const target=document.getElementById(link.hash.slice(1));if(!classic&&['social-panel','social-mail-panel'].includes(target?.id)){e.preventDefault();relationsTab=target.id==='social-panel'?'alliances':'messages';renderRelations();focusNode(relationsBlock.root);}else if(legacy.contains(target))legacy.open=true;}});
