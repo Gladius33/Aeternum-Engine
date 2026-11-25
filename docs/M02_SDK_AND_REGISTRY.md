@@ -124,8 +124,7 @@ Avant une nouvelle version :
 Ce protocole est conservateur : M02 n'implémente pas une migration en ligne
 d'une simulation déjà peuplée. Les tests M02 prouvent le refus d'un
 changement silencieux, le maintien d'une version historique et le rejeu
-d'un troisième pack sur une base de laboratoire. Ils ne valident ni
-l'hébergement O2Switch, ni une restauration réelle de production.
+d'un troisième pack sur une base de laboratoire. 
 
 ## Critères testés et limites
 
