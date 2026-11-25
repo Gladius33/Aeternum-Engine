@@ -7,7 +7,7 @@ use PDO;
 final class WorldBuildingHttpApi
 {
     /** @param array<string,mixed> $worlds */
-    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly array $worlds) {}
+    public function __construct(private readonly PDO $pdo,private readonly Clock $clock,private readonly array $worlds,private readonly array $approvedRules=[]) { WorldRuntime::assertBindings($worlds,$approvedRules); }
 
     public function handle(string $method,string $path,string $authorization): array
     {
@@ -44,13 +44,13 @@ final class WorldBuildingHttpApi
             if ($isStatus) {
                 $pack=$this->worlds[$match[1]];
                 if (!$pack instanceof GamePack || $pack->settlement===null) return [404,['error'=>'not_found']];
-                return [200,['data'=>(new PdoSettlementStatus($this->pdo,$match[1],$pack->rules(),$pack->settlement))
+                return [200,['data'=>(new PdoSettlementStatus($this->pdo,$match[1],($this->approvedRules[$match[1]]??$pack->rules()),$pack->settlement))
                     ->forActor($actor,$match[2])]];
             }
             if ($isIndustry) {
                 $pack=$this->worlds[$match[1]];
                 if (!$pack instanceof GamePack || $pack->industry===null) return [404,['error'=>'not_found']];
-                return [200,['data'=>(new PdoIndustryStatus($this->pdo,$match[1],$pack->rules(),$pack->industry))
+                return [200,['data'=>(new PdoIndustryStatus($this->pdo,$match[1],($this->approvedRules[$match[1]]??$pack->rules()),$pack->industry))
                     ->forActor($actor,$match[2])]];
             }
             $service=new PdoBuildings($this->pdo,$match[1]);
