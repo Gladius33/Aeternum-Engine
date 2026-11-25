@@ -286,3 +286,11 @@ Existing 49(3) crisis aggregate linked to ordinary Assembly reading, certified
 motions, censure, appointment and daily campaign/opinion projection. No
 automatic law or presidential defeat. Single pinned session, certified
 aggregate ballots only. See WORLD_POLITICS_RESPONSIBILITY.md.
+
+
+## WP42 individual Assembly candidate
+
+Pinned 577-deputy fictional roster, individual roll calls for linked and
+independent censure and confidence votes, signed rolls, verified legal
+outcomes and independent appointment. Certified agenda still required;
+calendar and dynamic roster integration remain open. See WORLD_POLITICS_ASSEMBLY.md.

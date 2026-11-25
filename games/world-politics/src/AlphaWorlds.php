@@ -24,6 +24,7 @@ final class AlphaScenario
     public const REVISION='fr-revision-v1';
     public const LEGISLATIVE='fr-legislative-v1';
     public const RESPONSIBILITY='fr-responsibility-v1';
+    public const ASSEMBLY='fr-assembly-v1';
     public readonly array $countries;
     public readonly string $id;
     public readonly string $day;
@@ -35,9 +36,9 @@ final class AlphaScenario
     public function __construct(string $id=self::ID,?GlobalReferenceBundle $bundle=null,?string $bundleSha=null)
     {
         $this->id=$id;$this->bundle=$bundle;$this->bundleSha=$bundleSha;
-        $this->countries=in_array($id,[self::COMPARATIVE,self::ELECTORAL,self::POLITICAL,self::OPINION,self::DIALOGUE,self::SURVIVAL,self::REVOLUTION_CASE,self::PRESIDENTIAL,self::REVISION,self::LEGISLATIVE,self::RESPONSIBILITY],true)?['DE','ES','FR','GB','IT','JP','US']:['FR'];
-        $this->day=in_array($id,[self::GLOBAL,self::COMPARATIVE,self::ELECTORAL,self::POLITICAL,self::OPINION,self::DIALOGUE,self::SURVIVAL,self::REVOLUTION_CASE,self::PRESIDENTIAL,self::REVISION,self::LEGISLATIVE,self::RESPONSIBILITY],true)?GlobalReferenceBundle::DATE:self::DAY;
-        if (in_array($id,[self::GLOBAL,self::COMPARATIVE,self::ELECTORAL,self::POLITICAL,self::OPINION,self::DIALOGUE,self::SURVIVAL,self::REVOLUTION_CASE,self::PRESIDENTIAL,self::REVISION,self::LEGISLATIVE,self::RESPONSIBILITY],true) && $bundle!==null) {
+        $this->countries=in_array($id,[self::COMPARATIVE,self::ELECTORAL,self::POLITICAL,self::OPINION,self::DIALOGUE,self::SURVIVAL,self::REVOLUTION_CASE,self::PRESIDENTIAL,self::REVISION,self::LEGISLATIVE,self::RESPONSIBILITY,self::ASSEMBLY],true)?['DE','ES','FR','GB','IT','JP','US']:['FR'];
+        $this->day=in_array($id,[self::GLOBAL,self::COMPARATIVE,self::ELECTORAL,self::POLITICAL,self::OPINION,self::DIALOGUE,self::SURVIVAL,self::REVOLUTION_CASE,self::PRESIDENTIAL,self::REVISION,self::LEGISLATIVE,self::RESPONSIBILITY,self::ASSEMBLY],true)?GlobalReferenceBundle::DATE:self::DAY;
+        if (in_array($id,[self::GLOBAL,self::COMPARATIVE,self::ELECTORAL,self::POLITICAL,self::OPINION,self::DIALOGUE,self::SURVIVAL,self::REVOLUTION_CASE,self::PRESIDENTIAL,self::REVISION,self::LEGISLATIVE,self::RESPONSIBILITY,self::ASSEMBLY],true) && $bundle!==null) {
             $this->actors=$bundle->actors;$this->references=$bundle->references;$this->charters=[];return;
         }
         if ($id!==self::ID || $bundle!==null || $bundleSha!==null) throw new \DomainException('Unknown scenario configuration');
@@ -49,7 +50,7 @@ final class AlphaScenario
         $this->references=new EconomicReferenceRegistry(self::DAY,[],$this->actors);
         $this->charters=[];
     }
-    public function campaign():bool{return in_array($this->id,[self::SURVIVAL,self::REVOLUTION_CASE,self::PRESIDENTIAL,self::REVISION,self::LEGISLATIVE,self::RESPONSIBILITY],true);}
+    public function campaign():bool{return in_array($this->id,[self::SURVIVAL,self::REVOLUTION_CASE,self::PRESIDENTIAL,self::REVISION,self::LEGISLATIVE,self::RESPONSIBILITY,self::ASSEMBLY],true);}
     public function domestic():array
     {
         return ['start_day'=>$this->day,'currency'=>'EUR','opening_balance'=>1000000000,
@@ -76,13 +77,13 @@ final class AlphaWorlds
 
     public function create(AlphaSession $session,array $body,string $key):array
     {
-        AlphaAccounts::fields($body,in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario']);
+        AlphaAccounts::fields($body,in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario']);
         if (!is_string($body['label']) || trim($body['label'])==='' || mb_strlen($body['label'])>100
             || preg_match('/[\x00-\x1f\x7f]/',$body['label']) || $body['scenario']!==$this->scenario->id
             || !preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)) throw new AlphaHttpError(422,'invalid_world');
         $label=trim($body['label']);
         $request=[$label,$this->scenario->id];
-        if (in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY],true)) $request[]=$this->scenario->bundleSha;
+        if (in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true)) $request[]=$this->scenario->bundleSha;
         $fingerprint=hash('sha256',self::json($request));
         $key=hash('sha256',$key);
         $this->db->beginTransaction();
@@ -125,10 +126,10 @@ final class AlphaWorlds
                     };
                     $inst->enableAccountability('initial-government',$seats);
                 }
-                if(in_array($this->scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY],true))$inst->enableElectoral(ElectoralScenario::config($country,$day));
-                if(in_array($this->scenario->id,[AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY],true))$inst->enablePoliticalAI();
-                if($country==='FR'&&in_array($this->scenario->id,[AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY],true))$inst->enableRevision();
-                if($country==='FR'&&in_array($this->scenario->id,[AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY],true))$inst->enableLegislation($this->scenario->id===AlphaScenario::RESPONSIBILITY);
+                if(in_array($this->scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true))$inst->enableElectoral(ElectoralScenario::config($country,$day));
+                if(in_array($this->scenario->id,[AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true))$inst->enablePoliticalAI();
+                if($country==='FR'&&in_array($this->scenario->id,[AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true))$inst->enableRevision();
+                if($country==='FR'&&in_array($this->scenario->id,[AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true))$inst->enableLegislation(in_array($this->scenario->id,[AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true),$this->scenario->id===AlphaScenario::ASSEMBLY);
                 $this->insert('INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
                     [$world,$country,self::json($inst->snapshot()),$inst->hash()]);
             }
@@ -147,11 +148,11 @@ final class AlphaWorlds
             $this->insert('INSERT INTO wp_domestic_states(world_id,assumptions_json,assumptions_sha,state_json,state_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($c),$dom->assumptionsHash(),self::json($dom->snapshot()),$dom->hash()]);
             $this->insert('INSERT INTO wp_world_clock(world_id,committed_day,revision,domestic_enabled) VALUES(?,?,0,1)',[$world,$day]);
-            if(in_array($this->scenario->id,[AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY],true)){
+            if(in_array($this->scenario->id,[AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true)){
                 $op=new PublicOpinion($world,$day,PublicOpinion::fixture());
-                if(in_array($this->scenario->id,[AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY],true))$op->enableDialogue();
+                if(in_array($this->scenario->id,[AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true))$op->enableDialogue();
                 if($this->scenario->campaign())$op->enableCampaign();
-                if(in_array($this->scenario->id,[AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY],true))$op->enablePresidentialMandate(PresidentialMandate::fixture());
+                if(in_array($this->scenario->id,[AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY],true))$op->enablePresidentialMandate(PresidentialMandate::fixture());
                 $this->insert('INSERT INTO wp_opinion_states(world_id,state_json,state_sha,revision) VALUES(?,?,?,0)',
                     [$world,PublicOpinion::json($op->snapshot()),$op->hash()]);
                 $this->insert('UPDATE wp_world_clock SET opinion_enabled=1 WHERE world_id=?',[$world]);

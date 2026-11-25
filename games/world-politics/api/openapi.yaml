@@ -31,6 +31,16 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /worlds/{world}/countries/FR/assembly:
+    get:
+      operationId: readFrenchIndividualAssembly
+      summary: Read fictional individual deputies, signatures and roll calls
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Fictional Assembly and individual roll calls }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/legislation:
     get:
       operationId: readFrenchOrdinaryLegislation
@@ -190,7 +200,7 @@ paths:
               required: [label, scenario]
               properties:
                 label: { type: string, maxLength: 100 }
-                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1, fr-comparative-v1, fr-electoral-v1, fr-political-v1, fr-opinion-v1, fr-dialogue-v1, fr-survival-v1, fr-revolution-case-v1, fr-presidential-v1, fr-revision-v1, fr-legislative-v1, fr-responsibility-v1] }
+                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1, fr-comparative-v1, fr-electoral-v1, fr-political-v1, fr-opinion-v1, fr-dialogue-v1, fr-survival-v1, fr-revolution-case-v1, fr-presidential-v1, fr-revision-v1, fr-legislative-v1, fr-responsibility-v1, fr-assembly-v1] }
                 reference_bundle_sha: { type: string, pattern: '^[a-f0-9]{64}$', description: Optional operator-installed reference bundle for global or comparative scenarios }
       responses:
         '201': { description: Atomically created or replayed private world }

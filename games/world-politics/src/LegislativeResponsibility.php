@@ -2,19 +2,23 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrenchConstitutionalCrisis.php';
+require_once __DIR__.'/AssemblyRollCalls.php';
 
 /** A replay-only principal, built exclusively from clerk-certified scenario
  * evidence inside the legislative aggregate. No HTTP credential or role grant. */
-final class LegislativeResponsibilityPrincipal implements FrenchPresidentialAppointmentPrincipal
+final class LegislativeResponsibilityPrincipal implements FrenchPresidentialAppointmentPrincipal,FrenchParliamentaryPrincipal
 {
     public function __construct(private readonly string $world,private readonly array $d=[]){}
     public function actorId():string{return 'legislative-responsibility-clerk';}
     public function allows(string $world,string $ability):bool{return $world===$this->world&&in_array($ability,
-        ['fr.49_3.engage','fr.censure.file','fr.censure.vote','fr.constitution.clock','fr.president.appoint_pm'],true);}
+        ['fr.49_3.engage','fr.censure.file','fr.censure.vote','fr.constitution.clock','fr.president.appoint_pm','fr.49_1.engage','fr.49_1.vote','fr.49_2.file','fr.49_2.vote'],true);}
     public function councilDeliberated(string $world,string $billId):bool{return $world===$this->world&&($this->d['council_deliberated']??false)===true;}
     public function verifiedBillCategory(string $world,string $billId):string{return 'ordinary';}
     public function verifiedSignatures(string $world,string $motionId):int{return $this->d['signatures']??0;}
     public function verifiedVotesFor(string $world,string $motionId):int{return $this->d['votes_for']??0;}
+    public function verifiedDeputySignatories(string $world,string $motionId):array{return $this->d['signatories']??[];}
+    public function verifiedConfidenceBallot(string $world,string $statementId):array{return $this->d['confidence_ballot']??[];}
+    public function verifiedSessionKind(string $world,string $session):string{return 'ordinary';}
     public function verifiedInstant(string $world,string $operation):string{return $this->d['at']??throw new \DomainException('No certified instant');}
     public function verifiedResignationPresented(string $world,string $appointmentId):bool{return ($this->d['resignation_presented']??false)===true;}
     public function verifiedPrimeMinisterAppointee(string $world,string $appointmentId):string{return $this->d['prime_minister']??'';}
@@ -32,6 +36,7 @@ final class LegislativeResponsibility
         $d=$e['data'];$k=$e['kind'];$id=$e['evidence_id'];$world=$e['world_id'];$day=$e['day'];
         $c=FrenchConstitutionalCrisis::restore($r['crisis']);
         $p=new LegislativeResponsibilityPrincipal($world,$d);
+        $assembly=isset($r['assembly'])?FrenchParliament::restore($r['assembly']):null;
         $at=$d['at']??null;
         if(!is_string($at)||substr($at,0,10)!==$day||!str_ends_with($at,'Z'))throw new \DomainException('Certified UTC instant must match game day');
         FrenchConstitutionalCrisis::instant($at);
@@ -44,18 +49,35 @@ final class LegislativeResponsibility
                     throw new \DomainException('No eligible Assembly reading');
                 if(!$b['accelerated']&&$b['readings']['assembly']===0&&$day<(new \DateTimeImmutable($b['filed_on']))->modify('+42 days')->format('Y-m-d'))
                     throw new \DomainException('Ordinary reading delay not met');
+                if($assembly!==null){
+                    $s=$c->snapshot();
+                    if($s['confidence']!==null)throw new \DomainException('Confidence vote pending');
+                    foreach($s['spontaneous_motions'] as $m)if($m['status']==='filed')throw new \DomainException('Independent motion pending');
+                }
                 $c->engage($p,$b['id'],'ordinary',$at,$id);
                 $r['pending']=['bill_id'=>$b['id'],'version'=>$d['version']];
                 $r['engagement_count']++;$r['last_engagement_day']=$day;$b['status']='responsibility_pending';break;
             case 'responsibility_file':
-                self::fields($d,['at','motion_id','signatures']);
                 self::pending($r,$b);
-                if(!is_int($d['signatures']))throw new \InvalidArgumentException('Invalid signatures');
+                if($assembly!==null){
+                    self::fields($d,['at','motion_id','signatories']);
+                    $names=$assembly->signatures($d['motion_id'],$d['signatories']);
+                    $p=new LegislativeResponsibilityPrincipal($world,['signatures'=>count($names)]);
+                }else{
+                    self::fields($d,['at','motion_id','signatures']);
+                    if(!is_int($d['signatures']))throw new \InvalidArgumentException('Invalid signatures');
+                }
                 $c->fileMotion($p,$d['motion_id'],$at,$id);break;
             case 'responsibility_vote':
-                self::fields($d,['at','motion_id','votes_for']);
                 self::pending($r,$b);
-                if(!is_int($d['votes_for']))throw new \InvalidArgumentException('Invalid votes');
+                if($assembly!==null){
+                    self::fields($d,['at','motion_id']);
+                    $roll=AssemblyRollCalls::resolve($assembly,$c,$d['motion_id'],'censure_49_3');
+                    $p=new LegislativeResponsibilityPrincipal($world,['votes_for'=>$roll['tally']['for']]);
+                }else{
+                    self::fields($d,['at','motion_id','votes_for']);
+                    if(!is_int($d['votes_for']))throw new \InvalidArgumentException('Invalid votes');
+                }
                 $c->vote($p,$d['motion_id'],$at,$id);break;
             case 'responsibility_appoint':
                 self::fields($d,['at','appointment_id','prime_minister','resignation_presented']);
@@ -63,8 +85,50 @@ final class LegislativeResponsibility
                 $r['last_appointment']=['day'=>$day,'prime_minister'=>$d['prime_minister'],'appointment_id'=>$d['appointment_id']];break;
             default:throw new \InvalidArgumentException('Unknown responsibility action');
         }
+        if($assembly!==null)$r['assembly']=$assembly->snapshot();
         $r['crisis']=$c->snapshot();return self::settle($r,$b,$day);
     }
+    /** Independent confidence/censure procedures, not artificially attached
+     * to a bill. This pilot serializes independent and linked proceedings. */
+    public static function independent(array $r,array $e):array
+    {
+        if(!isset($r['assembly'])||$r['pending']!==null)throw new \DomainException('Independent Assembly proceeding unavailable');
+        $d=$e['data'];$id=$e['evidence_id'];$world=$e['world_id'];$day=$e['day'];$at=$d['at']??null;
+        if(!is_string($at)||substr($at,0,10)!==$day||!str_ends_with($at,'Z'))throw new \DomainException('Certified UTC instant required');
+        FrenchConstitutionalCrisis::instant($at);
+        $c=FrenchConstitutionalCrisis::restore($r['crisis']);$p=FrenchParliament::restore($r['assembly']);
+        $principal=new LegislativeResponsibilityPrincipal($world,$d);
+        switch($e['kind']){
+            case 'assembly_confidence_open':
+                self::fields($d,['at','statement_id','statement_kind','council_deliberated']);
+                $result=$c->engageConfidence($principal,$d['statement_id'],$d['statement_kind'],$at,$id);break;
+            case 'assembly_confidence_vote':
+                self::fields($d,['at','statement_id']);
+                $roll=AssemblyRollCalls::resolve($p,$c,$d['statement_id'],'confidence');
+                $t=$roll['tally'];unset($t['absent']);
+                $result=$c->voteConfidence(new LegislativeResponsibilityPrincipal($world,['confidence_ballot'=>$t]),$d['statement_id'],$at,$id);
+                break;
+            case 'assembly_censure_file':
+                self::fields($d,['at','motion_id','signatories']);
+                $names=$p->signatures($d['motion_id'],$d['signatories']);
+                $result=$c->fileSpontaneousMotion(new LegislativeResponsibilityPrincipal($world,['signatories'=>$names]),$d['motion_id'],$at,$id);
+                break;
+            case 'assembly_censure_vote':
+                self::fields($d,['at','motion_id']);
+                $roll=AssemblyRollCalls::resolve($p,$c,$d['motion_id'],'censure_49_2');
+                $result=$c->voteSpontaneousMotion(new LegislativeResponsibilityPrincipal($world,['votes_for'=>$roll['tally']['for']]),$d['motion_id'],$at,$id);
+                break;
+            case 'assembly_appoint':
+                self::fields($d,['at','appointment_id','prime_minister','resignation_presented']);
+                $result=$c->appointPrimeMinister($principal,$d['appointment_id'],$at,$id);
+                $r['last_appointment']=['day'=>$day,'prime_minister'=>$d['prime_minister'],'appointment_id'=>$d['appointment_id']];break;
+            default:throw new \InvalidArgumentException('Unknown Assembly procedure');
+        }
+        $r['assembly']=$p->snapshot();$r['crisis']=$c->snapshot();
+        return [$r,['procedure'=>$result,'responsibility'=>self::observation($r),'policy_authorized'=>false,
+            ... (isset($roll)?['roll_call'=>$roll]:[])]];
+    }
+
     /** Only create a clock event at the exact expiry boundary, making
      * day-by-day and jumped replay identical. Pending motions stay pending. */
     public static function advance(array $r,array $b,string $day):array

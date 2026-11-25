@@ -30,6 +30,12 @@ final class BicameralLegislation
         if(isset($this->s['responsibility'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])throw new \DomainException('Responsibility must be pinned at bootstrap');
         $this->s['responsibility']=LegislativeResponsibility::initial($this->s['world_id'],$this->s['day']);
     }
+    public function enableAssembly():void
+    {
+        if(!isset($this->s['responsibility'])||isset($this->s['responsibility']['assembly'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Assembly must be pinned at bootstrap');
+        $this->s['responsibility']['assembly']=AssemblyRollCalls::initial($this->s['world_id'],$this->s['day']);
+    }
     public function snapshot():array{return $this->s;}
     public function advance(string $day):void
     {
@@ -57,10 +63,19 @@ final class BicameralLegislation
     public function certify(array $e):array
     {
         self::fields($e,['world_id','country','day','evidence_id','bill_id','kind','procedure_certified','data']);
-        self::id($e['evidence_id']);self::id($e['bill_id']);
+        self::id($e['evidence_id']);
+        $independent=is_string($e['kind'])&&str_starts_with($e['kind'],'assembly_');
+        if($independent){if($e['bill_id']!==null)throw new \DomainException('Independent proceedings have no bill');}
+        else self::id($e['bill_id']);
         if($e['world_id']!==$this->s['world_id']||$e['country']!=='FR'||$e['day']!==$this->s['day']||$e['procedure_certified']!==true
             ||count($this->s['history'])>=2000)throw new \DomainException('Uncertified legislative evidence');
         foreach($this->s['history'] as $h)if(($h['evidence']['evidence_id']??null)===$e['evidence_id'])throw new \DomainException('Duplicate evidence');
+        if($independent){
+            if(!is_array($e['data'])||!isset($this->s['responsibility']))throw new \DomainException('Assembly not enabled');
+            [$r,$result]=LegislativeResponsibility::independent($this->s['responsibility'],$e);
+            $this->s['responsibility']=$r;$this->s['history'][]=['kind'=>'evidence','day'=>$this->s['day'],'evidence'=>$e];
+            return $result;
+        }
         $b=$this->s['bills'][$e['bill_id']]??throw new \DomainException('Unknown bill');
         $d=$e['data'];if(!is_array($d))throw new \InvalidArgumentException('Invalid evidence data');
         if(is_string($e['kind'])&&str_starts_with($e['kind'],'responsibility_')){
@@ -183,6 +198,7 @@ final class BicameralLegislation
         $x=new self($s['world_id'],$s['start_day']);
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>2000)throw new \DomainException('Invalid legislation history');
         if(array_key_exists('responsibility',$s))$x->enableResponsibility();
+        if(isset($s['responsibility']['assembly']))$x->enableAssembly();
         foreach($s['history'] as $h){
             $x->advance($h['day']);
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);

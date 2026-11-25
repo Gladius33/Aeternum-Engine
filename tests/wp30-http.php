@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===13,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===14,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -319,6 +319,31 @@ $camp=req30('GET',$rp.'/campaign',null,$tb)['body'];
 ck30($camp['cabinet_status']==='resignation_required'&&$camp['office_retained'],'WP41 cabinet status projected');
 ck30(req30('POST',$ri,['action'=>'legislation_evidence','payload'=>['evidence_id'=>'fake']],$tb)['status']===404,'WP41 no public certification');
 ck30(!isset(req30('GET',$lp,null,$tb)['body']['legislation']['responsibility']),'WP41 prior legislative world unchanged');
+$as42=req30('POST','/worlds',['label'=>'Assembly test','scenario'=>'fr-assembly-v1'],$tb,['Idempotency-Key'=>'assembly-world-0001']);
+ck30($as42['status']===201,'WP42 Assembly world');
+$aw42=$as42['body']['world_id'];$ar42='/worlds/'.$aw42;$ap42=$ar42.'/countries/FR/assembly';
+$ab42=req30('GET',$ap42,null,$tb);
+ck30($ab42['status']===200&&count($ab42['body']['assembly']['deputies'])===577,'WP42 577 individual deputies');
+$names42=array_slice(array_keys($ab42['body']['assembly']['deputies']),0,58);
+$ev42=['world_id'=>$aw42,'country'=>'FR','day'=>'2026-11-25','evidence_id'=>'assembly-file','bill_id'=>null,'kind'=>'assembly_censure_file','procedure_certified'=>true,
+    'data'=>['at'=>'2026-11-25T10:00:00Z','motion_id'=>'motion-one','signatories'=>$names42]];
+$st42=new \Aeternum\WorldPolitics\PdoInstitutionalStore($pdo,new \Aeternum\WorldPolitics\LocalLegislationClerk($ev42));
+$rd42=$st42->read($aw42,'FR');
+ck30($st42->decide($aw42,'FR','legislation_evidence',['evidence_id'=>'assembly-file'],'assembly-file-001',$rd42['etag'])['status']===202,'WP42 certified signature roll');
+$clock42=req30('GET',$ar42.'/clock',null,$tb);
+foreach(['2026-11-26','2026-11-27'] as $n42=>$day42){
+    $clock42=req30('POST',$ar42.'/clock/advances',['target_day'=>$day42],$tb,['If-Match'=>$clock42['etag'],'Idempotency-Key'=>'assembly-tick-00'.($n42+1)]);
+    ck30($clock42['status']===200&&$clock42['body']['coherent'],'WP42 coherent clock');
+}
+$ev42['day']='2026-11-27';$ev42['evidence_id']='assembly-vote';$ev42['kind']='assembly_censure_vote';
+$ev42['data']=['at'=>'2026-11-27T10:00:00Z','motion_id'=>'motion-one'];
+$st42=new \Aeternum\WorldPolitics\PdoInstitutionalStore($pdo,new \Aeternum\WorldPolitics\LocalLegislationClerk($ev42));
+$rd42=$st42->read($aw42,'FR');
+$receipt42=$st42->decide($aw42,'FR','legislation_evidence',['evidence_id'=>'assembly-vote'],'assembly-vote-001',$rd42['etag']);
+ck30($receipt42['status']===202&&array_sum($receipt42['result']['roll_call']['tally'])===577,'WP42 durable generated vote');
+$ab42=req30('GET',$ap42,null,$tb);
+ck30($ab42['body']['assembly']['matters']['motion-one']['result']===$receipt42['result']['roll_call'],'WP42 exact archived individual votes');
+ck30(req30('GET',$ap42,null,$ta2)['status']===404&&req30('GET',$rp.'/countries/FR/assembly',null,$tb)['status']===404,'WP42 isolation and legacy');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

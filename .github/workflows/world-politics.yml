@@ -80,6 +80,8 @@ jobs:
         run: php tests/wp28-french-parliament.php
       - name: Domestic policy fiscal ledger and multi-day scenario WP29A
         run: php tests/wp29a-domestic-policy.php
+      - name: WP42 individual Assembly responsibility regression
+        run: php tests/wp42-assembly.php
       - name: WP41 linked government responsibility regression
         run: php tests/wp41-responsibility.php
       - name: WP40 ordinary legislative procedure regression
