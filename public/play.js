@@ -1260,7 +1260,7 @@ document.querySelector('#logout-all').addEventListener('click',()=>run(async()=>
     locale.addEventListener('change',render);render();sync();
     // This marker is served only by the private Compose laboratory, not by the public API.
     if(['localhost','127.0.0.1','[::1]'].includes(location.hostname))fetch('/lab-bots/roster.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{
-        lab=data?.version===1&&['medieval','industrial','guild'].every(k=>Array.isArray(data.worlds?.['lab-'+k+'-f04'])&&data.worlds['lab-'+k].length===10);
+        lab=data?.version===1&&['medieval','industrial','guild'].every(k=>Array.isArray(data.worlds?.['lab-'+k+'-f04'])&&data.worlds['lab-'+k+'-f04'].length===10);
         if(lab&&selectedGame){login.elements.login.value=selectedGame+'-'+profile;render();}
         else render();
     }).catch(()=>{});

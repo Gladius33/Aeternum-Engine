@@ -37,6 +37,7 @@ jobs:
           path: |
             browser-captures/*.png
             browser-captures/g25-*-metrics.json
+            browser-captures/f04-*-campaign.json
           retention-days: 30
           if-no-files-found: warn
       - name: Stop isolated stack

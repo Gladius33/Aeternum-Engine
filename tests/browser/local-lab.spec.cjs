@@ -516,7 +516,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await page.setViewportSize({width:1440,height:900});
             const world='lab-'+pack+'-f04';
             const idle=async()=>await expect(page.locator('#world-scene')).toHaveAttribute('aria-busy','false',{timeout:30000});
-            const action=async(type,click)=>{
+            const perform=async(type,click)=>{
                 await idle();
                 const reply=page.waitForResponse(async r=>r.url()===command&&r.request().postDataJSON()?.type===type
                     && !([409,503].includes(r.status())&&(await r.json()).retryable),{timeout:30000});
@@ -536,7 +536,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                 if(await node.count()===0){
                     await page.locator('[data-game-nav=construction]').click();await idle();
                     await page.locator('[data-catalogue="'+type+'"]').click();
-                    await action('building.place',()=>page.locator('#world-scene [data-label=place]').click());
+                    await perform('building.place',()=>page.locator('#world-scene [data-label=place]').click());
                     await page.locator('[data-game-nav=domain]').click();await idle();
                 }
                 await expect(node).toHaveCount(1);
@@ -545,14 +545,14 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                     await node.click();await idle();
                     const button=page.locator('.district-command [data-district-command=primary]');
                     await expect(button).toHaveText(level===0?'Start construction':'Upgrade');
-                    await action('building.start',()=>button.click());
+                    await perform('building.start',()=>button.click());
                     await expect(node).toHaveAttribute('data-district-level',String(level+1),{timeout:90000});
                     await idle();
                 }
             };
             const domain=async(key,type)=>{
                 await page.locator('[data-game-nav=domain]').click();await idle();
-                await action(type,()=>page.locator('[data-domain-action='+key+']').click());
+                await perform(type,()=>page.locator('[data-domain-perform='+key+']').click());
             };
             if(pack==='medieval'){
                 await buildTo('lumberyard',2);await buildTo('farm',2);await buildTo('granary',1);
@@ -590,13 +590,10 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
                         expect(response.status()).toBe(200);
                         await page.locator('[data-game-nav=market]').click();await idle();
                         // Use a real market read even when the panel is already open.
-                        await page.locator('.logistics-network button').count().then(async n=>{
-                            if(n===1)await page.locator('.logistics-network button').click();
-                            else await page.evaluate(()=>run(loadMarket));
-                        });
+                        await page.locator('[data-commerce-refresh]').click();
                         await idle();
                         await page.locator('[data-offer="'+offer+'"]').click();
-                        await action('market.accept',()=>page.locator('[data-label=acceptTrade]').click());
+                        await perform('market.accept',()=>page.locator('[data-label=acceptTrade]').click());
                     }
                 }finally{await context.request.post(origin+'/v1/auth/logout',{headers:{Authorization:bobAuth}});}
                 await refreshCampaign();
@@ -605,7 +602,7 @@ for(const [pack,theme,type,resource] of [['medieval','medieval','lumberyard','wo
             await refreshCampaign();
             const modulePanel=page.locator('[data-campaign-module]');
             const job=async(kind,attribute,level)=>{
-                await action('pack.campaign.'+kind,()=>modulePanel.locator('[data-module-action='+kind+']').click());
+                await perform('pack.campaign.'+kind,()=>modulePanel.locator('[data-module-perform='+kind+']').click());
                 await expect.poll(async()=>{
                     await idle();await modulePanel.locator('[data-module-refresh]').click();await idle();
                     return modulePanel.getAttribute(attribute);
