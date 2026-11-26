@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===22,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===23,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -529,6 +529,26 @@ ck30($t50['status']===200&&$t50['body']['latest']['crisis']['moratorium']&&$t50[
 $m50=req30('GET',$r50.'/countries/FR/macro',null,$tc48);
 ck30($m50['status']===200&&$m50['body']['latest']['debt']===$t50['body']['debt'],'WP50 macro reconciliation');
 ck30(req30('POST',$r49.'/domestic/crisis',['action'=>'moratorium'],$tc48,$h50)['status']===404,'WP50 legacy route isolation');
+$g51=req30('POST','/worlds',['label'=>'French population pilot','scenario'=>'fr-population-v1'],$tc48,['Idempotency-Key'=>'population-world-001']);
+if($g51['status']!==201)throw new RuntimeException('WP51 creation HTTP '.$g51['status'].' '.json_encode($g51['body'],JSON_THROW_ON_ERROR));
+ck30(true,'WP51 world creation');
+$w51=$g51['body']['world_id'];$r51='/worlds/'.$w51;$p51=$r51.'/countries/FR/population';
+$v51=req30('GET',$p51,null,$tc48);
+ck30($v51['status']===200&&$v51['body']['indicators']['population']===69082000&&count($v51['body']['cohorts'])===28&&count($v51['body']['reference']['observations'])===51,'WP51 observed anchors and cohort totals');
+$q51=$pdo->prepare('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?');$q51->execute([$w51]);
+$cfg51=json_decode($q51->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck30($cfg51['population_model']['source_sha']===$v51['body']['source_sha'],'WP51 durable provenance');
+$c51=req30('GET',$r51.'/clock',null,$tc48);
+foreach(['2026-11-26','2026-11-27','2026-11-28'] as $n51=>$day51){
+    $c51=req30('POST',$r51.'/clock/advances',['target_day'=>$day51],$tc48,['If-Match'=>$c51['etag'],'Idempotency-Key'=>'population-tick-00'.($n51+1)]);
+    ck30($c51['status']===200&&$c51['body']['coherent'],'WP51 coherent day');
+}
+$v51=req30('GET',$p51,null,$tc48);$d51=req30('GET',$r51.'/domestic',null,$tc48);
+ck30($v51['status']===200&&count($v51['body']['days'])===3&&$v51['body']['latest']===$d51['body']['days'][2]['population'],'WP51 authoritative population ledger');
+ck30(req30('GET',$p51,null,$tc48)===$v51,'WP51 deterministic ETag');
+ck30(req30('GET',$p51,null,$ta2)['status']===404&&req30('GET',$r50.'/countries/FR/population',null,$tc48)['status']===404,'WP51 isolation and legacy');
+$h51=['If-Match'=>$d51['etag'],'Idempotency-Key'=>'population-crisis-001'];
+ck30(req30('POST',$r51.'/domestic/crisis',['action'=>'moratorium'],$tc48,$h51)['status']===200,'WP51 retains crisis actions');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

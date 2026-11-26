@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrenchMacroBaseline.php';
 require_once __DIR__.'/SovereignDebtLedger.php';
+require_once __DIR__.'/FrenchDemography.php';
 
 /**
  * WP29A: scenario-only domestic policy ledger. All monetary amounts are
@@ -43,7 +44,8 @@ final class DomesticPolicySimulation
         private readonly array $cohorts,
         private readonly array $catalog,
         private readonly ?array $macroBaseline=null,
-        private readonly ?array $debtModel=null
+        private readonly ?array $debtModel=null,
+        private readonly ?array $populationModel=null
     ) {
         self::id($world); self::date($startDay);
         if (!preg_match('/^[A-Z]{3}$/D', $currency)) throw new \InvalidArgumentException('Invalid currency');
@@ -88,6 +90,11 @@ final class DomesticPolicySimulation
         if($this->debtModel!==null){
             if($this->macroBaseline===null)throw new \DomainException('Debt model needs macro baseline');
             SovereignDebtLedger::assertValid($this->debtModel,$this->macroBaseline,$startDay);
+        }
+        if($this->populationModel!==null){
+            if($this->macroBaseline===null)throw new \DomainException('Population model needs macro baseline');
+            FrenchDemography::assertValid($this->populationModel,$startDay,$this->macroBaseline['initial_unemployment_bps']);
+            if($this->populationModel['opening_indicators']['population']<=0)throw new \DomainException('Invalid opening population');
         }
         $this->pressure = $cohorts;
         $this->balance = $openingBalance;
@@ -171,6 +178,7 @@ final class DomesticPolicySimulation
         $loop=null;
         if($this->macroBaseline!==null){
             $prior=$this->days===[]?null:$this->days[array_key_last($this->days)];
+            if($this->populationModel!==null)$production+=FrenchDemography::outputAdjustment($this->populationModel,$prior);
             $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target));
             $revenue=$loop['revenue'];$expense=$loop['expense'];
         }
@@ -191,6 +199,7 @@ final class DomesticPolicySimulation
             'production_index_bps'=>max(0,$production),'employment_index_bps'=>max(0,$employment)];
         if($loop!==null){
             $row['macro']=$loop['macro'];$row['treasury']=$loop['treasury'];
+            if($this->populationModel!==null)$row['population']=FrenchDemography::step($this->populationModel,$prior,$loop['macro']);
             $row['classification']='fictional_simulation_observed_anchors';
             $row['economic']['production_index_bps']=$loop['macro']['real_output_index_bps'];
             $row['economic']['employment_index_bps']=max(0,10000-($loop['macro']['unemployment_bps']-$this->macroBaseline['initial_unemployment_bps']));
@@ -208,7 +217,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel])]);
     }
 
     public function snapshot(): array
@@ -216,7 +225,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[])];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }

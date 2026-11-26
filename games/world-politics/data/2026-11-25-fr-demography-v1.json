@@ -1,0 +1,575 @@
+{
+  "schema": "wp51-fr-demography-v1",
+  "country": "FR",
+  "as_of": "2026-11-25",
+  "classification": "observed_provisional_january_2026_vintage",
+  "sources": {
+    "age": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/2381474",
+      "published_on": "2026-01-13",
+      "scope": "France, age at 1 January 2026, provisional, rounded to thousands",
+      "license": "Licence Ouverte 2.0, subject to dataset-specific terms"
+    },
+    "balance": {
+      "provider": "Insee",
+      "url": "https://www.insee.fr/fr/statistiques/8719824",
+      "published_on": "2026-01-13",
+      "scope": "Bilan démographique 2025, January 2026 vintage, provisional estimates",
+      "license": "Licence Ouverte 2.0, subject to dataset-specific terms"
+    }
+  },
+  "observations": [
+    {
+      "metric": "population_age_sex",
+      "value": 5481000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "00-14",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 5747000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "00-14",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 11228000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "00-14",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2077000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "15-19",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2223000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "15-19",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 4300000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "15-19",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 1922000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "20-24",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2013000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "20-24",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 3935000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "20-24",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 1994000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "25-29",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2001000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "25-29",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 3996000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "25-29",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2060000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "30-34",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2007000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "30-34",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 4067000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "30-34",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2222000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "35-39",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2136000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "35-39",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 4358000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "35-39",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2243000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "40-44",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2131000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "40-44",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 4375000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "40-44",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2157000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "45-49",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2090000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "45-49",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 4246000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "45-49",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2255000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "50-54",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2205000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "50-54",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 4460000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "50-54",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2255000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "55-59",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2177000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "55-59",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 4432000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "55-59",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2238000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "60-64",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2108000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "60-64",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 4346000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "60-64",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 2105000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "65-69",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 1887000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "65-69",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 3992000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "65-69",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 1981000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "70-74",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 1680000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "70-74",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 3661000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "70-74",
+      "sex": "all"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 4541000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "75+",
+      "sex": "female"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 3145000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "75+",
+      "sex": "male"
+    },
+    {
+      "metric": "population_age_sex",
+      "value": 7686000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "age_group": "75+",
+      "sex": "all"
+    },
+    {
+      "metric": "population_total",
+      "value": 35531000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "sex": "female"
+    },
+    {
+      "metric": "population_total",
+      "value": 33551000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "sex": "male"
+    },
+    {
+      "metric": "population_total",
+      "value": 69082000,
+      "unit": "persons",
+      "period": "2026-01-01",
+      "source_id": "age",
+      "reported_precision": "1000 persons",
+      "kind": "observed",
+      "sex": "all"
+    },
+    {
+      "metric": "live_births",
+      "value": 645000,
+      "unit": "persons",
+      "period": "2025",
+      "source_id": "balance",
+      "reported_precision": "1000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "deaths",
+      "value": 651000,
+      "unit": "persons",
+      "period": "2025",
+      "source_id": "balance",
+      "reported_precision": "1000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "natural_balance",
+      "value": -6000,
+      "unit": "persons",
+      "period": "2025",
+      "source_id": "balance",
+      "reported_precision": "1000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "net_migration",
+      "value": 176000,
+      "unit": "persons",
+      "period": "2025",
+      "source_id": "balance",
+      "reported_precision": "1000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "statistical_adjustment",
+      "value": 60000,
+      "unit": "persons",
+      "period": "2025",
+      "source_id": "balance",
+      "reported_precision": "1000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "fertility_rate",
+      "value": 156,
+      "unit": "hundredths_children_per_woman",
+      "period": "2025",
+      "source_id": "balance",
+      "reported_precision": "0.01 children per woman",
+      "kind": "observed"
+    }
+  ],
+  "notes": [
+    "Keep January vintage distinct from later revisions. The January population is a scenario opening anchor at November start, not a November observation.",
+    "Rounded sex and all-person age counts may differ. Preserve raw observations; normalize each sex to its published total for simulation.",
+    "Net migration is not gross immigration or emigration; statistical adjustment is not a physical flow. Fertility rate is descriptive, not a direct annual birth multiplier."
+  ]
+}

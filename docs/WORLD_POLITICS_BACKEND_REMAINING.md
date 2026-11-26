@@ -426,3 +426,13 @@ overdue-principal reduction, one finite fictional support facility, bank
 valuation/credit proxy and lagged macro feedback. No nationalisation,
 central bank, actual alliance negotiation or currency conversion yet.
 See WORLD_POLITICS_FINANCIAL_CRISIS.md. WP49 validated CI 45717816781.
+
+
+## WP51 population candidate
+
+51 Insee observations pinned, 28 age/sex cohorts, daily births, deaths,
+net migration and aging, calendar aggregates and bounded lagged macro
+feedback. Provisional January 2026 vintage; demographic assumptions
+uncalibrated, no gross migration or service costs yet. See
+WORLD_POLITICS_DEMOGRAPHY.md. WP50 CI 45768149991 all three jobs green,
+23 specific assertions, no warnings.
