@@ -31,6 +31,13 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /national-renewal-calendar:
+    get:
+      operationId: readNationalRenewalReference
+      summary: Read dated national legislature renewal references and a nonbinding twenty-year projection
+      responses:
+        '200': { description: Versioned reference and hypothetical recurrence, not a certified election or playable country list }
+        '401': { description: Authentication required }
   /worlds/{world}/countries/FR/services:
     get:
       operationId: readFrenchPublicServices

@@ -1,0 +1,272 @@
+{
+  "version": "wp61-national-renewal-2026-11-v1",
+  "retrieved_on": "2026-11-26",
+  "sources": {
+    "terms": "https://data.ipu.org/compare/?field=chamber%3A%3Afield_parliamentary_term&structure=any__lower_chamber",
+    "renewals": "https://data.ipu.org/elections/?structure=any",
+    "spain": "https://boe.es/buscar/act.php?id=BOE-A-1985-11672"
+  },
+  "notes": [
+    "The IPU expected column is a forecast, not a certified future election date or a legal deadline. Month precision intentionally retained. Spain uses the existing ordinary-election scenario August 2027 instead of the conflicting IPU November 2026 entry. Australia/Canada are ordinary horizons, not universal constitutional maximums. China and Saudi Arabia are not direct popular parliamentary polls. No results are imported."
+  ],
+  "countries": {
+    "AT": {
+      "term_years": 5,
+      "expected_renewal_month": "2029-09",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "AU": {
+      "term_years": 3,
+      "expected_renewal_month": "2028-05",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "BE": {
+      "term_years": 5,
+      "expected_renewal_month": "2029-06",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "BG": {
+      "term_years": 4,
+      "expected_renewal_month": "2030-04",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "BR": {
+      "term_years": 4,
+      "expected_renewal_month": "2030-10",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "CA": {
+      "term_years": 4,
+      "expected_renewal_month": "2029-10",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "CH": {
+      "term_years": 4,
+      "expected_renewal_month": "2027-10",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "CN": {
+      "term_years": 5,
+      "expected_renewal_month": "2028-03",
+      "designation": "indirect",
+      "anchor_source": "ipu_expected_month"
+    },
+    "CY": {
+      "term_years": 5,
+      "expected_renewal_month": "2031-05",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "CZ": {
+      "term_years": 4,
+      "expected_renewal_month": "2029-10",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "DE": {
+      "term_years": 4,
+      "expected_renewal_month": "2029-02",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "DK": {
+      "term_years": 4,
+      "expected_renewal_month": "2030-03",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "EE": {
+      "term_years": 4,
+      "expected_renewal_month": "2027-03",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "ES": {
+      "term_years": 4,
+      "expected_renewal_month": "2027-08",
+      "designation": "direct",
+      "anchor_source": "existing_comparative_statutory_scenario"
+    },
+    "FI": {
+      "term_years": 4,
+      "expected_renewal_month": "2027-04",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "FR": {
+      "term_years": 5,
+      "expected_renewal_month": "2029-06",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "GB": {
+      "term_years": 5,
+      "expected_renewal_month": "2029-07",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "GR": {
+      "term_years": 4,
+      "expected_renewal_month": "2027-06",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "HR": {
+      "term_years": 4,
+      "expected_renewal_month": "2028-04",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "HU": {
+      "term_years": 4,
+      "expected_renewal_month": "2030-04",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "ID": {
+      "term_years": 5,
+      "expected_renewal_month": "2029-04",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "IE": {
+      "term_years": 5,
+      "expected_renewal_month": "2029-11",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "IN": {
+      "term_years": 5,
+      "expected_renewal_month": "2029-04",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "IT": {
+      "term_years": 5,
+      "expected_renewal_month": "2027-09",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "JP": {
+      "term_years": 4,
+      "expected_renewal_month": "2030-01",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "KR": {
+      "term_years": 4,
+      "expected_renewal_month": "2028-04",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "LT": {
+      "term_years": 4,
+      "expected_renewal_month": "2028-10",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "LU": {
+      "term_years": 5,
+      "expected_renewal_month": "2028-10",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "LV": {
+      "term_years": 4,
+      "expected_renewal_month": "2030-10",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "MT": {
+      "term_years": 5,
+      "expected_renewal_month": "2031-05",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "MX": {
+      "term_years": 3,
+      "expected_renewal_month": "2027-06",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "NL": {
+      "term_years": 4,
+      "expected_renewal_month": "2029-10",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "PL": {
+      "term_years": 4,
+      "expected_renewal_month": "2027-10",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "PT": {
+      "term_years": 4,
+      "expected_renewal_month": "2029-09",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "RO": {
+      "term_years": 4,
+      "expected_renewal_month": "2028-11",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "RU": {
+      "term_years": 5,
+      "expected_renewal_month": "2031-09",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "SA": {
+      "term_years": 4,
+      "expected_renewal_month": "2028-08",
+      "designation": "appointed",
+      "anchor_source": "ipu_expected_month"
+    },
+    "SE": {
+      "term_years": 4,
+      "expected_renewal_month": "2030-09",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "SI": {
+      "term_years": 4,
+      "expected_renewal_month": "2030-03",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "SK": {
+      "term_years": 4,
+      "expected_renewal_month": "2027-09",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "TR": {
+      "term_years": 5,
+      "expected_renewal_month": "2028-05",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "US": {
+      "term_years": 2,
+      "expected_renewal_month": "2028-11",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    },
+    "ZA": {
+      "term_years": 5,
+      "expected_renewal_month": "2029-05",
+      "designation": "direct",
+      "anchor_source": "ipu_expected_month"
+    }
+  }
+}

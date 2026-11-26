@@ -180,6 +180,8 @@ jobs:
         run: php tests/wp35-opinion.php
       - name: WP34 political negotiation and opposition regression
         run: php tests/wp34-political-ai.php
+      - name: WP61 national renewal references and twenty-year planning calendar
+        run: php tests/wp61-national-renewals.php
       - name: WP33 election, seat allocation and coalition regression
         run: php tests/wp33-electoral.php
       - name: WP32 comparative accountability regression

@@ -13,6 +13,7 @@ require_once __DIR__.'/DomesticPolicyApi.php';
 require_once __DIR__.'/WorldClockApi.php';
 require_once __DIR__.'/EuropeanSpillovers.php';
 require_once __DIR__.'/ReferenceDataAudit.php';
+require_once __DIR__.'/NationalRenewalCalendar.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
 final class AlphaGateway
@@ -53,6 +54,7 @@ final class AlphaGateway
                 $session->revoke();return self::ok(200,['revoked'=>true]);
             }
             if ($path==='/api/v1/me' && $method==='GET') return self::ok(200,['account_id'=>$session->id,'username'=>$session->username]);
+            if ($path==='/api/v1/national-renewal-calendar' && $method==='GET') return self::ok(200,NationalRenewalCalendar::report());
             $scenario=new AlphaScenario();
             if ($path==='/api/v1/scenarios' && $method==='GET') {
                 $base=GlobalReferenceBundle::published();

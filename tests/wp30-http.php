@@ -23,6 +23,8 @@ ck30($a['status']===201 && $b['status']===201,'two real accounts');
 ck30(req30('POST','/sessions',['username'=>'alice','password'=>'wrong-password-123'])['status']===401,'bad password rejected');
 $ta=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 $tb=req30('POST','/sessions',['username'=>'bob','password'=>'strong-password-456'])['body']['access_token'];
+$renewal=req30('GET','/national-renewal-calendar',null,$ta);
+ck30(req30('GET','/national-renewal-calendar')['status']===401&&$renewal['status']===200&&count($renewal['body']['countries'])===43&&$renewal['body']['all_countries_playable']===false,'WP61 authenticated national renewal reference');
 $pdo=new PDO(getenv('WP_DB_DSN'),getenv('WP_DB_USER'),getenv('WP_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 ck30($pdo->query("SELECT password_hash FROM wp_accounts WHERE username='alice'")->fetchColumn()!== 'strong-password-123'
     && str_starts_with($pdo->query("SELECT password_hash FROM wp_accounts WHERE username='alice'")->fetchColumn(),'$argon2id$'),
