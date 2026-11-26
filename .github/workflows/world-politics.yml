@@ -80,6 +80,8 @@ jobs:
         run: php tests/wp28-french-parliament.php
       - name: Domestic policy fiscal ledger and multi-day scenario WP29A
         run: php tests/wp29a-domestic-policy.php
+      - name: WP54r Franc public funding and monetary destruction regression
+        run: php tests/wp54r-franc-funding.php
       - name: WP54r production-indexed Franc monetary base regression
         run: php tests/wp54r-franc-rule.php
       - name: WP54r closed multidevise contract accounting regression

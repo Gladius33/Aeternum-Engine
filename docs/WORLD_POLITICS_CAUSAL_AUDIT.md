@@ -289,3 +289,16 @@ inflation cannot increase issuance. No assumed automatic FX peg, broad money,
 price stability, repayment or spending in the EUR treasury. Actual monetary
 and fiscal migration remain open. Fixed HTTP test: currency is a daily row
 field, not a top-level domestic snapshot field. CI pending.
+
+### WP54r Franc public funding pilot
+
+Franc rule CI 45837182039 green. New worlds pin certified prospective daily
+funding orders: no unsolicited issuance, public advances limited to the
+positive production gap, matching central bank claims/reserves and beneficiary
+deposits. Separately authorized levy-funded repayments destroy exactly the
+matching pilot deposits, reserves and treasury debt, capped by outstanding
+balances; recession does not itself seize funds. Requests expire on their
+specified day, not automatically carried forward. The old rule remains intact
+for prior worlds. Opening legacy balance sheet not invented; this closed
+incremental four-sector pilot does not modify the national EUR treasury or
+GDP, broad bank credit or FX. CI pending.

@@ -565,3 +565,11 @@ New worlds pin a certified pilot monetary-base rule with lagged real GDP
 and balanced issuance, explicit contraction and inflation safeguards. Franc
 name exposed, XFR retained internally. No fiscal spending, full bank money
 or live FX peg until central-bank and treasury migration is implemented.
+
+### WP54r Franc public funding
+
+New pinned incremental four-sector funding ledger: certified public spending
+within production ceiling, levy-funded repayment and destruction, no automatic
+issuance or actual EUR fiscal booking. Full national currency migration,
+central bank opening balance sheet, commercial banking solvency/credit and
+macro demand effects remain open.

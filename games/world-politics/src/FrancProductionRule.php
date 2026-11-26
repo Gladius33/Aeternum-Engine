@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/FrancPublicFunding.php';
 
 /** Fictional franc monetary-base rule. All output inputs use the fixed
  * real national-accounts price basis, not nominal GDP or gross sales.
@@ -66,14 +67,17 @@ final class FrancProductionRule
             $prior[]=$g;if(count($prior)>self::WINDOW)array_shift($prior);
         }
         if($active&&($history===[]||$history[array_key_last($history)]['day']!==$dom['day']))throw new \DomainException('Missing current production ledger');
+        $funding=isset($eu['franc_funding_version']);
+        $settled=$funding?FrancPublicFunding::settle($history,$terms['opening_base_franc_minor']??null,$eu['franc_funding_orders']):null;
+        if($funding)$history=$settled['rows'];
         return ['version'=>self::VERSION,'classification'=>'fictional_production_indexed_monetary_base_pilot',
             'currency_name'=>'Franc','internal_currency_code'=>'XFR','status'=>$terms===null?'not_configured':($active?'active':'pending_effective_date'),
             'effective_from'=>$start,'production_measure'=>'real_gdp_fixed_price_value_added','lagged_window_days'=>self::WINDOW,
             'anchor_real_output_daily_minor'=>$anchor,'opening_base_franc_minor'=>$terms['opening_base_franc_minor']??null,
             'latest'=>$history===[]?null:$history[array_key_last($history)],'days'=>$history,
-            'issuance_rule'=>'positive_gap_to_production_target_only','contraction_rule'=>'suspend_issuance_and_report_excess',
+            'issuance_rule'=>$funding?'certified_spending_within_positive_production_gap':'positive_gap_to_production_target_only','contraction_rule'=>'suspend_issuance_and_report_excess',
             'incremental_claim_classification'=>'fictional_central_bank_advance','treasury_spending_booked'=>false,
             'national_currency_changed'=>false,'broad_money_modelled'=>false,'fx_peg_implied'=>false,
-            'price_stability_guaranteed'=>false,'not_a_forecast'=>true];
+            'price_stability_guaranteed'=>false,...($funding?['public_funding_version'=>FrancPublicFunding::VERSION,'pilot_public_funding_settled'=>$active,'executed_order_days'=>$settled['executed_order_days'],'opening_legacy_balance_sheet_unmodelled'=>true,'actual_eur_treasury_booked'=>false]:[]),'not_a_forecast'=>true];
     }
 }

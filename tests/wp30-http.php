@@ -706,7 +706,9 @@ $contract54=['kind'=>'currency_terms','data'=>['effective_on'=>'2026-11-27','uni
 ]]];
 $ec54=$euStore54->execute($euWorld54,'eu_evidence',$contract54,'eu-contract-test-001',$es54['etag']);
 $franc54=['kind'=>'franc_rule','data'=>['effective_on'=>'2026-11-27','opening_base_franc_minor'=>10000000000000,'instrument_sha'=>str_repeat('6',64)]];
-$euStore54->execute($euWorld54,'eu_evidence',$franc54,'eu-franc-rule-test-001',$ec54['etag']);
+$ef54=$euStore54->execute($euWorld54,'eu_evidence',$franc54,'eu-franc-rule-test-001',$ec54['etag']);
+$fo54=['kind'=>'franc_funding','data'=>['effective_on'=>'2026-11-28','spending_requested_franc_minor'=>1000000000,'repayment_requested_franc_minor'=>0,'instrument_sha'=>str_repeat('7',64)]];
+$euStore54->execute($euWorld54,'eu_evidence',$fo54,'eu-franc-funding-test-001',$ef54['etag']);
 $sp54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);
 ck30($sp54['status']===200&&$sp54['body']['membership_scope']['current_modelled_eu_members']===27&&$sp54['body']['budget']['cumulative']['remaining_eu_financing_gap_minor']===0,'WP54r no premature EU scope or fiscal effect');
 ck30($sp54['body']['currency_contracts']['status']==='pending_effective_date'&&$sp54['body']['currency_contracts']['converted_opening_principal_eur_minor']===0,'WP54r no premature redenomination');
@@ -729,6 +731,7 @@ ck30($book54['status']==='conversion_simulated'&&$book54['sovereign_subset']['co
 ck30($book54['consolidated_net_eur_valuation_delta_minor']===0&&$book54['claims'][0]['eur_valuation_minor']===100000000000,'WP54r parity conservation');
 $fr54=$sb54['franc_monetary_rule'];
 ck30($fr54['status']==='active'&&$fr54['currency_name']==='Franc'&&$fr54['latest']['issued_franc_minor']===0&&$fr54['latest']['closing_base_franc_minor']===10000000000000,'WP54r opening franc production parity');
+ck30($fr54['latest']['funding']['settled_public_spending_franc_minor']===0&&$fr54['latest']['funding']['central_bank']['treasury_advance_asset_franc_minor']===0,'WP54r no unrequested pilot financing');
 ck30(req30('GET',$r54.'/organizations/eu/spillovers',null,$ta2)['status']===404&&req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48)['etag']===$sp54['etag'],'WP54r projection isolation and deterministic ETag');
 $beforeMark54=req30('GET',$r54.'/domestic',null,$tc48);
 $os54=$euStore54->read($euWorld54);
@@ -747,6 +750,9 @@ $afterMark54=req30('GET',$r54.'/domestic',null,$tc48);
 ck30($afterMark54['status']===200&&$afterMark54['body']['days'][2]['currency']==='EUR'&&$afterMark54['body']['days'][1]===$beforeMark54['body']['days'][1],'WP54r national EUR history remains unchanged');
 $fr54=$fx54['body']['franc_monetary_rule'];$fl54=$fr54['latest'];
 ck30(count($fr54['days'])===2&&$fl54['day']==='2026-11-28'&&$fl54['lagged_real_output_daily_minor']===intdiv($afterMark54['body']['days'][0]['macro']['real_gdp']+$afterMark54['body']['days'][1]['macro']['real_gdp'],2)&&$fl54['central_bank_incremental_claim_franc_minor']===$fl54['central_bank_incremental_liability_franc_minor']&&!$fr54['treasury_spending_booked'],'WP54r franc issuance uses previous real production and balanced counterpart');
+$pf54=$fl54['funding'];
+ck30($fr54['public_funding_version']==='wp54r-franc-public-funding-v1'&&$pf54['requested_spending_franc_minor']===1000000000&&$pf54['settled_public_spending_franc_minor']===min(1000000000,$pf54['opening_issuance_capacity_franc_minor'])&&$pf54['unfunded_spending_franc_minor']+$pf54['settled_public_spending_franc_minor']===1000000000,'WP54r certified funding respects production ceiling');
+ck30($pf54['central_bank']['treasury_advance_asset_franc_minor']===$pf54['treasury']['advance_liability_franc_minor']&&$pf54['commercial_banks']['reserve_asset_franc_minor']===$pf54['central_bank']['bank_reserve_liability_franc_minor']&&$pf54['domestic_beneficiaries']['deposit_asset_franc_minor']===$pf54['commercial_banks']['beneficiary_deposit_liability_franc_minor'],'WP54r four-sector counterpart conservation');
 
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
