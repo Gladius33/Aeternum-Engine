@@ -46,6 +46,12 @@ final class WorldEconomicSimulation
         ];
     }
 
+    public const DAILY_BRIDGE_VERSION='wp54r-daily-sanctions-bridge-v1';
+    public function enableDailyBridge():void
+    {
+        if(isset($this->state['daily_bridge'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Daily bridge must be pinned at bootstrap');
+        $this->state['daily_bridge']=self::DAILY_BRIDGE_VERSION;
+    }
     /**
      * @param array<string,mixed> $snapshot
      * Strict restoration: pinned reference and scenario legal model cannot
@@ -57,8 +63,9 @@ final class WorldEconomicSimulation
     ):self {
         self::fields($snapshot,[
             'world_id','day','rules_version','actors_sha','reference_sha',
-            'policies','projections','events','commands'
+            'policies','projections','events','commands',...(array_key_exists('daily_bridge',$snapshot)?['daily_bridge']:[])
         ]);
+        if(array_key_exists('daily_bridge',$snapshot)&&$snapshot['daily_bridge']!==self::DAILY_BRIDGE_VERSION)throw new \DomainException('Unknown economic bridge version');
         if (!is_string($snapshot['world_id']) || !is_string($snapshot['day'])) {
             throw new \InvalidArgumentException('Invalid persisted world or date');
         }

@@ -164,6 +164,7 @@ final class AlphaWorlds
             $this->insert('INSERT INTO wp_organization_states(world_id,state_json,state_sha,actors_sha,charters_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($os),$org->hash(),$os['actors_sha'],$os['charters_sha']]);
             $econ=new WorldEconomicSimulation($world,$day,$this->scenario->actors,$this->scenario->references);
+            if(in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))$econ->enableDailyBridge();
             $this->insert('INSERT INTO wp_economic_states(world_id,state_json,state_sha,reference_sha,actor_registry_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($econ->snapshot()),$econ->hash(),$this->scenario->references->hash(),$this->scenario->actors->hash()]);
             $c=$this->scenario->domestic();

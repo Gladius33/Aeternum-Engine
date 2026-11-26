@@ -172,8 +172,9 @@ final class PdoEconomicStore
                 throw new \DomainException('Stale economic state');
             }
             $result=$this->apply($sim,$operation,$payload,$commandId);
-            $after=$sim->hash();
             $revision=(int)$row['revision']+1;
+            if($operation==='clock'&&isset($sim->snapshot()['daily_bridge']))$result['bridged_proposals']=$this->bridgeDaily($sim,$world,$payload['target_day'],$revision);
+            $after=$sim->hash();
             $response=[
                 'status'=>$operation==='propose'?202:200,
                 'result'=>$result,'etag'=>'"'.$after.'"',
@@ -199,6 +200,56 @@ final class PdoEconomicStore
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
             throw $error;
         }
+    }
+
+    /** Atomic with the economic clock, journal and receipt. The diplomatic
+     * source is already committed and protected by the world write fence.
+     * This grants no authorization, nor does it change trade or GDP. */
+    private function bridgeDaily(WorldEconomicSimulation $sim,string $world,string $day,int $revision):array
+    {
+        $q=$this->pdo->prepare('SELECT state_json,state_sha,actor_registry_sha FROM wp_diplomatic_states WHERE world_id=?');
+        $q->execute([$world]);$d=$q->fetch(\PDO::FETCH_ASSOC);
+        if($d===false||!hash_equals($this->actors->hash(),$d['actor_registry_sha']))throw new \DomainException('Missing pinned diplomatic bridge source');
+        $dip=DiplomaticSimulation::fromSnapshot(json_decode($d['state_json'],true,64,JSON_THROW_ON_ERROR),$this->actors);
+        $state=$dip->snapshot();
+        if(!hash_equals($d['state_sha'],$dip->hash())||$state['world_id']!==$world||$state['day']!==$day)throw new \DomainException('Diplomatic bridge source day or hash mismatch');
+        $q=$this->pdo->prepare("SELECT o.*,j.after_sha AS journal_after_sha,j.actor_id AS journal_actor_id,j.operation AS journal_operation,j.result_json AS journal_result_json
+            FROM wp_diplomatic_outbox o LEFT JOIN wp_diplomatic_journal j ON j.world_id=o.world_id AND j.revision=o.source_revision
+            WHERE o.world_id=? AND o.status='pending' ORDER BY o.source_revision,o.event_id LIMIT 32 FOR UPDATE");
+        $q->execute([$world]);$out=[];
+        foreach($q->fetchAll(\PDO::FETCH_ASSOC) as $row){
+            $id=$row['event_id'];$source=$state['proposals'][$id]??null;
+            $env=json_decode($row['payload_json'],true,32,JSON_THROW_ON_ERROR);
+            $jr=json_decode($row['journal_result_json']??'null',true,32,JSON_THROW_ON_ERROR);
+            if(!is_array($source)||!is_array($env)||!is_array($jr)
+                ||!hash_equals($row['payload_sha'],hash('sha256',$row['payload_json']))
+                ||!is_string($row['journal_after_sha'])||!hash_equals($row['source_state_sha'],$row['journal_after_sha'])
+                ||$row['source_actor_id']!==$row['journal_actor_id']||$row['journal_operation']!=='propose'
+                ||$env['version']!=='wp16-sanctions-proposal-1'||$env['world_id']!==$world||$env['event_id']!==$id
+                ||$env['source_revision']!==(int)$row['source_revision']||$env['source_state_sha']!==$row['source_state_sha']
+                ||$env['action']!=='sanctions_proposal'||$env['status']!=='pending_domestic_approval'
+                ||$jr['id']!==$id||$jr['action']!=='sanctions_proposal'||$jr['status']!=='pending_domestic_approval'
+                ||$source['action']!=='sanctions_proposal'||$source['status']!=='pending_domestic_approval'
+                ||$source['from']!==$env['from']||$source['to']!==$env['to'])throw new \DomainException('Unverified diplomatic outbox source');
+            // Unsupported participants remain in the outbox for explicit review.
+            if($source['from']!=='state_fr'||$this->actors->get($source['to'])['kind']!=='state')continue;
+            $assumptions=['effect_bps'=>500,'low_bps'=>100,'high_bps'=>1000,
+                'effective_on'=>(new \DateTimeImmutable($day))->modify('+14 days')->format('Y-m-d'),'kind'=>'scenario_assumption'];
+            $bot=new class($world) implements EconomicPolicyPrincipal{
+                public function __construct(private readonly string $world){}
+                public function actorId():string{return 'fictional-sanctions-bridge';}
+                public function allows(string $w,string $a,string $p):bool{return $w===$this->world&&$a==='state_fr'&&$p==='economy.propose';}
+                public function legalApproval(string $w,string $s,string $i):bool{return false;}
+            };
+            $policyId='daily-bridge-'.substr(hash('sha256',$world.'|'.$id),0,32);
+            $proposal=$sim->proposeTradeRestriction($bot,$source['from'],$source['to'],$assumptions['effect_bps'],$assumptions['low_bps'],$assumptions['high_bps'],$assumptions['effective_on'],$policyId);
+            if($proposal['status']!=='proposed'||$proposal['binding_effect']!==false)throw new \DomainException('Bridge must not authorize policy');
+            $update=$this->pdo->prepare("UPDATE wp_diplomatic_outbox SET status='delivered',assumptions_sha=?,economic_policy_id=?,economic_revision=?,delivered_at=UTC_TIMESTAMP() WHERE world_id=? AND event_id=? AND status='pending'");
+            $update->execute([hash('sha256',self::json($assumptions)),$policyId,$revision,$world,$id]);
+            if($update->rowCount()!==1)throw new \DomainException('Bridge acknowledgment conflict');
+            $out[]=['source_event_id'=>$id,'policy_id'=>$policyId,'status'=>'proposed','binding_effect'=>false];
+        }
+        return $out;
     }
 
     /** @param array<string,mixed> $payload */

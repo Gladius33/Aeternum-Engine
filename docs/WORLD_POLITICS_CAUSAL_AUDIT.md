@@ -164,3 +164,13 @@ no retroactive sanctions authorization or treaty ratification. Old states remain
 unchanged. No claim of real foreign policy preferences. Independent international
 initiative, EU legal decisions, sanctions approval and economic implementation
 remain open. CI pending.
+
+### WP54r diplomatic-economic bridge correction
+
+New corporation/civil-crisis economies pin an internal daily outbox bridge.
+Checks committed diplomatic day, registry, snapshot and source journal, then
+writes a synthetic bounded economic proposal and acknowledges the source in
+the same economic clock transaction. No authorization, no tariff, no economic
+impact merely from a diplomatic declaration. Up to 32 pending rows per day;
+unsupported participants require review. The statutory legal gate, differentiated
+trade exposure, and EU powers remain open. CI pending.
