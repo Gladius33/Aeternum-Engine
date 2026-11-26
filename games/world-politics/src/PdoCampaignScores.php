@@ -62,6 +62,8 @@ final class PdoCampaignScores
         $cohort=CampaignScore::cohort($pins['reference_bundle_sha'],$config,$dip['state']);
         if(!hash_equals($before['cohort_sha'],$cohort))throw new \DomainException('Ranked cohort changed');
         $report=CampaignScore::report($dom,$dip,$op);
+        $history=$op['state']['history'];$last=$history[array_key_last($history)]['source'];
+        if(($last['domestic_sha']??null)!==trim($dom['etag'],'"'))throw new \DomainException('Score domestic source differs from committed opinion observation');
         if($report['world_id']!==$world||$report['day']!==$target||$report['elapsed_office_days']!==$before['elapsed_office_days']+1)
             throw new \DomainException('Score does not follow committed checkpoint');
         $q=$this->db->prepare('UPDATE wp_campaign_scores SET cohort_sha=?,score_version=?,committed_day=?,clock_revision=?,score=?,elapsed_days=?,gain_bps=?,terminal=?,report_json=?,report_sha=? WHERE world_id=?');

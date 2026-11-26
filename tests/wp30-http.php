@@ -918,3 +918,40 @@ $q78=$pdo->prepare('UPDATE wp_campaign_scores SET score=score+1 WHERE world_id=?
 ck30(req30('GET',$r27.'/score',null,$t27)['status']===503,'WP78 corrupted indexed score fails closed');
 $q78=$pdo->prepare('UPDATE wp_campaign_scores SET score=score-1 WHERE world_id=?');$q78->execute([$g27['body']['world_id']]);
 ck30(req30('GET',$r27.'/score',null,$t27)===$score78,'WP78 exact recovery of committed score');
+
+// WP78: force a failure exactly at materialized score publication after all
+// domain checkpoints; the previous leaderboard remains visible until retry.
+$clock78=req30('GET',$r27.'/clock',null,$t27);
+$payload78=['target_day'=>'2027-05-19'];$headers78=['If-Match'=>$clock78['etag'],'Idempotency-Key'=>'wp78-recover-score-tick'];
+$pdo->exec("CREATE TRIGGER wp78_fail_score BEFORE UPDATE ON wp_campaign_scores FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='WP78 isolated score failure'");
+try {
+    $failure78=req30('POST',$r27.'/clock/advances',$payload78,$t27,$headers78);
+    ck30($failure78['status']===503,'WP78 injected score publication failure');
+} finally {$pdo->exec('DROP TRIGGER wp78_fail_score');}
+$pending78=req30('GET',$r27.'/clock',null,$t27);
+ck30($pending78['body']['committed_day']==='2027-05-18'&&$pending78['body']['pending_day']==='2027-05-19','WP78 no partial clock publication');
+ck30(req30('GET',$r27.'/score',null,$t27)['status']===409,'WP78 private score pending guard');
+$boardPending78=req30('GET',$board78,null,$t27);
+$own78=array_values(array_filter($boardPending78['body']['entries'],fn($e)=>$e['is_you']))[0];
+ck30($own78['day']<='2027-05-18','WP78 leaderboard excludes uncommitted day');
+$recovered78=req30('POST',$r27.'/clock/advances',$payload78,$t27,$headers78);
+ck30($recovered78['status']===200&&$recovered78['body']['committed_day']==='2027-05-19','WP78 resume pending score transaction');
+ck30(req30('POST',$r27.'/clock/advances',$payload78,$t27,$headers78)===$recovered78,'WP78 exact clock receipt replay');
+$score78r=req30('GET',$r27.'/score',null,$t27);
+ck30($score78r['body']['clock_revision']===5&&$score78r['body']['elapsed_office_days']===5,'WP78 one score revision after recovery');
+
+// Trusted fictional campaign outcome on the second account, not client input.
+require_once __DIR__.'/../games/world-politics/src/CampaignEventQueue.php';
+$terminalWorld78=$w78['body']['world_id'];$terminalRoot78='/worlds/'.$terminalWorld78;
+$event78=\Aeternum\WorldPolitics\CampaignLifecycle::event($terminalWorld78,'2027-05-15','wp78-terminal-fixture','presidential_resignation');
+(new \Aeternum\WorldPolitics\CampaignEventQueue($pdo))->publish($event78);
+$terminalClock78=req30('GET',$terminalRoot78.'/clock',null,$t78);
+$terminalTick78=req30('POST',$terminalRoot78.'/clock/advances',['target_day'=>'2027-05-15'],$t78,['If-Match'=>$terminalClock78['etag'],'Idempotency-Key'=>'wp78-terminal-tick']);
+ck30($terminalTick78['status']===200&&$terminalTick78['body']['game_over'],'WP78 certified terminal campaign outcome');
+$terminalScore78=req30('GET',$terminalRoot78.'/score',null,$t78);
+ck30($terminalScore78['body']['terminal']&&$terminalScore78['body']['elapsed_office_days']===1&&$terminalScore78['body']['ended_on']==='2027-05-15','WP78 terminal score frozen');
+ck30(req30('POST',$terminalRoot78.'/clock/advances',['target_day'=>'2027-05-16'],$t78,['If-Match'=>$terminalTick78['etag'],'Idempotency-Key'=>'wp78-terminal-next'])['status']===409&&req30('GET',$terminalRoot78.'/score',null,$t78)===$terminalScore78,'WP78 no additional points after office lost');
+$terminalBoard78=req30('GET',$board78,null,$t78);
+$terminalOwn78=array_values(array_filter($terminalBoard78['body']['entries'],fn($e)=>$e['is_you']))[0];
+ck30($terminalOwn78['terminal']&&$terminalOwn78['day']==='2027-05-15','WP78 ended campaign remains ranked');
+
