@@ -8,18 +8,19 @@ final class EuropeanWithdrawal
 {
     public const VERSION='wp54r-article50-v1';
     public const SOURCE='https://eur-lex.europa.eu/eli/treaty/teu_2016/art_50/oj';
-    public static function initial(string $day):array
+    public static function initial(string $day,bool $tradeEnabled=false):array
     {
         self::date($day);
         return ['version'=>self::VERSION,'source'=>self::SOURCE,'start_day'=>$day,'day'=>$day,
             'status'=>'member','membership'=>true,'intent_on'=>null,'notified_on'=>null,'deadline'=>null,
             'agreement_effective_on'=>null,'exit_on'=>null,'exit_route'=>null,'history'=>[],
-            'currency_changed'=>false,'tariff_regime_implemented'=>false];
+            'currency_changed'=>false,'tariff_regime_implemented'=>false,...($tradeEnabled?['trade_regime_version'=>'wp54r-eu-trade-v1','trade_regime'=>null]:[])];
     }
     public static function request(array $s,string $day):array
     {
         if($s['day']!==$day||count($s['history'])>=1000||!in_array($s['status'],['member','revoked'],true))throw new \DomainException('Withdrawal intent unavailable');
         $s['status']='intent_pending';$s['intent_on']=$day;$s['notified_on']=null;$s['deadline']=null;$s['agreement_effective_on']=null;
+        if(isset($s['trade_regime_version']))$s['trade_regime']=null;
         $s['history'][]=['day'=>$day,'kind'=>'intent','data'=>[]];return $s;
     }
     public static function certify(array $s,string $day,string $kind,array $data):array
@@ -49,12 +50,19 @@ final class EuropeanWithdrawal
                     ||$data['parliament_consent']!==true||$data['council_qualified_majority']!==true||$data['france_agrees']!==true)
                     throw new \DomainException('Withdrawal agreement not concluded');
                 $s['status']='agreement_concluded';$s['agreement_effective_on']=$data['effective_on'];break;
+            case 'trade_regime':
+                self::fields($data,['regime','effective_on','import_duty_bps','import_friction_bps','export_friction_bps','instrument_sha']);
+                self::date($data['effective_on']);self::sha($data['instrument_sha']);
+                if(!isset($s['trade_regime_version'])||!in_array($s['status'],['negotiating','agreement_concluded','withdrawn'],true)||$s['trade_regime']!==null||$data['effective_on']<=$day||!in_array($data['regime'],['transition','free_trade','customs_scenario'],true))throw new \DomainException('No valid prospective trade scenario');
+                foreach(['import_duty_bps','import_friction_bps','export_friction_bps'] as $k)if(!is_int($data[$k])||$data[$k]<0||$data[$k]>3000)throw new \DomainException('Invalid scenario rate');
+                if($data['regime']!=='customs_scenario'&&$data['import_duty_bps']!==0)throw new \DomainException('No duties in this scenario');
+                $s['trade_regime']=$data;break;
             case 'revocation':
                 self::fields($data,['national_decision_sha','notice_sha','unequivocal_unconditional']);
                 self::sha($data['national_decision_sha']);self::sha($data['notice_sha']);
                 if(!in_array($s['status'],['negotiating','agreement_concluded'],true)||$day>=$s['deadline']
                     ||$data['unequivocal_unconditional']!==true)throw new \DomainException('Revocation not certified');
-                $s['status']='revoked';$s['deadline']=null;$s['agreement_effective_on']=null;break;
+                $s['status']='revoked';$s['deadline']=null;$s['agreement_effective_on']=null;if(isset($s['trade_regime_version']))$s['trade_regime']=null;break;
             default:throw new \InvalidArgumentException('Unknown European evidence');
         }
         $s['history'][]=['day'=>$day,'kind'=>$kind,'data'=>$data];return $s;
@@ -67,11 +75,12 @@ final class EuropeanWithdrawal
         }elseif(in_array($s['status'],['negotiating','agreement_concluded'],true)&&$day>=$s['deadline']){
             $s['status']='withdrawn';$s['membership']=false;$s['exit_on']=$s['deadline'];$s['exit_route']='deadline';
         }
+        if(isset($s['trade_regime_version']))$s['tariff_regime_implemented']=!$s['membership']&&$s['trade_regime']!==null&&$s['trade_regime']['effective_on']<=$day;
         $s['day']=$day;return $s;
     }
     public static function restore(array $s):array
     {
-        $r=self::initial($s['start_day']);
+        $r=self::initial($s['start_day'],array_key_exists('trade_regime_version',$s));
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>1000)throw new \DomainException('Invalid EU history');
         foreach($s['history'] as $h){
             self::fields($h,['day','kind','data']);$r=self::advance($r,$h['day']);

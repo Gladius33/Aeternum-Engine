@@ -67,10 +67,10 @@ final class PdoDomesticPolicyStore
         $actor = $this->permit($world,$ability);
         $this->sameActor($world,'domestic.read',$actor);
         self::fields($payload,match($operation) {
-            'propose'=>['policy_id','effective_day'],'enact'=>['policy_id'],'clock'=>array_key_exists('trade_observation',$payload)?['target_day','trade_observation']:['target_day'],'crisis'=>['action'],'corporation'=>['action']
+            'propose'=>['policy_id','effective_day'],'enact'=>['policy_id'],'clock'=>['target_day',...(array_key_exists('trade_observation',$payload)?['trade_observation']:[]),...(array_key_exists('eu_trade_observation',$payload)?['eu_trade_observation']:[])],'crisis'=>['action'],'corporation'=>['action']
         });
         foreach ($payload as $field=>$value) {
-            if (!is_string($value) || strlen($value)>($field==='trade_observation'?2048:64)) throw new \InvalidArgumentException('Invalid command value');
+            if (!is_string($value) || strlen($value)>(in_array($field,['trade_observation','eu_trade_observation'],true)?2048:64)) throw new \InvalidArgumentException('Invalid command value');
         }
         if (!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)
             || !preg_match('/^"[a-f0-9]{64}"$/D',$ifMatch)) {
@@ -102,7 +102,7 @@ final class PdoDomesticPolicyStore
             $result = match($operation) {
                 'propose'=>$this->propose($sim,$payload),
                 'enact'=>$this->enact($sim,$payload),
-                'clock'=>$sim->advance($this->principal,$payload['target_day'],isset($payload['trade_observation'])?self::decode($payload['trade_observation']):null),'crisis'=>$sim->crisisDecision($this->principal,$payload['action']),'corporation'=>$sim->corporationDecision($this->principal,$payload['action'])
+                'clock'=>$sim->advance($this->principal,$payload['target_day'],isset($payload['trade_observation'])?self::decode($payload['trade_observation']):null,isset($payload['eu_trade_observation'])?self::decode($payload['eu_trade_observation']):null),'crisis'=>$sim->crisisDecision($this->principal,$payload['action']),'corporation'=>$sim->corporationDecision($this->principal,$payload['action'])
             };
             $this->sameActor($world,$ability,$actor);
             $this->sameActor($world,'domestic.read',$actor);
@@ -182,7 +182,7 @@ final class PdoDomesticPolicyStore
     private static function build(string $world,array $config): DomesticPolicySimulation
     {
         self::fields($config,['start_day','currency','opening_balance','baseline_revenue',
-            'baseline_expense','cohorts','catalog',...(array_key_exists('macro_baseline',$config)?['macro_baseline']:[]),...(array_key_exists('debt_model',$config)?['debt_model']:[]),...(array_key_exists('population_model',$config)?['population_model']:[]),...(array_key_exists('services_model',$config)?['services_model']:[]),...(array_key_exists('corporations_enabled',$config)?['corporations_enabled']:[]),...(array_key_exists('wage_feedback_enabled',$config)?['wage_feedback_enabled']:[]),...(array_key_exists('trade_feedback_enabled',$config)?['trade_feedback_enabled']:[]),...(array_key_exists('firm_model',$config)?['firm_model']:[]),...(array_key_exists('public_equity_enabled',$config)?['public_equity_enabled']:[]),...(array_key_exists('industrial_enabled',$config)?['industrial_enabled']:[]),...(array_key_exists('daily_legal_enabled',$config)?['daily_legal_enabled']:[])]);
+            'baseline_expense','cohorts','catalog',...(array_key_exists('macro_baseline',$config)?['macro_baseline']:[]),...(array_key_exists('debt_model',$config)?['debt_model']:[]),...(array_key_exists('population_model',$config)?['population_model']:[]),...(array_key_exists('services_model',$config)?['services_model']:[]),...(array_key_exists('corporations_enabled',$config)?['corporations_enabled']:[]),...(array_key_exists('wage_feedback_enabled',$config)?['wage_feedback_enabled']:[]),...(array_key_exists('trade_feedback_enabled',$config)?['trade_feedback_enabled']:[]),...(array_key_exists('firm_model',$config)?['firm_model']:[]),...(array_key_exists('public_equity_enabled',$config)?['public_equity_enabled']:[]),...(array_key_exists('industrial_enabled',$config)?['industrial_enabled']:[]),...(array_key_exists('daily_legal_enabled',$config)?['daily_legal_enabled']:[]),...(array_key_exists('eu_trade_enabled',$config)?['eu_trade_enabled']:[])]);
         if (!is_string($config['start_day']) || !is_string($config['currency'])
             || !is_int($config['opening_balance']) || !is_int($config['baseline_revenue'])
             || !is_int($config['baseline_expense']) || !is_array($config['cohorts']) || !is_array($config['catalog'])) {
@@ -190,7 +190,7 @@ final class PdoDomesticPolicyStore
         }
         return new DomesticPolicySimulation($world,$config['start_day'],$config['currency'],
             $config['opening_balance'],$config['baseline_revenue'],$config['baseline_expense'],
-            $config['cohorts'],$config['catalog'],$config['macro_baseline']??null,$config['debt_model']??null,$config['population_model']??null,$config['services_model']??null,$config['corporations_enabled']??false,$config['wage_feedback_enabled']??false,$config['trade_feedback_enabled']??false,$config['firm_model']??null,$config['public_equity_enabled']??false,$config['industrial_enabled']??false,$config['daily_legal_enabled']??false);
+            $config['cohorts'],$config['catalog'],$config['macro_baseline']??null,$config['debt_model']??null,$config['population_model']??null,$config['services_model']??null,$config['corporations_enabled']??false,$config['wage_feedback_enabled']??false,$config['trade_feedback_enabled']??false,$config['firm_model']??null,$config['public_equity_enabled']??false,$config['industrial_enabled']??false,$config['daily_legal_enabled']??false,$config['eu_trade_enabled']??false);
     }
 
     private function permit(string $world,string $ability): string

@@ -531,3 +531,9 @@ Full programmes and trade legal authority remain open. WP55 deferred.
 Previous text/unit CI green. Article 50 state machine and player intent route
 added; trusted evidence required for notification and negotiations. Trade regime,
 monetary transition, legal proof issuance and EU economic spillovers remain open.
+
+### WP54r post-exit trade remediation
+
+Article 50 CI green. New pinned certified post-exit trade scenarios and
+customs revenue integrated in daily macro and treasury. No automatic tariff
+or currency conversion. Country-level and euro spillovers remain open.

@@ -210,3 +210,16 @@ procedure or autonomous negotiation; evidence issuer must be trusted. CI pending
 EU intent route explicitly uses withdrawal-intents, separate from ordinary organization
 withdrawals. Integration adds trusted notification, receipt replay and public evidence denial;
 leap-day deadline covered. No public procedure certification.
+
+### WP54r post-exit trade/customs pilot
+
+Article 50 CI 45809388242 green. New worlds pin an independently certified
+prospective trade scenario (transition, free trade or aggregate customs).
+Terms never apply before effective withdrawal; missing terms explicitly marked
+unmodelled. Daily macro consumes committed organization proof and charges
+illustrative duties once on remaining nominal ordinary imports. Trade friction,
+consumer cost, investment and inflation linked; imports/exports and GDP identity
+preserved. Existing industrial imports excluded from first tax base. Assumed EU
+shares 50%, rates bounded synthetic, partner mirror flows are not partner GDP.
+No actual WTO tariff schedule, sector data, full trade diversion, monetary or
+EU-budget spillovers. Legacy states unchanged. CI pending.

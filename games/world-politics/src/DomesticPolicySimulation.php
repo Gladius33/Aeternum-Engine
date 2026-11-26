@@ -9,6 +9,7 @@ require_once __DIR__.'/FrenchPublicServices.php';
 require_once __DIR__.'/ProfessionalCorporations.php';
 require_once __DIR__.'/CorporationWageFeedback.php';
 require_once __DIR__.'/TradeMacroFeedback.php';
+require_once __DIR__.'/EuropeanTradeFeedback.php';
 require_once __DIR__.'/FirmEconomy.php';
 require_once __DIR__.'/PublicEquityLedger.php';
 require_once __DIR__.'/IndustrialCapital.php';
@@ -61,9 +62,11 @@ final class DomesticPolicySimulation
         private readonly ?array $firmModel=null,
         private readonly bool $publicEquityEnabled=false,
         private readonly bool $industrialEnabled=false,
-        private readonly bool $dailyLegalEnabled=false
+        private readonly bool $dailyLegalEnabled=false,
+        private readonly bool $euTradeEnabled=false
     ) {
         self::id($world); self::date($startDay);
+        if($euTradeEnabled&&$macroBaseline===null)throw new \DomainException('EU trade requires macro baseline');
         if (!preg_match('/^[A-Z]{3}$/D', $currency)) throw new \InvalidArgumentException('Invalid currency');
         self::amount($openingBalance, true);
         self::amount($baselineRevenue); self::amount($baselineExpense);
@@ -155,13 +158,13 @@ final class DomesticPolicySimulation
     }
 
     /** Advance one day at a time; reject skips, replay and uncertified time. */
-    public function advance(DomesticPolicyAuthority $principal, string $target,?array $trade=null): array
+    public function advance(DomesticPolicyAuthority $principal, string $target,?array $trade=null,?array $eu=null): array
     {
         $this->require($principal, 'domestic.clock');
         self::date($target);
         if ($principal->clockDay($this->world) !== $target || self::next($this->day) !== $target
             || count($this->days) >= 3650) throw new \DomainException('Invalid or uncertified daily transition');
-        $row = $this->calculate($target, $this->balance, $this->pressure,$trade);
+        $row = $this->calculate($target, $this->balance, $this->pressure,$trade,$eu);
         $this->days[] = $row;
         $this->balance = $row['closing_balance'];
         $this->pressure = $row['pressure'];
@@ -203,10 +206,12 @@ final class DomesticPolicySimulation
         $e=['day'=>$this->day,'action'=>$action];$this->corporationDecisions[]=$e;return $e;
     }
 
-    private function calculate(string $target, int $balance, array $pressure,?array $trade=null): array
+    private function calculate(string $target, int $balance, array $pressure,?array $trade=null,?array $eu=null): array
     {
         if($this->tradeFeedbackEnabled!==($trade!==null))throw new \DomainException('Trade observation must match pinned model');
         if($trade!==null)TradeMacroFeedback::validate($trade,$this->world,$target);
+        if($this->euTradeEnabled!==($eu!==null))throw new \DomainException('EU observation must match pinned model');
+        if($eu!==null)EuropeanTradeFeedback::validate($eu,$this->world,$target);
         $revenue = $this->baselineRevenue; $expense = $this->baselineExpense;
         $deltas = array_fill_keys(array_keys($this->cohorts), 0);
         $active = []; $extended=false; $concessionCost=0; $production=10000; $employment=10000;
@@ -253,14 +258,14 @@ final class DomesticPolicySimulation
                 if($expense<=0)throw new \DomainException('Service adjustment exceeds fiscal flow');
                 foreach($prior['services']['next_day_pressure_delta']??[] as $k=>$v)if(isset($deltas[$k]))$deltas[$k]+=$v;
             }
-            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0,$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null);
+            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0,$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,0,$eu);
             if($this->industrialEnabled){
                 $ordinaryTreasury=$loop['treasury'];$ordinaryExpense=$loop['expense'];$tr=$ordinaryTreasury;
                 $current=$tr['primary_arrears']===0&&$tr['interest_arrears']===0&&$tr['principal_arrears']===0&&!($tr['crisis']['moratorium']??false);
                 $industrial=IndustrialCapital::advance($installed,$target,$corporationAction,$tr['cash'],$current,$prior);
                 $paid=$industrial['paid_today_minor'];
                 if($paid>0){
-                    $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense+$paid,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0,$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,$paid);
+                    $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense+$paid,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0,$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,$paid,$eu);
                     if($loop['treasury']['cash']!==$tr['cash']-$paid||$loop['treasury']['new_borrowing']!==$tr['new_borrowing']||$loop['expense']!==$ordinaryExpense+$paid)throw new \DomainException('Industrial fiscal settlement mismatch');
                 }
                 $loop['treasury']['industrial_capex_minor']=$paid;
@@ -299,6 +304,7 @@ final class DomesticPolicySimulation
         }
         if($corporations!==null)$row['corporations']=$corporations;
         if($trade!==null)$row['trade_observation']=$trade;
+        if($eu!==null)$row['eu_trade_observation']=$eu;
         if($firms!==null)$row['firms']=$firms;
         if($equity!==null)$row['public_equity']=$equity;
         if($industrial!==null)$row['industrial']=$industrial;
@@ -315,7 +321,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:[FirmEconomy::VERSION,$this->firmModel]),...($this->publicEquityEnabled?[PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?[IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['wp54r-daily-legal-activation-v1']:[])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:[FirmEconomy::VERSION,$this->firmModel]),...($this->publicEquityEnabled?[PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?[IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?[EuropeanTradeFeedback::VERSION]:[])]);
     }
 
     public function snapshot(): array
@@ -323,7 +329,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[]),...($this->wageFeedbackEnabled?['wage_feedback_version'=>CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?['trade_feedback_version'=>TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:['firm_model'=>$this->firmModel,'firm_model_version'=>FirmEconomy::VERSION]),...($this->publicEquityEnabled?['public_equity_version'=>PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?['industrial_version'=>IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['daily_legal_version'=>'wp54r-daily-legal-activation-v1']:[])];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[]),...($this->wageFeedbackEnabled?['wage_feedback_version'=>CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?['trade_feedback_version'=>TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:['firm_model'=>$this->firmModel,'firm_model_version'=>FirmEconomy::VERSION]),...($this->publicEquityEnabled?['public_equity_version'=>PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?['industrial_version'=>IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['daily_legal_version'=>'wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?['eu_trade_version'=>EuropeanTradeFeedback::VERSION]:[])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }
@@ -383,7 +389,7 @@ final class DomesticPolicySimulation
         ksort($copy->policies, SORT_STRING);
         foreach ($snapshot['days'] as $stored) {
             $target = self::next($copy->day);
-            $row = $copy->calculate($target, $copy->balance, $copy->pressure,$stored['trade_observation']??null);
+            $row = $copy->calculate($target, $copy->balance, $copy->pressure,$stored['trade_observation']??null,$stored['eu_trade_observation']??null);
             if ($stored !== $row) throw new \DomainException('Daily ledger replay mismatch');
             $copy->days[] = $row; $copy->day = $target;
             $copy->balance = $row['closing_balance']; $copy->pressure = $row['pressure'];

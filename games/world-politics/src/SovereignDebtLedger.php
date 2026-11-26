@@ -194,6 +194,7 @@ final class SovereignDebtLedger
                     $bucket['principal_written_off']=($bucket['principal_written_off']??0)+$t['crisis']['principal_written_off'];
                     $bucket['support_disbursed']=($bucket['support_disbursed']??0)+$t['crisis']['support_disbursed'];
                 }
+                if(isset($t['customs_revenue_minor']))$bucket['customs_revenue_minor']=($bucket['customs_revenue_minor']??0)+$t['customs_revenue_minor'];
                 if(isset($t['equity_acquisition_minor'])){
                     $bucket['equity_acquisition_minor']=($bucket['equity_acquisition_minor']??0)+$t['equity_acquisition_minor'];
                     $bucket['closing_public_equity_at_cost_minor']=$t['public_equity_at_cost_minor'];
