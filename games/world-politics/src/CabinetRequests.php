@@ -28,6 +28,16 @@ final class CabinetRequests
     }
     public static function advance(array $s):array
     {
+        $r=$s['legislation']['responsibility'];
+        // The Article 50 obligation belongs to the government, not the owner.
+        // Only a committed censure/confidence outcome can create this state.
+        if($r['cabinet']['status']==='resignation_required'&&$r['crisis']['government']==='resignation_required'&&ParliamentaryLifecycle::quiet($r)){
+            $day=$s['day'];$hash=substr(hash('sha256',$s['world_id'].'|article50|'.$r['cabinet']['generation']),0,32);
+            $l=BicameralLegislation::restore($s['legislation']);
+            $e=['world_id'=>$s['world_id'],'country'=>'FR','day'=>$day,'evidence_id'=>'art50-'.$hash,'bill_id'=>null,'kind'=>'assembly_cabinet_resign','procedure_certified'=>true,
+                'data'=>['at'=>$day.'T12:00:00Z','prime_minister'=>$r['cabinet']['prime_minister'],'resignation_id'=>'resign-'.$hash,'resignation_presented'=>true]];
+            $l->certify($e);$s['legislation']=$l->snapshot();
+        }
         foreach($s['cabinet_requests'] as $id=>$q){
             if($q['status']!=='requested'||$q['due_on']>$s['day'])continue;
             $r=$s['legislation']['responsibility'];
@@ -38,6 +48,7 @@ final class CabinetRequests
                 if($r['cabinet']['status']==='resignation_required')continue;
                 $q['status']='refused';
             }else{
+                if($r['cabinet']['resignation_on']===$day)continue;
                 $l=BicameralLegislation::restore($s['legislation']);
                 $e=['world_id'=>$s['world_id'],'country'=>'FR','day'=>$day,'evidence_id'=>'cabinet-'.$hash,'bill_id'=>null,'kind'=>'assembly_cabinet_appoint','procedure_certified'=>true,
                     'data'=>['at'=>$at,'appointment_id'=>'appoint-'.$hash,'prime_minister'=>$q['candidate'],'president'=>$r['cabinet']['president'],'resignation_presented'=>true,'presidential_act_certified'=>true,'incompatibilities_cleared'=>true]];

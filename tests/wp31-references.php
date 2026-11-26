@@ -131,3 +131,18 @@ $cc=CL::initial('wp60-test','2027-05-14');$cc['order_review']=['status'=>'none',
 $cc=CL::advance($cc,'2027-05-15',CL::event('wp60-test','2027-05-15','crisis','constitutional_crisis_opened'));$cc=CL::advance($cc,'2027-05-16',CL::event('wp60-test','2027-05-16','review','alternative_order_review_opened'));
 ck31($cc['order_review']['status']==='pending_independent_review'&&$cc['status']==='active'&&!$cc['regime_changed']&&CL::tenure($cc)['elapsed_office_days']===2,'alternative order review does not replace mandate or award automatic power');
 $cc=CL::advance($cc,'2027-05-17',CL::event('wp60-test','2027-05-17','close-review','alternative_order_review_closed'));ck31($cc['order_review']['status']==='closed_without_replacement','independent review can close without regime replacement');
+
+require_once __DIR__.'/../games/world-politics/src/AlternativeOrder.php';
+use Aeternum\WorldPolitics\AlternativeOrder as AO;
+$pre=CL::initial('wp60-alt','2027-05-14');$pre['order_review']=['status'=>'none','opened_on'=>null,'closed_on'=>null,'existing_mandate_preserved'=>true,'alternate_authority_installed'=>false];
+$pre=CL::advance($pre,'2027-05-15',CL::event('wp60-alt','2027-05-15','crisis','constitutional_crisis_opened'));
+$pre=CL::advance($pre,'2027-05-16',CL::event('wp60-alt','2027-05-16','review','alternative_order_review_opened'));
+$cert=['world_id'=>'wp60-alt','day'=>$pre['day'],'evidence_id'=>'constituent-one','order'=>'elective_constitutional_monarchy','instrument_sha'=>str_repeat('c',64),'campaign_sha'=>hash('sha256',json_encode($pre,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),'selected_holder'=>CL::PLAYER,'source'=>'trusted_fictional_constituent_outcome'];
+$alt=AO::initial($pre,$cert);
+ck31($alt['status']==='active'&&$alt['term_end']==='2034-05-16'&&!$alt['rules']['inherited_presidential_powers']&&!$alt['full_world_handoff'],'isolated alternative order has new finite mandate, not canceled election');
+$renew=['world_id'=>'wp60-alt','day'=>$alt['term_end'],'evidence_id'=>'renewal-one','order'=>$alt['order'],'term_start'=>$alt['term_start'],'selected_holder'=>CL::PLAYER,'instrument_sha'=>$cert['instrument_sha'],'source'=>'trusted_fictional_renewal_outcome'];
+$alt=AO::advance($alt,$alt['term_end'],$renew);$alt=AO::advance($alt,'2038-05-17');
+ck31($alt['status']==='active'&&$alt['term_end']==='2041-05-16'&&AO::restore($alt,$pre)===$alt&&!$alt['rank_eligible'],'alternative order exceeds ten years only with independent renewal and replay');
+$end=AO::advance($alt,$alt['term_end']);ck31($end['status']==='ended'&&$end['officeholder']===null,'no independent renewal means expired mandate');
+$other=AO::initial($pre,array_replace($cert,['selected_holder'=>'other-holder']));ck31($other['status']==='ended','constitutional replacement can end player tenure');
+try{AO::initial($pre,array_replace($cert,['campaign_sha'=>str_repeat('0',64)]));throw new RuntimeException('stale certificate accepted');}catch(DomainException $e){ck31(true,'alternative order certificate pinned to exact preceding campaign');}
