@@ -10,6 +10,7 @@ require_once __DIR__.'/FrancExternalMarket.php';
 require_once __DIR__.'/FrancBankEquityBridge.php';
 require_once __DIR__.'/FrancPropertySettlement.php';
 require_once __DIR__.'/FrancCreditorCoverage.php';
+require_once __DIR__.'/FrancObservedFinance.php';
 
 /** Prospective, replayed daily native treasury, with its own financing
  * choices. Legacy fiscal policy and GDP remain reference-denominated. */
@@ -42,6 +43,7 @@ final class FrancCommittedBudget
             $v['bank_pilot']=$p===null?null:array_intersect_key($p,array_fill_keys(['bank_assets_franc_minor','bank_deposit_liabilities_franc_minor','bank_equity_franc_minor','bank_reserves_franc_minor','bank_balance_difference_franc_minor'],true));
             if($p!==null&&isset($p['crisis']))$v['bank_pilot']['crisis']=array_intersect_key($p['crisis'],array_fill_keys(['bank_facility_liability_franc_minor','bank_subrogated_guarantee_liability_franc_minor'],true));
         }
+        if(isset($terms['observed_financial_baseline_sha']))$v['observed_financial_baseline_sha']=$terms['observed_financial_baseline_sha'];
         if(isset($eu['franc_property_orders'][$day]))$v['property_order']=$eu['franc_property_orders'][$day];
         $activeFacilities=array_filter($eu['franc_external_facilities']??[],fn($x)=>$x['effective_on']<=$day);
         if($activeFacilities!==[])$v['external_facilities']=$activeFacilities;
@@ -50,7 +52,8 @@ final class FrancCommittedBudget
     }
     public static function validate(array $v,string $day):void
     {
-        self::fields($v,['version','start','instrument_sha','reserve_authorized','opening_fx','funding','fx_order',...(array_key_exists('sector_version',$v)?['sector_version']:[]),...(array_key_exists('financial_version',$v)?['financial_version','bank_pilot']:[]),...(array_key_exists('property_order',$v)?['property_order']:[]),...(array_key_exists('external_facilities',$v)?['external_facilities']:[]),...(array_key_exists('external_market_orders',$v)?['external_market_orders']:[])]);
+        self::fields($v,['version','start','instrument_sha','reserve_authorized','opening_fx','funding','fx_order',...(array_key_exists('sector_version',$v)?['sector_version']:[]),...(array_key_exists('financial_version',$v)?['financial_version','bank_pilot']:[]),...(array_key_exists('property_order',$v)?['property_order']:[]),...(array_key_exists('external_facilities',$v)?['external_facilities']:[]),...(array_key_exists('external_market_orders',$v)?['external_market_orders']:[]),...(array_key_exists('observed_financial_baseline_sha',$v)?['observed_financial_baseline_sha']:[])]);
+        if(array_key_exists('observed_financial_baseline_sha',$v)&&(!isset($v['financial_version'])||$v['observed_financial_baseline_sha']!==FrancObservedFinance::digest()))throw new \DomainException('Unpinned observed finance');
         if(isset($v['external_market_orders'])){
             if(!is_array($v['external_market_orders'])||$v['external_market_orders']===[]||count($v['external_market_orders'])>7)throw new \DomainException('Invalid market order set');
             foreach($v['external_market_orders'] as $cur=>$o){FrancExternalMarket::validate($o,(new \DateTimeImmutable($day))->modify('-1 day')->format('Y-m-d'));if(!isset($v['external_facilities'][$cur])||$cur!==$o['currency']||$day!==$o['effective_on'])throw new \DomainException('Unmatched external market order');}
@@ -111,6 +114,7 @@ final class FrancCommittedBudget
         $state=$previous['closing_state']??FrancNativeBudgetProjection::opening($row['frf_fiscal'],$prior,$obs['opening_fx'],$money,$ratio,$prior['frf_fiscal']['value_index_bps']??10000);
         $sector=isset($obs['sector_version']);
         $financial=isset($obs['financial_version']);
+        if($previous!==null&&($previous['observed_bank_sensitivity']['source_sha']??null)!==($obs['observed_financial_baseline_sha']??null))throw new \DomainException('Observed financial source changed');
         if($previous!==null&&$financial!==isset($previous['financial_version']))throw new \DomainException('Native financial version changed');
         if($previous!==null&&$sector!==isset($previous['sector_version']))throw new \DomainException('Native sector version changed');
         $flow=FrancNativeBudgetProjection::flow($row,$state,$model,$money,$obs['fx_order'],$ratio);
@@ -134,6 +138,7 @@ final class FrancCommittedBudget
             $extra['financial_version']=FrancFinancialIntegration::VERSION;
             $extra['bank_balance']=FrancFinancialIntegration::bank([...$result,...$extra,'bank_haircuts_by_claim'=>$flow['haircuts']],$ratio,$mark,$previous,$obs['bank_pilot']);
         }
+        if(isset($obs['observed_financial_baseline_sha']))$extra['observed_bank_sensitivity']=FrancObservedFinance::bank($extra['bank_balance'],$ratio);
         if(isset($obs['external_facilities'])||isset($previous['external_finance'])){
             $priorFacilities=$previous['external_finance']['facilities']??[];$facilities=[];$value=0;$old=0;$fx=0;$delta=0;$arrears=0;$externalCurrent=true;
             foreach($priorFacilities as $cur=>$p)if(!isset($obs['external_facilities'][$cur]))throw new \DomainException('Missing continuing external facility');
@@ -158,6 +163,7 @@ final class FrancCommittedBudget
             $foreignStress=min(3000,intdiv($extra['external_finance']['arrears_frf_minor'],max(1,intdiv($row['macro']['real_gdp']*$ratio,10000))));
             $risk['external_arrears_stress_bps']=$foreignStress;$risk['credit_availability_bps']=min($risk['credit_availability_bps'],10000-$foreignStress);$risk['sovereign_spread_proxy_bps']=max($risk['sovereign_spread_proxy_bps'],intdiv($foreignStress,3));
         }
+        if(isset($extra['observed_bank_sensitivity']))$risk['credit_availability_bps']=min($risk['credit_availability_bps'],$extra['observed_bank_sensitivity']['credit_availability_bps']);
         return [...$result,...$extra,'instrument_sha'=>$obs['instrument_sha'],'effective_from'=>$obs['start'],'reserve_purchase_authorized'=>$obs['reserve_authorized'],'ratio'=>$ratio,'financing'=>$finance,'risk'=>$risk];
     }
     public static function project(array $dom):?array
@@ -165,6 +171,6 @@ final class FrancCommittedBudget
         $days=[];$active=false;
         foreach($dom['days'] as $d){if(isset($d['frf_committed_budget'])){$active=true;$days[]=['day'=>$d['day'],...$d['frf_committed_budget']];}elseif($active)throw new \DomainException('Committed native budget history gap');}
         if(!$active)return null;$last=$days[array_key_last($days)];
-        return ['version'=>self::VERSION,'status'=>'active','currency'=>'FRF','classification'=>'committed_native_treasury_with_reference_policy_inputs','effective_from'=>$days[0]['day'],'instrument_sha'=>$last['instrument_sha'],'latest'=>$last,'days'=>$days,'months'=>FrancNativeBudgetProjection::aggregate($days,7),'years'=>FrancNativeBudgetProjection::aggregate($days,4),'reference_financing_policy_retained'=>false,'shared_reserves_within_projection'=>true,'daily_state_committed'=>true,'national_reference_ledger_changed'=>false,'macro_feedback_from_native_arrears_modelled'=>true,'other_currencies_modelled'=>isset($last['external_finance']),...(isset($last['external_finance'])?['external_facilities'=>$last['external_finance']['facilities'],'consolidated_gross_debt_frf_minor'=>$last['external_finance']['consolidated_gross_debt_frf_minor']]:[]),...(isset($last['sector_version'])?['sector_version'=>$last['sector_version'],'future_bond_maturities'=>$last['bond_maturities']['closing'],'pretransition_new_issues_maturity_coverage'=>false]:[]),...(isset($last['financial_version'])?['financial_audit'=>FrancFinancialAudit::verify($days),'creditor_coverage'=>FrancCreditorCoverage::project($dom['debt_model'],$days),'bank_equity_bridge'=>FrancBankEquityBridge::project($days)]:[])];
+        return ['version'=>self::VERSION,'status'=>'active','currency'=>'FRF','classification'=>'committed_native_treasury_with_reference_policy_inputs','effective_from'=>$days[0]['day'],'instrument_sha'=>$last['instrument_sha'],'latest'=>$last,'days'=>$days,'months'=>FrancNativeBudgetProjection::aggregate($days,7),'years'=>FrancNativeBudgetProjection::aggregate($days,4),'reference_financing_policy_retained'=>false,'shared_reserves_within_projection'=>true,'daily_state_committed'=>true,'national_reference_ledger_changed'=>false,'macro_feedback_from_native_arrears_modelled'=>true,'other_currencies_modelled'=>isset($last['external_finance']),...(isset($last['external_finance'])?['external_facilities'=>$last['external_finance']['facilities'],'consolidated_gross_debt_frf_minor'=>$last['external_finance']['consolidated_gross_debt_frf_minor']]:[]),...(isset($last['sector_version'])?['sector_version'=>$last['sector_version'],'future_bond_maturities'=>$last['bond_maturities']['closing'],'pretransition_new_issues_maturity_coverage'=>false]:[]),...(isset($last['financial_version'])?['financial_audit'=>FrancFinancialAudit::verify($days),'creditor_coverage'=>FrancCreditorCoverage::project($dom['debt_model'],$days),'bank_equity_bridge'=>FrancBankEquityBridge::project($days),'observed_financial_reference'=>FrancObservedFinance::report()]:[])];
     }
 }

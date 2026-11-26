@@ -14,7 +14,7 @@ final class CBPrincipal implements DomesticPolicyAuthority{
 }
 $d='2026-11-25';$start='2026-12-01';$sha=str_repeat('a',64);
 $e=E::request(E::initial($d,true,true,true,true,true,true,true,true,true,false,false,true),$d);
-$terms=['effective_on'=>$start,'instrument_sha'=>$sha,'reserve_purchase_authorized'=>true,'commit_daily'=>true,'sector_integration'=>true,'financial_integration'=>true];
+$terms=['observed_financial_baseline_sha'=>\Aeternum\WorldPolitics\FrancObservedFinance::digest(),'effective_on'=>$start,'instrument_sha'=>$sha,'reserve_purchase_authorized'=>true,'commit_daily'=>true,'sector_integration'=>true,'financial_integration'=>true];
 noCB(fn()=>E::certify($e,$d,'franc_native_budget',$terms));
 $e=E::certify($e,$d,'notification',['national_decision_sha'=>$sha,'notification_sha'=>$sha]);
 $e=E::certify($e,$d,'agreement',['effective_on'=>$start,'parliament_consent'=>true,'council_qualified_majority'=>true,'france_agrees'=>true,'agreement_sha'=>$sha]);
@@ -136,3 +136,16 @@ $copy=$make();$copy->restore($sim->snapshot(),$sim->hash());ckCB($copy->hash()==
 $small=XM::trade($buy,'2026-12-08',100,50,100,50);ckCB($small['closing_official_eur_minor']>=50&&$small['foreign_traded_minor']===45&&$small['unfilled_foreign_minor']===899955,'market partial fill respects shared floor');
 $bridge=$finalReport['bank_equity_bridge'];ckCB($bridge['days']===9&&$bridge['latest']['principal_receipt_is_income']===false,'sovereign bank equity independently bridged');
 $bad=$finalReport['days'];$bad[array_key_last($bad)]['bank_balance']['equity_frf_minor']++;noCB(fn()=>BB::project($bad));
+
+use Aeternum\WorldPolitics\FrancObservedFinance as OF;
+$reference=OF::report();
+ckCB($reference['observations']['bank']['total']===9685&&$reference['observations']['bank']['cet1']===499,'official consolidated banking stocks imported');
+ckCB($reference['net_fx_allocation_ceiling_eur_equivalent_minor']===3061300000000&&$reference['observations']['reserves']['gold']===276370,'only observed net FX equivalent is allocation ceiling');
+ckCB($reference['sovereign_nonresident_foreign_currency_securities_market_value_eur_minor']===7680000000000&&!$reference['sovereign_country_rows_retrieved'],'foreign-currency public securities observed without inventing countries');
+ckCB($reference['bank_external_other_investment_by_country']['US']['liabilities_eur_minor']===46450000000000&&$reference['bank_country_positions_are_not_sovereign_debt'],'country banking exposures preserve distinct scope');
+$opening=OF::bank(['equity_frf_minor'=>10000000000000,'opening_capital_proxy_frf_minor'=>10000000000000],2);
+$loss=OF::bank(['equity_frf_minor'=>0,'opening_capital_proxy_frf_minor'=>10000000000000],2);
+ckCB($opening['scenario_cet1_bps']===1620&&$loss['scenario_cet1_bps']<$opening['scenario_cet1_bps']&&$loss['credit_availability_bps']<10000,'observed capital sensitivity drives bounded credit');
+ckCB($finalReport['latest']['observed_bank_sensitivity']['source_sha']===OF::digest()&&$finalReport['observed_financial_reference']['source_sha']===OF::digest(),'daily observation pack hash and report consistent');
+$over=$e;$over['franc_fx_terms']['official_eur_minor']=OF::reserveCeiling()+1;noCB(fn()=>OF::validateAllocation($over));
+$over=$e;$over['franc_fx_terms']['official_eur_minor']=OF::reserveCeiling();noCB(fn()=>OF::validateAllocation($over));

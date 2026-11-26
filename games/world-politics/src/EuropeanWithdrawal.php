@@ -218,7 +218,8 @@ final class EuropeanWithdrawal
                 if($s['membership']||!($s['franc_native_budget_terms']['financial_integration']??false)||$day<max($s['exit_on'],$s['franc_native_budget_terms']['effective_on']))throw new \DomainException('No active integrated Treasury');
                 FrancExternalFacility::validate($data,$day);
                 if(isset($s['franc_external_facilities'][$data['currency']]))throw new \DomainException('One external facility per currency');
-                $s['franc_external_facilities'][$data['currency']]=$data;ksort($s['franc_external_facilities'],SORT_STRING);break;
+                $s['franc_external_facilities'][$data['currency']]=$data;ksort($s['franc_external_facilities'],SORT_STRING);
+                if(isset($s['franc_native_budget_terms']['observed_financial_baseline_sha']))FrancObservedFinance::validateAllocation($s);break;
             case 'franc_external_market_order':
                 if($s['membership']||!($s['franc_native_budget_terms']['financial_integration']??false))throw new \DomainException('No integrated Treasury');
                 FrancExternalMarket::validate($data,$day);

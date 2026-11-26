@@ -52,7 +52,7 @@ final class FrancNativeSectors
         return ['classification'=>'identified_synthetic_bank_cohort_sensitivity','bank_sovereign_claims_at_market_frf_minor'=>$value,'bank_overdue_claims_frf_minor'=>$overdue,'cash_receipts_by_currency_minor'=>$receipts,'valuation_discount_bps'=>$discount,'unrealized_loss_proxy_frf_minor'=>$loss,'opening_capital_proxy_frf_minor'=>$capital,'equity_proxy_frf_minor'=>$equity,'credit_availability_bps'=>$credit,'new_domestic_lender_sector_unallocated'=>true,'commercial_bank_balance_sheet_booked'=>false];
     }
     public static function credit(?array $prior):int
-    {return min($prior['treasury']['banking']['credit_availability_bps']??10000,$prior['frf_committed_budget']['risk']['credit_availability_bps']??10000,$prior['frf_committed_budget']['banking']['credit_availability_bps']??10000);}
+    {return min($prior['treasury']['banking']['credit_availability_bps']??10000,$prior['frf_committed_budget']['risk']['credit_availability_bps']??10000,$prior['frf_committed_budget']['banking']['credit_availability_bps']??10000,$prior['frf_committed_budget']['observed_bank_sensitivity']['credit_availability_bps']??10000);}
     public static function services(array $result,?array $prior,int $expense,int $ratio):array
     {
         $opening=$prior['frf_committed_budget']['closing_state']['primary_arrears']??(($prior['treasury']['primary_arrears']??0)*$ratio);

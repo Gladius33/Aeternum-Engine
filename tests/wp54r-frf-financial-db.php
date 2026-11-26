@@ -33,7 +33,7 @@ foreach(['007_world_clock.sql','013_world_mutation_fences.sql','017_wp29b_domest
 }
 $d='2026-11-25';$start='2026-12-01';$sha=str_repeat('a',64);
 $e=E::request(E::initial($d,true,true,true,true,true,true,true,true,true,false,false,true),$d);
-$terms=['effective_on'=>$start,'instrument_sha'=>$sha,'reserve_purchase_authorized'=>true,'commit_daily'=>true,'sector_integration'=>true,'financial_integration'=>true];
+$terms=['observed_financial_baseline_sha'=>\Aeternum\WorldPolitics\FrancObservedFinance::digest(),'effective_on'=>$start,'instrument_sha'=>$sha,'reserve_purchase_authorized'=>true,'commit_daily'=>true,'sector_integration'=>true,'financial_integration'=>true];
 noDB(fn()=>E::certify($e,$d,'franc_native_budget',$terms));
 $e=E::certify($e,$d,'notification',['national_decision_sha'=>$sha,'notification_sha'=>$sha]);
 $e=E::certify($e,$d,'agreement',['effective_on'=>$start,'parliament_consent'=>true,'council_qualified_majority'=>true,'france_agrees'=>true,'agreement_sha'=>$sha]);
@@ -98,4 +98,5 @@ $e=E::certify($e,'2026-12-04','franc_external_market_order',$quote);
 $fifth=$run('2026-12-05');$f=C::project((new Store($connect(),$a))->read($world)['state']);
 ckDB($f['latest']['external_finance']['facilities']['GBP']['current_cross_rate']===10000&&$f['latest']['external_finance']['fx_revaluation_frf_minor']<0,'certified cross rate revaluation persists in MariaDB');
 ckDB($f['bank_equity_bridge']['days']===5,'bank equity bridge reconciles after persisted revaluation');
+ckDB($f['latest']['observed_bank_sensitivity']['source_sha']===\Aeternum\WorldPolitics\FrancObservedFinance::digest(),'observed bank anchor pinned through MariaDB replay');
 foreach($tables as $table)$pdo->exec('DROP TABLE IF EXISTS '.$table);
