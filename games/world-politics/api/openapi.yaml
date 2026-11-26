@@ -31,6 +31,16 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /worlds/{world}/countries/FR/civil-continuity:
+    get:
+      operationId: readCivilContinuityReport
+      summary: Committed civilian service coverage and rolling funding indicators
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Coherent thirty-day civilian continuity projection, without security action or budget booking }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/defense-planning:
     get:
       operationId: readStrategicDefensePlanning

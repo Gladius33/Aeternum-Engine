@@ -820,6 +820,8 @@ $aid27=req30('GET',$r27.'/countries/FR/ukraine-aid',null,$t27);
 ck30($aid27['status']===200&&$aid27['body']['latest']===null&&$aid27['body']['reference']['opening_debt_minor']>359550000000000,'projected opening and empty aid history');
 $stop27=req30('POST',$r27.'/domestic/ukraine-aid',['action'=>'ukraine-aid-stop'],$t27,['If-Match'=>$aid27['etag'],'Idempotency-Key'=>'ukraine-stop-2027']);
 ck30($stop27['status']===200,'stop discretionary aid on investiture');
+$civil72=req30('GET',$r27.'/countries/FR/civil-continuity',null,$t27);
+ck30($civil72['status']===200&&$civil72['body']['window']===null&&!$civil72['body']['automatic_security_action'],'WP72 no fabricated opening continuity history');
 $budget71=req30('GET',$r27.'/countries/FR/finance',null,$t27);
 ck30($budget71['status']===200&&$budget71['body']['finance']['year']===2028&&count($budget71['body']['catalog'])===3,'WP71 canonical annual budget cycle after investiture');
 $def70=req30('GET',$r27.'/countries/FR/defense-planning',null,$t27);
@@ -836,6 +838,8 @@ ck30(req30('POST',$r27.'/diplomacy/commitments',['commitment_id'=>'eu-contributi
 $c27=req30('GET',$r27.'/clock',null,$t27);
 $c27=req30('POST',$r27.'/clock/advances',['target_day'=>'2027-05-15'],$t27,['If-Match'=>$c27['etag'],'Idempotency-Key'=>'investiture-tick-001']);
 ck30($c27['status']===200&&$c27['body']['coherent'],'canonical full world first day coherent');
+$civil72=req30('GET',$r27.'/countries/FR/civil-continuity',null,$t27);
+ck30($civil72['status']===200&&$civil72['body']['window']['days']===1&&$civil72['body']['window']['last_day']==='2027-05-15'&&$civil72['body']['additional_budget_delta_minor']===null,'WP72 committed service coverage after coordinated clock');
 $d27=req30('GET',$r27.'/domestic',null,$t27);
 ck30($d27['status']===200&&$d27['body']['debt_model']['first_maturity_month']==='2027-06'&&$d27['body']['debt_model']['source_pack']['as_of']==='2026-11-25'&&$d27['body']['population_model']['opening_anchor_vintage']==='2026-11-25','historical opening data not represented as future observation');
 $aid27=req30('GET',$r27.'/countries/FR/ukraine-aid',null,$t27);
