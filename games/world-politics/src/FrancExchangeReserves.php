@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/FrancExchangeMarket.php';
 
 /** Closed EUR/XFR reserve pilot. The two settlement pools are preallocated
  * from the unallocated opening base. No intervention creates base money.
@@ -43,12 +44,13 @@ final class FrancExchangeReserves
         $official=$terms['official_eur_minor']??0;$counter=$terms['counterparty_eur_minor']??0;
         $pool=$terms['official_franc_pool_minor']??0;$cp=$terms['counterparty_franc_pool_minor']??0;
         $floor=$terms['minimum_official_eur_minor']??0;$ratio=$eu['currency_terms']['units_per_eur']??1;
-        $priorValue=null;$priorMark=10000;$mark=10000;$markDay=null;
+        $priorValue=null;$mark=10000;$markDay=null;$market=($eu['franc_fx_market_terms']??null)!==null;
         foreach($monetary['days'] as $r){
             $day=$r['day'];if(!$active||$day<$start)continue;
             foreach($eu['currency_marks'] as $m)if($m['effective_on']<=$day&&$m['effective_on']>$currency['effective_from']){
                 $mark=$m['value_index_bps'];$markDay=$m['effective_on'];
             }
+            if($market){$quote=FrancExchangeMarket::quotes($eu,$day,$currency['effective_from']);$mark=$quote['value_index_bps'];$markDay=$quote['last_change_day'];}
             $numerator=$ratio*10000;$denominator=$mark;
             $beforeValue=self::scale($official,$numerator,$denominator)+$pool;
             $valuation=$priorValue===null?0:$beforeValue-$priorValue;
@@ -79,12 +81,12 @@ final class FrancExchangeReserves
                 'base_money_created_franc_minor'=>0,'production_base_franc_minor'=>$r['closing_base_franc_minor'],
                 'unfilled_eur_demand_minor'=>$kind==='sell_eur'?$ask-$settled:0,
                 'unfilled_eur_supply_minor'=>$kind==='buy_eur'?$ask-$settled:0,
-                'market_price_endogenous'=>false];
-            $priorValue=$afterValue;$priorMark=$mark;
+                'market_price_endogenous'=>$market];
+            $priorValue=$afterValue;
         }
         return ['version'=>self::VERSION,'classification'=>'fictional_closed_fx_settlement_pilot','status'=>$terms===null?'not_configured':($active?'active':'pending_effective_date'),
             'effective_from'=>$start,'currency_pair'=>'EUR/XFR','terms'=>$terms,'latest'=>$rows===[]?null:$rows[array_key_last($rows)],'days'=>$rows,
-            'official_actual_reserves_minor'=>null,'national_balance_of_payments_booked'=>false,'market_price_endogenous'=>false,
+            'official_actual_reserves_minor'=>null,'national_balance_of_payments_booked'=>false,'market_price_endogenous'=>$market,
             'franc_base_created_by_intervention'=>false,'other_currencies_modelled'=>false,'not_a_forecast'=>true];
     }
 }

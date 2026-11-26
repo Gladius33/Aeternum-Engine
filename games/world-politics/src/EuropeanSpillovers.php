@@ -91,6 +91,8 @@ final class EuropeanSpillovers
             'today_gross_export_loss_proxy_minor'=>$todayX[$iso]??null,'today_gross_import_loss_proxy_minor'=>$todayM[$iso]??null,
             'real_gdp_change_minor'=>null,'bank_exposure_minor'=>null,'actual_bilateral_exposure_minor'=>null];
         $fr=self::scale(self::GDP_EUR,self::FR_SHARE_BPS);
+        $currency=isset($eu['currency_contract_version'])?CurrencyTransitionLedger::project($eu):null;
+        $franc=isset($eu['franc_rule_version'])?FrancProductionRule::project($eu,$ds):null;
         return ['version'=>self::VERSION,'world_id'=>$world,'day'=>$day,'classification'=>'simulation_sensitivity_not_forecast',
             'source_organization_sha'=>$orgSha,'source_domestic_sha'=>$domSha,
             'membership_scope'=>['initial_eu_members'=>27,'current_modelled_eu_members'=>$eu['membership']?27:26,
@@ -108,9 +110,9 @@ final class EuropeanSpillovers
             'monetary'=>isset($eu['monetary_stress_version'])?EuropeanMonetaryStress::project($eu):['currency_conversion_modelled'=>false,'euro_collapse_inferred'=>false,
                 'exchange_rate_change_bps'=>null,'ecb_balance_sheet_change_minor'=>null,'target_settlement_minor'=>null,
                 'other_currency_exits_inferred'=>false],
-            ... (isset($eu['currency_contract_version'])?['currency_contracts'=>CurrencyTransitionLedger::project($eu)]:[]),
-            ...(isset($eu['franc_rule_version'])?['franc_monetary_rule'=>FrancProductionRule::project($eu,$ds)]:[]),
-            ...(isset($eu['franc_fx_version'])?['franc_exchange_reserves'=>FrancExchangeReserves::project($eu,CurrencyTransitionLedger::project($eu),FrancProductionRule::project($eu,$ds))]:[]),
+            ... (isset($eu['currency_contract_version'])?['currency_contracts'=>$currency]:[]),
+            ...(isset($eu['franc_rule_version'])?['franc_monetary_rule'=>$franc]:[]),
+            ...(isset($eu['franc_fx_version'])?['franc_exchange_reserves'=>FrancExchangeReserves::project($eu,$currency,$franc)]:[]),
             'not_a_forecast'=>true];
     }
 }

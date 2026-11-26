@@ -351,3 +351,13 @@ No creation of base money or actual national reserve/treasury booking. EUR
 only; committed currency marks are exogenous, endogenous price formation,
 USD/gold/other reserve assets, actual sources, full external balance remain
 open. CI pending.
+
+### WP54r optional order-driven FX pricing
+
+New worlds may certify a prospective market mode instead of manual marks.
+Prior-day gross EUR order pressure moves the Franc index by a bounded number
+of points relative to fictional market depth, with a 50–150% parity band.
+No current-day feedback, no move without orders, one shared quote for all
+contract and reserve valuations. Not market clearing or autonomous demand;
+manual marks and market mode are mutually exclusive. Reuse verified currency
+and monetary projections rather than replaying them twice. CI pending.

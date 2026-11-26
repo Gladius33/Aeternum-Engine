@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/FrancExchangeMarket.php';
 
 /** Closed, fictional contract book. XFR is an illustrative currency identifier,
  * not legal tender or the historic FRF. No actual national ledger is changed. */
@@ -60,6 +61,8 @@ final class CurrencyTransitionLedger
             // Never apply a pre-conversion valuation to the opening parity.
             if($m['effective_on']>$start){$mark=$m['value_index_bps'];$markDay=$m['effective_on'];}
         }
+        $market=$active&&($eu['franc_fx_market_terms']??null)!==null?FrancExchangeMarket::quotes($eu,$eu['day'],$start):null;
+        if($market!==null){$mark=$market['value_index_bps'];$markDay=$market['last_change_day'];}
         $sectors=[];
         foreach(self::SECTORS as $id)$sectors[$id]=['assets_eur_minor'=>0,'liabilities_eur_minor'=>0,'assets_xfr_minor'=>0,'liabilities_xfr_minor'=>0,
             'assets_at_eur_value_minor'=>0,'liabilities_at_eur_value_minor'=>0,'opening_net_eur_minor'=>0,'net_eur_valuation_delta_minor'=>0];
@@ -105,6 +108,6 @@ final class CurrencyTransitionLedger
                 'converted_xfr_principal_minor'=>$sovereignXfr,'xfr_valuation_minor'=>$active?$sovereignLocal:null,
                 'national_debt_coverage'=>null,'whole_debt_repriced'=>false],
             'unmodelled_contracts_and_maturities'=>true,'bank_capital_and_liquidity_modelled'=>false,
-            'ecb_target_settlement_modelled'=>false,'not_a_forecast'=>true];
+            'ecb_target_settlement_modelled'=>false,...($market===null?[]:['fx_market'=>$market]),'not_a_forecast'=>true];
     }
 }

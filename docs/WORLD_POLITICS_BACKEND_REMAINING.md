@@ -594,3 +594,10 @@ clearing remain open; national EUR macro/treasury still separate.
 Certified two-currency settlement and reserve valuation pilot, no extra base
 issuance. Explicit unmet demand and reserve floor; dynamic exchange rate,
 multi-asset reserves, bank FX exposures and macro feedback remain open.
+
+### WP54r optional FX price formation
+
+Lagged gross certified order pressure drives a bounded Franc exchange quote,
+shared across the contract and reserve books. Autonomous bilateral demand,
+price discovery/market clearing, reserve asset diversification and real macro
+feedback remain open.

@@ -35,3 +35,18 @@ $floor['franc_fx_orders']['2026-11-30']=$order('2026-11-30','sell_eur',100000);
 $rows[]=['day'=>'2026-11-30','macro'=>['real_gdp'=>1000000]];
 $q=X::project($floor,C::project($floor),F::project($floor,['day'=>$floor['day'],'days'=>$rows]));
 ckFX($q['latest']['official_eur_reserves_minor']>=20000,'reserve floor cannot be breached');
+
+// Independent configured market: prospective mode cannot mix with manual marks.
+$m=E::request(E::initial($d,true,true,true,true,true,true,true,true,true,true),$d);
+foreach($e['history'] as $h){
+    if($h['kind']==='intent'||$h['kind']==='currency_mark')continue;
+    $m=E::certify($m,$h['day'],$h['kind'],$h['data']);
+}
+$m=E::certify($m,$d,'franc_fx_market',['effective_on'=>'2026-11-27','market_depth_eur_minor'=>100000,'daily_move_cap_bps'=>500,'instrument_sha'=>$sha]);
+$m=E::advance($m,'2026-11-27');
+noFX(fn()=>E::certify($m,'2026-11-27','currency_mark',['effective_on'=>'2026-11-28','value_index_bps'=>8000,'instrument_sha'=>$sha]));
+$m=E::advance($m,'2026-11-29');
+$mc=C::project($m);$mx=X::project($m,$mc,F::project($m,['day'=>$m['day'],'days'=>array_slice($rows,0,4)]));
+ckFX($mx['days'][0]['franc_per_eur_rate']['denominator']===10000&&$mx['days'][1]['franc_per_eur_rate']['denominator']===9550,'lagged demand depreciates franc, no same-day lookahead');
+ckFX($mx['latest']['franc_per_eur_rate']['denominator']===10050&&$mc['new_currency_value_index_bps']===10050&&$mx['market_price_endogenous'],'lagged supply appreciates franc, shared contract and settlement quote');
+ckFX($mc['fx_market']['changes'][0]['source_order_day']==='2026-11-27'&&E::restore($m)===$m,'market replay and quote provenance');
