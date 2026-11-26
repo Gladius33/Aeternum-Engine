@@ -60,7 +60,7 @@ $p=S::project($org($e),$dom());ckCB($p['franc_native_budget']===$report&&$p['fra
 use Aeternum\WorldPolitics\{FrancPropertySettlement as PS,FrancExternalFacility as XF,FrancCreditorCoverage as CC,ProfessionalCorporations as PC,PublicEquityLedger as PE,FirmEconomy as FE,FrancFinancialAudit as FA};
 $chosen=array_key_first(FE::config());
 $transfer=['company_id'=>$chosen,'compensation_reference_minor'=>100,'effective_on'=>'2026-12-05','instrument_sha'=>$sha,'public_interest_sha'=>$sha,'review_sha'=>$sha,'valuation_sha'=>$sha];
-$facility=['currency'=>'USD','effective_on'=>'2026-12-05','maturity_on'=>'2026-12-07','instrument_sha'=>$sha,'principal_minor'=>1000000,'opening_reserve_minor'=>400000,'minimum_reserve_minor'=>100000,'coupon_bps'=>3650,'eur_minor_per_10000_units'=>9000];
+$facility=['currency'=>'USD','effective_on'=>'2026-12-05','maturity_on'=>'2026-12-07','instrument_sha'=>$sha,'principal_minor'=>1000000,'opening_reserve_minor'=>400000,'minimum_reserve_minor'=>100000,'coupon_bps'=>2920,'eur_minor_per_10000_units'=>9000];
 noCB(fn()=>E::certify($rev,'2026-11-25','franc_external_facility',$facility));
 $e=E::certify($e,'2026-12-04','franc_external_facility',$facility);
 noCB(fn()=>E::certify($e,'2026-12-04','franc_external_facility',$facility));
