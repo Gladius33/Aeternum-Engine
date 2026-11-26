@@ -370,3 +370,15 @@ provisional denomination or the derived fields, so it remains replayable.
 API projection names changed (currency_projection_schema=frf-v2); clients
 must update field names. Prior parity and numerical rules unchanged. No
 actual legal tender change is implied. Prior FX CIs 45853716220/45853845185 green.
+
+### WP54r FRF trade and private capital FX pressure
+
+Optional pinned mode adds committed prior-day import/export flows, valued
+with a common domestic price index and certified EUR-settlement shares. This
+is a nominal proxy, not actual bilateral trade prices. Certified signed net
+private EUR capital inflows/outflows combine with trade pressure; missing
+capital explicit (zero assumption for proxy). Official intervention orders
+excluded from pressure in this mode to avoid double counting; no booking
+of these proxies or automatic reserve transactions. Contract quote series
+reused by reserve settlement, no repeated quote replay. Missing preceding
+trade days fail closed. Existing modes preserved. CI pending.

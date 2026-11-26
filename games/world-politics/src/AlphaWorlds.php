@@ -160,7 +160,7 @@ final class AlphaWorlds
             $this->insert('INSERT INTO wp_diplomatic_states(world_id,state_json,state_sha,actor_registry_sha,revision) VALUES(?,?,?,?,0)',
                 [$world,self::json($dip->snapshot()),$dip->hash(),$this->scenario->actors->hash()]);
             $org=new OrganizationSimulation($world,$day,$this->scenario->actors,$this->scenario->charters);
-            if(in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))$org->enableEuropeanWithdrawal(true,true,true,true,true,true,true,true,true,true);
+            if(in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))$org->enableEuropeanWithdrawal(true,true,true,true,true,true,true,true,true,true,true);
             $os=$org->snapshot();
             $this->insert('INSERT INTO wp_organization_states(world_id,state_json,state_sha,actors_sha,charters_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($os),$org->hash(),$os['actors_sha'],$os['charters_sha']]);

@@ -229,10 +229,10 @@ final class OrganizationSimulation
         return $self;
     }
 
-    public function enableEuropeanWithdrawal(bool $tradeEnabled=false,bool $spilloversEnabled=false,bool $monetaryStressEnabled=false,bool $currencyContractsEnabled=false,bool $francRuleEnabled=false,bool $francFundingEnabled=false,bool $francBankEnabled=false,bool $francBankCrisisEnabled=false,bool $francFxEnabled=false,bool $francFxMarketEnabled=false):void
+    public function enableEuropeanWithdrawal(bool $tradeEnabled=false,bool $spilloversEnabled=false,bool $monetaryStressEnabled=false,bool $currencyContractsEnabled=false,bool $francRuleEnabled=false,bool $francFundingEnabled=false,bool $francBankEnabled=false,bool $francBankCrisisEnabled=false,bool $francFxEnabled=false,bool $francFxMarketEnabled=false,bool $francFxFlowEnabled=false):void
     {
         if(isset($this->state['eu_withdrawal'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('EU model must be pinned at bootstrap');
-        $this->state['eu_withdrawal']=EuropeanWithdrawal::initial($this->state['day'],$tradeEnabled,$spilloversEnabled,$monetaryStressEnabled,$currencyContractsEnabled,$francRuleEnabled,$francFundingEnabled,$francBankEnabled,$francBankCrisisEnabled,$francFxEnabled,$francFxMarketEnabled);
+        $this->state['eu_withdrawal']=EuropeanWithdrawal::initial($this->state['day'],$tradeEnabled,$spilloversEnabled,$monetaryStressEnabled,$currencyContractsEnabled,$francRuleEnabled,$francFundingEnabled,$francBankEnabled,$francBankCrisisEnabled,$francFxEnabled,$francFxMarketEnabled,$francFxFlowEnabled);
     }
     public function euIntent(DiplomaticPrincipal $principal,string $commandId):array
     {

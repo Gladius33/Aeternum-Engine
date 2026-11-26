@@ -45,12 +45,13 @@ final class FrancExchangeReserves
         $pool=$terms['official_franc_pool_minor']??0;$cp=$terms['counterparty_franc_pool_minor']??0;
         $floor=$terms['minimum_official_eur_minor']??0;$ratio=$eu['currency_terms']['units_per_eur']??1;
         $priorValue=null;$mark=10000;$markDay=null;$market=($eu['franc_fx_market_terms']??null)!==null;
+        $changes=[];foreach($currency['fx_market']['changes']??[] as $change)$changes[$change['effective_on']]=$change;
         foreach($monetary['days'] as $r){
             $day=$r['day'];if(!$active||$day<$start)continue;
             foreach($eu['currency_marks'] as $m)if($m['effective_on']<=$day&&$m['effective_on']>$currency['effective_from']){
                 $mark=$m['value_index_bps'];$markDay=$m['effective_on'];
             }
-            if($market){$quote=FrancExchangeMarket::quotes($eu,$day,$currency['effective_from']);$mark=$quote['value_index_bps'];$markDay=$quote['last_change_day'];}
+            if($market&&isset($changes[$day])){$mark=$changes[$day]['value_index_bps'];$markDay=$day;}
             $numerator=$ratio*10000;$denominator=$mark;
             $beforeValue=self::scale($official,$numerator,$denominator)+$pool;
             $valuation=$priorValue===null?0:$beforeValue-$priorValue;

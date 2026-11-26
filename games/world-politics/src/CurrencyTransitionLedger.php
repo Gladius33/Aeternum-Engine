@@ -52,7 +52,7 @@ final class CurrencyTransitionLedger
             ||!is_int($data['value_index_bps'])||$data['value_index_bps']<5000||$data['value_index_bps']>15000)
             throw new \DomainException('Invalid future FX mark');
     }
-    public static function project(array $eu):array
+    public static function project(array $eu,?array $domRows=null):array
     {
         if(($eu['currency_contract_version']??null)!==self::VERSION)throw new \DomainException('Unpinned currency book');
         $terms=$eu['currency_terms'];$start=$terms!==null&&!$eu['membership']?max($eu['exit_on'],$terms['effective_on']):null;
@@ -61,7 +61,7 @@ final class CurrencyTransitionLedger
             // Never apply a pre-conversion valuation to the opening parity.
             if($m['effective_on']>$start){$mark=$m['value_index_bps'];$markDay=$m['effective_on'];}
         }
-        $market=$active&&($eu['franc_fx_market_terms']??null)!==null?FrancExchangeMarket::quotes($eu,$eu['day'],$start):null;
+        $market=$active&&($eu['franc_fx_market_terms']??null)!==null?FrancExchangeMarket::quotes($eu,$eu['day'],$start,$domRows):null;
         if($market!==null){$mark=$market['value_index_bps'];$markDay=$market['last_change_day'];}
         $sectors=[];
         foreach(self::SECTORS as $id)$sectors[$id]=['assets_eur_minor'=>0,'liabilities_eur_minor'=>0,'assets_frf_minor'=>0,'liabilities_frf_minor'=>0,

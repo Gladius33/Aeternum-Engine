@@ -91,7 +91,7 @@ final class EuropeanSpillovers
             'today_gross_export_loss_proxy_minor'=>$todayX[$iso]??null,'today_gross_import_loss_proxy_minor'=>$todayM[$iso]??null,
             'real_gdp_change_minor'=>null,'bank_exposure_minor'=>null,'actual_bilateral_exposure_minor'=>null];
         $fr=self::scale(self::GDP_EUR,self::FR_SHARE_BPS);
-        $currency=isset($eu['currency_contract_version'])?CurrencyTransitionLedger::project($eu):null;
+        $currency=isset($eu['currency_contract_version'])?CurrencyTransitionLedger::project($eu,$ds['days']):null;
         $franc=isset($eu['franc_rule_version'])?FrancProductionRule::project($eu,$ds):null;
         return ['version'=>self::VERSION,'world_id'=>$world,'day'=>$day,'classification'=>'simulation_sensitivity_not_forecast',
             'source_organization_sha'=>$orgSha,'source_domestic_sha'=>$domSha,

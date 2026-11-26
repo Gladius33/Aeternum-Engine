@@ -605,3 +605,10 @@ feedback remain open.
 FRF replaces the provisional French-franc denomination across monetary and
 FX projections. Persisted evidence unchanged; projection clients must adopt
 frf-specific field names. CHF remains distinct.
+
+### WP54r trade-driven FRF quote
+
+Optional lagged nominal trade proxy and certified net private capital flow
+pressure, shared quote across reserve and contract books. No invented actual
+balance of payments, autonomous private capital behavior or FX transactions;
+full macro price/credit feedback, actual national currency ledger remain open.

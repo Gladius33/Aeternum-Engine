@@ -50,3 +50,23 @@ $mc=C::project($m);$mx=X::project($m,$mc,F::project($m,['day'=>$m['day'],'days'=
 ckFX($mx['days'][0]['franc_per_eur_rate']['denominator']===10000&&$mx['days'][1]['franc_per_eur_rate']['denominator']===9550,'lagged demand depreciates franc, no same-day lookahead');
 ckFX($mx['latest']['franc_per_eur_rate']['denominator']===10050&&$mc['new_currency_value_index_bps']===10050&&$mx['market_price_endogenous'],'lagged supply appreciates franc, shared contract and settlement quote');
 ckFX($mc['fx_market']['changes'][0]['source_order_day']==='2026-11-27'&&E::restore($m)===$m,'market replay and quote provenance');
+
+
+// Trade-driven quote mode; official orders are not double-counted as demand.
+$flow=E::request(E::initial($d,true,true,true,true,true,true,true,true,true,true,true),$d);
+foreach($m['history'] as $h){if($h['kind']==='intent')continue;$flow=E::certify($flow,$h['day'],$h['kind'],$h['data']);}
+$flow=E::certify($flow,$d,'franc_fx_flow',['effective_on'=>'2026-11-27','import_eur_share_bps'=>5000,'export_eur_share_bps'=>5000,'instrument_sha'=>$sha]);
+$flow=E::certify($flow,$d,'franc_fx_capital',['effective_on'=>'2026-11-28','net_private_eur_inflow_minor'=>-100000,'instrument_sha'=>$sha]);
+$flow=E::advance($flow,'2026-11-29');
+$frRows=array_slice($rows,0,4);
+foreach($frRows as &$row)$row['macro']+=['imports'=>200000,'exports'=>100000,'price_index_scaled'=>100000000];unset($row);
+$fc=C::project($flow,$frRows);$fx=X::project($flow,$fc,F::project($flow,['day'=>$flow['day'],'days'=>$frRows]));
+ckFX($fc['new_currency']==='FRF'&&$fx['currency_pair']==='EUR/FRF','French national FRF identifier');
+ckFX($fx['days'][0]['franc_per_eur_rate']['denominator']===10000&&$fx['days'][1]['franc_per_eur_rate']['denominator']===9750,'lagged trade imbalance moves common quote');
+ckFX($fc['new_currency_value_index_bps']===9250&&$fx['latest']['franc_per_eur_rate']['denominator']===9250,'private capital outflow amplifies depreciation, reserves use common rate');
+$press=$fc['fx_market']['changes'];
+ckFX($press[0]['flow_pressure']['net_eur_supply_proxy_minor']===-50000&&$press[0]['flow_pressure']['certified_net_private_eur_inflow_minor']===null&&$press[1]['flow_pressure']['net_eur_supply_proxy_minor']===-150000,'missing capital explicit, intervention not counted twice');
+$changed=$frRows;$changed[3]['macro']['exports']=10000000000;
+ckFX(C::project($flow,$changed)===$fc,'same day data cannot change quote');
+noFX(fn()=>C::project($flow,array_slice($frRows,0,2)));
+ckFX(E::restore($flow)===$flow,'trade and capital scenario replays');
