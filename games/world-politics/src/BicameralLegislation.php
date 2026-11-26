@@ -326,9 +326,9 @@ final class BicameralLegislation
         if(isset($s['responsibility']['assembly']))$x->enableAssembly();
         if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();
         if(isset($s['responsibility']['cabinet']))$x->enableCabinet();
-        if(isset($s['calendar_replay']))$x->enableCalendarReplay();
         if(isset($s['executive']))$x->enableExecutive();
         if(isset($s['finance']))$x->enableFinance();
+        if(isset($s['calendar_replay']))$x->enableCalendarReplay();
         foreach($s['history'] as $h){
             $x->advance($h['day']);
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);
