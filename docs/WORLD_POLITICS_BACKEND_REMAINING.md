@@ -821,3 +821,8 @@ WP71 qualification complémentaire durant WP80 : test MariaDB isolé `wp71-finan
 ## WP81 — série budgétaire 2028–2047
 
 Nouveaux mondes canoniques : catalogue immuable de 60 variantes budgétaires (3 par exercice), procédures distinctes, dates d'effet et années bissextiles, archivage des lois par identifiant sans réutilisation, interdiction de déposer une loi hors de son année de préparation et d'avoir deux textes actifs pour le même exercice. Le rapport distingue les exercices sans loi effectivement autorisée. Les anciennes sauvegardes restent sur leur modèle mono-exercice et les cohortes de score diffèrent par digest de configuration. Les variantes restent des écarts hypothétiques de défense et non des PLF réels; pas encore de budget rectificatif ni de vote IA autonome.
+
+
+## WP82 — demande budgétaire autonome
+
+Nouveaux mondes uniquement. `request_annual_budget` dans les décisions institutionnelles françaises demande au gouvernement de préparer le projet. Sept étapes espacées, votes synthétiques individuels dans les deux chambres, contrôle du calendrier, des offices et du texte existant, échec possible, preuve rejouable. La décision du joueur n'est jamais un vote ou une certification. Une proposition domestique correspondante demeure nécessaire pour la comptabilisation par DailyLegalActivation. Les probabilités et délais de préparation sont des hypothèses de jeu, pas des observations politiques ni une reproduction exhaustive de l'article 47. Le contrôle de constitutionnalité favorable de ce texte prédéfini est une hypothèse du scénario. Pas de procédure d'urgence, de loi spéciale ou de budget rectificatif. Tests de domaine et HTTP.

@@ -105,7 +105,7 @@ final class PdoInstitutionalStore
         string $world,string $country,string $action,array $payload,
         string $idempotencyKey,string $ifMatch
     ):array {
-        if (!in_array($action,['record_consultation','submit_bill','dissolve_lower_house','request_dissolution','request_cabinet_appointment','hold_election','accountability_file','accountability_vote','accountability_resolve','electoral_coalition','electoral_certify','revision_draft','revision_evidence','legislation_draft','legislation_evidence'],true)) {
+        if (!in_array($action,['record_consultation','submit_bill','dissolve_lower_house','request_dissolution','request_cabinet_appointment','request_annual_budget','hold_election','accountability_file','accountability_vote','accountability_resolve','electoral_coalition','electoral_certify','revision_draft','revision_evidence','legislation_draft','legislation_evidence'],true)) {
             throw new \DomainException('Unimplemented institutional decision');
         }
         return $this->write($world,$country,$action,$payload,$idempotencyKey,$ifMatch,false);

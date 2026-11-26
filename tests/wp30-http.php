@@ -994,3 +994,15 @@ finally{$q80->execute([$prior80,$world80]);}
 ck30($rejected80&&!$pdo->inTransaction(),'WP80 corrupted economy rejected and read-only transaction rolled back');
 ck30(\Aeternum\WorldPolitics\ReleaseAudit::inspect($pdo,$world80)===$audit80,'WP80 unchanged audit after fixture restored');
 
+$root82='/worlds/'.$world78b['body']['world_id'];
+$i82=req30('GET',$root82.'/countries/FR/institutions',null,$t27);
+$payload82=['action'=>'request_annual_budget','payload'=>['policy_id'=>'budget-2028-defense-maintain']];
+$header82=['If-Match'=>$i82['etag'],'Idempotency-Key'=>'wp82-budget-request'];
+ck30(req30('POST',$root82.'/countries/FR/institutions/decisions',$payload82,$t78,$header82)['status']===404,'WP82 other account cannot request budget');
+$req82=req30('POST',$root82.'/countries/FR/institutions/decisions',$payload82,$t27,$header82);
+ck30($req82['status']===202&&$req82['body']['status']==='requested','WP82 budget request persisted');
+$c82=req30('GET',$root82.'/clock',null,$t27);
+ck30(req30('POST',$root82.'/clock/advances',['target_day'=>'2027-05-15'],$t27,['If-Match'=>$c82['etag'],'Idempotency-Key'=>'wp82-budget-tick-01'])['status']===200,'WP82 coherent budget request tick');
+$f82=req30('GET',$root82.'/countries/FR/finance',null,$t27);
+ck30($f82['status']===200&&count($f82['body']['finance']['bills'])===1&&array_values($f82['body']['autonomous_requests'])[0]['status']==='filed','WP82 autonomous government filing not immediate enactment');
+

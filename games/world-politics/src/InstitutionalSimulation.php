@@ -16,6 +16,7 @@ require_once __DIR__.'/AutonomousForeignFormation.php';
 require_once __DIR__.'/RevisionAutonomy.php';
 require_once __DIR__.'/FrenchSenateCycle.php';
 require_once __DIR__.'/CabinetRequests.php';
+require_once __DIR__.'/FinanceRequests.php';
 
 /**
  * WP05: small deterministic institution/event aggregate. Illustrates exactly
@@ -68,6 +69,7 @@ final class InstitutionalSimulation
         if(array_key_exists('revision_requests',$state))$expected[]='revision_requests';
         if(array_key_exists('senate',$state))$expected[]='senate';
         if(array_key_exists('cabinet_requests',$state))$expected[]='cabinet_requests';
+        if(array_key_exists('finance_requests',$state))$expected[]='finance_requests';
         $keys=array_keys($state);sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
         $self=new self($state['world_id'],$state['country_code'],$state['day']);
@@ -145,6 +147,7 @@ final class InstitutionalSimulation
         if(isset($state['revision_requests']))RevisionAutonomy::validate($state);
         if(isset($state['senate'])&&($state['country_code']!=='FR'||$state['senate']!==FrenchSenateCycle::project($state['world_id'],$state['day'])))throw new \DomainException('Senate projection mismatch');
         if(isset($state['cabinet_requests']))CabinetRequests::validate($state);
+        if(isset($state['finance_requests']))FinanceRequests::validate($state);
         $self->state=$state;
         return $self;
     }
@@ -188,6 +191,10 @@ final class InstitutionalSimulation
             // SEVEN DAYS IS A CONFIGURABLE GAMEPLAY DEFAULT, NOT A LEGAL DEADLINE.
             $this->enqueue($commandId.'-debate','bill_debate_open',self::plus($day,7));
             $result=['bill_id'=>$commandId,'status'=>'filed','earliest_debate'=>self::plus($day,7)];
+        } elseif ($action==='request_annual_budget') {
+            self::keys($input,['policy_id']);
+            if($role!=='scenario_president_requester'||!isset($this->state['finance_requests']))throw new \DomainException('Budget request forbidden');
+            $result=FinanceRequests::request($this->state,$commandId,$input['policy_id']);$this->state['finance_requests'][$commandId]=$result;
         } elseif ($action==='request_cabinet_appointment') {
             self::keys($input,['candidate']);
             if($role!=='scenario_president_requester'||!isset($this->state['cabinet_requests']))throw new \DomainException('Cabinet request forbidden');
@@ -361,6 +368,11 @@ final class InstitutionalSimulation
         $this->state['senate']=FrenchSenateCycle::project($this->state['world_id'],$this->state['day']);
         $this->state['cabinet_requests']=[];
     }
+    public function enableFinanceRequests():void
+    {
+        if(!isset($this->state['senate'])||$this->state['legislation']['finance']['version']!==FinanceBudget::SERIES||$this->state['events']!==[]||isset($this->state['finance_requests']))throw new \DomainException('Finance autonomy requires canonical bootstrap');
+        $this->state['finance_requests']=[];
+    }
     public function enableRevision():void
     {
         if($this->state['country_code']!=='FR'||isset($this->state['revision'])||$this->state['events']!==[])
@@ -520,6 +532,7 @@ final class InstitutionalSimulation
         }
         if(isset($this->state['senate']))$this->state['senate']=FrenchSenateCycle::project($this->state['world_id'],$targetDay);
         if(isset($this->state['cabinet_requests']))$this->state=CabinetRequests::advance($this->state);
+        if(isset($this->state['finance_requests'])&&$this->state['finance_requests']!==[])$this->state=FinanceRequests::advance($this->state);
         if(isset($this->state['revision_requests'])&&$this->state['revision_requests']!==[])$this->state=RevisionAutonomy::advance($this->state,$opinion);
         $this->state['agenda']=$remain;
         if(isset($this->state['recurring_elections']['requests']))$this->advanceDissolutionRequests($targetDay);
