@@ -1008,3 +1008,13 @@ ck30(req30('POST',$root82.'/clock/advances',['target_day'=>'2027-05-15'],$t27,['
 $f82=req30('GET',$root82.'/countries/FR/finance',null,$t27);
 ck30($f82['status']===200&&count($f82['body']['finance']['bills'])===1&&array_values($f82['body']['autonomous_requests'])[0]['status']==='filed','WP82 autonomous government filing not immediate enactment');
 
+$n84=req30('GET',$root82.'/countries/FR/national-service',null,$t27);
+ck30($n84['status']===200&&$n84['body']['legal_status']==='suspended'&&!$n84['body']['actual_call_up_authorized_by_report'],'WP84 opening legal status');
+$i84=req30('GET',$root82.'/countries/FR/institutions',null,$t27);
+$d84=req30('POST',$root82.'/countries/FR/institutions/decisions',['action'=>'legislation_draft','payload'=>['policy_id'=>'national-service-restore']],$t27,['If-Match'=>$i84['etag'],'Idempotency-Key'=>'wp84-national-service-draft']);
+ck30($d84['status']===202,'WP84 player may draft restoration law');
+$c84=req30('GET',$root82.'/clock',null,$t27);
+ck30(req30('POST',$root82.'/clock/advances',['target_day'=>'2027-05-16'],$t27,['If-Match'=>$c84['etag'],'Idempotency-Key'=>'wp84-service-tick-01'])['status']===200,'WP84 autonomous ordinary filing tick');
+$n84=req30('GET',$root82.'/countries/FR/national-service',null,$t27);
+ck30($n84['status']===200&&$n84['body']['legal_status']==='suspended'&&$n84['body']['open_bills'][0]['status']==='navette','WP84 draft does not change legal status');
+

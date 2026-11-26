@@ -368,6 +368,11 @@ final class InstitutionalSimulation
         $this->state['senate']=FrenchSenateCycle::project($this->state['world_id'],$this->state['day']);
         $this->state['cabinet_requests']=[];
     }
+    public function enableNationalService():void
+    {
+        if(!isset($this->state['senate'],$this->state['finance_requests'])||$this->state['events']!==[])throw new \DomainException('National service requires canonical bootstrap');
+        $l=BicameralLegislation::restore($this->state['legislation']);$l->enableNationalService();$this->state['legislation']=$l->snapshot();
+    }
     public function enableFinanceRequests():void
     {
         if(!isset($this->state['senate'])||$this->state['legislation']['finance']['version']!==FinanceBudget::SERIES||$this->state['events']!==[]||isset($this->state['finance_requests']))throw new \DomainException('Finance autonomy requires canonical bootstrap');
@@ -533,6 +538,7 @@ final class InstitutionalSimulation
         if(isset($this->state['senate']))$this->state['senate']=FrenchSenateCycle::project($this->state['world_id'],$targetDay);
         if(isset($this->state['cabinet_requests']))$this->state=CabinetRequests::advance($this->state);
         if(isset($this->state['finance_requests'])&&$this->state['finance_requests']!==[])$this->state=FinanceRequests::advance($this->state);
+        if(isset($this->state['legislation']['national_service']))$this->state=NationalServiceLaw::advance($this->state);
         if(isset($this->state['revision_requests'])&&$this->state['revision_requests']!==[])$this->state=RevisionAutonomy::advance($this->state,$opinion);
         $this->state['agenda']=$remain;
         if(isset($this->state['recurring_elections']['requests']))$this->advanceDissolutionRequests($targetDay);

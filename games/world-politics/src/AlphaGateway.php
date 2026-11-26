@@ -306,7 +306,7 @@ final class AlphaGateway
                 $r=(new PdoInstitutionalStore($this->db(),$principal))->read($world,'FR');
                 $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);$c=$q->fetch(\PDO::FETCH_ASSOC);
                 if($c===false||$c['pending_day']!==null||$c['committed_day']!==$r['state']['day'])throw new AlphaHttpError(409,'world_advancing');
-                $response=self::ok(200,['legislation'=>$r['state']['legislation'],'catalog'=>BicameralLegislation::catalog(isset($r['state']['legislation']['minor_units']))]);
+                $response=self::ok(200,['legislation'=>$r['state']['legislation'],'catalog'=>BicameralLegislation::catalog(isset($r['state']['legislation']['minor_units']),isset($r['state']['legislation']['national_service']))]);
                 $response['headers']['ETag']=$r['etag'];return $response;
             }
             if($method==='POST'&&in_array($scenario->id,[AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)&&$suffix==='/countries/FR/institutions/decisions'
@@ -379,6 +379,13 @@ final class AlphaGateway
                     if($dr['state']['day']!==$clock['committed_day']||$dp['state']['day']!==$clock['committed_day'])throw new AlphaHttpError(409,'world_advancing');
                     $report=CivilContinuityReport::report($dr,$dp);$response=self::ok(200,$report);$response['headers']['ETag']='"'.hash('sha256',json_encode($report,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)).'"';$db->commit();return $response;
                 }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+            }
+            if($method==='GET'&&$suffix==='/countries/FR/national-service'&&$scenario->id===AlphaScenario::INVESTITURE){
+                $r=(new PdoInstitutionalStore($this->db(),$principal))->read($world,'FR');
+                if(!isset($r['state']['legislation']['national_service']))throw new AlphaHttpError(404,'not_found');
+                $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);$c=$q->fetch(\PDO::FETCH_ASSOC);
+                if($c===false||$c['pending_day']!==null||$c['committed_day']!==$r['state']['day'])throw new AlphaHttpError(409,'world_advancing');
+                $report=NationalServiceLaw::report($r['state']['legislation']);$response=self::ok(200,$report);$response['headers']['ETag']=$r['etag'];return $response;
             }
             if($method==='GET'&&$suffix==='/countries/FR/defense-planning'&&$scenario->id===AlphaScenario::INVESTITURE){
                 $dp=(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal))->read($world);

@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/LegislativeResponsibility.php';
 require_once __DIR__.'/ExecutiveActs.php';
 require_once __DIR__.'/FinanceBudget.php';
+require_once __DIR__.'/NationalServiceLaw.php';
 
 /** Ordinary government bill procedural pilot; not finance, organic, Art 49(3),
  * or constitutional legislation. Certified fictional procedural facts only.
@@ -14,12 +15,12 @@ final class BicameralLegislation
     public const VERSION='wp40-fr-ordinary-v1';
     public const SOURCE='https://qpc360.conseil-constitutionnel.fr/constitution-4-octobre-1958';
     private array $s;
-    public static function catalog(bool $minorUnits=false):array
+    public static function catalog(bool $minorUnits=false,bool $nationalService=false):array
     {
         return ['education-reform'=>[
             'standard'=>$minorUnits?'The fictional education programme receives an additional daily allocation of 2000 EUR (200000 minor units) for thirty days.':'The fictional education programme receives an additional daily allocation of 200000 EUR for thirty days.',
             'amended'=>'The fictional education programme receives a revised allocation subject to a subsequent implementing measure.'
-        ]];
+        ],...($nationalService?NationalServiceLaw::catalog():[])];
     }
     public function __construct(string $world,string $day)
     {
@@ -77,6 +78,11 @@ final class BicameralLegislation
     {
         if(isset($this->s['calendar_replay'])||!isset($this->s['responsibility']['lifecycle'])||$this->s['day']!==$this->s['start_day']||$this->s['history']!==[])throw new \DomainException('Calendar replay must be pinned at bootstrap');
         $this->s['calendar_replay']=true;
+    }
+    public function enableNationalService():void
+    {
+        if(isset($this->s['national_service'])||!isset($this->s['calendar_replay'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])throw new \DomainException('National service requires canonical bootstrap');
+        $this->s['national_service']=NationalServiceLaw::VERSION;
     }
     public function installElection(array $e):void
     {
@@ -138,9 +144,10 @@ final class BicameralLegislation
     }
     public function draft(string $id,string $policy):array
     {
-        self::id($id);$catalog=self::catalog(isset($this->s['minor_units']));
+        self::id($id);$catalog=self::catalog(isset($this->s['minor_units']),isset($this->s['national_service']));
         if(!isset($catalog[$policy])||isset($this->s['bills'][$id])||count($this->s['bills'])>=100)
             throw new \DomainException('Unknown or duplicate bill');
+        if(NationalServiceLaw::isPolicy($policy))NationalServiceLaw::validateDraft($this->s,$policy);
         $b=['id'=>$id,'policy_id'=>$policy,'status'=>'draft','filed_on'=>null,'accelerated'=>false,
             'texts'=>array_map(fn($t)=>hash('sha256',$t),$catalog[$policy]),'current'=>'standard',
             'next_chamber'=>'assembly','readings'=>['assembly'=>0,'senate'=>0],
@@ -291,6 +298,7 @@ final class BicameralLegislation
                 self::fields($d,['text_sha','effective_on','publication_certified']);self::day($d['effective_on']);
                 if($b['status']!=='promulgated'||$d['publication_certified']!==true||$d['text_sha']!==$b['texts'][$b['final_version']]
                     ||$d['effective_on']<=$this->s['day'])throw new \DomainException('Publication or effective day invalid');
+                if(NationalServiceLaw::isPolicy($b['policy_id']))NationalServiceLaw::validatePublication($this->s,$b,$d['effective_on']);
                 $b['published_on']=$this->s['day'];$b['effect_on']=$d['effective_on'];$b['status']='published';break;
             default:throw new \InvalidArgumentException('Unknown legislative event');
         }
@@ -329,6 +337,7 @@ final class BicameralLegislation
         if(isset($s['executive']))$x->enableExecutive();
         if(isset($s['finance']))$x->enableFinance($s['finance']['year'],$s['finance']['version']===FinanceBudget::SERIES);
         if(isset($s['calendar_replay']))$x->enableCalendarReplay();
+        if(isset($s['national_service']))$x->enableNationalService();
         foreach($s['history'] as $h){
             $x->advance($h['day']);
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);
