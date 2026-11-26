@@ -691,7 +691,15 @@ ck30($eu54['status']===200&&$eu54['body']['eu_withdrawal']['status']==='negotiat
 $agree54=['kind'=>'agreement','data'=>['effective_on'=>'2026-11-27','parliament_consent'=>true,'council_qualified_majority'=>true,'france_agrees'=>true,'agreement_sha'=>str_repeat('c',64)]];
 $ea54=$euStore54->execute($euWorld54,'eu_evidence',$agree54,'eu-agreement-test-001',$eu54['etag']);
 $terms54=['kind'=>'trade_regime','data'=>['regime'=>'customs_scenario','effective_on'=>'2026-11-27','import_duty_bps'=>500,'import_friction_bps'=>400,'export_friction_bps'=>600,'instrument_sha'=>str_repeat('d',64)]];
-$euStore54->execute($euWorld54,'eu_evidence',$terms54,'eu-terms-test-001',$ea54['etag']);
+$et54=$euStore54->execute($euWorld54,'eu_evidence',$terms54,'eu-terms-test-001',$ea54['etag']);
+$budget54=['kind'=>'budget_terms','data'=>['effective_on'=>'2026-11-27','gross_retained_bps'=>0,'returns_retained_bps'=>0,'settlement_daily_minor'=>0,'settlement_days'=>0,'instrument_sha'=>str_repeat('e',64)]];
+$eb54=$euStore54->execute($euWorld54,'eu_evidence',$budget54,'eu-budget-test-001',$et54['etag']);
+$wx54=array_fill_keys(\Aeternum\WorldPolitics\EuropeanWithdrawal::PARTNERS,0);$wx54['DE']=6000;$wx54['IT']=4000;
+$wm54=array_fill_keys(\Aeternum\WorldPolitics\EuropeanWithdrawal::PARTNERS,0);$wm54['DE']=3000;$wm54['ES']=7000;
+$alloc54=['kind'=>'partner_allocation','data'=>['effective_on'=>'2026-11-27','export_loss_weights'=>$wx54,'import_loss_weights'=>$wm54,'instrument_sha'=>str_repeat('f',64)]];
+$euStore54->execute($euWorld54,'eu_evidence',$alloc54,'eu-allocation-test-001',$eb54['etag']);
+$sp54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);
+ck30($sp54['status']===200&&$sp54['body']['membership_scope']['current_modelled_eu_members']===27&&$sp54['body']['budget']['cumulative']['remaining_eu_financing_gap_minor']===0,'WP54r no premature EU scope or fiscal effect');
 $c54=req30('GET',$r54.'/clock',null,$tc48);
 $c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-27'],$tc48,['If-Match'=>$c54['etag'],'Idempotency-Key'=>'eu-trade-tick-001']);
 ck30($c54['status']===200&&$c54['body']['coherent'],'WP54r coherent exit tick');
@@ -699,6 +707,11 @@ $dom54=req30('GET',$r54.'/domestic',null,$tc48);$d54=$dom54['body']['days'][1];$
 ck30($d54['eu_trade_observation']['version']==='wp54r-eu-trade-v2'&&$d54['eu_trade_observation']['status']==='certified_scenario'&&$mx54['eu_trade']['customs_revenue_minor']>0&&$d54['revenue']===$mx54['statutory_revenue']+$mx54['tax_feedback']+$mx54['eu_trade']['customs_revenue_minor'],'WP54r customs once in national ledger');
 ck30($mx54['real_gdp']===$mx54['consumption']+$mx54['npish_consumption']+$mx54['investment']+$mx54['government_consumption']+$mx54['exports']-$mx54['imports']+$mx54['statistical_discrepancy'],'WP54r GDP identity after EU exit');
 ck30($mx54['eu_trade']['real_consumption_import_shortfall_minor']+$mx54['eu_trade']['real_investment_import_shortfall_minor']===$mx54['eu_trade']['real_import_loss_minor'],'WP54r no unearned import substitution');
+$sp54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);$sb54=$sp54['body'];
+ck30($sp54['status']===200&&$sb54['membership_scope']['current_modelled_eu_members']===26&&$sb54['membership_scope']['remaining_eu_real_gdp_change_minor']===null,'WP54r scope is not recession');
+ck30(count($sb54['trade']['partners'])===26&&array_sum(array_column($sb54['trade']['partners'],'today_gross_export_loss_proxy_minor'))===$mx54['eu_trade']['real_import_loss_minor']&&$sb54['trade']['unallocated_export_loss_proxy_minor']===0,'WP54r mirror flows conserved across countries');
+ck30($sb54['budget']['annual_static_gap_before_settlement_minor']===950000000000&&$sb54['budget']['cumulative']['consolidated_net_delta_minor']===0&&!$sb54['budget']['national_treasury_booked'],'WP54r counterfactual budget gap no double booking');
+ck30(req30('GET',$r54.'/organizations/eu/spillovers',null,$ta2)['status']===404&&req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48)['etag']===$sp54['etag'],'WP54r projection isolation and deterministic ETag');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

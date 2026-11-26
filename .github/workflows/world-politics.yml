@@ -80,6 +80,8 @@ jobs:
         run: php tests/wp28-french-parliament.php
       - name: Domestic policy fiscal ledger and multi-day scenario WP29A
         run: php tests/wp29a-domestic-policy.php
+      - name: WP54r EU spillover and budget scope regression
+        run: php tests/wp54r-eu-spillovers.php
       - name: WP54r post-exit trade and customs accounting regression
         run: php tests/wp54r-eu-trade.php
       - name: WP54r Article 50 withdrawal lifecycle regression

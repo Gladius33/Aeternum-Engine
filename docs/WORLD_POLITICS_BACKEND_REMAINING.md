@@ -537,3 +537,10 @@ monetary transition, legal proof issuance and EU economic spillovers remain open
 Article 50 CI green. New pinned certified post-exit trade scenarios and
 customs revenue integrated in daily macro and treasury. No automatic tariff
 or currency conversion. Country-level and euro spillovers remain open.
+
+### WP54r EU spillovers
+
+Post-exit V2 CI green. Coherent read projection separates membership scope,
+mirrored trade and counterfactual EU budget transfers; explicit missing country
+exposure and unallocated flows. Actual EU/national fiscal settlement, foreign
+GDP and independent monetary/central bank balance sheets remain open.

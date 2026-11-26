@@ -11,6 +11,7 @@ require_once __DIR__.'/PdoEconomicApi.php';
 require_once __DIR__.'/MacroeconomicProjection.php';
 require_once __DIR__.'/DomesticPolicyApi.php';
 require_once __DIR__.'/WorldClockApi.php';
+require_once __DIR__.'/EuropeanSpillovers.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
 final class AlphaGateway
@@ -301,6 +302,21 @@ final class AlphaGateway
             if (($method==='GET' && in_array($suffix,['/diplomacy','/diplomacy/actors','/diplomacy/proposals'],true))
                 || ($method==='POST' && in_array($suffix,['/diplomacy/proposals','/diplomacy/responses'],true)))
                 return (new PdoDiplomaticApi(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal)))->handle($method,$path,$body,$h);
+            if($method==='GET'&&$suffix==='/organizations/eu/spillovers'&&in_array($scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true)){
+                $db=$this->db();$db->beginTransaction();
+                try{
+                    $q=$db->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=? FOR UPDATE');
+                    $q->execute([$world]);$clock=$q->fetch(\PDO::FETCH_ASSOC);
+                    if($clock===false||$clock['pending_day']!==null)throw new AlphaHttpError(409,'world_advancing');
+                    $org=(new PdoOrganizationStore($db,$scenario->actors,$scenario->charters,$principal))->read($world);
+                    $dom=(new PdoDomesticPolicyStore($db,new AlphaDomesticPrincipal($session,$world,$db)))->read($world);
+                    if(!isset($org['state']['eu_withdrawal']['spillovers_version']))throw new AlphaHttpError(404,'not_found');
+                    if($org['state']['day']!==$clock['committed_day']||$dom['state']['day']!==$clock['committed_day'])throw new AlphaHttpError(409,'world_advancing');
+                    $result=EuropeanSpillovers::project($org,$dom);
+                    $response=self::ok(200,$result);$response['headers']['ETag']='"'.hash('sha256',json_encode($result,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)).'"';
+                    $db->commit();return $response;
+                }catch(\Throwable $error){if($db->inTransaction())$db->rollBack();throw $error;}
+            }
             if (($method==='GET' && $suffix==='/organizations')||($method==='POST'&&$suffix==='/organizations/eu/withdrawal-intents'&&in_array($scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true)))
                 return (new PdoOrganizationApi(new PdoOrganizationStore($this->db(),$scenario->actors,$scenario->charters,$principal)))->handle($method,$path,$body,$h);
             if ($method==='GET' && in_array($suffix,['/economy','/economy/indicators'],true))

@@ -232,3 +232,18 @@ substitution exists (none in this channel). A pure import shortage cannot create
 real GDP merely from the negative import term. Export loss and tariff incidence
 remain explicit. V1 states retain exact old behaviour; new worlds pin v2 and
 its observation version, with replay and counterfactual tests. CI pending.
+
+### WP54r remaining-EU spillover projection
+
+EU trade v2 CI 45817702547 green. New worlds pin a distinct EU spillover
+projection over coherent committed legal and domestic snapshots. Membership
+scope is separate from output change, using the rounded 2025 anchors in the
+existing EU study. Gross mirrored trade losses conserve France/partner flows;
+26 partner allocations require independent certified fictional directional
+weights, otherwise amounts remain unallocated and country exposure stays null.
+Prospective certified budget retention and finite settlement scenarios produce
+an exact daily/cumulative counterpart gap using the 2025 French gross/returns
+anchors. No actual French or EU treasury transfer is booked: mapping of
+national public receipts/expense and EU own resources remains open. No automatic
+funding, debt cancellation, ECB settlement, FX forecast or other exits.
+Foreign GDP/bank exposures remain null. Legacy state unchanged. CI pending.

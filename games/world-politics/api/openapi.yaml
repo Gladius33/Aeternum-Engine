@@ -203,6 +203,16 @@ paths:
         '200': { description: Coherent fictional state }
         '404': { description: Inaccessible world or unsupported scenario }
         '409': { description: World advancing }
+  /worlds/{world}/organizations/eu/spillovers:
+    get:
+      operationId: readEuropeanSpillovers
+      summary: Read coherent EU membership, mirrored trade and counterfactual budget ledger
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Versioned sensitivity projection; not booked transfers or foreign GDP }
+        '404': { description: Inaccessible world or unsupported model }
+        '409': { description: World advancing }
   /worlds/{world}/organizations/eu/withdrawal-intents:
     post:
       operationId: requestEuropeanWithdrawalIntent

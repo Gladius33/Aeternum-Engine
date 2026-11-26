@@ -7,20 +7,24 @@ namespace Aeternum\WorldPolitics;
 final class EuropeanWithdrawal
 {
     public const VERSION='wp54r-article50-v1';
+    public const SPILLOVERS_VERSION='wp54r-eu-spillovers-v1';
+    public const PARTNERS=['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK'];
     public const SOURCE='https://eur-lex.europa.eu/eli/treaty/teu_2016/art_50/oj';
-    public static function initial(string $day,bool $tradeEnabled=false):array
+    public static function initial(string $day,bool $tradeEnabled=false,bool $spilloversEnabled=false):array
     {
         self::date($day);
+        if($spilloversEnabled&&!$tradeEnabled)throw new \DomainException('Spillovers require trade model');
         return ['version'=>self::VERSION,'source'=>self::SOURCE,'start_day'=>$day,'day'=>$day,
             'status'=>'member','membership'=>true,'intent_on'=>null,'notified_on'=>null,'deadline'=>null,
             'agreement_effective_on'=>null,'exit_on'=>null,'exit_route'=>null,'history'=>[],
-            'currency_changed'=>false,'tariff_regime_implemented'=>false,...($tradeEnabled?['trade_regime_version'=>'wp54r-eu-trade-v1','trade_regime'=>null]:[])];
+            'currency_changed'=>false,'tariff_regime_implemented'=>false,...($tradeEnabled?['trade_regime_version'=>'wp54r-eu-trade-v1','trade_regime'=>null]:[]),...($spilloversEnabled?['spillovers_version'=>self::SPILLOVERS_VERSION,'budget_terms'=>null,'partner_allocation'=>null]:[])];
     }
     public static function request(array $s,string $day):array
     {
         if($s['day']!==$day||count($s['history'])>=1000||!in_array($s['status'],['member','revoked'],true))throw new \DomainException('Withdrawal intent unavailable');
         $s['status']='intent_pending';$s['intent_on']=$day;$s['notified_on']=null;$s['deadline']=null;$s['agreement_effective_on']=null;
         if(isset($s['trade_regime_version']))$s['trade_regime']=null;
+        if(isset($s['spillovers_version'])){$s['budget_terms']=null;$s['partner_allocation']=null;}
         $s['history'][]=['day'=>$day,'kind'=>'intent','data'=>[]];return $s;
     }
     public static function certify(array $s,string $day,string $kind,array $data):array
@@ -57,12 +61,33 @@ final class EuropeanWithdrawal
                 foreach(['import_duty_bps','import_friction_bps','export_friction_bps'] as $k)if(!is_int($data[$k])||$data[$k]<0||$data[$k]>3000)throw new \DomainException('Invalid scenario rate');
                 if($data['regime']!=='customs_scenario'&&$data['import_duty_bps']!==0)throw new \DomainException('No duties in this scenario');
                 $s['trade_regime']=$data;break;
+            case 'budget_terms':
+                self::fields($data,['effective_on','gross_retained_bps','returns_retained_bps','settlement_daily_minor','settlement_days','instrument_sha']);
+                self::date($data['effective_on']);self::sha($data['instrument_sha']);
+                self::prospectiveSpillover($s,$day,$data['effective_on'],'budget_terms');
+                foreach(['gross_retained_bps','returns_retained_bps'] as $k)
+                    if(!is_int($data[$k])||$data[$k]<0||$data[$k]>10000)throw new \DomainException('Invalid budget retention');
+                if(!is_int($data['settlement_daily_minor'])||$data['settlement_daily_minor']<0||$data['settlement_daily_minor']>100000000000
+                    ||!is_int($data['settlement_days'])||$data['settlement_days']<0||$data['settlement_days']>3650
+                    ||(($data['settlement_daily_minor']===0)!==($data['settlement_days']===0)))throw new \DomainException('Invalid illustrative settlement');
+                $s['budget_terms']=$data;break;
+            case 'partner_allocation':
+                self::fields($data,['effective_on','export_loss_weights','import_loss_weights','instrument_sha']);
+                self::date($data['effective_on']);self::sha($data['instrument_sha']);
+                self::prospectiveSpillover($s,$day,$data['effective_on'],'partner_allocation');
+                foreach(['export_loss_weights','import_loss_weights'] as $k){
+                    if(!is_array($data[$k]))throw new \DomainException('Missing scenario weights');
+                    self::fields($data[$k],self::PARTNERS);
+                    foreach($data[$k] as $v)if(!is_int($v)||$v<0||$v>10000)throw new \DomainException('Invalid country weight');
+                    if(array_sum($data[$k])!==10000)throw new \DomainException('Country weights must sum to 10000');
+                }
+                $s['partner_allocation']=$data;break;
             case 'revocation':
                 self::fields($data,['national_decision_sha','notice_sha','unequivocal_unconditional']);
                 self::sha($data['national_decision_sha']);self::sha($data['notice_sha']);
                 if(!in_array($s['status'],['negotiating','agreement_concluded'],true)||$day>=$s['deadline']
                     ||$data['unequivocal_unconditional']!==true)throw new \DomainException('Revocation not certified');
-                $s['status']='revoked';$s['deadline']=null;$s['agreement_effective_on']=null;if(isset($s['trade_regime_version']))$s['trade_regime']=null;break;
+                $s['status']='revoked';$s['deadline']=null;$s['agreement_effective_on']=null;if(isset($s['trade_regime_version']))$s['trade_regime']=null;if(isset($s['spillovers_version'])){$s['budget_terms']=null;$s['partner_allocation']=null;}break;
             default:throw new \InvalidArgumentException('Unknown European evidence');
         }
         $s['history'][]=['day'=>$day,'kind'=>$kind,'data'=>$data];return $s;
@@ -80,13 +105,18 @@ final class EuropeanWithdrawal
     }
     public static function restore(array $s):array
     {
-        $r=self::initial($s['start_day'],array_key_exists('trade_regime_version',$s));
+        $r=self::initial($s['start_day'],array_key_exists('trade_regime_version',$s),array_key_exists('spillovers_version',$s));
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>1000)throw new \DomainException('Invalid EU history');
         foreach($s['history'] as $h){
             self::fields($h,['day','kind','data']);$r=self::advance($r,$h['day']);
             $r=$h['kind']==='intent'?self::request($r,$h['day']):self::certify($r,$h['day'],$h['kind'],$h['data']);
         }
         $r=self::advance($r,$s['day']);if($r!==$s)throw new \DomainException('EU replay mismatch');return $r;
+    }
+    private static function prospectiveSpillover(array $s,string $day,string $effective,string $key):void
+    {
+        if(!isset($s['spillovers_version'])||!in_array($s['status'],['negotiating','agreement_concluded','withdrawn'],true)
+            ||$s[$key]!==null||$effective<=$day)throw new \DomainException('No valid prospective spillover scenario');
     }
     private static function fields(array $a,array $b):void{$k=array_keys($a);sort($k);sort($b);if($k!==$b)throw new \InvalidArgumentException('Unexpected EU evidence');}
     private static function date(mixed $v):void{if(!is_string($v)||($d=\DateTimeImmutable::createFromFormat('!Y-m-d',$v))===false||$d->format('Y-m-d')!==$v)throw new \InvalidArgumentException('Invalid EU date');}
