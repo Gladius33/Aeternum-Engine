@@ -820,6 +820,8 @@ $aid27=req30('GET',$r27.'/countries/FR/ukraine-aid',null,$t27);
 ck30($aid27['status']===200&&$aid27['body']['latest']===null&&$aid27['body']['reference']['opening_debt_minor']>359550000000000,'projected opening and empty aid history');
 $stop27=req30('POST',$r27.'/domestic/ukraine-aid',['action'=>'ukraine-aid-stop'],$t27,['If-Match'=>$aid27['etag'],'Idempotency-Key'=>'ukraine-stop-2027']);
 ck30($stop27['status']===200,'stop discretionary aid on investiture');
+$fin69=req30('GET',$r27.'/countries/FR/international-finance',null,$t27);
+ck30($fin69['status']===200&&count($fin69['body']['historical_observations'])===8&&$fin69['body']['actual_receivables_minor']===null&&!$fin69['body']['additional_treasury_booking'],'WP69 coherent real reference disclosure');
 $commitments=req30('GET',$r27.'/diplomacy/commitments',null,$t27);
 ck30($commitments['status']===200&&$commitments['body']['treasury_booked']===false&&$commitments['body']['risk']['open_arrears_minor']===0,'WP68 new commitment registry exposed with risk not booked');
 $stopCommit=['commitment_id'=>'ua-civil-fixture','action'=>'withhold'];

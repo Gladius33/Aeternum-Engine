@@ -749,3 +749,8 @@ WP65 complément : les nouveaux mondes épinglent `wp65-autonomous-formation-v2`
 
 
 Qualification complémentaire WP66–69 : le test réel MariaDB `wp08-diplomacy-db.php` prépare une fixture au jour précédant la première échéance, exécute les commandes propriétaire et les ticks certifiés dans le magasin diplomatique, vérifie les arriérés et les signaux après reconnexion, la révocation des droits avant rejeu, le reçu exact, la reprise des paiements et quatre écritures atomiques sans double compte. L'observation d'aide est une fixture explicite, pas une preuve des flux réels de France.
+
+
+### WP69 complément — rapprochement documentaire des engagements
+
+GET authentifié `/countries/FR/international-finance` sur le monde canonique : huit montants historiques sourcés issus du pack Ukraine épinglé, séparant aides, prêts concessionnels, plafonds AFD, garanties et programmes UE. Les encours, passifs contingents, calendriers réels et quotes-parts françaises restent inconnus (null). Ces lignes ne sont pas additives. Le rapport combine l'état diplomatique et domestique sous verrou d'horloge, avec provenance et digests, et sépare explicitement les obligations fictives et les flux budgétaires déjà pris en compte. Aucun nouveau débit/crédit de trésorerie. Tests domaine et HTTP. Ne constitue pas une comptabilité exhaustive des traités ou créances réelles.

@@ -31,6 +31,16 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /worlds/{world}/countries/FR/international-finance:
+    get:
+      operationId: readInternationalFinanceDisclosure
+      summary: Distinguish historical aid, loan and guarantee references from fictional obligations and unknown actual balances
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Coherent read-only exposure disclosure without extra treasury booking }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
   /worlds/{world}/diplomacy/commitments:
     get:
       operationId: readInternationalCommitments
