@@ -1,0 +1,35 @@
+{
+  "schema": "wp70-defense-reference-v1",
+  "retrieved_on": "2026-11-26",
+  "currency": "EUR",
+  "observations": {
+    "mission_defense_plf_2027_minor": 6340000000000,
+    "mission_defense_2026_comparator_minor": 5690000000000,
+    "planned_increase_minor": 650000000000,
+    "defense_effort_2030_target_bps": 250,
+    "defense_effort_2035_objective_bps": 350
+  },
+  "sources": {
+    "budget": {
+      "url": "https://www.defense.gouv.fr/ministere/politique-defense/loi-programmation-militaire-2024-2030/projet-loi-finances-armees-2027-lpm-annee-4",
+      "status": "proposed_2027_budget_not_enacted_or_spent"
+    },
+    "programming": {
+      "url": "https://www.legifrance.gouv.fr/loda/id/JORFTEXT000054694832/2026-09-12",
+      "status": "law_2026_791_2026_08_16_targets_not_annual_appropriations"
+    },
+    "national_service": {
+      "url": "https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000006555910",
+      "status": "call_up_suspended_reinstatement_requires_law"
+    }
+  },
+  "scenario": {
+    "allocation_bps": {
+      "personnel": 4000,
+      "maintenance_and_services": 3000,
+      "capital_and_research": 2500,
+      "administration": 500
+    },
+    "classification": "illustrative_not_observed_budget_breakdown"
+  }
+}

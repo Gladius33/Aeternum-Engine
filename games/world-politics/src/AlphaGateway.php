@@ -15,6 +15,7 @@ require_once __DIR__.'/EuropeanSpillovers.php';
 require_once __DIR__.'/ReferenceDataAudit.php';
 require_once __DIR__.'/NationalRenewalCalendar.php';
 require_once __DIR__.'/InternationalFinanceDisclosure.php';
+require_once __DIR__.'/StrategicDefensePlanning.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
 final class AlphaGateway
@@ -312,6 +313,13 @@ final class AlphaGateway
             if ($method==='GET' && preg_match('~^/countries/([A-Z]{2})/institutions(?:/rulebook)?$~D',$suffix,$countryMatch)
                 && in_array($countryMatch[1],$scenario->countries,true))
                 return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
+            if($method==='GET'&&$suffix==='/countries/FR/defense-planning'&&$scenario->id===AlphaScenario::INVESTITURE){
+                $dp=(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal))->read($world);
+                if(!isset($dp['state']['defense_reference']))throw new AlphaHttpError(404,'not_found');
+                $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);$clock=$q->fetch(\PDO::FETCH_ASSOC);
+                if($clock===false||$clock['pending_day']!==null||$clock['committed_day']!==$dp['state']['day'])throw new AlphaHttpError(409,'world_advancing');
+                $report=StrategicDefensePlanning::report($dp['state']['defense_reference'],$world,$clock['committed_day']);$response=self::ok(200,$report);$response['headers']['ETag']='"'.hash('sha256',json_encode($report,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)).'"';return $response;
+            }
             if($method==='GET'&&$suffix==='/countries/FR/international-finance'&&$scenario->id===AlphaScenario::INVESTITURE){
                 $db=$this->db();$db->beginTransaction();
                 try{

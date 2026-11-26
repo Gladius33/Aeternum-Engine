@@ -7,6 +7,7 @@ require_once __DIR__.'/GeopoliticalActorRegistry.php';
 require_once __DIR__.'/UkraineAidDiplomacy.php';
 require_once __DIR__.'/InternationalCommitments.php';
 require_once __DIR__.'/CommitmentRisk.php';
+require_once __DIR__.'/StrategicDefensePlanning.php';
 
 /** Adapter MUST use server-verified actor grants; never trust JSON for identity. */
 interface DiplomaticPrincipal
@@ -62,6 +63,11 @@ final class DiplomaticSimulation
     {
         if(!isset($this->state['aid_bridge'])||isset($this->state['commitments'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Commitments must be pinned at bootstrap');
         $this->state['commitments']=(new InternationalCommitments($this->state['world_id'],$this->state['day']))->snapshot();
+    }
+    public function enableDefenseReference():void
+    {
+        if(!isset($this->state['commitments'])||isset($this->state['defense_reference'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Defense reference must be pinned at bootstrap');
+        $this->state['defense_reference']=StrategicDefensePlanning::pin();
     }
     public function enableCommitmentRisk():void
     {
@@ -289,6 +295,10 @@ final class DiplomaticSimulation
         if(array_key_exists('commitment_risk',$state)){
             if($state['commitment_risk']!==CommitmentRisk::VERSION||!isset($state['commitments']))throw new \DomainException('Invalid commitment risk pin');
             CommitmentRisk::report($state['commitments']);$expected[]='commitment_risk';
+        }
+        if(array_key_exists('defense_reference',$state)){
+            if(!isset($state['commitments']))throw new \DomainException('Defense reference without canonical commitments');
+            StrategicDefensePlanning::report($state['defense_reference'],$state['world_id'],$state['day']);$expected[]='defense_reference';
         }
         sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid diplomatic snapshot fields');

@@ -31,6 +31,16 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /worlds/{world}/countries/FR/defense-planning:
+    get:
+      operationId: readStrategicDefensePlanning
+      summary: Read pinned fiscal reference and illustrative defense budget options, not authorized spending
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Source-labelled planning reference and legal prerequisites }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/international-finance:
     get:
       operationId: readInternationalFinanceDisclosure

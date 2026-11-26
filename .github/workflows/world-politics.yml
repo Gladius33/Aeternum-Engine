@@ -194,6 +194,8 @@ jobs:
         run: php tests/wp69-commitment-risk.php
       - name: WP69 international financial disclosure and no double counting
         run: php tests/wp69-financial-disclosure.php
+      - name: WP70 strategic defense fiscal reference and legal gates
+        run: php tests/wp70-defense-planning.php
       - name: WP33 election, seat allocation and coalition regression
         run: php tests/wp33-electoral.php
       - name: WP32 comparative accountability regression
