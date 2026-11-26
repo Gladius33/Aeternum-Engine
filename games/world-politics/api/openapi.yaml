@@ -193,6 +193,16 @@ paths:
                   reason: { type: [string, 'null'] }
         '404': { description: Inaccessible world or unsupported scenario }
         '409': { description: World advancing }
+  /worlds/{world}/countries/FR/programme-packs:
+    get:
+      operationId: readFrenchProgrammePacks
+      summary: Read executable and not-yet-implemented policy packs and dated company identities
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Explicit readiness, action identifiers, company reference catalog }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/corporations:
     get:
       operationId: readFrenchCorporations

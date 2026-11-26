@@ -1,0 +1,333 @@
+{
+  "schema": "wp53c-cac40-reference-v1",
+  "as_of": "2026-11-25",
+  "classification": "public_identity_only_not_simulation_observation",
+  "sources": [
+    "https://www.bnains.org/archives/histocac/compocac.php",
+    "https://www.zonebourse.com/cours/indice/CAC-40-4941/composition/",
+    "https://live.euronext.com/en/product/indices/FR0003500008-XPAR"
+  ],
+  "notes": "Historical membership reference. Company names and identifiers only. No observed or asserted relocation intent, behaviour, valuation or asset jurisdiction. ISIN prefix is not a legal domicile or ownership test. Review data rights before commercial distribution.",
+  "companies": [
+    {
+      "id": "accor",
+      "name": "Accor",
+      "isin": "FR0000120404",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "air-liquide",
+      "name": "Air Liquide",
+      "isin": "FR0000120073",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "airbus",
+      "name": "Airbus",
+      "isin": "NL0000235190",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "arcelormittal",
+      "name": "ArcelorMittal",
+      "isin": "LU0323134006",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "axa",
+      "name": "AXA",
+      "isin": "FR0000120628",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "bnp-paribas",
+      "name": "BNP Paribas",
+      "isin": "FR0000131104",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "bouygues",
+      "name": "Bouygues",
+      "isin": "FR0000120503",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "bureau-veritas",
+      "name": "Bureau Veritas",
+      "isin": "FR0006174348",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "capgemini",
+      "name": "Capgemini",
+      "isin": "FR0000125338",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "carrefour",
+      "name": "Carrefour",
+      "isin": "FR0000120172",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "credit-agricole",
+      "name": "Crédit Agricole",
+      "isin": "FR0000045072",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "danone",
+      "name": "Danone",
+      "isin": "FR0000120644",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "dassault-systemes",
+      "name": "Dassault Systèmes",
+      "isin": "FR0000130650",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "eiffage",
+      "name": "Eiffage",
+      "isin": "FR0000130452",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "engie",
+      "name": "Engie",
+      "isin": "FR0010208488",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "essilorluxottica",
+      "name": "EssilorLuxottica",
+      "isin": "FR0000121667",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "eurofins",
+      "name": "Eurofins Scientific",
+      "isin": "FR0014000MR3",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "euronext",
+      "name": "Euronext",
+      "isin": "NL0006294274",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "hermes",
+      "name": "Hermès",
+      "isin": "FR0000052292",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "kering",
+      "name": "Kering",
+      "isin": "FR0000121485",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "loreal",
+      "name": "L’Oréal",
+      "isin": "FR0000120321",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "legrand",
+      "name": "Legrand",
+      "isin": "FR0010307819",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "lvmh",
+      "name": "LVMH",
+      "isin": "FR0000121014",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "michelin",
+      "name": "Michelin",
+      "isin": "FR0000121261",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "orange",
+      "name": "Orange",
+      "isin": "FR0000133308",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "pernod-ricard",
+      "name": "Pernod Ricard",
+      "isin": "FR0000120693",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "publicis",
+      "name": "Publicis",
+      "isin": "FR0000130577",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "renault",
+      "name": "Renault",
+      "isin": "FR0000131906",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "safran",
+      "name": "Safran",
+      "isin": "FR0000073272",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "saint-gobain",
+      "name": "Saint-Gobain",
+      "isin": "FR0000125007",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "sanofi",
+      "name": "Sanofi",
+      "isin": "FR0000120578",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "schneider-electric",
+      "name": "Schneider Electric",
+      "isin": "FR0000121972",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "societe-generale",
+      "name": "Société Générale",
+      "isin": "FR0000130809",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "stellantis",
+      "name": "Stellantis",
+      "isin": "NL00150001Q9",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "stmicroelectronics",
+      "name": "STMicroelectronics",
+      "isin": "NL0000226223",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "thales",
+      "name": "Thales",
+      "isin": "FR0000121329",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "totalenergies",
+      "name": "TotalEnergies",
+      "isin": "FR0000120271",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "unibail",
+      "name": "Unibail-Rodamco-Westfield",
+      "isin": "FR0000124711",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "veolia",
+      "name": "Veolia",
+      "isin": "FR0000124141",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    },
+    {
+      "id": "vinci",
+      "name": "Vinci",
+      "isin": "FR0000125486",
+      "domestic_assets": null,
+      "valuation": null,
+      "legal_domicile": null
+    }
+  ]
+}

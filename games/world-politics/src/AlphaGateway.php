@@ -295,12 +295,15 @@ final class AlphaGateway
                 return (new PdoOrganizationApi(new PdoOrganizationStore($this->db(),$scenario->actors,$scenario->charters,$principal)))->handle($method,$path,$body,$h);
             if ($method==='GET' && in_array($suffix,['/economy','/economy/indicators'],true))
                 return (new PdoEconomicApi(new PdoEconomicStore($this->db(),$scenario->actors,$scenario->references,$principal)))->handle($method,$path,$body,$h);
-            if($method==='GET'&&$suffix==='/countries/FR/corporations'&&$scenario->id===AlphaScenario::CORPORATIONS){
+            if($method==='GET'&&in_array($suffix,['/countries/FR/corporations','/countries/FR/programme-packs'],true)&&$scenario->id===AlphaScenario::CORPORATIONS){
                 $dr=(new PdoDomesticPolicyStore($this->db(),new AlphaDomesticPrincipal($session,$world,$this->db())))->read($world);
                 $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);$c=$q->fetch(\PDO::FETCH_ASSOC);
                 if($c===false||$c['pending_day']!==null||$c['committed_day']!==$dr['state']['day'])throw new AlphaHttpError(409,'world_advancing');
                 $days=$dr['state']['days'];$v=$days===[]?ProfessionalCorporations::initial($dr['state']['day']):$days[array_key_last($days)]['corporations'];
-                $response=self::ok(200,['world_id'=>$world,'state'=>$v,'decisions'=>$dr['state']['corporation_decisions']]);$response['headers']['ETag']=$dr['etag'];return $response;
+                $payload=$suffix==='/countries/FR/programme-packs'?
+                    ['world_id'=>$world,'day'=>$dr['state']['day'],'packs'=>IndustrialProgrammeCatalog::packs($v),'company_catalog'=>IndustrialProgrammeCatalog::companies()]:
+                    ['world_id'=>$world,'state'=>$v,'decisions'=>$dr['state']['corporation_decisions']];
+                $response=self::ok(200,$payload);$response['headers']['ETag']=$dr['etag'];return $response;
             }
             if (($method==='POST'&&$suffix==='/domestic/corporation'&&$scenario->id===AlphaScenario::CORPORATIONS)
                 || ($method==='GET' && in_array($suffix,['/domestic','/domestic/summary'],true))

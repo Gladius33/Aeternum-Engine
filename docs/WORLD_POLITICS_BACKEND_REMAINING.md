@@ -463,3 +463,12 @@ Opt-in France scenario with parallel corporations, contested exclusive system,
 calendar reports, autonomous two-college votes, state approval or return, distinct
 worker and employer response, and public ownership requests (not transfers).
 See WORLD_POLITICS_CORPORATIONS.md. WP53 CI 45788382428 green.
+
+
+## WP53c causal audit and policy packs
+
+WP53b CI 45788792377 green. See WORLD_POLITICS_CAUSAL_AUDIT.md for cross-module
+review, deficits and acceptance gates. Two corporate actions executable as packs;
+other programmes explicitly unavailable until dependencies exist. 40 dated CAC40
+identities; individual company legal/fiscal review requests, not ownership transfers.
+New branch-wide requests rejected; historical replay preserved.

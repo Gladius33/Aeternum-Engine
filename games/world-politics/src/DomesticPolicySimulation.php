@@ -169,6 +169,8 @@ final class DomesticPolicySimulation
     {
         $this->require($principal,'domestic.corporation');
         if(!$this->corporationsEnabled)throw new \DomainException('Corporations scenario required');
+        // Retain historic branch events for replay only; new requests select a company.
+        if(str_starts_with($action,'request-nationalisation:'))throw new \InvalidArgumentException('Select an individual company');
         $last=$this->corporationDecisions===[]?null:$this->corporationDecisions[array_key_last($this->corporationDecisions)];
         if(($last['day']??null)===$this->day||count($this->corporationDecisions)>=3650)throw new \DomainException('One corporation decision per day');
         $state=$this->days===[]?ProfessionalCorporations::initial($this->startDay):$this->days[array_key_last($this->days)]['corporations'];
