@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrancDebtCalibration.php';
 require_once __DIR__.'/FrancObservedFinance.php';
+require_once __DIR__.'/FrancCreditorGeography.php';
 
 /** Coverage of the model, not a beneficial-owner registry. The observations
  * are read from the pinned source pack; selected figures have a separate crosscheck. */
@@ -46,7 +47,7 @@ final class FrancCreditorCoverage
             }
             $last=$q;
         }
-        return ['version'=>self::VERSION,'modelled_principal_by_currency_minor'=>$principal,'modelled_creditor_receipts_by_currency_minor'=>$receipts,'claim_cohorts'=>$claims,
+        return ['version'=>self::VERSION,'modelled_principal_by_currency_minor'=>$principal,'modelled_creditor_receipts_by_currency_minor'=>$receipts,'claim_cohorts'=>$claims,'geographic_proxy'=>FrancCreditorGeography::project($claims),
             'source_sha'=>$model['source_sha']??null,'source_classification'=>'pinned_staged_pack_with_partial_independent_crosscheck','observed_holder_share_anchors'=>$shares,
             'historical_stock_intervals'=>$observations,'observed_debt_holder_identity_coverage'=>null,'individual_beneficial_owners_known'=>false,
             'opening_holder_allocation_is_synthetic'=>true,'new_issues_holder_allocation_is_synthetic'=>true,

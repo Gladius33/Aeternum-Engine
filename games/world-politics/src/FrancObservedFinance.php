@@ -31,6 +31,19 @@ final class FrancObservedFinance
         foreach($eu['franc_external_facilities']??[] as $f)$sum+=FrancNativeBudget::scale($f['opening_reserve_minor'],$f['eur_minor_per_10000_units'],10000,true);
         if($sum>self::reserveCeiling())throw new \DomainException('Scenario opening reserve allocation exceeds observed net FX equivalent');
     }
+    // Exact integer basis points without multiplying national-scale minor units by 10000.
+    private static function basisPoints(int $n,int $d):int
+    {
+        if($n<0||$d<=0)throw new \DomainException('Invalid capital ratio');
+        $q=intdiv($n,$d);$r=$n%$d;$lo=0;$hi=9999;
+        while($lo<$hi){
+            $mid=intdiv($lo+$hi+1,2);$tail=($d%10000)*$mid;
+            $threshold=intdiv($d,10000)*$mid+intdiv($tail,10000)+($tail%10000!==0?1:0);
+            if($threshold<=$r)$lo=$mid;else $hi=$mid-1;
+        }
+        if($q>intdiv(PHP_INT_MAX-$lo,10000))throw new \DomainException('Capital ratio overflow');
+        return $q*10000+$lo;
+    }
     public static function bank(array $slice,int $ratio):array
     {
         $b=self::load()['bank'];$unit=100000000000*$ratio;
@@ -39,8 +52,8 @@ final class FrancObservedFinance
         $cet1=$b['cet1']*$unit+$delta;$rwa=$b['rwa']*$unit;
         // Same sovereign P&L applied once to existing aggregate accounting
         // equity, not to an independently duplicated set of bank assets.
-        $ratioBps=$cet1>=0?intdiv($cet1*10000,$rwa):-intdiv(-$cet1*10000,$rwa);
-        $loss=max(0,-$delta);$depletion=min(10000,intdiv($loss*10000,$b['cet1']*$unit));
+        $ratioBps=$cet1>=0?self::basisPoints($cet1,$rwa):-self::basisPoints(-$cet1,$rwa);
+        $loss=max(0,-$delta);$depletion=self::basisPoints(min($loss,$b['cet1']*$unit),$b['cet1']*$unit);
         $credit=max(0,10000-$depletion);
         if($ratioBps<$b['minimum_pillar1_cet1_bps'])$credit=min($credit,5000);
         if($cet1<=0)$credit=0;

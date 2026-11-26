@@ -29,7 +29,7 @@ final class FrancNativeBudget
         foreach(['franc_fiscal_terms','franc_fx_terms','franc_rule','currency_terms'] as $key)if(!isset($eu[$key])||$d<$eu[$key]['effective_on'])throw new \DomainException('Native budget prerequisites missing');
         if(array_key_exists('sector_integration',$v)&&($v['sector_integration']!==true||($v['commit_daily']??false)!==true))throw new \DomainException('Sector integration requires committed budget');
         if(array_key_exists('financial_integration',$v)&&($v['financial_integration']!==true||($v['sector_integration']??false)!==true))throw new \DomainException('Financial integration requires native sectors');
-        if(isset($v['observed_financial_baseline_sha'])){
+        if(array_key_exists('observed_financial_baseline_sha',$v)){
             require_once __DIR__.'/FrancObservedFinance.php';
             if(($v['financial_integration']??false)!==true||$v['observed_financial_baseline_sha']!==FrancObservedFinance::digest())throw new \DomainException('Invalid pinned financial observation pack');
             FrancObservedFinance::validateAllocation($eu);

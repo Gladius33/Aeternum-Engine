@@ -1,0 +1,92 @@
+{
+  "schema": "wp54r-fr-creditor-geography-v1",
+  "retrieved_on": "2026-11-26",
+  "sources": {
+    "geographic_proxy": {
+      "url": "https://generationdette.fr/ObservatoireDette",
+      "underlying": "IMF PIP June 2025, Eurostat 2025 counterparty data",
+      "scope": "secondary estimate; foreign allocation key based on all French securities, not separately measured sovereign holdings",
+      "period": "2025-06"
+    },
+    "fsap": {
+      "url": "https://www.imf.org/-/media/files/publications/cr/2025/english/1fraea2025007.pdf",
+      "period": "2024-Q4; domestic bank holdings 2024-Q2",
+      "pages": "104-106"
+    },
+    "bdf": {
+      "url": "https://www.banque-france.fr/fr/titres-de-dette-financiere",
+      "scope": "DET2 resident holder detailed categories; no individual identities"
+    },
+    "bis": {
+      "url": "https://www.bis.org/publications/202610-commentary-ibs-gli",
+      "scope": "official sector claims include central-bank reserves, cannot isolate sovereign debt from CBS alone"
+    },
+    "eba": {
+      "url": "https://www.eba.europa.eu/risk-and-data-analysis/risk-analysis/eu-wide-transparency-exercise",
+      "scope": "bank-by-bank sovereign dataset identified; download page returned HTTP 403 in this session"
+    },
+    "eurostat": {
+      "url": "https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Structure_of_government_debt",
+      "scope": "face-value debt after swaps; France all denominated in or swapped to EUR at end 2025, unlike gross foreign-currency securities in market value"
+    }
+  },
+  "geographic_proxy": {
+    "weights_in_bps_of_all_public_securities": {
+      "US": 1110,
+      "NL": 660,
+      "IT": 490,
+      "ES": 430,
+      "LU": 410,
+      "DE": 370,
+      "GB": 330,
+      "BE": 250,
+      "IE": 160,
+      "CA": 120,
+      "JP": 100,
+      "AT": 90,
+      "SE": 70,
+      "FI": 60,
+      "KR": 60,
+      "other_countries": 400,
+      "unallocated": 690
+    },
+    "nonresident_total_bps": 5800,
+    "resident_total_bps": 4200,
+    "direct_beneficial_owner_identification": false,
+    "source_is_primary_country_sovereign_book": false
+  },
+  "imf_fsap": {
+    "unit": "EUR_billion",
+    "french_investor_government_securities_total_2024_q4": 1300,
+    "other_euro_area_investor_government_securities_total_2024_q4": 700,
+    "fr_investor_sector_shares_percent": {
+      "central_bank": 47,
+      "deposit_takers": 20,
+      "insurance_pension": 28,
+      "non_mmf_funds": 4,
+      "nonfinancial": 1,
+      "general_government": 0,
+      "other": 0,
+      "mmf": 0
+    },
+    "other_ea_investor_sector_shares_percent": {
+      "central_bank": 11,
+      "deposit_takers": 15,
+      "insurance_pension": 33,
+      "non_mmf_funds": 26,
+      "mmf": 6,
+      "general_government": 4,
+      "nonfinancial": 1,
+      "other": 4
+    },
+    "fr_commercial_bank_general_government_2024_q2": 463,
+    "fr_commercial_bank_public_securities_2024_q2": 251,
+    "fr_commercial_bank_public_loans_2024_q2": 212,
+    "foreign_official_share_of_nonresident_estimated_percent": 37,
+    "foreign_net_transactions_2021_2024": {
+      "other_euro_area": 183,
+      "japan_private": -46,
+      "united_states": -28
+    }
+  }
+}

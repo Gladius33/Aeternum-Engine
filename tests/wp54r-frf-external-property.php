@@ -149,3 +149,18 @@ ckCB($opening['scenario_cet1_bps']===1620&&$loss['scenario_cet1_bps']<$opening['
 ckCB($finalReport['latest']['observed_bank_sensitivity']['source_sha']===OF::digest()&&$finalReport['observed_financial_reference']['source_sha']===OF::digest(),'daily observation pack hash and report consistent');
 $over=$e;$over['franc_fx_terms']['official_eur_minor']=OF::reserveCeiling()+1;noCB(fn()=>OF::validateAllocation($over));
 $over=$e;$over['franc_fx_terms']['official_eur_minor']=OF::reserveCeiling();noCB(fn()=>OF::validateAllocation($over));
+
+use Aeternum\WorldPolitics\FrancCreditorGeography as CG;
+$geo=$finalReport['creditor_coverage']['geographic_proxy'];
+ckCB(count($geo['countries_and_residuals'])===17&&$geo['weight_denominator_bps']===5800&&!$geo['actual_country_sovereign_claims_observed'],'secondary country weights explicitly distinguished from sovereign observations');
+foreach(['FRF','EUR'] as $currency){
+    foreach($geo['covered_by_currency_minor'][$currency] as $metric=>$amount){
+        $sum=0;foreach($geo['countries_and_residuals'] as $position)$sum+=$position[$currency][$metric];
+        ckCB($sum===$amount,'country allocation conserves '.$currency.' '.$metric);
+    }
+}
+$fixture=['legacy-state-nonresident-EUR'=>['currency'=>'EUR','principal_outstanding_minor'=>580000],'new-normal-external-EUR'=>['currency'=>'EUR','principal_outstanding_minor'=>99]];
+$g=CG::project($fixture);
+ckCB($g['countries_and_residuals']['US']['EUR']['principal_outstanding_minor']===111000&&$g['countries_and_residuals']['unallocated']['EUR']['principal_outstanding_minor']===69000&&$g['other_cohorts_not_allocated_by_currency_minor']['EUR']['principal_outstanding_minor']===99,'geographic proxy preserves residual and excludes unknown new issuers');
+$extreme=OF::bank(['equity_frf_minor'=>0,'opening_capital_proxy_frf_minor'=>9000000000000000],10);
+ckCB($extreme['capital_depletion_bps']===10000&&$extreme['credit_availability_bps']===0&&$extreme['scenario_cet1_bps']<0,'large capital losses use exact safe integer arithmetic');
