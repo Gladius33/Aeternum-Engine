@@ -30,6 +30,43 @@ final class FrancFiscalLedger
             $seen[$id]=true;
         }
     }
+    public static function project(array $dom):array
+    {
+        $days=[];$months=[];$years=[];$last=null;
+        foreach($dom['days'] as $r){
+            if(!isset($r['frf_fiscal']))continue;
+            $f=$r['frf_fiscal'];$d=$r['day'];$debt=$f['debt'];$cash=$f['cash'];
+            if($last!==null&&($d!==(new \DateTimeImmutable($last['day']))->modify('+1 day')->format('Y-m-d')
+                ||$debt['opening_frf_valuation_minor']!==$last['debt']['closing_frf_valuation_minor']
+                ||$cash['opening_frf_minor']!==$last['cash']['closing_frf_minor']))
+                throw new \DomainException('FRF fiscal report discontinuity');
+            $last=['day'=>$d,...$f];$days[]=$last;
+            foreach(['month','year'] as $type){
+                $key=substr($d,0,$type==='month'?7:4);
+                $bucket=$type==='month'?($months[$key]??null):($years[$key]??null);
+                if($bucket===null)$bucket=['period'=>$key,'first_day'=>$d,'last_day'=>$d,'days'=>0,
+                    'opening_frf_valuation_minor'=>$debt['opening_frf_valuation_minor'],
+                    'closing_frf_valuation_minor'=>0,'fx_revaluation_frf_minor'=>0,'transaction_stock_delta_frf_minor'=>0,
+                    'total_stock_delta_frf_minor'=>0,'opening_cash_frf_minor'=>$cash['opening_frf_minor'],'closing_cash_frf_minor'=>0,
+                    'revenue_frf_minor'=>0,'primary_paid_frf_minor'=>0,'interest_paid_reference_frf_minor'=>0,
+                    'principal_paid_reference_frf_minor'=>0,'new_borrowing_reference_frf_minor'=>0,'equity_acquisition_frf_minor'=>0,
+                    'closing_eur_principal_minor'=>0,'closing_frf_principal_minor'=>0];
+                $bucket['days']++;$bucket['last_day']=$d;
+                foreach(['fx_revaluation_frf_minor','transaction_stock_delta_frf_minor','total_stock_delta_frf_minor'] as $k)$bucket[$k]+=$debt[$k];
+                foreach(['closing_frf_valuation_minor','closing_eur_principal_minor','closing_frf_principal_minor'] as $k)$bucket[$k]=$debt[$k];
+                foreach(['revenue_frf_minor','primary_paid_frf_minor','interest_paid_reference_frf_minor','principal_paid_reference_frf_minor','new_borrowing_reference_frf_minor','equity_acquisition_frf_minor'] as $k)$bucket[$k]+=$cash[$k];
+                $bucket['closing_cash_frf_minor']=$cash['closing_frf_minor'];
+                if($bucket['closing_frf_valuation_minor']-$bucket['opening_frf_valuation_minor']!==$bucket['total_stock_delta_frf_minor']
+                    ||$bucket['total_stock_delta_frf_minor']!==$bucket['fx_revaluation_frf_minor']+$bucket['transaction_stock_delta_frf_minor']
+                    ||$bucket['opening_cash_frf_minor']+$bucket['revenue_frf_minor']+$bucket['new_borrowing_reference_frf_minor']-$bucket['primary_paid_frf_minor']-$bucket['interest_paid_reference_frf_minor']-$bucket['principal_paid_reference_frf_minor']-$bucket['equity_acquisition_frf_minor']!==$bucket['closing_cash_frf_minor'])
+                    throw new \DomainException('FRF fiscal period reconciliation failure');
+                if($type==='month')$months[$key]=$bucket;else $years[$key]=$bucket;
+            }
+        }
+        return ['version'=>self::VERSION,'currency'=>'FRF','classification'=>'committed_dual_accounting_at_fixed_parity',
+            'status'=>$last===null?'not_active':'active','effective_from'=>$days[0]['day']??null,'latest'=>$last,
+            'days'=>$days,'months'=>array_values($months),'years'=>array_values($years),'cash_settlement_at_market_fx_modelled'=>false];
+    }
     public static function step(array $row,?array $previous,array $debtModel,array $terms,int $ratio,int $mark):array
     {
         if($ratio<1||$ratio>10||$mark<5000||$mark>15000)throw new \DomainException('Invalid fiscal parity or mark');

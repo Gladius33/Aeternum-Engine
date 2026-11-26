@@ -412,3 +412,9 @@ reference creditors. The separate contract pilot is not added to national
 stock. Historic rows and v1-v3 worlds unchanged. This is dual accounting,
 not actual market-FX cash settlement or currency-specific debt service;
 central bank advances not yet integrated. CI pending.
+
+The sovereign debt projection now exposes committed FRF fiscal daily/monthly/
+annual reports (v4 only); sums exclude pre-transition EUR rows, preserve
+opening/closing native principal and cash, and reconcile transaction stock
+changes separately from FX revaluation. Reporting remains fixed-parity cash
+reference, not actual mixed-currency settlement.

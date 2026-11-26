@@ -19,3 +19,9 @@ ckFL($d['closing_frf_principal_minor']===2020&&$d['closing_eur_principal_minor']
 ckFL($d['fx_revaluation_frf_minor']===1025&&$d['transaction_stock_delta_frf_minor']===-230&&$d['total_stock_delta_frf_minor']===795,'separate valuation and transaction deltas');
 ckFL(!$g['cash_settlement_at_market_fx_modelled']&&!$g['central_bank_advances_integrated']&&!$g['separate_contract_book_added_to_debt'],'limits explicit and no duplicate debt');
 try{F::validateTerms(array_replace($terms,['converted_opening_cohorts'=>['legacy-state-french_credit_institutions','legacy-state-french_credit_institutions']]),'2026-11-26',['currency_terms'=>['effective_on'=>'2026-11-27']]);throw new RuntimeException('duplicate accepted');}catch(DomainException $e){}
+
+$report=F::project(['days'=>[['day'=>'2026-11-26'],['day'=>'2026-11-27',...$prev],['day'=>'2026-11-28',...$next,'frf_fiscal'=>$g]]]);
+ckFL($report['effective_from']==='2026-11-27'&&count($report['days'])===2&&count($report['months'])===1,'report excludes EUR history');
+$month=$report['months'][0];$year=$report['years'][0];
+ckFL($month['opening_frf_valuation_minor']===6000&&$month['closing_frf_valuation_minor']===6995&&$month['fx_revaluation_frf_minor']===1025&&$month['transaction_stock_delta_frf_minor']===-30&&$month['total_stock_delta_frf_minor']===995,'monthly stock and revaluation bridge');
+ckFL($month['opening_cash_frf_minor']===200&&$month['closing_cash_frf_minor']===60&&$year['total_stock_delta_frf_minor']===$month['total_stock_delta_frf_minor'],'period cash continuity and yearly stock reconciliation');
