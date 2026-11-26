@@ -6,7 +6,7 @@ function req30(string $method,string $path,?array $body=null,?string $token=null
     $h=['Content-Type: application/json'];if ($token!==null) $h[]='Authorization: Bearer '.$token;
     foreach($extra as $k=>$v)$h[]=$k.': '.$v;
     $opts=['method'=>$method,'header'=>implode("\r\n",$h),'ignore_errors'=>true,'timeout'=>20];
-    if ($body!==null)$opts['content']=json_encode($body,JSON_THROW_ON_ERROR);
+    if ($body!==null)$opts['content']=json_encode($body===[]&&str_ends_with($path,'/organizations/eu/withdrawal-intents')?(object)[]:$body,JSON_THROW_ON_ERROR);
     $raw=file_get_contents('http://127.0.0.1:18730/api/v1'.$path,false,stream_context_create(['http'=>$opts]));
     if ($raw===false) throw new RuntimeException('HTTP transport failure');
     $status=(int)explode(' ',$http_response_header[0])[1];$etag=null;
