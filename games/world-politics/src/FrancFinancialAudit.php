@@ -35,6 +35,18 @@ final class FrancFinancialAudit
                 self::check($r['closing_principal'][$cur]===$r['opening_principal'][$cur]+$r['issued_principal'][$cur]-$r['paid_principal'][$cur]-$r['written_off_principal'][$cur],'principal stock '.$cur);
                 $totals[$cur]+=$s['creditor_receipts_by_currency_minor'][$cur];
             }
+            if(isset($r['external_finance'])){
+                $x=$r['external_finance'];$sum=0;$opening=0;$delta=0;$fx=0;
+                foreach($x['facilities'] as $cur=>$p){
+                    self::check($p['currency']===$cur&&$p['principal_outstanding_minor']===$p['opening_principal_minor']+$p['issued_minor']-$p['principal_paid_minor'],'foreign principal');
+                    self::check($p['reserve_minor']===$p['opening_reserve_minor']-$p['principal_paid_minor']-$p['interest_paid_minor']&&$p['reserve_minor']>=$p['terms']['minimum_reserve_minor'],'foreign reserves');
+                    self::check($p['issued_minor']===$p['earmarked_external_purchase_minor']&&$p['domestic_money_created_minor']===0,'foreign issuance counterpart');
+                    if(isset($last['external_finance']['facilities'][$cur])){ $q=$last['external_finance']['facilities'][$cur];self::check($p['opening_principal_minor']===$q['principal_outstanding_minor']&&$p['opening_reserve_minor']===$q['reserve_minor'],'foreign continuity');$checks++;}
+                    $sum+=$p['closing_debt_frf_minor'];$opening+=$p['opening_debt_frf_minor'];$delta+=$p['transaction_delta_frf_minor'];$fx+=$p['fx_revaluation_frf_minor'];$checks+=3;
+                }
+                self::check($sum===$x['closing_debt_frf_minor']&&$opening===$x['opening_debt_frf_minor']&&$sum-$opening===$fx+$delta&&$x['consolidated_gross_debt_frf_minor']===$r['valuation']['closing_gross_debt_frf_minor']+$sum,'external consolidation');$checks++;
+            }
+            if(isset($r['property_settlement'])){ $p=$r['property_settlement'];self::check($p['compensation_paid_frf_minor']<=$k['equity_paid_frf_minor']&&$p['title_transferred']===($p['status']==='settled')&&($p['title_transferred']?($p['compensation_paid_frf_minor']>0):($p['compensation_paid_frf_minor']===0)),'property consideration');$checks++;}
             $v=$r['valuation'];self::check($v['closing_gross_debt_frf_minor']-$v['opening_gross_debt_frf_minor']===$v['fx_revaluation_frf_minor']+$v['transaction_delta_frf_minor'],'valuation stock');
             if($last!==null){
                 self::check($r['day']===(new \DateTimeImmutable($last['day']))->modify('+1 day')->format('Y-m-d')&&$a===$last['closing_state']['accounts']&&$r['opening_principal']===$last['closing_principal'],'daily continuity');

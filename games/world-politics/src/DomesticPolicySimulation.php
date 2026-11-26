@@ -329,7 +329,14 @@ final class DomesticPolicySimulation
                 if($this->industrialEnabled)$industrial=IndustrialCapital::advance($installed,$target,$corporationAction,$cash,$current,$prior);
                 $industrialPaid=$industrial['paid_today_minor']??0;
                 if($this->publicEquityEnabled)$equity=PublicEquityLedger::advance($prior['public_equity']??PublicEquityLedger::initial($this->startDay),$target,$corporationAction,$this->firmModel,$cash-$industrialPaid,$current);
+                $property=null;
+                if(isset($eu['frf_committed_observation']['property_order'])){
+                    if($equity===null||$corporations===null)throw new \DomainException('Statutory transfer requires pinned ownership model');
+                    $transfer=FrancPropertySettlement::apply($equity,$corporations,$eu['frf_committed_observation']['property_order'],$target,$cash-$industrialPaid-$equity['paid_today_minor'],$current);
+                    $equity=$transfer['equity'];$corporations=$transfer['corporations'];$row['corporations']=$corporations;$property=$transfer['receipt'];
+                }
                 $row['frf_committed_budget']=FrancFinancialIntegration::capital($native,$ratio,$industrialPaid,$equity['paid_today_minor']??0,$prior['frf_committed_budget']??null);
+                if($property!==null)$row['frf_committed_budget']['property_settlement']=[...$property,'compensation_paid_frf_minor'=>$property['compensation_reference_minor']*$ratio];
             }
             $row['frf_committed_budget']['sector_settlement']=['public_services_payment_source'=>$servicePlan===null?'not_enabled':'native_treasury','discretionary_capital_settlement_suspended'=>!$full];
         }

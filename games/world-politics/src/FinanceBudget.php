@@ -132,7 +132,7 @@ final class FinanceBudget
             'primary_balance_total'=>$primary,'days'=>$rows,'bills'=>$bills,
             'continuity_review_required'=>$dom['day']>='2027-01-01'&&!array_filter($bills,fn($b)=>$b['status']==='published'&&$b['implementation_authorized'])];
         $native=FrancCommittedBudget::project($dom);
-        return $native===null?$reference:[...$native,'cash'=>$native['latest']['closing_state']['accounts']['treasury_frf_minor'],'debt'=>$native['latest']['valuation']['closing_gross_debt_frf_minor'],'unit'=>'minor','bills'=>$bills,'continuity_review_required'=>$reference['continuity_review_required'],'reference_eur_only'=>$reference];
+        return $native===null?$reference:[...$native,'cash'=>$native['latest']['closing_state']['accounts']['treasury_frf_minor'],'debt'=>$native['consolidated_gross_debt_frf_minor']??$native['latest']['valuation']['closing_gross_debt_frf_minor'],'unit'=>'minor','bills'=>$bills,'continuity_review_required'=>$reference['continuity_review_required'],'reference_eur_only'=>$reference];
     }
     private static function vote(array $d,int $cap):array
     {

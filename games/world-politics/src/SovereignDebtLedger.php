@@ -213,6 +213,6 @@ final class SovereignDebtLedger
             'source_sha'=>$c['source_sha'],'reference'=>$c['source_pack'],'assumptions'=>array_diff_key($c,['source_pack'=>true]),
             'latest'=>$last,'days'=>$days,'months'=>array_values($months),'years'=>array_values($years),...(($dom['eu_trade_version']??null)==='wp54r-eu-trade-v4-frf-fiscal'?['frf_fiscal'=>FrancFiscalLedger::project($dom)]:[])];
         $native=FrancCommittedBudget::project($dom);
-        return $native===null?$reference:[...$native,'day'=>$dom['day'],'unit'=>'minor','debt'=>$native['latest']['valuation']['closing_gross_debt_frf_minor'],'creditors'=>$native['latest']['closing_state']['claims'],'reference_eur_only'=>$reference];
+        return $native===null?$reference:[...$native,'day'=>$dom['day'],'unit'=>'minor','debt'=>$native['consolidated_gross_debt_frf_minor']??$native['latest']['valuation']['closing_gross_debt_frf_minor'],'creditors'=>$native['latest']['closing_state']['claims'],'reference_eur_only'=>$reference];
     }
 }

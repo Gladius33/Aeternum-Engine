@@ -64,6 +64,12 @@ final class FrancNativeBudgetProjection
             foreach(['reserve_eur_used_minor','treasury_frf_paid_for_eur_minor'] as $k)$p[$k]+=$r['debt_settlement'][$k];
             foreach(['FRF','EUR'] as $cur){foreach(['issued_principal','paid_principal','written_off_principal'] as $k)$p[$k][$cur]+=$r[$k][$cur];$p['interest_paid'][$cur]+=$r['debt_settlement']['creditor_receipts_by_currency_minor'][$cur]-$r['paid_principal'][$cur];if($p['closing_principal'][$cur]!==$p['opening_principal'][$cur]+$p['issued_principal'][$cur]-$p['paid_principal'][$cur]-$p['written_off_principal'][$cur])throw new \DomainException('Native period debt mismatch');}
             if($p['closing_gross_debt_frf_minor']-$p['opening_gross_debt_frf_minor']!==$p['fx_revaluation_frf_minor']+$p['transaction_delta_frf_minor']||$p['closing_advance_liability_frf_minor']!==$p['opening_advance_liability_frf_minor']+$p['advance_received_frf_minor']-$p['advance_repaid_frf_minor'])throw new \DomainException('Native period valuation mismatch');
+            if(isset($r['external_finance'])){
+                $x=$r['external_finance'];$p['opening_external_debt_frf_minor']??=$x['opening_debt_frf_minor'];$p['closing_external_debt_frf_minor']=$x['closing_debt_frf_minor'];
+                $p['external_fx_revaluation_frf_minor']=($p['external_fx_revaluation_frf_minor']??0)+$x['fx_revaluation_frf_minor'];$p['external_transaction_delta_frf_minor']=($p['external_transaction_delta_frf_minor']??0)+$x['transaction_delta_frf_minor'];
+                if($p['closing_external_debt_frf_minor']-$p['opening_external_debt_frf_minor']!==$p['external_fx_revaluation_frf_minor']+$p['external_transaction_delta_frf_minor'])throw new \DomainException('External period stock mismatch');
+                $p['closing_consolidated_debt_frf_minor']=$x['consolidated_gross_debt_frf_minor'];
+            }
             if(isset($r['capital_settlement'])){
                 $p['industrial_paid_frf_minor']=($p['industrial_paid_frf_minor']??0)+$r['capital_settlement']['industrial_paid_frf_minor'];
                 $p['closing_equity_acquired_at_cost_frf_minor']=$r['capital_settlement']['cumulative_equity_acquired_at_cost_frf_minor'];

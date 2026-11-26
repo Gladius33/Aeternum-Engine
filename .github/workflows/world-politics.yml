@@ -96,6 +96,8 @@ jobs:
         run: php tests/wp54r-frf-financial-integration.php
       - name: WP54r extended domestic and opinion horizon replay
         run: php tests/wp54r-frf-horizon.php
+      - name: WP54r foreign facility, creditor coverage and compensated property regression
+        run: php tests/wp54r-frf-external-property.php
       - name: WP54r FRF macro price and trade pass-through regression
         run: php tests/wp54r-frf-macro.php
       - name: WP54r Franc foreign exchange reserve conservation regression

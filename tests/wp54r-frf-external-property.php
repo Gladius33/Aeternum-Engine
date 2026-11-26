@@ -1,0 +1,92 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/../games/world-politics/src/DomesticPolicySimulation.php';
+require __DIR__.'/../games/world-politics/src/EuropeanSpillovers.php';
+require __DIR__.'/../games/world-politics/src/FinanceBudget.php';
+use Aeternum\WorldPolitics\{EuropeanWithdrawal as E,EuropeanSpillovers as S,EuropeanTradeFeedback as T,FrancCommittedBudget as C,DomesticPolicySimulation as D,DomesticPolicyAuthority,FrenchMacroBaseline as B,SovereignDebtLedger as L,FinanceBudget as F,FrancExchangeMarket as X};
+function ckCB(bool $v,string $m):void{if(!$v)throw new RuntimeException($m);echo "PASS committed budget: $m\n";}
+function noCB(callable $f):void{try{$f();}catch(DomainException|InvalidArgumentException $e){return;}throw new RuntimeException('Invalid committed budget accepted');}
+final class CBPrincipal implements DomesticPolicyAuthority{
+    public string $day='2026-11-25';
+    public function allows(string $world,string $ability):bool{return $world==='world-test';}
+    public function enactedInstrument(string $world,string $policy):?string{return null;}
+    public function clockDay(string $world):string{return $this->day;}
+}
+$d='2026-11-25';$start='2026-12-01';$sha=str_repeat('a',64);
+$e=E::request(E::initial($d,true,true,true,true,true,true,true,true,true,false,false,true),$d);
+$terms=['effective_on'=>$start,'instrument_sha'=>$sha,'reserve_purchase_authorized'=>true,'commit_daily'=>true,'sector_integration'=>true,'financial_integration'=>true];
+noCB(fn()=>E::certify($e,$d,'franc_native_budget',$terms));
+$e=E::certify($e,$d,'notification',['national_decision_sha'=>$sha,'notification_sha'=>$sha]);
+$e=E::certify($e,$d,'agreement',['effective_on'=>$start,'parliament_consent'=>true,'council_qualified_majority'=>true,'france_agrees'=>true,'agreement_sha'=>$sha]);
+$e=E::certify($e,$d,'currency_terms',['effective_on'=>$start,'units_per_eur'=>2,'instrument_sha'=>$sha,'contracts'=>[['id'=>'bond','debtor'=>'fr_treasury','creditor'=>'fr_banks','kind'=>'sovereign_bond','principal_eur_minor'=>100,'governing_law'=>'fr','treatment'=>'convert_certified','evidence_sha'=>$sha]]]);
+$e=E::certify($e,$d,'franc_rule',['effective_on'=>$start,'opening_base_franc_minor'=>1000000,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_bank_terms',['effective_on'=>$start,'opening_reserve_allocation_franc_minor'=>100000,'minimum_capital_bps'=>1000,'minimum_liquidity_bps'=>2000,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_bank_crisis_terms',['effective_on'=>$start,'facility_pool_franc_minor'=>100000,'guarantee_pool_franc_minor'=>100000,'collateral_haircut_bps'=>2000,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_fx_terms',['effective_on'=>$start,'official_eur_minor'=>100,'counterparty_eur_minor'=>100,'official_franc_pool_minor'=>500,'counterparty_franc_pool_minor'=>500,'minimum_official_eur_minor'=>50,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_fiscal',['effective_on'=>$start,'converted_opening_cohorts'=>['legacy-state-french_credit_institutions'],'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_fx_order',['effective_on'=>$start,'kind'=>'sell_eur','eur_minor'=>20,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_funding',['effective_on'=>'2026-12-02','spending_requested_franc_minor'=>40,'repayment_requested_franc_minor'=>0,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_native_budget',$terms);
+noCB(fn()=>E::certify($e,$d,'franc_native_budget',$terms));
+$rev=E::certify($e,$d,'revocation',['national_decision_sha'=>$sha,'notice_sha'=>$sha,'unequivocal_unconditional'=>true]);
+ckCB(!isset($rev['franc_native_budget_terms'])&&E::restore($rev)===$rev,'revocation clears terms and replay is exact');
+
+$b=B::load();$model=L::load($b,$d,true);
+$catalog=['unused'=>['revenue_delta'=>0,'expense_delta'=>0,'pressure_delta'=>['workers'=>0],'duration_days'=>1,'concessions'=>['workers'=>0],'concession_daily_cost'=>0,'production_delta_bps'=>0,'employment_delta_bps'=>0]];
+$make=fn()=>new D('world-test',$d,'EUR',$b['assumed_opening_cash'],$b['daily_revenue'],$b['daily_primary_expense'],['workers'=>400],$catalog,$b,$model,euTradeEnabled:true,euTradeV2:true,euTradeV3:true,euTradeV4:true);
+$sim=$make();$a=new CBPrincipal;
+$org=fn($s)=>['state'=>['world_id'=>'world-test','day'=>$s['day'],'eu_withdrawal'=>$s],'etag'=>'"'.$sha.'"'];
+$dom=fn()=>['state'=>$sim->snapshot(),'etag'=>'"'.$sim->hash().'"'];
+$run=function(string $day)use(&$e,$a,$sim,$org,$dom){$e=E::advance($e,$day);$a->day=$day;$obs=T::observe($org($e),'world-test',$day,T::VERSION_V4,$dom());return $sim->advance($a,$day,null,$obs);};
+for($i=26;$i<=29;$i++)$run('2026-11-'.$i);
+$before=$run('2026-11-30');ckCB(!isset($before['frf_committed_budget']),'no premature committed budget');
+$first=$run($start);$n=$first['frf_committed_budget'];
+ckCB($n['effective_from']===$start&&$n['closing_state']['accounts']['official_eur_reserves_minor']>=50&&$n['financing']['market_issued_at_parity_eur_minor']<=$n['financing']['market_capacity_at_parity_eur_minor'],'native daily settlement and capped financing');
+ckCB($n['risk']['credit_availability_bps']<=10000&&$n['risk']['credit_availability_bps']>=7000,'bounded risk signal');
+$e=E::certify($e,$start,'currency_mark',['effective_on'=>'2026-12-02','value_index_bps'=>8000,'instrument_sha'=>$sha]);
+$second=$run('2026-12-02');$s=$second['frf_committed_budget'];
+ckCB($s['opening_accounts']===$n['closing_state']['accounts']&&$s['opening_principal']===$n['closing_principal'],'committed daily continuity');
+ckCB($s['valuation']['fx_revaluation_frf_minor']>=0&&$s['closing_state']['mark']===8000,'market quote affects persisted native liability');
+$sim->crisisDecision($a,'moratorium');$third=$run('2026-12-03');
+ckCB($third['frf_committed_budget']['paid_principal']===['FRF'=>0,'EUR'=>0]&&$third['frf_committed_budget']['financing']['market_capacity_at_parity_eur_minor']===0,'moratorium suspends native financing and settlement');
+$sim->crisisDecision($a,'resume');$fourth=$run('2026-12-04');
+$snapshot=$sim->snapshot();$copy=$make();$copy->restore($snapshot,$sim->hash());ckCB($copy->snapshot()===$snapshot,'full daily state replay');
+$bad=$snapshot;$bad['days'][5]['frf_committed_budget']['closing_state']['accounts']['treasury_frf_minor']++;$hash=hash('sha256',json_encode($bad,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));noCB(fn()=>$make()->restore($bad,$hash));
+$bad=$snapshot;unset($bad['days'][6]['eu_trade_observation']['frf_committed_observation']);$hash=hash('sha256',json_encode($bad,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));noCB(fn()=>$make()->restore($bad,$hash));
+$report=C::project($snapshot);$fin=F::project(F::initial(),$snapshot);$debt=L::project($snapshot);
+ckCB($report['latest']['day']==='2026-12-04'&&$fin['currency']==='FRF'&&$debt['currency']==='FRF'&&$fin['debt']===$debt['debt']&&$fin['reference_eur_only']['currency']==='EUR','finance and debt expose committed FRF with reference explicitly separated');
+$p=S::project($org($e),$dom());ckCB($p['franc_native_budget']===$report&&$p['franc_exchange_reserves_reference_only'],'spillover reads committed native state');
+
+use Aeternum\WorldPolitics\{FrancPropertySettlement as PS,FrancExternalFacility as XF,FrancCreditorCoverage as CC,ProfessionalCorporations as PC,PublicEquityLedger as PE,FirmEconomy as FE,FrancFinancialAudit as FA};
+$chosen=array_key_first(FE::config());
+$transfer=['company_id'=>$chosen,'compensation_reference_minor'=>100,'effective_on'=>'2026-12-05','instrument_sha'=>$sha,'public_interest_sha'=>$sha,'review_sha'=>$sha,'valuation_sha'=>$sha];
+$facility=['currency'=>'USD','effective_on'=>'2026-12-05','maturity_on'=>'2026-12-07','instrument_sha'=>$sha,'principal_minor'=>1000000,'opening_reserve_minor'=>400000,'minimum_reserve_minor'=>100000,'coupon_bps'=>3650,'eur_minor_per_10000_units'=>9000];
+noCB(fn()=>E::certify($rev,'2026-11-25','franc_external_facility',$facility));
+$e=E::certify($e,'2026-12-04','franc_external_facility',$facility);
+noCB(fn()=>E::certify($e,'2026-12-04','franc_external_facility',$facility));
+$e=E::certify($e,'2026-12-04','franc_external_facility',array_replace($facility,['currency'=>'CHF','principal_minor'=>50000,'opening_reserve_minor'=>50000,'minimum_reserve_minor'=>0,'coupon_bps'=>0,'eur_minor_per_10000_units'=>11000]));
+ckCB(E::restore($e)===$e,'foreign evidence exact legal replay');
+$fifth=$run('2026-12-05');$x=$fifth['frf_committed_budget']['external_finance'];
+ckCB($x['facilities']['USD']['issued_minor']===1000000&&$x['facilities']['USD']['earmarked_external_purchase_minor']===1000000&&$x['facilities']['USD']['domestic_money_created_minor']===0,'foreign purchase funded once outside legacy debt');
+ckCB($x['facilities']['CHF']['currency']==='CHF'&&$x['facilities']['CHF']['issued_minor']===50000,'Swiss currency distinct from French FRF');
+$run('2026-12-06');$seventh=$run('2026-12-07');$x=$seventh['frf_committed_budget']['external_finance'];
+ckCB($x['facilities']['USD']['reserve_minor']===100000&&$x['facilities']['USD']['principal_arrears_minor']>0&&!$x['debt_service_current'],'foreign default preserves reserve floor and unpaid principal');
+ckCB($x['facilities']['CHF']['principal_outstanding_minor']===0,'fully funded currency repaid');
+$report=C::project($sim->snapshot());$debt=L::project($sim->snapshot());$fin=F::project(F::initial(),$sim->snapshot());
+ckCB($report['other_currencies_modelled']&&$debt['debt']===$x['consolidated_gross_debt_frf_minor']&&$fin['debt']===$debt['debt'],'financial endpoints consolidate separate facility debt');
+ckCB($report['creditor_coverage']['full_modelled_principal_reconciled']&&$report['creditor_coverage']['modelled_principal_by_currency_minor']===$seventh['frf_committed_budget']['closing_principal']&&!$report['creditor_coverage']['individual_beneficial_owners_known'],'coverage reconciles but does not invent beneficial owners');
+ckCB(count($report['creditor_coverage']['historical_stock_intervals'])>0&&!$report['creditor_coverage']['calibration']['empirical_fit_performed'],'staged historical intervals and explicit calibration limits');
+$copy=$make();$copy->restore($sim->snapshot(),$sim->hash());ckCB($copy->hash()===$sim->hash(),'foreign debt survives replay');
+$bad=$report['days'];$bad[array_key_last($bad)]['external_finance']['facilities']['USD']['reserve_minor']++;noCB(fn()=>FA::verify($bad));
+$cancel=XF::step($facility,'2026-12-05',2,10000,true,null);
+ckCB($cancel['issued_minor']===0&&$cancel['disbursement_status']==='cancelled_by_moratorium','moratorium blocks fresh external disbursement');
+$baseCorp=PC::initial('2026-12-03');$corp=PC::step($baseCorp,'2026-12-04','request-company-nationalisation:'.$chosen,null);
+$eq=PE::initial('2026-12-05');
+PS::validate($transfer,'2026-12-04');
+$no=PS::apply($eq,$baseCorp,$transfer,'2026-12-05',100,true);ckCB(!$no['receipt']['title_transferred'],'request required before transfer');
+$no=PS::apply($eq,$corp,$transfer,'2026-12-05',99,true);ckCB($no['receipt']['status']==='unfunded'&&!$no['receipt']['title_transferred'],'insufficient cash never transfers title');
+$yes=PS::apply($eq,$corp,$transfer,'2026-12-05',100,true);
+ckCB($yes['receipt']['title_transferred']&&$yes['equity']['positions'][$chosen]['cost_minor']===100&&$yes['corporations']['company_requests'][$chosen]['ownership_transferred'],'certified compensated transfer without voluntary consent');
+noCB(fn()=>PS::validate(array_replace($transfer,['valuation_sha'=>'']), '2026-12-04'));
+$e=E::certify($e,'2026-12-07','franc_property_transfer',array_replace($transfer,['effective_on'=>'2026-12-08']));
+ckCB(E::restore($e)===$e,'property instrument survives trusted evidence replay');
