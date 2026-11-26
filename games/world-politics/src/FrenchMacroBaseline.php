@@ -88,7 +88,7 @@ final class MacroFiscalLoop
      * day's macro row. No uncommitted values, implicit circular equation
      * or read-side mutation. No trade/monetary feedback in this first loop.
      */
-    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null):array
+    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0):array
     {
         if(!empty($debtModel['crisis_enabled'])){
             $credit=$previous['treasury']['banking']['credit_availability_bps']??10000;
@@ -115,7 +115,7 @@ final class MacroFiscalLoop
             +intdiv($socialFeedback,3));
         $investment=max(0,$b['daily_investment']+self::scale($b['daily_investment'],
             self::clamp(intdiv(self::gap($priorReal,$b['daily_real_gdp']),3)+$production-10000,-2500,2500)));
-        $government=max(0,$b['daily_government_consumption']+intdiv($expense-$b['daily_primary_expense'],2));
+        $government=max(0,$b['daily_government_consumption']+intdiv($expense-$b['daily_primary_expense']-$serviceTransferDelta,2));
         $real=$consumption+$b['daily_npish_consumption']+$investment+$government+$b['daily_exports']-$b['daily_imports']+$b['daily_statistical_discrepancy'];
         if($real<=0)throw new \DomainException('Nonpositive output');
         $outputGap=self::clamp(self::gap($real,$b['daily_real_gdp']),-3000,3000);

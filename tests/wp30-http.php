@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===23,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===24,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -549,6 +549,27 @@ ck30(req30('GET',$p51,null,$tc48)===$v51,'WP51 deterministic ETag');
 ck30(req30('GET',$p51,null,$ta2)['status']===404&&req30('GET',$r50.'/countries/FR/population',null,$tc48)['status']===404,'WP51 isolation and legacy');
 $h51=['If-Match'=>$d51['etag'],'Idempotency-Key'=>'population-crisis-001'];
 ck30(req30('POST',$r51.'/domestic/crisis',['action'=>'moratorium'],$tc48,$h51)['status']===200,'WP51 retains crisis actions');
+// Fresh isolated test rate window; runtime quotas unchanged.
+$pdo->exec('DELETE FROM wp_http_limits');
+$g52=req30('POST','/worlds',['label'=>'French services pilot','scenario'=>'fr-services-v1'],$tc48,['Idempotency-Key'=>'services-world-001']);
+if($g52['status']!==201)throw new RuntimeException('WP52 creation HTTP '.$g52['status'].' '.json_encode($g52['body'],JSON_THROW_ON_ERROR));
+ck30(true,'WP52 world creation');
+$w52=$g52['body']['world_id'];$r52='/worlds/'.$w52;$p52=$r52.'/countries/FR/services';
+$v52=req30('GET',$p52,null,$tc48);
+ck30($v52['status']===200&&$v52['body']['initial_plan']['total_incremental_expense_minor']===0&&count($v52['body']['reference']['observations'])===33,'WP52 initial observed references without double count');
+$q52=$pdo->prepare('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?');$q52->execute([$w52]);
+$cfg52=json_decode($q52->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck30($cfg52['services_model']['source_sha']===$v52['body']['source_sha'],'WP52 durable provenance');
+$c52=req30('GET',$r52.'/clock',null,$tc48);
+foreach(['2026-11-26','2026-11-27','2026-11-28'] as $n52=>$day52){
+    $c52=req30('POST',$r52.'/clock/advances',['target_day'=>$day52],$tc48,['If-Match'=>$c52['etag'],'Idempotency-Key'=>'services-tick-00'.($n52+1)]);
+    ck30($c52['status']===200&&$c52['body']['coherent'],'WP52 coherent day');
+}
+$v52=req30('GET',$p52,null,$tc48);$d52=req30('GET',$r52.'/domestic',null,$tc48);
+ck30($v52['status']===200&&count($v52['body']['days'])===3&&$v52['body']['latest']===$d52['body']['days'][2]['services'],'WP52 authoritative services ledger');
+ck30(req30('GET',$p52,null,$tc48)===$v52,'WP52 deterministic ETag');
+ck30(req30('GET',$p52,null,$ta2)['status']===404&&req30('GET',$r51.'/countries/FR/services',null,$tc48)['status']===404,'WP52 isolation and legacy');
+ck30(req30('GET',$r52.'/countries/FR/population',null,$tc48)['status']===200&&req30('GET',$r52.'/countries/FR/debt',null,$tc48)['status']===200,'WP52 retains population and debt');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

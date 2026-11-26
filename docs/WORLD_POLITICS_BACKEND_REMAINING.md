@@ -436,3 +436,13 @@ feedback. Provisional January 2026 vintage; demographic assumptions
 uncalibrated, no gross migration or service costs yet. See
 WORLD_POLITICS_DEMOGRAPHY.md. WP50 CI 45768149991 all three jobs green,
 23 specific assertions, no warnings.
+
+
+## WP52 public services candidate
+
+33 dated official observations, health/education/retirement demand,
+capacity and funding proxies, demographic incremental fiscal adjustments,
+lagged pressure and coherent read API. No duplicated baseline, not full
+sector budgets, no individual pension rules or recruitment yet. See
+WORLD_POLITICS_SERVICES.md. WP51 CI 45776279152 all green, 21 specific
+assertions, no warnings.

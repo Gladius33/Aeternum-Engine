@@ -1,0 +1,348 @@
+{
+  "schema": "wp52-fr-services-v1",
+  "country": "FR",
+  "as_of": "2026-11-25",
+  "classification": "observed_mixed_vintages",
+  "sources": {
+    "health": {
+      "provider": "DREES",
+      "url": "https://drees.solidarites-sante.gouv.fr/publications-communique-de-presse-infographie-documents-de-reference/261001-les-d%C3%A9penses-de-sant%C3%A9-en-2025-edition-2026-panorama-de-la-drees",
+      "published_on": "2026-10-01",
+      "scope": "France DCSi 2025, all financeurs; public share consolidated social security and central/local authorities"
+    },
+    "hospital": {
+      "provider": "DREES",
+      "url": "https://www.drees.solidarites-sante.gouv.fr/publications-communique-de-presse-documents-de-reference/panoramas-de-la-drees/260520-Etablissements-de-sant%C3%A9-en-2024",
+      "published_on": "2026-05-20",
+      "updated_on": "2026-10-08",
+      "scope": "Public and private hospital sector, 2024, 2026 edition"
+    },
+    "education": {
+      "provider": "DEPP",
+      "url": "https://www.education.gouv.fr/depp/en-2025-1992-milliards-d-euros-consacres-l-education-soit-67-du-pib-506005",
+      "published_on": "2026-09-29",
+      "scope": "DIE all levels, all financing, provisional 2025; initial financeur shares rounded"
+    },
+    "school": {
+      "provider": "Ministère de l'Éducation nationale",
+      "url": "https://www.education.gouv.fr/la-rentree-scolaire-2026-communication-en-conseil-des-ministres-505564",
+      "published_on": "2026-09-01",
+      "scope": "2026 rentrée school pupils and all ministry personnel, rounded, not teachers alone"
+    },
+    "pensions": {
+      "provider": "DREES",
+      "url": "https://www.drees.solidarites-sante.gouv.fr/publications-communique-de-presse-documents-de-reference/250731_PANORAMAS-retraites",
+      "published_on": "2025-07-31",
+      "scope": "2023 pension expenditure, 2025 edition; older vintage intentionally retained"
+    },
+    "contributors": {
+      "provider": "Insee/DREES",
+      "url": "https://www.insee.fr/fr/statistiques/2415121",
+      "published_on": "2025-12-09",
+      "scope": "2023 domestic employment contribution proxy and direct-right pension recipients, including residents abroad"
+    }
+  },
+  "observations": [
+    {
+      "metric": "current_health_expenditure",
+      "value": 353200000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "health",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "medical_care_goods",
+      "value": 256500000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "health",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "hospital_care_expenditure",
+      "value": 124100000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "health",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "medical_goods_expenditure",
+      "value": 56900000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "health",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "medicine_expenditure",
+      "value": 34900000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "health",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "health_public_finance_share",
+      "value": 7740,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "health",
+      "reported_precision": "10 bp",
+      "kind": "observed"
+    },
+    {
+      "metric": "health_household_finance_share",
+      "value": 970,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "health",
+      "reported_precision": "10 bp",
+      "kind": "observed"
+    },
+    {
+      "metric": "health_household_out_of_pocket_per_capita",
+      "value": 495,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "health",
+      "reported_precision": "1 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "hospital_full_beds",
+      "value": 367100,
+      "unit": "beds",
+      "period": "2024",
+      "source_id": "hospital",
+      "reported_precision": "100 beds",
+      "kind": "observed"
+    },
+    {
+      "metric": "hospital_partial_places",
+      "value": 91000,
+      "unit": "places",
+      "period": "2024",
+      "source_id": "hospital",
+      "reported_precision": "100 places",
+      "kind": "observed"
+    },
+    {
+      "metric": "hospital_home_capacity",
+      "value": 25400,
+      "unit": "places",
+      "period": "2024",
+      "source_id": "hospital",
+      "reported_precision": "100 places",
+      "kind": "observed"
+    },
+    {
+      "metric": "hospital_establishments",
+      "value": 2962,
+      "unit": "establishments",
+      "period": "2024",
+      "source_id": "hospital",
+      "reported_precision": "1 establishment",
+      "kind": "observed"
+    },
+    {
+      "metric": "hospital_employees",
+      "value": 1410000,
+      "unit": "persons",
+      "period": "2024",
+      "source_id": "hospital",
+      "reported_precision": "10000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "hospital_full_stays",
+      "value": 10800000,
+      "unit": "stays",
+      "period": "2024",
+      "source_id": "hospital",
+      "reported_precision": "100000 stays",
+      "kind": "observed"
+    },
+    {
+      "metric": "hospital_partial_days",
+      "value": 20500000,
+      "unit": "patient_days",
+      "period": "2024",
+      "source_id": "hospital",
+      "reported_precision": "100000 days",
+      "kind": "observed"
+    },
+    {
+      "metric": "emergency_visits",
+      "value": 21300000,
+      "unit": "visits",
+      "period": "2024",
+      "source_id": "hospital",
+      "reported_precision": "100000 visits",
+      "kind": "observed"
+    },
+    {
+      "metric": "hospital_home_days",
+      "value": 7700000,
+      "unit": "patient_days",
+      "period": "2024",
+      "source_id": "hospital",
+      "reported_precision": "100000 days",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_expenditure",
+      "value": 199200000000,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "100000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_state_share",
+      "value": 5500,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "100 bp",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_local_share",
+      "value": 2300,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "100 bp",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_other_public_share",
+      "value": 400,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "100 bp",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_business_share",
+      "value": 1000,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "100 bp",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_household_share",
+      "value": 800,
+      "unit": "basis_points",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "100 bp",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_average_cost",
+      "value": 11140,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "10 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_primary_cost",
+      "value": 9440,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "10 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_secondary_cost",
+      "value": 11780,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "10 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "education_tertiary_cost",
+      "value": 13350,
+      "unit": "EUR",
+      "period": "2025",
+      "source_id": "education",
+      "reported_precision": "10 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "school_pupils",
+      "value": 11600000,
+      "unit": "persons",
+      "period": "2026-rentree",
+      "source_id": "school",
+      "reported_precision": "100000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "school_personnel",
+      "value": 1200000,
+      "unit": "persons",
+      "period": "2026-rentree",
+      "source_id": "school",
+      "reported_precision": "100000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "pension_expenditure",
+      "value": 370000000000,
+      "unit": "EUR",
+      "period": "2023",
+      "source_id": "pensions",
+      "reported_precision": "1000000000 EUR",
+      "kind": "observed"
+    },
+    {
+      "metric": "pension_direct_recipients",
+      "value": 17200000,
+      "unit": "persons",
+      "period": "2023",
+      "source_id": "contributors",
+      "reported_precision": "100000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "pension_contributors",
+      "value": 30400000,
+      "unit": "persons",
+      "period": "2023",
+      "source_id": "contributors",
+      "reported_precision": "100000 persons",
+      "kind": "observed"
+    },
+    {
+      "metric": "pension_reported_contributors_per_recipient",
+      "value": 177,
+      "unit": "hundredths_ratio",
+      "period": "2023",
+      "source_id": "contributors",
+      "reported_precision": "0.01",
+      "kind": "observed"
+    }
+  ],
+  "notes": [
+    "Different statistical scopes and dates, not a single government budget. DCSi includes CSBM and hospital care; no adding nested amounts. DIE includes public and private finance; school headcounts exclude higher education. Pension recipients include non-residents, not all persons aged 65+.",
+    "Source observations are rounded. Derived public-finance bases are illustrative calculations, not independent official budget totals. Check source-specific redistribution terms before external redistribution. No personal data."
+  ]
+}

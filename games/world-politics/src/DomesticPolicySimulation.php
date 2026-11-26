@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrenchMacroBaseline.php';
 require_once __DIR__.'/SovereignDebtLedger.php';
 require_once __DIR__.'/FrenchDemography.php';
+require_once __DIR__.'/FrenchPublicServices.php';
 
 /**
  * WP29A: scenario-only domestic policy ledger. All monetary amounts are
@@ -45,7 +46,8 @@ final class DomesticPolicySimulation
         private readonly array $catalog,
         private readonly ?array $macroBaseline=null,
         private readonly ?array $debtModel=null,
-        private readonly ?array $populationModel=null
+        private readonly ?array $populationModel=null,
+        private readonly ?array $servicesModel=null
     ) {
         self::id($world); self::date($startDay);
         if (!preg_match('/^[A-Z]{3}$/D', $currency)) throw new \InvalidArgumentException('Invalid currency');
@@ -95,6 +97,10 @@ final class DomesticPolicySimulation
             if($this->macroBaseline===null)throw new \DomainException('Population model needs macro baseline');
             FrenchDemography::assertValid($this->populationModel,$startDay,$this->macroBaseline['initial_unemployment_bps']);
             if($this->populationModel['opening_indicators']['population']<=0)throw new \DomainException('Invalid opening population');
+        }
+        if($this->servicesModel!==null){
+            if($this->populationModel===null||empty($this->debtModel['crisis_enabled']))throw new \DomainException('Services need population and crisis model');
+            FrenchPublicServices::assertValid($this->servicesModel,$startDay,$this->populationModel,$this->macroBaseline);
         }
         $this->pressure = $cohorts;
         $this->balance = $openingBalance;
@@ -175,11 +181,17 @@ final class DomesticPolicySimulation
         }
         if ($revenue < 0 || $expense < 0) throw new \DomainException('Scenario implies negative gross fiscal flow');
         $expense+=$concessionCost;
-        $loop=null;
+        $loop=null;$servicePlan=null;
         if($this->macroBaseline!==null){
             $prior=$this->days===[]?null:$this->days[array_key_last($this->days)];
             if($this->populationModel!==null)$production+=FrenchDemography::outputAdjustment($this->populationModel,$prior);
-            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target));
+            if($this->servicesModel!==null){
+                $servicePlan=FrenchPublicServices::plan($this->servicesModel,$prior);
+                $expense+=$servicePlan['total_incremental_expense_minor'];
+                if($expense<=0)throw new \DomainException('Service adjustment exceeds fiscal flow');
+                foreach($prior['services']['next_day_pressure_delta']??[] as $k=>$v)if(isset($deltas[$k]))$deltas[$k]+=$v;
+            }
+            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0);
             $revenue=$loop['revenue'];$expense=$loop['expense'];
         }
         $closing = $loop===null?$balance+$revenue-$expense:$loop['balance'];
@@ -200,6 +212,7 @@ final class DomesticPolicySimulation
         if($loop!==null){
             $row['macro']=$loop['macro'];$row['treasury']=$loop['treasury'];
             if($this->populationModel!==null)$row['population']=FrenchDemography::step($this->populationModel,$prior,$loop['macro']);
+            if($servicePlan!==null)$row['services']=FrenchPublicServices::settle($this->servicesModel,$servicePlan,$prior,$loop['treasury'],$expense);
             $row['classification']='fictional_simulation_observed_anchors';
             $row['economic']['production_index_bps']=$loop['macro']['real_output_index_bps'];
             $row['economic']['employment_index_bps']=max(0,10000-($loop['macro']['unemployment_bps']-$this->macroBaseline['initial_unemployment_bps']));
@@ -217,7 +230,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel])]);
     }
 
     public function snapshot(): array
@@ -225,7 +238,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel])];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }
