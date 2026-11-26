@@ -7,7 +7,7 @@ Scope: private headless alpha, canonical France investiture 2027. This is NOT a 
 - Fresh dedicated MariaDB installation with migrations 001–025 (014 excluded: maintenance-only).
 - All three GitHub jobs green on the exact revision: headless contract, isolated MariaDB, real HTTP.
 - Score, deterministic twenty-year synthetic horizon, world-clock recovery, terminal freeze, session scope and SQL integrity regressions.
-- Offline `WP_RELEASE_AUDIT=YES php games/world-politics/bin/audit-campaign.php WORLD_ID` using dedicated read-only database credentials; refuses pending/unranked worlds. It replays domestic, diplomacy, opinion and seven institutional states and recomputes the committed score. Does not verify every other aggregate or prove production capacity.
+- Offline `WP_RELEASE_AUDIT=YES php games/world-politics/bin/audit-campaign.php WORLD_ID` using dedicated read-only database credentials; refuses pending/unranked worlds. It verifies domestic, diplomacy, opinion, organizations, economy and seven institutional states using their existing restore rules and recomputes the committed score. It is not a comprehensive journal/receipt, security or production-capacity audit.
 
 ## Existing databases
 

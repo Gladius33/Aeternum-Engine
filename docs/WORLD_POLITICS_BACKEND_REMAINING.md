@@ -807,3 +807,6 @@ Réutilisation des trois états déjà vérifiés dans la transaction finale du 
 ## WP80 tranche A — qualification finale alpha
 
 Horizon synthétique de 7305 journées pour score/fin de mandat, contrôle des bornes, projection répétable. Audit CLI en transaction lecture seule cohérente : rejeu des états domestique, diplomatique, opinion et institutions, contrôle du score recalculé et des références historiques. Tests HTTP/MariaDB sur campagne terminale et récupérée. Voir `WORLD_POLITICS_RELEASE_ALPHA.md` pour critères de sortie, migration et blocages résiduels. Ce jalon n'efface pas les travaux partiels des lots antérieurs ni ne constitue une qualification de production.
+
+
+WP80 complément : l'audit en lecture seule couvre maintenant les six domaines de l'horloge canonique (domestique, diplomatie, opinion, organisations, économie et institutions des sept pays), avec contrôle de corruption du digest économique, rollback de la lecture en erreur et audit identique après restauration de la fixture. Cela ne remplace pas un contrôle exhaustif des journaux ni un audit de sécurité indépendant.

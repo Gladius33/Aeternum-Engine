@@ -4,13 +4,14 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/AlphaWorlds.php';
 
 /** Offline audit authority, never mounted in HTTP. Read grants only. */
-final class ReleaseAuditPrincipal implements InstitutionalActorAuthorizer,DiplomaticPrincipal
+final class ReleaseAuditPrincipal implements InstitutionalActorAuthorizer,EconomicPolicyPrincipal
 {
     public function __construct(private readonly string $world){}
     public function actorId():string{return 'local-release-audit';}
     public function allows(string $world,string $actor,string $ability):bool
-    {return $world===$this->world&&(($actor===$this->actorId()&&in_array($ability,['diplomacy.read','world.clock.read'],true))||($ability==='read_institutions'&&preg_match('/^[A-Z]{2}$/D',$actor)===1));}
+    {return $world===$this->world&&(($actor===$this->actorId()&&in_array($ability,['diplomacy.read','world.clock.read','organizations.read','economy.read'],true))||($ability==='read_institutions'&&preg_match('/^[A-Z]{2}$/D',$actor)===1));}
     public function roleFor(string $world,string $country,string $action):string{throw new \DomainException('Audit cannot decide');}
+    public function legalApproval(string $world,string $state,string $instrument):bool{return false;}
 }
 final class ReleaseAuditDomestic implements PersistentDomesticPolicyAuthority
 {
@@ -43,8 +44,10 @@ final class ReleaseAudit
             $dom=$ds->read($world);
             $dip=(new PdoDiplomaticStore($db,$scenario->actors,$principal))->read($world);
             $op=(new PdoPublicOpinionStore($db,$principal,$ds,$is))->read($world);
+            $org=(new PdoOrganizationStore($db,$scenario->actors,$scenario->charters,$principal))->read($world);
+            $econ=(new PdoEconomicStore($db,$scenario->actors,$scenario->references,$principal))->read($world);
             $date=$clock['committed_day'];
-            foreach([$dom,$dip,$op] as $r)if($r['state']['day']!==$date)throw new \DomainException('Audit source day mismatch');
+            foreach([$dom,$dip,$op,$org,$econ] as $r)if($r['state']['day']!==$date)throw new \DomainException('Audit source day mismatch');
             $q=$db->prepare('SELECT country_code FROM wp_world_clock_countries WHERE world_id=? ORDER BY country_code');$q->execute([$world]);
             if($q->fetchAll(\PDO::FETCH_COLUMN)!==$scenario->countries)throw new \DomainException('Audit country roster mismatch');
             foreach($scenario->countries as $country)if($is->read($world,$country)['state']['day']!==$date)throw new \DomainException('Audit country day mismatch');
@@ -64,8 +67,8 @@ final class ReleaseAudit
             unset($expected['source_hashes']);$actual=array_intersect_key($saved,$expected);
             if($actual!==$expected)throw new \DomainException('Recomputed score differs');
             $report=['world_id'=>$world,'day'=>$date,'score'=>$saved['score'],'revision'=>$saved['clock_revision'],
-                'countries_checked'=>count($scenario->countries),'cohort_sha'=>$cohort,'status'=>'verified_ranked_alpha_score',
-                'official_ranking_eligible'=>false,'scope'=>'domestic_diplomacy_opinion_institutions_score_not_full_security_audit'];
+                'countries_checked'=>count($scenario->countries),'domains_checked'=>['domestic','diplomacy','opinion','organizations','economy','institutions'],'cohort_sha'=>$cohort,'status'=>'verified_ranked_alpha_score',
+                'official_ranking_eligible'=>false,'scope'=>'six_clock_domains_and_score_not_full_security_audit'];
             $db->commit();return $report;
         }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
     }

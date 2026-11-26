@@ -971,3 +971,14 @@ ck30($audit80['status']==='verified_ranked_alpha_score'&&$audit80['score']===$te
 $audit80=\Aeternum\WorldPolitics\ReleaseAudit::inspect($pdo,$g27['body']['world_id']);
 ck30($audit80['day']==='2027-05-19'&&$audit80['revision']===5,'WP80 recovered campaign independently audited');
 
+ck30(count($audit80['domains_checked'])===6,'WP80 audit covers all canonical clock domains');
+$world80=$g27['body']['world_id'];
+$q80=$pdo->prepare('SELECT state_sha FROM wp_economic_states WHERE world_id=?');$q80->execute([$world80]);$prior80=$q80->fetchColumn();
+$q80=$pdo->prepare('UPDATE wp_economic_states SET state_sha=? WHERE world_id=?');$q80->execute([str_repeat('0',64),$world80]);
+$rejected80=false;
+try{\Aeternum\WorldPolitics\ReleaseAudit::inspect($pdo,$world80);}
+catch(Throwable $e){$rejected80=true;}
+finally{$q80->execute([$prior80,$world80]);}
+ck30($rejected80&&!$pdo->inTransaction(),'WP80 corrupted economy rejected and read-only transaction rolled back');
+ck30(\Aeternum\WorldPolitics\ReleaseAudit::inspect($pdo,$world80)===$audit80,'WP80 unchanged audit after fixture restored');
+
