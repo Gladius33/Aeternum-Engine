@@ -34,3 +34,6 @@ stress/backup tests, deployment monitoring, public release review. Rate
 limits count all clients behind the same peer; database rate rows need a
 scheduled retention process. A single coherent read across all domains is
 not guaranteed while another HTTP request starts a tick.
+
+
+WP78–80: see `WORLD_POLITICS_RELEASE_ALPHA.md` for the experimental leaderboard, migration and read-only audit. The canonical scenario is `fr-investiture-2027-v1`; it is still a private headless alpha.

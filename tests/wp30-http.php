@@ -965,3 +965,9 @@ ck30(req30('GET',$board78,null,$t27)['body']['total_players']===1&&req30('GET',$
 $q79=$pdo->prepare('UPDATE wp_campaign_scores SET terminal=1 WHERE world_id=?');$q79->execute([$terminalWorld78]);
 ck30(req30('GET',$terminalRoot78.'/score',null,$t78)===$terminalScore78,'WP79 checkpoint integrity recovery');
 
+require_once __DIR__.'/../games/world-politics/src/ReleaseAudit.php';
+$audit80=\Aeternum\WorldPolitics\ReleaseAudit::inspect($pdo,$terminalWorld78);
+ck30($audit80['status']==='verified_ranked_alpha_score'&&$audit80['score']===$terminalScore78['body']['score']&&$audit80['countries_checked']===7,'WP80 read-only independent audit of terminal ranked world');
+$audit80=\Aeternum\WorldPolitics\ReleaseAudit::inspect($pdo,$g27['body']['world_id']);
+ck30($audit80['day']==='2027-05-19'&&$audit80['revision']===5,'WP80 recovered campaign independently audited');
+
