@@ -49,3 +49,36 @@ $other=new PublicOpinion('world-test','2026-11-25',PublicOpinion::fixture());$ot
 no38(fn()=>$other->advance(observation38('2026-11-26'),CampaignLifecycle::event('world-test','2026-11-26','fake-loss','presidential_election_lost')),'narrative cannot bypass electoral calendar');
 $other->advance(observation38('2026-11-26'),CampaignLifecycle::event('world-test','2026-11-26','resignation','presidential_resignation'));
 ck38($other->snapshot()['presidency']['status']==='ended'&&$other->snapshot()['presidency']['officeholder']===null,'independent resignation terminates office');
+
+use Aeternum\WorldPolitics\{ConstitutionalRevision as CR,FrenchElectionCalendar as EC,ParliamentaryLifecycle as PL};
+$real=PresidentialMandate::publishedFixture();
+$init=PresidentialMandate::initial('world-test','2026-11-25',$real);
+ck38($init['first_round_day']==='2027-04-18'&&$init['second_round_day']==='2027-05-02'&&$init['term_end']==='2027-05-14','announced national dates and exclusive handover');
+ck38(EC::assemblyExpiry(2024)==='2029-06-19'&&PL::publishedElectionConfig('2026-11-25')['poll_day']==='2029-06-03','statutory Assembly expiry and explicitly synthetic poll date');
+$rev=new CR('world-test','2026-11-25');$d=$rev->draft('remove-limit','remove-presidential-term-limit');
+function termEvidence38(CR $r,string $kind,array $data):array{
+    return $r->certify(['world_id'=>'world-test','country'=>'FR','day'=>$r->snapshot()['day'],'evidence_id'=>'term-'.$kind.($data['chamber']??''),'revision_id'=>'remove-limit','kind'=>$kind,'procedure_certified'=>true,'data'=>$data]);
+}
+ck38(CR::termLimitProof($rev->snapshot(),'world-test','2026-11-25')===null,'draft not term-limit change');
+termEvidence38($rev,'file',['initiative'=>'government_project','sponsor'=>'president','prime_minister_proposal'=>true,'republican_form_preserved'=>true]);
+foreach(['assembly','senate'] as $ch)termEvidence38($rev,'chamber_vote',['chamber'=>$ch,'text_sha'=>$d['text_sha'],'yes'=>200,'no'=>100,'abstain'=>0,'blank_invalid'=>0]);
+termEvidence38($rev,'route',['route'=>'congress','presidential_decision'=>true]);
+termEvidence38($rev,'ratify',['route'=>'congress','text_sha'=>$d['text_sha'],'yes'=>480,'no'=>320,'abstain'=>0,'blank_invalid'=>0]);
+ck38(CR::termLimitProof($rev->snapshot(),'world-test','2026-11-25')===null,'adopted but unpublished revision not effective');
+$rev->advance('2026-11-26');termEvidence38($rev,'promulgate',['text_sha'=>$d['text_sha'],'published_on'=>'2026-11-26']);
+$proof=CR::termLimitProof($rev->snapshot(),'world-test','2026-11-26');
+ck38($proof['effective_on']==='2026-11-26','only effective Article 89 publication yields proof');
+$without=$init;$with=$init;
+while($without['day']<'2032-05-14')$without=PresidentialMandate::advance($without,(new DateTimeImmutable($without['day']))->modify('+1 day')->format('Y-m-d'),1000);
+ck38($without['status']==='ended'&&$without['consecutive_terms']===2&&$without['reason']==='presidential_mandate_ended','two consecutive terms remain binding even with maximum approval');
+while($with['day']<'2037-05-14')$with=PresidentialMandate::advance($with,(new DateTimeImmutable($with['day']))->modify('+1 day')->format('Y-m-d'),1000,$proof);
+ck38($with['consecutive_terms']===4&&$with['status']==='scheduled'&&$with['term_end']==='2042-05-14'&&$with['term_limit']===null,'repeal permits successive real game elections beyond ten years');
+$late=$init;while($late['day']<'2032-04-01')$late=PresidentialMandate::advance($late,(new DateTimeImmutable($late['day']))->modify('+1 day')->format('Y-m-d'),1000);
+$lateProof=$proof;$lateProof['effective_on']='2032-04-02';
+$late=PresidentialMandate::advance($late,'2032-04-02',1000,$lateProof);
+ck38($late['candidacy_locked']&&!$late['eligible_for_re_election']&&$late['term_limit']===null,'late publication cannot reopen locked candidacy');
+$op2=new PublicOpinion('world-test','2026-11-25',PublicOpinion::fixture());$op2->enableDialogue();$op2->enableCampaign();$op2->enablePresidentialMandate($real,true);
+$e=observation38('2026-11-26');$e['term_limit_revision']=$proof;$op2->advance($e);
+ck38($op2->snapshot()['presidency']['term_limit']===null&&PublicOpinion::restore($op2->snapshot())->hash()===$op2->hash(),'opinion source bridge and exact replay');
+$bad=$e;$bad['day']='2026-11-27';$bad['term_limit_revision']=null;
+no38(fn()=>$op2->advance($bad),'published constitutional proof cannot silently disappear');

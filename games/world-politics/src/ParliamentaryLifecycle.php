@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrenchSittingCalendar.php';
 require_once __DIR__.'/ElectoralCycle.php';
+require_once __DIR__.'/FrenchElectionCalendar.php';
 require_once __DIR__.'/AssemblyRollCalls.php';
 
 final class ParliamentaryLifecycle
@@ -53,16 +54,28 @@ final class ParliamentaryLifecycle
         for($i=0;$i<577;$i++)$c['districts'][sprintf('district-%03d',$i+1)]=$templates[$i%100];
         return $c;
     }
+    public static function publishedElectionConfig(string $day):array
+    {
+        $c=self::electionConfig($day);$p=FrenchElectionCalendar::legislativePoll();
+        $c['poll_day']=$p['first'];$c['runoff_day']=$p['second'];return $c;
+    }
     public static function digest(array $e):string
     {
         return hash('sha256',json_encode(['world'=>$e['world_id'],'config'=>$e['config'],'result'=>$e['result']],
             JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));
     }
+    private static function matchesElectionConfig(array $e):bool
+    {
+        $old=(new ElectoralCycle($e['world_id'],'FR',$e['start_day'],self::electionConfig($e['start_day'])))->snapshot()['config'];
+        if($e['config']===$old)return true;
+        if($e['start_day']>=FrenchElectionCalendar::legislativePoll()['first'])return false;
+        return $e['config']===(new ElectoralCycle($e['world_id'],'FR',$e['start_day'],self::publishedElectionConfig($e['start_day'])))->snapshot()['config'];
+    }
     public static function install(array $r,array $electoral,string $day):array
     {
         $e=ElectoralCycle::restore($electoral)->snapshot();
         if($e['world_id']!==$r['crisis']['world_id']||$e['country']!=='FR'||$e['status']!=='results'||$e['day']!==$day||$e['seats_total']!==577
-            ||$e['config']!==ElectoralCycle::restore((new ElectoralCycle($e['world_id'],'FR',$e['start_day'],self::electionConfig($e['start_day'])))->snapshot())->snapshot()['config'])
+            ||!self::matchesElectionConfig($e))
             throw new \DomainException('Unverified parliamentary election source');
         if(!self::quiet($r)||$r['lifecycle']['election_digest']!==null)throw new \DomainException('Cannot replace Assembly now');
         $old=FrenchParliament::restore($r['assembly']);$new=AssemblyRollCalls::fromElection($e,$day);

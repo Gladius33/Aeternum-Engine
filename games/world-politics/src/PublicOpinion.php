@@ -85,7 +85,7 @@ final class PublicOpinion
         if(!isset($this->s['campaign'])||isset($this->s['presidency'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
             throw new \DomainException('Presidential rules must be pinned at bootstrap');
         $this->s['presidency']=PresidentialMandate::initial($this->s['world_id'],$this->s['day'],$config);
-        if($dynamic)$this->s['presidency']['ballot_model']='fictional_aggregate_approval_v1';
+        if($dynamic||isset($config['calendar_version']))$this->s['presidency']['ballot_model']='fictional_aggregate_approval_v1';
     }
     public function enablePartyResponses():void
     {
@@ -93,7 +93,7 @@ final class PublicOpinion
         $this->s['party_responses']=PartyPolicyResponse::initial($this->s['day']);
     }
     /** Trusted inputs from the committed domestic and national stores, never player JSON. */
-    public static function observe(array $dom,array $inst,bool $partners=false,bool $civilCrisis=false,bool $partyResponses=false):array
+    public static function observe(array $dom,array $inst,bool $partners=false,bool $civilCrisis=false,bool $partyResponses=false,bool $constitutionalElection=false):array
     {
         $d=$dom['state'];$i=$inst['state'];
         if($d['world_id']!==$i['world_id']||$i['country_code']!=='FR'||$d['day']!==$i['day'])
@@ -109,12 +109,13 @@ final class PublicOpinion
             ...($partners?['partner_observation'=>SocialPartners::observe($last)]:[]),
             ...($civilCrisis?['civil_observation'=>CivilMobilisation::observe($last)]:[]),
             ...($partyResponses?['party_observation'=>PartyPolicyResponse::observe($last,$i)]:[]),
+            ...($constitutionalElection?['term_limit_revision'=>ConstitutionalRevision::termLimitProof($i['revision']??throw new \DomainException('Missing revision aggregate'),$d['world_id'],$d['day'])]:[]),
             ...(isset($i['legislation']['responsibility'])?['responsibility'=>LegislativeResponsibility::observation($i['legislation']['responsibility'])]:[])];
     }
     public function advance(array $e,?array $campaignEvent=null):array
     {
         self::fields($e,['world_id','day','domestic_sha','institutional_sha','pressure','active_policies','production_index_bps',
-            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[]),...(isset($this->s['civil_mobilisation'])?['civil_observation']:[]),...(isset($this->s['party_responses'])?['party_observation']:[])]);
+            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[]),...(isset($this->s['civil_mobilisation'])?['civil_observation']:[]),...(isset($this->s['party_responses'])?['party_observation']:[]),...(isset($this->s['presidency']['calendar_version'])?['term_limit_revision']:[])]);
         self::day($e['day']);
         if($e['world_id']!==$this->s['world_id']||$e['day']!==(new \DateTimeImmutable($this->s['day']))->modify('+1 day')->format('Y-m-d')
             ||count($this->s['history'])>=self::MAX_DAYS)throw new \DomainException('Invalid daily opinion transition');
@@ -139,7 +140,7 @@ final class PublicOpinion
         if(isset($this->s['presidency'])){
             if($campaignEvent!==null&&in_array($campaignEvent['type'],['presidential_election_lost','presidential_mandate_ended'],true))
                 throw new \DomainException('Presidential calendar owns electoral outcomes');
-            $presidency=PresidentialMandate::advance($this->s['presidency'],$e['day'],isset($this->s['presidency']['ballot_model'])?$this->s['approval']:null);
+            $presidency=PresidentialMandate::advance($this->s['presidency'],$e['day'],isset($this->s['presidency']['ballot_model'])?$this->s['approval']:null,$e['term_limit_revision']??null);
             if($campaign['status']==='game_over'){
                 // A prior independently certified terminal event takes precedence.
                 if($presidency['status']!=='ended')$presidency=PresidentialMandate::interrupt($presidency,$e['day'],$campaign['reason']);

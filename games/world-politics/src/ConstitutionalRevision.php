@@ -15,7 +15,8 @@ final class ConstitutionalRevision
     {
         return [
             'environment-report'=>['article'=>'fictional-89-a','text'=>'An annual public report describes the state of the environment and the implementation of environmental commitments.'],
-            'institutional-report'=>['article'=>'fictional-89-b','text'=>'An annual public report describes the functioning of parliamentary institutions and access to their public records.']
+            'institutional-report'=>['article'=>'fictional-89-b','text'=>'An annual public report describes the functioning of parliamentary institutions and access to their public records.'],
+            'remove-presidential-term-limit'=>['article'=>'6','text'=>'In this fictional constitutional revision, the second paragraph of Article 6 is repealed. The five-year presidential term, popular election and republican form remain unchanged.']
         ];
     }
     public function __construct(string $world,string $day)
@@ -38,6 +39,7 @@ final class ConstitutionalRevision
         $item=self::catalog()[$template]??throw new \DomainException('Unreviewed constitutional text');
         if(isset($this->s['procedures'][$id])||count($this->s['procedures'])>=100||count($this->s['history'])>=2000)
             throw new \DomainException('Duplicate or excessive revision draft');
+        if($template==='remove-presidential-term-limit'&&isset($this->s['effective_clauses']['6']))throw new \DomainException('Article 6 already revised');
         $p=['id'=>$id,'template'=>$template,'text'=>$item['text'],'article'=>$item['article'],
             'text_sha'=>hash('sha256',$item['text']),'base_version'=>$this->s['constitution_version'],
             'status'=>'draft','initiative'=>null,'sponsor'=>null,'votes'=>[],'route'=>null,'final_vote'=>null,
@@ -119,6 +121,24 @@ final class ConstitutionalRevision
             $result=['procedure'=>$p,'constitution_version'=>$this->s['constitution_version']];
         }
         $this->s['history'][]=['day'=>$this->s['day'],'kind'=>'evidence','evidence'=>$e];return $result;
+    }
+    /** Only an actually effective, replayed Article 89 publication can alter
+     * the game rule. A draft or adoption alone has no effect. */
+    public static function termLimitProof(array $state,string $world,string $day):?array
+    {
+        $r=self::restore($state)->snapshot();
+        if($r['world_id']!==$world||$r['day']!==$day)throw new \DomainException('Revision observation scope');
+        $c=$r['effective_clauses']['6']??null;
+        if($c===null)return null;
+        $p=$r['procedures'][$c['revision_id']]??null;
+        if(($p['template']??null)!=='remove-presidential-term-limit'||$p['status']!=='effective')throw new \DomainException('Unknown Article 6 revision');
+        $proof=['revision_id'=>$c['revision_id'],'text_sha'=>$c['text_sha'],'effective_on'=>$c['effective_on']];
+        self::validateTermLimitProof($proof,$day);return $proof;
+    }
+    public static function validateTermLimitProof(array $p,string $day):void
+    {
+        self::fields($p,['revision_id','text_sha','effective_on']);self::id($p['revision_id']);self::day($p['effective_on']);
+        if($p['effective_on']>$day||$p['text_sha']!==hash('sha256',self::catalog()['remove-presidential-term-limit']['text']))throw new \DomainException('Invalid effective Article 6 proof');
     }
     private function allowed():bool
     {

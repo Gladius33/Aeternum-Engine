@@ -114,7 +114,7 @@ final class CampaignLifecycle
             'regime_changed'=>$s['regime_changed'],'ended_on'=>$s['ended_on'],'reason'=>$s['reason'],...(isset($s['continuity'])?['continuity'=>$s['continuity']]:[])];
     }
     /** Validate the entire future queue before accepting a new immutable event.
-     * Skip empty days through deterministic date advancement, capped at ten years.
+     * Skip empty days through deterministic date advancement, capped at the twenty-year simulation horizon.
      */
     public static function validateQueue(array $current,array $events):void
     {
@@ -125,7 +125,7 @@ final class CampaignLifecycle
             self::validate($e);
             if(isset($seen[$e['day']])||isset($ids[$e['id']]))throw new \DomainException('Duplicate event day or identity');
             $seen[$e['day']]=true;$ids[$e['id']]=true;
-            if($e['day']<=$current['day']||$e['day']>(new \DateTimeImmutable($current['start_day']))->modify('+3650 days')->format('Y-m-d'))
+            if($e['day']<=$current['day']||$e['day']>(new \DateTimeImmutable($current['start_day']))->modify('+7305 days')->format('Y-m-d'))
                 throw new \DomainException('Event outside campaign horizon');
             // No event-free transition changes campaign state except its date.
             $current['day']=(new \DateTimeImmutable($e['day']))->modify('-1 day')->format('Y-m-d');

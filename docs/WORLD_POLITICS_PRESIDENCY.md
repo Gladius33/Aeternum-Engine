@@ -35,3 +35,8 @@ constitutional adjudication or constitutional amendments is implemented.
 Future work includes dynamic fictional elections and actual succession
 integration, and broader long-horizon performance/retention beyond the
 existing 3650-day opinion and domestic ledger cap.
+
+
+## WP54r — calendrier annoncé et réélection après révision
+
+Pour les nouvelles campagnes corporations/civil-crisis, les dates métropolitaines annoncées 18 avril / 2 mai 2027 remplacent la fixture de novembre/décembre 2026. Le 13 mai 2027 est le dernier jour annoncé du mandat; le moteur modélise la transmission au 14 mai. Le titulaire fictif est à son premier mandat consécutif (ce n'est pas l'historique personnel du président réel). Les dates suivantes sont calculées dans la fenêtre de l'article 7, un dimanche, puis second tour 14 jours après. Le verrou de candidature utilise le 12 mars 2027 (clôture des parrainages), puis une convention de jeu 37 jours avant le premier tour. Ce verrou ne remplace pas le droit complet des candidatures ni une certification réelle. Une publication Article 89 effective reçue depuis l'état institutionnel engagé peut enlever le plafond de deux mandats; elle ne modifie ni une liste verrouillée rétroactivement ni le résultat électoral. Les élections dynamiques restent des scénarios agrégés. Les sauvegardes et fixtures historiques restent inchangées.

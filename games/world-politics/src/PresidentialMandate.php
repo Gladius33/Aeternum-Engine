@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CampaignLifecycle.php';
+require_once __DIR__.'/FrenchElectionCalendar.php';
+require_once __DIR__.'/ConstitutionalRevision.php';
 
 /** WP38: presidential term and fictional national ballots, independent of
  * parliamentary seats. No real candidates, predictive electoral data or
@@ -20,33 +22,55 @@ final class PresidentialMandate
                 'second'=>['votes'=>['challenger-a'=>46000,'challenger-b'=>45000],'blank_invalid'=>1000]]
         ]];
     }
+    public static function publishedFixture():array
+    {
+        $c=self::fixture();$c['term_start']=FrenchElectionCalendar::PRESIDENTIAL_TERM_START;
+        $c['calendar_version']=FrenchElectionCalendar::VERSION;
+        return $c;
+    }
     public static function initial(string $world,string $start,array $config):array
     {
-        self::day($start);self::fields($config,['term_start','consecutive_terms','cycles']);self::day($config['term_start']);
+        self::day($start);$published=array_key_exists('calendar_version',$config);
+        self::fields($config,['term_start','consecutive_terms','cycles',...($published?['calendar_version']:[])]);self::day($config['term_start']);
+        if($published&&$config!==self::publishedFixture())throw new \DomainException('Unrecognised published calendar configuration');
         $terms=$config['consecutive_terms'];
         if(!is_int($terms)||$terms<1||$terms>2||!is_array($config['cycles'])||!array_is_list($config['cycles'])||count($config['cycles'])!==3-$terms)
             throw new \InvalidArgumentException('Invalid presidential term configuration');
         foreach($config['cycles'] as $i=>$cycle)self::countElection($cycle,$terms+$i<2);
         $end=self::termEnd($config['term_start']);
-        $poll=self::shift($end,-25);
+        $dates=$published?FrenchElectionCalendar::presidentialPoll($end):null;
+        $poll=$dates['first']??self::shift($end,-25);
         if($start<$config['term_start']||$start>=$poll)throw new \DomainException('Start must precede scheduled first round');
         return ['version'=>self::VERSION,'classification'=>'fictional_scenario','source'=>self::SOURCE,
             'world_id'=>$world,'day'=>$start,'config'=>$config,'term_start'=>$config['term_start'],'term_end'=>$end,
             'consecutive_terms'=>$terms,'eligible_for_re_election'=>$terms<2,'cycle_index'=>0,'status'=>'scheduled',
-            'first_round_day'=>$poll,'second_round_day'=>self::shift($poll,14),'first_result'=>null,'result'=>null,
+            'first_round_day'=>$poll,'second_round_day'=>$dates['second']??self::shift($poll,14),'first_result'=>null,'result'=>null,
+            ...($published?['calendar_version'=>FrenchElectionCalendar::VERSION,'calendar_status'=>$dates['status'],'candidacy_lock_day'=>$dates['candidacy_lock'],'term_limit'=>2,'term_limit_revision'=>null,'candidacy_locked'=>false]:[]),
             'officeholder'=>CampaignLifecycle::PLAYER,'successor'=>null,'handover_on'=>null,'reason'=>null,'elections'=>[]];
     }
-    public static function advance(array $s,string $day,?int $priorApproval=null):array
+    public static function advance(array $s,string $day,?int $priorApproval=null,?array $termLimitRevision=null):array
     {
         self::day($day);
         if($s['version']!==self::VERSION||$s['status']==='ended'||$day!==self::shift($s['day'],1))
             throw new \DomainException('Presidential date or office state invalid');
         if($priorApproval!==null&&($priorApproval<0||$priorApproval>1000))throw new \InvalidArgumentException('Invalid fictional approval');
+        $published=isset($s['calendar_version']);
+        if($published){
+            if($priorApproval===null)throw new \DomainException('Published calendar needs dynamic fictional ballots');
+            if($termLimitRevision!==null)ConstitutionalRevision::validateTermLimitProof($termLimitRevision,$day);
+            if($s['term_limit_revision']!==null&&$s['term_limit_revision']!==$termLimitRevision)throw new \DomainException('Effective constitutional evidence cannot disappear');
+            if($termLimitRevision!==null){$s['term_limit']=null;$s['term_limit_revision']=$termLimitRevision;}
+            if(!$s['candidacy_locked']){
+                $s['eligible_for_re_election']=$s['term_limit']===null||$s['consecutive_terms']<$s['term_limit'];
+                if($day>=$s['candidacy_lock_day'])$s['candidacy_locked']=true;
+            }
+        }elseif($termLimitRevision!==null)throw new \DomainException('Legacy electoral rules pinned');
         $s['day']=$day;
         if($day===$s['first_round_day']||$day===$s['second_round_day']){
-            $counts=self::countElection($s['config']['cycles'][$s['cycle_index']],$s['eligible_for_re_election']);
+            $cycle=$s['config']['cycles'][$published?($s['eligible_for_re_election']?0:1):$s['cycle_index']];
+            $counts=self::countElection($cycle,$s['eligible_for_re_election']);
             if($priorApproval!==null&&$s['eligible_for_re_election']){
-                $registered=$s['config']['cycles'][$s['cycle_index']]['registered'];
+                $registered=$cycle['registered'];
                 $valid=intdiv($registered*93,100);$blank=intdiv($registered,100);
                 if($day===$s['first_round_day']){
                     $share=max(1000,min(6500,4200+4*($priorApproval-500)));
@@ -81,10 +105,15 @@ final class PresidentialMandate
             $winner=$s['result']['winner']??null;
             $s['elections'][]=['term_end'=>$day,'first_result'=>$s['first_result'],'result'=>$s['result'],'winner'=>$winner];
             if($winner===CampaignLifecycle::PLAYER&&$s['eligible_for_re_election']){
-                $s['consecutive_terms']++;$s['eligible_for_re_election']=false;$s['cycle_index']++;
+                $s['consecutive_terms']++;$s['eligible_for_re_election']=$published?($s['term_limit']===null||$s['consecutive_terms']<$s['term_limit']):false;$s['cycle_index']++;
                 $s['term_start']=$day;$s['term_end']=self::termEnd($day);
                 $s['first_round_day']=self::shift($s['term_end'],-25);
                 $s['second_round_day']=self::shift($s['first_round_day'],14);
+                if($published){
+                    $dates=FrenchElectionCalendar::presidentialPoll($s['term_end']);
+                    $s['first_round_day']=$dates['first'];$s['second_round_day']=$dates['second'];
+                    $s['candidacy_lock_day']=$dates['candidacy_lock'];$s['calendar_status']=$dates['status'];$s['candidacy_locked']=false;
+                }
                 $s['status']='scheduled';$s['first_result']=null;$s['result']=null;$s['handover_on']=$day;
             }else{
                 $s['status']='ended';$s['officeholder']=$winner;$s['successor']=$winner;$s['handover_on']=$day;

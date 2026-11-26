@@ -42,3 +42,6 @@ institutional journal and receipts preserve the changes. Domain and HTTP/DB
 tests cover the procedure, rejected routes, context suspension, publication,
 replay, access and clock coherence. A future worker must produce verified
 evidence from actual simulated votes.
+
+
+WP54r ajoute la clause fictive `remove-presidential-term-limit` : suppression du seul deuxième alinéa de l'article 6, maintien du quinquennat, de l'élection et de la République. La publication après ratification est la seule preuve acceptée par le nouveau calendrier via l'observation du registre institutionnel rejoué; adoption, brouillon et modification tardive d'une candidature verrouillée ne suffisent pas. La certification autonome de la procédure depuis les vrais votes simulés est un jalon WP57–60; le clerk existant reste nécessaire. La forme républicaine demeure protégée par l'article 89.
