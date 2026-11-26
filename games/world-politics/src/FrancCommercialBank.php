@@ -70,6 +70,7 @@ final class FrancCommercialBank
             $capMax=self::scale(max(0,$equity),10000,$terms['minimum_capital_bps']);
             $liqMax=self::scale($reserve,10000,$terms['minimum_liquidity_bps']);
             $capacity=max(0,min($capMax-$loan,$liqMax-$publicDeposit-$deposit));
+            if($crisis!==null)$capacity=min($capacity,max(0,self::scale($reserve-$publicReserve,10000,$terms['minimum_liquidity_bps'])-$deposit));
             if($equity<=0||$row['excess_base_franc_minor']>0||$facilityDebt>0||$guaranteeClaim>0)$capacity=0;
             $paid=0;$new=0;$principal=0;$coupon=0;$loss=0;$withdrawal=0;$redeposit=0;$support=0;$supportRepay=0;$payout=0;$eligibleWithdrawal=0;
             switch($kind){
@@ -90,7 +91,7 @@ final class FrancCommercialBank
                 case 'cash_withdrawal':
                     // Only private-credit deposits are in this closed cash pilot.
                     $eligibleWithdrawal=min($ask,$deposit);
-                    $paid=$withdrawal=min($eligibleWithdrawal,$reserve);
+                    $paid=$withdrawal=min($eligibleWithdrawal,$reserve-$publicReserve);
                     $reserve-=$withdrawal;$deposit-=$withdrawal;$cash+=$withdrawal;$withdrawn+=$withdrawal;break;
                 case 'cash_redeposit':
                     $paid=$redeposit=min($ask,$cash);
@@ -102,7 +103,7 @@ final class FrancCommercialBank
                     $paid=$support=$equity>0?min($ask,$facility,max(0,$collateral-$facilityDebt)):0;
                     $facility-=$support;$facilityDebt+=$support;$reserve+=$support;break;
                 case 'liquidity_repayment':
-                    $paid=$supportRepay=min($ask,$facilityDebt,$reserve);
+                    $paid=$supportRepay=min($ask,$facilityDebt,$reserve-$publicReserve);
                     $facility+=$supportRepay;$facilityDebt-=$supportRepay;$reserve-=$supportRepay;break;
                 case 'guarantee_payout':
                     // Aggregate prefunded guarantee, not a per-person statutory
@@ -118,7 +119,7 @@ final class FrancCommercialBank
                 ||$facility+$facilityDebt!==$crisis['facility_pool_franc_minor']
                 ||$guarantee+$guaranteeClaim!==$crisis['guarantee_pool_franc_minor']
                 ||$reserve+$cash+$facility+$guarantee!==$seed+$publicReserve+$crisis['facility_pool_franc_minor']+$crisis['guarantee_pool_franc_minor']
-                ||min($cash,$facility,$guarantee,$facilityDebt,$guaranteeClaim)<0))
+                ||$reserve<$publicReserve||min($cash,$facility,$guarantee,$facilityDebt,$guaranteeClaim)<0))
                 throw new \DomainException('Crisis funding does not conserve base');
             $capital=self::ratio($equity,$loan);$liquidity=self::ratio($reserve,$deposits);
             $capitalOk=$equity>0&&($capital===null||$capital>=$terms['minimum_capital_bps']);
@@ -143,6 +144,7 @@ final class FrancCommercialBank
                 ...($crisis===null?[]:['crisis'=>['requested_eligible_withdrawal_franc_minor'=>$eligibleWithdrawal,
                     'cash_withdrawn_franc_minor'=>$withdrawal,'unserved_eligible_withdrawal_franc_minor'=>$eligibleWithdrawal-$withdrawal,
                     'cash_redeposited_franc_minor'=>$redeposit,'household_cash_franc_minor'=>$cash,
+                    'ringfenced_public_reserves_franc_minor'=>$publicReserve,'private_available_reserves_franc_minor'=>$reserve-$publicReserve,
                     'facility_advance_franc_minor'=>$support,'facility_repayment_franc_minor'=>$supportRepay,
                     'facility_available_franc_minor'=>$facility,'bank_facility_liability_franc_minor'=>$facilityDebt,
                     'facility_claim_asset_franc_minor'=>$facilityDebt,

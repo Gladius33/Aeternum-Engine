@@ -334,3 +334,8 @@ claim to a prefunded fund, not automatic debt cancellation. No additional
 base money; daily pool/reserve/cash and bank balance identities. Aggregate
 private deposit pilot only, no real per-depositor coverage, public deposit
 withdrawals, bank resolution or interbank clearing. CI pending.
+
+Ring-fenced public reserves cannot fund private cash withdrawals or facility
+repayments in the crisis pilot. Private credit capacity is additionally capped
+by private liquidity. Regression combines public spending, run and subsequent
+public monetary destruction without a negative reserve balance.

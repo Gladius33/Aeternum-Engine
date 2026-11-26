@@ -31,3 +31,25 @@ ckBC($r[6]['insolvent']&&$r[7]['crisis']['guarantee_paid_franc_minor']===50000&&
 ckBC($r[8]['crisis']['facility_advance_franc_minor']===0&&$r[9]['new_credit_franc_minor']===0,'insolvent bank cannot receive ordinary support or originate credit');
 foreach($r as $v){$c=$v['crisis'];ckBC($v['bank_balance_difference_franc_minor']===0&&$v['monetary_base_franc_minor']===1000000&&$c['base_money_created_by_crisis_franc_minor']===0&&$v['bank_reserves_franc_minor']+$c['household_cash_franc_minor']+$c['facility_available_franc_minor']+$c['guarantee_available_franc_minor']===350000,'daily balance and preallocated base conserved');}
 ckBC(E::restore($end)===$end,'deterministic evidence replay');
+
+$ring=E::request(E::initial($day,true,true,true,true,true,true,true,true),$day);
+$ring=E::certify($ring,$day,'notification',['national_decision_sha'=>$sha,'notification_sha'=>$sha]);
+$ring=E::certify($ring,$day,'agreement',['effective_on'=>'2026-11-27','parliament_consent'=>true,'council_qualified_majority'=>true,'france_agrees'=>true,'agreement_sha'=>$sha]);
+$ring=E::certify($ring,$day,'currency_terms',['effective_on'=>'2026-11-27','units_per_eur'=>1,'instrument_sha'=>$sha,'contracts'=>[
+    ['id'=>'bond-fr','debtor'=>'fr_treasury','creditor'=>'fr_banks','kind'=>'sovereign_bond','principal_eur_minor'=>100,'governing_law'=>'fr','treatment'=>'convert_certified','evidence_sha'=>$sha]]]);
+$ring=E::certify($ring,$day,'franc_rule',['effective_on'=>'2026-11-27','opening_base_franc_minor'=>1000000,'instrument_sha'=>$sha]);
+$ring=E::certify($ring,$day,'franc_bank_terms',['effective_on'=>'2026-11-27','opening_reserve_allocation_franc_minor'=>100000,'minimum_capital_bps'=>1000,'minimum_liquidity_bps'=>2000,'instrument_sha'=>$sha]);
+$ring=E::certify($ring,$day,'franc_bank_crisis_terms',$terms);
+$ring=E::certify($ring,$day,'franc_bank_order',$order('2026-11-27','credit',500000));
+$ring=E::certify($ring,$day,'franc_funding',['effective_on'=>'2026-11-28','spending_requested_franc_minor'=>100000,'repayment_requested_franc_minor'=>0,'instrument_sha'=>$sha]);
+$ring=E::certify($ring,$day,'franc_bank_order',$order('2026-11-28','cash_withdrawal',200000));
+$ring=E::certify($ring,$day,'franc_funding',['effective_on'=>'2026-11-29','spending_requested_franc_minor'=>0,'repayment_requested_franc_minor'=>100000,'instrument_sha'=>$sha]);
+$ring=E::advance($ring,'2026-11-29');
+$rr=F::project($ring,['day'=>'2026-11-29','days'=>[
+    ['day'=>'2026-11-26','macro'=>['real_gdp'=>1000000]],
+    ['day'=>'2026-11-27','macro'=>['real_gdp'=>1200000]],
+    ['day'=>'2026-11-28','macro'=>['real_gdp'=>1200000]],
+    ['day'=>'2026-11-29','macro'=>['real_gdp'=>1000000]]]]);
+$rb=$rr['commercial_banking']['days'];
+ckBC($rb[1]['crisis']['cash_withdrawn_franc_minor']===100000&&$rb[1]['bank_reserves_franc_minor']===100000&&$rb[1]['crisis']['ringfenced_public_reserves_franc_minor']===100000,'public payment reserves cannot finance private run');
+ckBC($rr['latest']['funding']['destroyed_franc_minor']===100000&&$rb[2]['bank_reserves_franc_minor']===0&&$rb[2]['bank_balance_difference_franc_minor']===0,'public repayment after run remains solvent in reserves');

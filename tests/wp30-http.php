@@ -771,7 +771,7 @@ $c54=req30('GET',$r54.'/clock',null,$tc48);
 $c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-29'],$tc48,['If-Match'=>$c54['etag'],'Idempotency-Key'=>'eu-bank-crisis-tick-001']);
 ck30($c54['status']===200&&$c54['body']['coherent'],'WP54r coherent bank crisis tick');
 $crisis54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);$frc54=$crisis54['body']['franc_monetary_rule'];$bk54=$frc54['commercial_banking']['latest'];$cr54=$bk54['crisis'];
-ck30($crisis54['status']===200&&$cr54['cash_withdrawn_franc_minor']===min(2000000000,$b54['bank_reserves_franc_minor'])&&$cr54['cash_withdrawn_franc_minor']+$cr54['unserved_eligible_withdrawal_franc_minor']===2000000000,'WP54r actual tick withdrawal limited by reserves');
+ck30($crisis54['status']===200&&$cr54['cash_withdrawn_franc_minor']===min(2000000000,$b54['bank_reserves_franc_minor']-$pf54['commercial_banks']['reserve_asset_franc_minor'])&&$cr54['cash_withdrawn_franc_minor']+$cr54['unserved_eligible_withdrawal_franc_minor']===2000000000,'WP54r actual tick withdrawal limited by reserves');
 ck30($bk54['bank_balance_difference_franc_minor']===0&&$cr54['base_money_created_by_crisis_franc_minor']===0&&$cr54['covered_deposits_plus_cash_franc_minor']===$b54['bank_deposit_liabilities_franc_minor'],'WP54r cash conversion conserves money');
 
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
