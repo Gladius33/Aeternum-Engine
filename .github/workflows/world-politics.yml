@@ -327,3 +327,4 @@ jobs:
             sleep 1
           done
           php tests/wp30-http.php
+          php tests/wp71-finance-2028-db.php
