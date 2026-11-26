@@ -25,13 +25,15 @@ ckEq($s['paid_today_minor']===0&&$s['total_paid_minor']===$price,'one-time finan
 final class AEquity implements DomesticPolicyAuthority{
     public string $day='2026-11-25';
     public function allows(string $w,string $a):bool{return $w==='world-test';}
-    public function enactedInstrument(string $w,string $p):?string{return null;}
+    public function enactedInstrument(string $w,string $p):?string{return $p==='test-revenue'?str_repeat('a',64):null;}
     public function clockDay(string $w):string{return $this->day;}
 }
 $b=FrenchMacroBaseline::load();$p=FrenchDemography::load($start,$b['initial_unemployment_bps']);$c=FrenchPublicServices::load($start,$p,$b);$debt=SovereignDebtLedger::load($b,$start,true);
-$catalog=['unused'=>['revenue_delta'=>0,'expense_delta'=>0,'pressure_delta'=>['workers'=>0,'retired'=>0],'duration_days'=>1,'concessions'=>['workers'=>0,'retired'=>0],'concession_daily_cost'=>0,'production_delta_bps'=>0,'employment_delta_bps'=>0]];
-$make=fn(bool $eq=true)=>new DomesticPolicySimulation('world-test',$start,'EUR',100000000000000,$b['daily_revenue'],$b['daily_primary_expense'],['workers'=>400,'retired'=>300],$catalog,$b,$debt,$p,$c,true,false,false,$config,$eq);
-$a=new AEquity();$x=$make();$z=$make();$x->corporationDecision($a,'offer-voluntary-equity:'.$yes);
+$catalog=['test-revenue'=>['revenue_delta'=>500000000000,'expense_delta'=>0,'pressure_delta'=>['workers'=>0,'retired'=>0],'duration_days'=>60,'concessions'=>['workers'=>0,'retired'=>0],'concession_daily_cost'=>0,'production_delta_bps'=>0,'employment_delta_bps'=>0]];
+$make=fn(bool $eq=true)=>new DomesticPolicySimulation('world-test',$start,'EUR',$b['assumed_opening_cash'],$b['daily_revenue'],$b['daily_primary_expense'],['workers'=>400,'retired'=>300],$catalog,$b,$debt,$p,$c,true,false,false,$config,$eq);
+$a=new AEquity();$x=$make();$z=$make();
+foreach([$x,$z] as $sim){$sim->propose($a,'test-revenue','2026-11-26');$sim->authorize($a,'test-revenue');}
+$x->corporationDecision($a,'offer-voluntary-equity:'.$yes);
 for($i=1;$i<=31;$i++){
     $a->day=(new DateTimeImmutable($a->day))->modify('+1 day')->format('Y-m-d');
     $r=$x->advance($a,$a->day);$old=$z->advance($a,$a->day);
