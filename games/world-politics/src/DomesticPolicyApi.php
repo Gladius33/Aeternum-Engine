@@ -10,7 +10,7 @@ final class DomesticPolicyApi
     public function __construct(private readonly PdoDomesticPolicyStore $store) {}
     public function handle(string $method,string $route,?array $body=null,array $headers=[]):array
     {
-        if (!preg_match('~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/domestic(?:/(proposals|enactments|summary))?$~D',$route,$m))
+        if (!preg_match('~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/domestic(?:/(proposals|enactments|summary|crisis))?$~D',$route,$m))
             return self::problem(404,'not_found');
         $world=$m[1];$resource=$m[2]??'';
         try {
@@ -20,11 +20,11 @@ final class DomesticPolicyApi
                 $result=$resource===''?$r['state']:self::summary($r['state']);
                 return self::ok(200,$result,$r['etag']);
             }
-            if ($method!=='POST' || !in_array($resource,['proposals','enactments'],true)) return self::problem(405,'method_not_allowed');
+            if ($method!=='POST' || !in_array($resource,['proposals','enactments','crisis'],true)) return self::problem(405,'method_not_allowed');
             $h=array_change_key_case($headers,CASE_LOWER);
             if (!is_string($h['if-match']??null) || !is_string($h['idempotency-key']??null)) return self::problem(428,'precondition_required');
             if ($body===null) return self::problem(400,'body_required');
-            $r=$this->store->execute($world,$resource==='proposals'?'propose':'enact',$body,$h['idempotency-key'],$h['if-match']);
+            $r=$this->store->execute($world,match($resource){'proposals'=>'propose','crisis'=>'crisis',default=>'enact'},$body,$h['idempotency-key'],$h['if-match']);
             return self::ok($r['status'],$r['result'],$r['etag']);
         } catch (\InvalidArgumentException $e) {return self::problem(422,'invalid_request');}
         catch (\DomainException $e) {

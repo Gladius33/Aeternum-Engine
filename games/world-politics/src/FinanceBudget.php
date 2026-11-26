@@ -120,7 +120,7 @@ final class FinanceBudget
                 $i=intdiv($debt*300,3650000);$cash+=$flow-$i;$borrow=max(0,-$cash);$cash+=$borrow;$debt+=$borrow;
             }
             $interest+=$i;$issued+=$borrow;$primary+=$flow;
-            $rows[]=['day'=>$d['day'],'primary_balance'=>$flow,'interest'=>$i,'new_borrowing'=>$borrow,'cash'=>$cash,'debt'=>$debt,...(isset($d['treasury']['principal_paid'])?['principal_paid'=>$d['treasury']['principal_paid'],'debt_change'=>$d['treasury']['debt_change'],'funding_gap'=>$d['treasury']['funding_gap'],'status'=>$d['treasury']['status']]:[])];
+            $rows[]=['day'=>$d['day'],'primary_balance'=>$flow,'interest'=>$i,'new_borrowing'=>$borrow,'cash'=>$cash,'debt'=>$debt,...(isset($d['treasury']['principal_paid'])?['principal_paid'=>$d['treasury']['principal_paid'],'debt_change'=>$d['treasury']['debt_change'],'funding_gap'=>$d['treasury']['funding_gap'],'status'=>$d['treasury']['status']]:[]),...(isset($d['treasury']['crisis'])?['crisis'=>$d['treasury']['crisis']]:[])];
         }
         $bills=$s['bills'];foreach($bills as &$b){
             $b['seventy_day_review_due']=$dom['day']>=$b['parliament_deadline']&&in_array($b['status'],['assembly_pending','assembly_decided','senate_pending','senate_decided'],true);

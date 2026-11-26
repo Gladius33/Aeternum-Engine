@@ -417,3 +417,12 @@ Observed debt pack pinned in MariaDB, synthetic nominal creditor cohorts,
 primary outlays, fixed issue-rate buckets, daily/monthly/yearly stock-flow
 journal. No actual ISIN schedule, player default, bank model or allied
 credit yet. See WORLD_POLITICS_DEBT_LEDGER.md.
+
+
+## WP50 financial crisis candidate
+
+New scenario with owner-only fictional moratorium/resumption, one negotiated
+overdue-principal reduction, one finite fictional support facility, bank
+valuation/credit proxy and lagged macro feedback. No nationalisation,
+central bank, actual alliance negotiation or currency conversion yet.
+See WORLD_POLITICS_FINANCIAL_CRISIS.md. WP49 validated CI 45717816781.

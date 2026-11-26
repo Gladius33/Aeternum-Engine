@@ -60,13 +60,13 @@ final class PdoDomesticPolicyStore
     public function execute(string $world,string $operation,array $payload,string $key,string $ifMatch): array
     {
         $ability = match($operation) {
-            'propose'=>'domestic.propose','enact'=>'domestic.enact','clock'=>'domestic.clock',
+            'propose'=>'domestic.propose','enact'=>'domestic.enact','clock'=>'domestic.clock','crisis'=>'domestic.crisis',
             default=>throw new \InvalidArgumentException('Unknown domestic operation')
         };
         $actor = $this->permit($world,$ability);
         $this->sameActor($world,'domestic.read',$actor);
         self::fields($payload,match($operation) {
-            'propose'=>['policy_id','effective_day'],'enact'=>['policy_id'],'clock'=>['target_day']
+            'propose'=>['policy_id','effective_day'],'enact'=>['policy_id'],'clock'=>['target_day'],'crisis'=>['action']
         });
         foreach ($payload as $value) {
             if (!is_string($value) || strlen($value)>64) throw new \InvalidArgumentException('Invalid command value');
@@ -100,7 +100,7 @@ final class PdoDomesticPolicyStore
             $result = match($operation) {
                 'propose'=>$this->propose($sim,$payload),
                 'enact'=>$this->enact($sim,$payload),
-                'clock'=>$sim->advance($this->principal,$payload['target_day'])
+                'clock'=>$sim->advance($this->principal,$payload['target_day']),'crisis'=>$sim->crisisDecision($this->principal,$payload['action'])
             };
             $this->sameActor($world,$ability,$actor);
             $this->sameActor($world,'domestic.read',$actor);

@@ -88,8 +88,13 @@ final class MacroFiscalLoop
      * day's macro row. No uncommitted values, implicit circular equation
      * or read-side mutation. No trade/monetary feedback in this first loop.
      */
-    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null):array
+    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null):array
     {
+        if(!empty($debtModel['crisis_enabled'])){
+            $credit=$previous['treasury']['banking']['credit_availability_bps']??10000;
+            $production-=intdiv(10000-$credit,2);
+            $employment-=intdiv(10000-$credit,4);
+        }
         $prior=$previous['macro']??null;$debt=$previous['treasury']['debt']??$b['opening_debt'];
         $price=$prior['price_index_scaled']??100000000;
         $wage=$prior['wage_index_scaled']??100000000;
@@ -128,7 +133,7 @@ final class MacroFiscalLoop
             'new_borrowing'=>$borrow,'cash'=>$closing,'debt'=>$closingDebt];
         if($debtModel!==null){
             if($target===null)throw new \DomainException('Missing debt clock day');
-            $treasury=SovereignDebtLedger::step($debtModel,$target,$previous,$cash,$actualRevenue,$primaryExpense);
+            $treasury=SovereignDebtLedger::step($debtModel,$target,$previous,$cash,$actualRevenue,$primaryExpense,$crisisAction);
             $closing=$treasury['cash'];
         }
         return ['revenue'=>$actualRevenue,'expense'=>$primaryExpense,'balance'=>$closing,

@@ -23,6 +23,7 @@ final class DomesticPolicySimulation
     public const VERSION = 'wp29a-domestic-policy-1';
     private array $policies = [];
     private array $days = [];
+    private array $crisisDecisions=[];
     private array $pressure;
     private int $balance;
     private string $day;
@@ -135,6 +136,18 @@ final class DomesticPolicySimulation
         return $row;
     }
 
+    /** Explicit fictional world-owner decision, not an enacted legal instrument. */
+    public function crisisDecision(DomesticPolicyAuthority $principal,string $action):array
+    {
+        $this->require($principal,'domestic.crisis');
+        if(($this->debtModel['crisis_enabled']??false)!==true)throw new \DomainException('Crisis scenario required');
+        $event=['day'=>$this->day,'action'=>$action];
+        $next=[...$this->crisisDecisions,$event];
+        FinancialCrisis::validate($next,$this->startDay,$this->day);
+        $this->crisisDecisions=$next;
+        return $event;
+    }
+
     private function calculate(string $target, int $balance, array $pressure): array
     {
         $revenue = $this->baselineRevenue; $expense = $this->baselineExpense;
@@ -158,7 +171,7 @@ final class DomesticPolicySimulation
         $loop=null;
         if($this->macroBaseline!==null){
             $prior=$this->days===[]?null:$this->days[array_key_last($this->days)];
-            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target);
+            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target));
             $revenue=$loop['revenue'];$expense=$loop['expense'];
         }
         $closing = $loop===null?$balance+$revenue-$expense:$loop['balance'];
@@ -203,7 +216,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel])];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }
@@ -228,6 +241,11 @@ final class DomesticPolicySimulation
         self::date($snapshot['day']);
         // Work on a clone, so failed recovery leaves this object unchanged.
         $copy = clone $this;
+        if(!empty($this->debtModel['crisis_enabled'])){
+            if(!is_array($snapshot['crisis_decisions']))throw new \DomainException('Invalid crisis history');
+            FinancialCrisis::validate($snapshot['crisis_decisions'],$this->startDay,$snapshot['day']);
+            $copy->crisisDecisions=$snapshot['crisis_decisions'];
+        }
         foreach ($snapshot['policies'] as $id => $p) {
             self::id($id);
             if (!isset($this->catalog[$id]) || !is_array($p)) throw new \DomainException('Unknown persisted policy');
@@ -252,7 +270,7 @@ final class DomesticPolicySimulation
             $copy->balance = $row['closing_balance']; $copy->pressure = $row['pressure'];
         }
         if ($copy->snapshot() !== $snapshot) throw new \DomainException('Final snapshot replay mismatch');
-        $this->policies = $copy->policies; $this->days = $copy->days;
+        $this->policies = $copy->policies; $this->days = $copy->days; $this->crisisDecisions=$copy->crisisDecisions;
         $this->day = $copy->day; $this->balance = $copy->balance; $this->pressure = $copy->pressure;
     }
 
