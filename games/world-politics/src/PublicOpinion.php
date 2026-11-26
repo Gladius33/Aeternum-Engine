@@ -78,11 +78,12 @@ final class PublicOpinion
         $this->s['civil_mobilisation']=CivilMobilisation::initial($this->s['day']);
         $this->s['campaign']['continuity']=['location_status'=>'domestic','recognition_status'=>'not_disputed','last_event_day'=>null];
     }
-    public function enablePresidentialMandate(array $config):void
+    public function enablePresidentialMandate(array $config,bool $dynamic=false):void
     {
         if(!isset($this->s['campaign'])||isset($this->s['presidency'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
             throw new \DomainException('Presidential rules must be pinned at bootstrap');
         $this->s['presidency']=PresidentialMandate::initial($this->s['world_id'],$this->s['day'],$config);
+        if($dynamic)$this->s['presidency']['ballot_model']='fictional_aggregate_approval_v1';
     }
     /** Trusted inputs from the committed domestic and national stores, never player JSON. */
     public static function observe(array $dom,array $inst,bool $partners=false,bool $civilCrisis=false):array
@@ -129,7 +130,7 @@ final class PublicOpinion
         if(isset($this->s['presidency'])){
             if($campaignEvent!==null&&in_array($campaignEvent['type'],['presidential_election_lost','presidential_mandate_ended'],true))
                 throw new \DomainException('Presidential calendar owns electoral outcomes');
-            $presidency=PresidentialMandate::advance($this->s['presidency'],$e['day']);
+            $presidency=PresidentialMandate::advance($this->s['presidency'],$e['day'],isset($this->s['presidency']['ballot_model'])?$this->s['approval']:null);
             if($campaign['status']==='game_over'){
                 // A prior independently certified terminal event takes precedence.
                 if($presidency['status']!=='ended')$presidency=PresidentialMandate::interrupt($presidency,$e['day'],$campaign['reason']);
@@ -230,7 +231,7 @@ final class PublicOpinion
         if(array_key_exists('social_partners',$s))$x->enableSocialPartners();
         if(array_key_exists('campaign',$s))$x->enableCampaign();
         if(array_key_exists('civil_mobilisation',$s))$x->enableCivilCrisis();
-        if(array_key_exists('presidency',$s))$x->enablePresidentialMandate($s['presidency']['config']);
+        if(array_key_exists('presidency',$s))$x->enablePresidentialMandate($s['presidency']['config'],isset($s['presidency']['ballot_model']));
         foreach($s['history'] as $r)$x->advance($r['source'],$r['campaign_event']??null);
         if($x->snapshot()!==$s)throw new \DomainException('Opinion replay mismatch');
         return $x;

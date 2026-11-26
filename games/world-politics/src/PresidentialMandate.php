@@ -36,14 +36,38 @@ final class PresidentialMandate
             'first_round_day'=>$poll,'second_round_day'=>self::shift($poll,14),'first_result'=>null,'result'=>null,
             'officeholder'=>CampaignLifecycle::PLAYER,'successor'=>null,'handover_on'=>null,'reason'=>null,'elections'=>[]];
     }
-    public static function advance(array $s,string $day):array
+    public static function advance(array $s,string $day,?int $priorApproval=null):array
     {
         self::day($day);
         if($s['version']!==self::VERSION||$s['status']==='ended'||$day!==self::shift($s['day'],1))
             throw new \DomainException('Presidential date or office state invalid');
+        if($priorApproval!==null&&($priorApproval<0||$priorApproval>1000))throw new \InvalidArgumentException('Invalid fictional approval');
         $s['day']=$day;
         if($day===$s['first_round_day']||$day===$s['second_round_day']){
             $counts=self::countElection($s['config']['cycles'][$s['cycle_index']],$s['eligible_for_re_election']);
+            if($priorApproval!==null&&$s['eligible_for_re_election']){
+                $registered=$s['config']['cycles'][$s['cycle_index']]['registered'];
+                $valid=intdiv($registered*93,100);$blank=intdiv($registered,100);
+                if($day===$s['first_round_day']){
+                    $share=max(1000,min(6500,4200+4*($priorApproval-500)));
+                    $player=intdiv($valid*$share,10000);$remaining=$valid-$player;
+                    $first=self::ballot(['votes'=>[CampaignLifecycle::PLAYER=>$player,'challenger-a'=>intdiv($remaining*7,10),'challenger-b'=>$remaining-intdiv($remaining*7,10)],'blank_invalid'=>$blank],$registered);
+                    $rank=array_keys($first['votes']);usort($rank,fn($a,$b)=>$first['votes'][$b]<=>$first['votes'][$a]?:strcmp($a,$b));
+                    $winner=$first['votes'][$rank[0]]*2>$valid?$rank[0]:null;
+                    $finalists=$winner===null?array_slice($rank,0,2):[];
+                    if($winner===null&&$first['votes'][$rank[1]]===$first['votes'][$rank[2]])$finalists=[];
+                    $counts['first']=$first+['round'=>1,'winner'=>$winner,'finalists'=>$finalists];
+                }elseif($s['status']==='runoff_pending'){
+                    $finalists=$s['first_result']['finalists'];$one=$finalists[0];$two=$finalists[1];
+                    if(in_array(CampaignLifecycle::PLAYER,$finalists,true)){
+                        $share=max(2000,min(8000,5000+6*($priorApproval-500)));
+                        $player=intdiv($valid*$share,10000);$oneVotes=$one===CampaignLifecycle::PLAYER?$player:$valid-$player;
+                    }else $oneVotes=intdiv($valid*55,100);
+                    $second=self::ballot(['votes'=>[$one=>$oneVotes,$two=>$valid-$oneVotes],'blank_invalid'=>$blank],$registered);
+                    $winner=null;foreach($second['votes'] as $id=>$n)if($n*2>$valid)$winner=$id;
+                    $counts['second']=$second+['round'=>2,'winner'=>$winner,'finalists'=>$finalists];
+                }
+            }
             if($day===$s['first_round_day']){
                 $s['first_result']=$counts['first'];
                 if($counts['first']['winner']!==null){$s['result']=$counts['first'];$s['status']='result_known';}

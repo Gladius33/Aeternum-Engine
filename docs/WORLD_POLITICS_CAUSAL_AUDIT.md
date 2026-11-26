@@ -84,3 +84,16 @@ rights must be reviewed before commercial use.
 ## Status
 WP53c adds a causal regression covering existing linked paths, not calibration
 of coefficients or proof of all above criteria. CI confirmation required.
+
+
+## WP54r remediation checkpoint
+
+New corporation/civil-crisis worlds pin wage feedback v1 and aggregate fictional
+presidential ballot model. Approved wages change weighted wage target, realised
+payroll proxy, split tax base, household consumption via real wages, labour cost,
+investment and employment. No claim of calibrated payroll or observed branch weights.
+Presidential eligible incumbent ballots react to previous committed aggregate
+approval; no real candidates or polling. Other cycles retain fixtures. Legacy
+worlds retain original hash and replay. Counterfactual and replay tests added.
+Remaining acceptance gates above stay OPEN, notably trade, company ownership,
+industrial capital, constitutional authorization, EU/currency and performance.

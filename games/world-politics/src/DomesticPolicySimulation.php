@@ -7,6 +7,7 @@ require_once __DIR__.'/SovereignDebtLedger.php';
 require_once __DIR__.'/FrenchDemography.php';
 require_once __DIR__.'/FrenchPublicServices.php';
 require_once __DIR__.'/ProfessionalCorporations.php';
+require_once __DIR__.'/CorporationWageFeedback.php';
 
 /**
  * WP29A: scenario-only domestic policy ledger. All monetary amounts are
@@ -50,7 +51,8 @@ final class DomesticPolicySimulation
         private readonly ?array $debtModel=null,
         private readonly ?array $populationModel=null,
         private readonly ?array $servicesModel=null,
-        private readonly bool $corporationsEnabled=false
+        private readonly bool $corporationsEnabled=false,
+        private readonly bool $wageFeedbackEnabled=false
     ) {
         self::id($world); self::date($startDay);
         if (!preg_match('/^[A-Z]{3}$/D', $currency)) throw new \InvalidArgumentException('Invalid currency');
@@ -105,6 +107,7 @@ final class DomesticPolicySimulation
             if($this->populationModel===null||empty($this->debtModel['crisis_enabled']))throw new \DomainException('Services need population and crisis model');
             FrenchPublicServices::assertValid($this->servicesModel,$startDay,$this->populationModel,$this->macroBaseline);
         }
+        if($wageFeedbackEnabled&&!$corporationsEnabled)throw new \DomainException('Wage feedback requires corporations');
         if($corporationsEnabled&&$servicesModel===null)throw new \DomainException('Corporations require services scenario');
         $this->pressure = $cohorts;
         $this->balance = $openingBalance;
@@ -214,7 +217,7 @@ final class DomesticPolicySimulation
                 if($expense<=0)throw new \DomainException('Service adjustment exceeds fiscal flow');
                 foreach($prior['services']['next_day_pressure_delta']??[] as $k=>$v)if(isset($deltas[$k]))$deltas[$k]+=$v;
             }
-            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0);
+            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0,$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null);
             $revenue=$loop['revenue'];$expense=$loop['expense'];
         }
         $closing = $loop===null?$balance+$revenue-$expense:$loop['balance'];
@@ -254,7 +257,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[])]);
     }
 
     public function snapshot(): array
@@ -262,7 +265,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[])];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[]),...($this->wageFeedbackEnabled?['wage_feedback_version'=>CorporationWageFeedback::VERSION]:[])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }

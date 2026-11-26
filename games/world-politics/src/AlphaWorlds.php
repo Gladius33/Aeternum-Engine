@@ -80,7 +80,7 @@ final class AlphaScenario
             if(in_array($this->id,[self::POPULATION,self::SERVICES,self::PARTNERS,self::CORPORATIONS,self::CIVIL_CRISIS],true))$c['population_model']=FrenchDemography::load($this->day,$b['initial_unemployment_bps']);
             if(in_array($this->id,[self::SERVICES,self::PARTNERS,self::CORPORATIONS,self::CIVIL_CRISIS],true))$c['services_model']=FrenchPublicServices::load($this->day,$c['population_model'],$b);
         }
-        if(in_array($this->id,[self::CORPORATIONS,self::CIVIL_CRISIS],true))$c['corporations_enabled']=true;
+        if(in_array($this->id,[self::CORPORATIONS,self::CIVIL_CRISIS],true)){$c['corporations_enabled']=true;$c['wage_feedback_enabled']=true;}
         return $c;
     }
 }
@@ -166,7 +166,7 @@ final class AlphaWorlds
             $this->insert('INSERT INTO wp_economic_states(world_id,state_json,state_sha,reference_sha,actor_registry_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($econ->snapshot()),$econ->hash(),$this->scenario->references->hash(),$this->scenario->actors->hash()]);
             $c=$this->scenario->domestic();
-            $dom=new DomesticPolicySimulation($world,$day,$c['currency'],$c['opening_balance'],$c['baseline_revenue'],$c['baseline_expense'],$c['cohorts'],$c['catalog'],$c['macro_baseline']??null,$c['debt_model']??null,$c['population_model']??null,$c['services_model']??null,$c['corporations_enabled']??false);
+            $dom=new DomesticPolicySimulation($world,$day,$c['currency'],$c['opening_balance'],$c['baseline_revenue'],$c['baseline_expense'],$c['cohorts'],$c['catalog'],$c['macro_baseline']??null,$c['debt_model']??null,$c['population_model']??null,$c['services_model']??null,$c['corporations_enabled']??false,$c['wage_feedback_enabled']??false);
             $this->insert('INSERT INTO wp_domestic_states(world_id,assumptions_json,assumptions_sha,state_json,state_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($c),$dom->assumptionsHash(),self::json($dom->snapshot()),$dom->hash()]);
             $this->insert('INSERT INTO wp_world_clock(world_id,committed_day,revision,domestic_enabled) VALUES(?,?,0,1)',[$world,$day]);
@@ -176,7 +176,7 @@ final class AlphaWorlds
                 if(in_array($this->scenario->id,[AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))$op->enableSocialPartners();
                 if($this->scenario->campaign())$op->enableCampaign();
                 if($this->scenario->id===AlphaScenario::CIVIL_CRISIS)$op->enableCivilCrisis();
-                if(in_array($this->scenario->id,[AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))$op->enablePresidentialMandate(PresidentialMandate::fixture());
+                if(in_array($this->scenario->id,[AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))$op->enablePresidentialMandate(PresidentialMandate::fixture(),in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true));
                 $this->insert('INSERT INTO wp_opinion_states(world_id,state_json,state_sha,revision) VALUES(?,?,?,0)',
                     [$world,PublicOpinion::json($op->snapshot()),$op->hash()]);
                 $this->insert('UPDATE wp_world_clock SET opinion_enabled=1 WHERE world_id=?',[$world]);

@@ -481,3 +481,11 @@ estimates and city totals, public-service continuity and nonterminal certified
 relocation/abroad/return events. No security-force deployment, weapons or
 coercive tactics. See WORLD_POLITICS_CIVIL_CRISIS.md. Further autonomous
 political resolution and legal recognition remain open.
+
+
+## WP54r corrective tranche — before WP55
+
+WP54 CI 45790745743 green. Corrected missing corporate wage-to-macro path and
+fixed eligible-incumbent presidential outcomes for new corporation/civil-crisis
+worlds. Versioned optional behaviour preserves old saves. No claim of closure of
+all WP53c audit findings; see causal audit remediation checkpoint. WP55 deferred.

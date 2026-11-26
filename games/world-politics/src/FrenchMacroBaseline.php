@@ -88,7 +88,7 @@ final class MacroFiscalLoop
      * day's macro row. No uncommitted values, implicit circular equation
      * or read-side mutation. No trade/monetary feedback in this first loop.
      */
-    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0):array
+    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0,?int $wagePremiumBps=null):array
     {
         if(!empty($debtModel['crisis_enabled'])){
             $credit=$previous['treasury']['banking']['credit_availability_bps']??10000;
@@ -105,6 +105,29 @@ final class MacroFiscalLoop
         $nominalGap=self::clamp(self::gap($priorNominal,$b['daily_real_gdp']),-3000,3000);
         $taxFeedback=self::scale($b['daily_tax_base'],self::scale($nominalGap,$b['tax_elasticity_bps']));
         $jobGap=$unemployment-$b['initial_unemployment_bps'];
+        $payroll=null;$costGap=0;
+        if($wagePremiumBps!==null){
+            if($wagePremiumBps<0||$wagePremiumBps>3000)throw new \DomainException('Invalid wage premium');
+            // Split the existing tax base rather than adding a second tax on GDP.
+            $payrollTaxBase=intdiv($b['daily_tax_base'],3);
+            $employmentGap=self::clamp(-$jobGap,-3000,3000);
+            $nominalWageGap=self::clamp(intdiv($wage-100000000,10000),-3000,5000);
+            $payrollGap=self::clamp($nominalWageGap+$employmentGap+self::scale($nominalWageGap,$employmentGap),-5000,7000);
+            $payrollTaxFeedback=self::scale($payrollTaxBase,$payrollGap);
+            $taxFeedback=self::scale($b['daily_tax_base']-$payrollTaxBase,self::scale($nominalGap,$b['tax_elasticity_bps']))+$payrollTaxFeedback;
+            $realisedPremium=max(0,intdiv($wage*10000,$price)-10000);
+            $productivityProxy=max(0,min(3000,($prior['real_output_index_bps']??10000)-10000));
+            $costGap=max(0,$realisedPremium-$productivityProxy);
+            $production-=intdiv($costGap,2);$employment-=intdiv($costGap,2);
+            $basePayroll=self::scale($b['daily_real_gdp'],3500);
+            $grossPayroll=self::scale($basePayroll,10000+$payrollGap);
+            $payroll=['classification'=>'fictional_private_payroll_proxy','target_premium_bps'=>$wagePremiumBps,
+                'realised_real_wage_premium_bps'=>$realisedPremium,'gross_daily_payroll_minor'=>$grossPayroll,
+                'employer_daily_cost_proxy_minor'=>$grossPayroll+self::scale($grossPayroll,3000),
+                'household_net_pay_proxy_minor'=>$grossPayroll-self::scale($grossPayroll,2000),
+                'payroll_tax_base_minor'=>$payrollTaxBase,'payroll_tax_feedback_minor'=>$payrollTaxFeedback,
+                'nonpayroll_tax_feedback_minor'=>$taxFeedback-$payrollTaxFeedback,'labour_cost_gap_bps'=>$costGap];
+        }
         $socialFeedback=self::scale($b['daily_social_benefits'],self::scale($jobGap,$b['benefit_unemployment_sensitivity_bps'])
             +self::scale(self::clamp(intdiv($price-100000000,10000),-2000,4000),$b['benefit_price_pass_through_bps']));
         $actualRevenue=max(0,$revenue+$taxFeedback);$primaryExpense=max(0,$expense+$socialFeedback);
@@ -119,9 +142,9 @@ final class MacroFiscalLoop
         $real=$consumption+$b['daily_npish_consumption']+$investment+$government+$b['daily_exports']-$b['daily_imports']+$b['daily_statistical_discrepancy'];
         if($real<=0)throw new \DomainException('Nonpositive output');
         $outputGap=self::clamp(self::gap($real,$b['daily_real_gdp']),-3000,3000);
-        $inflation=self::move($inflation,self::clamp($b['initial_annual_inflation_bps']+intdiv($outputGap,4),-500,2000),20);
+        $inflation=self::move($inflation,self::clamp($b['initial_annual_inflation_bps']+intdiv($outputGap,4)+intdiv($costGap,3),-500,2000),20);
         $price=max(10000000,$price+intdiv($price*$inflation,3650000));
-        $wage=self::move($wage,$price,180);
+        $wage=self::move($wage,$wagePremiumBps===null?$price:self::scale($price,10000+$wagePremiumBps),180);
         $unemployment=self::move($unemployment,self::clamp($b['initial_unemployment_bps']-intdiv($outputGap,4)-intdiv($employment-10000,5),100,3000),30);
         $nominal=self::scale($real,$price,100000000);
         $interest=self::scale($debt,$b['assumed_annual_interest_bps'],3650000);
@@ -143,7 +166,7 @@ final class MacroFiscalLoop
                 'daily_real_growth_bps'=>self::gap($real,$priorReal),'price_index_scaled'=>$price,'wage_index_scaled'=>$wage,
                 'annual_inflation_bps'=>$inflation,'unemployment_bps'=>$unemployment,'real_wage_index_bps'=>intdiv($wage*10000,$price),
                 'statutory_revenue'=>$revenue,'statutory_primary_expense'=>$expense,'tax_feedback'=>$taxFeedback,
-                'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap],
+                'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap,...($payroll===null?[]:['corporation_payroll'=>$payroll])],
             'treasury'=>$treasury];
     }
     public static function project(array $dom):array
