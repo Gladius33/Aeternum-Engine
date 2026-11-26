@@ -11,7 +11,7 @@ $db=$connect();$world='wp71-finance-proof-db';$start='2027-12-30';$policy='budge
 $roster=new PoliticalRoster($world,'FR',['prime_minister']);
 $db->prepare('INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)')
     ->execute([$world,'FR',json_encode($roster->snapshot(),JSON_THROW_ON_ERROR),$roster->snapshotHash()]);
-$inst=new I($world,'FR',$start);$inst->enableLegislation(true,true,true,true,true,true,true,2028);
+$inst=new I($world,'FR',$start);$inst->enableElectoral(\Aeternum\WorldPolitics\ParliamentaryLifecycle::electionConfig($start));$inst->enableLegislation(true,true,true,true,true,true,true,2028);
 $ia=new class($world) implements InstitutionalActorAuthorizer{
     public function __construct(private readonly string $w){}
     public function actorId():string{return 'wp71-db-clock';}
