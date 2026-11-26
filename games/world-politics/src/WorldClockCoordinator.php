@@ -11,6 +11,7 @@ require_once __DIR__.'/PdoFrenchConstitutionalStore.php';
 require_once __DIR__.'/WorldMutationFence.php';
 require_once __DIR__.'/PdoDomesticPolicyStore.php';
 require_once __DIR__.'/PdoPublicOpinionStore.php';
+require_once __DIR__.'/PdoCampaignScores.php';
 
 /**
  * WP17/WP18: recoverable WORLD clock for diplomacy, organizations,
@@ -311,11 +312,16 @@ final class WorldClockCoordinator
                 throw new \DomainException('All domains must be checkpointed before publication');
             }
 
-            $campaign=$this->opinion===null?null:($this->opinion->read($world)['state']['campaign']??null);
+            $opinionRecord=$this->opinion?->read($world);
+            $campaign=$opinionRecord['state']['campaign']??null;
             if(($campaign!==null)!==((int)($row['campaign_enabled']??0)===1))
                 throw new \DomainException('Campaign configuration differs from pinned world');
             $ended=$campaign!==null&&$campaign['status']==='game_over';
             $revision=(int)$row['revision']+1;
+            if((int)($row['score_enabled']??0)===1){
+                if($this->domestic===null||$opinionRecord===null)throw new \DomainException('Ranked world missing required domain');
+                (new PdoCampaignScores($this->pdo))->publish($world,$row,$targetDay,$this->domestic->read($world),$this->diplomacy->read($world),$opinionRecord);
+            }
             $result=[
                 'status'=>200,
                 'result'=>[

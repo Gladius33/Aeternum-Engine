@@ -812,6 +812,13 @@ $t27=req30('POST','/sessions',['username'=>'investituretester','password'=>'stro
 $g27=req30('POST','/worlds',['label'=>'Investiture 2027','scenario'=>'fr-investiture-2027-v1'],$t27,['Idempotency-Key'=>'investiture-world-001']);
 if($g27['status']!==201)throw new RuntimeException('Investiture creation HTTP '.$g27['status'].' '.json_encode($g27['body']));
 $r27='/worlds/'.$g27['body']['world_id'];
+$score78=req30('GET',$r27.'/score',null,$t27);
+ck30($score78['status']===200&&$score78['body']['score']===0&&$score78['body']['clock_revision']===0&&!$score78['body']['official_ranking_eligible'],'WP78 atomic opening score and alpha classification');
+$cohort78=$score78['body']['cohort_sha'];$board78='/leaderboards/'.$cohort78.'/1';
+ck30(req30('GET',$board78)['status']===401&&req30('GET',$r27.'/score',null,$tb)['status']===404,'WP78 leaderboard login and private world score authorization');
+$list78=req30('GET',$board78,null,$t27);
+ck30($list78['status']===200&&$list78['body']['total_players']===1&&$list78['body']['entries'][0]['rank']===1&&$list78['body']['entries'][0]['is_you'],'WP78 initial ranked player');
+ck30(req30('POST',$board78,['score'=>999999],$t27)['status']===405&&req30('POST',$r27.'/score',['score'=>999999],$t27)['status']===405,'WP78 no score submission route');
 $p27=req30('GET',$r27.'/countries/FR/presidency',null,$t27);
 ck30($p27['status']===200&&$p27['body']['term_start']==='2027-05-14'&&$p27['body']['term_end']==='2032-05-14'&&$p27['body']['consecutive_terms']===1,'canonical first full mandate');
 $camp27=req30('GET',$r27.'/campaign',null,$t27);
@@ -881,3 +888,33 @@ $sen27=req30('GET',$r27.'/countries/FR/institutions',null,$t27);ck30(count($sen2
 $ca27=req30('GET',$r27.'/countries/FR/cabinet',null,$t27);ck30($ca27['status']===200&&$ca27['body']['requests']===[],'WP59 cabinet requests pinned');
 $cp27=req30('GET',$r27.'/campaign',null,$t27);ck30($cp27['body']['tenure']['order_review']['status']==='none','WP60 constitutional order review pinned without authority');
 echo "WP30 HTTP private alpha acceptance passed.\n";
+
+
+$score78=req30('GET',$r27.'/score',null,$t27);
+ck30($score78['status']===200&&$score78['body']['elapsed_office_days']===4&&$score78['body']['clock_revision']===4&&$score78['body']['window_days']===4,'WP78 score persisted with each committed day');
+ck30($score78['body']['cohort_sha']===$cohort78&&$score78['body']['score']===max(0,$score78['body']['tenure_points']+$score78['body']['purchasing_power_points']),'WP77 real score reconciles');
+$world78b=req30('POST','/worlds',['label'=>'Second alpha campaign','scenario'=>'fr-investiture-2027-v1'],$t27,['Idempotency-Key'=>'wp78-same-owner-world']);
+ck30($world78b['status']===201,'WP78 second campaign same owner');
+$second78=req30('GET','/worlds/'.$world78b['body']['world_id'].'/score',null,$t27);
+ck30($second78['body']['cohort_sha']===$cohort78,'WP78 cohort independent of world identifier');
+$list78=req30('GET',$board78,null,$t27);
+ck30($list78['body']['total_players']===1&&count($list78['body']['entries'])===1,'WP78 one place per owner');
+$reg78=req30('POST','/accounts',['username'=>'leaderboardtester','password'=>'strong-password-leaderboard-78','invite'=>$invite]);
+ck30($reg78['status']===201,'WP78 independent account');
+$t78=req30('POST','/sessions',['username'=>'leaderboardtester','password'=>'strong-password-leaderboard-78'])['body']['access_token'];
+$w78=req30('POST','/worlds',['label'=>'Independent alpha campaign','scenario'=>'fr-investiture-2027-v1'],$t78,['Idempotency-Key'=>'wp78-other-owner-world']);
+ck30($w78['status']===201,'WP78 independent canonical campaign');
+$list78=req30('GET',$board78,null,$t78);$entries78=$list78['body']['entries'];
+ck30($list78['status']===200&&$list78['body']['total_players']===2&&count($entries78)===2&&count(array_filter($entries78,fn($x)=>$x['is_you']))===1,'WP78 cross-player ranking');
+ck30($entries78[0]['score']>=$entries78[1]['score']&&$entries78[0]['rank']<=$entries78[1]['rank'],'WP78 rank ordering');
+foreach($entries78 as $e)ck30(!isset($e['username'],$e['world_id'],$e['account_id'])&&preg_match('/^joueur-[a-f0-9]{20}$/D',$e['player'])===1,'WP78 pseudonymous results');
+ck30(req30('GET','/leaderboards/'.$cohort78.'/2',null,$t78)['body']['entries']===[],'WP78 bounded page');
+$cohorts78=req30('GET','/leaderboards',null,$t78);
+ck30($cohorts78['status']===200&&$cohorts78['body']['cohorts'][0]['players']===2&&$cohorts78['body']['cohorts'][0]['campaigns']===3,'WP78 cohort counts');
+$q78=$pdo->prepare('UPDATE wp_accounts SET enabled=0 WHERE account_id=?');$q78->execute([$reg78['body']['account_id']]);
+ck30(req30('GET',$board78,null,$t27)['body']['total_players']===1,'WP78 disabled account excluded');
+$q78=$pdo->prepare('UPDATE wp_accounts SET enabled=1 WHERE account_id=?');$q78->execute([$reg78['body']['account_id']]);
+$q78=$pdo->prepare('UPDATE wp_campaign_scores SET score=score+1 WHERE world_id=?');$q78->execute([$g27['body']['world_id']]);
+ck30(req30('GET',$r27.'/score',null,$t27)['status']===503,'WP78 corrupted indexed score fails closed');
+$q78=$pdo->prepare('UPDATE wp_campaign_scores SET score=score-1 WHERE world_id=?');$q78->execute([$g27['body']['world_id']]);
+ck30(req30('GET',$r27.'/score',null,$t27)===$score78,'WP78 exact recovery of committed score');

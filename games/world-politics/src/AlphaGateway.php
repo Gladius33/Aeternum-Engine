@@ -20,6 +20,7 @@ require_once __DIR__.'/CivilContinuityReport.php';
 require_once __DIR__.'/HouseholdIncomeReference.php';
 require_once __DIR__.'/HistoricalCandidateReference.php';
 require_once __DIR__.'/HouseholdPurchasingPowerProxy.php';
+require_once __DIR__.'/PdoCampaignScores.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
 final class AlphaGateway
@@ -61,6 +62,14 @@ final class AlphaGateway
             }
             if ($path==='/api/v1/me' && $method==='GET') return self::ok(200,['account_id'=>$session->id,'username'=>$session->username]);
             if ($path==='/api/v1/national-renewal-calendar' && $method==='GET') return self::ok(200,NationalRenewalCalendar::report());
+            if($path==='/api/v1/leaderboards'||str_starts_with($path,'/api/v1/leaderboards/')){
+                if($method!=='GET')throw new AlphaHttpError(405,'method_not_allowed');
+                $scores=new PdoCampaignScores($this->db());
+                if($path==='/api/v1/leaderboards')return self::ok(200,$scores->cohorts(1));
+                if(preg_match('~^/api/v1/leaderboards/cohorts/([1-9][0-9]{0,5})$~D',$path,$lm)&&((int)$lm[1])<=100000)return self::ok(200,$scores->cohorts((int)$lm[1]));
+                if(preg_match('~^/api/v1/leaderboards/([a-f0-9]{64})/([1-9][0-9]{0,5})$~D',$path,$lm)&&((int)$lm[2])<=100000)return self::ok(200,$scores->leaderboard($lm[1],(int)$lm[2],$session->id));
+                throw new AlphaHttpError(404,'not_found');
+            }
             $scenario=new AlphaScenario();
             if ($path==='/api/v1/scenarios' && $method==='GET') {
                 $base=GlobalReferenceBundle::published();
@@ -321,6 +330,14 @@ final class AlphaGateway
                 $dp=(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal))->read($world);
                 if(!isset($dp['state']['candidate_reference']))throw new AlphaHttpError(404,'not_found');
                 $report=HistoricalCandidateReference::report($dp['state']['candidate_reference'])+['world_id'=>$world];$response=self::ok(200,$report);$response['headers']['ETag']='"'.hash('sha256',json_encode($report,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)).'"';return $response;
+            }
+            if($suffix==='/score'){
+                if($method!=='GET')throw new AlphaHttpError(405,'method_not_allowed');
+                if($scenario->id!==AlphaScenario::INVESTITURE)throw new AlphaHttpError(404,'not_found');
+                $report=(new PdoCampaignScores($this->db()))->read($world);
+                if($report===null)throw new AlphaHttpError(404,'not_found');
+                if($report['world_advancing'])throw new AlphaHttpError(409,'world_advancing');
+                $response=self::ok(200,$report);$response['headers']['ETag']='"'.CampaignScore::digest($report).'"';return $response;
             }
             if($method==='GET'&&$suffix==='/countries/FR/purchasing-power-proxy'&&$scenario->id===AlphaScenario::INVESTITURE){
                 $db=$this->db();$db->beginTransaction();

@@ -7,6 +7,7 @@ require_once __DIR__.'/WorldClockCoordinator.php';
 require_once __DIR__.'/PoliticalRoster.php';
 require_once __DIR__.'/GlobalReferenceBundle.php';
 require_once __DIR__.'/ComparativeElectionCalendar.php';
+require_once __DIR__.'/PdoCampaignScores.php';
 
 /** Immutable private alpha scenario. No real economic data is invented. */
 final class AlphaScenario
@@ -191,6 +192,11 @@ final class AlphaWorlds
                     [$world,PublicOpinion::json($op->snapshot()),$op->hash()]);
                 $this->insert('UPDATE wp_world_clock SET opinion_enabled=1 WHERE world_id=?',[$world]);
                 if($this->scenario->campaign())$this->insert('UPDATE wp_world_clock SET campaign_enabled=1 WHERE world_id=?',[$world]);
+                if($this->scenario->id===AlphaScenario::INVESTITURE){
+                    (new PdoCampaignScores($this->db))->seed($world,$this->scenario->bundleSha??throw new \DomainException('Ranked world needs pinned bundle'),$c,
+                        ['state'=>$dom->snapshot(),'etag'=>'"'.$dom->hash().'"'],['state'=>$dip->snapshot(),'etag'=>'"'.$dip->hash().'"'],['state'=>$op->snapshot(),'etag'=>'"'.$op->hash().'"']);
+                    $this->insert('UPDATE wp_world_clock SET score_enabled=1 WHERE world_id=?',[$world]);
+                }
                 if($this->scenario->id===AlphaScenario::REVOLUTION_CASE){
                     // Explicitly authored regression/narrative case, not a prediction.
                     $events=[];$date=new \DateTimeImmutable($day);
