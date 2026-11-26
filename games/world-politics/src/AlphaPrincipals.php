@@ -28,7 +28,7 @@ final class AlphaPrincipal implements InstitutionalActorAuthorizer,EconomicPolic
                 || ($role==='owner' && in_array($ability,['create_fictional_person','initialize_scenario'],true));
         }
         if ($actor===$this->actorId()) return in_array($ability,['diplomacy.read','organizations.read','economy.read'],true);
-        return $role==='owner' && $actor==='state_fr' && in_array($ability,['diplomacy.propose','diplomacy.respond','organizations.eu_intent'],true);
+        return $role==='owner' && $actor==='state_fr' && in_array($ability,['diplomacy.propose','diplomacy.respond','diplomacy.commitment','organizations.eu_intent'],true);
     }
     public function roleFor(string $world,string $country,string $action):string {
         if($this->legislation&&!$this->scheduler&&$country==='FR'&&$action==='legislation_draft'&&$this->allows($world,$country,$action))return 'scenario_bill_author';

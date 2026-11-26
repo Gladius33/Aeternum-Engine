@@ -188,6 +188,8 @@ jobs:
         run: php tests/wp63-formation-protocol.php
       - name: WP65 autonomous comparative government formation and daily clock
         run: php tests/wp65-autonomous-formation.php
+      - name: WP66-67 international commitments and negotiation replay
+        run: php tests/wp66-commitments.php
       - name: WP33 election, seat allocation and coalition regression
         run: php tests/wp33-electoral.php
       - name: WP32 comparative accountability regression

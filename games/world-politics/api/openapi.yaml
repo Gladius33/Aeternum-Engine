@@ -31,6 +31,44 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /worlds/{world}/diplomacy/commitments:
+    get:
+      operationId: readInternationalCommitments
+      summary: Read fictional payable obligation fixtures; no treasury booking
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Reconciled scenario obligations, arrears and requests }
+        '404': { description: Unsupported world or inaccessible resource }
+    post:
+      operationId: decideInternationalCommitment
+      summary: Owner requests renegotiation or changes payment policy in a fictional scenario
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - in: header
+          name: If-Match
+          required: true
+          schema: { type: string }
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [commitment_id, action]
+              properties:
+                commitment_id: { type: string }
+                action: { type: string, enum: [withhold, resume, request_deferral, request_termination] }
+      responses:
+        '200': { description: Recorded decision without automatic legal release }
+        '403': { description: Unauthorized }
+        '409': { description: Conflicting decision }
+        '412': { description: Stale state }
   /national-renewal-calendar:
     get:
       operationId: readNationalRenewalReference

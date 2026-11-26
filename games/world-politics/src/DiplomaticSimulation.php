@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/GeopoliticalActorRegistry.php';
 require_once __DIR__.'/UkraineAidDiplomacy.php';
+require_once __DIR__.'/InternationalCommitments.php';
 
 /** Adapter MUST use server-verified actor grants; never trust JSON for identity. */
 interface DiplomaticPrincipal
@@ -55,6 +56,18 @@ final class DiplomaticSimulation
     {
         if(!isset($this->state['daily_ai'])||isset($this->state['aid_bridge'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Aid bridge must be pinned at bootstrap');
         $this->state['aid_bridge']=['version'=>UkraineAidDiplomacy::VERSION,'latest'=>null];
+    }
+    public function enableCommitments():void
+    {
+        if(!isset($this->state['aid_bridge'])||isset($this->state['commitments'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Commitments must be pinned at bootstrap');
+        $this->state['commitments']=(new InternationalCommitments($this->state['world_id'],$this->state['day']))->snapshot();
+    }
+    public function commitmentDecision(DiplomaticPrincipal $principal,string $id,string $action,string $command):array
+    {
+        $this->authorize($principal,'state_fr','diplomacy.commitment');
+        if(!isset($this->state['commitments']))throw new \DomainException('Commitments not enabled');
+        $ledger=InternationalCommitments::restore($this->state['commitments']);$r=$ledger->decide($id,$action,$command);
+        $this->state['commitments']=$ledger->snapshot();return $r;
     }
     /** @return array<string,mixed> */
     public function propose(
@@ -187,6 +200,9 @@ final class DiplomaticSimulation
         }
         unset($proposal);
         sort($expired,SORT_STRING);
+        if(isset($this->state['commitments'])){
+            $ledger=InternationalCommitments::restore($this->state['commitments']);$ledger->advance($targetDay);$this->state['commitments']=$ledger->snapshot();
+        }
         $this->state['day']=$targetDay;
         $result=['day'=>$targetDay,'expired'=>$expired];
         if(isset($this->state['daily_ai']))$result['autonomous_replies']=$this->dailyReplies();
@@ -257,6 +273,11 @@ final class DiplomaticSimulation
             if(!isset($state['daily_ai'])||($state['aid_bridge']['version']??null)!==UkraineAidDiplomacy::VERSION||!array_key_exists('latest',$state['aid_bridge']))throw new \DomainException('Invalid aid bridge');
             $a=$state['aid_bridge']['latest'];if($a!==null&&($a['source']['world_id']!==$state['world_id']||$a['source']['day']!==$state['day']||$a['version']!==UkraineAidDiplomacy::VERSION||min($a['signals'])<-20||max($a['signals'])>20))throw new \DomainException('Invalid aid bridge state');
             $expected[]='aid_bridge';
+        }
+        if(array_key_exists('commitments',$state)){
+            $ledger=InternationalCommitments::restore($state['commitments']);$s=$ledger->snapshot();
+            if(!isset($state['aid_bridge'])||$s['world_id']!==$state['world_id']||$s['day']!==$state['day'])throw new \DomainException('Commitment scope mismatch');
+            $expected[]='commitments';
         }
         sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid diplomatic snapshot fields');

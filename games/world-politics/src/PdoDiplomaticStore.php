@@ -90,7 +90,7 @@ final class PdoDiplomaticStore
         string $world,string $operation,array $payload,
         string $idempotencyKey,string $ifMatch
     ):array {
-        if (!in_array($operation,['propose','respond','ai_decide','clock'],true)) {
+        if (!in_array($operation,['propose','respond','ai_decide','clock','commitment'],true)) {
             throw new \InvalidArgumentException('Unapproved diplomatic operation');
         }
         if (!preg_match('/^[a-z][a-z0-9_-]{0,63}$/D',$world)
@@ -236,6 +236,10 @@ final class PdoDiplomaticStore
             }
             return;
         }
+        if($operation==='commitment'){
+            if(!$this->principal->allows($world,'state_fr','diplomacy.commitment'))throw new \DomainException('Actor has no verified authority over this diplomatic participant');
+            return;
+        }
         $entityId=$operation==='propose' ? ($payload['from']??null) : ($payload['responder']??null);
         $ability=$operation==='propose'?'diplomacy.propose':'diplomacy.respond';
         if (!is_string($entityId)) throw new \InvalidArgumentException('Missing diplomatic actor field');
@@ -251,6 +255,10 @@ final class PdoDiplomaticStore
     private function apply(DiplomaticSimulation $sim,string $operation,array $payload,string $commandId):array
     {
         switch ($operation) {
+            case 'commitment':
+                self::fields($payload,['commitment_id','action']);
+                if(!is_string($payload['commitment_id'])||!is_string($payload['action']))throw new \InvalidArgumentException('Invalid commitment decision');
+                return $sim->commitmentDecision($this->principal,$payload['commitment_id'],$payload['action'],$commandId);
             case 'propose':
                 self::fields($payload,['from','to','action']);
                 foreach(['from','to','action'] as $key) if (!is_string($payload[$key])) {

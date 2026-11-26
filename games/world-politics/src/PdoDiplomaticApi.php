@@ -21,7 +21,7 @@ final class PdoDiplomaticApi
     public function handle(string $method,string $route,?array $payload=null,array $headers=[]):array
     {
         if (strlen($route)>512 || !preg_match(
-            '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/diplomacy(?:/(actors|proposals|responses|ai|clock)(?:/(decisions))?)?$~D',
+            '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/diplomacy(?:/(actors|proposals|responses|ai|clock|commitments)(?:/(decisions))?)?$~D',
             $route,$match
         )) return self::problem(404,'route_not_found');
         $world=$match[1];$resource=$match[2]??'';$sub=$match[3]??'';
@@ -43,6 +43,10 @@ final class PdoDiplomaticApi
                         'actors'=>$this->store->registry()->all()
                     ],$read['etag']);
                 }
+                if($resource==='commitments'&&$sub===''){
+                    if(!isset($read['state']['commitments']))return self::problem(404,'not_found');
+                    return self::success(200,$read['state']['commitments'],$read['etag']);
+                }
                 if ($resource==='proposals' && $sub==='') {
                     return self::success(200,[
                         'world_id'=>$world,
@@ -53,6 +57,7 @@ final class PdoDiplomaticApi
             }
             if ($method!=='POST') return self::problem(405,'method_not_allowed');
             $operation=match(true) {
+                $resource==='commitments' && $sub==='' => 'commitment',
                 $resource==='proposals' && $sub==='' => 'propose',
                 $resource==='responses' && $sub==='' => 'respond',
                 $resource==='ai' && $sub==='decisions' => 'ai_decide',
