@@ -820,6 +820,8 @@ $aid27=req30('GET',$r27.'/countries/FR/ukraine-aid',null,$t27);
 ck30($aid27['status']===200&&$aid27['body']['latest']===null&&$aid27['body']['reference']['opening_debt_minor']>359550000000000,'projected opening and empty aid history');
 $stop27=req30('POST',$r27.'/domestic/ukraine-aid',['action'=>'ukraine-aid-stop'],$t27,['If-Match'=>$aid27['etag'],'Idempotency-Key'=>'ukraine-stop-2027']);
 ck30($stop27['status']===200,'stop discretionary aid on investiture');
+$house74=req30('GET',$r27.'/countries/FR/household-reference',null,$t27);
+ck30($house74['status']===200&&count($house74['body']['reference']['annual'])===6&&$house74['body']['reference']['annual'][5]['real_rdb_per_uc_growth_bps']===-70&&!$house74['body']['score_eligible'],'WP74 pinned historical household purchasing power reference');
 $civil72=req30('GET',$r27.'/countries/FR/civil-continuity',null,$t27);
 ck30($civil72['status']===200&&$civil72['body']['window']===null&&!$civil72['body']['automatic_security_action'],'WP72 no fabricated opening continuity history');
 $budget71=req30('GET',$r27.'/countries/FR/finance',null,$t27);

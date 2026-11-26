@@ -1,0 +1,126 @@
+{
+  "schema": "wp74-household-income-reference-v1",
+  "retrieved_on": "2026-11-26",
+  "country": "FR",
+  "sources": {
+    "annual": {
+      "url": "https://www.insee.fr/fr/statistiques/2830244",
+      "published_on": "2026-05-29",
+      "vintage": "annual national accounts base 2020"
+    },
+    "quarterly": {
+      "url": "https://www.insee.fr/fr/statistiques/2830166",
+      "published_on": "2026-10-30",
+      "vintage": "quarterly national accounts base 2020, seasonally and working-day adjusted"
+    },
+    "definition": {
+      "url": "https://www.insee.fr/fr/statistiques/8988851",
+      "published_on": "2026-05-29"
+    }
+  },
+  "annual": [
+    {
+      "year": 2020,
+      "status": "published",
+      "rdb_tenth_billion_eur": 14903,
+      "net_wages_tenth_billion_eur": 7910,
+      "cash_benefits_tenth_billion_eur": 5663,
+      "nominal_rdb_growth_bps": 100,
+      "consumption_deflator_growth_bps": 80,
+      "real_rdb_per_uc_growth_bps": -30,
+      "uc_growth_bps": 60,
+      "saving_rate_bps": 2040
+    },
+    {
+      "year": 2021,
+      "status": "published",
+      "rdb_tenth_billion_eur": 15625,
+      "net_wages_tenth_billion_eur": 8528,
+      "cash_benefits_tenth_billion_eur": 5586,
+      "nominal_rdb_growth_bps": 480,
+      "consumption_deflator_growth_bps": 140,
+      "real_rdb_per_uc_growth_bps": 280,
+      "uc_growth_bps": 60,
+      "saving_rate_bps": 1910
+    },
+    {
+      "year": 2022,
+      "status": "published",
+      "rdb_tenth_billion_eur": 16461,
+      "net_wages_tenth_billion_eur": 9208,
+      "cash_benefits_tenth_billion_eur": 5668,
+      "nominal_rdb_growth_bps": 530,
+      "consumption_deflator_growth_bps": 490,
+      "real_rdb_per_uc_growth_bps": -30,
+      "uc_growth_bps": 70,
+      "saving_rate_bps": 1690
+    },
+    {
+      "year": 2023,
+      "status": "published",
+      "rdb_tenth_billion_eur": 17799,
+      "net_wages_tenth_billion_eur": 9720,
+      "cash_benefits_tenth_billion_eur": 5930,
+      "nominal_rdb_growth_bps": 810,
+      "consumption_deflator_growth_bps": 710,
+      "real_rdb_per_uc_growth_bps": 40,
+      "uc_growth_bps": 60,
+      "saving_rate_bps": 1700
+    },
+    {
+      "year": 2024,
+      "status": "semi_final",
+      "rdb_tenth_billion_eur": 18680,
+      "net_wages_tenth_billion_eur": 10018,
+      "cash_benefits_tenth_billion_eur": 6288,
+      "nominal_rdb_growth_bps": 500,
+      "consumption_deflator_growth_bps": 220,
+      "real_rdb_per_uc_growth_bps": 220,
+      "uc_growth_bps": 50,
+      "saving_rate_bps": 1850
+    },
+    {
+      "year": 2025,
+      "status": "provisional",
+      "rdb_tenth_billion_eur": 18769,
+      "net_wages_tenth_billion_eur": 10189,
+      "cash_benefits_tenth_billion_eur": 6470,
+      "nominal_rdb_growth_bps": 50,
+      "consumption_deflator_growth_bps": 80,
+      "real_rdb_per_uc_growth_bps": -70,
+      "uc_growth_bps": 30,
+      "saving_rate_bps": 1790
+    }
+  ],
+  "quarterly": [
+    {
+      "period": "2025-Q3",
+      "nominal_rdb_growth_bps": 0,
+      "nominal_rdb_per_uc_growth_bps": -10,
+      "real_rdb_per_uc_growth_bps": -40
+    },
+    {
+      "period": "2025-Q4",
+      "nominal_rdb_growth_bps": 40,
+      "nominal_rdb_per_uc_growth_bps": 40,
+      "real_rdb_per_uc_growth_bps": 10
+    },
+    {
+      "period": "2026-Q1",
+      "nominal_rdb_growth_bps": 60,
+      "nominal_rdb_per_uc_growth_bps": 50,
+      "real_rdb_per_uc_growth_bps": -10
+    },
+    {
+      "period": "2026-Q2",
+      "nominal_rdb_growth_bps": 50,
+      "nominal_rdb_per_uc_growth_bps": 50,
+      "real_rdb_per_uc_growth_bps": -50
+    }
+  ],
+  "notes": [
+    "Annual and quarterly rates have different comparison periods. Rounded published values are retained, not exact identities.",
+    "Cash benefits are transfers other than in-kind transfers. Wages and cash benefits alone are not disposable income.",
+    "No observation is a 2027 investiture value. The 2026 annual carry-over is not a completed annual observation."
+  ]
+}

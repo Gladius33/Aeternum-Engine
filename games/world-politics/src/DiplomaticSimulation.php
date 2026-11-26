@@ -8,6 +8,7 @@ require_once __DIR__.'/UkraineAidDiplomacy.php';
 require_once __DIR__.'/InternationalCommitments.php';
 require_once __DIR__.'/CommitmentRisk.php';
 require_once __DIR__.'/StrategicDefensePlanning.php';
+require_once __DIR__.'/HouseholdIncomeReference.php';
 
 /** Adapter MUST use server-verified actor grants; never trust JSON for identity. */
 interface DiplomaticPrincipal
@@ -63,6 +64,11 @@ final class DiplomaticSimulation
     {
         if(!isset($this->state['aid_bridge'])||isset($this->state['commitments'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Commitments must be pinned at bootstrap');
         $this->state['commitments']=(new InternationalCommitments($this->state['world_id'],$this->state['day']))->snapshot();
+    }
+    public function enableHouseholdReference():void
+    {
+        if(!isset($this->state['defense_reference'])||isset($this->state['household_reference'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Household reference must be pinned at bootstrap');
+        $this->state['household_reference']=HouseholdIncomeReference::pin();
     }
     public function enableDefenseReference():void
     {
@@ -299,6 +305,10 @@ final class DiplomaticSimulation
         if(array_key_exists('defense_reference',$state)){
             if(!isset($state['commitments']))throw new \DomainException('Defense reference without canonical commitments');
             StrategicDefensePlanning::report($state['defense_reference'],$state['world_id'],$state['day']);$expected[]='defense_reference';
+        }
+        if(array_key_exists('household_reference',$state)){
+            if(!isset($state['defense_reference']))throw new \DomainException('Household reference without canonical pin');
+            HouseholdIncomeReference::report($state['household_reference']);$expected[]='household_reference';
         }
         sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid diplomatic snapshot fields');

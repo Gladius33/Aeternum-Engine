@@ -200,6 +200,8 @@ jobs:
         run: php tests/wp71-finance-2028.php
       - name: WP72 civilian service continuity and coherent rolling reports
         run: php tests/wp72-civil-continuity.php
+      - name: WP74 household national accounts and arithmetic sensitivity
+        run: php tests/wp74-household-reference.php
       - name: WP33 election, seat allocation and coalition regression
         run: php tests/wp33-electoral.php
       - name: WP32 comparative accountability regression
