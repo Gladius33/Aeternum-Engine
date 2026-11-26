@@ -69,6 +69,7 @@ final class FrancNativeBudgetProjection
                 $p['external_fx_revaluation_frf_minor']=($p['external_fx_revaluation_frf_minor']??0)+$x['fx_revaluation_frf_minor'];$p['external_transaction_delta_frf_minor']=($p['external_transaction_delta_frf_minor']??0)+$x['transaction_delta_frf_minor'];
                 if($p['closing_external_debt_frf_minor']-$p['opening_external_debt_frf_minor']!==$p['external_fx_revaluation_frf_minor']+$p['external_transaction_delta_frf_minor'])throw new \DomainException('External period stock mismatch');
                 $p['closing_consolidated_debt_frf_minor']=$x['consolidated_gross_debt_frf_minor'];
+                foreach($x['facilities'] as $cur=>$facility){$m=$facility['market_trade']??null;if($m===null)continue;$p['external_market_volume_by_currency_minor'][$cur]=($p['external_market_volume_by_currency_minor'][$cur]??0)+$m['foreign_traded_minor'];$p['external_market_eur_volume_minor']=($p['external_market_eur_volume_minor']??0)+$m['eur_traded_minor'];}
             }
             if(isset($r['capital_settlement'])){
                 $p['industrial_paid_frf_minor']=($p['industrial_paid_frf_minor']??0)+$r['capital_settlement']['industrial_paid_frf_minor'];

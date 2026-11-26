@@ -18,7 +18,14 @@ final class FrancFinancialAudit
             $a=$r['opening_accounts'];$z=$r['closing_state']['accounts'];$b=$r['budget'];$s=$r['debt_settlement'];$f=$r['fx_intervention'];$k=$r['capital_settlement'];$bank=$r['bank_balance'];
             self::check($z['official_eur_reserves_minor']>=$z['minimum_official_eur_minor'],'reserve floor');
             $direction=match($f['kind']){'sell_eur'=>-1,'buy_eur'=>1,null=>0,default=>throw new \DomainException('Unknown FX direction')};
-            self::check($z['official_eur_reserves_minor']===$a['official_eur_reserves_minor']+$direction*$f['eur']-$s['reserve_eur_used_minor'],'reserve flows');
+            $extraEur=0;$currentEur=$a['official_eur_reserves_minor']+$direction*$f['eur']-$s['reserve_eur_used_minor'];
+            foreach($r['external_finance']['facilities']??[] as $p){$m=$p['market_trade']??null;if($m===null)continue;
+                $sign=match($m['kind']){'buy'=>1,'sell'=>-1,'mark'=>0};
+                self::check($m['opening_official_eur_minor']===$currentEur&&$m['closing_official_eur_minor']===$currentEur-$sign*$m['eur_traded_minor']&&$m['closing_official_eur_minor']>=$z['minimum_official_eur_minor'],'market official EUR flow');
+                self::check($m['opening_foreign_reserve_minor']===$p['opening_reserve_minor']&&$m['closing_foreign_reserve_minor']-$m['opening_foreign_reserve_minor']===$sign*$m['foreign_traded_minor']&&$m['closing_foreign_reserve_minor']+$m['closing_counterparty_foreign_minor']===$m['opening_foreign_reserve_minor']+$m['opening_counterparty_foreign_minor']&&$m['closing_official_eur_minor']+$m['closing_counterparty_eur_minor']===$m['opening_official_eur_minor']+$m['opening_counterparty_eur_minor'],'market counterpart conservation');
+                $extraEur-=$sign*$m['eur_traded_minor'];$currentEur=$m['closing_official_eur_minor'];$checks+=2;
+            }
+            self::check($z['official_eur_reserves_minor']===$a['official_eur_reserves_minor']+$direction*$f['eur']-$s['reserve_eur_used_minor']+$extraEur,'reserve flows');
             self::check($z['official_franc_pool_minor']===$a['official_franc_pool_minor']-$direction*$f['frf']+$s['treasury_frf_paid_for_eur_minor'],'official FRF flows');
             self::check($z['treasury_eur_minor']===$a['treasury_eur_minor']+$r['issued_principal']['EUR']-$s['creditor_receipts_by_currency_minor']['EUR']+$s['reserve_eur_used_minor'],'Treasury EUR flows');
             self::check($z['treasury_frf_minor']===$a['treasury_frf_minor']+$b['ordinary_revenue_frf_minor']+$r['issued_principal']['FRF']-$b['ordinary_primary_paid_frf_minor']-$s['creditor_receipts_by_currency_minor']['FRF']-$s['treasury_frf_paid_for_eur_minor']-$k['industrial_paid_frf_minor']-$k['equity_paid_frf_minor'],'Treasury FRF flows');
@@ -39,7 +46,7 @@ final class FrancFinancialAudit
                 $x=$r['external_finance'];$sum=0;$opening=0;$delta=0;$fx=0;
                 foreach($x['facilities'] as $cur=>$p){
                     self::check($p['currency']===$cur&&$p['principal_outstanding_minor']===$p['opening_principal_minor']+$p['issued_minor']-$p['principal_paid_minor'],'foreign principal');
-                    self::check($p['reserve_minor']===$p['opening_reserve_minor']-$p['principal_paid_minor']-$p['interest_paid_minor']&&$p['reserve_minor']>=$p['terms']['minimum_reserve_minor'],'foreign reserves');
+                    self::check($p['reserve_minor']===$p['opening_reserve_minor']+($p['net_market_reserve_flow_minor']??0)-$p['principal_paid_minor']-$p['interest_paid_minor']&&$p['reserve_minor']>=$p['terms']['minimum_reserve_minor'],'foreign reserves');
                     self::check($p['issued_minor']===$p['earmarked_external_purchase_minor']&&$p['domestic_money_created_minor']===0,'foreign issuance counterpart');
                     if(isset($last['external_finance']['facilities'][$cur])){ $q=$last['external_finance']['facilities'][$cur];self::check($p['opening_principal_minor']===$q['principal_outstanding_minor']&&$p['opening_reserve_minor']===$q['reserve_minor'],'foreign continuity');$checks++;}
                     $sum+=$p['closing_debt_frf_minor'];$opening+=$p['opening_debt_frf_minor'];$delta+=$p['transaction_delta_frf_minor'];$fx+=$p['fx_revaluation_frf_minor'];$checks+=3;

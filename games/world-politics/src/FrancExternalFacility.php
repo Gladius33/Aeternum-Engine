@@ -22,11 +22,15 @@ final class FrancExternalFacility
     }
     private static function value(int $n,array $v,int $ratio,int $mark):int
     {return FrancNativeBudget::scale(FrancNativeBudget::scale($n,$v['eur_minor_per_10000_units'],10000),$ratio*10000,$mark);}
-    public static function step(array $v,string $day,int $ratio,int $mark,bool $paused,?array $prior):array
+    public static function step(array $v,string $day,int $ratio,int $mark,bool $paused,?array $prior,?array $market=null):array
     {
         self::validate($v,(new \DateTimeImmutable($v['effective_on']))->modify('-1 day')->format('Y-m-d'));
         if($day<$v['effective_on']||($prior===null&&$day!==$v['effective_on'])||($prior!==null&&($prior['terms']!==$v||$day!==(new \DateTimeImmutable($prior['day']))->modify('+1 day')->format('Y-m-d'))))throw new \DomainException('External facility continuity');
         $opening=$prior['principal_outstanding_minor']??0;$reserve=$prior['reserve_minor']??$v['opening_reserve_minor'];
+        $rate=$prior['current_cross_rate']??$v['eur_minor_per_10000_units'];$previousRate=$rate;
+        $marketEnabled=$market!==null||isset($prior['current_cross_rate']);$openingReserve=$reserve;
+        if($market!==null){if($market['opening_foreign_reserve_minor']!==$reserve)throw new \DomainException('Market reserve mismatch');$reserve=$market['closing_foreign_reserve_minor'];$rate=$market['eur_minor_per_10000_units'];}
+        $priced=array_replace($v,['eur_minor_per_10000_units'=>$rate]);$previousPriced=array_replace($v,['eur_minor_per_10000_units'=>$previousRate]);
         $issue=$prior===null&&!$paused?$v['principal_minor']:0;
         $interest=FrancNativeBudget::scale($opening,$v['coupon_bps'],3650000);
         $interestDue=($prior['interest_arrears_minor']??0)+$interest;
@@ -35,8 +39,8 @@ final class FrancExternalFacility
         $ip=min($interestDue,$available);$pp=min($due,$available-$ip);
         $close=$opening+$issue-$pp;$res=$reserve-$ip-$pp;
         $oldMark=$prior['mark']??$mark;
-        $oldValue=self::value($opening,$v,$ratio,$oldMark);$marked=self::value($opening,$v,$ratio,$mark);$value=self::value($close,$v,$ratio,$mark);
+        $oldValue=self::value($opening,$previousPriced,$ratio,$oldMark);$marked=self::value($opening,$priced,$ratio,$mark);$value=self::value($close,$priced,$ratio,$mark);
         if($res<$v['minimum_reserve_minor']||$close<0||$close!==$opening+$issue-$pp||$res+$ip+$pp!==$reserve)throw new \DomainException('External facility stock mismatch');
-        return ['version'=>self::VERSION,'day'=>$day,'terms'=>$v,'currency'=>$v['currency'],'mark'=>$mark,'opening_principal_minor'=>$opening,'issued_minor'=>$issue,'earmarked_external_purchase_minor'=>$issue,'disbursement_status'=>$prior['disbursement_status']??($paused?'cancelled_by_moratorium':'disbursed'),'principal_paid_minor'=>$pp,'interest_paid_minor'=>$ip,'principal_outstanding_minor'=>$close,'principal_arrears_minor'=>$due-$pp,'interest_arrears_minor'=>$interestDue-$ip,'opening_reserve_minor'=>$reserve,'reserve_minor'=>$res,'opening_debt_frf_minor'=>$oldValue,'closing_debt_frf_minor'=>$value,'fx_revaluation_frf_minor'=>$marked-$oldValue,'transaction_delta_frf_minor'=>$value-$marked,'reserve_valuation_frf_minor'=>self::value($res,$v,$ratio,$mark),'reference_eur_debt_included'=>false,'domestic_money_created_minor'=>0,'cross_rate_fixed_scenario'=>true];
+        return ['version'=>self::VERSION,'day'=>$day,'terms'=>$v,'currency'=>$v['currency'],'mark'=>$mark,'opening_principal_minor'=>$opening,'issued_minor'=>$issue,'earmarked_external_purchase_minor'=>$issue,'disbursement_status'=>$prior['disbursement_status']??($paused?'cancelled_by_moratorium':'disbursed'),'principal_paid_minor'=>$pp,'interest_paid_minor'=>$ip,'principal_outstanding_minor'=>$close,'principal_arrears_minor'=>$due-$pp,'interest_arrears_minor'=>$interestDue-$ip,'opening_reserve_minor'=>$openingReserve,'reserve_minor'=>$res,'opening_debt_frf_minor'=>$oldValue,'closing_debt_frf_minor'=>$value,'fx_revaluation_frf_minor'=>$marked-$oldValue,'transaction_delta_frf_minor'=>$value-$marked,'reserve_valuation_frf_minor'=>self::value($res,$priced,$ratio,$mark),'reference_eur_debt_included'=>false,'domestic_money_created_minor'=>0,'cross_rate_fixed_scenario'=>!$marketEnabled,...($marketEnabled?['current_cross_rate'=>$rate,'opening_cross_rate'=>$previousRate,'market_trade'=>$market,'net_market_reserve_flow_minor'=>$reserve-$openingReserve]:[])];
     }
 }

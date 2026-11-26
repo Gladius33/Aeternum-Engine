@@ -114,10 +114,10 @@ $q=NB::step($st,$flow,2,10000,false,false);$bk=FI::bank($q,2,10000,null,null);
 ckCB($bk['retained_creditor_cash_by_currency_minor']['EUR']===220&&$bk['assets_frf_minor']===2040&&$bk['equity_frf_minor']===440,'bank principal is asset exchange, coupon is income');
 $q2=NB::step($q['closing_state'],$flow,2,8000,false,false);$bk2=FI::bank($q2,2,8000,[...$q,'bank_balance'=>$bk],null);
 ckCB($bk2['assets_frf_minor']===2550&&$bk2['balance_difference_frf_minor']===0,'native bank FX revaluation reconciles');
-// 12-year settlement kernel: exercise a real post-transition ten-year
+// 20-year settlement kernel: exercise a real post-transition ten-year
 // maturity, refinance and carry residual dues; no full world horizon claim.
 $id='new-normal-domestic-FRF';$state=$st;$state['accounts']['treasury_eur_minor']=0;$state['claims']=[];$calendar=[];$matured=0;$issued=0;$paid=0;$day=new DateTimeImmutable('2026-12-01');
-for($i=0;$i<4384;$i++){
+for($i=0;$i<7305;$i++){
     $date=$day->modify('+'.$i.' days')->format('Y-m-d');
     $issues=$i%30===0?[$id=>['currency'=>'FRF','amount'=>100]]:[];
     $calendarStep=NS::schedule($calendar,$state['claims'],$date,$issues,10);
@@ -125,7 +125,7 @@ for($i=0;$i<4384;$i++){
     $result=NB::step($state,$f,2,10000,false,false);$state=$result['closing_state'];$calendar=$calendarStep['closing'];NS::checkCalendar($calendar,$state['claims']);
     $matured+=array_sum($calendarStep['due']);$issued+=$result['issued_principal']['FRF'];$paid+=$result['paid_principal']['FRF'];
 }
-ckCB($matured>0&&$state['claims'][$id]['principal_outstanding_minor']===$issued-$paid,'4384-day native kernel crosses actual ten-year maturities');
+ckCB($matured>0&&$state['claims'][$id]['principal_outstanding_minor']===$issued-$paid,'7305-day native kernel crosses actual ten-year maturities');
 
 use Aeternum\WorldPolitics\FrancFinancialAudit as FA;
 $audit=$report['financial_audit'];

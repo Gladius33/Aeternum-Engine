@@ -92,7 +92,7 @@ jobs:
         run: php tests/wp54r-frf-committed-budget.php
       - name: WP54r native sector settlement and bond maturity regression
         run: php tests/wp54r-frf-native-sectors.php
-      - name: WP54r native financial integration and twelve-year maturity replay
+      - name: WP54r native financial integration and twenty-year maturity replay
         run: php tests/wp54r-frf-financial-integration.php
       - name: WP54r extended domestic and opinion horizon replay
         run: php tests/wp54r-frf-horizon.php

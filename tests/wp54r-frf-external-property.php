@@ -88,6 +88,7 @@ $no=PS::apply($eq,$corp,$transfer,'2026-12-05',99,true);ckCB($no['receipt']['sta
 $yes=PS::apply($eq,$corp,$transfer,'2026-12-05',100,true);
 ckCB($yes['receipt']['title_transferred']&&$yes['equity']['positions'][$chosen]['cost_minor']===100&&$yes['corporations']['company_requests'][$chosen]['ownership_transferred'],'certified compensated transfer without voluntary consent');
 noCB(fn()=>PS::validate(array_replace($transfer,['valuation_sha'=>'']), '2026-12-04'));
+$eBeforeProperty=$e;
 $e=E::certify($e,'2026-12-07','franc_property_transfer',array_replace($transfer,['effective_on'=>'2026-12-08']));
 ckCB(E::restore($e)===$e,'property instrument survives trusted evidence replay');
 
@@ -112,3 +113,26 @@ ckCB($receipt['title_transferred']===$expected&&$actual['corporations']['company
 ckCB($receipt['compensation_paid_frf_minor']===($expected?2:0)&&$cap['equity_paid_frf_minor']===$receipt['compensation_paid_frf_minor'],'nationalisation cannot double count payment');
 $fullCopy=$fullMake();$fullCopy->restore($full->snapshot(),$full->hash());ckCB($fullCopy->hash()===$full->hash(),'full sector property state survives replay');
 ckCB(C::project($full->snapshot())['financial_audit']['status']==='accounting_checks_passed','property record audited with full services and industry');
+
+use Aeternum\WorldPolitics\{FrancExternalMarket as XM,FrancBankEquityBridge as BB};
+$e=$eBeforeProperty;
+$gbp=array_replace($facility,['currency'=>'GBP','effective_on'=>'2026-12-08','maturity_on'=>'2027-12-08','principal_minor'=>100000,'opening_reserve_minor'=>2000000,'minimum_reserve_minor'=>100000,'coupon_bps'=>0,'eur_minor_per_10000_units'=>12000]);
+$e=E::certify($e,'2026-12-07','franc_external_facility',$gbp);
+$sale=['currency'=>'GBP','effective_on'=>'2026-12-08','instrument_sha'=>$sha,'kind'=>'sell','quantity_minor'=>1000000,'counterparty_eur_minor'=>1200000,'counterparty_foreign_minor'=>0,'eur_minor_per_10000_units'=>12000];
+$buy=['currency'=>'USD','effective_on'=>'2026-12-08','instrument_sha'=>$sha,'kind'=>'buy','quantity_minor'=>900000,'counterparty_eur_minor'=>0,'counterparty_foreign_minor'=>900000,'eur_minor_per_10000_units'=>11000];
+$e=E::certify($e,'2026-12-07','franc_external_market_order',$sale);
+$e=E::certify($e,'2026-12-07','franc_external_market_order',$buy);
+noCB(fn()=>E::certify($e,'2026-12-07','franc_external_market_order',$buy));
+noCB(fn()=>E::certify($e,'2026-12-07','franc_external_market_order',array_replace($buy,['currency'=>'JPY'])));
+ckCB(E::restore($e)===$e,'external market evidence survives legal replay');
+$eighth=$run('2026-12-08');$ext=$eighth['frf_committed_budget']['external_finance']['facilities'];
+ckCB($ext['GBP']['market_trade']['foreign_traded_minor']===1000000&&$ext['GBP']['market_trade']['eur_traded_minor']===1200000,'foreign sale replenishes official EUR pool');
+ckCB($ext['USD']['market_trade']['foreign_traded_minor']===900000&&$ext['USD']['principal_outstanding_minor']===0&&$ext['USD']['interest_arrears_minor']===0,'FX purchase funds repayment after partial default');
+ckCB($ext['USD']['current_cross_rate']===11000&&$ext['USD']['fx_revaluation_frf_minor']>0,'changed foreign cross rate revalues outstanding debt before repayment');
+$next=$run('2026-12-09');$ext=$next['frf_committed_budget']['external_finance']['facilities'];
+ckCB($ext['USD']['current_cross_rate']===11000&&$ext['USD']['market_trade']===null&&$ext['USD']['net_market_reserve_flow_minor']===0,'cross quote carries forward without duplicate trade');
+$finalReport=C::project($sim->snapshot());ckCB($finalReport['financial_audit']['status']==='accounting_checks_passed'&&$finalReport['months'][0]['external_market_eur_volume_minor']===2190000,'two-sided market independently audited and aggregated');
+$copy=$make();$copy->restore($sim->snapshot(),$sim->hash());ckCB($copy->hash()===$sim->hash(),'market and reserve settlements restore exactly');
+$small=XM::trade($buy,'2026-12-08',100,50,100,50);ckCB($small['closing_official_eur_minor']>=50&&$small['foreign_traded_minor']===45&&$small['unfilled_foreign_minor']===899955,'market partial fill respects shared floor');
+$bridge=$finalReport['bank_equity_bridge'];ckCB($bridge['days']===9&&$bridge['latest']['principal_receipt_is_income']===false,'sovereign bank equity independently bridged');
+$bad=$finalReport['days'];$bad[array_key_last($bad)]['bank_balance']['equity_frf_minor']++;noCB(fn()=>BB::project($bad));

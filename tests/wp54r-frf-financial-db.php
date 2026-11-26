@@ -93,4 +93,9 @@ $third=$run('2026-12-03');$fourth=$run('2026-12-04');$newRead=(new Store($connec
 $fx=C::project($newRead['state']);
 ckDB($fx['latest']['external_finance']['facilities']['GBP']['principal_outstanding_minor']===2000&&$fx['latest']['external_finance']['facilities']['GBP']['reserve_minor']===1000,'native foreign facility settlement persists in MariaDB');
 ckDB($fx['financial_audit']['audited_days']===4&&S::project($org($e),$newRead)['franc_native_budget']===$fx,'foreign journal and report replay agree after reconnect');
+$quote=['currency'=>'GBP','effective_on'=>'2026-12-05','instrument_sha'=>$sha,'kind'=>'mark','quantity_minor'=>0,'counterparty_eur_minor'=>0,'counterparty_foreign_minor'=>0,'eur_minor_per_10000_units'=>10000];
+$e=E::certify($e,'2026-12-04','franc_external_market_order',$quote);
+$fifth=$run('2026-12-05');$f=C::project((new Store($connect(),$a))->read($world)['state']);
+ckDB($f['latest']['external_finance']['facilities']['GBP']['current_cross_rate']===10000&&$f['latest']['external_finance']['fx_revaluation_frf_minor']<0,'certified cross rate revaluation persists in MariaDB');
+ckDB($f['bank_equity_bridge']['days']===5,'bank equity bridge reconciles after persisted revaluation');
 foreach($tables as $table)$pdo->exec('DROP TABLE IF EXISTS '.$table);

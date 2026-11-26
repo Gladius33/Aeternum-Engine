@@ -11,6 +11,7 @@ require_once __DIR__.'/FrancFiscalLedger.php';
 require_once __DIR__.'/FrancNativeBudget.php';
 require_once __DIR__.'/FrancPropertySettlement.php';
 require_once __DIR__.'/FrancExternalFacility.php';
+require_once __DIR__.'/FrancExternalMarket.php';
 
 /** Article 50 procedural pilot: fictional certified evidence, not actual legal advice.
  * National constitutional authority is deliberately not inferred from ownership. */
@@ -55,7 +56,7 @@ final class EuropeanWithdrawal
         if(isset($s['franc_fx_market_version']))$s['franc_fx_market_terms']=null;
         if(isset($s['franc_fx_flow_version'])){$s['franc_fx_flow_terms']=null;$s['franc_fx_capital_orders']=[];}
         if(isset($s['franc_fiscal_version']))$s['franc_fiscal_terms']=null;
-        unset($s['franc_native_budget_terms'],$s['franc_property_orders'],$s['franc_external_facilities']);
+        unset($s['franc_native_budget_terms'],$s['franc_property_orders'],$s['franc_external_facilities'],$s['franc_external_market_orders']);
         $s['history'][]=['day'=>$day,'kind'=>'intent','data'=>[]];return $s;
     }
     public static function certify(array $s,string $day,string $kind,array $data):array
@@ -218,12 +219,18 @@ final class EuropeanWithdrawal
                 FrancExternalFacility::validate($data,$day);
                 if(isset($s['franc_external_facilities'][$data['currency']]))throw new \DomainException('One external facility per currency');
                 $s['franc_external_facilities'][$data['currency']]=$data;ksort($s['franc_external_facilities'],SORT_STRING);break;
+            case 'franc_external_market_order':
+                if($s['membership']||!($s['franc_native_budget_terms']['financial_integration']??false))throw new \DomainException('No integrated Treasury');
+                FrancExternalMarket::validate($data,$day);
+                $cur=$data['currency'];$date=$data['effective_on'];
+                if(!isset($s['franc_external_facilities'][$cur])||$date<$s['franc_external_facilities'][$cur]['effective_on']||isset($s['franc_external_market_orders'][$date][$cur]))throw new \DomainException('Unknown, premature or duplicate currency order');
+                $s['franc_external_market_orders'][$date][$cur]=$data;ksort($s['franc_external_market_orders'][$date],SORT_STRING);ksort($s['franc_external_market_orders'],SORT_STRING);break;
             case 'revocation':
                 self::fields($data,['national_decision_sha','notice_sha','unequivocal_unconditional']);
                 self::sha($data['national_decision_sha']);self::sha($data['notice_sha']);
                 if(!in_array($s['status'],['negotiating','agreement_concluded'],true)||$day>=$s['deadline']
                     ||$data['unequivocal_unconditional']!==true)throw new \DomainException('Revocation not certified');
-                $s['status']='revoked';$s['deadline']=null;$s['agreement_effective_on']=null;if(isset($s['trade_regime_version']))$s['trade_regime']=null;if(isset($s['spillovers_version'])){$s['budget_terms']=null;$s['partner_allocation']=null;}if(isset($s['currency_contract_version'])){$s['currency_terms']=null;$s['currency_marks']=[];}if(isset($s['franc_rule_version']))$s['franc_rule']=null;if(isset($s['franc_funding_version']))$s['franc_funding_orders']=[];if(isset($s['franc_bank_version'])){$s['franc_bank_terms']=null;$s['franc_bank_orders']=[];}if(isset($s['franc_bank_crisis_version']))$s['franc_bank_crisis_terms']=null;if(isset($s['franc_fx_version'])){$s['franc_fx_terms']=null;$s['franc_fx_orders']=[];}if(isset($s['franc_fx_market_version']))$s['franc_fx_market_terms']=null;if(isset($s['franc_fx_flow_version'])){$s['franc_fx_flow_terms']=null;$s['franc_fx_capital_orders']=[];}if(isset($s['franc_fiscal_version']))$s['franc_fiscal_terms']=null;unset($s['franc_native_budget_terms'],$s['franc_property_orders'],$s['franc_external_facilities']);break;
+                $s['status']='revoked';$s['deadline']=null;$s['agreement_effective_on']=null;if(isset($s['trade_regime_version']))$s['trade_regime']=null;if(isset($s['spillovers_version'])){$s['budget_terms']=null;$s['partner_allocation']=null;}if(isset($s['currency_contract_version'])){$s['currency_terms']=null;$s['currency_marks']=[];}if(isset($s['franc_rule_version']))$s['franc_rule']=null;if(isset($s['franc_funding_version']))$s['franc_funding_orders']=[];if(isset($s['franc_bank_version'])){$s['franc_bank_terms']=null;$s['franc_bank_orders']=[];}if(isset($s['franc_bank_crisis_version']))$s['franc_bank_crisis_terms']=null;if(isset($s['franc_fx_version'])){$s['franc_fx_terms']=null;$s['franc_fx_orders']=[];}if(isset($s['franc_fx_market_version']))$s['franc_fx_market_terms']=null;if(isset($s['franc_fx_flow_version'])){$s['franc_fx_flow_terms']=null;$s['franc_fx_capital_orders']=[];}if(isset($s['franc_fiscal_version']))$s['franc_fiscal_terms']=null;unset($s['franc_native_budget_terms'],$s['franc_property_orders'],$s['franc_external_facilities'],$s['franc_external_market_orders']);break;
             default:throw new \InvalidArgumentException('Unknown European evidence');
         }
         $s['history'][]=['day'=>$day,'kind'=>$kind,'data'=>$data];return $s;

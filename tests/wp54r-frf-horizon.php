@@ -13,9 +13,11 @@ $p=new class implements DomesticPolicyAuthority{
     public function clockDay(string $world):string{return $this->day;}
 };
 $date=new DateTimeImmutable($start);
-for($i=1;$i<=4384;$i++){
+for($i=1;$i<=7305;$i++){
     $p->day=$date->modify('+'.$i.' days')->format('Y-m-d');$dom->advance($p,$p->day);
     $opinion->advance(['world_id'=>'horizon-test','day'=>$p->day,'domestic_sha'=>$sha,'institutional_sha'=>$sha,'pressure'=>['workers'=>400,'retired'=>300],'active_policies'=>[],'production_index_bps'=>null,'employment_index_bps'=>null,'constitutional_breaches'=>0,'legislature'=>'sitting','election_status'=>null]);
 }
-horizonCheck(D::MAX_DAYS===7305&&O::MAX_DAYS===7305&&count($dom->snapshot()['days'])===4384&&count($opinion->snapshot()['history'])===4384,'domestic and opinion cores cross former ten-year limit');
+horizonCheck(D::MAX_DAYS===7305&&O::MAX_DAYS===7305&&count($dom->snapshot()['days'])===7305&&count($opinion->snapshot()['history'])===7305,'domestic and opinion cores cross former ten-year limit');
 $copy=$make();$copy->restore($dom->snapshot(),$dom->hash());horizonCheck($copy->hash()===$dom->hash()&&O::restore($opinion->snapshot())->hash()===$opinion->hash(),'long horizon deterministic replay');
+
+$p->day=$date->modify('+7306 days')->format('Y-m-d');$reject=false;try{$dom->advance($p,$p->day);}catch(DomainException $e){$reject=true;}horizonCheck($reject,'day 7306 exceeds explicit bound');
