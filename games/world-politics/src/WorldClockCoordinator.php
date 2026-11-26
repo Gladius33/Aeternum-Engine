@@ -417,7 +417,7 @@ final class WorldClockCoordinator
                     $payload['trade_observation']=json_encode($trade,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
                 }
                 if($step==='domestic'&&isset($current['state']['eu_trade_version'])){
-                    $eu=EuropeanTradeFeedback::observe($this->organizations->read($world),$world,$targetDay);
+                    $eu=EuropeanTradeFeedback::observe($this->organizations->read($world),$world,$targetDay,$current['state']['eu_trade_version']);
                     $payload['eu_trade_observation']=json_encode($eu,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
                 }
                 $receipt=$store->execute(

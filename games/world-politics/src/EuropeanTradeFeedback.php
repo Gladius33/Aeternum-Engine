@@ -8,7 +8,8 @@ require_once __DIR__.'/EuropeanWithdrawal.php';
 final class EuropeanTradeFeedback
 {
     public const VERSION='wp54r-eu-trade-v1';
-    public static function observe(array $read,string $world,string $day):array
+    public const VERSION_V2='wp54r-eu-trade-v2';
+    public static function observe(array $read,string $world,string $day,string $version=self::VERSION):array
     {
         $s=$read['state'];$sha=trim($read['etag'],'"');
         if($s['world_id']!==$world||$s['day']!==$day||!isset($s['eu_withdrawal']))throw new \DomainException('Missing committed EU source');
@@ -16,16 +17,16 @@ final class EuropeanTradeFeedback
         if($eu['day']!==$day||!isset($eu['trade_regime_version']))throw new \DomainException('EU trade model not pinned');
         $terms=$eu['trade_regime'];
         $active=!$eu['membership']&&$terms!==null&&$terms['effective_on']<=$day;
-        $out=['version'=>self::VERSION,'world_id'=>$world,'day'=>$day,'organization_sha'=>$sha,
+        $out=['version'=>$version,'world_id'=>$world,'day'=>$day,'organization_sha'=>$sha,
             'status'=>$eu['membership']?'member':($active?'certified_scenario':'unmodelled_post_exit'),
             'regime'=>$active?$terms['regime']:null,'import_duty_bps'=>$active?$terms['import_duty_bps']:0,
             'import_friction_bps'=>$active?$terms['import_friction_bps']:0,'export_friction_bps'=>$active?$terms['export_friction_bps']:0];
-        self::validate($out,$world,$day);return $out;
+        self::validate($out,$world,$day,$version);return $out;
     }
-    public static function validate(array $v,string $world,string $day):void
+    public static function validate(array $v,string $world,string $day,?string $expectedVersion=null):void
     {
         if(array_keys($v)!==['version','world_id','day','organization_sha','status','regime','import_duty_bps','import_friction_bps','export_friction_bps']
-            ||$v['version']!==self::VERSION||$v['world_id']!==$world||$v['day']!==$day||!is_string($v['organization_sha'])
+            ||!in_array($v['version'],[self::VERSION,self::VERSION_V2],true)||($expectedVersion!==null&&$v['version']!==$expectedVersion)||$v['world_id']!==$world||$v['day']!==$day||!is_string($v['organization_sha'])
             ||!preg_match('/^[a-f0-9]{64}$/D',$v['organization_sha'])||!in_array($v['status'],['member','certified_scenario','unmodelled_post_exit'],true))
             throw new \DomainException('Invalid EU trade observation');
         foreach(['import_duty_bps','import_friction_bps','export_friction_bps'] as $k)

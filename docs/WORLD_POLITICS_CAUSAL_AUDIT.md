@@ -223,3 +223,12 @@ preserved. Existing industrial imports excluded from first tax base. Assumed EU
 shares 50%, rates bounded synthetic, partner mirror flows are not partner GDP.
 No actual WTO tariff schedule, sector data, full trade diversion, monetary or
 EU-budget spillovers. Legacy states unchanged. CI pending.
+
+### WP54r import-shortage resource accounting
+
+EU trade v2 pins a resource-side correction: lost imports reduce consumption and
+non-project investment by their full real value, unless a separately modelled
+substitution exists (none in this channel). A pure import shortage cannot create
+real GDP merely from the negative import term. Export loss and tariff incidence
+remain explicit. V1 states retain exact old behaviour; new worlds pin v2 and
+its observation version, with replay and counterfactual tests. CI pending.

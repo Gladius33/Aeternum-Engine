@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/EuropeanTradeFeedback.php';
 
 /** WP48: version-pinned observations and a lagged, fictional fiscal loop.
  * The observations are not predictions, nor all dated to the game start.
@@ -151,8 +152,24 @@ final class MacroFiscalLoop
         if($euResult!==null){
             $exports-=$euResult['real_export_loss_minor'];$ordinaryImports-=$euResult['real_import_loss_minor'];
             $actualRevenue+=$euResult['customs_revenue_minor'];
-            $consumption=max(0,$consumption-intdiv($euResult['real_import_cost_minor'],2)-intdiv($euResult['real_import_loss_minor'],2));
-            $investment=max($realCapex,$investment-intdiv($euResult['real_export_loss_minor'],4));
+            if($eu['version']===EuropeanTradeFeedback::VERSION_V2){
+                // No import substitution has been financed or produced in this
+                // channel. Missing imported goods reduce final demand by the
+                // same real value, not create domestic value added mechanically.
+                $loss=$euResult['real_import_loss_minor'];
+                $cLoss=min($consumption,intdiv($loss*3,5));$iLoss=min(max(0,$investment-$realCapex),$loss-$cLoss);
+                $cLoss+=min($consumption-$cLoss,$loss-$cLoss-$iLoss);
+                if($cLoss+$iLoss!==$loss)throw new \DomainException('Unallocated import demand loss');
+                $consumption-=$cLoss;$investment-=$iLoss;
+                $euResult['real_consumption_import_shortfall_minor']=$cLoss;
+                $euResult['real_investment_import_shortfall_minor']=$iLoss;
+                $euResult['automatic_import_substitution_minor']=0;
+                $consumption=max(0,$consumption-intdiv($euResult['real_import_cost_minor'],2));
+                $investment=max($realCapex,$investment-intdiv($euResult['real_export_loss_minor'],4));
+            }else{
+                $consumption=max(0,$consumption-intdiv($euResult['real_import_cost_minor'],2)-intdiv($euResult['real_import_loss_minor'],2));
+                $investment=max($realCapex,$investment-intdiv($euResult['real_export_loss_minor'],4));
+            }
         }
         $imports=$ordinaryImports+self::scale($realCapex,3000);
         $real=$consumption+$b['daily_npish_consumption']+$investment+$government+$exports-$imports+$b['daily_statistical_discrepancy'];

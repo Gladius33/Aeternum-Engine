@@ -24,3 +24,13 @@ ckET($m['exports']<$old['macro']['exports']&&$m['imports']<$old['macro']['import
 ckET($m['real_gdp']===$m['consumption']+$m['npish_consumption']+$m['investment']+$m['government_consumption']+$m['exports']-$m['imports']+$m['statistical_discrepancy'],'GDP identity');
 ckET($new['treasury']['primary_balance']===$new['revenue']-$new['expense'],'budget identity');
 ckET(E::restore(E::advance($x,'2026-11-27'))===E::advance($x,'2026-11-27'),'legal terms replay');
+
+$pure=$after;$pure['version']=T::VERSION_V2;$pure['regime']='free_trade';$pure['import_duty_bps']=0;$pure['export_friction_bps']=0;
+T::validate($pure,'world-test','2026-11-27',T::VERSION_V2);
+$neutral=$run($pure);$nm=$neutral['macro'];$nr=$nm['eu_trade'];
+ckET($nr['real_import_loss_minor']>0&&$nr['real_consumption_import_shortfall_minor']+$nr['real_investment_import_shortfall_minor']===$nr['real_import_loss_minor'],'lost imports fully matched to demand');
+ckET($nm['real_gdp']===$old['macro']['real_gdp']&&$nr['automatic_import_substitution_minor']===0,'no artificial GDP increase from import shortage');
+$full=$after;$full['version']=T::VERSION_V2;
+$new2=$run($full);
+ckET($new2['macro']['real_gdp']<$old['macro']['real_gdp']&&$new2['revenue']===$new['revenue'],'export and tariff demand effects without changing customs accounting');
+ckET($run($after)===$new,'v1 deterministic compatibility');
