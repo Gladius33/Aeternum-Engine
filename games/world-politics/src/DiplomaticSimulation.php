@@ -6,6 +6,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/GeopoliticalActorRegistry.php';
 require_once __DIR__.'/UkraineAidDiplomacy.php';
 require_once __DIR__.'/InternationalCommitments.php';
+require_once __DIR__.'/CommitmentRisk.php';
 
 /** Adapter MUST use server-verified actor grants; never trust JSON for identity. */
 interface DiplomaticPrincipal
@@ -61,6 +62,11 @@ final class DiplomaticSimulation
     {
         if(!isset($this->state['aid_bridge'])||isset($this->state['commitments'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Commitments must be pinned at bootstrap');
         $this->state['commitments']=(new InternationalCommitments($this->state['world_id'],$this->state['day']))->snapshot();
+    }
+    public function enableCommitmentRisk():void
+    {
+        if(!isset($this->state['commitments'])||isset($this->state['commitment_risk'])||$this->state['commands']!==[]||$this->state['events']!==[]||$this->state['commitments']['commands']!==[])throw new \DomainException('Commitment risk must be pinned at bootstrap');
+        $this->state['commitment_risk']=CommitmentRisk::VERSION;
     }
     public function commitmentDecision(DiplomaticPrincipal $principal,string $id,string $action,string $command):array
     {
@@ -205,6 +211,7 @@ final class DiplomaticSimulation
         }
         $this->state['day']=$targetDay;
         $result=['day'=>$targetDay,'expired'=>$expired];
+        if(isset($this->state['commitment_risk']))$result['commitment_risk']=CommitmentRisk::report($this->state['commitments']);
         if(isset($this->state['daily_ai']))$result['autonomous_replies']=$this->dailyReplies();
         return $result;
     }
@@ -220,7 +227,7 @@ final class DiplomaticSimulation
             if(self::plus($offer['created_on'],$delay)<=$day)$due[]=$offer;
         }
         usort($due,fn($a,$b)=>strcmp($a['created_on'],$b['created_on'])?:strcmp($a['id'],$b['id']));
-        $replies=[];
+        $replies=[];$risk=isset($this->state['commitment_risk'])?CommitmentRisk::report($this->state['commitments'])['actor_signals']:[];
         foreach(array_slice($due,0,32) as $offer){
             $to=$offer['to'];
             $openness=hexdec(substr(hash('sha256',self::DAILY_AI_VERSION.'|profile|'.$to),0,4))%101;
@@ -229,7 +236,7 @@ final class DiplomaticSimulation
                 if($prior['from']==='state_fr'&&$prior['to']===$to&&isset($prior['responded_on'])&&$prior['responded_on']<$day){
                     $history+=str_starts_with($prior['status'],'accepted')?4:-4;
                 }
-            $score=$openness+max(-20,min(20,$history))+($this->state['aid_bridge']['latest']['signals'][$to]??0);
+            $score=$openness+max(-20,min(20,$history))+($this->state['aid_bridge']['latest']['signals'][$to]??0)+($risk[$to]??0);
             $threshold=match($offer['action']){'dialogue'=>25,'humanitarian_assistance'=>35,'trade_cooperation'=>55,'treaty_proposal'=>75,default=>101};
             $bot=new class($world,$to) implements DiplomaticPrincipal{
                 public function __construct(private readonly string $world,private readonly string $target){}
@@ -278,6 +285,10 @@ final class DiplomaticSimulation
             $ledger=InternationalCommitments::restore($state['commitments']);$s=$ledger->snapshot();
             if(!isset($state['aid_bridge'])||$s['world_id']!==$state['world_id']||$s['day']!==$state['day'])throw new \DomainException('Commitment scope mismatch');
             $expected[]='commitments';
+        }
+        if(array_key_exists('commitment_risk',$state)){
+            if($state['commitment_risk']!==CommitmentRisk::VERSION||!isset($state['commitments']))throw new \DomainException('Invalid commitment risk pin');
+            CommitmentRisk::report($state['commitments']);$expected[]='commitment_risk';
         }
         sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid diplomatic snapshot fields');

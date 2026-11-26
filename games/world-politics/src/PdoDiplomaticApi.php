@@ -45,7 +45,9 @@ final class PdoDiplomaticApi
                 }
                 if($resource==='commitments'&&$sub===''){
                     if(!isset($read['state']['commitments']))return self::problem(404,'not_found');
-                    return self::success(200,$read['state']['commitments'],$read['etag']);
+                    $body=$read['state']['commitments'];
+                    if(isset($read['state']['commitment_risk']))$body['risk']=CommitmentRisk::report($body);
+                    return self::success(200,$body,$read['etag']);
                 }
                 if ($resource==='proposals' && $sub==='') {
                     return self::success(200,[
