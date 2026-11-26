@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===27,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===28,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -802,4 +802,21 @@ ck30($mC54['real_gdp']===$mC54['consumption']+$mC54['npish_consumption']+$mC54['
 
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
+
+$pdo->exec('DELETE FROM wp_http_limits');
+$reg27=req30('POST','/accounts',['username'=>'investituretester','password'=>'strong-password-invest-27','invite'=>$invite]);
+ck30($reg27['status']===201,'canonical campaign test account');
+$t27=req30('POST','/sessions',['username'=>'investituretester','password'=>'strong-password-invest-27'])['body']['access_token'];
+$g27=req30('POST','/worlds',['label'=>'Investiture 2027','scenario'=>'fr-investiture-2027-v1'],$t27,['Idempotency-Key'=>'investiture-world-001']);
+if($g27['status']!==201)throw new RuntimeException('Investiture creation HTTP '.$g27['status'].' '.json_encode($g27['body']));
+$r27='/worlds/'.$g27['body']['world_id'];
+$p27=req30('GET',$r27.'/countries/FR/presidency',null,$t27);
+ck30($p27['status']===200&&$p27['body']['term_start']==='2027-05-14'&&$p27['body']['term_end']==='2032-05-14'&&$p27['body']['consecutive_terms']===1,'canonical first full mandate');
+$camp27=req30('GET',$r27.'/campaign',null,$t27);
+ck30($camp27['status']===200&&$camp27['body']['start_day']==='2027-05-14'&&$camp27['body']['status']==='active','canonical tenure starts at investiture');
+$c27=req30('GET',$r27.'/clock',null,$t27);
+$c27=req30('POST',$r27.'/clock/advances',['target_day'=>'2027-05-15'],$t27,['If-Match'=>$c27['etag'],'Idempotency-Key'=>'investiture-tick-001']);
+ck30($c27['status']===200&&$c27['body']['coherent'],'canonical full world first day coherent');
+$d27=req30('GET',$r27.'/domestic',null,$t27);
+ck30($d27['status']===200&&$d27['body']['debt_model']['first_maturity_month']==='2027-06'&&$d27['body']['debt_model']['source_pack']['as_of']==='2026-11-25'&&$d27['body']['population_model']['opening_anchor_vintage']==='2026-11-25','historical opening data not represented as future observation');
 echo "WP30 HTTP private alpha acceptance passed.\n";

@@ -82,3 +82,12 @@ $e=observation38('2026-11-26');$e['term_limit_revision']=$proof;$op2->advance($e
 ck38($op2->snapshot()['presidency']['term_limit']===null&&PublicOpinion::restore($op2->snapshot())->hash()===$op2->hash(),'opinion source bridge and exact replay');
 $bad=$e;$bad['day']='2026-11-27';$bad['term_limit_revision']=null;
 no38(fn()=>$op2->advance($bad),'published constitutional proof cannot silently disappear');
+
+$invest=PresidentialMandate::initial('world-test','2027-05-14',PresidentialMandate::investitureFixture());
+ck38($invest['consecutive_terms']===1&&$invest['term_start']==='2027-05-14'&&$invest['term_end']==='2032-05-14'&&$invest['elections']===[],'canonical campaign starts at first investiture with no previous election counted');
+$unchanged=$invest;$amended=$invest;
+while($unchanged['day']<'2037-05-14')$unchanged=PresidentialMandate::advance($unchanged,(new DateTimeImmutable($unchanged['day']))->modify('+1 day')->format('Y-m-d'),1000);
+ck38($unchanged['status']==='ended'&&$unchanged['consecutive_terms']===2,'first full two terms end in 2037');
+$proof27=$proof;$proof27['effective_on']='2027-05-15';
+while($amended['day']<'2042-05-14')$amended=PresidentialMandate::advance($amended,(new DateTimeImmutable($amended['day']))->modify('+1 day')->format('Y-m-d'),1000,$proof27);
+ck38($amended['status']==='scheduled'&&$amended['consecutive_terms']===4&&$amended['term_end']==='2047-05-14','third full term won after effective constitutional amendment');

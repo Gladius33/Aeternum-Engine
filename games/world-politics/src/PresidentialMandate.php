@@ -28,11 +28,15 @@ final class PresidentialMandate
         $c['calendar_version']=FrenchElectionCalendar::VERSION;
         return $c;
     }
+    public static function investitureFixture():array
+    {
+        $c=self::publishedFixture();$c['term_start']=FrenchElectionCalendar::PRESIDENTIAL_HANDOVER;return $c;
+    }
     public static function initial(string $world,string $start,array $config):array
     {
         self::day($start);$published=array_key_exists('calendar_version',$config);
         self::fields($config,['term_start','consecutive_terms','cycles',...($published?['calendar_version']:[])]);self::day($config['term_start']);
-        if($published&&$config!==self::publishedFixture())throw new \DomainException('Unrecognised published calendar configuration');
+        if($published&&$config!==self::publishedFixture()&&$config!==self::investitureFixture())throw new \DomainException('Unrecognised published calendar configuration');
         $terms=$config['consecutive_terms'];
         if(!is_int($terms)||$terms<1||$terms>2||!is_array($config['cycles'])||!array_is_list($config['cycles'])||count($config['cycles'])!==3-$terms)
             throw new \InvalidArgumentException('Invalid presidential term configuration');

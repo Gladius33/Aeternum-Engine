@@ -19,7 +19,7 @@ final class FrenchPublicServices
     }
     public static function build(array $p,string $start,array $population,array $macro):array
     {
-        if(($p['schema']??null)!=='wp52-fr-services-v1'||($p['country']??null)!=='FR'||($p['as_of']??null)!==$start
+        if(($p['schema']??null)!=='wp52-fr-services-v1'||($p['country']??null)!=='FR'||(($p['as_of']??null)!==$start&&!($start==='2027-05-14'&&($p['as_of']??null)==='2026-11-25'))
             ||!is_array($p['observations']??null)||count($p['observations'])!==33)
             throw new \DomainException('Invalid services source pack');
         $rows=[];
@@ -49,7 +49,7 @@ final class FrenchPublicServices
         $i=$population['opening_indicators'];
         return ['version'=>self::VERSION,'classification'=>'fictional_services_observed_anchors','source_pack'=>$p,
             'source_sha'=>hash('sha256',json_encode($p,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
-            'start_day'=>$start,'opening_demography'=>$i,'opening_unemployment_bps'=>$macro['initial_unemployment_bps'],
+            'start_day'=>$start,...($start!==$p['as_of']?['opening_anchor_status'=>'historical_observations_carried_forward_as_scenario_assumptions','opening_anchor_vintage'=>$p['as_of']]:[]),'opening_demography'=>$i,'opening_unemployment_bps'=>$macro['initial_unemployment_bps'],
             'baseline_daily_public_minor'=>$base,'health_public_share_bps'=>$hp,'education_public_share_bps'=>$ep,
             'full_beds'=>$get('hospital_full_beds','2024','beds'),'hospital_employees'=>$get('hospital_employees','2024','persons'),
             'partial_places'=>$get('hospital_partial_places','2024','places'),'home_places'=>$get('hospital_home_capacity','2024','places'),

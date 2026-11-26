@@ -42,7 +42,7 @@ final class SovereignDebtLedger
     }
     public static function build(array $p,array $baseline,string $start,bool $crisis=false):array
     {
-        if(($p['schema']??null)!=='wp-fr-sovereign-debt-staging-v1'||($p['as_of']??null)!==$start
+        if(($p['schema']??null)!=='wp-fr-sovereign-debt-staging-v1'||(($p['as_of']??null)!==$start&&!($start==='2027-05-14'&&($p['as_of']??null)==='2026-11-25'))
             ||!is_array($p['observations']??null)||count($p['observations'])>200)
             throw new \DomainException('Invalid debt source pack');
         $rows=[];
@@ -74,10 +74,10 @@ final class SovereignDebtLedger
         $newWeights=['new-normal-domestic'=>1,'new-normal-external'=>1,'new-stress-domestic'=>1,'new-stress-external'=>1];
         return ['version'=>self::VERSION,'classification'=>'fictional_nominal_cohorts_observed_anchors','source_pack'=>$p,
             'source_sha'=>hash('sha256',json_encode($p,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
-            'start_day'=>$start,'opening_debt'=>$debt,'opening_holders'=>$holders,'state_market_value_proxy_weights'=>$weights,
+            'start_day'=>$start,...($start!==$p['as_of']?['opening_anchor_status'=>'historical_observations_carried_forward_as_scenario_assumptions','opening_anchor_vintage'=>$p['as_of']]:[]),'opening_debt'=>$debt,'opening_holders'=>$holders,'state_market_value_proxy_weights'=>$weights,
             'initial_coupon_bps'=>$baseline['assumed_annual_interest_bps'],'normal_new_coupon_bps'=>$rate,
             'stress_new_coupon_bps'=>$rate+300,'new_holder_keys'=>array_keys($newWeights),
-            'first_maturity_month'=>'2026-12','maturity_month_count'=>120,'new_issue_maturity_years'=>10,
+            'first_maturity_month'=>$start==='2027-05-14'?'2027-06':'2026-12','maturity_month_count'=>120,'new_issue_maturity_years'=>10,
             'normal_daily_base_capacity'=>150000000000,'normal_refinancing_bps'=>10000,
             'stress_daily_base_capacity'=>25000000000,'stress_refinancing_bps'=>5000,
             'synthetic_schedule'=>true,'currency'=>'EUR','unit'=>'minor',
@@ -90,7 +90,7 @@ final class SovereignDebtLedger
     {
         $out=array_fill_keys(array_keys($c['opening_holders']),0);
         if(substr($day,8,2)!=='01')return $out;
-        $month=(int)substr($day,0,4)*12+(int)substr($day,5,2)-(2026*12+12);
+        $month=(int)substr($day,0,4)*12+(int)substr($day,5,2)-((int)substr($c['first_maturity_month'],0,4)*12+(int)substr($c['first_maturity_month'],5,2));
         $n=$c['maturity_month_count'];
         if($month<0||$month>=$n)return $out;
         foreach($c['opening_holders'] as $k=>$v)$out[$k]=intdiv($v,$n)+($month<$v%$n?1:0);

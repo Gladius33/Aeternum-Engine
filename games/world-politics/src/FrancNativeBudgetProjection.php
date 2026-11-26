@@ -30,7 +30,7 @@ final class FrancNativeBudgetProjection
     public static function flow(array $r,array $state,array $model,array $money,?array $order,int $ratio):array
     {
         $day=$r['day'];$t=$r['treasury'];$paused=$t['crisis']['moratorium']??false;$action=$t['crisis']['action']??null;$coupons=[];$maturities=[];$haircuts=[];$issues=[];
-        $month=(int)substr($day,0,4)*12+(int)substr($day,5,2)-(2026*12+12);$n=$model['maturity_month_count'];
+        $month=(int)substr($day,0,4)*12+(int)substr($day,5,2)-((int)substr($model['first_maturity_month'],0,4)*12+(int)substr($model['first_maturity_month'],5,2));$n=$model['maturity_month_count'];
         foreach($state['claims'] as $id=>$claim){
             $base=substr($id,0,-4);$cur=$claim['currency'];$principal=$claim['principal_outstanding_minor'];
             $cut=$action==='request-restructuring'&&!$paused?FrancNativeBudget::scale($claim['principal_due_minor'],$model['restructuring_overdue_reduction_bps']??0,10000):0;

@@ -32,7 +32,7 @@ final class FrenchDemography
     }
     public static function build(array $p,string $start,int $u0):array
     {
-        if($u0<0||$u0>3000||($p['schema']??null)!=='wp51-fr-demography-v1'||($p['country']??null)!=='FR'||($p['as_of']??null)!==$start
+        if($u0<0||$u0>3000||($p['schema']??null)!=='wp51-fr-demography-v1'||($p['country']??null)!=='FR'||(($p['as_of']??null)!==$start&&!($start==='2027-05-14'&&($p['as_of']??null)==='2026-11-25'))
             ||!is_array($p['observations']??null)||count($p['observations'])!==51)
             throw new \DomainException('Invalid demography pack');
         $rows=[];
@@ -67,7 +67,7 @@ final class FrenchDemography
             throw new \DomainException('Demographic balance mismatch');
         return ['version'=>self::VERSION,'classification'=>'fictional_cohort_model_observed_anchors',
             'source_pack'=>$p,'source_sha'=>hash('sha256',json_encode($p,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
-            'start_day'=>$start,'population_observation_day'=>'2026-01-01','opening_cohorts'=>$opening,
+            'start_day'=>$start,...($start!==$p['as_of']?['opening_anchor_status'=>'historical_observations_carried_forward_as_scenario_assumptions','opening_anchor_vintage'=>$p['as_of']]:[]),'population_observation_day'=>'2026-01-01','opening_cohorts'=>$opening,
             'opening_indicators'=>self::indicators($opening),'annual_births'=>$births,'annual_deaths'=>$deaths,'annual_net_migration'=>$migration,
             'fertility_observed_hundredths'=>$get('fertility_rate','2025','hundredths_children_per_woman'),
             'statistical_adjustment_not_physical_flow'=>$get('statistical_adjustment','2025','persons'),
