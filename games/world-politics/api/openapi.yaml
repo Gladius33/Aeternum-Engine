@@ -203,6 +203,16 @@ paths:
         '200': { description: Coherent fictional state }
         '404': { description: Inaccessible world or unsupported scenario }
         '409': { description: World advancing }
+  /worlds/{world}/countries/FR/industrial:
+    get:
+      operationId: readFrenchIndustrialCapital
+      summary: Read the fictional cash-funded industrial pilot
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Committed capital and project state }
+        '404': { description: Inaccessible world or unsupported model }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/companies:
     get:
       operationId: readFrenchCompanySimulation

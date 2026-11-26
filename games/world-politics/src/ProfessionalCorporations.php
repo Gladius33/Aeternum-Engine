@@ -25,7 +25,7 @@ final class ProfessionalCorporations
     }
     private static function parse(string $action):array
     {
-        if(in_array($action,['establish-quarterly','establish-annual','establish-exclusive-quarterly','establish-exclusive-annual','impose-exclusive','restore-pluralism'],true))return [$action,null];
+        if(in_array($action,['establish-quarterly','establish-annual','establish-exclusive-quarterly','establish-exclusive-annual','impose-exclusive','restore-pluralism','start-industrial-pilot','pause-industrial-pilot','resume-industrial-pilot'],true))return [$action,null];
         $p=explode(':',$action);
         if(count($p)===2&&in_array($p[0],['request-company-nationalisation','offer-voluntary-equity'],true)&&IndustrialProgrammeCatalog::hasCompany($p[1]))return $p;
         if(count($p)!==2||!in_array($p[0],['approve','return','request-nationalisation'],true)||!in_array($p[1],self::SECTORS,true))
@@ -72,6 +72,8 @@ final class ProfessionalCorporations
                 $state['mode']='pluralist';$state['legal_conflict']=false;$state['union_legal_status']='protected';
                 $state['frequency']=null;$state['next_report']=null;
                 foreach($state['branches'] as &$b){if(($b['report']['status']??null)==='pending_state_review')$b['report']['status']='cancelled';$b['revote_on']=null;}unset($b);
+            }elseif(in_array($kind,['start-industrial-pilot','pause-industrial-pilot','resume-industrial-pilot'],true)){
+                // Separately pinned industrial capital ledger owns this action.
             }elseif($kind==='offer-voluntary-equity'){
                 // Separate financial ledger owns consent and settlement.
             }elseif($kind==='request-company-nationalisation'){

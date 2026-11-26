@@ -88,7 +88,7 @@ final class MacroFiscalLoop
      * day's macro row. No uncommitted values, implicit circular equation
      * or read-side mutation. No trade/monetary feedback in this first loop.
      */
-    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0,?int $wagePremiumBps=null,?int $tradeExposureBps=null):array
+    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0,?int $wagePremiumBps=null,?int $tradeExposureBps=null,int $industrialCapex=0):array
     {
         if(!empty($debtModel['crisis_enabled'])){
             $credit=$previous['treasury']['banking']['credit_availability_bps']??10000;
@@ -141,9 +141,12 @@ final class MacroFiscalLoop
             +intdiv($socialFeedback,3)-self::scale($b['daily_consumption'],intdiv($trade,2)));
         $investment=max(0,$b['daily_investment']+self::scale($b['daily_investment'],
             self::clamp(intdiv(self::gap($priorReal,$b['daily_real_gdp']),3)+$production-10000,-2500,2500)));
-        $government=max(0,$b['daily_government_consumption']+intdiv($expense-$b['daily_primary_expense']-$serviceTransferDelta,2));
+        if($industrialCapex<0||$industrialCapex>$expense)throw new \DomainException('Invalid industrial capital expense');
+        $realCapex=self::scale($industrialCapex,100000000,$price);
+        $investment+=$realCapex;
+        $government=max(0,$b['daily_government_consumption']+intdiv($expense-$industrialCapex-$b['daily_primary_expense']-$serviceTransferDelta,2));
         $exports=$b['daily_exports']-self::scale($b['daily_exports'],$trade);
-        $imports=$b['daily_imports']-self::scale($b['daily_imports'],$trade);
+        $imports=$b['daily_imports']-self::scale($b['daily_imports'],$trade)+self::scale($realCapex,3000);
         $real=$consumption+$b['daily_npish_consumption']+$investment+$government+$exports-$imports+$b['daily_statistical_discrepancy'];
         if($real<=0)throw new \DomainException('Nonpositive output');
         $outputGap=self::clamp(self::gap($real,$b['daily_real_gdp']),-3000,3000);
@@ -171,7 +174,7 @@ final class MacroFiscalLoop
                 'daily_real_growth_bps'=>self::gap($real,$priorReal),'price_index_scaled'=>$price,'wage_index_scaled'=>$wage,
                 'annual_inflation_bps'=>$inflation,'unemployment_bps'=>$unemployment,'real_wage_index_bps'=>intdiv($wage*10000,$price),
                 'statutory_revenue'=>$revenue,'statutory_primary_expense'=>$expense,'tax_feedback'=>$taxFeedback,
-                'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap,...($payroll===null?[]:['corporation_payroll'=>$payroll]),...($tradeExposureBps===null?[]:['trade_exposure_bps'=>$trade])],
+                'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap,...($payroll===null?[]:['corporation_payroll'=>$payroll]),...($tradeExposureBps===null?[]:['trade_exposure_bps'=>$trade]),...($industrialCapex===0?[]:['industrial_capex_minor'=>$industrialCapex,'industrial_real_investment_minor'=>$realCapex,'industrial_real_imports_minor'=>self::scale($realCapex,3000)])],
             'treasury'=>$treasury];
     }
     public static function project(array $dom):array

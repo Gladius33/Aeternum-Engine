@@ -131,3 +131,14 @@ settlement exchanges cash for a financial asset at historical cost; does not
 increase primary spending or GDP. Compulsory nationalisation remains a review
 request, with statutory authorization, actual valuation, financing and legal
 scope still open. Ownership does not yet affect dividends, management or output.
+
+### WP54r industrial capital pilot
+
+Equity correction CI 45792401529 green. New opt-in pilot implements three
+fictional projects with bounded daily cash spending only after ordinary
+obligations, funded construction, delayed commissioning, depreciation and lagged
+capacity/employment feedback. Capex is primary expenditure and gross capital
+formation, not government consumption; illustrative imported input share 30%.
+Existing service funding is protected by a separate ordinary settlement. This
+is not the full reindustrialisation pack, statutory budget authority or a
+finding of EU state-aid compliance. All coefficients synthetic. CI pending.

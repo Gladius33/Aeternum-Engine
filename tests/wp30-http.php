@@ -620,9 +620,15 @@ if($g54['status']!==201)throw new RuntimeException('WP54 creation HTTP '.$g54['s
 $r54='/worlds/'.$g54['body']['world_id'];$p54=$r54.'/countries/FR/civil-mobilisation';
 $v54=req30('GET',$p54,null,$tc48);
 ck30($v54['status']===200&&$v54['body']['civil_mobilisation']['participation_estimate']===0,'WP54 initial attendance');
+$ind54=req30('GET',$r54.'/countries/FR/industrial',null,$tc48);
+ck30($ind54['status']===200&&$ind54['body']['state']['mode']==='not_started','WP54r industrial initial');
+$act54=req30('POST',$r54.'/domestic/corporation',['action'=>'start-industrial-pilot'],$tc48,['If-Match'=>$ind54['etag'],'Idempotency-Key'=>'industrial-act-001']);
+ck30($act54['status']===200,'WP54r industrial pilot accepted');
 $c54=req30('GET',$r54.'/clock',null,$tc48);
 $c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-26'],$tc48,['If-Match'=>$c54['etag'],'Idempotency-Key'=>'civil-tick-0001']);
 ck30($c54['status']===200&&$c54['body']['coherent'],'WP54 coherent day');
+$ind54=req30('GET',$r54.'/countries/FR/industrial',null,$tc48);
+ck30($ind54['status']===200&&$ind54['body']['state']['mode']==='active'&&$ind54['body']['state']['capacity_delta_bps']===0,'WP54r project not immediately productive');
 $v54=req30('GET',$p54,null,$tc48);
 ck30($v54['status']===200&&array_sum($v54['body']['civil_mobilisation']['cities'])===$v54['body']['civil_mobilisation']['participation_estimate'],'WP54 conserved attendance');
 ck30(req30('GET',$p54,null,$ta2)['status']===404&&req30('GET',$rc53.'/countries/FR/civil-mobilisation',null,$tc48)['status']===404,'WP54 membership and legacy isolation');

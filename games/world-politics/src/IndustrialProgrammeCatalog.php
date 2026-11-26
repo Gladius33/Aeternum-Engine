@@ -19,7 +19,7 @@ final class IndustrialProgrammeCatalog
     }
     public static function hasCompany(string $id):bool
     {foreach(self::companies()['companies'] as $r)if($r['id']===$id)return true;return false;}
-    public static function packs(array $state):array
+    public static function packs(array $state,?array $industrial=null):array
     {
         $initial=$state['mode']==='pluralist';
         return [
@@ -35,6 +35,7 @@ final class IndustrialProgrammeCatalog
                 'requires'=>['contested_tariff_authority','eu_infringement_response','article_50_negotiation','trade_retaliation','tariff_ledger']],
             ['id'=>'monetary-transition','label'=>'Separate monetary transition','status'=>'not_implemented','action'=>null,
                 'requires'=>['currency_balance_sheets','legal_contract_scope','banking_continuity','fx_and_external_debt']],
+            ...($industrial===null?[]:[['id'=>'industrial-capital-pilot','label'=>'Fictional cash-funded industrial pilot','status'=>$industrial['mode']==='not_started'?'available':'blocked_by_current_mode','action'=>$industrial['mode']==='not_started'?'start-industrial-pilot':null,'effects'=>['funded_capital_formation','delayed_commissioning','capacity_feedback'],'legal_status'=>'scenario_assumption_not_statutory_authorisation']]),
         ];
     }
 }

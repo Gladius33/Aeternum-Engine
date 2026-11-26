@@ -501,3 +501,8 @@ deferred. Nationalisation settlement and industrial programme still open.
 Optional compensated voluntary fictional equity settlement, cash-limited, distinct
 from statutory nationalisation. No automatic debt issue or GDP addition. CI
 pending. WP55 remains deferred; statutory acquisition and financing open.
+
+### WP54r industrial pilot remediation
+
+Acquisition CI 45792401529 green. Cash-funded industrial pilot added; full
+sector model and legal approvals remain open. WP55 deferred.
