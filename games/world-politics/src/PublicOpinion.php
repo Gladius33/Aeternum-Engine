@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CivicDialogue.php';
+require_once __DIR__.'/SocialPartners.php';
 require_once __DIR__.'/CampaignLifecycle.php';
 require_once __DIR__.'/PresidentialMandate.php';
 require_once __DIR__.'/LegislativeResponsibility.php';
@@ -57,6 +58,12 @@ final class PublicOpinion
             throw new \DomainException('Dialogue needs its fictional cohorts');
         $this->s['dialogue']=CivicDialogue::initial($this->s['day']);
     }
+    public function enableSocialPartners():void
+    {
+        if(!isset($this->s['dialogue'])||isset($this->s['social_partners'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Social partners must be pinned at bootstrap');
+        $this->s['social_partners']=SocialPartners::initial($this->s['day']);
+    }
     public function enableCampaign():void
     {
         if(isset($this->s['campaign'])||!isset($this->s['dialogue'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
@@ -70,7 +77,7 @@ final class PublicOpinion
         $this->s['presidency']=PresidentialMandate::initial($this->s['world_id'],$this->s['day'],$config);
     }
     /** Trusted inputs from the committed domestic and national stores, never player JSON. */
-    public static function observe(array $dom,array $inst):array
+    public static function observe(array $dom,array $inst,bool $partners=false):array
     {
         $d=$dom['state'];$i=$inst['state'];
         if($d['world_id']!==$i['world_id']||$i['country_code']!=='FR'||$d['day']!==$i['day'])
@@ -83,12 +90,13 @@ final class PublicOpinion
             'employment_index_bps'=>$last['economic']['employment_index_bps']??null,
             'constitutional_breaches'=>$i['constitutional_breaches'],'legislature'=>$i['legislature'],
             'election_status'=>$i['election']['status']??null,
+            ...($partners?['partner_observation'=>SocialPartners::observe($last)]:[]),
             ...(isset($i['legislation']['responsibility'])?['responsibility'=>LegislativeResponsibility::observation($i['legislation']['responsibility'])]:[])];
     }
     public function advance(array $e,?array $campaignEvent=null):array
     {
         self::fields($e,['world_id','day','domestic_sha','institutional_sha','pressure','active_policies','production_index_bps',
-            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[])]);
+            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[])]);
         self::day($e['day']);
         if($e['world_id']!==$this->s['world_id']||$e['day']!==(new \DateTimeImmutable($this->s['day']))->modify('+1 day')->format('Y-m-d')
             ||count($this->s['history'])>=3650)throw new \DomainException('Invalid daily opinion transition');
@@ -167,6 +175,10 @@ final class PublicOpinion
             $this->s['dialogue']=CivicDialogue::advance($this->s['dialogue'],$e['day'],$e['pressure'],$b['pressure']);
             $r['dialogue']=$this->s['dialogue'];
         }
+        if(isset($this->s['social_partners'])){
+            $this->s['social_partners']=SocialPartners::advance($this->s['social_partners'],$e['day'],$e['pressure'],$b['pressure'],$e['partner_observation']);
+            $r['social_partners']=$this->s['social_partners'];
+        }
         if($presidency!==null){
             $this->s['presidency']=$presidency;
             $r['presidency']=['status'=>$presidency['status'],'term_end'=>$presidency['term_end'],
@@ -202,6 +214,7 @@ final class PublicOpinion
         $x=new self($s['world_id'],$s['start_day'],$s['baseline']);
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>3650)throw new \DomainException('Invalid opinion journal');
         if(array_key_exists('dialogue',$s))$x->enableDialogue();
+        if(array_key_exists('social_partners',$s))$x->enableSocialPartners();
         if(array_key_exists('campaign',$s))$x->enableCampaign();
         if(array_key_exists('presidency',$s))$x->enablePresidentialMandate($s['presidency']['config']);
         foreach($s['history'] as $r)$x->advance($r['source'],$r['campaign_event']??null);

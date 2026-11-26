@@ -446,3 +446,12 @@ lagged pressure and coherent read API. No duplicated baseline, not full
 sector budgets, no individual pension rules or recruitment yet. See
 WORLD_POLITICS_SERVICES.md. WP51 CI 45776279152 all green, 21 specific
 assertions, no warnings.
+
+
+## WP53 social partners candidate
+
+Opt-in `fr-social-partners-v1`: five fictional representative bodies, differentiated
+sectoral consultation from committed WP52 service and macro observations, bounded
+hysteresis and replay-verified opinion journal. Read-only API; no legal agreement,
+new fiscal charges or automatic regime outcomes. WP52 CI 45778973335 all three
+jobs green. See WORLD_POLITICS_SOCIAL_PARTNERS.md.
