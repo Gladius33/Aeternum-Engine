@@ -86,7 +86,7 @@ final class FrancProductionRule
         $settled=$funding?FrancPublicFunding::settle($history,$terms['opening_base_franc_minor']??null,$eu['franc_funding_orders']):null;
         if($funding)$history=$settled['rows'];
         $result=['version'=>self::VERSION,'classification'=>'fictional_production_indexed_monetary_base_pilot',
-            'currency_name'=>'Franc','internal_currency_code'=>'XFR','status'=>$terms===null?'not_configured':($active?'active':'pending_effective_date'),
+            'currency_name'=>'Franc','internal_currency_code'=>'FRF','status'=>$terms===null?'not_configured':($active?'active':'pending_effective_date'),
             'effective_from'=>$start,'production_measure'=>'real_gdp_fixed_price_value_added','lagged_window_days'=>self::WINDOW,
             'anchor_real_output_daily_minor'=>$anchor,'opening_base_franc_minor'=>$terms['opening_base_franc_minor']??null,
             'latest'=>$history===[]?null:$history[array_key_last($history)],'days'=>$history,

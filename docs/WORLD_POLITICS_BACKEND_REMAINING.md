@@ -554,7 +554,7 @@ and accounting limitations explicit. WP55 remains deferred.
 
 ### WP54r multidevise contract ledger
 
-Closed fictional EUR/XFR contract projection with explicit treatment, parity,
+Closed fictional EUR/FRF contract projection with explicit treatment, parity,
 reciprocal FX and symmetric counterparty valuation. Actual debt/treasury
 currency migration, bank and central-bank balance sheets, maturities and
 legal certification issuance remain open. WP55 deferred.
@@ -563,7 +563,7 @@ legal certification issuance remain open. WP55 deferred.
 
 New worlds pin a certified pilot monetary-base rule with lagged real GDP
 and balanced issuance, explicit contraction and inflation safeguards. Franc
-name exposed, XFR retained internally. No fiscal spending, full bank money
+name exposed, historical code FRF reused. No fiscal spending, full bank money
 or live FX peg until central-bank and treasury migration is implemented.
 
 ### WP54r Franc public funding
@@ -601,3 +601,7 @@ Lagged gross certified order pressure drives a bounded Franc exchange quote,
 shared across the contract and reserve books. Autonomous bilateral demand,
 price discovery/market clearing, reserve asset diversification and real macro
 feedback remain open.
+
+FRF replaces the provisional French-franc denomination across monetary and
+FX projections. Persisted evidence unchanged; projection clients must adopt
+frf-specific field names. CHF remains distinct.

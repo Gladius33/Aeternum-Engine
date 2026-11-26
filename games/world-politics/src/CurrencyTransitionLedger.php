@@ -3,8 +3,8 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrancExchangeMarket.php';
 
-/** Closed, fictional contract book. XFR is an illustrative currency identifier,
- * not legal tender or the historic FRF. No actual national ledger is changed. */
+/** Closed fictional contract book. FRF reuses the historic French franc code
+ * for the scenario's new national currency; never the Swiss CHF. No actual national ledger changes. */
 final class CurrencyTransitionLedger
 {
     public const VERSION='wp54r-currency-contracts-v1';
@@ -64,20 +64,20 @@ final class CurrencyTransitionLedger
         $market=$active&&($eu['franc_fx_market_terms']??null)!==null?FrancExchangeMarket::quotes($eu,$eu['day'],$start):null;
         if($market!==null){$mark=$market['value_index_bps'];$markDay=$market['last_change_day'];}
         $sectors=[];
-        foreach(self::SECTORS as $id)$sectors[$id]=['assets_eur_minor'=>0,'liabilities_eur_minor'=>0,'assets_xfr_minor'=>0,'liabilities_xfr_minor'=>0,
+        foreach(self::SECTORS as $id)$sectors[$id]=['assets_eur_minor'=>0,'liabilities_eur_minor'=>0,'assets_frf_minor'=>0,'liabilities_frf_minor'=>0,
             'assets_at_eur_value_minor'=>0,'liabilities_at_eur_value_minor'=>0,'opening_net_eur_minor'=>0,'net_eur_valuation_delta_minor'=>0];
-        $claims=[];$total=0;$converted=0;$retained=0;$contested=0;$sovereign=0;$sovereignEur=0;$sovereignXfr=0;$sovereignLocal=0;
+        $claims=[];$total=0;$converted=0;$retained=0;$contested=0;$sovereign=0;$sovereignEur=0;$sovereignFrf=0;$sovereignLocal=0;
         foreach($terms['contracts']??[] as $v){
             $p=$v['principal_eur_minor'];$total+=$p;
             $convertedNow=$active&&$v['treatment']==='convert_certified';
-            $currency=$convertedNow?'XFR':'EUR';$nominal=$convertedNow?$p*$ratio:$p;
+            $currency=$convertedNow?'FRF':'EUR';$nominal=$convertedNow?$p*$ratio:$p;
             $eur=$convertedNow?self::scale($p,$mark,10000):$p;
             $local=$active?($convertedNow?$nominal:self::scale($p,$ratio*10000,$mark)):null;
             $delta=$eur-$p;
             if($convertedNow)$converted+=$p;else $retained+=$p;
             if($v['treatment']==='contested')$contested+=$p;
             if($v['kind']==='sovereign_bond'){
-                $sovereign+=$p;if($convertedNow)$sovereignXfr+=$nominal;else $sovereignEur+=$nominal;
+                $sovereign+=$p;if($convertedNow)$sovereignFrf+=$nominal;else $sovereignEur+=$nominal;
                 if($active)$sovereignLocal+=$local;
             }
             $cr=$v['creditor'];$de=$v['debtor'];$c=strtolower($currency);
@@ -86,9 +86,9 @@ final class CurrencyTransitionLedger
             $sectors[$cr]['opening_net_eur_minor']+=$p;$sectors[$de]['opening_net_eur_minor']-=$p;
             $sectors[$cr]['net_eur_valuation_delta_minor']+=$delta;$sectors[$de]['net_eur_valuation_delta_minor']-=$delta;
             $claims[]=$v+['current_currency'=>$currency,'current_principal_minor'=>$nominal,'eur_valuation_minor'=>$eur,
-                'xfr_valuation_minor'=>$local,'eur_valuation_delta_minor'=>$delta,'conversion_applied'=>$convertedNow];
+                'frf_valuation_minor'=>$local,'eur_valuation_delta_minor'=>$delta,'conversion_applied'=>$convertedNow];
         }
-        foreach(['eur','xfr','at_eur_value'] as $unit){
+        foreach(['eur','frf','at_eur_value'] as $unit){
             if(array_sum(array_column($sectors,'assets_'.$unit.'_minor'))!==array_sum(array_column($sectors,'liabilities_'.$unit.'_minor')))
                 throw new \DomainException('Unbalanced currency book');
         }
@@ -97,15 +97,15 @@ final class CurrencyTransitionLedger
         return ['version'=>self::VERSION,'classification'=>'fictional_closed_contract_book_not_forecast',
             'status'=>$terms===null?'not_configured':($active?'conversion_simulated':'pending_effective_date'),
             'effective_from'=>$start,'currency_conversion_simulated'=>$active,'national_currency_changed'=>false,
-            'national_treasury_booked'=>false,'new_currency'=>'XFR','original_currency'=>'EUR',
+            'national_treasury_booked'=>false,'new_currency'=>'FRF','original_currency'=>'EUR','currency_projection_schema'=>'frf-v2',
             'units_per_eur_at_parity'=>$terms===null?null:$ratio,'new_currency_value_index_bps'=>$active?$mark:null,
-            'fx_mark_effective_on'=>$markDay,'eur_per_xfr_rate'=>$active?['numerator'=>$mark,'denominator'=>$ratio*10000]:null,
-            'xfr_per_eur_rate'=>$active?['numerator'=>$ratio*10000,'denominator'=>$mark]:null,
+            'fx_mark_effective_on'=>$markDay,'eur_per_frf_rate'=>$active?['numerator'=>$mark,'denominator'=>$ratio*10000]:null,
+            'frf_per_eur_rate'=>$active?['numerator'=>$ratio*10000,'denominator'=>$mark]:null,
             'opening_contract_principal_eur_minor'=>$total,'converted_opening_principal_eur_minor'=>$converted,
             'retained_opening_principal_eur_minor'=>$retained,'contested_opening_principal_eur_minor'=>$contested,
             'claims'=>$claims,'sectors'=>$sectors,'consolidated_net_eur_valuation_delta_minor'=>0,
             'sovereign_subset'=>['opening_principal_eur_minor'=>$sovereign,'retained_eur_principal_minor'=>$sovereignEur,
-                'converted_xfr_principal_minor'=>$sovereignXfr,'xfr_valuation_minor'=>$active?$sovereignLocal:null,
+                'converted_frf_principal_minor'=>$sovereignFrf,'frf_valuation_minor'=>$active?$sovereignLocal:null,
                 'national_debt_coverage'=>null,'whole_debt_repriced'=>false],
             'unmodelled_contracts_and_maturities'=>true,'bank_capital_and_liquidity_modelled'=>false,
             'ecb_target_settlement_modelled'=>false,...($market===null?[]:['fx_market'=>$market]),'not_a_forecast'=>true];

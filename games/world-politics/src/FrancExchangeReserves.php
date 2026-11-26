@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrancExchangeMarket.php';
 
-/** Closed EUR/XFR reserve pilot. The two settlement pools are preallocated
+/** Closed EUR/FRF reserve pilot. The two settlement pools are preallocated
  * from the unallocated opening base. No intervention creates base money.
  * Foreign exchange assets and settlement counterpart are fictional, not
  * observations of France's actual reserves. */
@@ -85,7 +85,7 @@ final class FrancExchangeReserves
             $priorValue=$afterValue;
         }
         return ['version'=>self::VERSION,'classification'=>'fictional_closed_fx_settlement_pilot','status'=>$terms===null?'not_configured':($active?'active':'pending_effective_date'),
-            'effective_from'=>$start,'currency_pair'=>'EUR/XFR','terms'=>$terms,'latest'=>$rows===[]?null:$rows[array_key_last($rows)],'days'=>$rows,
+            'effective_from'=>$start,'currency_pair'=>'EUR/FRF','terms'=>$terms,'latest'=>$rows===[]?null:$rows[array_key_last($rows)],'days'=>$rows,
             'official_actual_reserves_minor'=>null,'national_balance_of_payments_booked'=>false,'market_price_endogenous'=>$market,
             'franc_base_created_by_intervention'=>false,'other_currencies_modelled'=>false,'not_a_forecast'=>true];
     }

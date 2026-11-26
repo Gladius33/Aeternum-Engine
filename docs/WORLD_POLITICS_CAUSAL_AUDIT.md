@@ -262,15 +262,15 @@ CI pending.
 
 ### WP54r multidevise contract book
 
-Separate prospective certified fictional EUR/XFR contract scenario. Conversion
+Separate prospective certified fictional EUR/FRF contract scenario. Conversion
 requires explicit contract evidence and French governing law (a conservative
 scenario gate, not a statement of actual law); retained and contested contracts
 stay in EUR. Effective only after withdrawal and conversion date. Parity
 preserves value; prospective FX marks revalue claims symmetrically and preserve
 double-entry assets/liabilities and consolidated net valuation. Mixed sovereign
 subset is not the whole debt ledger; no security-level data, actual treasury
-booking, money supply, bank capital/liquidity or TARGET settlement. XFR is a
-fictional identifier. Currency-changed flag remains false for national ledger.
+booking, money supply, bank capital/liquidity or TARGET settlement. FRF is the
+French franc code reused in this fictional scenario. Currency-changed flag remains false for national ledger.
 Legacy states unchanged. CI pending.
 
 Integration now also schedules a prospective FX mark through the trusted store,
@@ -279,8 +279,7 @@ symmetric valuation, unchanged past EUR ledger and no premature booking.
 
 ### WP54r franc monetary rule
 
-User-specified fictional national currency is the Franc (internal XFR marker
-preserved for compatibility). Certified pilot opening monetary base, effective
+User-specified fictional national currency is the French Franc (FRF). Certified pilot opening monetary base, effective
 only after currency transition. Target equals opening base times lagged real
 GDP rolling mean / opening real GDP anchor; up to 30 prior days. Positive
 shortfall issued in a separate balanced pilot account as central bank claim
@@ -343,7 +342,7 @@ public monetary destruction without a negative reserve balance.
 ### WP54r foreign exchange reserve pilot
 
 Bank crisis and ringfence CIs 45852439644/45852524061 green. New worlds pin
-closed fictional EUR/XFR settlement pools separate from all prior base
+closed fictional EUR/FRF settlement pools separate from all prior base
 allocations. Certified buys/sales constrained by EUR reserve floor and
 counterparty funding, integer reciprocal quote, explicit unsettled demand,
 stock conservation and separate FX valuation versus transaction rounding.
@@ -361,3 +360,13 @@ No current-day feedback, no move without orders, one shared quote for all
 contract and reserve valuations. Not market clearing or autonomous demand;
 manual marks and market mode are mutually exclusive. Reuse verified currency
 and monetary projections rather than replaying them twice. CI pending.
+
+### WP54r currency identifier correction
+
+User explicitly requires FRF, not provisional XFR, for the new French franc.
+All currency projections and denomination-specific field names use FRF/frf;
+CHF is never substituted. Evidence/snapshot history does not store the
+provisional denomination or the derived fields, so it remains replayable.
+API projection names changed (currency_projection_schema=frf-v2); clients
+must update field names. Prior parity and numerical rules unchanged. No
+actual legal tender change is implied. Prior FX CIs 45853716220/45853845185 green.
