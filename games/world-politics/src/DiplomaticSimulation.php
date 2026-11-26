@@ -44,6 +44,12 @@ final class DiplomaticSimulation
         ];
     }
 
+    public const DAILY_AI_VERSION='wp54r-diplomatic-replies-v1';
+    public function enableDailyReplies():void
+    {
+        if(isset($this->state['daily_ai'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Diplomatic AI must be pinned at bootstrap');
+        $this->state['daily_ai']=self::DAILY_AI_VERSION;
+    }
     /** @return array<string,mixed> */
     public function propose(
         DiplomaticPrincipal $principal,
@@ -148,11 +154,15 @@ final class DiplomaticSimulation
     }
 
     /** Advance a virtual date; unanswered diplomatic offers expire. */
-    public function advanceTo(string $targetDay):array
+    public function advanceTo(string $targetDay,?DiplomaticPrincipal $clock=null):array
     {
         self::day($targetDay);
         if ($targetDay<$this->state['day']) {
             throw new \InvalidArgumentException('Diplomatic simulation cannot move back in time');
+        }
+        if(isset($this->state['daily_ai'])){
+            if($clock===null||!$clock->allows($this->state['world_id'],$clock->actorId(),'diplomacy.clock'))throw new \DomainException('Trusted diplomatic AI clock required');
+            if($targetDay!==self::plus($this->state['day'],1))throw new \DomainException('Daily diplomacy requires one day per tick');
         }
         $expired=[];
         foreach ($this->state['proposals'] as $id=>&$proposal) {
@@ -170,9 +180,43 @@ final class DiplomaticSimulation
         unset($proposal);
         sort($expired,SORT_STRING);
         $this->state['day']=$targetDay;
-        return ['day'=>$targetDay,'expired'=>$expired];
+        $result=['day'=>$targetDay,'expired'=>$expired];
+        if(isset($this->state['daily_ai']))$result['autonomous_replies']=$this->dailyReplies();
+        return $result;
     }
 
+    /** Only the trusted clock calls this private routine. Each response is
+     * non-binding and scoped to the particular incoming foreign offer. */
+    private function dailyReplies():array
+    {
+        $world=$this->state['world_id'];$day=$this->state['day'];$due=[];
+        foreach($this->state['proposals'] as $offer){
+            if($offer['status']!=='pending_response'||$offer['to']==='state_fr'||$offer['from']!=='state_fr')continue;
+            $delay=2+(hexdec(substr(hash('sha256',self::DAILY_AI_VERSION.'|delay|'.$offer['to']),0,4))%4);
+            if(self::plus($offer['created_on'],$delay)<=$day)$due[]=$offer;
+        }
+        usort($due,fn($a,$b)=>strcmp($a['created_on'],$b['created_on'])?:strcmp($a['id'],$b['id']));
+        $replies=[];
+        foreach(array_slice($due,0,32) as $offer){
+            $to=$offer['to'];
+            $openness=hexdec(substr(hash('sha256',self::DAILY_AI_VERSION.'|profile|'.$to),0,4))%101;
+            $history=0;
+            foreach($this->state['proposals'] as $prior)
+                if($prior['from']==='state_fr'&&$prior['to']===$to&&isset($prior['responded_on'])&&$prior['responded_on']<$day){
+                    $history+=str_starts_with($prior['status'],'accepted')?4:-4;
+                }
+            $score=$openness+max(-20,min(20,$history));
+            $threshold=match($offer['action']){'dialogue'=>25,'humanitarian_assistance'=>35,'trade_cooperation'=>55,'treaty_proposal'=>75,default=>101};
+            $bot=new class($world,$to) implements DiplomaticPrincipal{
+                public function __construct(private readonly string $world,private readonly string $target){}
+                public function actorId():string{return 'fictional-diplomatic-reply';}
+                public function allows(string $w,string $a,string $ability):bool{return $w===$this->world&&$a===$this->target&&in_array($ability,['diplomacy.respond','diplomacy.ai_controller'],true);}
+            };
+            $cmd='daily-ai-'.substr(hash('sha256',$world.'|'.$offer['id']),0,32);
+            $replies[]=$this->respond($bot,$to,$offer['id'],$score>=$threshold,$cmd);
+        }
+        return $replies;
+    }
     /** @return list<array<string,mixed>> */
     public function pendingFor(string $actorId):array
     {
@@ -197,6 +241,10 @@ final class DiplomaticSimulation
         $keys=array_keys($state);
         $expected=['world_id','day','rules_version','actors_sha',
             'proposals','declarations','events','commands'];
+        if(array_key_exists('daily_ai',$state)){
+            if($state['daily_ai']!==self::DAILY_AI_VERSION)throw new \DomainException('Unknown diplomatic AI model');
+            $expected[]='daily_ai';
+        }
         sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid diplomatic snapshot fields');
         if (!is_string($state['world_id']) || !is_string($state['day'])) {

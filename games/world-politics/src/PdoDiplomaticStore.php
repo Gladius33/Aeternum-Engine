@@ -282,7 +282,7 @@ final class PdoDiplomaticStore
                 if (!is_string($payload['target_day'])) {
                     throw new \InvalidArgumentException('Invalid game date');
                 }
-                return $sim->advanceTo($payload['target_day']);
+                return $sim->advanceTo($payload['target_day'],$this->principal);
         }
         throw new \InvalidArgumentException('Unknown operation');
     }

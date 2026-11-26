@@ -152,3 +152,15 @@ no fabricated seats. Positions change gradually and have no legal effect;
 legislative enactment and certified roll calls remain separate. No calibrated
 party behaviour or automatic change of regime. Further coalition, actual
 legislative action and electoral dynamics remain open. CI pending.
+
+### WP54r diplomatic replies correction
+
+Party response CI 45793372187 green. New corporation/civil-crisis diplomatic
+states pin a bounded daily autonomous foreign reply model. Incoming fictional
+French dialogue, aid, trade and treaty negotiation offers receive nonbinding
+responses after two to five days, with synthetic preferences and prior interaction
+history. Only the trusted clock invokes it, no foreign player impersonation and
+no retroactive sanctions authorization or treaty ratification. Old states remain
+unchanged. No claim of real foreign policy preferences. Independent international
+initiative, EU legal decisions, sanctions approval and economic implementation
+remain open. CI pending.

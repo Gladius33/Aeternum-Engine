@@ -620,6 +620,8 @@ if($g54['status']!==201)throw new RuntimeException('WP54 creation HTTP '.$g54['s
 $r54='/worlds/'.$g54['body']['world_id'];$p54=$r54.'/countries/FR/civil-mobilisation';
 $v54=req30('GET',$p54,null,$tc48);
 ck30($v54['status']===200&&$v54['body']['civil_mobilisation']['participation_estimate']===0,'WP54 initial attendance');
+$dip54=req30('GET',$r54.'/diplomacy',null,$tc48);
+ck30($dip54['status']===200&&$dip54['body']['daily_ai']==='wp54r-diplomatic-replies-v1','WP54r pinned diplomatic AI');
 $ind54=req30('GET',$r54.'/countries/FR/industrial',null,$tc48);
 ck30($ind54['status']===200&&$ind54['body']['state']['mode']==='not_started','WP54r industrial initial');
 $act54=req30('POST',$r54.'/domestic/corporation',['action'=>'start-industrial-pilot'],$tc48,['If-Match'=>$ind54['etag'],'Idempotency-Key'=>'industrial-act-001']);

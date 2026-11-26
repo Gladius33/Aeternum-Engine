@@ -80,6 +80,8 @@ jobs:
         run: php tests/wp28-french-parliament.php
       - name: Domestic policy fiscal ledger and multi-day scenario WP29A
         run: php tests/wp29a-domestic-policy.php
+      - name: WP54r autonomous foreign diplomatic replies
+        run: php tests/wp54r-diplomatic-replies.php
       - name: WP54r independent fictional party response regression
         run: php tests/wp54r-party-responses.php
       - name: WP54r industrial capital funding and commissioning regression
