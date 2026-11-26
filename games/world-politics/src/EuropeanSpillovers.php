@@ -110,6 +110,7 @@ final class EuropeanSpillovers
                 'other_currency_exits_inferred'=>false],
             ... (isset($eu['currency_contract_version'])?['currency_contracts'=>CurrencyTransitionLedger::project($eu)]:[]),
             ...(isset($eu['franc_rule_version'])?['franc_monetary_rule'=>FrancProductionRule::project($eu,$ds)]:[]),
+            ...(isset($eu['franc_fx_version'])?['franc_exchange_reserves'=>FrancExchangeReserves::project($eu,CurrencyTransitionLedger::project($eu),FrancProductionRule::project($eu,$ds))]:[]),
             'not_a_forecast'=>true];
     }
 }

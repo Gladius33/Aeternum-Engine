@@ -339,3 +339,15 @@ Ring-fenced public reserves cannot fund private cash withdrawals or facility
 repayments in the crisis pilot. Private credit capacity is additionally capped
 by private liquidity. Regression combines public spending, run and subsequent
 public monetary destruction without a negative reserve balance.
+
+### WP54r foreign exchange reserve pilot
+
+Bank crisis and ringfence CIs 45852439644/45852524061 green. New worlds pin
+closed fictional EUR/XFR settlement pools separate from all prior base
+allocations. Certified buys/sales constrained by EUR reserve floor and
+counterparty funding, integer reciprocal quote, explicit unsettled demand,
+stock conservation and separate FX valuation versus transaction rounding.
+No creation of base money or actual national reserve/treasury booking. EUR
+only; committed currency marks are exogenous, endogenous price formation,
+USD/gold/other reserve assets, actual sources, full external balance remain
+open. CI pending.

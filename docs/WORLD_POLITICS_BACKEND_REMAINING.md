@@ -588,3 +588,9 @@ Pinned cash withdrawal/redeposit, collateral-limited prefunded liquidity
 facility and aggregate prefunded deposit guarantee pilot. No extra base
 issuance. Autonomous stress, depositor roster, resolution and multi-bank
 clearing remain open; national EUR macro/treasury still separate.
+
+### WP54r Franc FX reserves
+
+Certified two-currency settlement and reserve valuation pilot, no extra base
+issuance. Explicit unmet demand and reserve floor; dynamic exchange rate,
+multi-asset reserves, bank FX exposures and macro feedback remain open.
