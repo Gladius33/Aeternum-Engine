@@ -13,7 +13,8 @@ final class CampaignLifecycle
     public const PLAYER='campaign-president';
     private const TYPES=['cabinet_resigned','cabinet_reconstituted','constitutional_crisis_opened',
         'constitutional_crisis_resolved','revolution_attempted','revolution_failed','revolution_succeeded',
-        'presidential_election_lost','presidential_mandate_ended','presidential_resignation','presidential_removal','presidential_death'];
+        'presidential_election_lost','presidential_mandate_ended','presidential_resignation','presidential_removal','presidential_death',
+        'leadership_displaced','leadership_abroad','leadership_returned'];
     public static function initial(string $world,string $day):array
     {
         self::id($world);self::day($day);
@@ -47,6 +48,17 @@ final class CampaignLifecycle
             if($e['world_id']!==$s['world_id']||$e['day']!==$day)throw new \DomainException('Campaign event scope mismatch');
             foreach($s['events'] as $prior)if($prior['id']===$e['id'])throw new \DomainException('Duplicate campaign event');
             switch($e['type']){
+                case 'leadership_displaced':
+                case 'leadership_abroad':
+                case 'leadership_returned':
+                    if(!isset($s['continuity']))throw new \DomainException('Continuity scenario required');
+                    $old=$s['continuity']['location_status'];
+                    $new=match($e['type']){'leadership_displaced'=>'relocated_domestically','leadership_abroad'=>'abroad','leadership_returned'=>'domestic'};
+                    if($old===$new||($new==='domestic'&&$old==='domestic'))throw new \DomainException('Duplicate continuity transition');
+                    $s['continuity']=['location_status'=>$new,'recognition_status'=>$new==='abroad'?'requires_independent_review':'not_disputed',
+                        'last_event_day'=>$day];
+                    // Physical absence is not a certified vacancy or loss of office.
+                    break;
                 case 'cabinet_resigned':
                     if($s['cabinet_status']!=='in_office')throw new \DomainException('Cabinet already resigned');
                     $s['cabinet_status']='caretaker';break;
@@ -99,7 +111,7 @@ final class CampaignLifecycle
     public static function summary(array $s):array
     {
         return ['status'=>$s['status'],'office_retained'=>$s['office_retained'],'office'=>$s['office'],
-            'regime_changed'=>$s['regime_changed'],'ended_on'=>$s['ended_on'],'reason'=>$s['reason']];
+            'regime_changed'=>$s['regime_changed'],'ended_on'=>$s['ended_on'],'reason'=>$s['reason'],...(isset($s['continuity'])?['continuity'=>$s['continuity']]:[])];
     }
     /** Validate the entire future queue before accepting a new immutable event.
      * Skip empty days through deterministic date advancement, capped at ten years.

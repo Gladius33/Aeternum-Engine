@@ -61,7 +61,7 @@ final class PdoPublicOpinionStore
                 $this->db->commit();return $receipt;
             }
             if(!hash_equals('"'.$x->hash().'"',$etag))throw new \DomainException('Stale opinion precondition');
-            $e=PublicOpinion::observe($this->domestic->read($world),$this->institutions->read($world,'FR'),isset($x->snapshot()['social_partners']));
+            $e=PublicOpinion::observe($this->domestic->read($world),$this->institutions->read($world,'FR'),isset($x->snapshot()['social_partners']),isset($x->snapshot()['civil_mobilisation']));
             if($e['day']!==$day)throw new \DomainException('Opinion sources must reach pending day first');
             $campaign=isset($x->snapshot()['campaign']);
             if($campaign!==((int)($clock['campaign_enabled']??0)===1))throw new \DomainException('Campaign pin mismatch');

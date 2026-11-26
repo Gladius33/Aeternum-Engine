@@ -472,3 +472,12 @@ review, deficits and acceptance gates. Two corporate actions executable as packs
 other programmes explicitly unavailable until dependencies exist. 40 dated CAC40
 identities; individual company legal/fiscal review requests, not ownership transfers.
 New branch-wide requests rejected; historical replay preserved.
+
+
+## WP54 civil mobilisation and continuity candidate
+
+WP53c CI 45789774900 green. Opt-in fr-civil-crisis-v1, fictional daily attendance
+estimates and city totals, public-service continuity and nonterminal certified
+relocation/abroad/return events. No security-force deployment, weapons or
+coercive tactics. See WORLD_POLITICS_CIVIL_CRISIS.md. Further autonomous
+political resolution and legal recognition remain open.

@@ -68,7 +68,7 @@ ck30(req30('DELETE','/session',null,$ta)['status']===200 && req30('GET','/worlds
 $ta2=req30('POST','/sessions',['username'=>'alice','password'=>'strong-password-123'])['body']['access_token'];
 ck30(req30('GET',$root.'/clock',null,$ta2)['body']['committed_day']==='2026-11-25','login resumes saved world');
 $scenarios=req30('GET','/scenarios',null,$ta2);
-ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===26,'WP31 scenario selection');
+ck30($scenarios['status']===200 && count($scenarios['body']['scenarios'])===27,'WP31 scenario selection');
 $g=req30('POST','/worlds',['label'=>'Global test','scenario'=>'fr-global-v1'],$ta2,['Idempotency-Key'=>'global-world-0001']);
 ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
@@ -607,6 +607,18 @@ $cc53=req30('POST',$rc53.'/clock/advances',['target_day'=>'2026-11-27'],$tc48,['
 ck30($cc53['status']===200&&$cc53['body']['coherent'],'WP53c review coherent day');
 $vc53=req30('GET',$pc53,null,$tc48);
 ck30($vc53['body']['state']['company_requests']['renault']['ownership_transferred']===false,'WP53c no unfinanced transfer');
+$pdo->exec('DELETE FROM wp_http_limits');
+$g54=req30('POST','/worlds',['label'=>'Civil crisis pilot','scenario'=>'fr-civil-crisis-v1'],$tc48,['Idempotency-Key'=>'civil-world-0001']);
+if($g54['status']!==201)throw new RuntimeException('WP54 creation HTTP '.$g54['status'].' '.json_encode($g54['body'],JSON_THROW_ON_ERROR));
+$r54='/worlds/'.$g54['body']['world_id'];$p54=$r54.'/countries/FR/civil-mobilisation';
+$v54=req30('GET',$p54,null,$tc48);
+ck30($v54['status']===200&&$v54['body']['civil_mobilisation']['participation_estimate']===0,'WP54 initial attendance');
+$c54=req30('GET',$r54.'/clock',null,$tc48);
+$c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-26'],$tc48,['If-Match'=>$c54['etag'],'Idempotency-Key'=>'civil-tick-0001']);
+ck30($c54['status']===200&&$c54['body']['coherent'],'WP54 coherent day');
+$v54=req30('GET',$p54,null,$tc48);
+ck30($v54['status']===200&&array_sum($v54['body']['civil_mobilisation']['cities'])===$v54['body']['civil_mobilisation']['participation_estimate'],'WP54 conserved attendance');
+ck30(req30('GET',$p54,null,$ta2)['status']===404&&req30('GET',$rc53.'/countries/FR/civil-mobilisation',null,$tc48)['status']===404,'WP54 membership and legacy isolation');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

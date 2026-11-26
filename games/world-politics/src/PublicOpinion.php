@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CivicDialogue.php';
 require_once __DIR__.'/SocialPartners.php';
+require_once __DIR__.'/CivilMobilisation.php';
 require_once __DIR__.'/CampaignLifecycle.php';
 require_once __DIR__.'/PresidentialMandate.php';
 require_once __DIR__.'/LegislativeResponsibility.php';
@@ -70,6 +71,13 @@ final class PublicOpinion
             throw new \DomainException('Campaign must be pinned at bootstrap');
         $this->s['campaign']=CampaignLifecycle::initial($this->s['world_id'],$this->s['day']);
     }
+    public function enableCivilCrisis():void
+    {
+        if(!isset($this->s['campaign'],$this->s['social_partners'])||isset($this->s['civil_mobilisation'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Civil crisis must be pinned at bootstrap');
+        $this->s['civil_mobilisation']=CivilMobilisation::initial($this->s['day']);
+        $this->s['campaign']['continuity']=['location_status'=>'domestic','recognition_status'=>'not_disputed','last_event_day'=>null];
+    }
     public function enablePresidentialMandate(array $config):void
     {
         if(!isset($this->s['campaign'])||isset($this->s['presidency'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
@@ -77,7 +85,7 @@ final class PublicOpinion
         $this->s['presidency']=PresidentialMandate::initial($this->s['world_id'],$this->s['day'],$config);
     }
     /** Trusted inputs from the committed domestic and national stores, never player JSON. */
-    public static function observe(array $dom,array $inst,bool $partners=false):array
+    public static function observe(array $dom,array $inst,bool $partners=false,bool $civilCrisis=false):array
     {
         $d=$dom['state'];$i=$inst['state'];
         if($d['world_id']!==$i['world_id']||$i['country_code']!=='FR'||$d['day']!==$i['day'])
@@ -91,12 +99,13 @@ final class PublicOpinion
             'constitutional_breaches'=>$i['constitutional_breaches'],'legislature'=>$i['legislature'],
             'election_status'=>$i['election']['status']??null,
             ...($partners?['partner_observation'=>SocialPartners::observe($last)]:[]),
+            ...($civilCrisis?['civil_observation'=>CivilMobilisation::observe($last)]:[]),
             ...(isset($i['legislation']['responsibility'])?['responsibility'=>LegislativeResponsibility::observation($i['legislation']['responsibility'])]:[])];
     }
     public function advance(array $e,?array $campaignEvent=null):array
     {
         self::fields($e,['world_id','day','domestic_sha','institutional_sha','pressure','active_policies','production_index_bps',
-            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[])]);
+            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[]),...(isset($this->s['civil_mobilisation'])?['civil_observation']:[])]);
         self::day($e['day']);
         if($e['world_id']!==$this->s['world_id']||$e['day']!==(new \DateTimeImmutable($this->s['day']))->modify('+1 day')->format('Y-m-d')
             ||count($this->s['history'])>=3650)throw new \DomainException('Invalid daily opinion transition');
@@ -112,6 +121,7 @@ final class PublicOpinion
             ||!in_array($e['election_status'],[null,'scheduled','voting_window_open','voting_recorded_results_pending','constitutional_deadline_missed'],true))
             throw new \DomainException('Invalid institutional observation');
         $partners=isset($this->s['social_partners'])?SocialPartners::advance($this->s['social_partners'],$e['day'],$e['pressure'],$b['pressure'],$e['partner_observation']):null;
+        if(isset($this->s['civil_mobilisation']))CivilMobilisation::check($e['civil_observation']);
         $campaign=null;
         if(isset($this->s['campaign']))$campaign=CampaignLifecycle::advance($this->s['campaign'],$e['day'],$campaignEvent);
         elseif($campaignEvent!==null)throw new \DomainException('No campaign enabled');
@@ -166,6 +176,7 @@ final class PublicOpinion
         $civic=self::clamp($pressure+intdiv(1000-$trust,5));
         $status=$e['election_status']==='constitutional_deadline_missed'?'constitutional_deadline_breached':
             ($e['legislature']==='dissolved'?'electoral_transition':'ordinary_institutional_continuity');
+        $civil=isset($this->s['civil_mobilisation'])?CivilMobilisation::advance($this->s['civil_mobilisation'],$e['day'],$e['civil_observation'],max(0,$pressure-$basePressure)+$breachPenalty):null;
         $this->s['day']=$e['day'];$this->s['approval']=$approval;$this->s['cohort_approval']=$cohorts;$this->s['trust']=$trust;
         $this->s['pressure']=$pressure;$this->s['intentions']=$intentions;$this->s['institutional_status']=$status;
         $this->s['constitutional_breaches']=$e['constitutional_breaches'];$this->s['civic_dissatisfaction']=$civic;
@@ -176,6 +187,7 @@ final class PublicOpinion
             $this->s['dialogue']=CivicDialogue::advance($this->s['dialogue'],$e['day'],$e['pressure'],$b['pressure']);
             $r['dialogue']=$this->s['dialogue'];
         }
+        if($civil!==null){$this->s['civil_mobilisation']=$civil;$r['civil_mobilisation']=$civil;}
         if($partners!==null){
             $this->s['social_partners']=$partners;
             $r['social_partners']=$partners;
@@ -217,6 +229,7 @@ final class PublicOpinion
         if(array_key_exists('dialogue',$s))$x->enableDialogue();
         if(array_key_exists('social_partners',$s))$x->enableSocialPartners();
         if(array_key_exists('campaign',$s))$x->enableCampaign();
+        if(array_key_exists('civil_mobilisation',$s))$x->enableCivilCrisis();
         if(array_key_exists('presidency',$s))$x->enablePresidentialMandate($s['presidency']['config']);
         foreach($s['history'] as $r)$x->advance($r['source'],$r['campaign_event']??null);
         if($x->snapshot()!==$s)throw new \DomainException('Opinion replay mismatch');
