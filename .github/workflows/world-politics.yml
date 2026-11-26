@@ -184,6 +184,8 @@ jobs:
         run: php tests/wp61-national-renewals.php
       - name: WP62 recurring comparative elections and twenty-year archive replay
         run: php tests/wp62-foreign-recurrence.php
+      - name: WP63 national formation protocol and independent evidence replay
+        run: php tests/wp63-formation-protocol.php
       - name: WP33 election, seat allocation and coalition regression
         run: php tests/wp33-electoral.php
       - name: WP32 comparative accountability regression

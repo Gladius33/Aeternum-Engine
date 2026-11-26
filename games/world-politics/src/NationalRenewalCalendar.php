@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CountryCatalog.php';
+require_once __DIR__.'/FormationProtocol.php';
 
  /** Read-only planning reference; no election or office is certified by a projection. */
 final class NationalRenewalCalendar
@@ -102,7 +103,7 @@ final class NationalRenewalCalendar
     }
     public static function report():array
     {
-        return self::pack()+['executive_references'=>self::executiveReferences(),
+        return self::pack()+['executive_references'=>self::executiveReferences(),'formation_references'=>FormationProtocol::references(),
             'default_projection'=>self::schedule('2027-05','2047-05'),
             'all_countries_playable'=>false,'certified_results'=>false,
             'additional_legal_sources'=>['https://uscode.house.gov/us/usc/t2/s7/','https://uscode.house.gov/us/usc/t3/s21/']];

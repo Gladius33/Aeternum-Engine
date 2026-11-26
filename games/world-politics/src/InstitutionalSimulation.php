@@ -11,6 +11,7 @@ require_once __DIR__.'/ConstitutionalRevision.php';
 require_once __DIR__.'/BicameralLegislation.php';
 require_once __DIR__.'/FrenchRecurringElections.php';
 require_once __DIR__.'/ForeignRecurringElections.php';
+require_once __DIR__.'/FormationProtocol.php';
 require_once __DIR__.'/RevisionAutonomy.php';
 require_once __DIR__.'/FrenchSenateCycle.php';
 require_once __DIR__.'/CabinetRequests.php';
@@ -61,6 +62,7 @@ final class InstitutionalSimulation
         if (array_key_exists('legislation',$state)) $expected[]='legislation';
         if(array_key_exists('recurring_elections',$state))$expected[]='recurring_elections';
         if(array_key_exists('foreign_recurring',$state))$expected[]='foreign_recurring';
+        if(array_key_exists('formation_protocol',$state))$expected[]='formation_protocol';
         if(array_key_exists('revision_requests',$state))$expected[]='revision_requests';
         if(array_key_exists('senate',$state))$expected[]='senate';
         if(array_key_exists('cabinet_requests',$state))$expected[]='cabinet_requests';
@@ -111,6 +113,7 @@ final class InstitutionalSimulation
                 throw new \DomainException('Political AI projection mismatch');
         }
         if(array_key_exists('foreign_recurring',$state))ForeignRecurringElections::validate($state);
+        if(array_key_exists('formation_protocol',$state))FormationProtocol::validateHistory($state);
         if(array_key_exists('revision',$state)){
             if(!is_array($state['revision'])||$state['country_code']!=='FR')throw new \DomainException('Invalid revision scope');
             $r=ConstitutionalRevision::restore($state['revision'])->snapshot();
@@ -307,7 +310,13 @@ final class InstitutionalSimulation
             self::keys($payload,['parties','programme','candidate']);
             if(!is_array($payload['parties'])||!is_array($payload['programme'])||!is_string($payload['candidate']))throw new \InvalidArgumentException('Invalid coalition payload');
             $result=$el->coalition($commandId,$payload['parties'],$payload['programme'],$payload['candidate']);
-        }elseif($action==='electoral_certify'&&$role==='constitutional_clerk')$result=$el->certify($commandId,$payload);
+        }elseif($action==='electoral_certify'&&$role==='constitutional_clerk'){
+            if(isset($this->state['formation_protocol'])){
+                if(($payload['day']??null)!==$this->state['day'])throw new \DomainException('Formation must certify current day');
+                $nationalProof=$payload;$payload=FormationProtocol::certificate($payload,$el->snapshot(),$this->state['accountability']['seats']);
+            }
+            $result=$el->certify($commandId,$payload);
+        }
         else throw new \DomainException('Electoral command forbidden');
         // Only a verified formation certificate may change the comparative
         // incumbent. Never infer legal appointment from an AI recommendation.
@@ -318,10 +327,15 @@ final class InstitutionalSimulation
         }
         $this->state['electoral']=$el->snapshot();
         if(isset($this->state['political_ai']))$this->state['political_ai']=PoliticalNegotiator::evaluate($this->state['electoral']);
+        if(isset($nationalProof))$result['national_proof']=$nationalProof;
         $this->state['events'][]=['id'=>$commandId,'on'=>$this->state['day'],'kind'=>$action,'actor_role'=>$role,'result'=>$result];
         return $result;
     }
 
+    public function enableFormationProtocol():void
+    {
+        $this->state=FormationProtocol::bootstrap($this->state);
+    }
     public function enableForeignRecurring():void
     {
         $this->state=ForeignRecurringElections::bootstrap($this->state);
