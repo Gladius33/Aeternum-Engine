@@ -12,6 +12,7 @@ require_once __DIR__.'/BicameralLegislation.php';
 require_once __DIR__.'/FrenchRecurringElections.php';
 require_once __DIR__.'/ForeignRecurringElections.php';
 require_once __DIR__.'/FormationProtocol.php';
+require_once __DIR__.'/AutonomousForeignFormation.php';
 require_once __DIR__.'/RevisionAutonomy.php';
 require_once __DIR__.'/FrenchSenateCycle.php';
 require_once __DIR__.'/CabinetRequests.php';
@@ -63,6 +64,7 @@ final class InstitutionalSimulation
         if(array_key_exists('recurring_elections',$state))$expected[]='recurring_elections';
         if(array_key_exists('foreign_recurring',$state))$expected[]='foreign_recurring';
         if(array_key_exists('formation_protocol',$state))$expected[]='formation_protocol';
+        if(array_key_exists('autonomous_formation',$state))$expected[]='autonomous_formation';
         if(array_key_exists('revision_requests',$state))$expected[]='revision_requests';
         if(array_key_exists('senate',$state))$expected[]='senate';
         if(array_key_exists('cabinet_requests',$state))$expected[]='cabinet_requests';
@@ -114,6 +116,7 @@ final class InstitutionalSimulation
         }
         if(array_key_exists('foreign_recurring',$state))ForeignRecurringElections::validate($state);
         if(array_key_exists('formation_protocol',$state))FormationProtocol::validateHistory($state);
+        if(array_key_exists('autonomous_formation',$state))AutonomousForeignFormation::validateHistory($state);
         if(array_key_exists('revision',$state)){
             if(!is_array($state['revision'])||$state['country_code']!=='FR')throw new \DomainException('Invalid revision scope');
             $r=ConstitutionalRevision::restore($state['revision'])->snapshot();
@@ -332,6 +335,10 @@ final class InstitutionalSimulation
         return $result;
     }
 
+    public function enableAutonomousFormation():void
+    {
+        $this->state=AutonomousForeignFormation::bootstrap($this->state);
+    }
     public function enableFormationProtocol():void
     {
         $this->state=FormationProtocol::bootstrap($this->state);
@@ -416,6 +423,7 @@ final class InstitutionalSimulation
     {
         self::day($targetDay);
         if ($targetDay<$this->state['day']) throw new \InvalidArgumentException('Game clock cannot regress');
+        if(isset($this->state['autonomous_formation'])&&$targetDay!==self::plus($this->state['day'],1))throw new \DomainException('Autonomous foreign formation requires daily ticks');
         if(isset($this->state['recurring_elections'])&&$targetDay!==self::plus($this->state['day'],1))throw new \DomainException('Recurring institution clock requires daily ticks');
         $due=[];$remain=[];
         foreach ($this->state['agenda'] as $event) {
@@ -502,6 +510,14 @@ final class InstitutionalSimulation
             $this->state['legislation']=$l->snapshot();
         }
         $this->state['day']=$targetDay;
+        if(isset($this->state['autonomous_formation'])){
+            $attempt=AutonomousForeignFormation::plan($this->state);
+            if($attempt!==null){
+                $id='auto-formation-'.$attempt['poll_day'];
+                if($attempt['proof']!==null)$this->electoral('constitutional_clerk','electoral_certify',$attempt['proof'],'cert-'.$id);
+                $this->state['events'][]=['id'=>$id,'on'=>$targetDay,'kind'=>'foreign_formation_attempt','actor_role'=>'simulation_clock','result'=>$attempt];
+            }
+        }
         if(isset($this->state['senate']))$this->state['senate']=FrenchSenateCycle::project($this->state['world_id'],$targetDay);
         if(isset($this->state['cabinet_requests']))$this->state=CabinetRequests::advance($this->state);
         if(isset($this->state['revision_requests'])&&$this->state['revision_requests']!==[])$this->state=RevisionAutonomy::advance($this->state,$opinion);
