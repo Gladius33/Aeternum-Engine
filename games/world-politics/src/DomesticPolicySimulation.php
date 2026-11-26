@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/UkraineAidPolicy.php';
 require_once __DIR__.'/FrenchMacroBaseline.php';
 require_once __DIR__.'/SovereignDebtLedger.php';
 require_once __DIR__.'/FrenchDemography.php';
@@ -35,6 +36,7 @@ final class DomesticPolicySimulation
     private array $days = [];
     private array $crisisDecisions=[];
     private array $corporationDecisions=[];
+    private array $aidDecisions=[];
     private array $pressure;
     private int $balance;
     private string $day;
@@ -194,6 +196,10 @@ final class DomesticPolicySimulation
     public function corporationDecision(DomesticPolicyAuthority $principal,string $action):array
     {
         $this->require($principal,'domestic.corporation');
+        if(str_starts_with($action,'ukraine-aid-')){
+            if(!isset($this->macroBaseline['opening_projection']))throw new \DomainException('Investiture aid scenario required');
+            $event=['day'=>$this->day,'action'=>$action];$next=[...$this->aidDecisions,$event];UkraineAidPolicy::validate($next,$this->startDay,$this->day);$this->aidDecisions=$next;return $event;
+        }
         if(!$this->corporationsEnabled)throw new \DomainException('Corporations scenario required');
         // Retain historic branch events for replay only; new requests select a company.
         if(str_starts_with($action,'request-nationalisation:'))throw new \InvalidArgumentException('Select an individual company');
@@ -237,6 +243,11 @@ final class DomesticPolicySimulation
         }
         if ($revenue < 0 || $expense < 0) throw new \DomainException('Scenario implies negative gross fiscal flow');
         $expense+=$concessionCost;
+        $aid=null;if(isset($this->macroBaseline['opening_projection'])){
+            $prev=$this->days===[]?null:$this->days[array_key_last($this->days)]['ukraine_aid'];
+            $aid=UkraineAidPolicy::step($this->macroBaseline,$this->aidDecisions,$target,$prev);$expense+=$aid['budget_delta_minor'];
+            if($expense<0)throw new \DomainException('Aid exceeds primary spending');
+        }
         $loop=null;$servicePlan=null;$corporations=null;$firms=null;$equity=null;$industrial=null;$ordinaryTreasury=null;$ordinaryExpense=null;
         $corporationAction=$this->corporationsEnabled?ProfessionalCorporations::actionFor($this->corporationDecisions,$target):null;
         if(!$this->industrialEnabled&&IndustrialCapital::isAction($corporationAction))throw new \DomainException('Unpinned industrial action');
@@ -300,6 +311,7 @@ final class DomesticPolicySimulation
         $row=['day'=>$target,'classification'=>'fictional_scenario','currency'=>$this->currency,
             'active_policies'=>$active,'opening_balance'=>$balance,'revenue'=>$revenue,'expense'=>$expense,
             'closing_balance'=>$closing,'pressure'=>$pressure];
+        if($aid!==null)$row['ukraine_aid']=$aid;
         if ($extended) $row['economic']=['net_flow'=>$revenue-$expense,'concession_cost'=>$concessionCost,
             'production_index_bps'=>max(0,$production),'employment_index_bps'=>max(0,$employment)];
         if($loop!==null){
@@ -364,7 +376,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[]),...($this->wageFeedbackEnabled?['wage_feedback_version'=>CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?['trade_feedback_version'=>TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:['firm_model'=>$this->firmModel,'firm_model_version'=>FirmEconomy::VERSION]),...($this->publicEquityEnabled?['public_equity_version'=>PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?['industrial_version'=>IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['daily_legal_version'=>'wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?['eu_trade_version'=>$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[])];
+            'policies'=>$this->policies,'days'=>$this->days,...(isset($this->macroBaseline['opening_projection'])?['ukraine_aid_decisions'=>$this->aidDecisions]:[]),...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[]),...($this->wageFeedbackEnabled?['wage_feedback_version'=>CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?['trade_feedback_version'=>TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:['firm_model'=>$this->firmModel,'firm_model_version'=>FirmEconomy::VERSION]),...($this->publicEquityEnabled?['public_equity_version'=>PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?['industrial_version'=>IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['daily_legal_version'=>'wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?['eu_trade_version'=>$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }
@@ -389,6 +401,7 @@ final class DomesticPolicySimulation
         self::date($snapshot['day']);
         // Work on a clone, so failed recovery leaves this object unchanged.
         $copy = clone $this;
+        if(isset($this->macroBaseline['opening_projection'])){UkraineAidPolicy::validate($snapshot['ukraine_aid_decisions'],$this->startDay,$snapshot['day']);$copy->aidDecisions=$snapshot['ukraine_aid_decisions'];}
         if(!empty($this->debtModel['crisis_enabled'])){
             if(!is_array($snapshot['crisis_decisions']))throw new \DomainException('Invalid crisis history');
             FinancialCrisis::validate($snapshot['crisis_decisions'],$this->startDay,$snapshot['day']);
@@ -443,7 +456,7 @@ final class DomesticPolicySimulation
             }
         }
         if ($copy->snapshot() !== $snapshot) throw new \DomainException('Final snapshot replay mismatch');
-        $this->policies = $copy->policies; $this->days = $copy->days; $this->crisisDecisions=$copy->crisisDecisions;$this->corporationDecisions=$copy->corporationDecisions;
+        $this->policies = $copy->policies; $this->days = $copy->days; $this->crisisDecisions=$copy->crisisDecisions;$this->corporationDecisions=$copy->corporationDecisions;$this->aidDecisions=$copy->aidDecisions;
         $this->day = $copy->day; $this->balance = $copy->balance; $this->pressure = $copy->pressure;
     }
 

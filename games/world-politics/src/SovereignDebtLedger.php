@@ -62,7 +62,12 @@ final class SovereignDebtLedger
         };
         $debt=$get('maastricht_gross_debt','2026-Q2','EUR')*100;
         $state=$get('maastricht_contribution_state','2026-Q2','EUR')*100;
-        if($debt!==$baseline['opening_debt']||$state>$debt)throw new \DomainException('Debt opening mismatch');
+        if($state>$debt)throw new \DomainException('Debt opening mismatch');
+        if(isset($baseline['opening_projection'])){
+            if($start!==InvestitureEconomicProjection::DAY||$baseline['opening_debt']<$debt)throw new \DomainException('Invalid projected debt opening');
+            $state=intdiv($baseline['opening_debt'],$debt)*$state+self::share($state,$baseline['opening_debt']%$debt,$debt);
+            $debt=$baseline['opening_debt'];
+        }elseif($debt!==$baseline['opening_debt'])throw new \DomainException('Debt opening mismatch');
         $weights=[];
         foreach(['nonresident','other_french','french_credit_institutions','french_insurers','french_funds'] as $k)
             $weights['legacy-state-'.$k]=$get('state_negotiable_holder_share_'.$k,'2026-Q2','basis_points');

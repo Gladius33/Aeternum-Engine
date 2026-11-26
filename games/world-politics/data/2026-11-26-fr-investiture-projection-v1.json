@@ -1,0 +1,90 @@
+{
+  "schema": "wp54r-investiture-projection-v1",
+  "as_of": "2026-11-26",
+  "start_day": "2027-05-14",
+  "units": "EUR_million_except_bps",
+  "sources": {
+    "debt": "https://www.insee.fr/fr/statistiques/9053525",
+    "wealth": "https://www.insee.fr/fr/statistiques/9111734",
+    "fiscal": "https://www.senat.fr/leg/pjl26-155.html",
+    "nominal_gdp": "https://intranet.senat.fr/amendements/2026-2027/155/jeu_classe.html",
+    "interest": "https://www.info.gouv.fr/conseil-des-ministres/compte-rendu-du-conseil-des-ministres-du-01-10-2026",
+    "macro": "https://www.banque-france.fr/fr/publications-et-statistiques/publications/projections-macroeconomiques-intermediaires-septembre-2026",
+    "aid": "https://www.senat.fr/rap/r25-513/r25-5136.html"
+  },
+  "observed": {
+    "debt_q2_2026": 3595500,
+    "net_debt_q2_2026": 3366800,
+    "wealth_2025": {
+      "national": {
+        "nonfinancial": 20292000,
+        "net_financial": -96000,
+        "net": 20196000
+      },
+      "households": {
+        "nonfinancial": 10310000,
+        "net_financial": 5344000,
+        "net": 15654000
+      },
+      "nonfinancial_corporations": {
+        "nonfinancial": 6597000,
+        "net_financial": -2700000,
+        "net": 3897000
+      },
+      "financial_corporations": {
+        "nonfinancial": 440000,
+        "net_financial": -605000,
+        "net": -165000
+      },
+      "public_administrations": {
+        "nonfinancial": 2945000,
+        "net_financial": -2134000,
+        "net": 811000
+      }
+    },
+    "wealth_growth_bps": {
+      "2023": -300,
+      "2024": 310,
+      "2025": 120
+    },
+    "ukraine_direct_defense_cost": {
+      "2022": 114,
+      "2023": 397,
+      "2024": 547,
+      "2025": 588
+    },
+    "ukraine_gross_support_approx": 6500,
+    "epf_commitments_2022_2027": 2200,
+    "epf_reimbursements_approx": 1000
+  },
+  "forecast": {
+    "2026": {
+      "gdp": 3051400,
+      "debt_bps": 11930,
+      "deficit_bps": 540,
+      "spending_ex_tax_credits": 1742000,
+      "interest": 79200,
+      "real_growth_bps": 40,
+      "inflation_bps": 230
+    },
+    "2027": {
+      "gdp": 3135000,
+      "debt_bps": 12170,
+      "deficit_bps": 500,
+      "spending_ex_tax_credits": 1782000,
+      "interest": 91200,
+      "real_growth_bps": 90,
+      "inflation_bps": 190
+    }
+  },
+  "assumptions": {
+    "interpolation": "linear between year-end forecast stocks",
+    "wealth_annual_bps": 120,
+    "wealth_low_bps": -300,
+    "wealth_high_bps": 310,
+    "debt_sensitivity_annual_flow_million": 50000,
+    "aid_annual_direct_cost_proxy": 588,
+    "aid_discretionary_share_bps": 5000,
+    "aid_protected_share_is_scenario_proxy_not_contract_inventory": true
+  }
+}

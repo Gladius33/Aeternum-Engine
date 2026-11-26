@@ -52,3 +52,16 @@ foreach(['DE'=>'2029-03-18','ES'=>'2027-08-22','GB'=>'2029-07-19','IT'=>'2027-10
     ck31(\Aeternum\WorldPolitics\ElectoralCycle::restore($el->snapshot())->snapshot()===$el->snapshot(),'calendar replay '.$iso);
 }
 ck31($calendar['countries']['US']['presidential']['maximum_elections_total']===2&&$calendar['countries']['US']['presidential']['more_than_two_years_of_anothers_term_max_elections']===1,'US constitutional rule is distinct from French consecutive mandate rule');
+
+require_once __DIR__.'/../games/world-politics/src/FrenchMacroBaseline.php';
+require_once __DIR__.'/../games/world-politics/src/UkraineAidPolicy.php';
+use Aeternum\WorldPolitics\{InvestitureEconomicProjection as IP,UkraineAidPolicy as UA,FrenchMacroBaseline as MB};
+$pr=IP::project();$bb=MB::load(true);MB::assertValid($bb);
+ck31($pr['opening_debt_minor']>359550000000000&&$bb['opening_debt']===$pr['opening_debt_minor'],'projected opening debt replaces historical anchor');
+$bridge=$pr['debt_bridge'];ck31($pr['opening_debt_minor']===$bridge['projected_end_2026_minor']+$bridge['deficit_since_end_2026_minor']+$bridge['stock_flow_adjustment_since_end_2026_minor'],'projected debt stock-flow identity');
+ck31($pr['wealth_scenarios']['central']['national']['net_minor']>2019600000000000&&$pr['wealth_scenarios']['central']['public_administrations']['net_minor']<$pr['wealth_scenarios']['central']['national']['net_minor'],'public wealth kept separate from national wealth');
+$stop=[['day'=>IP::DAY,'action'=>'ukraine-aid-stop']];UA::validate($stop,IP::DAY,IP::DAY);
+$a0=UA::step($bb,[],'2027-05-15',null);$a1=UA::step($bb,$stop,'2027-05-15',null);
+ck31($a0['budget_delta_minor']===0&&$a1['discretionary_planned_minor']===0&&$a1['budget_delta_minor']===-$a0['baseline_discretionary_minor']&&$a1['protected_cost_proxy_minor']===$a0['protected_cost_proxy_minor'],'aid stop saves only modelled discretionary portion');
+$stop[]=['day'=>'2027-05-15','action'=>'ukraine-aid-resume'];$a2=UA::step($bb,$stop,'2027-05-16',$a1);
+ck31($a2['budget_delta_minor']===0&&$a2['cumulative_planned_savings_minor']===$a1['cumulative_planned_savings_minor'],'resumption no retroactive costs');
