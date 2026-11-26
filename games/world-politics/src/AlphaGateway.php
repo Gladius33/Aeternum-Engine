@@ -12,6 +12,7 @@ require_once __DIR__.'/MacroeconomicProjection.php';
 require_once __DIR__.'/DomesticPolicyApi.php';
 require_once __DIR__.'/WorldClockApi.php';
 require_once __DIR__.'/EuropeanSpillovers.php';
+require_once __DIR__.'/ReferenceDataAudit.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
 final class AlphaGateway
@@ -148,7 +149,8 @@ final class AlphaGateway
                     if ($pins===false || $pins['actor_registry_sha']!==$bundle->actors->hash() || $pins['reference_sha']!==$bundle->references->hash())
                         throw new \UnexpectedValueException('Pinned references differ');
                     return self::ok(200,['bundle_sha'=>$bundle->sha(),'manifest'=>$bundle->manifest,'coverage'=>$bundle->coverage(),
-                        'countries'=>$bundle->countries->all(),'observations'=>$bundle->references->all()]);
+                        'countries'=>$bundle->countries->all(),'observations'=>$bundle->references->all(),
+                        'reference_data_audit'=>ReferenceDataAudit::report()]);
                 }
             } elseif ($definition['scenario']!==AlphaScenario::ID) throw new \UnexpectedValueException('Unknown saved scenario');
             $principal=new AlphaPrincipal($session,$world,false,$scenario->countries,in_array($scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true),in_array($scenario->id,[AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true),in_array($scenario->id,[AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true));

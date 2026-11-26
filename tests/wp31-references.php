@@ -33,3 +33,12 @@ ck31((new GlobalReferenceBundle($p->payload()))->sha()===$p->sha()&&$p->sha()!==
 $bad=$p->payload();$bad['records'][0]['value']++;try {new GlobalReferenceBundle($bad);throw new RuntimeException('tampered published pack accepted');}catch(DomainException $e){ck31(true,'tampered published record rejected');}
 $bad=$p->payload();$bad['published_tables_sha']=str_repeat('0',64);try {new GlobalReferenceBundle($bad);throw new RuntimeException('tampered published pin accepted');}catch(DomainException $e){ck31(true,'tampered published digest rejected');}
 ck31(count($p->manifest['published_tables']['organizations_reference_only']['NATO']['members'])===32&&count($p->manifest['published_tables']['organizations_reference_only']['EU']['members'])===27,'observed alliance rosters published as reference only');
+
+require_once __DIR__.'/../games/world-politics/src/ReferenceDataAudit.php';
+$a=\Aeternum\WorldPolitics\ReferenceDataAudit::report();
+ck31($a['observations']['assembly']['occupied_seats']===574&&$a['observations']['assembly']['majority_of_statutory_seats']===289,'published parliamentary data arithmetic');
+ck31($a['observations']['senate']['occupied_seats']===348,'dated Senate group data reconciled');
+ck31($a['domains']['fr_companies']['status']==='observed_identities_fictional_behavior','audit does not pretend corporate parameters are observed');
+$macro=json_decode(file_get_contents(__DIR__.'/../games/world-politics/data/2026-11-25-france-observations-v2.json'),true,32,JSON_THROW_ON_ERROR);
+$values=[];foreach($macro['observations'] as $v)if($v['period']==='2025')$values[$v['metric']]=$v['value'];
+ck31(intdiv(($values['exports_goods_services']+$values['imports_goods_services'])*11300,10000)===$a['national_trade_basis_usd'],'trade denominator reconciles with observed French national accounts');

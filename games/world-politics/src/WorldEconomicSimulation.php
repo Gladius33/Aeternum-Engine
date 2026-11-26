@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/EconomicReferenceRegistry.php';
+require_once __DIR__.'/GlobalPublishedObservations.php';
+require_once __DIR__.'/ReferenceDataAudit.php';
 require_once __DIR__.'/DiplomaticSimulation.php';
 
 /**
@@ -224,6 +226,13 @@ final class WorldEconomicSimulation
                 'does_not_change_recorded_gdp'=>true,
                 'not_a_forecast'=>true,
             ];
+            // Only the specific published French goods series qualifies.
+            if($base!==null && ($record['kind']??null)==='observed'
+                && ($record['license']??null)===GlobalPublishedObservations::TRADE_LICENSE
+                && ($record['year']??null)===2025
+                && ($policy['from']==='state_fr'||$policy['to']==='state_fr')){
+                $projection['trade_feedback_basis_usd']=ReferenceDataAudit::FR_TRADE_TOTAL_USD_2025;
+            }
             $this->state['projections'][$id]=$projection;
             $this->state['policies'][$id]['status']='effective';
             $due[]=$id;

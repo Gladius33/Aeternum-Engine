@@ -1,0 +1,53 @@
+{
+  "schema": "wp54r-fr-institutional-observations-v1",
+  "as_of": "2026-11-26",
+  "assembly": {
+    "observed_on": "2026-11-26",
+    "source": "https://www2.assemblee-nationale.fr/instances/liste/groupes_politiques/effectif",
+    "statutory_seats": 577,
+    "vacant": 3,
+    "groups": {
+      "RN": 121,
+      "EPR": 90,
+      "LFI_NFP": 70,
+      "SOC": 67,
+      "DR": 46,
+      "ECO": 39,
+      "DEM": 37,
+      "HOR": 35,
+      "LIOT": 24,
+      "GDR": 17,
+      "UDR": 17,
+      "NI": 11
+    }
+  },
+  "senate": {
+    "observed_on": "2026-11-24",
+    "source": "https://www.senat.fr/scrutin-public/2026/scr2026-168.html",
+    "occupied_seats": 348,
+    "groups": {
+      "LR": 124,
+      "UCI": 63,
+      "SER": 62,
+      "CRCE_K": 18,
+      "RDSE": 18,
+      "RDPI": 16,
+      "UNT": 15,
+      "EST": 15,
+      "IRT": 14,
+      "NI": 3
+    }
+  },
+  "budget": {
+    "year": 2026,
+    "source": "https://www.budget.gouv.fr/reperes/loi_de_finances/articles/chiffres-cles-budget-etat-2026",
+    "classification": "initial_appropriations_not_outturn",
+    "state_general_net_revenue_eur": 325382000000,
+    "state_general_net_expense_eur": 458859000000,
+    "state_budget_balance_eur": -134627000000,
+    "state_authorized_jobs_etpt": 2016588,
+    "defense_proposal_excluding_pensions_eur": 57100000000,
+    "defense_proposal_source": "https://www.defense.gouv.fr/ministere/politique-defense/loi-programmation-militaire-2024-2030/projet-loi-finances-armees-2026-lpm-annee-3",
+    "defense_status": "PLF proposal; not represented as final expenditure"
+  }
+}

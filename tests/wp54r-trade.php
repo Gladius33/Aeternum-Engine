@@ -30,3 +30,26 @@ ckTrade($r['macro']['exports']<$control['macro']['exports']&&$r['macro']['import
 ckTrade($r['macro']['real_gdp']<$control['macro']['real_gdp']&&$r['macro']['investment']<$control['macro']['investment'],'trade shock reaches GDP and investment');
 ckTrade($r['revenue']!==$control['revenue']&&$r['treasury']['debt']!==$control['treasury']['debt']||$r['closing_balance']!==$control['closing_balance'],'fiscal feedback');
 $replay=$make();$replay->restore($x->snapshot(),$x->hash());ckTrade($replay->hash()===$x->hash(),'exact replay');
+
+require_once __DIR__.'/../games/world-politics/src/GlobalReferenceBundle.php';
+require_once __DIR__.'/../games/world-politics/src/WorldEconomicSimulation.php';
+$bundle=\Aeternum\WorldPolitics\GlobalReferenceBundle::published();
+$principal=new class implements \Aeternum\WorldPolitics\EconomicPolicyPrincipal {
+    public function actorId():string{return 'trusted-test';}
+    public function allows(string $world,string $actor,string $permission):bool{return $world==='observed-test';}
+    public function legalApproval(string $world,string $state,string $action):bool{return $world==='observed-test';}
+};
+foreach(['state_ru'=>29,'state_de'=>824] as $peer=>$expected){
+    $sim=new \Aeternum\WorldPolitics\WorldEconomicSimulation('observed-test','2026-11-25',$bundle->actors,$bundle->references);
+    foreach(['first','second'] as $id){
+        $sim->proposeTradeRestriction($principal,'state_fr',$peer,10000,10000,10000,'2026-11-26',$id);
+        $sim->authorizeRestriction($principal,$id,'approve-'.$id);
+    }
+    $sim->advanceTo($principal,'2026-11-26','clock');
+    $read=['state'=>$sim->snapshot(),'etag'=>$sim->hash()];
+    $o=TradeMacroFeedback::observe($read,'observed-test','2026-11-26');
+    ckTrade($o['exposure_bps']===$expected&&$o['covered_pairs']===1,'published turnover weighted once: '.$peer);
+    $bad=$read;$bad['state']['projections']['first']['trade_feedback_basis_usd']=1;
+    try{TradeMacroFeedback::observe($bad,'observed-test','2026-11-26');throw new RuntimeException('bad basis accepted');}
+    catch(DomainException $e){ckTrade(true,'bad published denominator rejected');}
+}
