@@ -272,3 +272,7 @@ subset is not the whole debt ledger; no security-level data, actual treasury
 booking, money supply, bank capital/liquidity or TARGET settlement. XFR is a
 fictional identifier. Currency-changed flag remains false for national ledger.
 Legacy states unchanged. CI pending.
+
+Integration now also schedules a prospective FX mark through the trusted store,
+checks receipt idempotency, advances a further coherent HTTP tick and verifies
+symmetric valuation, unchanged past EUR ledger and no premature booking.
