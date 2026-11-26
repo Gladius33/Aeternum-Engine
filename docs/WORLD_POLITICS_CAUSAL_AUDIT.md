@@ -142,3 +142,13 @@ formation, not government consumption; illustrative imported input share 30%.
 Existing service funding is protected by a separate ordinary settlement. This
 is not the full reindustrialisation pack, statutory budget authority or a
 finding of EU state-aid compliance. All coefficients synthetic. CI pending.
+
+### WP54r party response correction
+
+New corporation/civil-crisis opinion worlds pin independent group positions
+against committed corporate and industrial policies, services and output. Uses
+existing fictional programme axes, seat totals only from final game results,
+no fabricated seats. Positions change gradually and have no legal effect;
+legislative enactment and certified roll calls remain separate. No calibrated
+party behaviour or automatic change of regime. Further coalition, actual
+legislative action and electoral dynamics remain open. CI pending.

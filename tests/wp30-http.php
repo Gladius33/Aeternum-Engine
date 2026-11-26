@@ -629,6 +629,8 @@ $c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-26'],$tc48,['If
 ck30($c54['status']===200&&$c54['body']['coherent'],'WP54 coherent day');
 $ind54=req30('GET',$r54.'/countries/FR/industrial',null,$tc48);
 ck30($ind54['status']===200&&$ind54['body']['state']['mode']==='active'&&$ind54['body']['state']['capacity_delta_bps']===0,'WP54r project not immediately productive');
+$party54=req30('GET',$r54.'/countries/FR/party-responses',null,$tc48);
+ck30($party54['status']===200&&count($party54['body']['party_responses']['groups'])===4&&!$party54['body']['party_responses']['legal_effect']&&req30('GET',$r54.'/countries/FR/party-responses',null,$ta2)['status']===404,'WP54r coherent independent fictional positions');
 $v54=req30('GET',$p54,null,$tc48);
 ck30($v54['status']===200&&array_sum($v54['body']['civil_mobilisation']['cities'])===$v54['body']['civil_mobilisation']['participation_estimate'],'WP54 conserved attendance');
 ck30(req30('GET',$p54,null,$ta2)['status']===404&&req30('GET',$rc53.'/countries/FR/civil-mobilisation',null,$tc48)['status']===404,'WP54 membership and legacy isolation');

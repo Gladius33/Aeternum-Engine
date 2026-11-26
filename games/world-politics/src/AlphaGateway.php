@@ -168,6 +168,7 @@ final class AlphaGateway
                 ($suffix==='/countries/FR/opinion'&&in_array($scenario->id,[AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))
                 ||($suffix==='/countries/FR/dialogue'&&in_array($scenario->id,[AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))
                 ||($suffix==='/countries/FR/social-partners'&&in_array($scenario->id,[AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))
+                ||($suffix==='/countries/FR/party-responses'&&in_array($scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))
                 ||($suffix==='/countries/FR/civil-mobilisation'&&$scenario->id===AlphaScenario::CIVIL_CRISIS)
                 ||($suffix==='/campaign'&&$scenario->campaign())
                 ||($suffix==='/countries/FR/presidency'&&in_array($scenario->id,[AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true)))){
@@ -185,6 +186,9 @@ final class AlphaGateway
                     $body=$r['state']['presidency'];
                     // Internal immutable tally fixture is not a published result.
                     unset($body['config']);
+                }elseif($suffix==='/countries/FR/party-responses'){
+                    if(!isset($r['state']['party_responses']))throw new AlphaHttpError(404,'not_found');
+                    $body=['world_id'=>$world,'country'=>'FR','party_responses'=>$r['state']['party_responses']];
                 }elseif($suffix==='/countries/FR/civil-mobilisation'){
                     if(!isset($r['state']['civil_mobilisation']))throw new \UnexpectedValueException('Missing pinned mobilisation');
                     $body=['world_id'=>$world,'country'=>'FR','civil_mobilisation'=>$r['state']['civil_mobilisation']];

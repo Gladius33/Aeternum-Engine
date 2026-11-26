@@ -203,6 +203,16 @@ paths:
         '200': { description: Coherent fictional state }
         '404': { description: Inaccessible world or unsupported scenario }
         '409': { description: World advancing }
+  /worlds/{world}/countries/FR/party-responses:
+    get:
+      operationId: readFictionalPartyResponses
+      summary: Read simulated programme responses, not certified parliamentary votes
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Committed fictional party positions }
+        '404': { description: Inaccessible world or unsupported model }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/industrial:
     get:
       operationId: readFrenchIndustrialCapital

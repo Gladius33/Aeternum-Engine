@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CivicDialogue.php';
 require_once __DIR__.'/SocialPartners.php';
 require_once __DIR__.'/CivilMobilisation.php';
+require_once __DIR__.'/PartyPolicyResponse.php';
 require_once __DIR__.'/CampaignLifecycle.php';
 require_once __DIR__.'/PresidentialMandate.php';
 require_once __DIR__.'/LegislativeResponsibility.php';
@@ -85,8 +86,13 @@ final class PublicOpinion
         $this->s['presidency']=PresidentialMandate::initial($this->s['world_id'],$this->s['day'],$config);
         if($dynamic)$this->s['presidency']['ballot_model']='fictional_aggregate_approval_v1';
     }
+    public function enablePartyResponses():void
+    {
+        if(!isset($this->s['campaign'],$this->s['presidency'])||isset($this->s['party_responses'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])throw new \DomainException('Party responses must be pinned at bootstrap');
+        $this->s['party_responses']=PartyPolicyResponse::initial($this->s['day']);
+    }
     /** Trusted inputs from the committed domestic and national stores, never player JSON. */
-    public static function observe(array $dom,array $inst,bool $partners=false,bool $civilCrisis=false):array
+    public static function observe(array $dom,array $inst,bool $partners=false,bool $civilCrisis=false,bool $partyResponses=false):array
     {
         $d=$dom['state'];$i=$inst['state'];
         if($d['world_id']!==$i['world_id']||$i['country_code']!=='FR'||$d['day']!==$i['day'])
@@ -101,12 +107,13 @@ final class PublicOpinion
             'election_status'=>$i['election']['status']??null,
             ...($partners?['partner_observation'=>SocialPartners::observe($last)]:[]),
             ...($civilCrisis?['civil_observation'=>CivilMobilisation::observe($last)]:[]),
+            ...($partyResponses?['party_observation'=>PartyPolicyResponse::observe($last,$i)]:[]),
             ...(isset($i['legislation']['responsibility'])?['responsibility'=>LegislativeResponsibility::observation($i['legislation']['responsibility'])]:[])];
     }
     public function advance(array $e,?array $campaignEvent=null):array
     {
         self::fields($e,['world_id','day','domestic_sha','institutional_sha','pressure','active_policies','production_index_bps',
-            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[]),...(isset($this->s['civil_mobilisation'])?['civil_observation']:[])]);
+            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[]),...(isset($this->s['civil_mobilisation'])?['civil_observation']:[]),...(isset($this->s['party_responses'])?['party_observation']:[])]);
         self::day($e['day']);
         if($e['world_id']!==$this->s['world_id']||$e['day']!==(new \DateTimeImmutable($this->s['day']))->modify('+1 day')->format('Y-m-d')
             ||count($this->s['history'])>=3650)throw new \DomainException('Invalid daily opinion transition');
@@ -123,6 +130,7 @@ final class PublicOpinion
             throw new \DomainException('Invalid institutional observation');
         $partners=isset($this->s['social_partners'])?SocialPartners::advance($this->s['social_partners'],$e['day'],$e['pressure'],$b['pressure'],$e['partner_observation']):null;
         if(isset($this->s['civil_mobilisation']))CivilMobilisation::check($e['civil_observation']);
+        $partyResponse=isset($this->s['party_responses'])?PartyPolicyResponse::advance($this->s['party_responses'],$e['day'],$e['party_observation']):null;
         $campaign=null;
         if(isset($this->s['campaign']))$campaign=CampaignLifecycle::advance($this->s['campaign'],$e['day'],$campaignEvent);
         elseif($campaignEvent!==null)throw new \DomainException('No campaign enabled');
@@ -188,6 +196,7 @@ final class PublicOpinion
             $this->s['dialogue']=CivicDialogue::advance($this->s['dialogue'],$e['day'],$e['pressure'],$b['pressure']);
             $r['dialogue']=$this->s['dialogue'];
         }
+        if($partyResponse!==null){$this->s['party_responses']=$partyResponse;$r['party_responses']=$partyResponse;}
         if($civil!==null){$this->s['civil_mobilisation']=$civil;$r['civil_mobilisation']=$civil;}
         if($partners!==null){
             $this->s['social_partners']=$partners;
@@ -232,6 +241,7 @@ final class PublicOpinion
         if(array_key_exists('campaign',$s))$x->enableCampaign();
         if(array_key_exists('civil_mobilisation',$s))$x->enableCivilCrisis();
         if(array_key_exists('presidency',$s))$x->enablePresidentialMandate($s['presidency']['config'],isset($s['presidency']['ballot_model']));
+        if(array_key_exists('party_responses',$s))$x->enablePartyResponses();
         foreach($s['history'] as $r)$x->advance($r['source'],$r['campaign_event']??null);
         if($x->snapshot()!==$s)throw new \DomainException('Opinion replay mismatch');
         return $x;

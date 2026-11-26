@@ -177,6 +177,7 @@ final class AlphaWorlds
                 if($this->scenario->campaign())$op->enableCampaign();
                 if($this->scenario->id===AlphaScenario::CIVIL_CRISIS)$op->enableCivilCrisis();
                 if(in_array($this->scenario->id,[AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))$op->enablePresidentialMandate(PresidentialMandate::fixture(),in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true));
+                if(in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true))$op->enablePartyResponses();
                 $this->insert('INSERT INTO wp_opinion_states(world_id,state_json,state_sha,revision) VALUES(?,?,?,0)',
                     [$world,PublicOpinion::json($op->snapshot()),$op->hash()]);
                 $this->insert('UPDATE wp_world_clock SET opinion_enabled=1 WHERE world_id=?',[$world]);
