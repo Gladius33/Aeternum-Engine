@@ -848,7 +848,7 @@ ck30($record['status']==='executed'&&count($record['consultations'])===3&&$ins27
 $foreign27=req30('GET',$r27.'/countries/US/institutions',null,$t27);
 ck30($foreign27['status']===200&&$foreign27['body']['foreign_recurring']['version']==='wp62-foreign-recurring-v1'&&$foreign27['body']['foreign_recurring']['archive']===[],'WP62 canonical foreign recurrence pinned and restored through real clock');
 $de27=req30('GET',$r27.'/countries/DE/institutions',null,$t27);
-ck30($de27['status']===200&&$de27['body']['formation_protocol']==='wp63-formation-protocol-v1'&&$de27['body']['autonomous_formation']==='wp65-autonomous-formation-v1'&&$de27['body']['accountability']['incumbent']==='initial-government','WP65 new canonical foreign formation pins survive real clock');
+ck30($de27['status']===200&&$de27['body']['formation_protocol']==='wp63-formation-protocol-v1'&&$de27['body']['autonomous_formation']==='wp65-autonomous-formation-v2'&&$de27['body']['accountability']['incumbent']==='initial-government','WP65 new canonical foreign formation pins survive real clock');
 ck30(req30('POST',$r27.'/countries/DE/institutions/decisions',['action'=>'electoral_certify','payload'=>['evidence_id'=>'spoof-formation']],$t27)['status']===404,'WP65 cannot certify foreign formation via player HTTP');
 $sen27=req30('GET',$r27.'/countries/FR/institutions',null,$t27);ck30(count($sen27['body']['senate']['agents'])===348&&$sen27['body']['senate']['source']['groups']['lr']===124,'WP58 canonical Senate anchor');
 $ca27=req30('GET',$r27.'/countries/FR/cabinet',null,$t27);ck30($ca27['status']===200&&$ca27['body']['requests']===[],'WP59 cabinet requests pinned');

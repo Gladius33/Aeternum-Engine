@@ -733,3 +733,6 @@ Nouveaux mondes canoniques uniquement : `FormationProtocol` distingue l'accord p
 
 
 Qualification WP65 : le test MariaDB `wp06-institutions-db.php` exécute le scrutin espagnol et les cinq journées suivantes par le véritable magasin transactionnel, compare à chaque étape le snapshot au moteur pur, lit sur une connexion PDO distincte, vérifie la nomination et le rejeu exact du reçu, le rejet d'un saut de jour et la conservation du journal. La préparation avant le scrutin est une fixture de domaine, non un test de l'ensemble de l'horloge mondiale de mai à août 2027.
+
+
+WP65 complément : les nouveaux mondes épinglent `wp65-autonomous-formation-v2`. L'Italie dispose d'un Sénat synthétique distinct de 50 sièges, généré indépendamment du résultat de la Chambre; ses votes doivent eux aussi permettre la confiance avant certification. Les règles de la version v1 restent disponibles aux anciens mondes. Les sièges sont des fixtures non représentatives du Sénat réel. Les tentatives attendues manquantes sont rejetées au rejeu v2. Japon, élections présidentielles américaines, intérims et échecs d'investiture restent ouverts; l'Italie ne dispose pas encore d'un véritable cycle sénatorial indépendant ni d'une phase intérimaire juridiquement exhaustive.
