@@ -203,6 +203,16 @@ paths:
         '200': { description: Coherent fictional state }
         '404': { description: Inaccessible world or unsupported scenario }
         '409': { description: World advancing }
+  /worlds/{world}/countries/FR/companies:
+    get:
+      operationId: readFrenchCompanySimulation
+      summary: Read fictional firm capacity and investment project simulation
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Coherent fictional state and public identities, not a forecast }
+        '404': { description: Inaccessible world or unsupported model }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/programme-packs:
     get:
       operationId: readFrenchProgrammePacks

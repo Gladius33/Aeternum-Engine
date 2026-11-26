@@ -108,3 +108,15 @@ restrictions use max; missing bilateral references flagged, never filled with
 invented USD/EUR conversions. Symmetric, damped exposure is an explicit uncalibrated
 proxy, not a directional trade model. Alpha legal authorization and player tariff
 policy remain unavailable. Old save behaviour unchanged. CI required.
+
+### WP54r firm-agent correction
+
+New corporation/civil-crisis worlds pin 40 independent fictional firm profiles.
+Previous committed demand, credit, trade and labour-cost proxies drive sustained
+stress or relief. Projects take 90–180 days, may be cancelled and change installed
+capacity only on completion. Only capacity differences feed macro investment
+and employment; baseline firm output is not added again. API exposes coherent
+scenario state, not real firm intentions, forecasts or balance sheets. Historical
+worlds keep their original model. Company acquisition, compensation, real data,
+sector capital budgeting and calibrated firm weights remain open. Full snapshots
+increase save size; performance gate remains open.

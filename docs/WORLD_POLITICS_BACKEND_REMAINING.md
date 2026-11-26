@@ -489,3 +489,9 @@ WP54 CI 45790745743 green. Corrected missing corporate wage-to-macro path and
 fixed eligible-incumbent presidential outcomes for new corporation/civil-crisis
 worlds. Versioned optional behaviour preserves old saves. No claim of closure of
 all WP53c audit findings; see causal audit remediation checkpoint. WP55 deferred.
+
+### WP54r firm capacity remediation
+
+WP54r wage/election CI 45791373411 and trade CI 45791593618 green. Added pinned
+fictional independent company agents and delayed project effects; WP55 remains
+deferred. Nationalisation settlement and industrial programme still open.

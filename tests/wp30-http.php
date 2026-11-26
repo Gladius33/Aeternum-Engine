@@ -591,6 +591,8 @@ if($gc53['status']!==201)throw new RuntimeException('WP53b creation HTTP '.$gc53
 $rc53='/worlds/'.$gc53['body']['world_id'];$pc53=$rc53.'/countries/FR/corporations';
 $vc53=req30('GET',$pc53,null,$tc48);
 ck30($vc53['status']===200&&$vc53['body']['state']['mode']==='pluralist','WP53b optional initial system');
+$firms53=req30('GET',$rc53.'/countries/FR/companies',null,$tc48);
+ck30($firms53['status']===200&&count($firms53['body']['state']['firms'])===40&&$firms53['body']['state']['capacity_index_bps']===10000,'WP54r initial fictional firms');
 $pack53=req30('GET',$rc53.'/countries/FR/programme-packs',null,$tc48);
 ck30($pack53['status']===200&&count($pack53['body']['company_catalog']['companies'])===40&&$pack53['body']['packs'][2]['action']===null,'WP53c pack readiness and identities');
 $ac53=req30('POST',$rc53.'/domestic/corporation',['action'=>'establish-quarterly'],$tc48,['If-Match'=>$vc53['etag'],'Idempotency-Key'=>'corporation-act-001']);
@@ -598,6 +600,8 @@ ck30($ac53['status']===200,'WP53b owner decision');
 $cc53=req30('GET',$rc53.'/clock',null,$tc48);
 $cc53=req30('POST',$rc53.'/clock/advances',['target_day'=>'2026-11-26'],$tc48,['If-Match'=>$cc53['etag'],'Idempotency-Key'=>'corporation-tick-001']);
 ck30($cc53['status']===200&&$cc53['body']['coherent'],'WP53b coherent clock');
+$firms53=req30('GET',$rc53.'/countries/FR/companies',null,$tc48);
+ck30($firms53['status']===200&&$firms53['body']['state']['day']==='2026-11-26'&&req30('GET',$rc53.'/countries/FR/companies',null,$ta2)['status']===404,'WP54r committed firms and membership');
 $trade53=req30('GET',$rc53.'/domestic',null,$tc48);
 ck30(isset($trade53['body']['days'][0]['trade_observation']['economic_sha'])&&$trade53['body']['days'][0]['macro']['trade_exposure_bps']===0,'WP54r trusted trade evidence in committed day');
 $vc53=req30('GET',$pc53,null,$tc48);

@@ -9,6 +9,7 @@ require_once __DIR__.'/FrenchPublicServices.php';
 require_once __DIR__.'/ProfessionalCorporations.php';
 require_once __DIR__.'/CorporationWageFeedback.php';
 require_once __DIR__.'/TradeMacroFeedback.php';
+require_once __DIR__.'/FirmEconomy.php';
 
 /**
  * WP29A: scenario-only domestic policy ledger. All monetary amounts are
@@ -54,7 +55,8 @@ final class DomesticPolicySimulation
         private readonly ?array $servicesModel=null,
         private readonly bool $corporationsEnabled=false,
         private readonly bool $wageFeedbackEnabled=false,
-        private readonly bool $tradeFeedbackEnabled=false
+        private readonly bool $tradeFeedbackEnabled=false,
+        private readonly ?array $firmModel=null
     ) {
         self::id($world); self::date($startDay);
         if (!preg_match('/^[A-Z]{3}$/D', $currency)) throw new \InvalidArgumentException('Invalid currency');
@@ -109,6 +111,7 @@ final class DomesticPolicySimulation
             if($this->populationModel===null||empty($this->debtModel['crisis_enabled']))throw new \DomainException('Services need population and crisis model');
             FrenchPublicServices::assertValid($this->servicesModel,$startDay,$this->populationModel,$this->macroBaseline);
         }
+        if($firmModel!==null&&($macroBaseline===null||$firmModel!==FirmEconomy::config()))throw new \DomainException('Invalid pinned firm model');
         if($tradeFeedbackEnabled&&$macroBaseline===null)throw new \DomainException('Trade feedback requires macro model');
         if($wageFeedbackEnabled&&!$corporationsEnabled)throw new \DomainException('Wage feedback requires corporations');
         if($corporationsEnabled&&$servicesModel===null)throw new \DomainException('Corporations require services scenario');
@@ -206,7 +209,12 @@ final class DomesticPolicySimulation
         }
         if ($revenue < 0 || $expense < 0) throw new \DomainException('Scenario implies negative gross fiscal flow');
         $expense+=$concessionCost;
-        $loop=null;$servicePlan=null;$corporations=null;
+        $loop=null;$servicePlan=null;$corporations=null;$firms=null;
+        if($this->firmModel!==null){
+            $previous=$this->days===[]?null:$this->days[array_key_last($this->days)];
+            $firms=FirmEconomy::advance($previous['firms']??FirmEconomy::initial($this->startDay,$this->firmModel),$target,$this->firmModel,$previous);
+            $production+=$firms['production_delta_bps'];$employment+=$firms['employment_delta_bps'];
+        }
         if($this->corporationsEnabled){
             $previous=$this->days===[]?null:$this->days[array_key_last($this->days)];
             $corporations=ProfessionalCorporations::step($previous['corporations']??ProfessionalCorporations::initial($this->startDay),$target,ProfessionalCorporations::actionFor($this->corporationDecisions,$target),$previous['macro']??null);
@@ -250,6 +258,7 @@ final class DomesticPolicySimulation
         }
         if($corporations!==null)$row['corporations']=$corporations;
         if($trade!==null)$row['trade_observation']=$trade;
+        if($firms!==null)$row['firms']=$firms;
         return $row;
     }
 
@@ -263,7 +272,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:[FirmEconomy::VERSION,$this->firmModel])]);
     }
 
     public function snapshot(): array
@@ -271,7 +280,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[]),...($this->wageFeedbackEnabled?['wage_feedback_version'=>CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?['trade_feedback_version'=>TradeMacroFeedback::VERSION]:[])];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[]),...($this->wageFeedbackEnabled?['wage_feedback_version'=>CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?['trade_feedback_version'=>TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:['firm_model'=>$this->firmModel,'firm_model_version'=>FirmEconomy::VERSION])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }
