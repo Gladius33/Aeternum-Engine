@@ -1,0 +1,40 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/../games/world-politics/src/EuropeanWithdrawal.php';
+use Aeternum\WorldPolitics\{EuropeanWithdrawal as E,CurrencyTransitionLedger as C};
+function ckCC(bool $v,string $m):void{if(!$v)throw new RuntimeException($m);echo "PASS currency contracts: $m\n";}
+function noCC(callable $f):void{try{$f();}catch(DomainException|InvalidArgumentException $e){return;}throw new RuntimeException('Invalid scenario accepted');}
+$day='2026-11-25';$sha=str_repeat('a',64);
+$e=E::request(E::initial($day,true,true,true,true),$day);
+$e=E::certify($e,$day,'notification',['national_decision_sha'=>$sha,'notification_sha'=>$sha]);
+$e=E::certify($e,$day,'agreement',['effective_on'=>'2026-11-27','parliament_consent'=>true,'council_qualified_majority'=>true,'france_agrees'=>true,'agreement_sha'=>$sha]);
+$bond=['id'=>'bond-fr','debtor'=>'fr_treasury','creditor'=>'foreign_private','kind'=>'sovereign_bond','principal_eur_minor'=>100000000000,'governing_law'=>'fr','treatment'=>'convert_certified','evidence_sha'=>$sha];
+$ext=array_replace($bond,['id'=>'bond-ext','creditor'=>'foreign_banks','principal_eur_minor'=>200000000000,'governing_law'=>'foreign','treatment'=>'retain_eur']);
+$deposit=['id'=>'deposit-one','debtor'=>'fr_banks','creditor'=>'fr_households','kind'=>'deposit','principal_eur_minor'=>10001,'governing_law'=>'fr','treatment'=>'convert_certified','evidence_sha'=>$sha];
+$unknown=array_replace($deposit,['id'=>'deposit-unknown','governing_law'=>'unknown','treatment'=>'contested','evidence_sha'=>null]);
+$terms=['effective_on'=>'2026-11-26','units_per_eur'=>2,'instrument_sha'=>$sha,'contracts'=>[$bond,$ext,$deposit,$unknown]];
+$bad=$terms;$bad['contracts'][1]['treatment']='convert_certified';
+noCC(fn()=>E::certify($e,$day,'currency_terms',$bad));
+$bad=$terms;$bad['contracts'][]=$bond;noCC(fn()=>E::certify($e,$day,'currency_terms',$bad));
+$e=E::certify($e,$day,'currency_terms',$terms);
+$p=C::project(E::advance($e,'2026-11-26'));
+ckCC($p['status']==='pending_effective_date'&&$p['converted_opening_principal_eur_minor']===0,'no conversion before effective exit');
+$exit=E::advance($e,'2026-11-27');$p=C::project($exit);
+ckCC($p['status']==='conversion_simulated'&&$p['claims'][0]['current_principal_minor']===200000000000&&$p['claims'][0]['eur_valuation_minor']===100000000000,'exact parity conversion');
+ckCC($p['claims'][1]['current_currency']==='EUR'&&$p['claims'][3]['current_currency']==='EUR'&&$p['contested_opening_principal_eur_minor']===10001,'foreign and disputed debt unchanged');
+ckCC(array_sum(array_column($p['sectors'],'net_eur_valuation_delta_minor'))===0&&!$p['national_treasury_booked']&&!$exit['currency_changed'],'parity and national ledger independent');
+$mark=['effective_on'=>'2026-11-28','value_index_bps'=>8000,'instrument_sha'=>$sha];
+noCC(fn()=>E::certify($e,$day,'currency_mark',$mark));
+$marked=E::certify($exit,'2026-11-27','currency_mark',$mark);
+ckCC(C::project($marked)===$p,'future mark not premature');
+$next=E::advance($marked,'2026-11-28');$q=C::project($next);
+ckCC($q['claims'][0]['eur_valuation_minor']===80000000000&&$q['claims'][1]['xfr_valuation_minor']===500000000000,'devaluation revalues retained EUR debt in XFR');
+ckCC($q['sovereign_subset']['xfr_valuation_minor']===700000000000&&$q['sovereign_subset']['retained_eur_principal_minor']===200000000000,'mixed sovereign subset, no debt cancellation');
+ckCC(array_sum(array_column($q['sectors'],'net_eur_valuation_delta_minor'))===0&&$q['sectors']['foreign_private']['net_eur_valuation_delta_minor']===-20000000000,'counterpart valuation losses conserved');
+ckCC($q['eur_per_xfr_rate']['numerator']===$q['xfr_per_eur_rate']['denominator']&&$q['eur_per_xfr_rate']['denominator']===$q['xfr_per_eur_rate']['numerator'],'reciprocal rates');
+ckCC(E::restore($next)===$next,'exact replay');
+$rev=E::certify($e,$day,'revocation',['national_decision_sha'=>$sha,'notice_sha'=>$sha,'unequivocal_unconditional'=>true]);
+ckCC(C::project(E::advance($rev,'2028-11-25'))['status']==='not_configured','revocation cancels prospective book');
+$up=E::certify($next,'2026-11-28','currency_mark',['effective_on'=>'2026-11-29','value_index_bps'=>12000,'instrument_sha'=>$sha]);
+ckCC(C::project(E::advance($up,'2026-11-29'))['claims'][0]['eur_valuation_minor']===120000000000,'appreciation scenario');
+$legacy=E::initial($day,true,true,true);ckCC(E::restore($legacy)===$legacy&&!isset($legacy['currency_contract_version']),'legacy compatibility');

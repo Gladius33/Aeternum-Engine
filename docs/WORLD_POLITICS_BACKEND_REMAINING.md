@@ -551,3 +551,10 @@ Separate prospective certified FX and refinancing scenarios now expose reserve
 valuation sensitivities and interest accrual on newly refinanced principal.
 Not a currency market model, actual transfer or monetary transition; coverage
 and accounting limitations explicit. WP55 remains deferred.
+
+### WP54r multidevise contract ledger
+
+Closed fictional EUR/XFR contract projection with explicit treatment, parity,
+reciprocal FX and symmetric counterparty valuation. Actual debt/treasury
+currency migration, bank and central-bank balance sheets, maturities and
+legal certification issuance remain open. WP55 deferred.

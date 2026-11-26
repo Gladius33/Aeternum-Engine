@@ -699,9 +699,15 @@ $wm54=array_fill_keys(\Aeternum\WorldPolitics\EuropeanWithdrawal::PARTNERS,0);$w
 $alloc54=['kind'=>'partner_allocation','data'=>['effective_on'=>'2026-11-27','export_loss_weights'=>$wx54,'import_loss_weights'=>$wm54,'instrument_sha'=>str_repeat('f',64)]];
 $ep54=$euStore54->execute($euWorld54,'eu_evidence',$alloc54,'eu-allocation-test-001',$eb54['etag']);
 $stress54=['kind'=>'monetary_stress','data'=>['effective_on'=>'2026-11-27','refinancing_days'=>365,'euro_fx_move_bps'=>-1000,'country_refinancing'=>['DE'=>['tranche_minor'=>10000000000000,'spread_change_bps'=>200]],'instrument_sha'=>str_repeat('1',64)]];
-$euStore54->execute($euWorld54,'eu_evidence',$stress54,'eu-stress-test-001',$ep54['etag']);
+$es54=$euStore54->execute($euWorld54,'eu_evidence',$stress54,'eu-stress-test-001',$ep54['etag']);
+$contract54=['kind'=>'currency_terms','data'=>['effective_on'=>'2026-11-27','units_per_eur'=>2,'instrument_sha'=>str_repeat('2',64),'contracts'=>[
+    ['id'=>'bond-fr','debtor'=>'fr_treasury','creditor'=>'foreign_private','kind'=>'sovereign_bond','principal_eur_minor'=>100000000000,'governing_law'=>'fr','treatment'=>'convert_certified','evidence_sha'=>str_repeat('3',64)],
+    ['id'=>'bond-ext','debtor'=>'fr_treasury','creditor'=>'foreign_banks','kind'=>'sovereign_bond','principal_eur_minor'=>200000000000,'governing_law'=>'foreign','treatment'=>'retain_eur','evidence_sha'=>str_repeat('4',64)]
+]]];
+$euStore54->execute($euWorld54,'eu_evidence',$contract54,'eu-contract-test-001',$es54['etag']);
 $sp54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);
 ck30($sp54['status']===200&&$sp54['body']['membership_scope']['current_modelled_eu_members']===27&&$sp54['body']['budget']['cumulative']['remaining_eu_financing_gap_minor']===0,'WP54r no premature EU scope or fiscal effect');
+ck30($sp54['body']['currency_contracts']['status']==='pending_effective_date'&&$sp54['body']['currency_contracts']['converted_opening_principal_eur_minor']===0,'WP54r no premature redenomination');
 $c54=req30('GET',$r54.'/clock',null,$tc48);
 $c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-27'],$tc48,['If-Match'=>$c54['etag'],'Idempotency-Key'=>'eu-trade-tick-001']);
 ck30($c54['status']===200&&$c54['body']['coherent'],'WP54r coherent exit tick');
@@ -715,6 +721,9 @@ ck30(count($sb54['trade']['partners'])===26&&array_sum(array_column($sb54['trade
 ck30($sb54['budget']['annual_static_gap_before_settlement_minor']===950000000000&&$sb54['budget']['cumulative']['consolidated_net_delta_minor']===0&&!$sb54['budget']['national_treasury_booked'],'WP54r counterfactual budget gap no double booking');
 ck30($sb54['monetary']['status']==='active'&&$sb54['monetary']['assumed_euro_fx_move_bps']===-1000&&$sb54['monetary']['exchange_rate_change_bps']===null&&!$sb54['monetary']['euro_collapse_inferred'],'WP54r explicit FX sensitivity not forecast');
 ck30($sb54['monetary']['refinancing']['covered_countries']===1&&$sb54['monetary']['refinancing']['countries']['DE']['interest_delta_today_minor']>0&&$sb54['monetary']['refinancing']['countries']['IT']['tranche_minor']===null&&!$sb54['monetary']['refinancing']['actual_booked'],'WP54r partial refinancing sensitivity only');
+$book54=$sb54['currency_contracts'];
+ck30($book54['status']==='conversion_simulated'&&$book54['sovereign_subset']['converted_xfr_principal_minor']===200000000000&&$book54['sovereign_subset']['retained_eur_principal_minor']===200000000000&&!$book54['national_treasury_booked'],'WP54r scoped conversion at parity, no actual debt rewrite');
+ck30($book54['consolidated_net_eur_valuation_delta_minor']===0&&$book54['claims'][0]['eur_valuation_minor']===100000000000,'WP54r parity conservation');
 ck30(req30('GET',$r54.'/organizations/eu/spillovers',null,$ta2)['status']===404&&req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48)['etag']===$sp54['etag'],'WP54r projection isolation and deterministic ETag');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');

@@ -108,6 +108,7 @@ final class EuropeanSpillovers
             'monetary'=>isset($eu['monetary_stress_version'])?EuropeanMonetaryStress::project($eu):['currency_conversion_modelled'=>false,'euro_collapse_inferred'=>false,
                 'exchange_rate_change_bps'=>null,'ecb_balance_sheet_change_minor'=>null,'target_settlement_minor'=>null,
                 'other_currency_exits_inferred'=>false],
+            ... (isset($eu['currency_contract_version'])?['currency_contracts'=>CurrencyTransitionLedger::project($eu)]:[]),
             'not_a_forecast'=>true];
     }
 }

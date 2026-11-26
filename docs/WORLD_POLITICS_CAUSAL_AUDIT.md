@@ -259,3 +259,16 @@ country amounts remain null; covered sums are not EU totals. No real ledger
 booking, ECB balance sheet, currency conversion or automatic collapse.
 This independent case can operate before withdrawal or after revocation.
 CI pending.
+
+### WP54r multidevise contract book
+
+Separate prospective certified fictional EUR/XFR contract scenario. Conversion
+requires explicit contract evidence and French governing law (a conservative
+scenario gate, not a statement of actual law); retained and contested contracts
+stay in EUR. Effective only after withdrawal and conversion date. Parity
+preserves value; prospective FX marks revalue claims symmetrically and preserve
+double-entry assets/liabilities and consolidated net valuation. Mixed sovereign
+subset is not the whole debt ledger; no security-level data, actual treasury
+booking, money supply, bank capital/liquidity or TARGET settlement. XFR is a
+fictional identifier. Currency-changed flag remains false for national ledger.
+Legacy states unchanged. CI pending.

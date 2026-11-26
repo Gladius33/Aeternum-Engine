@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/CurrencyTransitionLedger.php';
 
 /** Article 50 procedural pilot: fictional certified evidence, not actual legal advice.
  * National constitutional authority is deliberately not inferred from ownership. */
@@ -11,15 +12,16 @@ final class EuropeanWithdrawal
     public const MONETARY_STRESS_VERSION='wp54r-euro-stress-v1';
     public const PARTNERS=['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK'];
     public const SOURCE='https://eur-lex.europa.eu/eli/treaty/teu_2016/art_50/oj';
-    public static function initial(string $day,bool $tradeEnabled=false,bool $spilloversEnabled=false,bool $monetaryStressEnabled=false):array
+    public static function initial(string $day,bool $tradeEnabled=false,bool $spilloversEnabled=false,bool $monetaryStressEnabled=false,bool $currencyContractsEnabled=false):array
     {
         self::date($day);
+        if($currencyContractsEnabled&&!$monetaryStressEnabled)throw new \DomainException('Currency book requires monetary scenario');
         if($monetaryStressEnabled&&!$spilloversEnabled)throw new \DomainException('Monetary stress requires spillover model');
         if($spilloversEnabled&&!$tradeEnabled)throw new \DomainException('Spillovers require trade model');
         return ['version'=>self::VERSION,'source'=>self::SOURCE,'start_day'=>$day,'day'=>$day,
             'status'=>'member','membership'=>true,'intent_on'=>null,'notified_on'=>null,'deadline'=>null,
             'agreement_effective_on'=>null,'exit_on'=>null,'exit_route'=>null,'history'=>[],
-            'currency_changed'=>false,'tariff_regime_implemented'=>false,...($tradeEnabled?['trade_regime_version'=>'wp54r-eu-trade-v1','trade_regime'=>null]:[]),...($spilloversEnabled?['spillovers_version'=>self::SPILLOVERS_VERSION,'budget_terms'=>null,'partner_allocation'=>null]:[]),...($monetaryStressEnabled?['monetary_stress_version'=>self::MONETARY_STRESS_VERSION,'monetary_stress'=>null]:[])];
+            'currency_changed'=>false,'tariff_regime_implemented'=>false,...($tradeEnabled?['trade_regime_version'=>'wp54r-eu-trade-v1','trade_regime'=>null]:[]),...($spilloversEnabled?['spillovers_version'=>self::SPILLOVERS_VERSION,'budget_terms'=>null,'partner_allocation'=>null]:[]),...($monetaryStressEnabled?['monetary_stress_version'=>self::MONETARY_STRESS_VERSION,'monetary_stress'=>null]:[]),...($currencyContractsEnabled?['currency_contract_version'=>CurrencyTransitionLedger::VERSION,'currency_terms'=>null,'currency_marks'=>[]]:[])];
     }
     public static function request(array $s,string $day):array
     {
@@ -27,6 +29,7 @@ final class EuropeanWithdrawal
         $s['status']='intent_pending';$s['intent_on']=$day;$s['notified_on']=null;$s['deadline']=null;$s['agreement_effective_on']=null;
         if(isset($s['trade_regime_version']))$s['trade_regime']=null;
         if(isset($s['spillovers_version'])){$s['budget_terms']=null;$s['partner_allocation']=null;}
+        if(isset($s['currency_contract_version'])){$s['currency_terms']=null;$s['currency_marks']=[];}
         $s['history'][]=['day'=>$day,'kind'=>'intent','data'=>[]];return $s;
     }
     public static function certify(array $s,string $day,string $kind,array $data):array
@@ -102,12 +105,24 @@ final class EuropeanWithdrawal
                 // Independent financial sensitivity, not a legal consequence
                 // of Article 50. Revoking withdrawal does not erase this case.
                 $s['monetary_stress']=$data;break;
+            case 'currency_terms':
+                if(!isset($s['currency_contract_version'])||$s['currency_terms']!==null||!in_array($s['status'],['negotiating','agreement_concluded','withdrawn'],true))
+                    throw new \DomainException('No authorized currency scenario');
+                CurrencyTransitionLedger::validateTerms($data,$day);
+                $s['currency_terms']=$data;break;
+            case 'currency_mark':
+                if(!isset($s['currency_contract_version'])||$s['currency_terms']===null||$s['membership']
+                    ||$day<max($s['exit_on'],$s['currency_terms']['effective_on'])||count($s['currency_marks'])>=64)
+                    throw new \DomainException('Currency conversion not effective');
+                $last=$s['currency_marks']===[]?null:$s['currency_marks'][array_key_last($s['currency_marks'])]['effective_on'];
+                CurrencyTransitionLedger::validateMark($data,$day,$last);
+                $s['currency_marks'][]=$data;break;
             case 'revocation':
                 self::fields($data,['national_decision_sha','notice_sha','unequivocal_unconditional']);
                 self::sha($data['national_decision_sha']);self::sha($data['notice_sha']);
                 if(!in_array($s['status'],['negotiating','agreement_concluded'],true)||$day>=$s['deadline']
                     ||$data['unequivocal_unconditional']!==true)throw new \DomainException('Revocation not certified');
-                $s['status']='revoked';$s['deadline']=null;$s['agreement_effective_on']=null;if(isset($s['trade_regime_version']))$s['trade_regime']=null;if(isset($s['spillovers_version'])){$s['budget_terms']=null;$s['partner_allocation']=null;}break;
+                $s['status']='revoked';$s['deadline']=null;$s['agreement_effective_on']=null;if(isset($s['trade_regime_version']))$s['trade_regime']=null;if(isset($s['spillovers_version'])){$s['budget_terms']=null;$s['partner_allocation']=null;}if(isset($s['currency_contract_version'])){$s['currency_terms']=null;$s['currency_marks']=[];}break;
             default:throw new \InvalidArgumentException('Unknown European evidence');
         }
         $s['history'][]=['day'=>$day,'kind'=>$kind,'data'=>$data];return $s;
@@ -125,7 +140,7 @@ final class EuropeanWithdrawal
     }
     public static function restore(array $s):array
     {
-        $r=self::initial($s['start_day'],array_key_exists('trade_regime_version',$s),array_key_exists('spillovers_version',$s),array_key_exists('monetary_stress_version',$s));
+        $r=self::initial($s['start_day'],array_key_exists('trade_regime_version',$s),array_key_exists('spillovers_version',$s),array_key_exists('monetary_stress_version',$s),array_key_exists('currency_contract_version',$s));
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>1000)throw new \DomainException('Invalid EU history');
         foreach($s['history'] as $h){
             self::fields($h,['day','kind','data']);$r=self::advance($r,$h['day']);
