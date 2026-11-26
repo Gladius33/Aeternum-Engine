@@ -111,6 +111,7 @@ final class PublicOpinion
         if($e['constitutional_breaches']<$this->s['constitutional_breaches']||!in_array($e['legislature'],['sitting','dissolved'],true)
             ||!in_array($e['election_status'],[null,'scheduled','voting_window_open','voting_recorded_results_pending','constitutional_deadline_missed'],true))
             throw new \DomainException('Invalid institutional observation');
+        $partners=isset($this->s['social_partners'])?SocialPartners::advance($this->s['social_partners'],$e['day'],$e['pressure'],$b['pressure'],$e['partner_observation']):null;
         $campaign=null;
         if(isset($this->s['campaign']))$campaign=CampaignLifecycle::advance($this->s['campaign'],$e['day'],$campaignEvent);
         elseif($campaignEvent!==null)throw new \DomainException('No campaign enabled');
@@ -175,9 +176,9 @@ final class PublicOpinion
             $this->s['dialogue']=CivicDialogue::advance($this->s['dialogue'],$e['day'],$e['pressure'],$b['pressure']);
             $r['dialogue']=$this->s['dialogue'];
         }
-        if(isset($this->s['social_partners'])){
-            $this->s['social_partners']=SocialPartners::advance($this->s['social_partners'],$e['day'],$e['pressure'],$b['pressure'],$e['partner_observation']);
-            $r['social_partners']=$this->s['social_partners'];
+        if($partners!==null){
+            $this->s['social_partners']=$partners;
+            $r['social_partners']=$partners;
         }
         if($presidency!==null){
             $this->s['presidency']=$presidency;

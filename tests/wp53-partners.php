@@ -29,7 +29,8 @@ ck53(PublicOpinion::restore($x->snapshot())->hash()===$x->hash(),'exact replay')
 $bad=$x->snapshot();$bad['social_partners']['groups']['health']['meetings']++;
 no53(fn()=>PublicOpinion::restore($bad),'tampered partner state rejected');
 $e['day']=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d');$e['partner_observation']['funding_bps']=10001;
-no53(fn()=>$x->advance($e),'invalid funding refused');
+$before=$x->hash();no53(fn()=>$x->advance($e),'invalid funding refused');
+ck53($x->hash()===$before,'rejected partner observation leaves aggregate intact');
 $initial=SocialPartners::initial('2026-11-25');
 no53(fn()=>SocialPartners::advance($initial,'2026-11-27',['workers'=>400,'retired'=>300],['workers'=>400,'retired'=>300],$base),'nonconsecutive day refused');
 $obs=SocialPartners::observe(['services'=>['primary_funding_bps'=>7500,'health'=>['unserved_bed_demand_proxy'=>3,'daily_bed_demand_proxy'=>12],
