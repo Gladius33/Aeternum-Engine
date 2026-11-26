@@ -129,3 +129,39 @@ $auth->revoked=false;
 $pdo->exec("UPDATE wp_institutional_states SET state_sha=REPEAT('0',64) WHERE world_id='world-legal' AND country_code='US'");
 wp6reject(fn()=> $store->read('world-legal','US'),'tampered institutional snapshot detected');
 echo "WP06 persistent constitutional worlds passed.\n";
+
+// WP65: a full election-to-appointment transition through the real MariaDB
+// institutional store, with a fresh PDO connection and exactly-once receipts.
+$auth->countries['ES']=true;$auth->actor='wp65-clock';
+$roster=new PoliticalRoster('world-legal','ES',['head_of_government']);
+$pdo->prepare('INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)')
+    ->execute(['world-legal','ES',json_encode($roster->snapshot(),JSON_THROW_ON_ERROR),$roster->snapshotHash()]);
+$es=new InstitutionalSimulation('world-legal','ES','2027-05-14');
+$es->enableAccountability('initial-government',['congress'=>100]);
+$es->enableElectoral(\Aeternum\WorldPolitics\ComparativeElectionCalendar::config('ES','2027-05-14'));
+$es->enablePoliticalAI();$es->enableForeignRecurring();$es->enableFormationProtocol();$es->enableAutonomousFormation();
+$pollDay=$es->snapshot()['electoral']['config']['poll_day'];
+$last=(new DateTimeImmutable($pollDay))->modify('-1 day');
+for($d=new DateTimeImmutable('2027-05-15');$d<=$last;$d=$d->modify('+1 day'))$es->advanceTo($d->format('Y-m-d'));
+$store->seed($es);$before=$store->read('world-legal','ES');
+$state=$before;
+for($i=0;$i<=5;$i++){
+    $day=(new DateTimeImmutable($pollDay))->modify('+'.$i.' days')->format('Y-m-d');
+    $es->advanceTo($day);
+    $previous=$state;
+    $key='wp65-db-tick-'.sprintf('%02d',$i);
+    $response=$store->advance('world-legal','ES',$day,$key,$previous['etag']);
+    $state=$store2->read('world-legal','ES');
+    wp6($response['status']===200&&$response['revision']===$i+1&&$state['state']===$es->snapshot(),'WP65 real MariaDB equals domain replay day '.$i);
+    if($i<5)wp6($state['state']['accountability']['incumbent']==='initial-government','WP65 no early appointment day '.$i);
+}
+$proof=$state['state']['electoral']['government'];
+wp6($proof!==null&&$state['state']['accountability']['incumbent']===$proof['candidate'],'WP65 certified government persisted through fresh PDO');
+$retry=$store2->advance('world-legal','ES',$day,$key,'"stale"');
+wp6($retry===$response&&$store->read('world-legal','ES')===$state,'WP65 appointment receipt retry exactly once');
+wp6reject(fn()=> $store->advance('world-legal','ES',(new DateTimeImmutable($day))->modify('+2 days')->format('Y-m-d'),'wp65-skipped-day-01',$state['etag']),'WP65 skipped tick rolled back');
+wp6($store->read('world-legal','ES')===$state,'WP65 failed clock transition leaves appointment intact');
+$logs=(int)$pdo->query("SELECT COUNT(*) FROM wp_institutional_journal WHERE world_id='world-legal' AND country_code='ES'")->fetchColumn();
+$receipts=(int)$pdo->query("SELECT COUNT(*) FROM wp_institutional_receipts WHERE world_id='world-legal' AND country_code='ES'")->fetchColumn();
+wp6($logs===6&&$receipts===6,'WP65 six committed ticks, no duplicate proof write');
+
