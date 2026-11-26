@@ -591,6 +591,8 @@ $gc53=req30('POST','/worlds',['label'=>'Corporations pilot','scenario'=>'fr-corp
 if($gc53['status']!==201)throw new RuntimeException('WP53b creation HTTP '.$gc53['status'].' '.json_encode($gc53['body'],JSON_THROW_ON_ERROR));
 $rc53='/worlds/'.$gc53['body']['world_id'];$pc53=$rc53.'/countries/FR/corporations';
 $calendar53=req30('GET',$rc53.'/countries/FR/presidency',null,$tc48);
+$worldCalendar53=req30('GET',$rc53.'/references',null,$tc48);
+ck30($worldCalendar53['body']['reference_data_audit']['comparative_election_calendars']['countries']['DE']['ordinary_earliest']==='2029-01-26','WP54r comparative election calendar reference available');
 ck30($calendar53['status']===200&&$calendar53['body']['first_round_day']==='2027-04-18'&&$calendar53['body']['second_round_day']==='2027-05-02'&&$calendar53['body']['term_limit']===2,'WP54r published presidency calendar active in new advanced campaign');
 $vc53=req30('GET',$pc53,null,$tc48);
 ck30($vc53['status']===200&&$vc53['body']['state']['mode']==='pluralist','WP53b optional initial system');

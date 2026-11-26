@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrenchElectionCalendar.php';
+require_once __DIR__.'/ComparativeElectionCalendar.php';
 
 /** Read-only audit. Publication reference and playable state are distinct.
  * Never inject a newer observation into a saved scenario. */
@@ -20,7 +21,7 @@ final class ReferenceDataAudit
         $p['assembly']['majority_of_statutory_seats']=intdiv($a['statutory_seats'],2)+1;
         $s=$p['senate'];if(array_sum($s['groups'])!==$s['occupied_seats'])throw new \DomainException('Senate reference arithmetic mismatch');
         return ['as_of'=>'2026-11-26','classification'=>'read_only_audit_not_scenario_state',
-            'observations'=>$p,'election_calendar'=>FrenchElectionCalendar::report(),'national_trade_basis_usd'=>self::FR_TRADE_TOTAL_USD_2025,
+            'observations'=>$p,'election_calendar'=>FrenchElectionCalendar::report(),'comparative_election_calendars'=>ComparativeElectionCalendar::report(),'national_trade_basis_usd'=>self::FR_TRADE_TOTAL_USD_2025,
             'domains'=>[
                 'fr_macro'=>['status'=>'observed_anchors_in_calculation','remaining'=>'behavioral calibration'],
                 'fr_demography_services'=>['status'=>'observed_anchors_in_calculation','remaining'=>'regional and longitudinal calibration'],

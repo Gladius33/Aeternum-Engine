@@ -42,3 +42,13 @@ ck31($a['domains']['fr_companies']['status']==='observed_identities_fictional_be
 $macro=json_decode(file_get_contents(__DIR__.'/../games/world-politics/data/2026-11-25-france-observations-v2.json'),true,32,JSON_THROW_ON_ERROR);
 $values=[];foreach($macro['observations'] as $v)if($v['period']==='2025')$values[$v['metric']]=$v['value'];
 ck31(intdiv(($values['exports_goods_services']+$values['imports_goods_services'])*11300,10000)===$a['national_trade_basis_usd'],'trade denominator reconciles with observed French national accounts');
+
+use Aeternum\WorldPolitics\ComparativeElectionCalendar as NC;
+$calendar=NC::report();ck31(count($calendar['countries'])===6&&!$calendar['complete_national_electoral_law_implemented'],'six sourced comparative calendars distinguish law from incomplete simulation');
+foreach(['DE'=>'2029-03-18','ES'=>'2027-08-22','GB'=>'2029-07-19','IT'=>'2027-10-24','JP'=>'2030-01-27','US'=>'2028-11-07'] as $iso=>$poll){
+    $c=NC::config($iso,'2026-11-25');ck31($c['poll_day']===$poll&&$c['runoff_day']===null,'comparative national election horizon '.$iso);
+    $el=new \Aeternum\WorldPolitics\ElectoralCycle('world-test',$iso,'2026-11-25',$c);
+    $el->advance('2026-11-26');ck31($el->snapshot()['status']==='scheduled','no artificial next-day foreign election '.$iso);
+    ck31(\Aeternum\WorldPolitics\ElectoralCycle::restore($el->snapshot())->snapshot()===$el->snapshot(),'calendar replay '.$iso);
+}
+ck31($calendar['countries']['US']['presidential']['maximum_elections_total']===2&&$calendar['countries']['US']['presidential']['more_than_two_years_of_anothers_term_max_elections']===1,'US constitutional rule is distinct from French consecutive mandate rule');
