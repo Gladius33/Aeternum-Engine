@@ -85,6 +85,7 @@ final class AlphaScenario
             if(in_array($this->id,[self::SERVICES,self::PARTNERS,self::CORPORATIONS,self::CIVIL_CRISIS,self::INVESTITURE],true))$c['services_model']=FrenchPublicServices::load($this->day,$c['population_model'],$b);
         }
         if(in_array($this->id,[self::CORPORATIONS,self::CIVIL_CRISIS,self::INVESTITURE],true)){$c['corporations_enabled']=true;$c['wage_feedback_enabled']=true;$c['trade_feedback_enabled']=true;$c['firm_model']=FirmEconomy::config();$c['public_equity_enabled']=true;$c['industrial_enabled']=true;$c['daily_legal_enabled']=true;$c['eu_trade_enabled']=true;$c['eu_trade_v2']=true;$c['eu_trade_v3']=true;$c['eu_trade_v4']=true;}
+        if($this->id===self::INVESTITURE)$c['finance_autonomy']=true;
         return $c;
     }
 }
@@ -184,7 +185,7 @@ final class AlphaWorlds
             $this->insert('INSERT INTO wp_economic_states(world_id,state_json,state_sha,reference_sha,actor_registry_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($econ->snapshot()),$econ->hash(),$this->scenario->references->hash(),$this->scenario->actors->hash()]);
             $c=$this->scenario->domestic();
-            $dom=new DomesticPolicySimulation($world,$day,$c['currency'],$c['opening_balance'],$c['baseline_revenue'],$c['baseline_expense'],$c['cohorts'],$c['catalog'],$c['macro_baseline']??null,$c['debt_model']??null,$c['population_model']??null,$c['services_model']??null,$c['corporations_enabled']??false,$c['wage_feedback_enabled']??false,$c['trade_feedback_enabled']??false,$c['firm_model']??null,$c['public_equity_enabled']??false,$c['industrial_enabled']??false,$c['daily_legal_enabled']??false,$c['eu_trade_enabled']??false,$c['eu_trade_v2']??false,$c['eu_trade_v3']??false,$c['eu_trade_v4']??false);
+            $dom=new DomesticPolicySimulation($world,$day,$c['currency'],$c['opening_balance'],$c['baseline_revenue'],$c['baseline_expense'],$c['cohorts'],$c['catalog'],$c['macro_baseline']??null,$c['debt_model']??null,$c['population_model']??null,$c['services_model']??null,$c['corporations_enabled']??false,$c['wage_feedback_enabled']??false,$c['trade_feedback_enabled']??false,$c['firm_model']??null,$c['public_equity_enabled']??false,$c['industrial_enabled']??false,$c['daily_legal_enabled']??false,$c['eu_trade_enabled']??false,$c['eu_trade_v2']??false,$c['eu_trade_v3']??false,$c['eu_trade_v4']??false,$c['finance_autonomy']??false);
             $this->insert('INSERT INTO wp_domestic_states(world_id,assumptions_json,assumptions_sha,state_json,state_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($c),$dom->assumptionsHash(),self::json($dom->snapshot()),$dom->hash()]);
             $this->insert('INSERT INTO wp_world_clock(world_id,committed_day,revision,domestic_enabled) VALUES(?,?,0,1)',[$world,$day]);

@@ -69,9 +69,11 @@ final class DomesticPolicySimulation
         private readonly bool $euTradeEnabled=false,
         private readonly bool $euTradeV2=false,
         private readonly bool $euTradeV3=false,
-        private readonly bool $euTradeV4=false
+        private readonly bool $euTradeV4=false,
+        private readonly bool $financeAutonomy=false
     ) {
         self::id($world); self::date($startDay);
+        if($financeAutonomy&&(!$dailyLegalEnabled||!isset($catalog['budget-2047-defense-maintain'])))throw new \DomainException('Finance autonomy requires annual series and legal activation');
         if($euTradeV4&&(!$euTradeV3||$debtModel===null))throw new \DomainException('EU trade v4 requires v3 and debt ledger');
         if($euTradeV3&&!$euTradeV2)throw new \DomainException('EU trade v3 requires v2');
         if($euTradeV2&&!$euTradeEnabled)throw new \DomainException('EU trade v2 requires enabled trade');
@@ -368,7 +370,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:[FirmEconomy::VERSION,$this->firmModel]),...($this->publicEquityEnabled?[PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?[IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?[$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:[FirmEconomy::VERSION,$this->firmModel]),...($this->publicEquityEnabled?[PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?[IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?[$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[]),...($this->financeAutonomy?['wp82-finance-requests-v1']:[])]);
     }
 
     public function snapshot(): array

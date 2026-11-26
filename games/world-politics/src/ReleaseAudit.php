@@ -57,6 +57,8 @@ final class ReleaseAudit
             // Same-day proposals may legitimately change source snapshot hashes
             // after publication. The committed daily rows and opinion cannot.
             $q=$db->prepare('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?');$q->execute([$world]);$cfg=json_decode($q->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+            $fr=$is->read($world,'FR')['state'];
+            if(($cfg['finance_autonomy']??false)!==isset($fr['finance_requests']))throw new \DomainException('Finance autonomy cohort pin mismatch');
             $cohort=CampaignScore::cohort($clock['reference_bundle_sha'],$cfg,$dip['state']);
             if(!hash_equals($saved['cohort_sha'],$cohort)||$saved['source_hashes']['opinion']!==trim($op['etag'],'"'))
                 throw new \DomainException('Audit score provenance mismatch');
