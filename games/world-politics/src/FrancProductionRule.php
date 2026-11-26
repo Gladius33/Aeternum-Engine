@@ -24,12 +24,15 @@ final class FrancProductionRule
     private static function scale(int $a,int $b,int $d):int
     {
         if($a<0||$b<0||$d<=0)throw new \DomainException('Invalid production ratio');
-        $q=intdiv($a,$d);$r=$a%$d;$whole=$q*$b;$acc=0;$rem=0;$rq=0;
+        $q=intdiv($a,$d);$r=$a%$d;
+        if($b>0&&$q>intdiv(PHP_INT_MAX,$b))throw new \DomainException('Production target exceeds integer capacity');
+        $whole=$q*$b;$acc=0;$rem=0;$rq=0;
         while($b>0){
             if($b%2===1){$rem+=$r;$acc+=$rq;if($rem>=$d){$rem-=$d;$acc++;}}
             $b=intdiv($b,2);if($b===0)break;
             $r*=2;$rq*=2;if($r>=$d){$r-=$d;$rq++;}
         }
+        if($acc>PHP_INT_MAX-$whole)throw new \DomainException('Production target exceeds integer capacity');
         return $whole+$acc;
     }
     private static function avg(array $values):int{return intdiv(array_sum($values),count($values));}
@@ -40,6 +43,7 @@ final class FrancProductionRule
         $start=$terms!==null&&$currency!==null&&!$eu['membership']?max($terms['effective_on'],$currency['effective_on'],$eu['exit_on']):null;
         $active=$start!==null&&$dom['day']>=$start;
         $anchor=null;$stock=$terms['opening_base_franc_minor']??null;$history=[];$prior=[];
+        $funding=isset($eu['franc_funding_version']);$anchorSource=null;
         $lastDay=null;
         foreach($dom['days'] as $row){
             $d=$row['day'];$g=$row['macro']['real_gdp']??null;
@@ -49,8 +53,19 @@ final class FrancProductionRule
             if($active&&$d>=$start){
                 // Opening parity uses observed pre-transition output. Never
                 // use the day's own GDP to finance the same day's production.
-                if($prior===[])throw new \DomainException('Missing prior real output anchor');
-                $output=self::avg($prior);$anchor??=$output;
+                if($prior===[]){
+                    // Only the new funding model permits first-tick transition.
+                    // The reference is fixed-price daily GDP from pinned world
+                    // assumptions, never the current day's generated GDP.
+                    $output=$dom['macro_baseline']['daily_real_gdp']??null;
+                    if(!$funding||!is_int($output)||$output<=0||$output>10000000000000)
+                        throw new \DomainException('Missing prior real output anchor');
+                    $anchorSource='pinned_opening_real_gdp';
+                }else{
+                    $output=self::avg($prior);
+                    if($anchor===null)$anchorSource='prior_committed_real_gdp';
+                }
+                $anchor??=$output;
                 $target=self::scale($terms['opening_base_franc_minor'],$output,$anchor);
                 $opening=$stock;$issue=max(0,$target-$stock);
                 // No automatic confiscation or assumed repayment in recession:
@@ -67,7 +82,6 @@ final class FrancProductionRule
             $prior[]=$g;if(count($prior)>self::WINDOW)array_shift($prior);
         }
         if($active&&($history===[]||$history[array_key_last($history)]['day']!==$dom['day']))throw new \DomainException('Missing current production ledger');
-        $funding=isset($eu['franc_funding_version']);
         $settled=$funding?FrancPublicFunding::settle($history,$terms['opening_base_franc_minor']??null,$eu['franc_funding_orders']):null;
         if($funding)$history=$settled['rows'];
         return ['version'=>self::VERSION,'classification'=>'fictional_production_indexed_monetary_base_pilot',
@@ -78,6 +92,6 @@ final class FrancProductionRule
             'issuance_rule'=>$funding?'certified_spending_within_positive_production_gap':'positive_gap_to_production_target_only','contraction_rule'=>'suspend_issuance_and_report_excess',
             'incremental_claim_classification'=>'fictional_central_bank_advance','treasury_spending_booked'=>false,
             'national_currency_changed'=>false,'broad_money_modelled'=>false,'fx_peg_implied'=>false,
-            'price_stability_guaranteed'=>false,...($funding?['public_funding_version'=>FrancPublicFunding::VERSION,'pilot_public_funding_settled'=>$active,'executed_order_days'=>$settled['executed_order_days'],'opening_legacy_balance_sheet_unmodelled'=>true,'actual_eur_treasury_booked'=>false]:[]),'not_a_forecast'=>true];
+            'price_stability_guaranteed'=>false,...($funding?['public_funding_version'=>FrancPublicFunding::VERSION,'production_anchor_source'=>$anchorSource,'pilot_public_funding_settled'=>$active,'executed_order_days'=>$settled['executed_order_days'],'opening_legacy_balance_sheet_unmodelled'=>true,'actual_eur_treasury_booked'=>false]:[]),'not_a_forecast'=>true];
     }
 }

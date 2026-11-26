@@ -302,3 +302,8 @@ specified day, not automatically carried forward. The old rule remains intact
 for prior worlds. Opening legacy balance sheet not invented; this closed
 incremental four-sector pilot does not modify the national EUR treasury or
 GDP, broad bank credit or FX. CI pending.
+
+First-tick transition now uses the pinned macro baseline daily real GDP only
+when the new funding model lacks preceding daily rows. Subsequent issuance
+still uses prior committed production; missing baseline fails closed. Added
+integer capacity checks and first-day/next-day regression tests.

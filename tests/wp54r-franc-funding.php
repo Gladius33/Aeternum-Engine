@@ -29,3 +29,17 @@ foreach($r as $v){$f=$v['funding'];ckPF($f['central_bank']['treasury_advance_ass
 ckPF(E::restore($end)===$end&&!$p['treasury_spending_booked'],'replay and historical treasury isolation');
 $no=$e;$no['franc_funding_orders']=[];$z=F::project(E::advance($no,'2026-11-30'),['day'=>'2026-11-30','days'=>$rows]);
 ckPF($z['days'][1]['issued_franc_minor']===0&&$z['days'][1]['funding']['remaining_issuance_capacity_franc_minor']===100000,'no unsolicited issuance');
+
+$first=E::request(E::initial($day,true,true,true,true,true,true),$day);
+$first=E::certify($first,$day,'notification',['national_decision_sha'=>$sha,'notification_sha'=>$sha]);
+$first=E::certify($first,$day,'agreement',['effective_on'=>'2026-11-26','parliament_consent'=>true,'council_qualified_majority'=>true,'france_agrees'=>true,'agreement_sha'=>$sha]);
+$first=E::certify($first,$day,'currency_terms',['effective_on'=>'2026-11-26','units_per_eur'=>1,'instrument_sha'=>$sha,'contracts'=>[
+    ['id'=>'bond-fr','debtor'=>'fr_treasury','creditor'=>'fr_banks','kind'=>'sovereign_bond','principal_eur_minor'=>100,'governing_law'=>'fr','treatment'=>'convert_certified','evidence_sha'=>$sha]]]);
+$first=E::certify($first,$day,'franc_rule',['effective_on'=>'2026-11-26','opening_base_franc_minor'=>1000000,'instrument_sha'=>$sha]);
+$first=E::certify($first,$day,'franc_funding',$order('2026-11-27',300000,0));
+$first=E::advance($first,'2026-11-27');
+$fp=F::project($first,['day'=>'2026-11-27','macro_baseline'=>['daily_real_gdp'=>1000000],'days'=>[
+    ['day'=>'2026-11-26','macro'=>['real_gdp'=>1200000]],['day'=>'2026-11-27','macro'=>['real_gdp'=>9999999]]]]);
+ckPF($fp['production_anchor_source']==='pinned_opening_real_gdp'&&$fp['days'][0]['sample_days']===0&&$fp['days'][0]['issued_franc_minor']===0,'first-day transition uses pinned baseline');
+ckPF($fp['latest']['issued_franc_minor']===200000&&$fp['latest']['funding']['unfunded_spending_franc_minor']===100000,'next day uses committed production, not current output');
+noPF(fn()=>F::project($first,['day'=>'2026-11-27','days'=>[['day'=>'2026-11-26','macro'=>['real_gdp'=>1200000]],['day'=>'2026-11-27','macro'=>['real_gdp'=>9999999]]]]));
