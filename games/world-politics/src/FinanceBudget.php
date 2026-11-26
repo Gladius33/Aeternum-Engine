@@ -10,17 +10,19 @@ final class FinanceBudget
 {
     public const VERSION='wp46-finance-v1';
     public const VERSION_2028='wp71-finance-2028-v1';
+    public const SERIES='wp81-finance-series-v1';
+    public const LAST_YEAR=2047;
     public const SOURCE='https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000019241054/';
     public static function catalog(int $year=2027):array
     {
-        if($year===2028){
+        if($year>=2028&&$year<=self::LAST_YEAR){
             // Hypothetical delta relative to the existing aggregate fiscal baseline,
             // NOT a 2028 defense appropriation or a replacement for the LPM.
-            $delta=intdiv(634000000000,366);
+            $delta=intdiv(634000000000,self::days($year));
             return [
-                'budget-2028-defense-reduce'=>['revenue_delta'=>0,'expense_delta'=>-$delta,'ministries'=>['defense'=>-$delta]],
-                'budget-2028-defense-maintain'=>['revenue_delta'=>0,'expense_delta'=>0,'ministries'=>['defense'=>0]],
-                'budget-2028-defense-increase'=>['revenue_delta'=>0,'expense_delta'=>$delta,'ministries'=>['defense'=>$delta]]
+                'budget-'.$year.'-defense-reduce'=>['revenue_delta'=>0,'expense_delta'=>-$delta,'ministries'=>['defense'=>-$delta]],
+                'budget-'.$year.'-defense-maintain'=>['revenue_delta'=>0,'expense_delta'=>0,'ministries'=>['defense'=>0]],
+                'budget-'.$year.'-defense-increase'=>['revenue_delta'=>0,'expense_delta'=>$delta,'ministries'=>['defense'=>$delta]]
             ];
         }
         if($year!==2027)throw new \DomainException('Unsupported finance year');
@@ -33,13 +35,19 @@ final class FinanceBudget
     {
         $p=[];
         foreach(self::catalog($year) as $id=>$a)$p[$id]=['revenue_delta'=>$a['revenue_delta'],'expense_delta'=>$a['expense_delta'],
-            'pressure_delta'=>['workers'=>0,'retired'=>0],'duration_days'=>$year===2028?366:365];
+            'pressure_delta'=>['workers'=>0,'retired'=>0],'duration_days'=>self::days($year)];
         return $p;
     }
-    public static function initial(int $year=2027):array
+    private static function days(int $year):int{return (int)(new \DateTimeImmutable($year.'-12-31'))->format('z')+1;}
+    public static function seriesPolicies():array
+    {
+        $p=[];for($y=2028;$y<=self::LAST_YEAR;$y++)$p+=self::policies($y);return $p;
+    }
+    public static function initial(int $year=2027,bool $series=false):array
     {
         self::catalog($year);
-        return ['version'=>$year===2028?self::VERSION_2028:self::VERSION,'classification'=>'fictional_scenario','source'=>self::SOURCE,'year'=>$year,'bills'=>[]];
+        if($series&&$year!==2028)throw new \DomainException('Invalid budget series origin');
+        return ['version'=>$series?self::SERIES:($year===2028?self::VERSION_2028:self::VERSION),'classification'=>'fictional_scenario','source'=>self::SOURCE,'year'=>$year,'bills'=>[],...($series?['last_year'=>self::LAST_YEAR]:[])];
     }
     public static function digest(string $policy,int $year=2027):string
     {
@@ -49,6 +57,7 @@ final class FinanceBudget
     public static function apply(array $s,array $cab,array $e):array
     {
         $d=$e['data'];$day=$e['day'];$id=$e['evidence_id'];$kind=$e['kind'];
+        if(($s['version']??null)===self::SERIES)return self::applySeries($s,$cab,$e);
         $year=$s['year'];$cutoff=sprintf('%04d-01-01',$year);
         if($s['version']!==self::initial($year)['version'])throw new \DomainException('Invalid finance year pin');
         if(!is_array($d))throw new \InvalidArgumentException('Invalid finance evidence');
@@ -56,7 +65,7 @@ final class FinanceBudget
             self::fields($d,['policy_id','prime_minister','finance_minister','government_project_certified']);
             FrenchCabinet::requirePrimeMinister($cab,$d['prime_minister']);
             if(!isset(self::catalog($year)[$d['policy_id']])||$d['finance_minister']===null||$d['finance_minister']!==$cab['ministers']['economy']
-                ||$d['government_project_certified']!==true||$day>=$cutoff||($year===2028&&$day<'2027-01-01')||count($s['bills'])>=20)
+                ||$d['government_project_certified']!==true||$day>=$cutoff||($year>=2028&&$day<sprintf('%04d-01-01',$year-1))||count($s['bills'])>=20)
                 throw new \DomainException('Invalid finance initiative');
             foreach($s['bills'] as $b)if(!in_array($b['status'],['rejected'],true))throw new \DomainException('One active annual finance bill');
             $b=['id'=>$id,'policy_id'=>$d['policy_id'],'text_sha'=>self::digest($d['policy_id'],$year),'filed_on'=>$day,
@@ -119,6 +128,37 @@ final class FinanceBudget
         }
         $s['bills'][$b['id']]=$b;return [$s,['budget'=>$b,'policy_authorized'=>false]];
     }
+    private static function policyYear(string $policy):int
+    {
+        if(!preg_match('/^budget-(20[0-9]{2})-defense-(reduce|maintain|increase)$/D',$policy,$m))throw new \DomainException('Unknown annual policy');
+        $y=(int)$m[1];if($y<2028||$y>self::LAST_YEAR)throw new \DomainException('Budget outside campaign horizon');return $y;
+    }
+    private static function applySeries(array $s,array $cab,array $e):array
+    {
+        if($s['year']!==2028||$s['last_year']!==self::LAST_YEAR)throw new \DomainException('Invalid series pin');
+        $d=$e['data'];if(!is_array($d))throw new \InvalidArgumentException('Invalid finance evidence');
+        $file=$e['kind']==='finance_file';
+        if($file&&isset($s['bills'][$e['evidence_id']]))throw new \DomainException('Duplicate budget identifier');
+        $policy=$file?($d['policy_id']??null):($s['bills'][$d['bill_id']??'']['policy_id']??null);
+        if(!is_string($policy))throw new \DomainException('Unknown budget series bill');
+        $y=self::policyYear($policy);
+        $single=self::initial($y);$single['bills']=array_filter($s['bills'],fn($b)=>self::policyYear($b['policy_id'])===$y);
+        [$next,$result]=self::apply($single,$cab,$e);
+        foreach($next['bills'] as $id=>$bill)$s['bills'][$id]=$bill;
+        return [$s,$result];
+    }
+    public static function filingYear(array $s,string $day):int
+    {return $s['version']===self::SERIES?min(self::LAST_YEAR,max(2028,(int)substr($day,0,4)+1)):$s['year'];}
+    public static function continuity(array $s,array $dom,array $bills):array
+    {
+        if($s['version']!==self::SERIES)return [];
+        $out=[];
+        for($y=2028;$y<=min(self::LAST_YEAR,(int)substr($dom['day'],0,4));$y++){
+            $matching=array_filter($bills,fn($b)=>self::policyYear($b['policy_id'])===$y&&$b['status']==='published'&&$b['implementation_authorized']);
+            $out[$y]=['year'=>$y,'published_and_authorized'=>count($matching)===1,'continuity_review_required'=>count($matching)!==1];
+        }
+        return $out;
+    }
     public static function proof(array $s,string $policy,string $sha,string $day):?array
     {
         foreach($s['bills'] as $b)if($b['status']==='published'&&$b['policy_id']===$policy&&$b['text_sha']===$sha&&$b['effective_on']===$day)return $b;
@@ -147,10 +187,11 @@ final class FinanceBudget
             $b['seventy_day_review_due']=$dom['day']>=$b['parliament_deadline']&&in_array($b['status'],['assembly_pending','assembly_decided','senate_pending','senate_decided'],true);
             $b['implementation_authorized']=($dom['policies'][$b['policy_id']]['authorized_on']??null)!==null;
         }unset($b);
+        $continuity=self::continuity($s,$dom,$bills);
         $reference=['classification'=>'fictional_treasury_projection','currency'=>'EUR','unit'=>'minor','annual_interest_bps'=>$rate,
             'opening_debt'=>$openingDebt,'cash'=>$cash,'debt'=>$debt,'interest_total'=>$interest,'borrowing_total'=>$issued,
             'primary_balance_total'=>$primary,'days'=>$rows,'bills'=>$bills,
-            'continuity_review_required'=>$dom['day']>=sprintf('%04d-01-01',$s['year'])&&!array_filter($bills,fn($b)=>$b['status']==='published'&&$b['implementation_authorized'])];
+            'continuity_review_required'=>$s['version']===self::SERIES?($continuity[(int)substr($dom['day'],0,4)]['continuity_review_required']??false):($dom['day']>=sprintf('%04d-01-01',$s['year'])&&!array_filter($bills,fn($b)=>$b['status']==='published'&&$b['implementation_authorized'])),...($s['version']===self::SERIES?['annual_continuity'=>array_values($continuity),'filing_year'=>self::filingYear($s,$dom['day'])]:[])];
         $native=FrancCommittedBudget::project($dom);
         return $native===null?$reference:[...$native,'cash'=>$native['latest']['closing_state']['accounts']['treasury_frf_minor'],'debt'=>$native['consolidated_gross_debt_frf_minor']??$native['latest']['valuation']['closing_gross_debt_frf_minor'],'unit'=>'minor','bills'=>$bills,'continuity_review_required'=>$reference['continuity_review_required'],'reference_eur_only'=>$reference];
     }

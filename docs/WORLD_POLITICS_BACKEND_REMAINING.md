@@ -816,3 +816,8 @@ WP75 complément livré pendant WP80 : sélection facultative au provisioning ca
 
 
 WP71 qualification complémentaire durant WP80 : test MariaDB isolé `wp71-finance-2028-db.php`, dépôt et certification d'une loi de finances 2028 via LocalLegislationClerk et magasin institutionnel, rapprochement quotidien DailyLegalActivation, injection d'erreur sur reçu (annulation simultanée de preuve et état), effet nul avant le 1er janvier, dépense exacte à l'entrée en vigueur et rejeu idempotent. La durée de 366 jours et l'arrêt au 1er janvier 2029 sont ensuite vérifiés en domaine sur le même état restauré. Il s'agit d'une fixture ciblée, pas d'une campagne canonique complète de 2027–2029; les autres exercices et le circuit législatif autonome restent ouverts.
+
+
+## WP81 — série budgétaire 2028–2047
+
+Nouveaux mondes canoniques : catalogue immuable de 60 variantes budgétaires (3 par exercice), procédures distinctes, dates d'effet et années bissextiles, archivage des lois par identifiant sans réutilisation, interdiction de déposer une loi hors de son année de préparation et d'avoir deux textes actifs pour le même exercice. Le rapport distingue les exercices sans loi effectivement autorisée. Les anciennes sauvegardes restent sur leur modèle mono-exercice et les cohortes de score diffèrent par digest de configuration. Les variantes restent des écarts hypothétiques de défense et non des PLF réels; pas encore de budget rectificatif ni de vote IA autonome.

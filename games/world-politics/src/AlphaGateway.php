@@ -276,7 +276,7 @@ final class AlphaGateway
                 $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);$c=$q->fetch(\PDO::FETCH_ASSOC);
                 if($c===false||$c['pending_day']!==null||$c['committed_day']!==$r['state']['day']||$c['committed_day']!==$dr['state']['day'])throw new AlphaHttpError(409,'world_advancing');
                 $f=$r['state']['legislation']['finance'];
-                $response=self::ok(200,['day'=>$r['state']['day'],'finance'=>$f,'catalog'=>FinanceBudget::catalog($f['year']),'treasury'=>FinanceBudget::project($f,$dr['state'])]);
+                $response=self::ok(200,['day'=>$r['state']['day'],'finance'=>$f,'catalog'=>FinanceBudget::catalog(FinanceBudget::filingYear($f,$dr['state']['day'])),...($f['version']===FinanceBudget::SERIES?['filing_year'=>FinanceBudget::filingYear($f,$dr['state']['day']),'last_supported_year'=>FinanceBudget::LAST_YEAR]:[]),'treasury'=>FinanceBudget::project($f,$dr['state'])]);
                 $response['headers']['ETag']='"'.hash('sha256',$r['etag'].'/'.$dr['etag']).'"';return $response;
             }
             if($method==='GET'&&$suffix==='/countries/FR/executive'&&in_array($scenario->id,[AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)){

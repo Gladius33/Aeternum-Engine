@@ -198,6 +198,8 @@ jobs:
         run: php tests/wp70-defense-planning.php
       - name: WP71 post-investiture finance year and certified incremental defense budget
         run: php tests/wp71-finance-2028.php
+      - name: WP81 annual finance series and cross-year isolation
+        run: php tests/wp81-finance-series.php
       - name: WP72 civilian service continuity and coherent rolling reports
         run: php tests/wp72-civil-continuity.php
       - name: WP74 household national accounts and arithmetic sensitivity

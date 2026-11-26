@@ -837,6 +837,7 @@ $civil72=req30('GET',$r27.'/countries/FR/civil-continuity',null,$t27);
 ck30($civil72['status']===200&&$civil72['body']['window']===null&&!$civil72['body']['automatic_security_action'],'WP72 no fabricated opening continuity history');
 $budget71=req30('GET',$r27.'/countries/FR/finance',null,$t27);
 ck30($budget71['status']===200&&$budget71['body']['finance']['year']===2028&&count($budget71['body']['catalog'])===3,'WP71 canonical annual budget cycle after investiture');
+ck30($budget71['body']['finance']['version']==='wp81-finance-series-v1'&&$budget71['body']['last_supported_year']===2047&&$budget71['body']['filing_year']===2028,'WP81 multiannual budget calendar pinned');
 $def70=req30('GET',$r27.'/countries/FR/defense-planning',null,$t27);
 ck30($def70['status']===200&&$def70['body']['reference']['observations']['mission_defense_plf_2027_minor']===6340000000000&&$def70['body']['actual_2027_appropriation_minor']===null&&$def70['body']['national_service']['reinstatement_requires_law'],'WP70 pinned strategic defense planning reference');
 $fin69=req30('GET',$r27.'/countries/FR/international-finance',null,$t27);
