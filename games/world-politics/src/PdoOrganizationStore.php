@@ -88,7 +88,7 @@ final class PdoOrganizationStore
         string $world,string $operation,array $payload,
         string $idempotencyKey,string $ifMatch
     ):array {
-        if (!in_array($operation,['apply','vote','formalize','withdraw','clock','ai_vote'],true)) {
+        if (!in_array($operation,['apply','vote','formalize','withdraw','clock','ai_vote','eu_intent','eu_evidence'],true)) {
             throw new \InvalidArgumentException('Unrecognized organization operation');
         }
         self::identifier($world);
@@ -155,7 +155,7 @@ final class PdoOrganizationStore
             $after=$sim->hash();
             $revision=(int)$row['revision']+1;
             $response=[
-                'status'=>$operation==='apply'||$operation==='withdraw'?202:200,
+                'status'=>in_array($operation,['apply','withdraw','eu_intent'],true)?202:200,
                 'result'=>$result,'etag'=>'"'.$after.'"','revision'=>$revision
             ];
             $update=$this->pdo->prepare(
@@ -193,8 +193,17 @@ final class PdoOrganizationStore
             'formalize'=>['organization','application_id'],
             'clock'=>['target_day'],
             'ai_vote'=>['voter','policy'],
+            'eu_intent'=>[], 'eu_evidence'=>['kind','data'],
         };
         self::fields($payload,$fields);
+        if($operation==='eu_intent'){
+            if(!$this->principal->allows($world,'state_fr','organizations.eu_intent'))throw new \DomainException('Actor not authorized for this organization action');
+            return;
+        }
+        if($operation==='eu_evidence'){
+            if(!$this->principal->allows($world,$this->principal->actorId(),'organizations.eu_certify'))throw new \DomainException('Trusted treaty service required');
+            if(!is_string($payload['kind'])||!is_array($payload['data']))throw new \InvalidArgumentException('Invalid EU evidence');return;
+        }
         if ($operation==='ai_vote') {
             if (!is_string($payload['voter']) || !is_string($payload['policy'])) {
                 throw new \InvalidArgumentException('Invalid AI voting input');
@@ -254,6 +263,8 @@ final class PdoOrganizationStore
                 self::str($payload['organization']),self::str($payload['actor']),$commandId),
             'clock'=>$sim->advanceTo($this->principal,
                 self::str($payload['target_day']),$commandId),
+            'eu_intent'=>$sim->euIntent($this->principal,$commandId),
+            'eu_evidence'=>$sim->euEvidence($this->principal,$payload['kind'],$payload['data'],$commandId),
             'ai_vote'=>[
                 'voter'=>self::str($payload['voter']),
                 'decisions'=>(new AutonomousOrganizationPlanner())->execute(

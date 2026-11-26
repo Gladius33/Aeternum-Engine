@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/DiplomaticSimulation.php';
+require_once __DIR__.'/EuropeanWithdrawal.php';
 
 /**
  * WP09: charter-configured international organization memberships.
@@ -101,7 +102,7 @@ final class OrganizationSimulation
     ):self {
         self::keys($snapshot,[
             'world_id','day','actors_sha','version','charters_sha',
-            'organizations','applications','withdrawals','events','commands'
+            'organizations','applications','withdrawals','events','commands',...(array_key_exists('eu_withdrawal',$snapshot)?['eu_withdrawal']:[])
         ]);
         if (!is_string($snapshot['world_id']) || !is_string($snapshot['day'])) {
             throw new \InvalidArgumentException('Invalid world identity in snapshot');
@@ -220,10 +221,37 @@ final class OrganizationSimulation
             self::identifier($event['id']);
             self::day($event['day']);
         }
+        if(isset($snapshot['eu_withdrawal'])){
+            $eu=EuropeanWithdrawal::restore($snapshot['eu_withdrawal']);
+            if($eu['day']!==$snapshot['day'])throw new \DomainException('EU clock mismatch');
+        }elseif(array_key_exists('eu_withdrawal',$snapshot))throw new \DomainException('Invalid EU state');
         $self->state=$snapshot;
         return $self;
     }
 
+    public function enableEuropeanWithdrawal():void
+    {
+        if(isset($this->state['eu_withdrawal'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('EU model must be pinned at bootstrap');
+        $this->state['eu_withdrawal']=EuropeanWithdrawal::initial($this->state['day']);
+    }
+    public function euIntent(DiplomaticPrincipal $principal,string $commandId):array
+    {
+        $this->authorize($principal,'state_fr','organizations.eu_intent');
+        if($seen=$this->previous($commandId,'eu_intent','fr'))return $seen;
+        if(!isset($this->state['eu_withdrawal']))throw new \DomainException('No EU model');
+        $this->state['eu_withdrawal']=EuropeanWithdrawal::request($this->state['eu_withdrawal'],$this->state['day']);
+        return $this->record($commandId,'eu_intent','fr',['eu_withdrawal'=>$this->state['eu_withdrawal'],'binding_effect'=>false]);
+    }
+    /** Trusted scenario evidence only; never exposed on player HTTP. */
+    public function euEvidence(DiplomaticPrincipal $principal,string $kind,array $data,string $commandId):array
+    {
+        $this->authorizeService($principal,'organizations.eu_certify');
+        $payload=self::encode([$kind,$data]);
+        if($seen=$this->previous($commandId,'eu_evidence',$payload))return $seen;
+        if(!isset($this->state['eu_withdrawal']))throw new \DomainException('No EU model');
+        $this->state['eu_withdrawal']=EuropeanWithdrawal::certify($this->state['eu_withdrawal'],$this->state['day'],$kind,$data);
+        return $this->record($commandId,'eu_evidence',$payload,['eu_withdrawal'=>$this->state['eu_withdrawal']]);
+    }
     /** Request an application for membership; never grants membership now. */
     public function apply(
         DiplomaticPrincipal $principal,
@@ -367,6 +395,7 @@ final class OrganizationSimulation
         if ($day<$this->state['day']) throw new \InvalidArgumentException('Time reversal');
         if ($seen=$this->previous($commandId,'clock',$day)) return $seen;
         $this->state['day']=$day;
+        if(isset($this->state['eu_withdrawal']))$this->state['eu_withdrawal']=EuropeanWithdrawal::advance($this->state['eu_withdrawal'],$day);
         $processed=[];
         foreach ($this->state['withdrawals'] as $id=>&$withdrawal) {
             if ($withdrawal['status']==='pending' && $withdrawal['effective_on']<=$day) {

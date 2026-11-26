@@ -194,3 +194,15 @@ ledger delta was 200000 minor units. New worlds pin the corrected 2000 EUR
 text/hash and expose it in the API. Legacy text hashes and replay are unchanged;
 new automatic reconciliation does not activate old ambiguous ordinary texts.
 Existing previously authorized legacy laws remain untouched. CI pending.
+
+### WP54r European withdrawal procedural pilot
+
+Text/unit CI 45805338553 green. New corporation/civil-crisis worlds pin a French
+EU withdrawal lifecycle separately from generic organisations. Player intent
+is not a notification. Trusted internal evidence gates notification, certified
+agreement (Parliament consent, Council qualified majority, French agreement),
+unanimous extension, or unequivocal unconditional revocation. Two calendar years
+from notification unless an agreement or extension changes the effective date.
+Article 50 TEU: https://eur-lex.europa.eu/eli/treaty/teu_2016/art_50/oj .
+No automatic euro conversion or tariff, no complete domestic constitutional
+procedure or autonomous negotiation; evidence issuer must be trusted. CI pending.

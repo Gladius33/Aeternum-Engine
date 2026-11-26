@@ -40,7 +40,7 @@ final class PdoOrganizationApi
                     return self::ok(200,[
                         'world_id'=>$world,
                         'day'=>$state['state']['day'],
-                        'organizations'=>$state['state']['organizations']
+                        'organizations'=>$state['state']['organizations'],... (isset($state['state']['eu_withdrawal'])?['eu_withdrawal'=>$state['state']['eu_withdrawal']]:[])
                     ],$state['etag']);
                 }
                 if ($organization!=='' && $operationPath==='') {
@@ -69,6 +69,7 @@ final class PdoOrganizationApi
                 $organization!=='' && $operationPath==='withdrawals'=>'withdraw',
                 $organization==='' && $operationPath==='clock'=>'clock',
                 $organization==='ai' && $operationPath==='decisions'=>'ai_vote',
+                $organization==='eu' && $operationPath==='withdrawals'=>'eu_intent',
                 default=>null,
             };
             if ($operation===null) return self::problem(405,'method_not_allowed');
@@ -79,7 +80,7 @@ final class PdoOrganizationApi
             $etag=$headersNormalized['if-match']??'';
             if ($key==='' || $etag==='') return self::problem(428,'precondition_required');
             $payload=$body;
-            if ($operation!=='clock' && $operation!=='ai_vote') {
+            if ($operation!=='clock' && $operation!=='ai_vote' && $operation!=='eu_intent') {
                 if (array_key_exists('organization',$body)) {
                     return self::problem(422,'organization_is_path_scoped');
                 }

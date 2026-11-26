@@ -203,6 +203,21 @@ paths:
         '200': { description: Coherent fictional state }
         '404': { description: Inaccessible world or unsupported scenario }
         '409': { description: World advancing }
+  /worlds/{world}/organizations/eu/withdrawals:
+    post:
+      operationId: requestEuropeanWithdrawalIntent
+      summary: Record a fictional French withdrawal intent, not an Article 50 notification
+      parameters:
+        - $ref: '#/components/parameters/world'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        '202': { description: Intent recorded; membership unchanged }
+        '403': { description: Not authorized }
+        '409': { description: Invalid state or world advancing }
   /worlds/{world}/countries/FR/party-responses:
     get:
       operationId: readFictionalPartyResponses

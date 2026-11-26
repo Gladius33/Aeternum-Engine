@@ -525,3 +525,9 @@ Previous daily diplomatic-economic bridge green. New domestic clock matches
 certified final publications to pending policies and records legal proofs
 atomically. Does not bypass clerk, constitutional review or text scope.
 Full programmes and trade legal authority remain open. WP55 deferred.
+
+### WP54r European procedure pilot
+
+Previous text/unit CI green. Article 50 state machine and player intent route
+added; trusted evidence required for notification and negotiations. Trade regime,
+monetary transition, legal proof issuance and EU economic spillovers remain open.

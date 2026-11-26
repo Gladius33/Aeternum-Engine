@@ -620,6 +620,10 @@ if($g54['status']!==201)throw new RuntimeException('WP54 creation HTTP '.$g54['s
 $r54='/worlds/'.$g54['body']['world_id'];$p54=$r54.'/countries/FR/civil-mobilisation';
 $v54=req30('GET',$p54,null,$tc48);
 ck30($v54['status']===200&&$v54['body']['civil_mobilisation']['participation_estimate']===0,'WP54 initial attendance');
+$eu54=req30('GET',$r54.'/organizations',null,$tc48);
+ck30($eu54['status']===200&&$eu54['body']['eu_withdrawal']['membership']===true,'WP54r initial EU membership');
+$eu54=req30('POST',$r54.'/organizations/eu/withdrawals',[],$tc48,['If-Match'=>$eu54['etag'],'Idempotency-Key'=>'eu-intent-test-001']);
+ck30($eu54['status']===202&&$eu54['body']['eu_withdrawal']['status']==='intent_pending'&&$eu54['body']['eu_withdrawal']['deadline']===null,'WP54r intention not notification');
 $dip54=req30('GET',$r54.'/diplomacy',null,$tc48);
 ck30($dip54['status']===200&&$dip54['body']['daily_ai']==='wp54r-diplomatic-replies-v1','WP54r pinned diplomatic AI');
 $san54=req30('POST',$r54.'/diplomacy/proposals',['from'=>'state_fr','to'=>'state_de','action'=>'sanctions_proposal'],$tc48,['If-Match'=>$dip54['etag'],'Idempotency-Key'=>'sanctions-test-001']);
@@ -645,6 +649,8 @@ ck30($st54->decide($ev54['world_id'],'FR','legislation_evidence',['evidence_id'=
 $c54=req30('GET',$r54.'/clock',null,$tc48);
 $c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-26'],$tc48,['If-Match'=>$c54['etag'],'Idempotency-Key'=>'civil-tick-0001']);
 ck30($c54['status']===200&&$c54['body']['coherent'],'WP54 coherent day');
+$eu54=req30('GET',$r54.'/organizations',null,$tc48);
+ck30($eu54['status']===200&&$eu54['body']['eu_withdrawal']['status']==='intent_pending'&&$eu54['body']['eu_withdrawal']['membership'],'WP54r no withdrawal from intent alone');
 $dom54=req30('GET',$r54.'/domestic',null,$tc48);
 $policy54=$dom54['body']['policies']['administration-report'];
 ck30($policy54['authorized_on']==='2026-11-25'&&in_array('administration-report',$dom54['body']['days'][0]['active_policies'],true),'WP54r automatic timely activation');
