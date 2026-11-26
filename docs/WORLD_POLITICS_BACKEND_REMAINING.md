@@ -779,3 +779,8 @@ Pack Insee base 2020 : six observations annuelles 2020–2025 (RDB, salaires net
 ## WP75 tranche A — personnalités historiques
 
 Douze candidatures de la présidentielle 2022, résultats proclamés et archive officielle des professions de foi. Rapprochement inscrits/votants/exprimés/voix par candidat, fiches compatibles PoliticalRoster avec source datée et avatar générique; programme non encore dépouillé. Épinglage dans les nouveaux mondes et GET authentifié `/countries/FR/historical-candidates`. Aucun résultat 2022 n'est transformé en intention de vote 2027; ni candidatures futures ni sélection joueur ni psychologie inférée. Le catalogue des personnalités contemporaines et programmes sourcés reste à enrichir. WP75 non clos.
+
+
+## WP76 tranche A — indicateur expérimental de pouvoir d'achat
+
+GET `/countries/FR/purchasing-power-proxy`, états persistés et cohérents sous verrou d'horloge. Pondérations de RDB, salaires nets et prestations 2025 issues de WP74; salaires simulés, chômage, population, prix et rétroaction de prestations du moteur. Deux hypothèses sur le résidu de revenu (constant nominal ou indexé sur les prix); population proxy des UC à composition fixe. Index initial conventionnel 100, historique uniquement depuis l'investiture, moyenne des 365 dernières journées validées; aucun score, aucun RDB réel par UC certifié, aucun effet budgétaire. Les impôts directs des ménages, patrimoine, transferts précis, participation et composition des ménages ne sont pas modélisés dans cette lecture. Registre EUR de référence, pas un indice nominal FRF. Tests de sensibilité, fenêtre, intégrité et HTTP. Pas de calibration comportementale empirique ni de qualification pour classement. WP76 reste ouvert, et WP77 doit refuser ce proxy pour un classement final.

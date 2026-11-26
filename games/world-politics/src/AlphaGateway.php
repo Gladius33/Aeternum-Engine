@@ -19,6 +19,7 @@ require_once __DIR__.'/StrategicDefensePlanning.php';
 require_once __DIR__.'/CivilContinuityReport.php';
 require_once __DIR__.'/HouseholdIncomeReference.php';
 require_once __DIR__.'/HistoricalCandidateReference.php';
+require_once __DIR__.'/HouseholdPurchasingPowerProxy.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
 final class AlphaGateway
@@ -320,6 +321,18 @@ final class AlphaGateway
                 $dp=(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal))->read($world);
                 if(!isset($dp['state']['candidate_reference']))throw new AlphaHttpError(404,'not_found');
                 $report=HistoricalCandidateReference::report($dp['state']['candidate_reference'])+['world_id'=>$world];$response=self::ok(200,$report);$response['headers']['ETag']='"'.hash('sha256',json_encode($report,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)).'"';return $response;
+            }
+            if($method==='GET'&&$suffix==='/countries/FR/purchasing-power-proxy'&&$scenario->id===AlphaScenario::INVESTITURE){
+                $db=$this->db();$db->beginTransaction();
+                try{
+                    $q=$db->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=? FOR UPDATE');$q->execute([$world]);$clock=$q->fetch(\PDO::FETCH_ASSOC);
+                    if($clock===false||$clock['pending_day']!==null)throw new AlphaHttpError(409,'world_advancing');
+                    $dr=(new PdoDomesticPolicyStore($db,new AlphaDomesticPrincipal($session,$world,$db)))->read($world);
+                    $dp=(new PdoDiplomaticStore($db,$scenario->actors,$principal))->read($world);
+                    if(!isset($dp['state']['household_reference'],$dr['state']['population_model']))throw new AlphaHttpError(404,'not_found');
+                    if($dr['state']['day']!==$clock['committed_day']||$dp['state']['day']!==$clock['committed_day'])throw new AlphaHttpError(409,'world_advancing');
+                    $report=HouseholdPurchasingPowerProxy::report($dr,$dp);$response=self::ok(200,$report);$response['headers']['ETag']='"'.hash('sha256',json_encode($report,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)).'"';$db->commit();return $response;
+                }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
             }
             if($method==='GET'&&$suffix==='/countries/FR/household-reference'&&$scenario->id===AlphaScenario::INVESTITURE){
                 $dp=(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal))->read($world);

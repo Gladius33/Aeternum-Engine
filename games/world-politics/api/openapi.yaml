@@ -31,6 +31,16 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /worlds/{world}/countries/FR/purchasing-power-proxy:
+    get:
+      operationId: readPurchasingPowerProxy
+      summary: Experimental household-income proxy on committed days, not actual RDB per UC or score
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Normalized proxy and residual-income sensitivity, no ranking }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/historical-candidates:
     get:
       operationId: readHistoricalCandidates

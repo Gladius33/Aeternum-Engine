@@ -204,6 +204,8 @@ jobs:
         run: php tests/wp74-household-reference.php
       - name: WP75 historical presidential identities and election reconciliation
         run: php tests/wp75-historical-candidates.php
+      - name: WP76 experimental household-income channels and rolling window
+        run: php tests/wp76-purchasing-power-proxy.php
       - name: WP33 election, seat allocation and coalition regression
         run: php tests/wp33-electoral.php
       - name: WP32 comparative accountability regression

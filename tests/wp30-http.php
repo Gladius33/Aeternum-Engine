@@ -822,6 +822,8 @@ $stop27=req30('POST',$r27.'/domestic/ukraine-aid',['action'=>'ukraine-aid-stop']
 ck30($stop27['status']===200,'stop discretionary aid on investiture');
 $people75=req30('GET',$r27.'/countries/FR/historical-candidates',null,$t27);
 ck30($people75['status']===200&&count($people75['body']['roster_compatible_profiles'])===12&&!$people75['body']['selection_enabled'],'WP75 historical identities without future candidacy certification');
+$proxy76=req30('GET',$r27.'/countries/FR/purchasing-power-proxy',null,$t27);
+ck30($proxy76['status']===200&&$proxy76['body']['window_days']===0&&$proxy76['body']['rolling_means_bps']===null&&!$proxy76['body']['score_eligible'],'WP76 no fictitious opening score');
 $house74=req30('GET',$r27.'/countries/FR/household-reference',null,$t27);
 ck30($house74['status']===200&&count($house74['body']['reference']['annual'])===6&&$house74['body']['reference']['annual'][5]['real_rdb_per_uc_growth_bps']===-70&&!$house74['body']['score_eligible'],'WP74 pinned historical household purchasing power reference');
 $civil72=req30('GET',$r27.'/countries/FR/civil-continuity',null,$t27);
@@ -844,6 +846,8 @@ $c27=req30('POST',$r27.'/clock/advances',['target_day'=>'2027-05-15'],$t27,['If-
 ck30($c27['status']===200&&$c27['body']['coherent'],'canonical full world first day coherent');
 $civil72=req30('GET',$r27.'/countries/FR/civil-continuity',null,$t27);
 ck30($civil72['status']===200&&$civil72['body']['window']['days']===1&&$civil72['body']['window']['last_day']==='2027-05-15'&&$civil72['body']['additional_budget_delta_minor']===null,'WP72 committed service coverage after coordinated clock');
+$proxy76=req30('GET',$r27.'/countries/FR/purchasing-power-proxy',null,$t27);
+ck30($proxy76['status']===200&&$proxy76['body']['window_days']===1&&$proxy76['body']['latest']['day']==='2027-05-15'&&$proxy76['body']['actual_real_rdb_per_uc_index_bps']===null,'WP76 committed income proxy after coordinated clock');
 $d27=req30('GET',$r27.'/domestic',null,$t27);
 ck30($d27['status']===200&&$d27['body']['debt_model']['first_maturity_month']==='2027-06'&&$d27['body']['debt_model']['source_pack']['as_of']==='2026-11-25'&&$d27['body']['population_model']['opening_anchor_vintage']==='2026-11-25','historical opening data not represented as future observation');
 $aid27=req30('GET',$r27.'/countries/FR/ukraine-aid',null,$t27);
