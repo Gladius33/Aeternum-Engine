@@ -7,12 +7,12 @@ use Aeternum\WorldPolitics\{EuropeanWithdrawal as E,EuropeanSpillovers as S,Euro
 function ckCB(bool $v,string $m):void{if(!$v)throw new RuntimeException($m);echo "PASS committed budget: $m\n";}
 function noCB(callable $f):void{try{$f();}catch(DomainException|InvalidArgumentException $e){return;}throw new RuntimeException('Invalid committed budget accepted');}
 final class CBPrincipal implements DomesticPolicyAuthority{
-    public string $day='2026-11-29';
+    public string $day='2026-11-25';
     public function allows(string $world,string $ability):bool{return $world==='world-test';}
     public function enactedInstrument(string $world,string $policy):?string{return null;}
     public function clockDay(string $world):string{return $this->day;}
 }
-$d='2026-11-29';$start='2026-12-01';$sha=str_repeat('a',64);
+$d='2026-11-25';$start='2026-12-01';$sha=str_repeat('a',64);
 $e=E::request(E::initial($d,true,true,true,true,true,true,true,true,true,false,false,true),$d);
 $terms=['effective_on'=>$start,'instrument_sha'=>$sha,'reserve_purchase_authorized'=>true,'commit_daily'=>true];
 noCB(fn()=>E::certify($e,$d,'franc_native_budget',$terms));
@@ -38,6 +38,7 @@ $sim=$make();$a=new CBPrincipal;
 $org=fn($s)=>['state'=>['world_id'=>'world-test','day'=>$s['day'],'eu_withdrawal'=>$s],'etag'=>'"'.$sha.'"'];
 $dom=fn()=>['state'=>$sim->snapshot(),'etag'=>'"'.$sim->hash().'"'];
 $run=function(string $day)use(&$e,$a,$sim,$org,$dom){$e=E::advance($e,$day);$a->day=$day;$obs=T::observe($org($e),'world-test',$day,T::VERSION_V4,$dom());return $sim->advance($a,$day,null,$obs);};
+for($i=26;$i<=29;$i++)$run('2026-11-'.$i);
 $before=$run('2026-11-30');ckCB(!isset($before['frf_committed_budget']),'no premature committed budget');
 $first=$run($start);$n=$first['frf_committed_budget'];
 ckCB($n['effective_from']===$start&&$n['closing_state']['accounts']['official_eur_reserves_minor']>=50&&$n['financing']['market_issued_at_parity_eur_minor']<=$n['financing']['market_capacity_at_parity_eur_minor'],'native daily settlement and capped financing');
@@ -50,8 +51,8 @@ $sim->crisisDecision($a,'moratorium');$third=$run('2026-12-03');
 ckCB($third['frf_committed_budget']['paid_principal']===['FRF'=>0,'EUR'=>0]&&$third['frf_committed_budget']['financing']['market_capacity_at_parity_eur_minor']===0,'moratorium suspends native financing and settlement');
 $sim->crisisDecision($a,'resume');$fourth=$run('2026-12-04');
 $snapshot=$sim->snapshot();$copy=$make();$copy->restore($snapshot,$sim->hash());ckCB($copy->snapshot()===$snapshot,'full daily state replay');
-$bad=$snapshot;$bad['days'][1]['frf_committed_budget']['closing_state']['accounts']['treasury_frf_minor']++;$hash=hash('sha256',json_encode($bad,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));noCB(fn()=>$make()->restore($bad,$hash));
-$bad=$snapshot;unset($bad['days'][2]['eu_trade_observation']['frf_committed_observation']);$hash=hash('sha256',json_encode($bad,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));noCB(fn()=>$make()->restore($bad,$hash));
+$bad=$snapshot;$bad['days'][5]['frf_committed_budget']['closing_state']['accounts']['treasury_frf_minor']++;$hash=hash('sha256',json_encode($bad,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));noCB(fn()=>$make()->restore($bad,$hash));
+$bad=$snapshot;unset($bad['days'][6]['eu_trade_observation']['frf_committed_observation']);$hash=hash('sha256',json_encode($bad,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));noCB(fn()=>$make()->restore($bad,$hash));
 $report=C::project($snapshot);$fin=F::project(F::initial(),$snapshot);$debt=L::project($snapshot);
 ckCB($report['latest']['day']==='2026-12-04'&&$fin['currency']==='FRF'&&$debt['currency']==='FRF'&&$fin['debt']===$debt['debt']&&$fin['reference_eur_only']['currency']==='EUR','finance and debt expose committed FRF with reference explicitly separated');
 $p=S::project($org($e),$dom());ckCB($p['franc_native_budget']===$report&&$p['franc_exchange_reserves_reference_only'],'spillover reads committed native state');
