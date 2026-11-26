@@ -9,6 +9,8 @@ require_once __DIR__.'/ElectoralCycle.php';
 require_once __DIR__.'/PoliticalNegotiator.php';
 require_once __DIR__.'/ConstitutionalRevision.php';
 require_once __DIR__.'/BicameralLegislation.php';
+require_once __DIR__.'/FrenchRecurringElections.php';
+require_once __DIR__.'/RevisionAutonomy.php';
 
 /**
  * WP05: small deterministic institution/event aggregate. Illustrates exactly
@@ -54,6 +56,8 @@ final class InstitutionalSimulation
         if (array_key_exists('political_ai',$state)) $expected[]='political_ai';
         if (array_key_exists('revision',$state)) $expected[]='revision';
         if (array_key_exists('legislation',$state)) $expected[]='legislation';
+        if(array_key_exists('recurring_elections',$state))$expected[]='recurring_elections';
+        if(array_key_exists('revision_requests',$state))$expected[]='revision_requests';
         $keys=array_keys($state);sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
         $self=new self($state['world_id'],$state['country_code'],$state['day']);
@@ -111,11 +115,21 @@ final class InstitutionalSimulation
             if($l['world_id']!==$state['world_id']||$l['day']!==$state['day'])throw new \DomainException('Legislation scope or day mismatch');
             if(isset($l['responsibility']['lifecycle'])){
                 $digest=$l['responsibility']['lifecycle']['election_digest'];
+                $installed=$state['electoral']??null;
+                if(isset($state['recurring_elections'])){
+                    $rec=$state['recurring_elections'];
+                    if($state['country_code']!=='FR'||$rec['version']!==FrenchRecurringElections::VERSION||!isset($l['calendar_replay'])||!is_int($rec['completed'])||$rec['completed']<0)throw new \DomainException('Invalid recurring election state');
+                    $history=array_values(array_filter($l['history'],fn($h)=>$h['kind']==='election_install'));
+                    if(count($history)!==$rec['completed'])throw new \DomainException('Recurring election archive mismatch');
+                    $installed=$history===[]?null:$history[array_key_last($history)]['election'];
+                    if($installed!==null&&$state['last_election']!==($installed['config']['runoff_day']??$installed['config']['poll_day']))throw new \DomainException('Last election mismatch');
+                }
                 if(!isset($state['electoral'])||$state['electoral']['seats_total']!==577||
-                    ($digest!==null&&($state['electoral']['status']!=='results'||$digest!==ParliamentaryLifecycle::digest($state['electoral']))))
+                    ($digest!==null&&($installed===null||$installed['status']!=='results'||$digest!==ParliamentaryLifecycle::digest($installed))))
                     throw new \DomainException('Assembly election source mismatch');
             }
         }
+        if(isset($state['revision_requests']))RevisionAutonomy::validate($state);
         $self->state=$state;
         return $self;
     }
@@ -181,6 +195,13 @@ final class InstitutionalSimulation
             if ($lastElection!==null && $day<self::plusYears($lastElection,1)) {
                 throw new \DomainException('Dissolution too soon after legislative elections');
             }
+            if(isset($this->state['recurring_elections'])){
+                if(($this->state['electoral']['status']??null)!=='scheduled'||!ParliamentaryLifecycle::quiet($this->state['legislation']['responsibility'])
+                    ||($this->state['revision']['context']['presidential_vacancy']??false)||($this->state['revision']['context']['definitive_incapacity']??false))
+                    throw new \DomainException('Dissolution unavailable during unresolved proceedings');
+                $this->state['electoral']=(new ElectoralCycle($this->state['world_id'],'FR',$day,FrenchRecurringElections::early($day)))->snapshot();
+                $this->state['political_ai']=PoliticalNegotiator::evaluate($this->state['electoral']);
+            }
             $earliest=self::plus($day,$rules['dissolution']['election_min_days']);
             $deadline=self::plus($day,$rules['dissolution']['election_max_days']);
             $this->state['legislature']='dissolved';
@@ -195,6 +216,7 @@ final class InstitutionalSimulation
                 'election_deadline'=>$deadline,'legality'=>'within_modeled_constitution'];
         } elseif ($action==='hold_election') {
             self::keys($input,[]);
+            if(isset($this->state['recurring_elections']))throw new \DomainException('Recurring ballot authority owns election completion');
             if ($role!=='election_authority') {
                 throw new \DomainException('Election is administered by its authorized institution');
             }
@@ -276,6 +298,14 @@ final class InstitutionalSimulation
         return $result;
     }
 
+    public function enableContinuityLot():void
+    {
+        if($this->state['country_code']!=='FR'||!isset($this->state['revision'],$this->state['electoral'],$this->state['legislation'],$this->state['political_ai'])||$this->state['events']!==[]||isset($this->state['recurring_elections']))throw new \DomainException('Continuity lot requires bootstrap');
+        $l=BicameralLegislation::restore($this->state['legislation']);$l->enableCalendarReplay();$this->state['legislation']=$l->snapshot();
+        $this->state['recurring_elections']=['version'=>FrenchRecurringElections::VERSION,'completed'=>0];
+        $this->state['last_election']='2024-07-07';
+        $this->state['revision_requests']=[];
+    }
     public function enableRevision():void
     {
         if($this->state['country_code']!=='FR'||isset($this->state['revision'])||$this->state['events']!==[])
@@ -288,10 +318,14 @@ final class InstitutionalSimulation
         if(!isset($this->state['revision']))throw new \DomainException('No revision pilot');
         $r=ConstitutionalRevision::restore($this->state['revision']);
         if($action==='revision_draft'&&$role==='scenario_revision_author'){
-            self::keys($payload,['template']);
+            $auto=array_key_exists('ratification_route',$payload);
+            self::keys($payload,['template',...($auto?['ratification_route']:[])]);
+            if($auto&&(!isset($this->state['revision_requests'])||!in_array($payload['ratification_route'],['congress','referendum'],true)||$this->state['legislature']!=='sitting'))throw new \DomainException('Autonomous revision unavailable');
             if(!is_string($payload['template']))throw new \InvalidArgumentException('Invalid template');
             $result=['procedure'=>$r->draft($commandId,$payload['template']),'legal_effect'=>false];
+            if($auto){$this->state['revision_requests'][$commandId]=RevisionAutonomy::request($this->state,$commandId,$payload['ratification_route']);$result['request']=$this->state['revision_requests'][$commandId];}
         }elseif($action==='revision_evidence'&&$role==='revision_clerk'){
+            if(isset($this->state['revision_requests'][$payload['revision_id']??'']))throw new \DomainException('Autonomous revision owns this procedure');
             $result=$r->certify($payload);
         }else throw new \DomainException('Revision action forbidden');
         $this->state['revision']=$r->snapshot();
@@ -316,6 +350,7 @@ final class InstitutionalSimulation
     {
         self::id($commandId);
         if(!isset($this->state['legislation']))throw new \DomainException('No legislation pilot');
+        if(isset($this->state['recurring_elections'])&&$this->state['legislature']==='dissolved')throw new \DomainException('Assembly dissolved: legislative decisions suspended in this pilot');
         $l=BicameralLegislation::restore($this->state['legislation']);
         if($action==='legislation_draft'&&$role==='scenario_bill_author'){
             self::keys($payload,['policy_id']);
@@ -329,10 +364,11 @@ final class InstitutionalSimulation
     }
 
     /** Advance deterministic game clock, executing only approved due events. */
-    public function advanceTo(string $targetDay):array
+    public function advanceTo(string $targetDay,?array $opinion=null):array
     {
         self::day($targetDay);
         if ($targetDay<$this->state['day']) throw new \InvalidArgumentException('Game clock cannot regress');
+        if(isset($this->state['recurring_elections'])&&$targetDay!==self::plus($this->state['day'],1))throw new \DomainException('Recurring institution clock requires daily ticks');
         $due=[];$remain=[];
         foreach ($this->state['agenda'] as $event) {
             if ($event['on']<=$targetDay) $due[]=$event;
@@ -371,6 +407,12 @@ final class InstitutionalSimulation
         }
         if(isset($this->state['electoral'])){
             $el=ElectoralCycle::restore($this->state['electoral']);
+            if(isset($this->state['recurring_elections'])){
+                $e=$el->snapshot();$lc=$this->state['legislation']['responsibility']['lifecycle'];
+                if($e['status']==='results'&&$lc['election_digest']===ParliamentaryLifecycle::digest($e)){
+                    $el=new ElectoralCycle($e['world_id'],'FR',$targetDay,FrenchRecurringElections::ordinary($targetDay,(int)substr($this->state['last_election'],0,4)));
+                }
+            }
             // Pin automatic negotiation to the actual result day, including
             // when an administrative clock jumps across multiple dates.
             if(isset($this->state['political_ai'])&&$this->state['country_code']!=='FR'){
@@ -397,11 +439,19 @@ final class InstitutionalSimulation
         if(isset($this->state['legislation'])){
             $l=BicameralLegislation::restore($this->state['legislation']);$l->advance($targetDay);
             $r=$l->snapshot()['responsibility']??null;$e=$this->state['electoral']??null;
-            if(isset($r['lifecycle'])&&$r['lifecycle']['election_digest']===null&&($e['status']??null)==='results'&&ParliamentaryLifecycle::quiet($r))
+            if(isset($r['lifecycle'])&&($e['status']??null)==='results'&&ParliamentaryLifecycle::quiet($r)&&($r['lifecycle']['election_digest']===null||(isset($this->state['recurring_elections'])&&$r['lifecycle']['election_digest']!==ParliamentaryLifecycle::digest($e)))){
                 $l->installElection($e);
+                if(isset($this->state['recurring_elections'])){
+                    $this->state['recurring_elections']['completed']++;
+                    $this->state['last_election']=$e['config']['runoff_day']??$e['config']['poll_day'];
+                    $this->state['legislature']='sitting';
+                    if($this->state['election']!==null)$this->state['election']['status']='voting_recorded_results_pending';
+                }
+            }
             $this->state['legislation']=$l->snapshot();
         }
         $this->state['day']=$targetDay;
+        if(isset($this->state['revision_requests'])&&$this->state['revision_requests']!==[])$this->state=RevisionAutonomy::advance($this->state,$opinion);
         $this->state['agenda']=$remain;
         return ['day'=>$targetDay,'processed'=>$applied,
             'constitutional_breaches'=>$this->state['constitutional_breaches']];

@@ -203,6 +203,7 @@ final class AlphaGateway
                 }elseif($suffix==='/campaign'){
                     if(!isset($r['state']['campaign']))throw new \UnexpectedValueException('Missing pinned campaign');
                     $body=$r['state']['campaign'];
+                    if($scenario->id===AlphaScenario::INVESTITURE)$body['tenure']=CampaignLifecycle::tenure($body);
                 }elseif($suffix==='/countries/FR/social-partners'){
                     if(!isset($r['state']['social_partners']))throw new \UnexpectedValueException('Missing pinned social partners');
                     $body=['world_id'=>$world,'country'=>'FR','social_partners'=>$r['state']['social_partners']];
@@ -294,7 +295,7 @@ final class AlphaGateway
                 $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);
                 $c=$q->fetch(\PDO::FETCH_ASSOC);
                 if($c===false||$c['pending_day']!==null||$c['committed_day']!==$r['state']['day'])throw new AlphaHttpError(409,'world_advancing');
-                $response=self::ok(200,['revision'=>$r['state']['revision'],'catalog'=>ConstitutionalRevision::catalog()]);
+                $response=self::ok(200,['revision'=>$r['state']['revision'],'catalog'=>ConstitutionalRevision::catalog(),...(isset($r['state']['revision_requests'])?['autonomous_requests'=>$r['state']['revision_requests']]:[])]);
                 $response['headers']['ETag']=$r['etag'];return $response;
             }
             if($method==='POST'&&in_array($scenario->id,[AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)&&$suffix==='/countries/FR/institutions/decisions'

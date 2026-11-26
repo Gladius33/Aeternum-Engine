@@ -214,7 +214,16 @@ final class PdoInstitutionalStore
                 if (($e['evidence_id']??null)!==$payload['evidence_id'])throw new \DomainException('Evidence identity mismatch');
                 $result=$simulation->accountability($role,$action,$e,$commandId);
             } else {
-                $result=$clock ? $simulation->advanceTo($payload['target_day'])
+                $opinion=null;
+                if($clock&&($simulation->snapshot()['revision_requests']??[])!==[]){
+                    require_once __DIR__.'/PublicOpinion.php';
+                    $q=$this->pdo->prepare('SELECT state_json,state_sha FROM wp_opinion_states WHERE world_id=?');$q->execute([$world]);$o=$q->fetch(\PDO::FETCH_ASSOC);
+                    if($o===false)throw new \DomainException('Missing committed opinion for revision');
+                    $x=PublicOpinion::restore(json_decode($o['state_json'],true,64,JSON_THROW_ON_ERROR));
+                    $v=$x->snapshot();if(!hash_equals($o['state_sha'],$x->hash())||$v['world_id']!==$world||$v['day']!==$simulation->snapshot()['day'])throw new \DomainException('Invalid prior opinion state');
+                    $opinion=['world_id'=>$world,'day'=>$v['day'],'approval'=>$v['approval'],'sha'=>$x->hash()];
+                }
+                $result=$clock ? $simulation->advanceTo($payload['target_day'],$opinion)
                     :$simulation->decide($role,$action,$payload,$commandId);
             }
             $after=$simulation->hash();

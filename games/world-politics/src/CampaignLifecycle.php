@@ -108,6 +108,20 @@ final class CampaignLifecycle
             'type'=>$p['reason'],'source'=>'simulated_presidential_calendar'];
         return $s;
     }
+    /** Reporting only. Loss of the office freezes the completed tenure;
+     * disputed legal continuity is disclosed separately, not awarded points. */
+    public static function tenure(array $s):array
+    {
+        $end=$s['ended_on']??$s['day'];$days=(int)(new \DateTimeImmutable($s['start_day']))->diff(new \DateTimeImmutable($end))->format('%r%a');
+        if($days<0)throw new \DomainException('Invalid tenure interval');
+        $vacancy=in_array($s['reason'],['presidential_resignation','presidential_death','presidential_removal'],true);
+        $interim=null;
+        if($vacancy){
+            $d=new \DateTimeImmutable($end);
+            $interim=['office'=>'senate_president_or_government_if_unavailable','earliest_poll'=>$d->modify('+20 days')->format('Y-m-d'),'latest_poll'=>$d->modify('+35 days')->format('Y-m-d'),'exception'=>'force_majeure_certified_by_constitutional_council','unavailable_articles'=>[11,12,49,50,89],'post_campaign_election_simulated'=>false];
+        }
+        return ['start_day'=>$s['start_day'],'through_day'=>$end,'elapsed_office_days'=>$days,'frozen'=>$s['ended_on']!==null,'constitutional_status'=>$s['constitutional_status'],'recognition_status'=>$s['continuity']['recognition_status']??'not_disputed','interim'=>$interim,'score_eligible'=>false];
+    }
     public static function summary(array $s):array
     {
         return ['status'=>$s['status'],'office_retained'=>$s['office_retained'],'office'=>$s['office'],

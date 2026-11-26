@@ -830,4 +830,9 @@ $aidDip=req30('GET',$r27.'/diplomacy',null,$t27);ck30($aidDip['body']['aid_bridg
 $c27=req30('POST',$r27.'/clock/advances',['target_day'=>'2027-05-16'],$t27,['If-Match'=>$c27['etag'],'Idempotency-Key'=>'investiture-tick-002']);
 ck30($c27['status']===200&&$c27['body']['coherent'],'second investiture day commits');
 $aidDip=req30('GET',$r27.'/diplomacy',null,$t27);ck30($aidDip['body']['aid_bridge']['latest']['source']['rate_bps']===0&&$aidDip['body']['aid_bridge']['latest']['signals']['state_ua']<0&&!$aidDip['body']['aid_bridge']['latest']['automatic_sanctions_or_treaties'],'committed aid decision changes fictional diplomatic response sensitivity');
+$c27p=req30('GET',$r27.'/countries/FR/constitution',null,$t27);
+ck30($c27p['status']===200&&$c27p['body']['autonomous_requests']===[],'WP57 autonomous revision enabled');
+$rev27=req30('POST',$r27.'/countries/FR/institutions/decisions',['action'=>'revision_draft','payload'=>['template'=>'remove-presidential-term-limit','ratification_route'=>'referendum']],$t27,['If-Match'=>$c27p['etag'],'Idempotency-Key'=>'wp57-revision-pilot']);
+ck30($rev27['status']===202&&$rev27['body']['request']['status']==='pending_pm'&&!$rev27['body']['legal_effect'],'WP57 owner requests revision but cannot enact it');
+$camp27=req30('GET',$r27.'/campaign',null,$t27);ck30($camp27['body']['tenure']['elapsed_office_days']===2&&!$camp27['body']['tenure']['score_eligible'],'WP56 tenure reported from committed days');
 echo "WP30 HTTP private alpha acceptance passed.\n";

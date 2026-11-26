@@ -73,6 +73,11 @@ final class BicameralLegislation
             throw new \DomainException('Finance pilot must be pinned at bootstrap');
         $this->s['finance']=FinanceBudget::initial();
     }
+    public function enableCalendarReplay():void
+    {
+        if(isset($this->s['calendar_replay'])||!isset($this->s['responsibility']['lifecycle'])||$this->s['day']!==$this->s['start_day']||$this->s['history']!==[])throw new \DomainException('Calendar replay must be pinned at bootstrap');
+        $this->s['calendar_replay']=true;
+    }
     public function installElection(array $e):void
     {
         if(!isset($this->s['responsibility']['lifecycle']))throw new \DomainException('No parliamentary lifecycle');
@@ -120,6 +125,7 @@ final class BicameralLegislation
                 }
                 $r['lifecycle']['session']=$next;
             }
+            if(isset($this->s['calendar_replay'])&&$session!==$r['lifecycle']['session'])$this->s['history'][]=['kind'=>'calendar_boundary','day'=>$day];
             $this->s['responsibility']=$r;
         }
         if(isset($this->s['responsibility']['pending'])){
@@ -320,6 +326,7 @@ final class BicameralLegislation
         if(isset($s['responsibility']['assembly']))$x->enableAssembly();
         if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();
         if(isset($s['responsibility']['cabinet']))$x->enableCabinet();
+        if(isset($s['calendar_replay']))$x->enableCalendarReplay();
         if(isset($s['executive']))$x->enableExecutive();
         if(isset($s['finance']))$x->enableFinance();
         foreach($s['history'] as $h){
@@ -327,6 +334,7 @@ final class BicameralLegislation
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);
             elseif($h['kind']==='evidence')$x->certify($h['evidence']);
             elseif($h['kind']==='election_install')$x->installElection($h['election']);
+            elseif($h['kind']==='calendar_boundary'&&isset($s['calendar_replay'])){ /* advance generated the marker */ }
             else throw new \DomainException('Unknown history kind');
         }
         $x->advance($s['day']);if($x->snapshot()!==$s)throw new \DomainException('Legislative replay mismatch');return $x;

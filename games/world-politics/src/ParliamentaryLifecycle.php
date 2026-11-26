@@ -5,6 +5,7 @@ require_once __DIR__.'/FrenchSittingCalendar.php';
 require_once __DIR__.'/ElectoralCycle.php';
 require_once __DIR__.'/FrenchElectionCalendar.php';
 require_once __DIR__.'/AssemblyRollCalls.php';
+require_once __DIR__.'/FrenchRecurringElections.php';
 
 final class ParliamentaryLifecycle
 {
@@ -68,6 +69,7 @@ final class ParliamentaryLifecycle
     {
         $old=(new ElectoralCycle($e['world_id'],'FR',$e['start_day'],self::electionConfig($e['start_day'])))->snapshot()['config'];
         if($e['config']===$old)return true;
+        if(FrenchRecurringElections::matches($e))return true;
         if($e['start_day']>=FrenchElectionCalendar::legislativePoll()['first'])return false;
         return $e['config']===(new ElectoralCycle($e['world_id'],'FR',$e['start_day'],self::publishedElectionConfig($e['start_day'])))->snapshot()['config'];
     }
@@ -77,7 +79,7 @@ final class ParliamentaryLifecycle
         if($e['world_id']!==$r['crisis']['world_id']||$e['country']!=='FR'||$e['status']!=='results'||$e['day']!==$day||$e['seats_total']!==577
             ||!self::matchesElectionConfig($e))
             throw new \DomainException('Unverified parliamentary election source');
-        if(!self::quiet($r)||$r['lifecycle']['election_digest']!==null)throw new \DomainException('Cannot replace Assembly now');
+        if(!self::quiet($r)||($r['lifecycle']['election_digest']!==null&&($e['start_day']<$r['lifecycle']['installed_on']||!FrenchRecurringElections::matches($e)||self::digest($e)===$r['lifecycle']['election_digest'])))throw new \DomainException('Cannot replace Assembly now');
         $old=FrenchParliament::restore($r['assembly']);$new=AssemblyRollCalls::fromElection($e,$day);
         $r['lifecycle']['archives'][]=['retired_on'=>$day,'assembly'=>$old->snapshot(),'sha'=>$old->hash()];
         $r['assembly']=$new->snapshot();$r['lifecycle']['election_digest']=self::digest($e);$r['lifecycle']['installed_on']=$day;

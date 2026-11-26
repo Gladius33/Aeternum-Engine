@@ -82,3 +82,27 @@ ck31($dp['days']===498&&$dp['projected_population']===$dp['observed_population']
 $legacy=MB::build($bb['source_pack'],true,true);
 MB::assertValid($legacy);
 ck31(!isset($legacy['opening_supplement']),'older projected macro snapshot remains replayable');
+
+require_once __DIR__.'/../games/world-politics/src/InstitutionalSimulation.php';
+use Aeternum\WorldPolitics\{FrenchRecurringElections as RE,InstitutionalSimulation as IS,CampaignLifecycle as CL,ParliamentaryLifecycle as PL};
+$ec=RE::early('2027-05-14');
+ck31($ec['poll_day']==='2027-06-06'&&$ec['runoff_day']==='2027-06-13','dissolution dates stay in Article 12 window');
+$ec2=RE::ordinary('2029-06-11',2029);
+ck31($ec2['poll_day']>$ec['runoff_day']&&$ec2['runoff_day']<\Aeternum\WorldPolitics\FrenchElectionCalendar::assemblyExpiry(2029),'next ordinary election before statutory expiry');
+$x=new IS('wp55-test','FR','2027-05-14');$x->enableElectoral(PL::publishedElectionConfig('2027-05-14'));$x->enablePoliticalAI();$x->enableRevision();$x->enableLegislation(true,true,true,true,true,true,true);$x->enableContinuityLot();
+foreach(['prime_minister','assembly_speaker','senate_speaker'] as $office)$x->decide($office,'record_consultation',[],'consult-'.$office);
+$x->decide('president','dissolve_lower_house',[],'dissolve-one');
+ck31($x->snapshot()['electoral']['config']['poll_day']===$ec['poll_day'],'certified dissolution replaces pending regular ballot');
+for($d=new DateTimeImmutable('2027-05-15');$d<=new DateTimeImmutable('2027-06-14');$d=$d->modify('+1 day'))$x->advanceTo($d->format('Y-m-d'));
+$s=$x->snapshot();ck31($s['recurring_elections']['completed']===1&&$s['legislature']==='sitting'&&$s['last_election']==='2027-06-13'&&$s['electoral']['status']==='scheduled','elected Assembly installed and next election scheduled');
+ck31(IS::restore($s)->hash()===$x->hash(),'rotated election and installed Assembly restore together');
+foreach(['prime_minister','assembly_speaker','senate_speaker'] as $office)$x->decide($office,'record_consultation',[],'again-'.$office);
+try{$x->decide('president','dissolve_lower_house',[],'too-early');throw new RuntimeException('repeat dissolution accepted');}catch(DomainException $e){ck31(true,'one-year dissolution restriction after election');}
+$x->revision('scenario_revision_author','revision_draft',['template'=>'remove-presidential-term-limit','ratification_route'=>'referendum'],'rev-55');
+for($d=new DateTimeImmutable('2027-06-15');$d<=new DateTimeImmutable('2027-12-01');$d=$d->modify('+1 day')){
+    $day=$d->format('Y-m-d');$x->advanceTo($day,['world_id'=>'wp55-test','day'=>$d->modify('-1 day')->format('Y-m-d'),'approval'=>1000,'sha'=>str_repeat('a',64)]);
+}
+$s=$x->snapshot();ck31(in_array($s['revision_requests']['rev-55']['status'],['effective','rejected'],true)&&count($s['revision_requests']['rev-55']['observations'])>=2,'autonomous revision reaches a legal result without supplied ballots');
+ck31(IS::restore($s)->hash()===$x->hash(),'revision and session transitions replay');
+$c=CL::initial('wp55-test','2027-05-14');$c=CL::advance($c,'2027-05-15',CL::event('wp55-test','2027-05-15','resign','presidential_resignation'));
+$t=CL::tenure($c);ck31($t['elapsed_office_days']===1&&$t['frozen']&&$t['interim']['earliest_poll']==='2027-06-04'&&$t['interim']['latest_poll']==='2027-06-19'&&!$t['score_eligible'],'tenure freezes and interim legal reference survives');
