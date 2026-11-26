@@ -203,3 +203,53 @@ wp8($api->handle('GET',$root)['status']===503
     'corrupted database digest blocked without leaking SQL detail');
 
 echo "WP08 durable diplomacy REST/MariaDB tests passed.\n";
+
+// WP66-69: actual persistent commitment decisions and maturity events.
+$owner66=new class implements DiplomaticPrincipal {
+    public bool $enabled=true;public bool $write=true;
+    public function actorId():string{return 'commitment-owner';}
+    public function allows(string $world,string $actorId,string $ability):bool{
+        return $this->enabled&&$world==='world-commitment-test'&&
+            (($actorId===$this->actorId()&&$ability==='diplomacy.read')||
+             ($this->write&&$actorId==='state_fr'&&$ability==='diplomacy.commitment'));
+    }
+};
+$clock66=new class implements DiplomaticPrincipal {
+    public function actorId():string{return 'commitment-clock';}
+    public function allows(string $world,string $actorId,string $ability):bool{
+        return $world==='world-commitment-test'&&$actorId===$this->actorId()&&in_array($ability,['diplomacy.read','diplomacy.clock'],true);
+    }
+};
+$sim66=new DiplomaticSimulation('world-commitment-test','2027-05-14',$registry);
+$sim66->enableDailyReplies();$sim66->enableAidBridge();$sim66->enableCommitments();$sim66->enableCommitmentRisk();
+$store66=new PdoDiplomaticStore($connect(),$registry,$owner66);
+$clockStore66=new PdoDiplomaticStore($connect(),$registry,$clock66);
+$observation66=static function(string $day):array{return ['world_id'=>'world-commitment-test','day'=>$day,
+    'prior_day'=>(new DateTimeImmutable($day))->modify('-1 day')->format('Y-m-d'),'domestic_sha'=>str_repeat('a',64),'rate_bps'=>0];};
+for($day66=new DateTimeImmutable('2027-05-15');$day66->format('Y-m-d')<='2027-06-12';$day66=$day66->modify('+1 day')){
+    $day=$day66->format('Y-m-d');$sim66->advanceTo($day,$clock66,$observation66($day));
+}
+$store66->seed($sim66);$api66=new PdoDiplomaticApi($store66);$root66='/api/v1/worlds/world-commitment-test/diplomacy/commitments';
+$read66=$api66->handle('GET',$root66);
+wp8($read66['status']===200&&$read66['body']['risk']['open_arrears_minor']===0,'WP66 persisted opening risk');
+$input66=['commitment_id'=>'ua-civil-fixture','action'=>'withhold'];
+$h66=['Idempotency-Key'=>'commitment-db-stop-01','If-Match'=>$read66['headers']['ETag']];
+$stop66=$api66->handle('POST',$root66,$input66,$h66);
+wp8($stop66['status']===200&&!$stop66['body']['legal_release'],'WP66 transactional payment policy');
+$owner66->write=false;
+wp8($api66->handle('POST',$root66,$input66,$h66)['status']===403,'WP66 revoked write permission blocks receipt replay');
+$owner66->write=true;
+$after66=$clockStore66->execute('world-commitment-test','clock',['target_day'=>'2027-06-13','aid_observation'=>$observation66('2027-06-13')],'commitment-db-tick-01',$stop66['headers']['ETag']);
+$fresh66=new PdoDiplomaticApi(new PdoDiplomaticStore($connect(),$registry,$owner66));
+$state66=$fresh66->handle('GET',$root66);
+wp8($state66['status']===200&&$state66['body']['totals']['arrears_minor']===1000000000&&$state66['body']['risk']['actor_signals']['state_ua']<0,'WP69 due arrears and risk survive database reconnection');
+wp8($fresh66->handle('POST',$root66,$input66,['Idempotency-Key'=>$h66['Idempotency-Key'],'If-Match'=>'"stale"'])===$stop66,'WP66 original receipt survives maturity event');
+$resume66=$fresh66->handle('POST',$root66,['commitment_id'=>'ua-civil-fixture','action'=>'resume'],['Idempotency-Key'=>'commitment-db-resume-01','If-Match'=>$state66['headers']['ETag']]);
+wp8($resume66['status']===200,'WP66 resume command admitted');
+$clockStore66->execute('world-commitment-test','clock',['target_day'=>'2027-06-14','aid_observation'=>$observation66('2027-06-14')],'commitment-db-tick-02',$resume66['headers']['ETag']);
+$settled66=$fresh66->handle('GET',$root66);
+wp8($settled66['body']['totals']['arrears_minor']===0&&$settled66['body']['risk']['actor_signals']['state_ua']===0&&$settled66['body']['budget_delta_minor']===null,'WP69 scenario arrears settled without fictional treasury effect');
+$j66=(int)$pdo->query("SELECT COUNT(*) FROM wp_diplomatic_journal WHERE world_id='world-commitment-test'")->fetchColumn();
+$r66=(int)$pdo->query("SELECT COUNT(*) FROM wp_diplomatic_receipts WHERE world_id='world-commitment-test'")->fetchColumn();
+wp8($j66===4&&$r66===4,'WP66 four atomic distinct journal and receipt records');
+
