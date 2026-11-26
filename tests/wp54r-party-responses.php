@@ -14,7 +14,7 @@ for($i=1;$i<=40;$i++){
     $a=PartyPolicyResponse::advance($a,$day,$base);$b=PartyPolicyResponse::advance($b,$day,$other);
     if(array_sum($a['seat_stances'])!==577||array_sum($b['seat_stances'])!==577||$a['legal_effect']||$b['legal_effect'])throw new RuntimeException('Seat or authority invariant');
 }
-ckParty($a['groups']['liberal']['stance']==='support'&&$b['groups']['liberal']['stance']==='oppose','different policies produce different fictional positions');
+ckParty($a['groups']['civic']['stance']==='support'&&$a['groups']['liberal']['stance']==='negotiate'&&$b['groups']['liberal']['stance']==='oppose','different policies produce different fictional positions');
 ckParty(count(array_unique(array_column($b['groups'],'alignment_index')))>1,'independent group preferences');
 $unknown=$base;foreach($unknown['groups'] as &$p)$p['seats']=null;unset($p);
 $day=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d');$b=PartyPolicyResponse::advance($b,$day,$unknown);
