@@ -1,0 +1,129 @@
+{
+  "schema": "wp75-fr-historical-candidates-v1",
+  "retrieved_on": "2026-11-26",
+  "poll_day": "2022-04-10",
+  "country": "FR",
+  "sources": {
+    "results": "https://www.archives-resultats-elections.interieur.gouv.fr/resultats/presidentielle-2022/FE.php",
+    "manifestos": "https://www.cnccep.fr/candidats.html"
+  },
+  "first_round": {
+    "registered": 48747876,
+    "abstentions": 12824169,
+    "voters": 35923707,
+    "blank": 543609,
+    "invalid": 247151,
+    "valid": 35132947
+  },
+  "candidates": [
+    {
+      "id": "emmanuel-macron",
+      "name": "Emmanuel Macron",
+      "votes": 9783058,
+      "share_bps": 2785,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "marine-le-pen",
+      "name": "Marine Le Pen",
+      "votes": 8133828,
+      "share_bps": 2315,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "jean-luc-melenchon",
+      "name": "Jean-Luc Mélenchon",
+      "votes": 7712520,
+      "share_bps": 2195,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "eric-zemmour",
+      "name": "Éric Zemmour",
+      "votes": 2485226,
+      "share_bps": 707,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "valerie-pecresse",
+      "name": "Valérie Pécresse",
+      "votes": 1679001,
+      "share_bps": 478,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "yannick-jadot",
+      "name": "Yannick Jadot",
+      "votes": 1627853,
+      "share_bps": 463,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "jean-lassalle",
+      "name": "Jean Lassalle",
+      "votes": 1101387,
+      "share_bps": 313,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "fabien-roussel",
+      "name": "Fabien Roussel",
+      "votes": 802422,
+      "share_bps": 228,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "nicolas-dupont-aignan",
+      "name": "Nicolas Dupont-Aignan",
+      "votes": 725176,
+      "share_bps": 206,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "anne-hidalgo",
+      "name": "Anne Hidalgo",
+      "votes": 616478,
+      "share_bps": 175,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "philippe-poutou",
+      "name": "Philippe Poutou",
+      "votes": 268904,
+      "share_bps": 77,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    },
+    {
+      "id": "nathalie-arthaud",
+      "name": "Nathalie Arthaud",
+      "votes": 197094,
+      "share_bps": 56,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "not_curated",
+      "candidacy_2027": "unknown"
+    }
+  ],
+  "classification": "historical_election_not_future_candidacy_or_intention"
+}

@@ -202,6 +202,8 @@ jobs:
         run: php tests/wp72-civil-continuity.php
       - name: WP74 household national accounts and arithmetic sensitivity
         run: php tests/wp74-household-reference.php
+      - name: WP75 historical presidential identities and election reconciliation
+        run: php tests/wp75-historical-candidates.php
       - name: WP33 election, seat allocation and coalition regression
         run: php tests/wp33-electoral.php
       - name: WP32 comparative accountability regression

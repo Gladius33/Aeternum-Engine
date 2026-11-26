@@ -18,6 +18,7 @@ require_once __DIR__.'/InternationalFinanceDisclosure.php';
 require_once __DIR__.'/StrategicDefensePlanning.php';
 require_once __DIR__.'/CivilContinuityReport.php';
 require_once __DIR__.'/HouseholdIncomeReference.php';
+require_once __DIR__.'/HistoricalCandidateReference.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
 final class AlphaGateway
@@ -315,6 +316,11 @@ final class AlphaGateway
             if ($method==='GET' && preg_match('~^/countries/([A-Z]{2})/institutions(?:/rulebook)?$~D',$suffix,$countryMatch)
                 && in_array($countryMatch[1],$scenario->countries,true))
                 return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
+            if($method==='GET'&&$suffix==='/countries/FR/historical-candidates'&&$scenario->id===AlphaScenario::INVESTITURE){
+                $dp=(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal))->read($world);
+                if(!isset($dp['state']['candidate_reference']))throw new AlphaHttpError(404,'not_found');
+                $report=HistoricalCandidateReference::report($dp['state']['candidate_reference'])+['world_id'=>$world];$response=self::ok(200,$report);$response['headers']['ETag']='"'.hash('sha256',json_encode($report,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)).'"';return $response;
+            }
             if($method==='GET'&&$suffix==='/countries/FR/household-reference'&&$scenario->id===AlphaScenario::INVESTITURE){
                 $dp=(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal))->read($world);
                 if(!isset($dp['state']['household_reference']))throw new AlphaHttpError(404,'not_found');

@@ -774,3 +774,8 @@ Rapport GET `/countries/FR/civil-continuity` pour les nouveaux mondes canoniques
 ## WP74 — données de revenu disponible et premier contrôle arithmétique WP76
 
 Pack Insee base 2020 : six observations annuelles 2020–2025 (RDB, salaires nets, prestations monétaires, déflateur de consommation, UC, épargne et pouvoir d'achat réel par UC), quatre variations trimestrielles 2025-T3 à 2026-T2, vintages explicites. Épinglé dans les nouveaux mondes via le domaine diplomatique de références, sans changer les anciennes sauvegardes. GET `/countries/FR/household-reference`, digest, validation historique, identité nominal/prix/UC sur valeurs arrondies (tolérance 15 pb), sensibilité au déflateur. Ce n'est ni un backtest comportemental de la macro ni une calibration de ses coefficients. Aucun encours RDB/UC au 14 mai 2027 prétendu connu; aucun score. WP75 personnes/programmes, WP76 modèle de revenu par UC, calibration et WP77–80 restent ouverts. Les données de référence ne sont pas un flux budgétaire additionnel.
+
+
+## WP75 tranche A — personnalités historiques
+
+Douze candidatures de la présidentielle 2022, résultats proclamés et archive officielle des professions de foi. Rapprochement inscrits/votants/exprimés/voix par candidat, fiches compatibles PoliticalRoster avec source datée et avatar générique; programme non encore dépouillé. Épinglage dans les nouveaux mondes et GET authentifié `/countries/FR/historical-candidates`. Aucun résultat 2022 n'est transformé en intention de vote 2027; ni candidatures futures ni sélection joueur ni psychologie inférée. Le catalogue des personnalités contemporaines et programmes sourcés reste à enrichir. WP75 non clos.

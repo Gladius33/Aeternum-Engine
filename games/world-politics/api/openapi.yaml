@@ -31,6 +31,15 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /worlds/{world}/countries/FR/historical-candidates:
+    get:
+      operationId: readHistoricalCandidates
+      summary: Official 2022 presidential election identities and results, not 2027 candidacy or selection
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Historical reference and roster-compatible profiles }
+        '404': { description: Unsupported or inaccessible world }
   /worlds/{world}/countries/FR/household-reference:
     get:
       operationId: readHouseholdIncomeReference

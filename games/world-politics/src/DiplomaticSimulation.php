@@ -9,6 +9,7 @@ require_once __DIR__.'/InternationalCommitments.php';
 require_once __DIR__.'/CommitmentRisk.php';
 require_once __DIR__.'/StrategicDefensePlanning.php';
 require_once __DIR__.'/HouseholdIncomeReference.php';
+require_once __DIR__.'/HistoricalCandidateReference.php';
 
 /** Adapter MUST use server-verified actor grants; never trust JSON for identity. */
 interface DiplomaticPrincipal
@@ -64,6 +65,11 @@ final class DiplomaticSimulation
     {
         if(!isset($this->state['aid_bridge'])||isset($this->state['commitments'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Commitments must be pinned at bootstrap');
         $this->state['commitments']=(new InternationalCommitments($this->state['world_id'],$this->state['day']))->snapshot();
+    }
+    public function enableCandidateReference():void
+    {
+        if(!isset($this->state['household_reference'])||isset($this->state['candidate_reference'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Candidate reference must be pinned at bootstrap');
+        $this->state['candidate_reference']=HistoricalCandidateReference::pin();
     }
     public function enableHouseholdReference():void
     {
@@ -309,6 +315,10 @@ final class DiplomaticSimulation
         if(array_key_exists('household_reference',$state)){
             if(!isset($state['defense_reference']))throw new \DomainException('Household reference without canonical pin');
             HouseholdIncomeReference::report($state['household_reference']);$expected[]='household_reference';
+        }
+        if(array_key_exists('candidate_reference',$state)){
+            if(!isset($state['household_reference']))throw new \DomainException('Candidate reference without canonical pin');
+            HistoricalCandidateReference::report($state['candidate_reference']);$expected[]='candidate_reference';
         }
         sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid diplomatic snapshot fields');
