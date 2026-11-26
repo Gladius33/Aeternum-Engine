@@ -46,7 +46,7 @@ final class AlphaDomesticPrincipal implements PersistentDomesticPolicyAuthority
     public function actorId():string{return $this->scheduler?'alpha-clock-'.$this->world:$this->session->id;}
     public function allows(string $world,string $ability):bool {
         if ($world!==$this->world || ($role=$this->session->role($world))===null) return false;
-        return $ability==='domestic.read' || ($role==='owner' && in_array($ability,$this->scheduler?['domestic.clock']:['domestic.propose','domestic.crisis'],true));
+        return $ability==='domestic.read' || ($role==='owner' && in_array($ability,$this->scheduler?['domestic.clock']:['domestic.propose','domestic.crisis','domestic.corporation'],true));
     }
     public function enactedInstrument(string $world,string $policy):?string{return null;}
     public function clockDay(string $world):string {

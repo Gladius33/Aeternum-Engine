@@ -6,6 +6,7 @@ require_once __DIR__.'/FrenchMacroBaseline.php';
 require_once __DIR__.'/SovereignDebtLedger.php';
 require_once __DIR__.'/FrenchDemography.php';
 require_once __DIR__.'/FrenchPublicServices.php';
+require_once __DIR__.'/ProfessionalCorporations.php';
 
 /**
  * WP29A: scenario-only domestic policy ledger. All monetary amounts are
@@ -26,6 +27,7 @@ final class DomesticPolicySimulation
     private array $policies = [];
     private array $days = [];
     private array $crisisDecisions=[];
+    private array $corporationDecisions=[];
     private array $pressure;
     private int $balance;
     private string $day;
@@ -47,7 +49,8 @@ final class DomesticPolicySimulation
         private readonly ?array $macroBaseline=null,
         private readonly ?array $debtModel=null,
         private readonly ?array $populationModel=null,
-        private readonly ?array $servicesModel=null
+        private readonly ?array $servicesModel=null,
+        private readonly bool $corporationsEnabled=false
     ) {
         self::id($world); self::date($startDay);
         if (!preg_match('/^[A-Z]{3}$/D', $currency)) throw new \InvalidArgumentException('Invalid currency');
@@ -102,6 +105,7 @@ final class DomesticPolicySimulation
             if($this->populationModel===null||empty($this->debtModel['crisis_enabled']))throw new \DomainException('Services need population and crisis model');
             FrenchPublicServices::assertValid($this->servicesModel,$startDay,$this->populationModel,$this->macroBaseline);
         }
+        if($corporationsEnabled&&$servicesModel===null)throw new \DomainException('Corporations require services scenario');
         $this->pressure = $cohorts;
         $this->balance = $openingBalance;
         $this->day = $startDay;
@@ -161,6 +165,17 @@ final class DomesticPolicySimulation
         return $event;
     }
 
+    public function corporationDecision(DomesticPolicyAuthority $principal,string $action):array
+    {
+        $this->require($principal,'domestic.corporation');
+        if(!$this->corporationsEnabled)throw new \DomainException('Corporations scenario required');
+        $last=$this->corporationDecisions===[]?null:$this->corporationDecisions[array_key_last($this->corporationDecisions)];
+        if(($last['day']??null)===$this->day||count($this->corporationDecisions)>=3650)throw new \DomainException('One corporation decision per day');
+        $state=$this->days===[]?ProfessionalCorporations::initial($this->startDay):$this->days[array_key_last($this->days)]['corporations'];
+        ProfessionalCorporations::validateEvent($state,$action);
+        $e=['day'=>$this->day,'action'=>$action];$this->corporationDecisions[]=$e;return $e;
+    }
+
     private function calculate(string $target, int $balance, array $pressure): array
     {
         $revenue = $this->baselineRevenue; $expense = $this->baselineExpense;
@@ -181,7 +196,13 @@ final class DomesticPolicySimulation
         }
         if ($revenue < 0 || $expense < 0) throw new \DomainException('Scenario implies negative gross fiscal flow');
         $expense+=$concessionCost;
-        $loop=null;$servicePlan=null;
+        $loop=null;$servicePlan=null;$corporations=null;
+        if($this->corporationsEnabled){
+            $previous=$this->days===[]?null:$this->days[array_key_last($this->days)];
+            $corporations=ProfessionalCorporations::step($previous['corporations']??ProfessionalCorporations::initial($this->startDay),$target,ProfessionalCorporations::actionFor($this->corporationDecisions,$target),$previous['macro']??null);
+            $deltas['workers']+=intdiv($corporations['worker_opposition'],4);
+            $production-=intdiv($corporations['employer_resistance'],2);
+        }
         if($this->macroBaseline!==null){
             $prior=$this->days===[]?null:$this->days[array_key_last($this->days)];
             if($this->populationModel!==null)$production+=FrenchDemography::outputAdjustment($this->populationModel,$prior);
@@ -217,6 +238,7 @@ final class DomesticPolicySimulation
             $row['economic']['production_index_bps']=$loop['macro']['real_output_index_bps'];
             $row['economic']['employment_index_bps']=max(0,10000-($loop['macro']['unemployment_bps']-$this->macroBaseline['initial_unemployment_bps']));
         }
+        if($corporations!==null)$row['corporations']=$corporations;
         return $row;
     }
 
@@ -230,7 +252,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[])]);
     }
 
     public function snapshot(): array
@@ -238,7 +260,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel])];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }
@@ -268,6 +290,18 @@ final class DomesticPolicySimulation
             FinancialCrisis::validate($snapshot['crisis_decisions'],$this->startDay,$snapshot['day']);
             $copy->crisisDecisions=$snapshot['crisis_decisions'];
         }
+        if($this->corporationsEnabled){
+            $events=$snapshot['corporation_decisions'];
+            if(!is_array($events)||!array_is_list($events)||count($events)>3650)throw new \DomainException('Invalid corporation journal');
+            $last=null;
+            foreach($events as $e){
+                if(!is_array($e)||array_keys($e)!==['day','action']||!is_string($e['action']))throw new \DomainException('Invalid corporation event');
+                self::date($e['day']);
+                if($e['day']<$this->startDay||$e['day']>$snapshot['day']||($last!==null&&$e['day']<=$last))throw new \DomainException('Invalid corporation date');
+                $last=$e['day'];
+            }
+            $copy->corporationDecisions=$events;
+        }
         foreach ($snapshot['policies'] as $id => $p) {
             self::id($id);
             if (!isset($this->catalog[$id]) || !is_array($p)) throw new \DomainException('Unknown persisted policy');
@@ -291,8 +325,12 @@ final class DomesticPolicySimulation
             $copy->days[] = $row; $copy->day = $target;
             $copy->balance = $row['closing_balance']; $copy->pressure = $row['pressure'];
         }
+        if($this->corporationsEnabled&&($lastEvent=$copy->corporationDecisions[array_key_last($copy->corporationDecisions)]??null)!==null&&$lastEvent['day']===$copy->day){
+            $state=$copy->days===[]?ProfessionalCorporations::initial($this->startDay):$copy->days[array_key_last($copy->days)]['corporations'];
+            ProfessionalCorporations::validateEvent($state,$lastEvent['action']);
+        }
         if ($copy->snapshot() !== $snapshot) throw new \DomainException('Final snapshot replay mismatch');
-        $this->policies = $copy->policies; $this->days = $copy->days; $this->crisisDecisions=$copy->crisisDecisions;
+        $this->policies = $copy->policies; $this->days = $copy->days; $this->crisisDecisions=$copy->crisisDecisions;$this->corporationDecisions=$copy->corporationDecisions;
         $this->day = $copy->day; $this->balance = $copy->balance; $this->pressure = $copy->pressure;
     }
 

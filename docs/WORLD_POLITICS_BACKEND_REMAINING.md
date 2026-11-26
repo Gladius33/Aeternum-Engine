@@ -455,3 +455,11 @@ sectoral consultation from committed WP52 service and macro observations, bounde
 hysteresis and replay-verified opinion journal. Read-only API; no legal agreement,
 new fiscal charges or automatic regime outcomes. WP52 CI 45778973335 all three
 jobs green. See WORLD_POLITICS_SOCIAL_PARTNERS.md.
+
+
+## WP53b corporate alternative candidate
+
+Opt-in France scenario with parallel corporations, contested exclusive system,
+calendar reports, autonomous two-college votes, state approval or return, distinct
+worker and employer response, and public ownership requests (not transfers).
+See WORLD_POLITICS_CORPORATIONS.md. WP53 CI 45788382428 green.
