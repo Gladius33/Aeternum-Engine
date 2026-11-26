@@ -544,3 +544,10 @@ Post-exit V2 CI green. Coherent read projection separates membership scope,
 mirrored trade and counterfactual EU budget transfers; explicit missing country
 exposure and unallocated flows. Actual EU/national fiscal settlement, foreign
 GDP and independent monetary/central bank balance sheets remain open.
+
+### WP54r euro stress sensitivity
+
+Separate prospective certified FX and refinancing scenarios now expose reserve
+valuation sensitivities and interest accrual on newly refinanced principal.
+Not a currency market model, actual transfer or monetary transition; coverage
+and accounting limitations explicit. WP55 remains deferred.

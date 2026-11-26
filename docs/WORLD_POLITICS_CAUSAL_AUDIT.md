@@ -247,3 +247,15 @@ anchors. No actual French or EU treasury transfer is booked: mapping of
 national public receipts/expense and EU own resources remains open. No automatic
 funding, debt cancellation, ECB settlement, FX forecast or other exits.
 Foreign GDP/bank exposures remain null. Legacy state unchanged. CI pending.
+
+### WP54r independent euro stress sensitivity
+
+New spillover worlds pin a separate certified fictional FX/refinancing case,
+including negative, neutral and positive euro valuation sensitivities. Reserve
+share revaluation holds quantities and other FX values fixed; no reserve sales
+or forecast. Country interest changes accrue only on newly refinanced tranches
+within a finite window, not the entire outstanding sovereign debt. Missing
+country amounts remain null; covered sums are not EU totals. No real ledger
+booking, ECB balance sheet, currency conversion or automatic collapse.
+This independent case can operate before withdrawal or after revocation.
+CI pending.

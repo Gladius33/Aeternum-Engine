@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/EuropeanWithdrawal.php';
+require_once __DIR__.'/EuropeanMonetaryStress.php';
 
 /** Versioned, read-only counterfactual ledger from committed legal and trade
  * states. The dated budget/GDP anchors are from the existing WP80 study.
@@ -104,7 +105,7 @@ final class EuropeanSpillovers
                 'allocation_classification'=>$hasAllocation?'fictional_weights_not_observed':'missing',
                 'allocation_effective_from'=>$start,'partners'=>$partners],
             'budget'=>self::budget($eu),
-            'monetary'=>['currency_conversion_modelled'=>false,'euro_collapse_inferred'=>false,
+            'monetary'=>isset($eu['monetary_stress_version'])?EuropeanMonetaryStress::project($eu):['currency_conversion_modelled'=>false,'euro_collapse_inferred'=>false,
                 'exchange_rate_change_bps'=>null,'ecb_balance_sheet_change_minor'=>null,'target_settlement_minor'=>null,
                 'other_currency_exits_inferred'=>false],
             'not_a_forecast'=>true];

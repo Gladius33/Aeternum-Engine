@@ -8,16 +8,18 @@ final class EuropeanWithdrawal
 {
     public const VERSION='wp54r-article50-v1';
     public const SPILLOVERS_VERSION='wp54r-eu-spillovers-v1';
+    public const MONETARY_STRESS_VERSION='wp54r-euro-stress-v1';
     public const PARTNERS=['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK'];
     public const SOURCE='https://eur-lex.europa.eu/eli/treaty/teu_2016/art_50/oj';
-    public static function initial(string $day,bool $tradeEnabled=false,bool $spilloversEnabled=false):array
+    public static function initial(string $day,bool $tradeEnabled=false,bool $spilloversEnabled=false,bool $monetaryStressEnabled=false):array
     {
         self::date($day);
+        if($monetaryStressEnabled&&!$spilloversEnabled)throw new \DomainException('Monetary stress requires spillover model');
         if($spilloversEnabled&&!$tradeEnabled)throw new \DomainException('Spillovers require trade model');
         return ['version'=>self::VERSION,'source'=>self::SOURCE,'start_day'=>$day,'day'=>$day,
             'status'=>'member','membership'=>true,'intent_on'=>null,'notified_on'=>null,'deadline'=>null,
             'agreement_effective_on'=>null,'exit_on'=>null,'exit_route'=>null,'history'=>[],
-            'currency_changed'=>false,'tariff_regime_implemented'=>false,...($tradeEnabled?['trade_regime_version'=>'wp54r-eu-trade-v1','trade_regime'=>null]:[]),...($spilloversEnabled?['spillovers_version'=>self::SPILLOVERS_VERSION,'budget_terms'=>null,'partner_allocation'=>null]:[])];
+            'currency_changed'=>false,'tariff_regime_implemented'=>false,...($tradeEnabled?['trade_regime_version'=>'wp54r-eu-trade-v1','trade_regime'=>null]:[]),...($spilloversEnabled?['spillovers_version'=>self::SPILLOVERS_VERSION,'budget_terms'=>null,'partner_allocation'=>null]:[]),...($monetaryStressEnabled?['monetary_stress_version'=>self::MONETARY_STRESS_VERSION,'monetary_stress'=>null]:[])];
     }
     public static function request(array $s,string $day):array
     {
@@ -82,6 +84,24 @@ final class EuropeanWithdrawal
                     if(array_sum($data[$k])!==10000)throw new \DomainException('Country weights must sum to 10000');
                 }
                 $s['partner_allocation']=$data;break;
+            case 'monetary_stress':
+                self::fields($data,['effective_on','refinancing_days','euro_fx_move_bps','country_refinancing','instrument_sha']);
+                self::date($data['effective_on']);self::sha($data['instrument_sha']);
+                if(!isset($s['monetary_stress_version'])||$s['monetary_stress']!==null||$data['effective_on']<=$day
+                    ||!is_int($data['refinancing_days'])||$data['refinancing_days']<1||$data['refinancing_days']>365
+                    ||!is_int($data['euro_fx_move_bps'])||$data['euro_fx_move_bps']< -2000||$data['euro_fx_move_bps']>2000
+                    ||!is_array($data['country_refinancing'])||count($data['country_refinancing'])>27)
+                    throw new \DomainException('Invalid prospective monetary sensitivity');
+                foreach($data['country_refinancing'] as $iso=>$v){
+                    if(!in_array($iso,[...self::PARTNERS,'FR'],true)||!is_array($v))throw new \DomainException('Unknown refinancing country');
+                    self::fields($v,['tranche_minor','spread_change_bps']);
+                    if(!is_int($v['tranche_minor'])||$v['tranche_minor']<0||$v['tranche_minor']>100000000000000
+                        ||!is_int($v['spread_change_bps'])||$v['spread_change_bps']< -1000||$v['spread_change_bps']>2000)
+                        throw new \DomainException('Invalid refinancing scenario');
+                }
+                // Independent financial sensitivity, not a legal consequence
+                // of Article 50. Revoking withdrawal does not erase this case.
+                $s['monetary_stress']=$data;break;
             case 'revocation':
                 self::fields($data,['national_decision_sha','notice_sha','unequivocal_unconditional']);
                 self::sha($data['national_decision_sha']);self::sha($data['notice_sha']);
@@ -105,7 +125,7 @@ final class EuropeanWithdrawal
     }
     public static function restore(array $s):array
     {
-        $r=self::initial($s['start_day'],array_key_exists('trade_regime_version',$s),array_key_exists('spillovers_version',$s));
+        $r=self::initial($s['start_day'],array_key_exists('trade_regime_version',$s),array_key_exists('spillovers_version',$s),array_key_exists('monetary_stress_version',$s));
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>1000)throw new \DomainException('Invalid EU history');
         foreach($s['history'] as $h){
             self::fields($h,['day','kind','data']);$r=self::advance($r,$h['day']);

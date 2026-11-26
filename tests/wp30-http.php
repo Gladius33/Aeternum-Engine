@@ -697,7 +697,9 @@ $eb54=$euStore54->execute($euWorld54,'eu_evidence',$budget54,'eu-budget-test-001
 $wx54=array_fill_keys(\Aeternum\WorldPolitics\EuropeanWithdrawal::PARTNERS,0);$wx54['DE']=6000;$wx54['IT']=4000;
 $wm54=array_fill_keys(\Aeternum\WorldPolitics\EuropeanWithdrawal::PARTNERS,0);$wm54['DE']=3000;$wm54['ES']=7000;
 $alloc54=['kind'=>'partner_allocation','data'=>['effective_on'=>'2026-11-27','export_loss_weights'=>$wx54,'import_loss_weights'=>$wm54,'instrument_sha'=>str_repeat('f',64)]];
-$euStore54->execute($euWorld54,'eu_evidence',$alloc54,'eu-allocation-test-001',$eb54['etag']);
+$ep54=$euStore54->execute($euWorld54,'eu_evidence',$alloc54,'eu-allocation-test-001',$eb54['etag']);
+$stress54=['kind'=>'monetary_stress','data'=>['effective_on'=>'2026-11-27','refinancing_days'=>365,'euro_fx_move_bps'=>-1000,'country_refinancing'=>['DE'=>['tranche_minor'=>10000000000000,'spread_change_bps'=>200]],'instrument_sha'=>str_repeat('1',64)]];
+$euStore54->execute($euWorld54,'eu_evidence',$stress54,'eu-stress-test-001',$ep54['etag']);
 $sp54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);
 ck30($sp54['status']===200&&$sp54['body']['membership_scope']['current_modelled_eu_members']===27&&$sp54['body']['budget']['cumulative']['remaining_eu_financing_gap_minor']===0,'WP54r no premature EU scope or fiscal effect');
 $c54=req30('GET',$r54.'/clock',null,$tc48);
@@ -711,6 +713,8 @@ $sp54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);$sb54=$sp54['b
 ck30($sp54['status']===200&&$sb54['membership_scope']['current_modelled_eu_members']===26&&$sb54['membership_scope']['remaining_eu_real_gdp_change_minor']===null,'WP54r scope is not recession');
 ck30(count($sb54['trade']['partners'])===26&&array_sum(array_column($sb54['trade']['partners'],'today_gross_export_loss_proxy_minor'))===$mx54['eu_trade']['real_import_loss_minor']&&$sb54['trade']['unallocated_export_loss_proxy_minor']===0,'WP54r mirror flows conserved across countries');
 ck30($sb54['budget']['annual_static_gap_before_settlement_minor']===950000000000&&$sb54['budget']['cumulative']['consolidated_net_delta_minor']===0&&!$sb54['budget']['national_treasury_booked'],'WP54r counterfactual budget gap no double booking');
+ck30($sb54['monetary']['status']==='active'&&$sb54['monetary']['assumed_euro_fx_move_bps']===-1000&&$sb54['monetary']['exchange_rate_change_bps']===null&&!$sb54['monetary']['euro_collapse_inferred'],'WP54r explicit FX sensitivity not forecast');
+ck30($sb54['monetary']['refinancing']['covered_countries']===1&&$sb54['monetary']['refinancing']['countries']['DE']['interest_delta_today_minor']>0&&$sb54['monetary']['refinancing']['countries']['IT']['tranche_minor']===null&&!$sb54['monetary']['refinancing']['actual_booked'],'WP54r partial refinancing sensitivity only');
 ck30(req30('GET',$r54.'/organizations/eu/spillovers',null,$ta2)['status']===404&&req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48)['etag']===$sp54['etag'],'WP54r projection isolation and deterministic ETag');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
