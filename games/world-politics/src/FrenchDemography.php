@@ -26,11 +26,11 @@ final class FrenchDemography
         return $out;
     }
     private static function ratio(int $n,int $d):?int{return $d===0?null:intdiv($n*10000,$d);}
-    public static function load(string $start,int $u0):array
+    public static function load(string $start,int $u0,bool $project=false):array
     {
-        return self::build(json_decode(file_get_contents(__DIR__.'/../data/2026-11-25-fr-demography-v1.json'),true,32,JSON_THROW_ON_ERROR),$start,$u0);
+        return self::build(json_decode(file_get_contents(__DIR__.'/../data/2026-11-25-fr-demography-v1.json'),true,32,JSON_THROW_ON_ERROR),$start,$u0,$project);
     }
-    public static function build(array $p,string $start,int $u0):array
+    public static function build(array $p,string $start,int $u0,bool $project=false):array
     {
         if($u0<0||$u0>3000||($p['schema']??null)!=='wp51-fr-demography-v1'||($p['country']??null)!=='FR'||(($p['as_of']??null)!==$start&&!($start==='2027-05-14'&&($p['as_of']??null)==='2026-11-25'))
             ||!is_array($p['observations']??null)||count($p['observations'])!==51)
@@ -65,9 +65,17 @@ final class FrenchDemography
         $migration=$get('net_migration','2025','persons');
         if($births<=0||$deaths<=0||$migration<0||$births-$deaths!==$get('natural_balance','2025','persons'))
             throw new \DomainException('Demographic balance mismatch');
-        return ['version'=>self::VERSION,'classification'=>'fictional_cohort_model_observed_anchors',
+        $projection=[];
+        if($project){
+            if($start!=='2027-05-14')throw new \DomainException('Population projection requires investiture');
+            $days=(int)(new \DateTimeImmutable('2026-01-01'))->diff(new \DateTimeImmutable($start))->format('%a');
+            $delta=intdiv(($births-$deaths+$migration)*$days,365);
+            $opening=self::split($totals['all']+$delta,$opening);
+            $projection=['opening_population_projection'=>['method'=>'constant 2025 physical net flows and fixed cohort shares','days'=>$days,'observed_population'=>$totals['all'],'net_change'=>$delta,'projected_population'=>array_sum($opening),'classification'=>'scenario_projection_not_observation']];
+        }
+        return ['version'=>self::VERSION,'classification'=>'fictional_cohort_model_observed_anchors',...$projection,
             'source_pack'=>$p,'source_sha'=>hash('sha256',json_encode($p,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
-            'start_day'=>$start,...($start!==$p['as_of']?['opening_anchor_status'=>'historical_observations_carried_forward_as_scenario_assumptions','opening_anchor_vintage'=>$p['as_of']]:[]),'population_observation_day'=>'2026-01-01','opening_cohorts'=>$opening,
+            'start_day'=>$start,...($start!==$p['as_of']?['opening_anchor_status'=>$project?'projected_from_historical_physical_flows':'historical_observations_carried_forward_as_scenario_assumptions','opening_anchor_vintage'=>$p['as_of']]:[]),'population_observation_day'=>'2026-01-01','opening_cohorts'=>$opening,
             'opening_indicators'=>self::indicators($opening),'annual_births'=>$births,'annual_deaths'=>$deaths,'annual_net_migration'=>$migration,
             'fertility_observed_hundredths'=>$get('fertility_rate','2025','hundredths_children_per_woman'),
             'statistical_adjustment_not_physical_flow'=>$get('statistical_adjustment','2025','persons'),
@@ -76,7 +84,7 @@ final class FrenchDemography
             'coefficients'=>'fictional_uncalibrated','net_migration_only'=>true];
     }
     public static function assertValid(array $c,string $start,int $u0):void
-    {if(!isset($c['source_pack'])||self::build($c['source_pack'],$start,$u0)!==$c)throw new \DomainException('Demographic assumptions mismatch');}
+    {if(!isset($c['source_pack'])||self::build($c['source_pack'],$start,$u0,isset($c['opening_population_projection']))!==$c)throw new \DomainException('Demographic assumptions mismatch');}
     public static function indicators(array $a):array
     {
         $children=0;$working=0;$older=0;$women=0;$female=0;$male=0;$school=0;

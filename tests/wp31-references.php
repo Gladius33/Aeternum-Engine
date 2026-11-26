@@ -69,3 +69,16 @@ ck31($a2['budget_delta_minor']===0&&$a2['cumulative_planned_savings_minor']===$a
 $aidRef=$bb['aid_reference_v2'];ck31($aidRef['source_pack']['observed']['humanitarian_latest_tenths_million']['total']===4716&&$aidRef['source_pack']['observed']['civil_fund_2026_new_envelope']===71&&$aidRef['not_additive'],'dated civil and humanitarian scope preserved');
 ck31($aidRef['future_loans_guarantees_eu_and_refugee_costs_minor']===null&&$aidRef['cooperation_source_discrepancy_million']===-7,'unquantified future flows and source discrepancies explicit');
 ck31(count($a1['categories'])===3&&$a1['domestic_demand_delta_proxy_minor']+$a1['external_transfer_delta_proxy_minor']===$a1['budget_delta_minor']&&!$a1['new_bilateral_discretionary_loans_allowed'],'all three cost categories stop, no new discretionary commitments; transfer bridge balances');
+
+require_once __DIR__.'/../games/world-politics/src/FrenchDemography.php';
+$su=$bb['opening_supplement'];
+ck31(array_sum($su['gross_by_subsector_minor'])===$bb['opening_debt']&&array_sum($su['net_by_subsector_minor'])===$su['opening_net_debt_minor']&&$bb['opening_debt']-$su['opening_net_debt_minor']===22870000000000,'projected sector gross/net debt identity and frozen deductible assets');
+ck31($su['observed_gross_rounding_residual_million']===-100&&$su['observed_net_rounding_residual_million']===-100,'published rounding residuals preserved');
+ck31($su['purchasing_power']['opening_index_bps']===10000&&!$su['purchasing_power']['score_eligible']&&$su['civil_aid_commitments']['outstanding_payments_minor']===null,'no score from historical purchasing power and no invented commitments');
+$demo=\Aeternum\WorldPolitics\FrenchDemography::load(IP::DAY,$bb['initial_unemployment_bps'],true);
+\Aeternum\WorldPolitics\FrenchDemography::assertValid($demo,IP::DAY,$bb['initial_unemployment_bps']);
+$dp=$demo['opening_population_projection'];
+ck31($dp['days']===498&&$dp['projected_population']===$dp['observed_population']+$dp['net_change']&&$dp['projected_population']===array_sum($demo['opening_cohorts']),'investiture demography projected and reconciled');
+$legacy=MB::build($bb['source_pack'],true,true);
+MB::assertValid($legacy);
+ck31(!isset($legacy['opening_supplement']),'older projected macro snapshot remains replayable');

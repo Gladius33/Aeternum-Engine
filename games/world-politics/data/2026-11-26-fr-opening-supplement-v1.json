@@ -1,0 +1,50 @@
+{
+  "schema": "wp54r-opening-supplement-v1",
+  "as_of": "2026-11-26",
+  "sources": {
+    "debt": {
+      "url": "https://www.insee.fr/fr/statistiques/9053525",
+      "period": "2026-Q2",
+      "unit": "million_EUR",
+      "rounding": "published tenths of billion"
+    },
+    "households": {
+      "url": "https://www.insee.fr/fr/statistiques/2830244",
+      "period": "2025",
+      "unit": "million_EUR and basis_points"
+    },
+    "civil_aid": {
+      "url": "https://www.assemblee-nationale.fr/dyn/docs/RAPPANR5L17B1996-tIII-a4.raw",
+      "period": "PLF2026",
+      "scope": "authorisations d'engagement, not verified outstanding payments"
+    }
+  },
+  "debt": {
+    "gross_total": 3595500,
+    "net_total": 3366800,
+    "gross": {
+      "state": 2942100,
+      "central_agencies": 69200,
+      "local": 274900,
+      "social": 309400
+    },
+    "net": {
+      "state": 2831700,
+      "central_agencies": 37600,
+      "local": 260100,
+      "social": 237500
+    }
+  },
+  "households": {
+    "gross_disposable_income_million": 1876900,
+    "real_aggregate_change_bps": -40,
+    "real_per_consumption_unit_change_bps": -70,
+    "consumption_deflator_change_bps": 80
+  },
+  "civil_aid": {
+    "first_fund_envelope_million": 200,
+    "renewal_programme_110_proposed_commitments_million": 50,
+    "renewal_project_period": "2027-2029",
+    "remaining_legal_payments_at_investiture_million": null
+  }
+}

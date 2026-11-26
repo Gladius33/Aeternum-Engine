@@ -67,6 +67,7 @@ final class SovereignDebtLedger
             if($start!==InvestitureEconomicProjection::DAY||$baseline['opening_debt']<$debt)throw new \DomainException('Invalid projected debt opening');
             $state=intdiv($baseline['opening_debt'],$debt)*$state+self::share($state,$baseline['opening_debt']%$debt,$debt);
             $debt=$baseline['opening_debt'];
+            if(isset($baseline['opening_supplement']))$state=$baseline['opening_supplement']['gross_by_subsector_minor']['state'];
         }elseif($debt!==$baseline['opening_debt'])throw new \DomainException('Debt opening mismatch');
         $weights=[];
         foreach(['nonresident','other_french','french_credit_institutions','french_insurers','french_funds'] as $k)
