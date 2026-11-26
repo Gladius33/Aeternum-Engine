@@ -54,7 +54,7 @@ final class AlphaGateway
             if ($path==='/api/v1/me' && $method==='GET') return self::ok(200,['account_id'=>$session->id,'username'=>$session->username]);
             $scenario=new AlphaScenario();
             if ($path==='/api/v1/scenarios' && $method==='GET') {
-                $base=new GlobalReferenceBundle();
+                $base=GlobalReferenceBundle::published();
                 return self::ok(200,['scenarios'=>[['id'=>AlphaScenario::ID,'start_day'=>AlphaScenario::DAY],
                     ['id'=>AlphaScenario::GLOBAL,'start_day'=>GlobalReferenceBundle::DATE,'reference_sha'=>$base->sha(),
                     'coverage'=>$base->coverage()],['id'=>AlphaScenario::COMPARATIVE,'start_day'=>GlobalReferenceBundle::DATE,
@@ -116,7 +116,11 @@ final class AlphaGateway
                         $sha=$body['reference_bundle_sha']??null;
                         if (array_key_exists('reference_bundle_sha',$body) && (!is_string($sha)||!preg_match('/^[a-f0-9]{64}$/D',$sha)))
                             throw new AlphaHttpError(422,'invalid_reference_bundle');
-                        try {$bundle=$sha===null?new GlobalReferenceBundle():(new PdoGlobalReferenceBundles($this->db()))->load($sha);}
+                        try {
+                            $store=new PdoGlobalReferenceBundles($this->db());$bundled=GlobalReferenceBundle::published();
+                            if($sha===null||$sha===$bundled->sha()){$bundle=$bundled;$sha=$store->install($bundle);}
+                            else $bundle=$store->load($sha);
+                        }
                         catch (\DomainException $e) {throw new AlphaHttpError(422,'unknown_reference_bundle');}
                         $scenario=new AlphaScenario($body['scenario'],$bundle,$sha);
                         $worlds=new AlphaWorlds($this->db(),$scenario);
@@ -144,7 +148,7 @@ final class AlphaGateway
                     if ($pins===false || $pins['actor_registry_sha']!==$bundle->actors->hash() || $pins['reference_sha']!==$bundle->references->hash())
                         throw new \UnexpectedValueException('Pinned references differ');
                     return self::ok(200,['bundle_sha'=>$bundle->sha(),'manifest'=>$bundle->manifest,'coverage'=>$bundle->coverage(),
-                        'countries'=>$bundle->countries->all()]);
+                        'countries'=>$bundle->countries->all(),'observations'=>$bundle->references->all()]);
                 }
             } elseif ($definition['scenario']!==AlphaScenario::ID) throw new \UnexpectedValueException('Unknown saved scenario');
             $principal=new AlphaPrincipal($session,$world,false,$scenario->countries,in_array($scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true),in_array($scenario->id,[AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true),in_array($scenario->id,[AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true));

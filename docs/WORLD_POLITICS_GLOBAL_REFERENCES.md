@@ -39,3 +39,10 @@ The economic model consumes the same EconomicReferenceRegistry used by
 previous projections. No bilateral trade, current governments, budgets,
 constitutional rules outside reviewed countries or calibrated national
 demographic forecasts are added in this milestone.
+
+
+## Corrective WP54r — published table bundle, not an empty default
+
+New global/comparative and subsequent campaign worlds without a requested bundle now install and pin the immutable published table bundle. Existing worlds whose stored bundle SHA is null continue to read the old empty registry. Creation idempotency fingerprints the request's explicit bundle selector (null if omitted), not the server-selected default, preserving retries from before the migration. The `/references` endpoint exposes the actual pinned records, not just counts. API-based archives retain the original ingestion gate; the manually transcribed published tables are not represented as API responses.
+
+Population: 194 of 195 UN member/observer states, WDI 2024 table vintage 15 December 2025. GDP: 55 strategic/European/alliance states, same table vintage. The remaining GDP entries are left absent rather than assigning a date to italicized historical values that the extraction does not distinguish. The table's precision, source geography and CC BY 4.0 dataset terms are preserved. Russia/Ukraine territorial caveats, Cyprus and Palestine scopes are not political recognition decisions. The World Bank API and original PDF screenshot retrieval were unavailable in this session; table text was used. The pack also adds four France-centred bilateral goods trade totals for 2025, with the ECB annual average conversion to USD and symmetric same-reporter lookup. These records are consumed by the existing authorized trade restriction projection (not automatic sanctions). The EU and NATO membership lists, BRICS reported membership and WTO/WHO source counts are exposed as historical reference; they do not silently grant real treaty authority or substitute for incomplete accession/withdrawal mechanics. Sources and scope are embedded in the pack.

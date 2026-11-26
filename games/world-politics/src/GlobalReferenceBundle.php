@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CountryCatalog.php';
 require_once __DIR__.'/WorldBankOfflineImporter.php';
+require_once __DIR__.'/GlobalPublishedObservations.php';
 
 /** WP31: fixed reviewed geopolitical universe; WDI archives are separately licensed. */
 final class GlobalReferenceBundle
@@ -39,6 +40,20 @@ final class GlobalReferenceBundle
             'entities'=>array_values($entities)]);
         $asOf=$pack['as_of']??self::DATE;
         if ($asOf>self::DATE) throw new \DomainException('Observation postdates scenario start');
+        $published=array_key_exists('published_tables_sha',$pack??[]);
+        if($published){
+            if($asOf!==self::DATE||$pack['published_tables_sha']!==GlobalPublishedObservations::digest()||($pack['series']??[])!==[])throw new \DomainException('Invalid published table pin');
+            $records=GlobalPublishedObservations::records($this->actors);
+            if(isset($pack['records'])&&$pack['records']!==$records)throw new \DomainException('Published table records differ from pinned source');
+            $this->references=new EconomicReferenceRegistry($asOf,$records,$this->actors);
+            $this->records=$this->references->all();
+            $this->manifest=['as_of'=>$asOf,'catalog_version'=>$catalog['version'],'actors_sha'=>$this->actors->hash(),
+                'reference_sha'=>$this->references->hash(),'un_members'=>193,'observer_states'=>2,
+                'governing_authorities'=>count($this->actors->all())-195,'series'=>[],
+                'observations'=>count($this->records),'explicit_missing'=>0,'published_tables_sha'=>$pack['published_tables_sha'],
+                'published_tables'=>GlobalPublishedObservations::summary()];
+            return;
+        }
         $this->references=new EconomicReferenceRegistry($asOf,$pack['records']??[],$this->actors);
         $this->records=$this->references->all();
         $series=$pack['series']??[];
@@ -72,7 +87,9 @@ final class GlobalReferenceBundle
             'observations'=>count(array_filter($this->records,fn($r)=>$r['kind']==='observed')),
             'explicit_missing'=>count(array_filter($this->records,fn($r)=>$r['kind']==='missing'))];
     }
-    public function payload():array {return ['as_of'=>$this->manifest['as_of'],'records'=>$this->records,'series'=>$this->manifest['series']];}
+    public static function published():self
+    {return new self(['as_of'=>self::DATE,'published_tables_sha'=>GlobalPublishedObservations::digest()]);}
+    public function payload():array {return ['as_of'=>$this->manifest['as_of'],'records'=>$this->records,'series'=>$this->manifest['series'],...(isset($this->manifest['published_tables_sha'])?['published_tables_sha'=>$this->manifest['published_tables_sha']]:[])];}
     public function sha():string {return hash('sha256',self::json([$this->manifest,$this->payload()]));}
     public static function json(array $a):string{return json_encode($a,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
     /** Trusted local archive ingestion. No arbitrary network URLs or player uploads. */

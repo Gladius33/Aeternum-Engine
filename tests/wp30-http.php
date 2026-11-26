@@ -74,6 +74,7 @@ ck30($g['status']===201,'WP31 global world provisioned');
 $gr='/worlds/'.$g['body']['world_id'];
 $refs=req30('GET',$gr.'/references',null,$ta2);
 ck30($refs['status']===200 && $refs['body']['manifest']['un_members']===193 && count($refs['body']['countries'])===195,'WP31 worldwide reference API');
+ck30($refs['body']['coverage']['population_total']['observed']===194&&$refs['body']['coverage']['gdp_current_usd']['observed']===55&&count($refs['body']['observations'])===257,'WP54r new global worlds pin published economic data by default');
 $actors=req30('GET',$gr.'/diplomacy/actors',null,$ta2);
 ck30($actors['status']===200 && count($actors['body']['actors'])===196,'WP31 global diplomatic actors');
 $legacy=req30('GET',$root.'/diplomacy/actors',null,$ta2);
