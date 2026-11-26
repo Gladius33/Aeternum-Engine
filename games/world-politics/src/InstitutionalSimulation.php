@@ -10,6 +10,7 @@ require_once __DIR__.'/PoliticalNegotiator.php';
 require_once __DIR__.'/ConstitutionalRevision.php';
 require_once __DIR__.'/BicameralLegislation.php';
 require_once __DIR__.'/FrenchRecurringElections.php';
+require_once __DIR__.'/ForeignRecurringElections.php';
 require_once __DIR__.'/RevisionAutonomy.php';
 require_once __DIR__.'/FrenchSenateCycle.php';
 require_once __DIR__.'/CabinetRequests.php';
@@ -59,6 +60,7 @@ final class InstitutionalSimulation
         if (array_key_exists('revision',$state)) $expected[]='revision';
         if (array_key_exists('legislation',$state)) $expected[]='legislation';
         if(array_key_exists('recurring_elections',$state))$expected[]='recurring_elections';
+        if(array_key_exists('foreign_recurring',$state))$expected[]='foreign_recurring';
         if(array_key_exists('revision_requests',$state))$expected[]='revision_requests';
         if(array_key_exists('senate',$state))$expected[]='senate';
         if(array_key_exists('cabinet_requests',$state))$expected[]='cabinet_requests';
@@ -108,6 +110,7 @@ final class InstitutionalSimulation
             if(!isset($state['electoral'])||$state['political_ai']!==PoliticalNegotiator::evaluate($state['electoral']))
                 throw new \DomainException('Political AI projection mismatch');
         }
+        if(array_key_exists('foreign_recurring',$state))ForeignRecurringElections::validate($state);
         if(array_key_exists('revision',$state)){
             if(!is_array($state['revision'])||$state['country_code']!=='FR')throw new \DomainException('Invalid revision scope');
             $r=ConstitutionalRevision::restore($state['revision'])->snapshot();
@@ -319,6 +322,10 @@ final class InstitutionalSimulation
         return $result;
     }
 
+    public function enableForeignRecurring():void
+    {
+        $this->state=ForeignRecurringElections::bootstrap($this->state);
+    }
     public function enableContinuityLot():void
     {
         if($this->state['country_code']!=='FR'||!isset($this->state['revision'],$this->state['electoral'],$this->state['legislation'],$this->state['political_ai'])||$this->state['events']!==[]||isset($this->state['recurring_elections']))throw new \DomainException('Continuity lot requires bootstrap');
@@ -432,7 +439,9 @@ final class InstitutionalSimulation
             $g=ComparativeGovernment::restore($this->state['accountability']);$g->advance($targetDay);
             $this->state['accountability']=$g->snapshot();
         }
-        if(isset($this->state['electoral'])){
+        if(isset($this->state['foreign_recurring'])){
+            $this->state=ForeignRecurringElections::advance($this->state,$targetDay);
+        }elseif(isset($this->state['electoral'])){
             $el=ElectoralCycle::restore($this->state['electoral']);
             if(isset($this->state['recurring_elections'])){
                 $e=$el->snapshot();$lc=$this->state['legislation']['responsibility']['lifecycle'];
