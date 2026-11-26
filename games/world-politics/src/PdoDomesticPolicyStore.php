@@ -70,7 +70,7 @@ final class PdoDomesticPolicyStore
             'propose'=>['policy_id','effective_day'],'enact'=>['policy_id'],'clock'=>['target_day',...(array_key_exists('trade_observation',$payload)?['trade_observation']:[]),...(array_key_exists('eu_trade_observation',$payload)?['eu_trade_observation']:[])],'crisis'=>['action'],'corporation'=>['action']
         });
         foreach ($payload as $field=>$value) {
-            if (!is_string($value) || strlen($value)>(in_array($field,['trade_observation','eu_trade_observation'],true)?2048:64)) throw new \InvalidArgumentException('Invalid command value');
+            if (!is_string($value) || strlen($value)>($field==='eu_trade_observation'?8192:($field==='trade_observation'?2048:64))) throw new \InvalidArgumentException('Invalid command value');
         }
         if (!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)
             || !preg_match('/^"[a-f0-9]{64}"$/D',$ifMatch)) {
@@ -98,6 +98,10 @@ final class PdoDomesticPolicyStore
             }
             $before = $sim->hash();
             if (!hash_equals('"'.$before.'"',$ifMatch)) throw new \DomainException('Stale domestic state');
+            if($operation==='clock'&&isset($payload['eu_trade_observation'])){
+                $source=self::decode($payload['eu_trade_observation']);
+                if(isset($source['frf_committed_observation'])&&!hash_equals($before,$source['prior_domestic_sha']??''))throw new \DomainException('Stale native budget source');
+            }
             if($operation==='clock'&&isset($sim->snapshot()['daily_legal_version']))DailyLegalActivation::apply($this->pdo,$sim,$world,$payload['target_day'],$actor);
             $result = match($operation) {
                 'propose'=>$this->propose($sim,$payload),

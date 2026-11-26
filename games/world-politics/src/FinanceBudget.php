@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/FrancCommittedBudget.php';
 require_once __DIR__.'/FrenchCabinet.php';
 
 /** WP46 limited fictional annual finance bill. Minor currency units.
@@ -126,10 +127,12 @@ final class FinanceBudget
             $b['seventy_day_review_due']=$dom['day']>=$b['parliament_deadline']&&in_array($b['status'],['assembly_pending','assembly_decided','senate_pending','senate_decided'],true);
             $b['implementation_authorized']=($dom['policies'][$b['policy_id']]['authorized_on']??null)!==null;
         }unset($b);
-        return ['classification'=>'fictional_treasury_projection','currency'=>'EUR','unit'=>'minor','annual_interest_bps'=>$rate,
+        $reference=['classification'=>'fictional_treasury_projection','currency'=>'EUR','unit'=>'minor','annual_interest_bps'=>$rate,
             'opening_debt'=>$openingDebt,'cash'=>$cash,'debt'=>$debt,'interest_total'=>$interest,'borrowing_total'=>$issued,
             'primary_balance_total'=>$primary,'days'=>$rows,'bills'=>$bills,
             'continuity_review_required'=>$dom['day']>='2027-01-01'&&!array_filter($bills,fn($b)=>$b['status']==='published'&&$b['implementation_authorized'])];
+        $native=FrancCommittedBudget::project($dom);
+        return $native===null?$reference:[...$native,'cash'=>$native['latest']['closing_state']['accounts']['treasury_frf_minor'],'debt'=>$native['latest']['valuation']['closing_gross_debt_frf_minor'],'unit'=>'minor','bills'=>$bills,'continuity_review_required'=>$reference['continuity_review_required'],'reference_eur_only'=>$reference];
     }
     private static function vote(array $d,int $cap):array
     {

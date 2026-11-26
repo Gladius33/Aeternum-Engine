@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/EuropeanWithdrawal.php';
 require_once __DIR__.'/EuropeanMonetaryStress.php';
-require_once __DIR__.'/FrancNativeBudgetProjection.php';
+require_once __DIR__.'/FrancCommittedBudget.php';
 
 /** Versioned, read-only counterfactual ledger from committed legal and trade
  * states. The dated budget/GDP anchors are from the existing WP80 study.
@@ -95,7 +95,16 @@ final class EuropeanSpillovers
         $currency=isset($eu['currency_contract_version'])?CurrencyTransitionLedger::project($eu,$ds['days']):null;
         $franc=isset($eu['franc_rule_version'])?FrancProductionRule::project($eu,$ds):null;
         $fx=isset($eu['franc_fx_version'])?FrancExchangeReserves::project($eu,$currency,$franc):null;
-        $native=isset($eu['franc_native_budget_terms'])?FrancNativeBudgetProjection::project($eu,$ds,$currency,$franc,$fx):null;
+        $native=null;
+        if(isset($eu['franc_native_budget_terms'])){
+            $t=$eu['franc_native_budget_terms'];
+            if(($t['commit_daily']??false)&&!$eu['membership']&&$day>=max($t['effective_on'],$eu['exit_on'])){
+                $native=FrancCommittedBudget::project($ds);
+                if($native===null||$native['instrument_sha']!==$t['instrument_sha']||$native['latest']['day']!==$day)throw new \DomainException('Missing committed native budget');
+                $latest=$native['latest'];$fund=$franc['latest']['funding'];
+                if($latest['closing_state']['advance_liability']!==$fund['treasury']['advance_liability_franc_minor']||$latest['closing_state']['mark']!==$currency['new_currency_value_index_bps'])throw new \DomainException('Native monetary and FX reconciliation failure');
+            }else $native=FrancNativeBudgetProjection::project($eu,$ds,$currency,$franc,$fx);
+        }
         return ['version'=>self::VERSION,'world_id'=>$world,'day'=>$day,'classification'=>'simulation_sensitivity_not_forecast',
             'source_organization_sha'=>$orgSha,'source_domestic_sha'=>$domSha,
             'membership_scope'=>['initial_eu_members'=>27,'current_modelled_eu_members'=>$eu['membership']?27:26,

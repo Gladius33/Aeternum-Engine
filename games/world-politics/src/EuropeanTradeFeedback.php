@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/EuropeanWithdrawal.php';
+require_once __DIR__.'/FrancCommittedBudget.php';
 
 /** Illustrative aggregate trade channel, not a WTO tariff schedule, actual
  * preferential agreement, customs union, exchange rate or forecast. */
@@ -35,13 +36,15 @@ final class EuropeanTradeFeedback
                 $ft=$eu['franc_fiscal_terms']??null;
                 $out['frf_fiscal_terms']=$ft!==null&&$book['currency_conversion_simulated']&&$day>=$ft['effective_on']?$ft:null;
                 $out['frf_parity_units_per_eur']=$out['frf_fiscal_terms']===null?null:$book['units_per_eur_at_parity'];
+                $native=FrancCommittedBudget::observe($eu,$priorDom['state'],$book,$day);
+                if($native!==null)$out['frf_committed_observation']=$native;
             }
         }
         self::validate($out,$world,$day,$version);return $out;
     }
     public static function validate(array $v,string $world,string $day,?string $expectedVersion=null):void
     {
-        if(array_keys($v)!==['version','world_id','day','organization_sha','status','regime','import_duty_bps','import_friction_bps','export_friction_bps',...( in_array($v['version']??null,[self::VERSION_V3,self::VERSION_V4],true)?['frf_value_index_bps','prior_domestic_sha']:[]),...(($v['version']??null)===self::VERSION_V4?['frf_fiscal_terms','frf_parity_units_per_eur']:[])]
+        if(array_keys($v)!==['version','world_id','day','organization_sha','status','regime','import_duty_bps','import_friction_bps','export_friction_bps',...( in_array($v['version']??null,[self::VERSION_V3,self::VERSION_V4],true)?['frf_value_index_bps','prior_domestic_sha']:[]),...(($v['version']??null)===self::VERSION_V4?['frf_fiscal_terms','frf_parity_units_per_eur',...(array_key_exists('frf_committed_observation',$v)?['frf_committed_observation']:[])]:[])]
             ||!in_array($v['version'],[self::VERSION,self::VERSION_V2,self::VERSION_V3,self::VERSION_V4],true)||($expectedVersion!==null&&$v['version']!==$expectedVersion)||$v['world_id']!==$world||$v['day']!==$day||!is_string($v['organization_sha'])
             ||!preg_match('/^[a-f0-9]{64}$/D',$v['organization_sha'])||!in_array($v['status'],['member','certified_scenario','unmodelled_post_exit'],true))
             throw new \DomainException('Invalid EU trade observation');
@@ -60,6 +63,10 @@ final class EuropeanTradeFeedback
                 FrancFiscalLedger::validateTerms($ft,(new \DateTimeImmutable($ft['effective_on']))->modify('-1 day')->format('Y-m-d'),
                     ['currency_terms'=>['effective_on'=>$ft['effective_on']]]);
             }
+        }
+        if(array_key_exists('frf_committed_observation',$v)){
+            if($v['version']!==self::VERSION_V4||$v['frf_fiscal_terms']===null||!is_array($v['frf_committed_observation']))throw new \DomainException('Native budget requires fiscal observation');
+            FrancCommittedBudget::validate($v['frf_committed_observation'],$day);
         }
         foreach(['import_duty_bps','import_friction_bps','export_friction_bps'] as $k)
             if(!is_int($v[$k])||$v[$k]<0||$v[$k]>3000)throw new \DomainException('Invalid illustrative trade rate');

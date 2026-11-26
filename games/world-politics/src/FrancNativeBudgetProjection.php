@@ -9,7 +9,7 @@ require_once __DIR__.'/FrancNativeBudget.php';
 final class FrancNativeBudgetProjection
 {
     private static function key(string $id,string $cur):string{return $id.'-'.$cur;}
-    private static function opening(array $f,?array $prior,array $fx,array $money,int $ratio,int $mark):array
+    public static function opening(array $f,?array $prior,array $fx,array $money,int $ratio,int $mark):array
     {
         $claims=[];$p=$prior['treasury']??[];
         foreach($f['creditors'] as $id=>$c){
@@ -27,7 +27,7 @@ final class FrancNativeBudgetProjection
             'claims'=>$claims,'counter_eur'=>$fx['counterparty_eur_assets_minor'],'counter_frf'=>$fx['counterparty_franc_pool_minor'],'primary_arrears'=>($p['primary_arrears']??0)*$ratio,
             'advance_liability'=>$fund['treasury']['advance_liability_franc_minor']-$advance+$repay,'mark'=>$mark];
     }
-    private static function flow(array $r,array $state,array $model,array $money,?array $order,int $ratio):array
+    public static function flow(array $r,array $state,array $model,array $money,?array $order,int $ratio):array
     {
         $day=$r['day'];$t=$r['treasury'];$paused=$t['crisis']['moratorium']??false;$action=$t['crisis']['action']??null;$coupons=[];$maturities=[];$haircuts=[];$issues=[];
         $month=(int)substr($day,0,4)*12+(int)substr($day,5,2)-(2026*12+12);$n=$model['maturity_month_count'];

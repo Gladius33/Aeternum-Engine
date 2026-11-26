@@ -1,0 +1,66 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/../games/world-politics/src/DomesticPolicySimulation.php';
+require __DIR__.'/../games/world-politics/src/EuropeanSpillovers.php';
+require __DIR__.'/../games/world-politics/src/FinanceBudget.php';
+use Aeternum\WorldPolitics\{EuropeanWithdrawal as E,EuropeanSpillovers as S,EuropeanTradeFeedback as T,FrancCommittedBudget as C,DomesticPolicySimulation as D,DomesticPolicyAuthority,FrenchMacroBaseline as B,SovereignDebtLedger as L,FinanceBudget as F,FrancExchangeMarket as X};
+function ckCB(bool $v,string $m):void{if(!$v)throw new RuntimeException($m);echo "PASS committed budget: $m\n";}
+function noCB(callable $f):void{try{$f();}catch(DomainException|InvalidArgumentException $e){return;}throw new RuntimeException('Invalid committed budget accepted');}
+final class CBPrincipal implements DomesticPolicyAuthority{
+    public string $day='2026-11-29';
+    public function allows(string $world,string $ability):bool{return $world==='world-test';}
+    public function enactedInstrument(string $world,string $policy):?string{return null;}
+    public function clockDay(string $world):string{return $this->day;}
+}
+$d='2026-11-29';$start='2026-12-01';$sha=str_repeat('a',64);
+$e=E::request(E::initial($d,true,true,true,true,true,true,true,true,true,false,false,true),$d);
+$terms=['effective_on'=>$start,'instrument_sha'=>$sha,'reserve_purchase_authorized'=>true,'commit_daily'=>true];
+noCB(fn()=>E::certify($e,$d,'franc_native_budget',$terms));
+$e=E::certify($e,$d,'notification',['national_decision_sha'=>$sha,'notification_sha'=>$sha]);
+$e=E::certify($e,$d,'agreement',['effective_on'=>$start,'parliament_consent'=>true,'council_qualified_majority'=>true,'france_agrees'=>true,'agreement_sha'=>$sha]);
+$e=E::certify($e,$d,'currency_terms',['effective_on'=>$start,'units_per_eur'=>2,'instrument_sha'=>$sha,'contracts'=>[['id'=>'bond','debtor'=>'fr_treasury','creditor'=>'fr_banks','kind'=>'sovereign_bond','principal_eur_minor'=>100,'governing_law'=>'fr','treatment'=>'convert_certified','evidence_sha'=>$sha]]]);
+$e=E::certify($e,$d,'franc_rule',['effective_on'=>$start,'opening_base_franc_minor'=>1000000,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_bank_terms',['effective_on'=>$start,'opening_reserve_allocation_franc_minor'=>100000,'minimum_capital_bps'=>1000,'minimum_liquidity_bps'=>2000,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_bank_crisis_terms',['effective_on'=>$start,'facility_pool_franc_minor'=>100000,'guarantee_pool_franc_minor'=>100000,'collateral_haircut_bps'=>2000,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_fx_terms',['effective_on'=>$start,'official_eur_minor'=>100,'counterparty_eur_minor'=>100,'official_franc_pool_minor'=>500,'counterparty_franc_pool_minor'=>500,'minimum_official_eur_minor'=>50,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_fiscal',['effective_on'=>$start,'converted_opening_cohorts'=>['legacy-state-french_credit_institutions'],'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_fx_order',['effective_on'=>$start,'kind'=>'sell_eur','eur_minor'=>20,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_funding',['effective_on'=>'2026-12-02','spending_requested_franc_minor'=>40,'repayment_requested_franc_minor'=>0,'instrument_sha'=>$sha]);
+$e=E::certify($e,$d,'franc_native_budget',$terms);
+noCB(fn()=>E::certify($e,$d,'franc_native_budget',$terms));
+$rev=E::certify($e,$d,'revocation',['national_decision_sha'=>$sha,'notice_sha'=>$sha,'unequivocal_unconditional'=>true]);
+ckCB(!isset($rev['franc_native_budget_terms'])&&E::restore($rev)===$rev,'revocation clears terms and replay is exact');
+
+$b=B::load();$model=L::load($b,$d,true);
+$catalog=['unused'=>['revenue_delta'=>0,'expense_delta'=>0,'pressure_delta'=>['workers'=>0],'duration_days'=>1,'concessions'=>['workers'=>0],'concession_daily_cost'=>0,'production_delta_bps'=>0,'employment_delta_bps'=>0]];
+$make=fn()=>new D('world-test',$d,'EUR',$b['assumed_opening_cash'],$b['daily_revenue'],$b['daily_primary_expense'],['workers'=>400],$catalog,$b,$model,euTradeEnabled:true,euTradeV2:true,euTradeV3:true,euTradeV4:true);
+$sim=$make();$a=new CBPrincipal;
+$org=fn($s)=>['state'=>['world_id'=>'world-test','day'=>$s['day'],'eu_withdrawal'=>$s],'etag'=>'"'.$sha.'"'];
+$dom=fn()=>['state'=>$sim->snapshot(),'etag'=>'"'.$sim->hash().'"'];
+$run=function(string $day)use(&$e,$a,$sim,$org,$dom){$e=E::advance($e,$day);$a->day=$day;$obs=T::observe($org($e),'world-test',$day,T::VERSION_V4,$dom());return $sim->advance($a,$day,null,$obs);};
+$before=$run('2026-11-30');ckCB(!isset($before['frf_committed_budget']),'no premature committed budget');
+$first=$run($start);$n=$first['frf_committed_budget'];
+ckCB($n['effective_from']===$start&&$n['closing_state']['accounts']['official_eur_reserves_minor']>=50&&$n['financing']['market_issued_at_parity_eur_minor']<=$n['financing']['market_capacity_at_parity_eur_minor'],'native daily settlement and capped financing');
+ckCB($n['risk']['credit_availability_bps']<=10000&&$n['risk']['credit_availability_bps']>=7000,'bounded risk signal');
+$e=E::certify($e,$start,'currency_mark',['effective_on'=>'2026-12-02','value_index_bps'=>8000,'instrument_sha'=>$sha]);
+$second=$run('2026-12-02');$s=$second['frf_committed_budget'];
+ckCB($s['opening_accounts']===$n['closing_state']['accounts']&&$s['opening_principal']===$n['closing_principal'],'committed daily continuity');
+ckCB($s['valuation']['fx_revaluation_frf_minor']>=0&&$s['closing_state']['mark']===8000,'market quote affects persisted native liability');
+$sim->crisisDecision($a,'moratorium');$third=$run('2026-12-03');
+ckCB($third['frf_committed_budget']['paid_principal']===['FRF'=>0,'EUR'=>0]&&$third['frf_committed_budget']['financing']['market_capacity_at_parity_eur_minor']===0,'moratorium suspends native financing and settlement');
+$sim->crisisDecision($a,'resume');$fourth=$run('2026-12-04');
+$snapshot=$sim->snapshot();$copy=$make();$copy->restore($snapshot,$sim->hash());ckCB($copy->snapshot()===$snapshot,'full daily state replay');
+$bad=$snapshot;$bad['days'][1]['frf_committed_budget']['closing_state']['accounts']['treasury_frf_minor']++;$hash=hash('sha256',json_encode($bad,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));noCB(fn()=>$make()->restore($bad,$hash));
+$bad=$snapshot;unset($bad['days'][2]['eu_trade_observation']['frf_committed_observation']);$hash=hash('sha256',json_encode($bad,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));noCB(fn()=>$make()->restore($bad,$hash));
+$report=C::project($snapshot);$fin=F::project(F::initial(),$snapshot);$debt=L::project($snapshot);
+ckCB($report['latest']['day']==='2026-12-04'&&$fin['currency']==='FRF'&&$debt['currency']==='FRF'&&$fin['debt']===$debt['debt']&&$fin['reference_eur_only']['currency']==='EUR','finance and debt expose committed FRF with reference explicitly separated');
+$p=S::project($org($e),$dom());ckCB($p['franc_native_budget']===$report&&$p['franc_exchange_reserves_reference_only'],'spillover reads committed native state');
+$priorState=['accounts'=>['treasury_frf_minor'=>0,'treasury_eur_minor'=>0],'primary_arrears'=>0,'claims'=>['foreign'=>['currency'=>'EUR','principal_outstanding_minor'=>100,'principal_due_minor'=>100,'interest_due_minor'=>0]]];
+$flow=['primary_expense'=>200,'revenue'=>0,'coupons'=>[],'maturities'=>[],'haircuts'=>[]];
+$cap=['normal_daily_base_capacity'=>120,'stress_daily_base_capacity'=>120,'normal_refinancing_bps'=>0,'stress_refinancing_bps'=>0];
+$q=C::finance($priorState,$flow,$cap,2,false,null);
+ckCB($q['market_issued_at_parity_eur_minor']===120&&$q['issues']['new-stress-domestic-FRF']['amount']===200&&$q['issues']['new-stress-external-EUR']['amount']===20,'native needs independently split constrained financing');
+$market=['franc_fx_market_terms'=>['effective_on'=>$start,'market_depth_eur_minor'=>100,'daily_move_cap_bps'=>500],'franc_rule'=>['effective_on'=>$start],'franc_fx_flow_terms'=>['import_eur_share_bps'=>0,'export_eur_share_bps'=>0],'franc_fx_orders'=>[],'franc_fx_capital_orders'=>[]];
+$rows=[['day'=>$start,'macro'=>['imports'=>0,'exports'=>0,'price_index_scaled'=>100000000],'frf_committed_budget'=>['risk'=>['new_unpaid_eur_demand_proxy_minor'=>50]]]];
+$x=X::quotes($market,'2026-12-02',$start,$rows);ckCB($x['value_index_bps']===9750&&$x['changes'][0]['flow_pressure']['new_unpaid_eur_debt_pressure_proxy_minor']===50,'lagged debt FX pressure');
+ckCB(X::quotes($market,$start,$start,$rows)['value_index_bps']===10000,'no same-day FX feedback');

@@ -56,8 +56,10 @@ final class FrancExchangeMarket
             $imports=self::scale(self::scale($i,$p,100000000),$flow['import_eur_share_bps'],10000);
             $exports=self::scale(self::scale($x,$p,100000000),$flow['export_eur_share_bps'],10000);
             $capital=$eu['franc_fx_capital_orders'][$d]['net_private_eur_inflow_minor']??null;
+            $debtPressure=$row['frf_committed_budget']['risk']['new_unpaid_eur_demand_proxy_minor']??0;
+            if(!is_int($debtPressure)||$debtPressure<0||$debtPressure>10000000000000000)throw new \DomainException('Invalid native debt FX pressure');
             $result[$d]=['eur_import_demand_proxy_minor'=>$imports,'eur_export_supply_proxy_minor'=>$exports,
-                'certified_net_private_eur_inflow_minor'=>$capital,'net_eur_supply_proxy_minor'=>$exports-$imports+($capital??0),
+                'certified_net_private_eur_inflow_minor'=>$capital,'net_eur_supply_proxy_minor'=>$exports-$imports+($capital??0)-$debtPressure,...(isset($row['frf_committed_budget'])?['new_unpaid_eur_debt_pressure_proxy_minor'=>$debtPressure]:[]),
                 'official_intervention_excluded_from_pressure'=>true,'capital_coverage'=>$capital===null?'missing_assumed_zero_for_proxy':'certified_scenario'];
         }
         if($expected!==$day)throw new \DomainException('Missing preceding FX trade day');

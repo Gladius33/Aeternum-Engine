@@ -312,6 +312,8 @@ final class DomesticPolicySimulation
         if($trade!==null)$row['trade_observation']=$trade;
         if($eu!==null)$row['eu_trade_observation']=$eu;
         if(($eu['frf_fiscal_terms']??null)!==null)$row['frf_fiscal']=FrancFiscalLedger::step($row,$prior,$this->debtModel,$eu['frf_fiscal_terms'],$eu['frf_parity_units_per_eur'],$eu['frf_value_index_bps']);
+        if(isset($prior['frf_committed_budget'])&&!isset($eu['frf_committed_observation']))throw new \DomainException('Missing ongoing native budget observation');
+        if(isset($eu['frf_committed_observation']))$row['frf_committed_budget']=FrancCommittedBudget::step($row,$prior,$this->debtModel,$eu['frf_committed_observation'],$eu['frf_parity_units_per_eur'],$eu['frf_value_index_bps']);
         if($firms!==null)$row['firms']=$firms;
         if($equity!==null)$row['public_equity']=$equity;
         if($industrial!==null)$row['industrial']=$industrial;

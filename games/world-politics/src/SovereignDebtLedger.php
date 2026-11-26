@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FinancialCrisis.php';
 require_once __DIR__.'/FrancFiscalLedger.php';
+require_once __DIR__.'/FrancCommittedBudget.php';
 
 /** WP49: closed fictional nominal debt ledger anchored to public aggregates.
  * Holder allocations and maturity cohorts are synthetic, not security-level
@@ -206,10 +207,12 @@ final class SovereignDebtLedger
             }
         }
         $last=$dom['days']===[]?null:$dom['days'][array_key_last($dom['days'])]['treasury'];
-        return ['version'=>self::VERSION,'classification'=>'fictional_debt_ledger_observed_anchors','day'=>$dom['day'],
+        $reference=['version'=>self::VERSION,'classification'=>'fictional_debt_ledger_observed_anchors','day'=>$dom['day'],
             'currency'=>'EUR','unit'=>'minor','opening_debt'=>$c['opening_debt'],'debt'=>$last['debt']??$c['opening_debt'],
             'creditors'=>$last['creditors']??($c['opening_holders']+array_fill_keys($c['new_holder_keys'],0)+(!empty($c['crisis_enabled'])?['new-support-external'=>0]:[])),
             'source_sha'=>$c['source_sha'],'reference'=>$c['source_pack'],'assumptions'=>array_diff_key($c,['source_pack'=>true]),
             'latest'=>$last,'days'=>$days,'months'=>array_values($months),'years'=>array_values($years),...(($dom['eu_trade_version']??null)==='wp54r-eu-trade-v4-frf-fiscal'?['frf_fiscal'=>FrancFiscalLedger::project($dom)]:[])];
+        $native=FrancCommittedBudget::project($dom);
+        return $native===null?$reference:[...$native,'day'=>$dom['day'],'unit'=>'minor','debt'=>$native['latest']['valuation']['closing_gross_debt_frf_minor'],'creditors'=>$native['latest']['closing_state']['claims'],'reference_eur_only'=>$reference];
     }
 }

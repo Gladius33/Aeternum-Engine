@@ -88,6 +88,8 @@ jobs:
         run: php tests/wp54r-frf-native-budget.php
       - name: WP54r native FRF budget evidence and spillover contract regression
         run: php tests/wp54r-frf-native-integration.php
+      - name: WP54r committed native budget daily replay and financing regression
+        run: php tests/wp54r-frf-committed-budget.php
       - name: WP54r FRF macro price and trade pass-through regression
         run: php tests/wp54r-frf-macro.php
       - name: WP54r Franc foreign exchange reserve conservation regression
