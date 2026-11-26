@@ -831,6 +831,8 @@ $people75=req30('GET',$r27.'/countries/FR/historical-candidates',null,$t27);
 ck30($people75['status']===200&&count($people75['body']['roster_compatible_profiles'])===12&&!$people75['body']['selection_enabled'],'WP75 historical identities without future candidacy certification');
 $proxy76=req30('GET',$r27.'/countries/FR/purchasing-power-proxy',null,$t27);
 ck30($proxy76['status']===200&&$proxy76['body']['window_days']===0&&$proxy76['body']['rolling_means_bps']===null&&!$proxy76['body']['score_eligible'],'WP76 no fictitious opening score');
+$back83=req30('GET',$r27.'/countries/FR/household-backtest',null,$t27);
+ck30($back83['status']===200&&$back83['body']['holdout_years']===[2024,2025]&&!$back83['body']['score_rules_changed'],'WP83 historical accounting holdout diagnostic');
 $house74=req30('GET',$r27.'/countries/FR/household-reference',null,$t27);
 ck30($house74['status']===200&&count($house74['body']['reference']['annual'])===6&&$house74['body']['reference']['annual'][5]['real_rdb_per_uc_growth_bps']===-70&&!$house74['body']['score_eligible'],'WP74 pinned historical household purchasing power reference');
 $civil72=req30('GET',$r27.'/countries/FR/civil-continuity',null,$t27);

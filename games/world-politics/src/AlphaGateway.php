@@ -20,6 +20,7 @@ require_once __DIR__.'/CivilContinuityReport.php';
 require_once __DIR__.'/HouseholdIncomeReference.php';
 require_once __DIR__.'/HistoricalCandidateReference.php';
 require_once __DIR__.'/HouseholdPurchasingPowerProxy.php';
+require_once __DIR__.'/HouseholdHistoricalBacktest.php';
 require_once __DIR__.'/PdoCampaignScores.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
@@ -354,6 +355,11 @@ final class AlphaGateway
                     if($dr['state']['day']!==$clock['committed_day']||$dp['state']['day']!==$clock['committed_day'])throw new AlphaHttpError(409,'world_advancing');
                     $report=HouseholdPurchasingPowerProxy::report($dr,$dp);$response=self::ok(200,$report);$response['headers']['ETag']='"'.hash('sha256',json_encode($report,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)).'"';$db->commit();return $response;
                 }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+            }
+            if($method==='GET'&&$suffix==='/countries/FR/household-backtest'&&$scenario->id===AlphaScenario::INVESTITURE){
+                $dp=(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal))->read($world);
+                if(!isset($dp['state']['household_reference']))throw new AlphaHttpError(404,'not_found');
+                $report=HouseholdHistoricalBacktest::report($dp['state']['household_reference'])+['world_id'=>$world];$response=self::ok(200,$report);$response['headers']['ETag']='"'.CampaignScore::digest($report).'"';return $response;
             }
             if($method==='GET'&&$suffix==='/countries/FR/household-reference'&&$scenario->id===AlphaScenario::INVESTITURE){
                 $dp=(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal))->read($world);
