@@ -612,3 +612,11 @@ Optional lagged nominal trade proxy and certified net private capital flow
 pressure, shared quote across reserve and contract books. No invented actual
 balance of payments, autonomous private capital behavior or FX transactions;
 full macro price/credit feedback, actual national currency ledger remain open.
+
+### WP54r FRF macro transmission
+
+Pinned new-world v3 daily feedback from committed FX quote and prior domestic
+history: one-off price level shock, lagged trade volumes, matched demand
+shortfall, bounded export response, existing wage/fiscal feedback. Old v1/v2
+worlds remain compatible. Calibration, actual currency migration, national
+balance of payments, and realized rolling inflation remain open.

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/EuropeanTradeFeedback.php';
+require_once __DIR__.'/FrancMacroFeedback.php';
 
 /** WP48: version-pinned observations and a lagged, fictional fiscal loop.
  * The observations are not predictions, nor all dated to the game start.
@@ -148,11 +149,19 @@ final class MacroFiscalLoop
         $government=max(0,$b['daily_government_consumption']+intdiv($expense-$industrialCapex-$b['daily_primary_expense']-$serviceTransferDelta,2));
         $exports=$b['daily_exports']-self::scale($b['daily_exports'],$trade);
         $ordinaryImports=$b['daily_imports']-self::scale($b['daily_imports'],$trade);
+        $fx=null;$fxMark=$eu['frf_value_index_bps']??null;
+        if($fxMark!==null){
+            $priorMark=$prior['frf_feedback']['value_index_bps']??10000;
+            $fx=FrancMacroFeedback::volumes($priorMark,$exports,$ordinaryImports,$consumption,max(0,$investment-$realCapex),$priorReal,$b['daily_real_gdp']);
+            $ordinaryImports-=$fx['real_import_loss_minor'];$exports+=$fx['real_export_delta_minor'];
+            $consumption-=$fx['real_consumption_shortfall_minor'];$investment-=$fx['real_investment_shortfall_minor'];
+            $fx=['version'=>FrancMacroFeedback::VERSION,'value_index_bps'=>$fxMark,...$fx];
+        }
         $euResult=$eu===null?null:EuropeanTradeFeedback::settle($eu,$exports,$ordinaryImports,$price);
         if($euResult!==null){
             $exports-=$euResult['real_export_loss_minor'];$ordinaryImports-=$euResult['real_import_loss_minor'];
             $actualRevenue+=$euResult['customs_revenue_minor'];
-            if($eu['version']===EuropeanTradeFeedback::VERSION_V2){
+            if(in_array($eu['version'],[EuropeanTradeFeedback::VERSION_V2,EuropeanTradeFeedback::VERSION_V3],true)){
                 // No import substitution has been financed or produced in this
                 // channel. Missing imported goods reduce final demand by the
                 // same real value, not create domestic value added mechanically.
@@ -177,6 +186,10 @@ final class MacroFiscalLoop
         $outputGap=self::clamp(self::gap($real,$b['daily_real_gdp']),-3000,3000);
         $inflation=self::move($inflation,self::clamp($b['initial_annual_inflation_bps']+intdiv($outputGap,4)+intdiv($costGap,3)+intdiv($trade,2)+intdiv($eu['import_duty_bps']??0,4)+intdiv($eu['import_friction_bps']??0,4),-500,2000),20);
         $price=max(10000000,$price+intdiv($price*$inflation,3650000));
+        if($fx!==null){
+            $fp=FrancMacroFeedback::price($fxMark,$priorMark,$price);$price=$fp['price'];unset($fp['price']);
+            $fx+=$fp;
+        }
         $wage=self::move($wage,$wagePremiumBps===null?$price:self::scale($price,10000+$wagePremiumBps),180);
         $unemployment=self::move($unemployment,self::clamp($b['initial_unemployment_bps']-intdiv($outputGap,4)-intdiv($employment-10000,5),100,3000),30);
         $nominal=self::scale($real,$price,100000000);
@@ -200,7 +213,7 @@ final class MacroFiscalLoop
                 'daily_real_growth_bps'=>self::gap($real,$priorReal),'price_index_scaled'=>$price,'wage_index_scaled'=>$wage,
                 'annual_inflation_bps'=>$inflation,'unemployment_bps'=>$unemployment,'real_wage_index_bps'=>intdiv($wage*10000,$price),
                 'statutory_revenue'=>$revenue,'statutory_primary_expense'=>$expense,'tax_feedback'=>$taxFeedback,
-                'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap,...($payroll===null?[]:['corporation_payroll'=>$payroll]),...($tradeExposureBps===null?[]:['trade_exposure_bps'=>$trade]),...($industrialCapex===0?[]:['industrial_capex_minor'=>$industrialCapex,'industrial_real_investment_minor'=>$realCapex,'industrial_real_imports_minor'=>self::scale($realCapex,3000)]),...($euResult===null?[]:['eu_trade'=>$euResult])],
+                'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap,...($payroll===null?[]:['corporation_payroll'=>$payroll]),...($tradeExposureBps===null?[]:['trade_exposure_bps'=>$trade]),...($industrialCapex===0?[]:['industrial_capex_minor'=>$industrialCapex,'industrial_real_investment_minor'=>$realCapex,'industrial_real_imports_minor'=>self::scale($realCapex,3000)]),...($euResult===null?[]:['eu_trade'=>$euResult]),...($fx===null?[]:['frf_feedback'=>$fx])],
             'treasury'=>$treasury];
     }
     public static function project(array $dom):array

@@ -382,3 +382,19 @@ excluded from pressure in this mode to avoid double counting; no booking
 of these proxies or automatic reserve transactions. Contract quote series
 reused by reserve settlement, no repeated quote replay. Missing preceding
 trade days fail closed. Existing modes preserved. CI pending.
+
+### WP54r FRF macro transmission
+
+FRF identifier and trade/flows CIs 45854833606 and 45854990567 green. New
+worlds pin EU trade observation v3 with trusted prior domestic ETag and
+committed FRF quote; legacy v1/v2 remain byte-compatible. Current exchange
+rate change gives one-off price level shock (illustrative 10% pass-through),
+no recurring shock for unchanged quote. Previous day's quote reduces imports
+with matching final-demand reduction, bounded export response with explicit
+spare capacity. FX quantities applied before EU tariff settlement; industrial
+project import volumes excluded. GDP identity maintained. Real wages and
+fiscal feedback respond via existing lagged channels. Annual inflation field
+remains underlying modeled annual rate, not a rolling realized CPI measure;
+coefficients uncalibrated. EUR accounting reference stays intact; no actual
+national redenomination, no FX-driven issuance or full balance of payments.
+CI pending.

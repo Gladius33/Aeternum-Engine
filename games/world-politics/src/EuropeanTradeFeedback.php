@@ -9,7 +9,8 @@ final class EuropeanTradeFeedback
 {
     public const VERSION='wp54r-eu-trade-v1';
     public const VERSION_V2='wp54r-eu-trade-v2';
-    public static function observe(array $read,string $world,string $day,string $version=self::VERSION):array
+    public const VERSION_V3='wp54r-eu-trade-v3-frf';
+    public static function observe(array $read,string $world,string $day,string $version=self::VERSION,?array $priorDom=null):array
     {
         $s=$read['state'];$sha=trim($read['etag'],'"');
         if($s['world_id']!==$world||$s['day']!==$day||!isset($s['eu_withdrawal']))throw new \DomainException('Missing committed EU source');
@@ -21,14 +22,26 @@ final class EuropeanTradeFeedback
             'status'=>$eu['membership']?'member':($active?'certified_scenario':'unmodelled_post_exit'),
             'regime'=>$active?$terms['regime']:null,'import_duty_bps'=>$active?$terms['import_duty_bps']:0,
             'import_friction_bps'=>$active?$terms['import_friction_bps']:0,'export_friction_bps'=>$active?$terms['export_friction_bps']:0];
+        if($version===self::VERSION_V3){
+            if($priorDom===null||$priorDom['state']['world_id']!==$world
+                ||$priorDom['state']['day']!==(new \DateTimeImmutable($day))->modify('-1 day')->format('Y-m-d'))
+                throw new \DomainException('Missing prior committed domestic FX source');
+            $priorSha=trim($priorDom['etag'],'"');
+            $book=CurrencyTransitionLedger::project($eu,$priorDom['state']['days']);
+            $out['frf_value_index_bps']=$book['new_currency_value_index_bps'];
+            $out['prior_domestic_sha']=$priorSha;
+        }
         self::validate($out,$world,$day,$version);return $out;
     }
     public static function validate(array $v,string $world,string $day,?string $expectedVersion=null):void
     {
-        if(array_keys($v)!==['version','world_id','day','organization_sha','status','regime','import_duty_bps','import_friction_bps','export_friction_bps']
-            ||!in_array($v['version'],[self::VERSION,self::VERSION_V2],true)||($expectedVersion!==null&&$v['version']!==$expectedVersion)||$v['world_id']!==$world||$v['day']!==$day||!is_string($v['organization_sha'])
+        if(array_keys($v)!==['version','world_id','day','organization_sha','status','regime','import_duty_bps','import_friction_bps','export_friction_bps',...( ($v['version']??null)===self::VERSION_V3?['frf_value_index_bps','prior_domestic_sha']:[])]
+            ||!in_array($v['version'],[self::VERSION,self::VERSION_V2,self::VERSION_V3],true)||($expectedVersion!==null&&$v['version']!==$expectedVersion)||$v['world_id']!==$world||$v['day']!==$day||!is_string($v['organization_sha'])
             ||!preg_match('/^[a-f0-9]{64}$/D',$v['organization_sha'])||!in_array($v['status'],['member','certified_scenario','unmodelled_post_exit'],true))
             throw new \DomainException('Invalid EU trade observation');
+        if($v['version']===self::VERSION_V3&&(!is_string($v['prior_domestic_sha'])||!preg_match('/^[a-f0-9]{64}$/D',$v['prior_domestic_sha'])
+            ||($v['frf_value_index_bps']!==null&&(!is_int($v['frf_value_index_bps'])||$v['frf_value_index_bps']<5000||$v['frf_value_index_bps']>15000||$v['status']==='member'))))
+            throw new \DomainException('Invalid FRF observation');
         foreach(['import_duty_bps','import_friction_bps','export_friction_bps'] as $k)
             if(!is_int($v[$k])||$v[$k]<0||$v[$k]>3000)throw new \DomainException('Invalid illustrative trade rate');
         if($v['status']==='certified_scenario'){

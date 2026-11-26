@@ -731,8 +731,9 @@ $c54=req30('GET',$r54.'/clock',null,$tc48);
 $c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-27'],$tc48,['If-Match'=>$c54['etag'],'Idempotency-Key'=>'eu-trade-tick-001']);
 ck30($c54['status']===200&&$c54['body']['coherent'],'WP54r coherent exit tick');
 $dom54=req30('GET',$r54.'/domestic',null,$tc48);$d54=$dom54['body']['days'][1];$mx54=$d54['macro'];
-ck30($d54['eu_trade_observation']['version']==='wp54r-eu-trade-v2'&&$d54['eu_trade_observation']['status']==='certified_scenario'&&$mx54['eu_trade']['customs_revenue_minor']>0&&$d54['revenue']===$mx54['statutory_revenue']+$mx54['tax_feedback']+$mx54['eu_trade']['customs_revenue_minor'],'WP54r customs once in national ledger');
+ck30($d54['eu_trade_observation']['version']==='wp54r-eu-trade-v3-frf'&&$d54['eu_trade_observation']['status']==='certified_scenario'&&$mx54['eu_trade']['customs_revenue_minor']>0&&$d54['revenue']===$mx54['statutory_revenue']+$mx54['tax_feedback']+$mx54['eu_trade']['customs_revenue_minor'],'WP54r customs once in national ledger');
 ck30($mx54['real_gdp']===$mx54['consumption']+$mx54['npish_consumption']+$mx54['investment']+$mx54['government_consumption']+$mx54['exports']-$mx54['imports']+$mx54['statistical_discrepancy'],'WP54r GDP identity after EU exit');
+ck30($mx54['frf_feedback']['value_index_bps']===10000&&$mx54['frf_feedback']['price_level_shock_bps']===0,'WP54r opening FRF parity has no price shock');
 ck30($mx54['eu_trade']['real_consumption_import_shortfall_minor']+$mx54['eu_trade']['real_investment_import_shortfall_minor']===$mx54['eu_trade']['real_import_loss_minor'],'WP54r no unearned import substitution');
 $sp54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);$sb54=$sp54['body'];
 ck30($sp54['status']===200&&$sb54['membership_scope']['current_modelled_eu_members']===26&&$sb54['membership_scope']['remaining_eu_real_gdp_change_minor']===null,'WP54r scope is not recession');
@@ -768,6 +769,8 @@ ck30($xr54['valuation_delta_franc_minor']===500000000&&$xr54['settlement_roundin
 ck30($cb54['sectors']['foreign_private']['net_eur_valuation_delta_minor']===-20000000000&&$cb54['sectors']['fr_treasury']['net_eur_valuation_delta_minor']===20000000000&&!$cb54['national_treasury_booked'],'WP54r symmetric valuation without actual national booking');
 $afterMark54=req30('GET',$r54.'/domestic',null,$tc48);
 ck30($afterMark54['status']===200&&$afterMark54['body']['days'][2]['currency']==='EUR'&&$afterMark54['body']['days'][1]===$beforeMark54['body']['days'][1],'WP54r national EUR history remains unchanged');
+$fxMacro54=$afterMark54['body']['days'][2]['macro']['frf_feedback'];
+ck30($fxMacro54['value_index_bps']===8000&&$fxMacro54['lagged_value_index_bps']===10000&&$fxMacro54['price_level_shock_bps']===250&&$fxMacro54['real_import_loss_minor']===0,'WP54r FRF devaluation price shock precedes volume response');
 $fr54=$fx54['body']['franc_monetary_rule'];$fl54=$fr54['latest'];
 ck30(count($fr54['days'])===2&&$fl54['day']==='2026-11-28'&&$fl54['lagged_real_output_daily_minor']===intdiv($afterMark54['body']['days'][0]['macro']['real_gdp']+$afterMark54['body']['days'][1]['macro']['real_gdp'],2)&&$fl54['central_bank_incremental_claim_franc_minor']===$fl54['central_bank_incremental_liability_franc_minor']&&!$fr54['treasury_spending_booked'],'WP54r franc issuance uses previous real production and balanced counterpart');
 $pf54=$fl54['funding'];
@@ -781,6 +784,9 @@ ck30($c54['status']===200&&$c54['body']['coherent'],'WP54r coherent bank crisis 
 $crisis54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);$frc54=$crisis54['body']['franc_monetary_rule'];$bk54=$frc54['commercial_banking']['latest'];$cr54=$bk54['crisis'];
 ck30($crisis54['status']===200&&$cr54['cash_withdrawn_franc_minor']===min(2000000000,$b54['bank_reserves_franc_minor']-$pf54['commercial_banks']['reserve_asset_franc_minor'])&&$cr54['cash_withdrawn_franc_minor']+$cr54['unserved_eligible_withdrawal_franc_minor']===2000000000,'WP54r actual tick withdrawal limited by reserves');
 ck30($bk54['bank_balance_difference_franc_minor']===0&&$cr54['base_money_created_by_crisis_franc_minor']===0&&$cr54['covered_deposits_plus_cash_franc_minor']===$b54['bank_deposit_liabilities_franc_minor'],'WP54r cash conversion conserves money');
+$domC54=req30('GET',$r54.'/domestic',null,$tc48);$mC54=$domC54['body']['days'][3]['macro'];$fC54=$mC54['frf_feedback'];
+ck30($fC54['lagged_value_index_bps']===8000&&$fC54['price_level_shock_bps']===0&&$fC54['real_import_loss_minor']>0&&$fC54['real_import_loss_minor']===$fC54['real_consumption_shortfall_minor']+$fC54['real_investment_shortfall_minor'],'WP54r lagged import volume and no repeat price shock');
+ck30($mC54['real_gdp']===$mC54['consumption']+$mC54['npish_consumption']+$mC54['investment']+$mC54['government_consumption']+$mC54['exports']-$mC54['imports']+$mC54['statistical_discrepancy'],'WP54r FRF GDP identity');
 
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
