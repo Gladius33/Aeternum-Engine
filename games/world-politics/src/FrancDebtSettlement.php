@@ -7,7 +7,7 @@ namespace Aeternum\WorldPolitics;
 final class FrancDebtSettlement
 {
     public const VERSION='wp54r-frf-debt-settlement-v1';
-    private const LIMIT=1000000000000000;
+    private const LIMIT=10000000000000000;
     private static function amount(mixed $v):int
     {
         if(!is_int($v)||$v<0||$v>self::LIMIT)throw new \DomainException('Invalid settlement amount');

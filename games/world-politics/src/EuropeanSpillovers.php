@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/EuropeanWithdrawal.php';
 require_once __DIR__.'/EuropeanMonetaryStress.php';
+require_once __DIR__.'/FrancNativeBudgetProjection.php';
 
 /** Versioned, read-only counterfactual ledger from committed legal and trade
  * states. The dated budget/GDP anchors are from the existing WP80 study.
@@ -93,6 +94,8 @@ final class EuropeanSpillovers
         $fr=self::scale(self::GDP_EUR,self::FR_SHARE_BPS);
         $currency=isset($eu['currency_contract_version'])?CurrencyTransitionLedger::project($eu,$ds['days']):null;
         $franc=isset($eu['franc_rule_version'])?FrancProductionRule::project($eu,$ds):null;
+        $fx=isset($eu['franc_fx_version'])?FrancExchangeReserves::project($eu,$currency,$franc):null;
+        $native=isset($eu['franc_native_budget_terms'])?FrancNativeBudgetProjection::project($eu,$ds,$currency,$franc,$fx):null;
         return ['version'=>self::VERSION,'world_id'=>$world,'day'=>$day,'classification'=>'simulation_sensitivity_not_forecast',
             'source_organization_sha'=>$orgSha,'source_domestic_sha'=>$domSha,
             'membership_scope'=>['initial_eu_members'=>27,'current_modelled_eu_members'=>$eu['membership']?27:26,
@@ -112,7 +115,8 @@ final class EuropeanSpillovers
                 'other_currency_exits_inferred'=>false],
             ... (isset($eu['currency_contract_version'])?['currency_contracts'=>$currency]:[]),
             ...(isset($eu['franc_rule_version'])?['franc_monetary_rule'=>$franc]:[]),
-            ...(isset($eu['franc_fx_version'])?['franc_exchange_reserves'=>FrancExchangeReserves::project($eu,$currency,$franc)]:[]),
+            ...(isset($eu['franc_fx_version'])?['franc_exchange_reserves'=>$fx]:[]),
+            ...($native===null?[]:['franc_native_budget'=>$native,'franc_exchange_reserves_reference_only'=>$native['status']==='active']),
             'not_a_forecast'=>true];
     }
 }

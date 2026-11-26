@@ -207,6 +207,7 @@ paths:
     get:
       operationId: readEuropeanSpillovers
       summary: Read coherent EU membership, mirrored trade and counterfactual budget ledger
+      description: If trusted prospective franc_native_budget evidence is configured, also exposes a replayed native FRF/EUR budget with shared reserve use, earmarked advances and monthly/yearly reconciliation. The reference EUR ledger remains unchanged.
       parameters:
         - $ref: '#/components/parameters/world'
       responses:
