@@ -161,7 +161,7 @@ final class MacroFiscalLoop
         if($euResult!==null){
             $exports-=$euResult['real_export_loss_minor'];$ordinaryImports-=$euResult['real_import_loss_minor'];
             $actualRevenue+=$euResult['customs_revenue_minor'];
-            if(in_array($eu['version'],[EuropeanTradeFeedback::VERSION_V2,EuropeanTradeFeedback::VERSION_V3],true)){
+            if(in_array($eu['version'],[EuropeanTradeFeedback::VERSION_V2,EuropeanTradeFeedback::VERSION_V3,EuropeanTradeFeedback::VERSION_V4],true)){
                 // No import substitution has been financed or produced in this
                 // channel. Missing imported goods reduce final demand by the
                 // same real value, not create domestic value added mechanically.

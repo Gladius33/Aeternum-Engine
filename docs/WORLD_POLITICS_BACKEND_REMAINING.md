@@ -620,3 +620,11 @@ history: one-off price level shock, lagged trade volumes, matched demand
 shortfall, bounded export response, existing wage/fiscal feedback. Old v1/v2
 worlds remain compatible. Calibration, actual currency migration, national
 balance of payments, and realized rolling inflation remain open.
+
+### WP54r FRF fiscal dual ledger
+
+Committed per-day FRF fiscal reconciliation, certified opening cohort
+conversion, new domestic FRF/external EUR issuance, native debt principal
+and FX valuation bridge. Full market-rate settlement of retained EUR debt,
+currency-specific interest/arrears and central bank fiscal integration remain
+open. No reference EUR ledger migration yet.

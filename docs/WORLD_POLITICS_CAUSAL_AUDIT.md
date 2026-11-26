@@ -398,3 +398,17 @@ remains underlying modeled annual rate, not a rolling realized CPI measure;
 coefficients uncalibrated. EUR accounting reference stays intact; no actual
 national redenomination, no FX-driven issuance or full balance of payments.
 CI pending.
+
+### WP54r committed FRF dual fiscal accounting
+
+Macro transmission CI 45857885159 green. New worlds pin EU observation v4;
+trusted prospective fiscal terms explicitly select opening debt cohorts for
+conversion (scenario evidence, not a statement of actual law). Unselected
+opening cohorts retain EUR. New domestic borrowing FRF, external borrowing
+EUR. Daily committed FRF cash uses opening parity for the reference EUR cash
+flows; debt holds native principal by currency, revalues only EUR at current
+quote, separates transaction and valuation changes, and reconciles all
+reference creditors. The separate contract pilot is not added to national
+stock. Historic rows and v1-v3 worlds unchanged. This is dual accounting,
+not actual market-FX cash settlement or currency-specific debt service;
+central bank advances not yet integrated. CI pending.
