@@ -99,6 +99,16 @@ paths:
       responses:
         '200': { description: "Ranked page, shared rank on equal scores and tie-break metrics" }
         '401': { description: Authentication required }
+  /worlds/{world}/countries/FR/household-account:
+    get:
+      operationId: readHouseholdAccount
+      summary: Experimental reconciled disposable income and demographic consumption unit proxies
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Accounting components, scenario sensitivities and provenance, not ranking }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
   /worlds/{world}/countries/FR/purchasing-power-proxy:
     get:
       operationId: readPurchasingPowerProxy

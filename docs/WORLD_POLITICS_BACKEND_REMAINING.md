@@ -838,3 +838,8 @@ Séries Insee base 2020, publication du 29 mai 2026 (https://www.insee.fr/fr/sta
 ## WP84 — service national : statut juridique réversible
 
 Référence article L112-2 du Code du service national (https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000006555910). Deux textes fictifs, rétablissement ou suspension, soumis au circuit ordinaire bicaméral. Premier parcours autonome à texte identique, respect des délais 42/28 jours, votes synthétiques, examen constitutionnel du texte prédéfini, publication et transition hypothétique de 90/30 jours; en cas de désaccord le dossier reste en navette, sans inventer un résultat. Le statut juridique effectif est dérivé des lois publiées, sans effet rétroactif ni décisions concurrentes. L'autorisation administrative et budgétaire effective, les coûts et les effectifs restent séparés et non inventés. GET `/countries/FR/national-service`, nouveaux mondes uniquement. Aucun modèle opérationnel ou capacité militaire déduite. Tests domaine et HTTP.
+
+
+## WP85 — compte des ménages réconcilié et UC
+
+Ancrage Insee 2025 provisoire (1 876,9 milliards EUR de RDB), huit composantes signées; revenus d’activité autres que salaires nets déduits par différence. Dénominateur UC issu du recensement 2023 hors Mayotte et des cohortes simulées; approximation des moins de 14 ans, premier adulte, structure fixe ou fragmentation hypothétique. Facteurs d’évolution explicites non calibrés. GET authentifié `/countries/FR/household-account`, fenêtre de 365 jours effectivement validés, sans effet sur les finances ou le score. Ni mesure réelle du RDB 2027 ni modèle fiscal causal; impôts spécifiques et répartition des ménages restent à développer. Tests domaine et HTTP.

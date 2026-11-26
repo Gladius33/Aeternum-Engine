@@ -206,6 +206,8 @@ jobs:
         run: php tests/wp83-household-backtest.php
       - name: WP84 national service legal transition and replay
         run: php tests/wp84-national-service.php
+      - name: WP85 reconciled household account and consumption units
+        run: php tests/wp85-household-account.php
       - name: WP72 civilian service continuity and coherent rolling reports
         run: php tests/wp72-civil-continuity.php
       - name: WP74 household national accounts and arithmetic sensitivity
