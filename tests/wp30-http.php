@@ -835,4 +835,12 @@ ck30($c27p['status']===200&&$c27p['body']['autonomous_requests']===[],'WP57 auto
 $rev27=req30('POST',$r27.'/countries/FR/institutions/decisions',['action'=>'revision_draft','payload'=>['template'=>'remove-presidential-term-limit','ratification_route'=>'referendum']],$t27,['If-Match'=>$c27p['etag'],'Idempotency-Key'=>'wp57-revision-pilot']);
 ck30($rev27['status']===202&&$rev27['body']['request']['status']==='pending_pm'&&!$rev27['body']['legal_effect'],'WP57 owner requests revision but cannot enact it');
 $camp27=req30('GET',$r27.'/campaign',null,$t27);ck30($camp27['body']['tenure']['elapsed_office_days']===2&&!$camp27['body']['tenure']['score_eligible'],'WP56 tenure reported from committed days');
+$ins27=req30('GET',$r27.'/countries/FR/institutions',null,$t27);
+$ds27=req30('POST',$r27.'/countries/FR/institutions/decisions',['action'=>'request_dissolution','payload'=>[]],$t27,['If-Match'=>$ins27['etag'],'Idempotency-Key'=>'wp55-dissolution-request']);
+ck30($ds27['status']===202&&$ds27['body']['status']==='requested','WP55 dissolution request has no immediate effect');
+$c27=req30('GET',$r27.'/clock',null,$t27);
+foreach(['2027-05-17','2027-05-18'] as $day){$c27=req30('POST',$r27.'/clock/advances',['target_day'=>$day],$t27,['If-Match'=>$c27['etag'],'Idempotency-Key'=>'wp55-dissolution-tick-'.$day]);ck30($c27['status']===200&&$c27['body']['coherent'],'WP55 dissolution request clock '.$day);}
+$ins27=req30('GET',$r27.'/countries/FR/institutions',null,$t27);
+$record=$ins27['body']['recurring_elections']['requests'][$ds27['body']['id']];
+ck30($record['status']==='executed'&&count($record['consultations'])===3&&$ins27['body']['legislature']==='dissolved','WP55 three server consultations and dissolution committed');
 echo "WP30 HTTP private alpha acceptance passed.\n";

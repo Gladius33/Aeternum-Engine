@@ -49,7 +49,7 @@ final class RevisionAutonomy
             if($s['legislature']!=='sitting'||!$ctx['territorial_integrity']||$ctx['presidential_vacancy']||$ctx['definitive_incapacity'])continue;
             $prior=self::shift($day,-1);
             if($opinion===null||($opinion['day']??null)!==$prior||($opinion['world_id']??null)!==$s['world_id']||!is_int($opinion['approval']??null)||$opinion['approval']<0||$opinion['approval']>1000||!preg_match('/^[a-f0-9]{64}$/D',$opinion['sha']??''))throw new \DomainException('Prior committed opinion required');
-            $assembly=$s['legislation']['responsibility']['assembly'];$status=$req['status'];$sha=$p['text_sha'];$approval=$opinion['approval'];$seed=$s['world_id'].'|'.$id;
+            $assembly=$s['legislation']['responsibility']['assembly'];$status=$req['status'];$sha=$p['text_sha'];$approval=$opinion['approval'];$seed=$s['world_id'].'|'.$p['text_sha'].'|'.$p['base_version'];
             $kind=null;$data=[];$next=0;$after=null;
             switch($status){
                 case 'pending_pm':
@@ -67,7 +67,7 @@ final class RevisionAutonomy
                 case 'adopted':$kind='promulgate';$data=['text_sha'=>$sha,'published_on'=>$day];$after='effective';break;
                 default:throw new \DomainException('Unknown revision stage');
             }
-            $e=['world_id'=>$s['world_id'],'country'=>'FR','day'=>$day,'evidence_id'=>'auto89-'.substr(hash('sha256',$seed.'|'.$status),0,32),'revision_id'=>$id,'kind'=>$kind,'procedure_certified'=>true,'data'=>$data];
+            $e=['world_id'=>$s['world_id'],'country'=>'FR','day'=>$day,'evidence_id'=>'auto89-'.substr(hash('sha256',$seed.'|'.$id.'|'.$status),0,32),'revision_id'=>$id,'kind'=>$kind,'procedure_certified'=>true,'data'=>$data];
             $result=$r->certify($e);$req['observations'][]=['day'=>$day,'stage'=>$status,'opinion'=>$opinion,'assembly_sha'=>hash('sha256',json_encode($assembly,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),'evidence_id'=>$e['evidence_id']];
             $req['status']=$result['procedure']['status']==='rejected'?'rejected':$after;$req['next_on']=self::shift($day,$next);
             $s['revision_requests'][$id]=$req;

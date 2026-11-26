@@ -106,3 +106,12 @@ $s=$x->snapshot();ck31(in_array($s['revision_requests']['rev-55']['status'],['ef
 ck31(IS::restore($s)->hash()===$x->hash(),'revision and session transitions replay');
 $c=CL::initial('wp55-test','2027-05-14');$c=CL::advance($c,'2027-05-15',CL::event('wp55-test','2027-05-15','resign','presidential_resignation'));
 $t=CL::tenure($c);ck31($t['elapsed_office_days']===1&&$t['frozen']&&$t['interim']['earliest_poll']==='2027-06-04'&&$t['interim']['latest_poll']==='2027-06-19'&&!$t['score_eligible'],'tenure freezes and interim legal reference survives');
+
+$y=new IS('wp55-owner','FR','2027-05-14');$y->enableElectoral(PL::publishedElectionConfig('2027-05-14'));$y->enablePoliticalAI();$y->enableRevision();$y->enableLegislation(true,true,true,true,true,true,true);$y->enableContinuityLot();
+try{$y->decide('scenario_president_requester','dissolve_lower_house',[],'fake-power');throw new RuntimeException('owner acquired legal authority');}catch(DomainException $e){ck31(true,'owner cannot bypass consultation by direct dissolution');}
+$q=$y->decide('scenario_president_requester','request_dissolution',[],'request-one');
+ck31($q['status']==='requested'&&$y->snapshot()['legislature']==='sitting','request has no immediate legal effect');
+$y->advanceTo('2027-05-15');
+ck31($y->snapshot()['recurring_elections']['requests']['request-one']['status']==='consulted'&&$y->snapshot()['legislature']==='sitting','consultations committed before decision');
+$y->advanceTo('2027-05-16');
+ck31($y->snapshot()['recurring_elections']['requests']['request-one']['status']==='executed'&&$y->snapshot()['legislature']==='dissolved'&&IS::restore($y->snapshot())->hash()===$y->hash(),'server executes dissolution and replays request');

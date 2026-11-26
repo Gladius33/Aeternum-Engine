@@ -304,6 +304,8 @@ final class AlphaGateway
             if($method==='POST'&&in_array($scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)&&$suffix==='/countries/FR/institutions/decisions'
                 &&($body['action']??null)==='electoral_coalition')
                 return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
+            if($method==='POST'&&$scenario->id===AlphaScenario::INVESTITURE&&$suffix==='/countries/FR/institutions/decisions'&&($body['action']??null)==='request_dissolution')
+                return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
             if ($method==='GET' && preg_match('~^/countries/([A-Z]{2})/institutions(?:/rulebook)?$~D',$suffix,$countryMatch)
                 && in_array($countryMatch[1],$scenario->countries,true))
                 return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);

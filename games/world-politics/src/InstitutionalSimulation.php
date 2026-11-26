@@ -173,6 +173,17 @@ final class InstitutionalSimulation
             // SEVEN DAYS IS A CONFIGURABLE GAMEPLAY DEFAULT, NOT A LEGAL DEADLINE.
             $this->enqueue($commandId.'-debate','bill_debate_open',self::plus($day,7));
             $result=['bill_id'=>$commandId,'status'=>'filed','earliest_debate'=>self::plus($day,7)];
+        } elseif ($action==='request_dissolution') {
+            self::keys($input,[]);
+            if($role!=='scenario_president_requester'||!isset($this->state['recurring_elections']['requests']))throw new \DomainException('Dissolution request forbidden');
+            $rec=&$this->state['recurring_elections'];$last=$rec['last_dissolution_election'];
+            if($this->state['legislature']!=='sitting'||$this->state['electoral']['status']!=='scheduled'
+                ||($last!==null&&$day<self::plusYears($last,1))||count($rec['requests'])>=100)
+                throw new \DomainException('No eligible dissolution request');
+            foreach($rec['requests'] as $r)if(in_array($r['status'],['requested','consulted'],true))throw new \DomainException('Dissolution request pending');
+            if(isset($rec['requests'][$commandId]))throw new \DomainException('Duplicate dissolution request');
+            $result=['id'=>$commandId,'requested_on'=>$day,'consultation_on'=>self::plus($day,1),'decision_on'=>self::plus($day,2),'status'=>'requested','consultations'=>[],'decided_on'=>null];
+            $rec['requests'][$commandId]=$result;unset($rec);
         } elseif ($action==='dissolve_lower_house') {
             self::keys($input,[]);
             if ($rules['dissolution']['mode']!=='consultations_required'
@@ -191,7 +202,7 @@ final class InstitutionalSimulation
             }
             // French Article 12: the one-year bar runs from the following
             // elections, not from the earlier date of dissolution.
-            $lastElection=$this->state['last_election'];
+            $lastElection=array_key_exists('last_dissolution_election',$this->state['recurring_elections']??[])?$this->state['recurring_elections']['last_dissolution_election']:$this->state['last_election'];
             if ($lastElection!==null && $day<self::plusYears($lastElection,1)) {
                 throw new \DomainException('Dissolution too soon after legislative elections');
             }
@@ -302,7 +313,7 @@ final class InstitutionalSimulation
     {
         if($this->state['country_code']!=='FR'||!isset($this->state['revision'],$this->state['electoral'],$this->state['legislation'],$this->state['political_ai'])||$this->state['events']!==[]||isset($this->state['recurring_elections']))throw new \DomainException('Continuity lot requires bootstrap');
         $l=BicameralLegislation::restore($this->state['legislation']);$l->enableCalendarReplay();$this->state['legislation']=$l->snapshot();
-        $this->state['recurring_elections']=['version'=>FrenchRecurringElections::VERSION,'completed'=>0];
+        $this->state['recurring_elections']=['version'=>FrenchRecurringElections::VERSION,'completed'=>0,'last_dissolution_election'=>'2024-07-07','requests'=>[]];
         $this->state['last_election']='2024-07-07';
         $this->state['revision_requests']=[];
     }
@@ -444,6 +455,7 @@ final class InstitutionalSimulation
                 if(isset($this->state['recurring_elections'])){
                     $this->state['recurring_elections']['completed']++;
                     $this->state['last_election']=$e['config']['runoff_day']??$e['config']['poll_day'];
+                    if($this->state['legislature']==='dissolved'&&array_key_exists('last_dissolution_election',$this->state['recurring_elections']))$this->state['recurring_elections']['last_dissolution_election']=$this->state['last_election'];
                     $this->state['legislature']='sitting';
                     if($this->state['election']!==null)$this->state['election']['status']='voting_recorded_results_pending';
                 }
@@ -453,8 +465,32 @@ final class InstitutionalSimulation
         $this->state['day']=$targetDay;
         if(isset($this->state['revision_requests'])&&$this->state['revision_requests']!==[])$this->state=RevisionAutonomy::advance($this->state,$opinion);
         $this->state['agenda']=$remain;
+        if(isset($this->state['recurring_elections']['requests']))$this->advanceDissolutionRequests($targetDay);
         return ['day'=>$targetDay,'processed'=>$applied,
             'constitutional_breaches'=>$this->state['constitutional_breaches']];
+    }
+
+    private function advanceDissolutionRequests(string $day):void
+    {
+        foreach($this->state['recurring_elections']['requests'] as $id=>$r){
+            $prefix='consult-'.substr(hash('sha256',$id),0,20);
+            if($r['status']==='requested'&&$day===$r['consultation_on']){
+                // Three independent scenario offices acknowledge consultation.
+                // Consultation is not assent; no real official's view is inferred.
+                foreach(['prime_minister','assembly_speaker','senate_speaker'] as $office){
+                    $this->decide($office,'record_consultation',[],$prefix.'-'.$office);
+                    $r['consultations'][$office]=$day;
+                }
+                $r['status']='consulted';
+            }elseif($r['status']==='consulted'&&$day===$r['decision_on']){
+                try{
+                    $this->decide('president','dissolve_lower_house',[],'dissolve-'.substr(hash('sha256',$id),0,24));
+                    $r['status']='executed';
+                }catch(\DomainException $e){$r['status']='refused';}
+                $r['decided_on']=$day;
+            }
+            $this->state['recurring_elections']['requests'][$id]=$r;
+        }
     }
 
     /** @return array<string,mixed> */
