@@ -810,3 +810,6 @@ Horizon synthétique de 7305 journées pour score/fin de mandat, contrôle des b
 
 
 WP80 complément : l'audit en lecture seule couvre maintenant les six domaines de l'horloge canonique (domestique, diplomatie, opinion, organisations, économie et institutions des sept pays), avec contrôle de corruption du digest économique, rollback de la lecture en erreur et audit identique après restauration de la fixture. Cela ne remplace pas un contrôle exhaustif des journaux ni un audit de sécurité indépendant.
+
+
+WP75 complément livré pendant WP80 : sélection facultative au provisioning canonique via `candidate` (personnage fictif rapide/détaillé avec programme, ou identité historique parmi les douze références 2022). `GET /candidate-options` fournit le catalogue. Le serveur conserve l'identifiant campagne `campaign-president`, la provenance historique, l'idempotence de création, et refuse les champs de provenance arbitraires. Les noms/programmes n'affectent pas automatiquement le score ou l'IA. Aucun changement aux anciennes sauvegardes, aucune candidature 2027 certifiée. Programmes historiques détaillés et leurs effets restent à curer/implémenter.

@@ -16,7 +16,7 @@ Backup and restore-test first, stop writers and recover pending ticks; apply mig
 ## Outstanding release blockers beyond the private alpha
 
 - Real household disposable income per UC calibration, uncertainty and fair official competition; current ranking experimental.
-- Fully selectable and sourced political programmes and candidate identities, playable foreign constitutional systems, independent upper chambers and presidential races, interim governments.
+- Curated historical programme content and mechanical programme effects (creation-time candidate identity selection is implemented), playable foreign constitutional systems, independent upper chambers and presidential races, interim governments.
 - Real international obligation/creditor schedules, guarantees, enforceable accounting and diplomatic calibration; synthetic fixtures cannot substitute for contract inventories.
 - Annual budgets beyond 2028, corrective budgets, autonomous certified legislative path, national service law and administrative timing; no tactical security simulation.
 - Capacity and multi-node stress, account recovery, MFA, invite rotation, log/alerting, backup restoration in target environment, independent security review, dedicated repository and versioned engine dependency. No deployment or commercial readiness claimed.

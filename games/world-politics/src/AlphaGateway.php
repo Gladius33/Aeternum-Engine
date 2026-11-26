@@ -70,6 +70,10 @@ final class AlphaGateway
                 if(preg_match('~^/api/v1/leaderboards/([a-f0-9]{64})/([1-9][0-9]{0,5})$~D',$path,$lm)&&((int)$lm[2])<=100000)return self::ok(200,$scores->leaderboard($lm[1],(int)$lm[2],$session->id));
                 throw new AlphaHttpError(404,'not_found');
             }
+            if($path==='/api/v1/candidate-options'){
+                if($method!=='GET')throw new AlphaHttpError(405,'method_not_allowed');
+                return self::ok(200,CampaignCandidate::options());
+            }
             $scenario=new AlphaScenario();
             if ($path==='/api/v1/scenarios' && $method==='GET') {
                 $base=GlobalReferenceBundle::published();

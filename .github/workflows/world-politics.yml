@@ -204,6 +204,8 @@ jobs:
         run: php tests/wp74-household-reference.php
       - name: WP75 historical presidential identities and election reconciliation
         run: php tests/wp75-historical-candidates.php
+      - name: WP75B canonical candidate selection and provenance
+        run: php tests/wp75b-candidate-selection.php
       - name: WP76 experimental household-income channels and rolling window
         run: php tests/wp76-purchasing-power-proxy.php
       - name: WP77 alpha campaign score, tenure and comparability

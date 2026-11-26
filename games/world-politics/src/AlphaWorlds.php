@@ -8,6 +8,7 @@ require_once __DIR__.'/PoliticalRoster.php';
 require_once __DIR__.'/GlobalReferenceBundle.php';
 require_once __DIR__.'/ComparativeElectionCalendar.php';
 require_once __DIR__.'/PdoCampaignScores.php';
+require_once __DIR__.'/CampaignCandidate.php';
 
 /** Immutable private alpha scenario. No real economic data is invented. */
 final class AlphaScenario
@@ -102,13 +103,21 @@ final class AlphaWorlds
 
     public function create(AlphaSession $session,array $body,string $key):array
     {
-        AlphaAccounts::fields($body,in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario']);
+        $fields=in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario'];
+        if($this->scenario->id===AlphaScenario::INVESTITURE&&array_key_exists('candidate',$body))$fields[]='candidate';
+        AlphaAccounts::fields($body,$fields);
+        $candidate=null;
+        if(array_key_exists('candidate',$body)){
+            try{$candidate=CampaignCandidate::normalize($body['candidate']);}
+            catch(\InvalidArgumentException|\DomainException $e){throw new AlphaHttpError(422,'invalid_candidate');}
+        }
         if (!is_string($body['label']) || trim($body['label'])==='' || mb_strlen($body['label'])>100
             || preg_match('/[\x00-\x1f\x7f]/',$body['label']) || $body['scenario']!==$this->scenario->id
             || !preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)) throw new AlphaHttpError(422,'invalid_world');
         $label=trim($body['label']);
         $request=[$label,$this->scenario->id];
         if (in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)) $request[]=$body['reference_bundle_sha']??null;
+        if($candidate!==null)$request[]=$candidate;
         $fingerprint=hash('sha256',self::json($request));
         $key=hash('sha256',$key);
         $this->db->beginTransaction();
@@ -136,7 +145,7 @@ final class AlphaWorlds
             foreach ($this->scenario->countries as $country) {
                 $roster=new PoliticalRoster($world,$country,$country==='FR'?['prime_minister','economy','education']:['government']);
                 if($country==='FR'&&$this->scenario->campaign()){
-                    $roster->addPerson(['id'=>CampaignLifecycle::PLAYER,'kind'=>'fictional','name'=>'Scenario president',
+                    $roster->addPerson($candidate??['id'=>CampaignLifecycle::PLAYER,'kind'=>'fictional','name'=>'Scenario president',
                         'country'=>'FR','biography'=>'Fictional player officeholder','as_of'=>null,'sources'=>[],'programme'=>[]]);
                     $roster->setHeadOfState(CampaignLifecycle::PLAYER);
                 }
