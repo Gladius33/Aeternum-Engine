@@ -622,7 +622,7 @@ $v54=req30('GET',$p54,null,$tc48);
 ck30($v54['status']===200&&$v54['body']['civil_mobilisation']['participation_estimate']===0,'WP54 initial attendance');
 $eu54=req30('GET',$r54.'/organizations',null,$tc48);
 ck30($eu54['status']===200&&$eu54['body']['eu_withdrawal']['membership']===true,'WP54r initial EU membership');
-$eu54=req30('POST',$r54.'/organizations/eu/withdrawals',[],$tc48,['If-Match'=>$eu54['etag'],'Idempotency-Key'=>'eu-intent-test-001']);
+$eu54=req30('POST',$r54.'/organizations/eu/withdrawal-intents',[],$tc48,['If-Match'=>$eu54['etag'],'Idempotency-Key'=>'eu-intent-test-001']);
 ck30($eu54['status']===202&&$eu54['body']['eu_withdrawal']['status']==='intent_pending'&&$eu54['body']['eu_withdrawal']['deadline']===null,'WP54r intention not notification');
 $dip54=req30('GET',$r54.'/diplomacy',null,$tc48);
 ck30($dip54['status']===200&&$dip54['body']['daily_ai']==='wp54r-diplomatic-replies-v1','WP54r pinned diplomatic AI');
@@ -668,6 +668,25 @@ ck30($party54['status']===200&&count($party54['body']['party_responses']['groups
 $v54=req30('GET',$p54,null,$tc48);
 ck30($v54['status']===200&&array_sum($v54['body']['civil_mobilisation']['cities'])===$v54['body']['civil_mobilisation']['participation_estimate'],'WP54 conserved attendance');
 ck30(req30('GET',$p54,null,$ta2)['status']===404&&req30('GET',$rc53.'/countries/FR/civil-mobilisation',null,$tc48)['status']===404,'WP54 membership and legacy isolation');
+$eu54=req30('GET',$r54.'/organizations',null,$tc48);
+ck30(req30('POST',$r54.'/organizations/eu/withdrawal-intents',[],$ta2,['If-Match'=>$eu54['etag'],'Idempotency-Key'=>'eu-outsider-test-001'])['status']===404,'WP54r outsider cannot request');
+ck30(req30('POST',$r54.'/organizations/eu/evidence',['kind'=>'notification','data'=>[]],$tc48)['status']===404,'WP54r evidence not exposed on HTTP');
+require_once __DIR__.'/../games/world-politics/src/GlobalReferenceBundle.php';
+require_once __DIR__.'/../games/world-politics/src/PdoOrganizationStore.php';
+$euWorld54=$g54['body']['world_id'];$euActors54=(new \Aeternum\WorldPolitics\GlobalReferenceBundle())->actors;
+$euClerk54=new class($euWorld54) implements \Aeternum\WorldPolitics\DiplomaticPrincipal{
+    public function __construct(private readonly string $world){}
+    public function actorId():string{return 'test-eu-clerk';}
+    public function allows(string $w,string $a,string $p):bool{return $w===$this->world&&$a===$this->actorId()&&in_array($p,['organizations.read','organizations.eu_certify'],true);}
+};
+$euStore54=new \Aeternum\WorldPolitics\PdoOrganizationStore($pdo,$euActors54,[],$euClerk54);
+$euBody54=['kind'=>'notification','data'=>['national_decision_sha'=>str_repeat('a',64),'notification_sha'=>str_repeat('b',64)]];
+$euRead54=$euStore54->read($euWorld54);
+$euAck54=$euStore54->execute($euWorld54,'eu_evidence',$euBody54,'certified-eu-notification',$euRead54['etag']);
+ck30($euAck54['status']===200&&$euAck54['result']['eu_withdrawal']['deadline']==='2028-11-26'&&$euAck54['result']['eu_withdrawal']['membership'],'WP54r distinct trusted notification');
+ck30($euStore54->execute($euWorld54,'eu_evidence',$euBody54,'certified-eu-notification',$euRead54['etag'])===$euAck54,'WP54r certified notification idempotency');
+$eu54=req30('GET',$r54.'/organizations',null,$tc48);
+ck30($eu54['status']===200&&$eu54['body']['eu_withdrawal']['status']==='negotiating'&&$eu54['body']['eu_withdrawal']['currency_changed']===false,'WP54r persisted notification not exit');
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');
 echo "WP30 HTTP private alpha acceptance passed.\n";

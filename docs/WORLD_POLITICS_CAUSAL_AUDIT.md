@@ -206,3 +206,7 @@ from notification unless an agreement or extension changes the effective date.
 Article 50 TEU: https://eur-lex.europa.eu/eli/treaty/teu_2016/art_50/oj .
 No automatic euro conversion or tariff, no complete domestic constitutional
 procedure or autonomous negotiation; evidence issuer must be trusted. CI pending.
+
+EU intent route explicitly uses withdrawal-intents, separate from ordinary organization
+withdrawals. Integration adds trusted notification, receipt replay and public evidence denial;
+leap-day deadline covered. No public procedure certification.

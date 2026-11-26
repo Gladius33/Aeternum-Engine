@@ -22,3 +22,7 @@ $r=E::certify($s,$day,'revocation',['national_decision_sha'=>$sha,'notice_sha'=>
 ckEU(E::advance($r,'2030-01-01')['membership'],'certified revocation');
 foreach([$x,$y,$z,$r] as $v)ckEU(E::restore($v)===$v,'exact procedural replay');
 $bad=$y;$bad['exit_on']='2027-03-01';noEU(fn()=>E::restore($bad));
+
+$leap='2028-02-29';$lp=E::request(E::initial($leap),$leap);
+$lp=E::certify($lp,$leap,'notification',['national_decision_sha'=>$sha,'notification_sha'=>$sha]);
+ckEU($lp['deadline']==='2030-02-28','leap day calendar anniversary');

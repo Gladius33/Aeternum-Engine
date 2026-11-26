@@ -18,7 +18,7 @@ final class PdoOrganizationApi
     public function handle(string $method,string $route,?array $body=null,array $headers=[]):array
     {
         if (strlen($route)>512 || !preg_match(
-            '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/organizations(?:/([a-z][a-z0-9_-]{0,63}))?(?:/(applications|votes|formalizations|withdrawals|clock|decisions))?$~D',
+            '~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})/organizations(?:/([a-z][a-z0-9_-]{0,63}))?(?:/(applications|votes|formalizations|withdrawals|withdrawal-intents|clock|decisions))?$~D',
             $route,$m
         )) {
             return self::problem(404,'route_not_found');
@@ -69,7 +69,7 @@ final class PdoOrganizationApi
                 $organization!=='' && $operationPath==='withdrawals'=>'withdraw',
                 $organization==='' && $operationPath==='clock'=>'clock',
                 $organization==='ai' && $operationPath==='decisions'=>'ai_vote',
-                $organization==='eu' && $operationPath==='withdrawals'=>'eu_intent',
+                $organization==='eu' && $operationPath==='withdrawal-intents'=>'eu_intent',
                 default=>null,
             };
             if ($operation===null) return self::problem(405,'method_not_allowed');

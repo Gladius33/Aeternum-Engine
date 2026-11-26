@@ -301,7 +301,7 @@ final class AlphaGateway
             if (($method==='GET' && in_array($suffix,['/diplomacy','/diplomacy/actors','/diplomacy/proposals'],true))
                 || ($method==='POST' && in_array($suffix,['/diplomacy/proposals','/diplomacy/responses'],true)))
                 return (new PdoDiplomaticApi(new PdoDiplomaticStore($this->db(),$scenario->actors,$principal)))->handle($method,$path,$body,$h);
-            if (($method==='GET' && $suffix==='/organizations')||($method==='POST'&&$suffix==='/organizations/eu/withdrawals'&&in_array($scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true)))
+            if (($method==='GET' && $suffix==='/organizations')||($method==='POST'&&$suffix==='/organizations/eu/withdrawal-intents'&&in_array($scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true)))
                 return (new PdoOrganizationApi(new PdoOrganizationStore($this->db(),$scenario->actors,$scenario->charters,$principal)))->handle($method,$path,$body,$h);
             if ($method==='GET' && in_array($suffix,['/economy','/economy/indicators'],true))
                 return (new PdoEconomicApi(new PdoEconomicStore($this->db(),$scenario->actors,$scenario->references,$principal)))->handle($method,$path,$body,$h);

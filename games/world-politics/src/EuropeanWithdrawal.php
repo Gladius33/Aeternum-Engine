@@ -18,7 +18,7 @@ final class EuropeanWithdrawal
     }
     public static function request(array $s,string $day):array
     {
-        if($s['day']!==$day||!in_array($s['status'],['member','revoked'],true))throw new \DomainException('Withdrawal intent unavailable');
+        if($s['day']!==$day||count($s['history'])>=1000||!in_array($s['status'],['member','revoked'],true))throw new \DomainException('Withdrawal intent unavailable');
         $s['status']='intent_pending';$s['intent_on']=$day;$s['notified_on']=null;$s['deadline']=null;$s['agreement_effective_on']=null;
         $s['history'][]=['day'=>$day,'kind'=>'intent','data'=>[]];return $s;
     }
