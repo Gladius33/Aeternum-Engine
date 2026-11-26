@@ -186,3 +186,11 @@ retroactive effect; transaction commits alongside daily domestic ledger.
 Amended texts without fiscal mapping, missing proposal and ambiguous instruments
 remain inactive. Manual clerk certification and full pack legislative workflows
 remain open. CI pending.
+
+### WP54r text/fiscal unit correction
+
+The old ordinary education clause said 200000 EUR while its immutable daily
+ledger delta was 200000 minor units. New worlds pin the corrected 2000 EUR
+text/hash and expose it in the API. Legacy text hashes and replay are unchanged;
+new automatic reconciliation does not activate old ambiguous ordinary texts.
+Existing previously authorized legacy laws remain untouched. CI pending.

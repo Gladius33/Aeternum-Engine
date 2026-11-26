@@ -43,3 +43,10 @@ ck40($x->snapshot()['bills']['bill-one']['status']==='adopted','accelerated CMP 
 do40($x,'transmit',['text_sha'=>$h],'transmit');do40($x,'promulgate',['text_sha'=>$h,'presidential_act_certified'=>true],'promulgate');
 do40($x,'publish',['text_sha'=>$h,'effective_on'=>'2026-11-26','publication_certified'=>true],'publish');
 ck40($x->proof('education-reform',$h,'2026-11-26')===null,'amended text cannot trigger unmatched fiscal assumptions');
+
+$precise=new BicameralLegislation('world-test','2026-11-25');$precise->enablePreciseUnits();
+$pb=$precise->draft('bill-one','education-reform');
+ck40($pb['texts']['standard']===hash('sha256',BicameralLegislation::catalog(true)['education-reform']['standard'])
+    &&$pb['texts']['standard']!==hash('sha256',BicameralLegislation::catalog()['education-reform']['standard'])
+    &&str_contains(BicameralLegislation::catalog(true)['education-reform']['standard'],'2000 EUR (200000 minor units)'),'versioned correct fiscal units');
+ck40(BicameralLegislation::restore($precise->snapshot())->snapshot()===$precise->snapshot(),'new text version replay');

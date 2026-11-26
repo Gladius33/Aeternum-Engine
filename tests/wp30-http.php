@@ -629,6 +629,8 @@ ck30($ind54['status']===200&&$ind54['body']['state']['mode']==='not_started','WP
 $act54=req30('POST',$r54.'/domestic/corporation',['action'=>'start-industrial-pilot'],$tc48,['If-Match'=>$ind54['etag'],'Idempotency-Key'=>'industrial-act-001']);
 ck30($act54['status']===200,'WP54r industrial pilot accepted');
 $pdo->exec('DELETE FROM wp_http_limits');
+$law54=req30('GET',$r54.'/countries/FR/legislation',null,$tc48);
+ck30($law54['status']===200&&$law54['body']['legislation']['minor_units']===true&&str_contains($law54['body']['catalog']['education-reform']['standard'],'2000 EUR (200000 minor units)'),'WP54r reviewed text matches fiscal unit');
 $dom54=req30('GET',$r54.'/domestic',null,$tc48);
 $pr54=req30('POST',$r54.'/domestic/proposals',['policy_id'=>'administration-report','effective_day'=>'2026-11-26'],$tc48,['If-Match'=>$dom54['etag'],'Idempotency-Key'=>'daily-legal-proposal']);
 ck30($pr54['status']===202&&$pr54['body']['policy']['authorized_on']===null,'WP54r pending exact domestic proposal');

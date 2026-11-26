@@ -14,10 +14,10 @@ final class BicameralLegislation
     public const VERSION='wp40-fr-ordinary-v1';
     public const SOURCE='https://qpc360.conseil-constitutionnel.fr/constitution-4-octobre-1958';
     private array $s;
-    public static function catalog():array
+    public static function catalog(bool $minorUnits=false):array
     {
         return ['education-reform'=>[
-            'standard'=>'The fictional education programme receives an additional daily allocation of 200000 EUR for thirty days.',
+            'standard'=>$minorUnits?'The fictional education programme receives an additional daily allocation of 2000 EUR (200000 minor units) for thirty days.':'The fictional education programme receives an additional daily allocation of 200000 EUR for thirty days.',
             'amended'=>'The fictional education programme receives a revised allocation subject to a subsequent implementing measure.'
         ]];
     }
@@ -26,6 +26,11 @@ final class BicameralLegislation
         self::id($world);self::day($day);
         $this->s=['version'=>self::VERSION,'source'=>self::SOURCE,'classification'=>'fictional_scenario',
             'world_id'=>$world,'country'=>'FR','start_day'=>$day,'day'=>$day,'bills'=>[],'history'=>[]];
+    }
+    public function enablePreciseUnits():void
+    {
+        if(isset($this->s['minor_units'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])throw new \DomainException('Text units must be pinned at bootstrap');
+        $this->s['minor_units']=true;
     }
     public function enableResponsibility():void
     {
@@ -127,7 +132,7 @@ final class BicameralLegislation
     }
     public function draft(string $id,string $policy):array
     {
-        self::id($id);$catalog=self::catalog();
+        self::id($id);$catalog=self::catalog(isset($this->s['minor_units']));
         if(!isset($catalog[$policy])||isset($this->s['bills'][$id])||count($this->s['bills'])>=100)
             throw new \DomainException('Unknown or duplicate bill');
         $b=['id'=>$id,'policy_id'=>$policy,'status'=>'draft','filed_on'=>null,'accelerated'=>false,
@@ -307,6 +312,10 @@ final class BicameralLegislation
     {
         $x=new self($s['world_id'],$s['start_day']);
         if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>2000)throw new \DomainException('Invalid legislation history');
+        if(array_key_exists('minor_units',$s)){
+            if($s['minor_units']!==true)throw new \DomainException('Invalid text unit model');
+            $x->enablePreciseUnits();
+        }
         if(array_key_exists('responsibility',$s))$x->enableResponsibility();
         if(isset($s['responsibility']['assembly']))$x->enableAssembly();
         if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();

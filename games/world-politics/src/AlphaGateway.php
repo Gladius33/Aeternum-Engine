@@ -275,7 +275,7 @@ final class AlphaGateway
                 $r=(new PdoInstitutionalStore($this->db(),$principal))->read($world,'FR');
                 $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);$c=$q->fetch(\PDO::FETCH_ASSOC);
                 if($c===false||$c['pending_day']!==null||$c['committed_day']!==$r['state']['day'])throw new AlphaHttpError(409,'world_advancing');
-                $response=self::ok(200,['legislation'=>$r['state']['legislation'],'catalog'=>BicameralLegislation::catalog()]);
+                $response=self::ok(200,['legislation'=>$r['state']['legislation'],'catalog'=>BicameralLegislation::catalog(isset($r['state']['legislation']['minor_units']))]);
                 $response['headers']['ETag']=$r['etag'];return $response;
             }
             if($method==='POST'&&in_array($scenario->id,[AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS],true)&&$suffix==='/countries/FR/institutions/decisions'

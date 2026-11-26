@@ -12,7 +12,7 @@ final class DailyLegalActivation
     {
         $found=[];
         foreach($l['bills']??[] as $b)
-            if($b['policy_id']===$policy&&$b['status']==='published'&&$b['final_version']==='standard'&&$b['effect_on']===$effective&&$b['published_on']<=$cutoff)
+            if(($l['minor_units']??false)===true&&$b['policy_id']===$policy&&$b['status']==='published'&&$b['final_version']==='standard'&&$b['effect_on']===$effective&&$b['published_on']<=$cutoff)
                 $found[]=['route'=>'fr_bicameral','text'=>$b['texts']['standard'],'instrument'=>$b];
         foreach($l['executive']['acts']??[] as $b)
             if($policy===ExecutiveActs::POLICY&&$b['policy_id']===$policy&&$b['status']==='published'&&$b['kind']!=='ordinance'&&$b['effective_on']===$effective&&$b['published_on']<=$cutoff)
