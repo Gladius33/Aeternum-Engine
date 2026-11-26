@@ -712,7 +712,11 @@ $fpAck54=$euStore54->execute($euWorld54,'eu_evidence',$fo54,'eu-franc-funding-te
 $bt54=['kind'=>'franc_bank_terms','data'=>['effective_on'=>'2026-11-27','opening_reserve_allocation_franc_minor'=>1000000000,'minimum_capital_bps'=>1000,'minimum_liquidity_bps'=>2000,'instrument_sha'=>str_repeat('8',64)]];
 $ba54=$euStore54->execute($euWorld54,'eu_evidence',$bt54,'eu-franc-bank-terms-001',$fpAck54['etag']);
 $bo54=['kind'=>'franc_bank_order','data'=>['effective_on'=>'2026-11-27','kind'=>'credit','amount_franc_minor'=>2000000000,'instrument_sha'=>str_repeat('9',64)]];
-$euStore54->execute($euWorld54,'eu_evidence',$bo54,'eu-franc-bank-credit-001',$ba54['etag']);
+$bc54=$euStore54->execute($euWorld54,'eu_evidence',$bo54,'eu-franc-bank-credit-001',$ba54['etag']);
+$ct54=['kind'=>'franc_bank_crisis_terms','data'=>['effective_on'=>'2026-11-27','facility_pool_franc_minor'=>1000000000,'guarantee_pool_franc_minor'=>1000000000,'collateral_haircut_bps'=>2000,'instrument_sha'=>str_repeat('a',64)]];
+$cr54=$euStore54->execute($euWorld54,'eu_evidence',$ct54,'eu-franc-bank-crisis-001',$bc54['etag']);
+$withdraw54=['kind'=>'franc_bank_order','data'=>['effective_on'=>'2026-11-29','kind'=>'cash_withdrawal','amount_franc_minor'=>2000000000,'instrument_sha'=>str_repeat('b',64)]];
+$euStore54->execute($euWorld54,'eu_evidence',$withdraw54,'eu-franc-bank-withdraw-001',$cr54['etag']);
 $sp54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);
 ck30($sp54['status']===200&&$sp54['body']['membership_scope']['current_modelled_eu_members']===27&&$sp54['body']['budget']['cumulative']['remaining_eu_financing_gap_minor']===0,'WP54r no premature EU scope or fiscal effect');
 ck30($sp54['body']['currency_contracts']['status']==='pending_effective_date'&&$sp54['body']['currency_contracts']['converted_opening_principal_eur_minor']===0,'WP54r no premature redenomination');
@@ -763,6 +767,12 @@ ck30($fr54['public_funding_version']==='wp54r-franc-public-funding-v1'&&$pf54['r
 ck30($pf54['central_bank']['treasury_advance_asset_franc_minor']===$pf54['treasury']['advance_liability_franc_minor']&&$pf54['commercial_banks']['reserve_asset_franc_minor']===$pf54['central_bank']['bank_reserve_liability_franc_minor']&&$pf54['domestic_beneficiaries']['deposit_asset_franc_minor']===$pf54['commercial_banks']['beneficiary_deposit_liability_franc_minor'],'WP54r four-sector counterpart conservation');
 $b54=$fr54['commercial_banking']['latest'];
 ck30($b54['bank_reserves_franc_minor']===1000000000+$pf54['commercial_banks']['reserve_asset_franc_minor']&&$b54['bank_deposit_liabilities_franc_minor']===2000000000+$pf54['commercial_banks']['beneficiary_deposit_liability_franc_minor']&&$b54['bank_balance_difference_franc_minor']===0,'WP54r public deposits combined with private credit once');
+$c54=req30('GET',$r54.'/clock',null,$tc48);
+$c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-29'],$tc48,['If-Match'=>$c54['etag'],'Idempotency-Key'=>'eu-bank-crisis-tick-001']);
+ck30($c54['status']===200&&$c54['body']['coherent'],'WP54r coherent bank crisis tick');
+$crisis54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);$frc54=$crisis54['body']['franc_monetary_rule'];$bk54=$frc54['commercial_banking']['latest'];$cr54=$bk54['crisis'];
+ck30($crisis54['status']===200&&$cr54['cash_withdrawn_franc_minor']===min(2000000000,$b54['bank_reserves_franc_minor'])&&$cr54['cash_withdrawn_franc_minor']+$cr54['unserved_eligible_withdrawal_franc_minor']===2000000000,'WP54r actual tick withdrawal limited by reserves');
+ck30($bk54['bank_balance_difference_franc_minor']===0&&$cr54['base_money_created_by_crisis_franc_minor']===0&&$cr54['covered_deposits_plus_cash_franc_minor']===$b54['bank_deposit_liabilities_franc_minor'],'WP54r cash conversion conserves money');
 
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');

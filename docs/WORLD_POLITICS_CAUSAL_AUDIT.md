@@ -321,3 +321,16 @@ reduce equity and leave deposits intact. No interbank clearing, deposit
 withdrawal or bank resolution, interest accrual, actual prudential regulation,
 opening national bank balance sheets, macro credit feedback or full M2. Existing
 worlds unchanged. CI pending.
+
+### WP54r bank crisis pilot
+
+Commercial bank CI 45838878610 green. New pinned crisis terms allocate
+facility and guarantee pools from the existing opening base, disjoint from
+opening bank reserves. Private deposit cash conversion preserves money;
+unserved eligible withdrawals stay deposits (no automatic carry). Facility
+loans require positive equity, haircut-adjusted loan collateral and existing
+funds; repayment replenishes pool. Insolvent-bank guarantee transfers the
+claim to a prefunded fund, not automatic debt cancellation. No additional
+base money; daily pool/reserve/cash and bank balance identities. Aggregate
+private deposit pilot only, no real per-depositor coverage, public deposit
+withdrawals, bank resolution or interbank clearing. CI pending.

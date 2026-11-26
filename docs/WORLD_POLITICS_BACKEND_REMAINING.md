@@ -581,3 +581,10 @@ capital/liquidity constraints, repayments, interest and losses. No new base
 money from private credit; public deposits included once. Actual national
 banks, interbank clearing, deposit runs, resolution, FX reserves and economic
 feedback remain open. WP55 deferred.
+
+### WP54r bank crisis
+
+Pinned cash withdrawal/redeposit, collateral-limited prefunded liquidity
+facility and aggregate prefunded deposit guarantee pilot. No extra base
+issuance. Autonomous stress, depositor roster, resolution and multi-bank
+clearing remain open; national EUR macro/treasury still separate.
