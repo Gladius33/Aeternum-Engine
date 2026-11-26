@@ -93,7 +93,7 @@ final class MacroFiscalLoop
     public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0,?int $wagePremiumBps=null,?int $tradeExposureBps=null,int $industrialCapex=0,?array $eu=null):array
     {
         if(!empty($debtModel['crisis_enabled'])||isset($previous['frf_committed_budget'])){
-            $credit=min($previous['treasury']['banking']['credit_availability_bps']??10000,$previous['frf_committed_budget']['risk']['credit_availability_bps']??10000);
+            $credit=FrancNativeSectors::credit($previous);
             $production-=intdiv(10000-$credit,2);
             $employment-=intdiv(10000-$credit,4);
         }

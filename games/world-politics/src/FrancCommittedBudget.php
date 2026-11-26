@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrancNativeBudgetProjection.php';
+require_once __DIR__.'/FrancNativeSectors.php';
 
 /** Prospective, replayed daily native treasury, with its own financing
  * choices. Legacy fiscal policy and GDP remain reference-denominated. */
@@ -27,11 +28,13 @@ final class FrancCommittedBudget
             'opening_fx'=>['official_eur_reserves_minor'=>$fx['official_eur_minor'],'official_franc_pool_minor'=>$fx['official_franc_pool_minor'],'official_eur_reserve_floor_minor'=>$fx['minimum_official_eur_minor'],'counterparty_eur_assets_minor'=>$fx['counterparty_eur_minor'],'counterparty_franc_pool_minor'=>$fx['counterparty_franc_pool_minor']],
             'funding'=>['advance'=>$f['settled_public_spending_franc_minor'],'repay'=>$f['settled_levy_and_repayment_franc_minor'],'liability'=>$f['treasury']['advance_liability_franc_minor'],'asset'=>$f['central_bank']['treasury_advance_asset_franc_minor']],
             'fx_order'=>isset($eu['franc_fx_orders'][$day])?array_intersect_key($eu['franc_fx_orders'][$day],['kind'=>true,'eur_minor'=>true]):null];
+        if(($terms['sector_integration']??false)===true)$v['sector_version']=FrancNativeSectors::VERSION;
         self::validate($v,$day);return $v;
     }
     public static function validate(array $v,string $day):void
     {
-        self::fields($v,['version','start','instrument_sha','reserve_authorized','opening_fx','funding','fx_order']);
+        self::fields($v,['version','start','instrument_sha','reserve_authorized','opening_fx','funding','fx_order',...(array_key_exists('sector_version',$v)?['sector_version']:[])]);
+        if(array_key_exists('sector_version',$v)&&$v['sector_version']!==FrancNativeSectors::VERSION)throw new \DomainException('Invalid native sector version');
         if($v['version']!==self::VERSION||!is_string($v['start'])||($dt=\DateTimeImmutable::createFromFormat('!Y-m-d',$v['start']))===false||$dt->format('Y-m-d')!==$v['start']||$v['start']>$day||!is_string($v['instrument_sha'])||!preg_match('/^[a-f0-9]{64}$/D',$v['instrument_sha'])||!is_bool($v['reserve_authorized']))throw new \DomainException('Invalid committed budget observation');
         self::fields($v['opening_fx'],['official_eur_reserves_minor','official_franc_pool_minor','official_eur_reserve_floor_minor','counterparty_eur_assets_minor','counterparty_franc_pool_minor']);
         self::fields($v['funding'],['advance','repay','liability','asset']);
@@ -72,17 +75,31 @@ final class FrancCommittedBudget
         if($previous===null&&$row['day']!==$obs['start'])throw new \DomainException('Missing opening committed native budget day');
         $f=$obs['funding'];$money=['funding'=>['settled_public_spending_franc_minor'=>$f['advance'],'settled_levy_and_repayment_franc_minor'=>$f['repay'],'treasury'=>['advance_liability_franc_minor'=>$f['liability']],'central_bank'=>['treasury_advance_asset_franc_minor'=>$f['asset']]]];
         $state=$previous['closing_state']??FrancNativeBudgetProjection::opening($row['frf_fiscal'],$prior,$obs['opening_fx'],$money,$ratio,$prior['frf_fiscal']['value_index_bps']??10000);
+        $sector=isset($obs['sector_version']);
+        if($previous!==null&&$sector!==isset($previous['sector_version']))throw new \DomainException('Native sector version changed');
         $flow=FrancNativeBudgetProjection::flow($row,$state,$model,$money,$obs['fx_order'],$ratio);
+        $calendar=$previous['bond_maturities']['closing']??[];
+        if($sector){
+            FrancNativeSectors::checkCalendar($calendar,$state['claims']);
+            $maturities=FrancNativeSectors::schedule($calendar,$state['claims'],$row['day'],[],$model['new_issue_maturity_years']);
+            foreach($maturities['due'] as $id=>$amount)$flow['maturities'][$id]=($flow['maturities'][$id]??0)+$amount;
+        }
         $paused=$row['treasury']['crisis']['moratorium']??false;$action=$row['treasury']['crisis']['action']??null;
         $finance=self::finance($state,$flow,$model,$ratio,$paused,$action);$flow['issues']=$finance['issues'];
         $result=FrancNativeBudget::step($state,$flow,$ratio,$mark,$obs['reserve_authorized'],$paused);
-        return [...$result,'instrument_sha'=>$obs['instrument_sha'],'effective_from'=>$obs['start'],'reserve_purchase_authorized'=>$obs['reserve_authorized'],'ratio'=>$ratio,'financing'=>$finance,'risk'=>self::risk($result,$row['macro']['real_gdp'],$ratio,$mark,$previous)];
+        $extra=[];
+        if($sector){
+            $maturities=FrancNativeSectors::schedule($calendar,$state['claims'],$row['day'],$finance['issues'],$model['new_issue_maturity_years']);
+            FrancNativeSectors::checkCalendar($maturities['closing'],$result['closing_state']['claims']);
+            $extra=['sector_version'=>FrancNativeSectors::VERSION,'bond_maturities'=>$maturities,'banking'=>FrancNativeSectors::banking($result,$model,$ratio,$mark)];
+        }
+        return [...$result,...$extra,'instrument_sha'=>$obs['instrument_sha'],'effective_from'=>$obs['start'],'reserve_purchase_authorized'=>$obs['reserve_authorized'],'ratio'=>$ratio,'financing'=>$finance,'risk'=>self::risk($result,$row['macro']['real_gdp'],$ratio,$mark,$previous)];
     }
     public static function project(array $dom):?array
     {
         $days=[];$active=false;
         foreach($dom['days'] as $d){if(isset($d['frf_committed_budget'])){$active=true;$days[]=['day'=>$d['day'],...$d['frf_committed_budget']];}elseif($active)throw new \DomainException('Committed native budget history gap');}
         if(!$active)return null;$last=$days[array_key_last($days)];
-        return ['version'=>self::VERSION,'status'=>'active','currency'=>'FRF','classification'=>'committed_native_treasury_with_reference_policy_inputs','effective_from'=>$days[0]['day'],'instrument_sha'=>$last['instrument_sha'],'latest'=>$last,'days'=>$days,'months'=>FrancNativeBudgetProjection::aggregate($days,7),'years'=>FrancNativeBudgetProjection::aggregate($days,4),'reference_financing_policy_retained'=>false,'shared_reserves_within_projection'=>true,'daily_state_committed'=>true,'national_reference_ledger_changed'=>false,'macro_feedback_from_native_arrears_modelled'=>true,'other_currencies_modelled'=>false];
+        return ['version'=>self::VERSION,'status'=>'active','currency'=>'FRF','classification'=>'committed_native_treasury_with_reference_policy_inputs','effective_from'=>$days[0]['day'],'instrument_sha'=>$last['instrument_sha'],'latest'=>$last,'days'=>$days,'months'=>FrancNativeBudgetProjection::aggregate($days,7),'years'=>FrancNativeBudgetProjection::aggregate($days,4),'reference_financing_policy_retained'=>false,'shared_reserves_within_projection'=>true,'daily_state_committed'=>true,'national_reference_ledger_changed'=>false,'macro_feedback_from_native_arrears_modelled'=>true,'other_currencies_modelled'=>false,...(isset($last['sector_version'])?['sector_version'=>$last['sector_version'],'future_bond_maturities'=>$last['bond_maturities']['closing'],'pretransition_new_issues_maturity_coverage'=>false]:[])];
     }
 }

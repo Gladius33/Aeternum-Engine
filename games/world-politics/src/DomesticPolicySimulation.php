@@ -265,10 +265,11 @@ final class DomesticPolicySimulation
                 foreach($prior['services']['next_day_pressure_delta']??[] as $k=>$v)if(isset($deltas[$k]))$deltas[$k]+=$v;
             }
             $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0,$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,0,$eu);
+            $nativeSectors=isset($eu['frf_committed_observation']['sector_version']);
             if($this->industrialEnabled){
                 $ordinaryTreasury=$loop['treasury'];$ordinaryExpense=$loop['expense'];$tr=$ordinaryTreasury;
                 $current=$tr['primary_arrears']===0&&$tr['interest_arrears']===0&&$tr['principal_arrears']===0&&!($tr['crisis']['moratorium']??false);
-                $industrial=IndustrialCapital::advance($installed,$target,$corporationAction,$tr['cash'],$current,$prior);
+                $industrial=IndustrialCapital::advance($installed,$target,$corporationAction,$nativeSectors?0:$tr['cash'],$current&&!$nativeSectors,$prior);
                 $paid=$industrial['paid_today_minor'];
                 if($paid>0){
                     $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense+$paid,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0,$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,$paid,$eu);
@@ -279,7 +280,7 @@ final class DomesticPolicySimulation
             $revenue=$loop['revenue'];$expense=$loop['expense'];
             if($this->publicEquityEnabled){
                 $tr=$loop['treasury'];$current=$tr['primary_arrears']===0&&$tr['interest_arrears']===0&&$tr['principal_arrears']===0&&!($tr['crisis']['moratorium']??false);
-                $equity=PublicEquityLedger::advance($prior['public_equity']??PublicEquityLedger::initial($this->startDay),$target,$corporationAction,$this->firmModel,$tr['cash'],$current);
+                $equity=PublicEquityLedger::advance($prior['public_equity']??PublicEquityLedger::initial($this->startDay),$target,$corporationAction,$this->firmModel,$nativeSectors?0:$tr['cash'],$current&&!$nativeSectors);
                 $paid=$equity['paid_today_minor'];$loop['treasury']['cash_before_equity_minor']=$tr['cash'];
                 $loop['treasury']['equity_acquisition_minor']=$paid;$loop['treasury']['cash']=$tr['cash']-$paid;
                 $loop['treasury']['public_equity_at_cost_minor']=$equity['financial_assets_at_cost_minor'];$loop['balance']=$loop['treasury']['cash'];
@@ -314,6 +315,15 @@ final class DomesticPolicySimulation
         if(($eu['frf_fiscal_terms']??null)!==null)$row['frf_fiscal']=FrancFiscalLedger::step($row,$prior,$this->debtModel,$eu['frf_fiscal_terms'],$eu['frf_parity_units_per_eur'],$eu['frf_value_index_bps']);
         if(isset($prior['frf_committed_budget'])&&!isset($eu['frf_committed_observation']))throw new \DomainException('Missing ongoing native budget observation');
         if(isset($eu['frf_committed_observation']))$row['frf_committed_budget']=FrancCommittedBudget::step($row,$prior,$this->debtModel,$eu['frf_committed_observation'],$eu['frf_parity_units_per_eur'],$eu['frf_value_index_bps']);
+        if(isset($row['frf_committed_budget']['sector_version'])){
+            $ratio=$eu['frf_parity_units_per_eur'];
+            if($servicePlan!==null){
+                $allocation=FrancNativeSectors::services($row['frf_committed_budget'],$prior,$ordinaryExpense??$expense,$ratio);
+                $row['services']=FrenchPublicServices::settle($this->servicesModel,$servicePlan,$prior,['primary_paid'=>$allocation['reference_paid_minor'],'opening_primary_arrears'=>0],$ordinaryExpense??$expense);
+                $row['services']['native_payment']=$allocation;
+            }
+            $row['frf_committed_budget']['sector_settlement']=['public_services_payment_source'=>$servicePlan===null?'not_enabled':'native_treasury','discretionary_capital_settlement_suspended'=>true];
+        }
         if($firms!==null)$row['firms']=$firms;
         if($equity!==null)$row['public_equity']=$equity;
         if($industrial!==null)$row['industrial']=$industrial;

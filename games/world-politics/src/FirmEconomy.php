@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/FrancNativeSectors.php';
 require_once __DIR__.'/IndustrialProgrammeCatalog.php';
 
 /** Fictional domestic-capacity agents attached to public identity keys.
@@ -44,7 +45,7 @@ final class FirmEconomy
         // government-targeted company ranking determines an agent response.
         $macro=$prior['macro']??[];
         $growth=max(-2500,min(2500,($macro['real_output_index_bps']??10000)-10000));
-        $credit=max(0,min(10000,$prior['treasury']['banking']['credit_availability_bps']??10000));
+        $credit=max(0,min(10000,isset($prior['frf_committed_budget']['sector_version'])?FrancNativeSectors::credit($prior):($prior['treasury']['banking']['credit_availability_bps']??10000)));
         $trade=max(0,min(2000,$macro['trade_exposure_bps']??0));
         $cost=max(0,min(3000,$macro['corporation_payroll']['labour_cost_gap_bps']??0));
         $stress=max(0,-$growth)+intdiv(10000-$credit,3)+intdiv($trade,2)+intdiv($cost,2);

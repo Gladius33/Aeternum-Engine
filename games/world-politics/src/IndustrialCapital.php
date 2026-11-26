@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/FrancNativeSectors.php';
 
 /** Fictional cash-limited public capital pilot, no automatic legal authorization. */
 final class IndustrialCapital
@@ -29,7 +30,7 @@ final class IndustrialCapital
         if($s['version']!==self::VERSION||$day!==(new \DateTimeImmutable($s['day']))->modify('+1 day')->format('Y-m-d')||$cash<0)throw new \DomainException('Invalid industrial day');
         $s['day']=$day;$s['paid_today_minor']=0;
         if(self::isAction($action)){self::validate($s,$action);$s['mode']=$action==='pause-industrial-pilot'?'paused':'active';}
-        $credit=$prior['treasury']['banking']['credit_availability_bps']??10000;
+        $credit=isset($prior['frf_committed_budget']['sector_version'])?FrancNativeSectors::credit($prior):($prior['treasury']['banking']['credit_availability_bps']??10000);
         $trade=$prior['macro']['trade_exposure_bps']??0;
         $unemployment=$prior['macro']['unemployment_bps']??800;
         // Bounded fictional input, skills and finance constraints; never spend
