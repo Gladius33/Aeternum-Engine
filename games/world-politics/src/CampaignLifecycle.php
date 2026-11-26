@@ -14,7 +14,7 @@ final class CampaignLifecycle
     private const TYPES=['cabinet_resigned','cabinet_reconstituted','constitutional_crisis_opened',
         'constitutional_crisis_resolved','revolution_attempted','revolution_failed','revolution_succeeded',
         'presidential_election_lost','presidential_mandate_ended','presidential_resignation','presidential_removal','presidential_death',
-        'leadership_displaced','leadership_abroad','leadership_returned'];
+        'leadership_displaced','leadership_abroad','leadership_returned','alternative_order_review_opened','alternative_order_review_closed'];
     public static function initial(string $world,string $day):array
     {
         self::id($world);self::day($day);
@@ -48,6 +48,12 @@ final class CampaignLifecycle
             if($e['world_id']!==$s['world_id']||$e['day']!==$day)throw new \DomainException('Campaign event scope mismatch');
             foreach($s['events'] as $prior)if($prior['id']===$e['id'])throw new \DomainException('Duplicate campaign event');
             switch($e['type']){
+                case 'alternative_order_review_opened':
+                    if(!isset($s['order_review'])||$s['order_review']['status']!=='none'||$s['constitutional_status']!=='disputed')throw new \DomainException('No certified constitutional review context');
+                    $s['order_review']=['status'=>'pending_independent_review','opened_on'=>$day,'closed_on'=>null,'existing_mandate_preserved'=>true,'alternate_authority_installed'=>false];break;
+                case 'alternative_order_review_closed':
+                    if(($s['order_review']['status']??null)!=='pending_independent_review')throw new \DomainException('No pending alternative order review');
+                    $s['order_review']['status']='closed_without_replacement';$s['order_review']['closed_on']=$day;break;
                 case 'leadership_displaced':
                 case 'leadership_abroad':
                 case 'leadership_returned':
@@ -120,7 +126,7 @@ final class CampaignLifecycle
             $d=new \DateTimeImmutable($end);
             $interim=['office'=>'senate_president_or_government_if_unavailable','earliest_poll'=>$d->modify('+20 days')->format('Y-m-d'),'latest_poll'=>$d->modify('+35 days')->format('Y-m-d'),'exception'=>'force_majeure_certified_by_constitutional_council','unavailable_articles'=>[11,12,49,50,89],'post_campaign_election_simulated'=>false];
         }
-        return ['start_day'=>$s['start_day'],'through_day'=>$end,'elapsed_office_days'=>$days,'frozen'=>$s['ended_on']!==null,'constitutional_status'=>$s['constitutional_status'],'recognition_status'=>$s['continuity']['recognition_status']??'not_disputed','interim'=>$interim,'score_eligible'=>false];
+        return ['start_day'=>$s['start_day'],'through_day'=>$end,'elapsed_office_days'=>$days,'frozen'=>$s['ended_on']!==null,'constitutional_status'=>$s['constitutional_status'],'recognition_status'=>$s['continuity']['recognition_status']??'not_disputed','interim'=>$interim,'score_eligible'=>false,...(isset($s['order_review'])?['order_review'=>$s['order_review']]:[])];
     }
     public static function summary(array $s):array
     {

@@ -843,4 +843,7 @@ foreach(['2027-05-17','2027-05-18'] as $day){$c27=req30('POST',$r27.'/clock/adva
 $ins27=req30('GET',$r27.'/countries/FR/institutions',null,$t27);
 $record=$ins27['body']['recurring_elections']['requests'][$ds27['body']['id']];
 ck30($record['status']==='executed'&&count($record['consultations'])===3&&$ins27['body']['legislature']==='dissolved','WP55 three server consultations and dissolution committed');
+$sen27=req30('GET',$r27.'/countries/FR/institutions',null,$t27);ck30(count($sen27['body']['senate']['agents'])===348&&$sen27['body']['senate']['source']['groups']['lr']===124,'WP58 canonical Senate anchor');
+$ca27=req30('GET',$r27.'/countries/FR/cabinet',null,$t27);ck30($ca27['status']===200&&$ca27['body']['requests']===[],'WP59 cabinet requests pinned');
+$cp27=req30('GET',$r27.'/campaign',null,$t27);ck30($cp27['body']['tenure']['order_review']['status']==='none','WP60 constitutional order review pinned without authority');
 echo "WP30 HTTP private alpha acceptance passed.\n";

@@ -80,6 +80,11 @@ final class PublicOpinion
         $this->s['civil_mobilisation']=CivilMobilisation::initial($this->s['day']);
         $this->s['campaign']['continuity']=['location_status'=>'domestic','recognition_status'=>'not_disputed','last_event_day'=>null];
     }
+    public function enableOrderReview():void
+    {
+        if(!isset($this->s['campaign']['continuity'])||isset($this->s['campaign']['order_review'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])throw new \DomainException('Order review must be pinned at bootstrap');
+        $this->s['campaign']['order_review']=['status'=>'none','opened_on'=>null,'closed_on'=>null,'existing_mandate_preserved'=>true,'alternate_authority_installed'=>false];
+    }
     public function enablePresidentialMandate(array $config,bool $dynamic=false):void
     {
         if(!isset($this->s['campaign'])||isset($this->s['presidency'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
@@ -242,6 +247,7 @@ final class PublicOpinion
         if(array_key_exists('social_partners',$s))$x->enableSocialPartners();
         if(array_key_exists('campaign',$s))$x->enableCampaign();
         if(array_key_exists('civil_mobilisation',$s))$x->enableCivilCrisis();
+        if(isset($s['campaign']['order_review']))$x->enableOrderReview();
         if(array_key_exists('presidency',$s))$x->enablePresidentialMandate($s['presidency']['config'],isset($s['presidency']['ballot_model']));
         if(array_key_exists('party_responses',$s))$x->enablePartyResponses();
         foreach($s['history'] as $r)$x->advance($r['source'],$r['campaign_event']??null);

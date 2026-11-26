@@ -11,6 +11,8 @@ require_once __DIR__.'/ConstitutionalRevision.php';
 require_once __DIR__.'/BicameralLegislation.php';
 require_once __DIR__.'/FrenchRecurringElections.php';
 require_once __DIR__.'/RevisionAutonomy.php';
+require_once __DIR__.'/FrenchSenateCycle.php';
+require_once __DIR__.'/CabinetRequests.php';
 
 /**
  * WP05: small deterministic institution/event aggregate. Illustrates exactly
@@ -58,6 +60,8 @@ final class InstitutionalSimulation
         if (array_key_exists('legislation',$state)) $expected[]='legislation';
         if(array_key_exists('recurring_elections',$state))$expected[]='recurring_elections';
         if(array_key_exists('revision_requests',$state))$expected[]='revision_requests';
+        if(array_key_exists('senate',$state))$expected[]='senate';
+        if(array_key_exists('cabinet_requests',$state))$expected[]='cabinet_requests';
         $keys=array_keys($state);sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid institutional snapshot fields');
         $self=new self($state['world_id'],$state['country_code'],$state['day']);
@@ -130,6 +134,8 @@ final class InstitutionalSimulation
             }
         }
         if(isset($state['revision_requests']))RevisionAutonomy::validate($state);
+        if(isset($state['senate'])&&($state['country_code']!=='FR'||$state['senate']!==FrenchSenateCycle::project($state['world_id'],$state['day'])))throw new \DomainException('Senate projection mismatch');
+        if(isset($state['cabinet_requests']))CabinetRequests::validate($state);
         $self->state=$state;
         return $self;
     }
@@ -173,6 +179,10 @@ final class InstitutionalSimulation
             // SEVEN DAYS IS A CONFIGURABLE GAMEPLAY DEFAULT, NOT A LEGAL DEADLINE.
             $this->enqueue($commandId.'-debate','bill_debate_open',self::plus($day,7));
             $result=['bill_id'=>$commandId,'status'=>'filed','earliest_debate'=>self::plus($day,7)];
+        } elseif ($action==='request_cabinet_appointment') {
+            self::keys($input,['candidate']);
+            if($role!=='scenario_president_requester'||!isset($this->state['cabinet_requests']))throw new \DomainException('Cabinet request forbidden');
+            $result=CabinetRequests::request($this->state,$commandId,$input['candidate']);$this->state['cabinet_requests'][$commandId]=$result;
         } elseif ($action==='request_dissolution') {
             self::keys($input,[]);
             if($role!=='scenario_president_requester'||!isset($this->state['recurring_elections']['requests']))throw new \DomainException('Dissolution request forbidden');
@@ -316,6 +326,12 @@ final class InstitutionalSimulation
         $this->state['recurring_elections']=['version'=>FrenchRecurringElections::VERSION,'completed'=>0,'last_dissolution_election'=>'2024-07-07','requests'=>[]];
         $this->state['last_election']='2024-07-07';
         $this->state['revision_requests']=[];
+    }
+    public function enableCabinetSenateLot():void
+    {
+        if(!isset($this->state['recurring_elections'],$this->state['legislation']['responsibility']['cabinet'])||isset($this->state['senate'])||$this->state['events']!==[])throw new \DomainException('WP58-59 bootstrap required');
+        $this->state['senate']=FrenchSenateCycle::project($this->state['world_id'],$this->state['day']);
+        $this->state['cabinet_requests']=[];
     }
     public function enableRevision():void
     {
@@ -463,6 +479,8 @@ final class InstitutionalSimulation
             $this->state['legislation']=$l->snapshot();
         }
         $this->state['day']=$targetDay;
+        if(isset($this->state['senate']))$this->state['senate']=FrenchSenateCycle::project($this->state['world_id'],$targetDay);
+        if(isset($this->state['cabinet_requests']))$this->state=CabinetRequests::advance($this->state);
         if(isset($this->state['revision_requests'])&&$this->state['revision_requests']!==[])$this->state=RevisionAutonomy::advance($this->state,$opinion);
         $this->state['agenda']=$remain;
         if(isset($this->state['recurring_elections']['requests']))$this->advanceDissolutionRequests($targetDay);

@@ -115,3 +115,19 @@ $y->advanceTo('2027-05-15');
 ck31($y->snapshot()['recurring_elections']['requests']['request-one']['status']==='consulted'&&$y->snapshot()['legislature']==='sitting','consultations committed before decision');
 $y->advanceTo('2027-05-16');
 ck31($y->snapshot()['recurring_elections']['requests']['request-one']['status']==='executed'&&$y->snapshot()['legislature']==='dissolved'&&IS::restore($y->snapshot())->hash()===$y->hash(),'server executes dissolution and replays request');
+
+use Aeternum\WorldPolitics\FrenchSenateCycle as SC;
+$sen=SC::project('wp58-world','2027-05-14');$s29=SC::project('wp58-world','2029-10-02');$s32=SC::project('wp58-world','2032-10-04');
+ck31(count($sen['agents'])===348&&count(array_intersect_key($sen['agents'],$s29['agents']))===178,'Senate sourced 348 seats and only 170 renewed in 2029');
+ck31(count(array_intersect_key($s29['agents'],$s32['agents']))===170&&count($s32['renewals'])===2,'Senate 178 seats renewed in 2032');
+$counts=[];foreach($sen['agents'] as $m)$counts[$m['group']]=($counts[$m['group']]??0)+1;ksort($counts);$expected=$sen['source']['groups'];ksort($expected);
+ck31($counts===$expected&&SC::project('wp58-world','2027-05-14')===$sen,'Senate observed group totals and deterministic projection');
+$z=new IS('wp59-test','FR','2027-05-14');$z->enableElectoral(PL::publishedElectionConfig('2027-05-14'));$z->enablePoliticalAI();$z->enableRevision();$z->enableLegislation(true,true,true,true,true,true,true);$z->enableContinuityLot();$z->enableCabinetSenateLot();
+try{$z->decide('scenario_president_requester','request_cabinet_appointment',['candidate'=>'pm-social'],'premature');throw new RuntimeException('Active PM bypassed');}catch(DomainException $e){ck31(true,'active PM cannot be dismissed by nomination request');}
+$z->legislation('legislation_clerk','legislation_evidence',['world_id'=>'wp59-test','country'=>'FR','day'=>'2027-05-14','evidence_id'=>'resign-wp59','bill_id'=>null,'kind'=>'assembly_cabinet_resign','procedure_certified'=>true,'data'=>['at'=>'2027-05-14T12:00:00Z','prime_minister'=>'pm-initial','resignation_id'=>'pm-resign','resignation_presented'=>true]],'resign-wp59');
+$z->decide('scenario_president_requester','request_cabinet_appointment',['candidate'=>'pm-social'],'nominate-wp59');$z->advanceTo('2027-05-15');$zz=$z->snapshot();
+ck31($zz['cabinet_requests']['nominate-wp59']['status']==='appointed'&&$zz['legislation']['responsibility']['cabinet']['prime_minister']==='pm-social'&&IS::restore($zz)->hash()===$z->hash(),'cabinet succession only after resignation, durable appointment evidence');
+$cc=CL::initial('wp60-test','2027-05-14');$cc['order_review']=['status'=>'none','opened_on'=>null,'closed_on'=>null,'existing_mandate_preserved'=>true,'alternate_authority_installed'=>false];
+$cc=CL::advance($cc,'2027-05-15',CL::event('wp60-test','2027-05-15','crisis','constitutional_crisis_opened'));$cc=CL::advance($cc,'2027-05-16',CL::event('wp60-test','2027-05-16','review','alternative_order_review_opened'));
+ck31($cc['order_review']['status']==='pending_independent_review'&&$cc['status']==='active'&&!$cc['regime_changed']&&CL::tenure($cc)['elapsed_office_days']===2,'alternative order review does not replace mandate or award automatic power');
+$cc=CL::advance($cc,'2027-05-17',CL::event('wp60-test','2027-05-17','close-review','alternative_order_review_closed'));ck31($cc['order_review']['status']==='closed_without_replacement','independent review can close without regime replacement');

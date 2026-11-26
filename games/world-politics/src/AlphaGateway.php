@@ -270,7 +270,7 @@ final class AlphaGateway
                 $q=$this->db()->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?');$q->execute([$world]);$c=$q->fetch(\PDO::FETCH_ASSOC);
                 if($c===false||$c['pending_day']!==null||$c['committed_day']!==$r['state']['day'])throw new AlphaHttpError(409,'world_advancing');
                 $g=$r['state']['legislation']['responsibility'];
-                $response=self::ok(200,['day'=>$r['state']['day'],...FrenchCabinet::projection($g['cabinet'],$g['assembly']),'catalog'=>FrenchCabinet::catalog()]);
+                $response=self::ok(200,['day'=>$r['state']['day'],...FrenchCabinet::projection($g['cabinet'],$g['assembly']),'catalog'=>FrenchCabinet::catalog(),...(isset($r['state']['cabinet_requests'])?['requests'=>$r['state']['cabinet_requests']]:[])]);
                 $response['headers']['ETag']=$r['etag'];return $response;
             }
             if($method==='GET'&&$suffix==='/countries/FR/assembly'&&in_array($scenario->id,[AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)){
@@ -304,7 +304,7 @@ final class AlphaGateway
             if($method==='POST'&&in_array($scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)&&$suffix==='/countries/FR/institutions/decisions'
                 &&($body['action']??null)==='electoral_coalition')
                 return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
-            if($method==='POST'&&$scenario->id===AlphaScenario::INVESTITURE&&$suffix==='/countries/FR/institutions/decisions'&&($body['action']??null)==='request_dissolution')
+            if($method==='POST'&&$scenario->id===AlphaScenario::INVESTITURE&&$suffix==='/countries/FR/institutions/decisions'&&in_array($body['action']??null,['request_dissolution','request_cabinet_appointment'],true))
                 return (new PdoInstitutionalApi(new PdoInstitutionalStore($this->db(),$principal)))->handle($method,$path,$body,$h);
             if ($method==='GET' && preg_match('~^/countries/([A-Z]{2})/institutions(?:/rulebook)?$~D',$suffix,$countryMatch)
                 && in_array($countryMatch[1],$scenario->countries,true))

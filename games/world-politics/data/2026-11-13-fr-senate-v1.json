@@ -1,0 +1,32 @@
+{
+  "schema": "wp58-senate-anchor-v1",
+  "observed_on": "2026-11-13",
+  "source": "https://www.senat.fr/scrutin-public/2026/scr2026-82.html",
+  "calendar_source": "https://www.senat.fr/connaitre-le-senat/role-et-fonctionnement/mode-delection-des-senateurs.html",
+  "term_source": "https://www.senat.fr/reglement/pouvoirs_publics47.html",
+  "groups": {
+    "lr": 124,
+    "uci": 63,
+    "ser": 62,
+    "crce": 18,
+    "rdse": 18,
+    "rdpi": 16,
+    "unt": 15,
+    "est": 15,
+    "lirt": 14,
+    "ni": 3
+  },
+  "series": {
+    "1": {
+      "seats": 170,
+      "last_election": "2023-09-24",
+      "next_year": 2029
+    },
+    "2": {
+      "seats": 178,
+      "last_election": "2026-09-27",
+      "next_year": 2032
+    }
+  },
+  "classification": "observed_group_totals_not_individual_vote_or_series_membership"
+}

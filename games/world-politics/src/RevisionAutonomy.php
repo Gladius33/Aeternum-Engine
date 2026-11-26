@@ -24,13 +24,13 @@ final class RevisionAutonomy
             if($p['status']!==$expected)throw new \DomainException('Revision request and legal procedure differ');
         }
     }
-    private static function ballot(string $seed,array $assembly,string $chamber,int $approval):array
+    private static function ballot(string $seed,array $assembly,string $chamber,int $approval,?array $senate=null):array
     {
         $v=['yes'=>0,'no'=>0,'abstain'=>0,'blank_invalid'=>0];
-        $agents=$chamber==='assembly'?$assembly['deputies']:array_fill(0,348,['group'=>'synthetic-senator','attendance_bps'=>9500]);
+        $agents=$chamber==='assembly'?$assembly['deputies']:($senate['agents']??array_fill(0,348,['group'=>'synthetic-senator','attendance_bps'=>9500]));
         foreach($agents as $id=>$d){
             $h=hexdec(substr(hash('sha256',$seed.'|'.$chamber.'|'.$id),0,8));
-            $alignment=$assembly['groups'][$d['group']]['alignment']??'nonaligned';
+            $alignment=$chamber==='senate'?'nonaligned':($assembly['groups'][$d['group']]['alignment']??'nonaligned');
             $threshold=match($alignment){'government'=>6000,'opposition'=>4000,default=>5000};
             // Fictional aggregate sentiment, not a model of real voter persuasion.
             $threshold=max(1000,min(9000,$threshold+2*($approval-500)));
@@ -56,11 +56,11 @@ final class RevisionAutonomy
                     if(($s['legislation']['responsibility']['cabinet']['status']??null)!=='in_office'){$req['status']='declined';$s['revision_requests'][$id]=$req;continue;}
                     $kind='file';$data=['initiative'=>'government_project','sponsor'=>'president','prime_minister_proposal'=>true,'republican_form_preserved'=>true];$next=30;$after='filed';break;
                 case 'filed':$kind='chamber_vote';$data=['chamber'=>'assembly','text_sha'=>$sha,...self::ballot($seed,$assembly,'assembly',$approval)];$next=30;$after='assembly_approved';break;
-                case 'assembly_approved':$kind='chamber_vote';$data=['chamber'=>'senate','text_sha'=>$sha,...self::ballot($seed,$assembly,'senate',$approval)];$next=15;$after='chambers_approved';break;
+                case 'assembly_approved':$kind='chamber_vote';$data=['chamber'=>'senate','text_sha'=>$sha,...self::ballot($seed,$assembly,'senate',$approval,$s['senate']??null)];$next=15;$after='chambers_approved';break;
                 case 'chambers_approved':$kind='route';$data=['route'=>$req['route'],'presidential_decision'=>true];$next=$req['route']==='congress'?30:60;$after='ratification_pending';break;
                 case 'ratification_pending':
                     if($req['route']==='congress'){
-                        $a=self::ballot($seed.'|congress',$assembly,'assembly',$approval);$b=self::ballot($seed.'|congress',$assembly,'senate',$approval);
+                        $a=self::ballot($seed.'|congress',$assembly,'assembly',$approval);$b=self::ballot($seed.'|congress',$assembly,'senate',$approval,$s['senate']??null);
                         $v=[];foreach($a as $k=>$n)$v[$k]=$n+$b[$k];
                     }else{$yes=40000+20*($approval-500);$v=['yes'=>$yes,'no'=>80000-$yes,'abstain'=>0,'blank_invalid'=>1000];}
                     $kind='ratify';$data=['route'=>$req['route'],'text_sha'=>$sha,...$v];$next=1;$after='adopted';break;
@@ -68,7 +68,7 @@ final class RevisionAutonomy
                 default:throw new \DomainException('Unknown revision stage');
             }
             $e=['world_id'=>$s['world_id'],'country'=>'FR','day'=>$day,'evidence_id'=>'auto89-'.substr(hash('sha256',$seed.'|'.$id.'|'.$status),0,32),'revision_id'=>$id,'kind'=>$kind,'procedure_certified'=>true,'data'=>$data];
-            $result=$r->certify($e);$req['observations'][]=['day'=>$day,'stage'=>$status,'opinion'=>$opinion,'assembly_sha'=>hash('sha256',json_encode($assembly,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),'evidence_id'=>$e['evidence_id']];
+            $result=$r->certify($e);$req['observations'][]=['day'=>$day,'stage'=>$status,'opinion'=>$opinion,'assembly_sha'=>hash('sha256',json_encode($assembly,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),'evidence_id'=>$e['evidence_id'],...(isset($s['senate'])?['senate_sha'=>hash('sha256',json_encode($s['senate'],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES))]:[])];
             $req['status']=$result['procedure']['status']==='rejected'?'rejected':$after;$req['next_on']=self::shift($day,$next);
             $s['revision_requests'][$id]=$req;
         }
