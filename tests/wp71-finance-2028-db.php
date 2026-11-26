@@ -62,7 +62,7 @@ $next=$is->read($world,'FR');$is->advance($world,'FR','2028-01-01','wp71-db-inst
 $jan=$reopen->execute($world,'clock',['target_day'=>$da->day],'wp71-db-dom-tick-02',$dec['etag']);
 $delta=F::catalog(2028)[$policy]['expense_delta'];
 ck71db($jan['result']['expense']===$baseline+$delta&&in_array($policy,$jan['result']['active_policies'],true),'2028 fiscal delta starts on effective date');
-ck71db($reopen->execute($world,'clock',$payload,$key,'"stale"')===$dec,'exact historical receipt replay');
+ck71db($reopen->execute($world,'clock',$payload,$key,$proposal['etag'])===$dec,'exact historical receipt replay');
 $q->execute([$world]);ck71db((int)$q->fetchColumn()===1,'one legal instrument, no duplicate booking');
 $state=$reopen->read($world);
 $pure=new DomesticPolicySimulation($world,$start,'EUR',$cfg['opening_balance'],$baseline,$baseline,$cfg['cohorts'],$cfg['catalog'],null,null,null,null,false,false,false,null,false,false,true);
