@@ -1,9 +1,10 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/FrancDebtCalibration.php';
 
 /** Coverage of the model, not a beneficial-owner registry. The observations
- * are read from the pinned source pack and are not independently reverified. */
+ * are read from the pinned source pack; selected figures have a separate crosscheck. */
 final class FrancCreditorCoverage
 {
     public const VERSION='wp54r-creditor-coverage-v1';
@@ -45,10 +46,10 @@ final class FrancCreditorCoverage
             $last=$q;
         }
         return ['version'=>self::VERSION,'modelled_principal_by_currency_minor'=>$principal,'modelled_creditor_receipts_by_currency_minor'=>$receipts,'claim_cohorts'=>$claims,
-            'source_sha'=>$model['source_sha']??null,'source_classification'=>'pinned_staged_pack_not_independently_reverified','observed_holder_share_anchors'=>$shares,
+            'source_sha'=>$model['source_sha']??null,'source_classification'=>'pinned_staged_pack_with_partial_independent_crosscheck','observed_holder_share_anchors'=>$shares,
             'historical_stock_intervals'=>$observations,'observed_debt_holder_identity_coverage'=>null,'individual_beneficial_owners_known'=>false,
             'opening_holder_allocation_is_synthetic'=>true,'new_issues_holder_allocation_is_synthetic'=>true,
             'source_coverage_is_not_model_coverage'=>true,'full_modelled_principal_reconciled'=>true,
-            'calibration'=>['observed_anchors'=>['opening_debt','holder_market_value_shares','new_issuance_reference_rate'],'scenario_assumptions'=>['initial_coupon_bps','maturity_month_count','new_issue_maturity_years','normal_daily_base_capacity','stress_daily_base_capacity','normal_refinancing_bps','stress_refinancing_bps','support_limit','restructuring_overdue_reduction_bps'],'empirical_fit_performed'=>false]];
+            'calibration'=>['observed_anchors'=>['opening_debt','holder_market_value_shares','new_issuance_reference_rate'],'scenario_assumptions'=>['initial_coupon_bps','maturity_month_count','new_issue_maturity_years','normal_daily_base_capacity','stress_daily_base_capacity','normal_refinancing_bps','stress_refinancing_bps','support_limit','restructuring_overdue_reduction_bps'],'empirical_fit_performed'=>false,'historical_debt_stock_benchmark'=>FrancDebtCalibration::report($model)]];
     }
 }

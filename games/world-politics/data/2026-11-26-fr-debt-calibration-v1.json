@@ -1,0 +1,45 @@
+{
+  "schema": "wp54r-fr-debt-calibration-v1",
+  "verified_on": "2026-11-26",
+  "sources": {
+    "insee_series": "https://www.insee.fr/fr/statistiques/2830301",
+    "insee_detail": "https://www.insee.fr/fr/statistiques/9053525",
+    "aft_bulletin": "https://www.aft.gouv.fr/files/medias-aft/7_Publications/7.2_BM/438_Bulletin_mensuel_novembre_2026.pdf",
+    "aft_home": "https://www.aft.gouv.fr/fr?lang=fr"
+  },
+  "unit": "100000000 EUR",
+  "quarter_ends": {
+    "2022-12-31": 29556,
+    "2023-03-31": 30211,
+    "2023-06-30": 30559,
+    "2023-09-30": 30958,
+    "2023-12-31": 31032,
+    "2024-03-31": 31630,
+    "2024-06-30": 32324,
+    "2024-09-30": 33030,
+    "2024-12-31": 33061,
+    "2025-03-31": 33463,
+    "2025-06-30": 34172,
+    "2025-09-30": 34841,
+    "2025-12-31": 34601,
+    "2026-03-31": 35359,
+    "2026-06-30": 35955
+  },
+  "train_through": "2024-12-31",
+  "aft": {
+    "stock_date": "2026-10-31",
+    "negotiable_stock_eur": 2921146886290,
+    "mean_remaining_maturity_years": 8,
+    "mean_remaining_maturity_days": 139,
+    "weighted_2026_oat_issuance_rate_bps": 364,
+    "holder_period": "2026-Q2",
+    "holder_basis": "market_value",
+    "holder_shares_bps": {
+      "nonresident": 5966,
+      "other_french": 1870,
+      "french_credit_institutions": 1050,
+      "french_insurers": 920,
+      "french_funds": 200
+    }
+  }
+}

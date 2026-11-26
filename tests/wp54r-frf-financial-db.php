@@ -87,4 +87,10 @@ ckDB(S::project($org($e),$read)['franc_native_budget']===$report,'same report fr
 $j=$pdo->query("SELECT before_sha,after_sha FROM wp_domestic_journal WHERE world_id='frf-db-test' ORDER BY revision")->fetchAll(PDO::FETCH_ASSOC);
 ckDB(count($j)===7&&$j[6]['after_sha']===trim($read['etag'],'"'),'native journal chain final hash');
 for($i=1;$i<count($j);$i++)ckDB($j[$i-1]['after_sha']===$j[$i]['before_sha'],'continuous journal link '.$i);
+$facility=['currency'=>'GBP','effective_on'=>'2026-12-03','maturity_on'=>'2026-12-04','instrument_sha'=>$sha,'principal_minor'=>10000,'opening_reserve_minor'=>9000,'minimum_reserve_minor'=>1000,'coupon_bps'=>0,'eur_minor_per_10000_units'=>12000];
+$e=E::certify($e,'2026-12-02','franc_external_facility',$facility);
+$third=$run('2026-12-03');$fourth=$run('2026-12-04');$newRead=(new Store($connect(),$a))->read($world);
+$fx=C::project($newRead['state']);
+ckDB($fx['latest']['external_finance']['facilities']['GBP']['principal_outstanding_minor']===2000&&$fx['latest']['external_finance']['facilities']['GBP']['reserve_minor']===1000,'native foreign facility settlement persists in MariaDB');
+ckDB($fx['financial_audit']['audited_days']===4&&S::project($org($e),$newRead)['franc_native_budget']===$fx,'foreign journal and report replay agree after reconnect');
 foreach($tables as $table)$pdo->exec('DROP TABLE IF EXISTS '.$table);

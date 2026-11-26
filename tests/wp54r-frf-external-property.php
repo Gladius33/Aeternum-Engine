@@ -34,7 +34,7 @@ ckCB(!isset($rev['franc_native_budget_terms'])&&E::restore($rev)===$rev,'revocat
 $b=B::load();$model=L::load($b,$d,true);
 $catalog=['unused'=>['revenue_delta'=>0,'expense_delta'=>0,'pressure_delta'=>['workers'=>0],'duration_days'=>1,'concessions'=>['workers'=>0],'concession_daily_cost'=>0,'production_delta_bps'=>0,'employment_delta_bps'=>0]];
 $make=fn()=>new D('world-test',$d,'EUR',$b['assumed_opening_cash'],$b['daily_revenue'],$b['daily_primary_expense'],['workers'=>400],$catalog,$b,$model,euTradeEnabled:true,euTradeV2:true,euTradeV3:true,euTradeV4:true);
-$sim=$make();$a=new CBPrincipal;
+$e0=$e;$sim=$make();$a=new CBPrincipal;
 $org=fn($s)=>['state'=>['world_id'=>'world-test','day'=>$s['day'],'eu_withdrawal'=>$s],'etag'=>'"'.$sha.'"'];
 $dom=fn()=>['state'=>$sim->snapshot(),'etag'=>'"'.$sim->hash().'"'];
 $run=function(string $day)use(&$e,$a,$sim,$org,$dom){$e=E::advance($e,$day);$a->day=$day;$obs=T::observe($org($e),'world-test',$day,T::VERSION_V4,$dom());return $sim->advance($a,$day,null,$obs);};
@@ -90,3 +90,25 @@ ckCB($yes['receipt']['title_transferred']&&$yes['equity']['positions'][$chosen][
 noCB(fn()=>PS::validate(array_replace($transfer,['valuation_sha'=>'']), '2026-12-04'));
 $e=E::certify($e,'2026-12-07','franc_property_transfer',array_replace($transfer,['effective_on'=>'2026-12-08']));
 ckCB(E::restore($e)===$e,'property instrument survives trusted evidence replay');
+
+$cal=$report['creditor_coverage']['calibration']['historical_debt_stock_benchmark'];
+ckCB($cal['source_crosscheck']['matches']===15&&$cal['source_crosscheck']['checked']===15&&$cal['source_crosscheck']['mismatches']===[],'fifteen staged debt and holder anchors independently crosschecked');
+ckCB($cal['fit']['training_intervals']===8&&$cal['fit']['holdout_intervals']===6&&!$cal['fit']['fitted_on_holdout']&&!$cal['fit']['policy_coefficients_changed'],'historical fit and validation separated');
+ckCB($cal['fit']['constant_daily_change_eur_minor']===intdiv(35050000000000,731),'historical constant slope from exact observed stocks');
+ckCB($cal['fit']['holdout_quarterly_mae_eur_minor']['constant_trend']<$cal['fit']['holdout_quarterly_mae_eur_minor']['persistence'],'constant trend beats persistence on holdout');
+use Aeternum\WorldPolitics\{FrenchDemography as FD,FrenchPublicServices as FPS};
+$pop=FD::load($d,$b['initial_unemployment_bps']);$services=FPS::load($d,$pop,$b);$firm=FE::config();
+$fullCatalog=['unused'=>['revenue_delta'=>0,'expense_delta'=>0,'pressure_delta'=>['workers'=>0,'retired'=>0],'duration_days'=>1,'concessions'=>['workers'=>0,'retired'=>0],'concession_daily_cost'=>0,'production_delta_bps'=>0,'employment_delta_bps'=>0]];
+$fullMake=fn()=>new D('world-test',$d,'EUR',$b['assumed_opening_cash'],$b['daily_revenue'],$b['daily_primary_expense'],['workers'=>400,'retired'=>300],$fullCatalog,$b,$model,$pop,$services,corporationsEnabled:true,firmModel:$firm,publicEquityEnabled:true,industrialEnabled:true,euTradeEnabled:true,euTradeV2:true,euTradeV3:true,euTradeV4:true);
+$full=$fullMake();$eFull=$e0;$aFull=new CBPrincipal;
+$runFull=function(string $day)use(&$eFull,$aFull,$full,$org){$eFull=E::advance($eFull,$day);$aFull->day=$day;$prev=['state'=>$full->snapshot(),'etag'=>'"'.$full->hash().'"'];return $full->advance($aFull,$day,null,T::observe($org($eFull),'world-test',$day,T::VERSION_V4,$prev));};
+for($i=26;$i<=30;$i++)$runFull('2026-11-'.$i);
+$runFull($start);$full->corporationDecision($aFull,'request-company-nationalisation:'.$chosen);
+$runFull('2026-12-02');
+$eFull=E::certify($eFull,'2026-12-02','franc_property_transfer',array_replace($transfer,['effective_on'=>'2026-12-03','compensation_reference_minor'=>1]));
+$actual=$runFull('2026-12-03');$native=$actual['frf_committed_budget'];$receipt=$native['property_settlement'];$cap=$native['capital_settlement'];
+$expected=$native['debt_service_current']&&$cap['opening_discretionary_cash_frf_minor']>=$cap['industrial_paid_frf_minor']+2;
+ckCB($receipt['title_transferred']===$expected&&$actual['corporations']['company_requests'][$chosen]['ownership_transferred']===$expected,'certified property through real daily aggregate follows cash gate');
+ckCB($receipt['compensation_paid_frf_minor']===($expected?2:0)&&$cap['equity_paid_frf_minor']===$receipt['compensation_paid_frf_minor'],'nationalisation cannot double count payment');
+$fullCopy=$fullMake();$fullCopy->restore($full->snapshot(),$full->hash());ckCB($fullCopy->hash()===$full->hash(),'full sector property state survives replay');
+ckCB(C::project($full->snapshot())['financial_audit']['status']==='accounting_checks_passed','property record audited with full services and industry');
