@@ -15,7 +15,28 @@ final class InvestitureEconomicProjection
         return $p;
     }
     private static function scale(int $n,int $a,int $d):int
-    {return intdiv($n,$d)*$a+intdiv(($n%$d)*$a,$d);}
+    {
+        if($d<=0||$n===PHP_INT_MIN||$a===PHP_INT_MIN)throw new \DomainException('Invalid projection ratio');
+        $sign=($n<0 xor $a<0)?-1:1;$n=abs($n);$a=abs($a);
+        // Exact floor of absolute product / denominator without constructing
+        // a national-scale product. Signed result truncates toward zero.
+        $q=intdiv($n,$d);$r=$n%$d;$acc=0;$rem=0;$whole=0;
+        if($q!==0&&$a>intdiv(PHP_INT_MAX,$q))throw new \DomainException('Projection overflow');
+        $base=$q*$a;
+        while($a>0){
+            if($a%2===1){
+                if($whole>PHP_INT_MAX-$acc)throw new \DomainException('Projection overflow');
+                $acc+=$whole;
+                if($rem>=$d-$r){$rem-=$d-$r;$acc++;}else $rem+=$r;
+            }
+            $a=intdiv($a,2);if($a===0)break;
+            if($whole>intdiv(PHP_INT_MAX-1,2))throw new \DomainException('Projection overflow');
+            $whole*=2;
+            if($r>=$d-$r){$r-=$d-$r;$whole++;}else $r*=2;
+        }
+        if($acc>PHP_INT_MAX-$base)throw new \DomainException('Projection overflow');
+        return $sign*($base+$acc);
+    }
     public static function project():array
     {
         $p=self::load();$o=$p['observed'];$f=$p['forecast'];$a=$p['assumptions'];$u=100000000;
