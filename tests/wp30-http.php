@@ -593,6 +593,7 @@ $vc53=req30('GET',$pc53,null,$tc48);
 ck30($vc53['status']===200&&$vc53['body']['state']['mode']==='pluralist','WP53b optional initial system');
 $firms53=req30('GET',$rc53.'/countries/FR/companies',null,$tc48);
 ck30($firms53['status']===200&&count($firms53['body']['state']['firms'])===40&&$firms53['body']['state']['capacity_index_bps']===10000,'WP54r initial fictional firms');
+ck30(count($firms53['body']['voluntary_equity_quotes'])===40&&$firms53['body']['public_equity']['financial_assets_at_cost_minor']===0,'WP54r equity quotes and empty ledger');
 $pack53=req30('GET',$rc53.'/countries/FR/programme-packs',null,$tc48);
 ck30($pack53['status']===200&&count($pack53['body']['company_catalog']['companies'])===40&&$pack53['body']['packs'][2]['action']===null,'WP53c pack readiness and identities');
 $ac53=req30('POST',$rc53.'/domestic/corporation',['action'=>'establish-quarterly'],$tc48,['If-Match'=>$vc53['etag'],'Idempotency-Key'=>'corporation-act-001']);

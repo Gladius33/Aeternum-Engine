@@ -495,3 +495,9 @@ all WP53c audit findings; see causal audit remediation checkpoint. WP55 deferred
 WP54r wage/election CI 45791373411 and trade CI 45791593618 green. Added pinned
 fictional independent company agents and delayed project effects; WP55 remains
 deferred. Nationalisation settlement and industrial programme still open.
+
+### WP54r equity accounting remediation
+
+Optional compensated voluntary fictional equity settlement, cash-limited, distinct
+from statutory nationalisation. No automatic debt issue or GDP addition. CI
+pending. WP55 remains deferred; statutory acquisition and financing open.

@@ -120,3 +120,14 @@ scenario state, not real firm intentions, forecasts or balance sheets. Historica
 worlds keep their original model. Company acquisition, compensation, real data,
 sector capital budgeting and calibrated firm weights remain open. Full snapshots
 increase save size; performance gate remains open.
+
+### WP54r public equity correction
+
+Optional new-world ledger for a voluntary purchase of a fictional 51% domestic
+stake, using a clearly synthetic quote. An offer, independent fictional consent,
+30-day delay and available cash after existing obligations precede settlement.
+No forced transfer, invented actual market prices or automatic borrowing. The
+settlement exchanges cash for a financial asset at historical cost; does not
+increase primary spending or GDP. Compulsory nationalisation remains a review
+request, with statutory authorization, actual valuation, financing and legal
+scope still open. Ownership does not yet affect dividends, management or output.

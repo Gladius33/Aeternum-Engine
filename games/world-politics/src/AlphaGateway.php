@@ -309,7 +309,13 @@ final class AlphaGateway
                 if($suffix==='/countries/FR/companies'){
                     if(!isset($dr['state']['firm_model']))throw new AlphaHttpError(404,'not_found');
                     $firmState=$days===[]?FirmEconomy::initial($dr['state']['day'],$dr['state']['firm_model']):$days[array_key_last($days)]['firms'];
-                    $response=self::ok(200,['world_id'=>$world,'state'=>$firmState,'identity_catalog'=>IndustrialProgrammeCatalog::companies()]);
+                    $payload=['world_id'=>$world,'state'=>$firmState,'identity_catalog'=>IndustrialProgrammeCatalog::companies()];
+                    if(isset($dr['state']['public_equity_version'])){
+                        $payload['public_equity']=$days===[]?PublicEquityLedger::initial($dr['state']['day']):$days[array_key_last($days)]['public_equity'];
+                        $quotes=[];foreach($dr['state']['firm_model'] as $id=>$unused)$quotes[$id]=PublicEquityLedger::quote($id,$dr['state']['firm_model']);
+                        $payload['voluntary_equity_quotes']=$quotes;
+                    }
+                    $response=self::ok(200,$payload);
                     $response['headers']['ETag']=$dr['etag'];return $response;
                 }
                 $payload=$suffix==='/countries/FR/programme-packs'?

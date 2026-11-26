@@ -27,7 +27,7 @@ final class ProfessionalCorporations
     {
         if(in_array($action,['establish-quarterly','establish-annual','establish-exclusive-quarterly','establish-exclusive-annual','impose-exclusive','restore-pluralism'],true))return [$action,null];
         $p=explode(':',$action);
-        if(count($p)===2&&$p[0]==='request-company-nationalisation'&&IndustrialProgrammeCatalog::hasCompany($p[1]))return $p;
+        if(count($p)===2&&in_array($p[0],['request-company-nationalisation','offer-voluntary-equity'],true)&&IndustrialProgrammeCatalog::hasCompany($p[1]))return $p;
         if(count($p)!==2||!in_array($p[0],['approve','return','request-nationalisation'],true)||!in_array($p[1],self::SECTORS,true))
             throw new \InvalidArgumentException('Unknown corporation decision');
         return $p;
@@ -38,6 +38,7 @@ final class ProfessionalCorporations
         if(str_starts_with($kind,'establish-')&&$state['mode']!=='pluralist')throw new \DomainException('Corporations already established');
         if($kind==='impose-exclusive'&&$state['mode']!=='parallel')throw new \DomainException('Parallel corporations required');
         if($kind==='restore-pluralism'&&$state['mode']==='pluralist')throw new \DomainException('Already pluralist');
+        if($kind==='offer-voluntary-equity')return;
         if($kind==='request-company-nationalisation'){
             if(isset($state['company_requests'][$sector]))throw new \DomainException('Company review already requested');
             return;
@@ -71,6 +72,8 @@ final class ProfessionalCorporations
                 $state['mode']='pluralist';$state['legal_conflict']=false;$state['union_legal_status']='protected';
                 $state['frequency']=null;$state['next_report']=null;
                 foreach($state['branches'] as &$b){if(($b['report']['status']??null)==='pending_state_review')$b['report']['status']='cancelled';$b['revote_on']=null;}unset($b);
+            }elseif($kind==='offer-voluntary-equity'){
+                // Separate financial ledger owns consent and settlement.
             }elseif($kind==='request-company-nationalisation'){
                 $state['company_requests'][$sector]=['day'=>$day,'status'=>'pending_legal_and_fiscal_review','ownership_transferred'=>false,
                     'valuation'=>null,'domestic_asset_scope'=>null,'public_interest_review'=>'pending'];
