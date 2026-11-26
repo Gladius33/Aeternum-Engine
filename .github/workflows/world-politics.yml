@@ -196,6 +196,8 @@ jobs:
         run: php tests/wp69-financial-disclosure.php
       - name: WP70 strategic defense fiscal reference and legal gates
         run: php tests/wp70-defense-planning.php
+      - name: WP71 post-investiture finance year and certified incremental defense budget
+        run: php tests/wp71-finance-2028.php
       - name: WP33 election, seat allocation and coalition regression
         run: php tests/wp33-electoral.php
       - name: WP32 comparative accountability regression

@@ -820,6 +820,8 @@ $aid27=req30('GET',$r27.'/countries/FR/ukraine-aid',null,$t27);
 ck30($aid27['status']===200&&$aid27['body']['latest']===null&&$aid27['body']['reference']['opening_debt_minor']>359550000000000,'projected opening and empty aid history');
 $stop27=req30('POST',$r27.'/domestic/ukraine-aid',['action'=>'ukraine-aid-stop'],$t27,['If-Match'=>$aid27['etag'],'Idempotency-Key'=>'ukraine-stop-2027']);
 ck30($stop27['status']===200,'stop discretionary aid on investiture');
+$budget71=req30('GET',$r27.'/countries/FR/finance',null,$t27);
+ck30($budget71['status']===200&&$budget71['body']['finance']['year']===2028&&count($budget71['body']['catalog'])===3,'WP71 canonical annual budget cycle after investiture');
 $def70=req30('GET',$r27.'/countries/FR/defense-planning',null,$t27);
 ck30($def70['status']===200&&$def70['body']['reference']['observations']['mission_defense_plf_2027_minor']===6340000000000&&$def70['body']['actual_2027_appropriation_minor']===null&&$def70['body']['national_service']['reinstatement_requires_law'],'WP70 pinned strategic defense planning reference');
 $fin69=req30('GET',$r27.'/countries/FR/international-finance',null,$t27);

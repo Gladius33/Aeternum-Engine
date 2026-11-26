@@ -9,37 +9,57 @@ require_once __DIR__.'/FrenchCabinet.php';
 final class FinanceBudget
 {
     public const VERSION='wp46-finance-v1';
+    public const VERSION_2028='wp71-finance-2028-v1';
     public const SOURCE='https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000019241054/';
-    public static function catalog():array
+    public static function catalog(int $year=2027):array
     {
+        if($year===2028){
+            // Hypothetical delta relative to the existing aggregate fiscal baseline,
+            // NOT a 2028 defense appropriation or a replacement for the LPM.
+            $delta=intdiv(634000000000,366);
+            return [
+                'budget-2028-defense-reduce'=>['revenue_delta'=>0,'expense_delta'=>-$delta,'ministries'=>['defense'=>-$delta]],
+                'budget-2028-defense-maintain'=>['revenue_delta'=>0,'expense_delta'=>0,'ministries'=>['defense'=>0]],
+                'budget-2028-defense-increase'=>['revenue_delta'=>0,'expense_delta'=>$delta,'ministries'=>['defense'=>$delta]]
+            ];
+        }
+        if($year!==2027)throw new \DomainException('Unsupported finance year');
         return [
             'budget-2027-services'=>['revenue_delta'=>100000,'expense_delta'=>300000,'ministries'=>['education'=>150000,'health'=>100000,'justice'=>50000]],
             'budget-2027-balance'=>['revenue_delta'=>600000,'expense_delta'=>100000,'ministries'=>['education'=>50000,'health'=>30000,'justice'=>20000]]
         ];
     }
-    public static function policies():array
+    public static function policies(int $year=2027):array
     {
         $p=[];
-        foreach(self::catalog() as $id=>$a)$p[$id]=['revenue_delta'=>$a['revenue_delta'],'expense_delta'=>$a['expense_delta'],
-            'pressure_delta'=>['workers'=>0,'retired'=>0],'duration_days'=>365];
+        foreach(self::catalog($year) as $id=>$a)$p[$id]=['revenue_delta'=>$a['revenue_delta'],'expense_delta'=>$a['expense_delta'],
+            'pressure_delta'=>['workers'=>0,'retired'=>0],'duration_days'=>$year===2028?366:365];
         return $p;
     }
-    public static function initial():array
-    {return ['version'=>self::VERSION,'classification'=>'fictional_scenario','source'=>self::SOURCE,'year'=>2027,'bills'=>[]];}
-    public static function digest(string $policy):string
-    {return hash('sha256',json_encode(['year'=>2027,'policy'=>$policy,'appropriations'=>self::catalog()[$policy]],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));}
+    public static function initial(int $year=2027):array
+    {
+        self::catalog($year);
+        return ['version'=>$year===2028?self::VERSION_2028:self::VERSION,'classification'=>'fictional_scenario','source'=>self::SOURCE,'year'=>$year,'bills'=>[]];
+    }
+    public static function digest(string $policy,int $year=2027):string
+    {
+        $a=self::catalog($year)[$policy]??throw new \DomainException('Unknown annual policy');
+        return hash('sha256',json_encode(['year'=>$year,'policy'=>$policy,'appropriations'=>$a],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));
+    }
     public static function apply(array $s,array $cab,array $e):array
     {
         $d=$e['data'];$day=$e['day'];$id=$e['evidence_id'];$kind=$e['kind'];
+        $year=$s['year'];$cutoff=sprintf('%04d-01-01',$year);
+        if($s['version']!==self::initial($year)['version'])throw new \DomainException('Invalid finance year pin');
         if(!is_array($d))throw new \InvalidArgumentException('Invalid finance evidence');
         if($kind==='finance_file'){
             self::fields($d,['policy_id','prime_minister','finance_minister','government_project_certified']);
             FrenchCabinet::requirePrimeMinister($cab,$d['prime_minister']);
-            if(!isset(self::catalog()[$d['policy_id']])||$d['finance_minister']===null||$d['finance_minister']!==$cab['ministers']['economy']
-                ||$d['government_project_certified']!==true||$day>='2027-01-01'||count($s['bills'])>=20)
+            if(!isset(self::catalog($year)[$d['policy_id']])||$d['finance_minister']===null||$d['finance_minister']!==$cab['ministers']['economy']
+                ||$d['government_project_certified']!==true||$day>=$cutoff||($year===2028&&$day<'2027-01-01')||count($s['bills'])>=20)
                 throw new \DomainException('Invalid finance initiative');
             foreach($s['bills'] as $b)if(!in_array($b['status'],['rejected'],true))throw new \DomainException('One active annual finance bill');
-            $b=['id'=>$id,'policy_id'=>$d['policy_id'],'text_sha'=>self::digest($d['policy_id']),'filed_on'=>$day,
+            $b=['id'=>$id,'policy_id'=>$d['policy_id'],'text_sha'=>self::digest($d['policy_id'],$year),'filed_on'=>$day,
                 'assembly_deadline'=>self::plus($day,40),'parliament_deadline'=>self::plus($day,70),'senate_deadline'=>null,
                 'status'=>'assembly_pending','assembly_vote'=>null,'senate_vote'=>null,'transferred_on'=>null,
                 'final_on'=>null,'final_route'=>null,'review'=>'none','promulgated_on'=>null,'published_on'=>null,'effective_on'=>null];
@@ -90,10 +110,10 @@ final class FinanceBudget
                 case 'finance_publish':
                     self::fields($d,['bill_id','text_sha','president','promulgation_certified','publication_certified']);
                     self::text($b,$d);
-                    if($b['status']!=='adopted'||$b['review']!=='cleared'||$day>='2027-01-01'||$d['president']!==$cab['president']
+                    if($b['status']!=='adopted'||$b['review']!=='cleared'||$day>=$cutoff||$d['president']!==$cab['president']
                         ||$d['promulgation_certified']!==true||$d['publication_certified']!==true)
                         throw new \DomainException('No timely reviewed finance law');
-                    $b['status']='published';$b['promulgated_on']=$day;$b['published_on']=$day;$b['effective_on']='2027-01-01';break;
+                    $b['status']='published';$b['promulgated_on']=$day;$b['published_on']=$day;$b['effective_on']=$cutoff;break;
                 default:throw new \InvalidArgumentException('Unknown finance event');
             }
         }
@@ -130,7 +150,7 @@ final class FinanceBudget
         $reference=['classification'=>'fictional_treasury_projection','currency'=>'EUR','unit'=>'minor','annual_interest_bps'=>$rate,
             'opening_debt'=>$openingDebt,'cash'=>$cash,'debt'=>$debt,'interest_total'=>$interest,'borrowing_total'=>$issued,
             'primary_balance_total'=>$primary,'days'=>$rows,'bills'=>$bills,
-            'continuity_review_required'=>$dom['day']>='2027-01-01'&&!array_filter($bills,fn($b)=>$b['status']==='published'&&$b['implementation_authorized'])];
+            'continuity_review_required'=>$dom['day']>=sprintf('%04d-01-01',$s['year'])&&!array_filter($bills,fn($b)=>$b['status']==='published'&&$b['implementation_authorized'])];
         $native=FrancCommittedBudget::project($dom);
         return $native===null?$reference:[...$native,'cash'=>$native['latest']['closing_state']['accounts']['treasury_frf_minor'],'debt'=>$native['consolidated_gross_debt_frf_minor']??$native['latest']['valuation']['closing_gross_debt_frf_minor'],'unit'=>'minor','bills'=>$bills,'continuity_review_required'=>$reference['continuity_review_required'],'reference_eur_only'=>$reference];
     }
