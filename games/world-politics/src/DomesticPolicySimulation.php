@@ -322,7 +322,15 @@ final class DomesticPolicySimulation
                 $row['services']=FrenchPublicServices::settle($this->servicesModel,$servicePlan,$prior,['primary_paid'=>$allocation['reference_paid_minor'],'opening_primary_arrears'=>0],$ordinaryExpense??$expense);
                 $row['services']['native_payment']=$allocation;
             }
-            $row['frf_committed_budget']['sector_settlement']=['public_services_payment_source'=>$servicePlan===null?'not_enabled':'native_treasury','discretionary_capital_settlement_suspended'=>true];
+            $full=isset($row['frf_committed_budget']['financial_version']);
+            if($full){
+                $native=$row['frf_committed_budget'];$cash=intdiv($native['closing_state']['accounts']['treasury_frf_minor'],$ratio);$current=$native['debt_service_current'];
+                if($this->industrialEnabled)$industrial=IndustrialCapital::advance($installed,$target,$corporationAction,$cash,$current,$prior);
+                $industrialPaid=$industrial['paid_today_minor']??0;
+                if($this->publicEquityEnabled)$equity=PublicEquityLedger::advance($prior['public_equity']??PublicEquityLedger::initial($this->startDay),$target,$corporationAction,$this->firmModel,$cash-$industrialPaid,$current);
+                $row['frf_committed_budget']=FrancFinancialIntegration::capital($native,$ratio,$industrialPaid,$equity['paid_today_minor']??0,$prior['frf_committed_budget']??null);
+            }
+            $row['frf_committed_budget']['sector_settlement']=['public_services_payment_source'=>$servicePlan===null?'not_enabled':'native_treasury','discretionary_capital_settlement_suspended'=>!$full];
         }
         if($firms!==null)$row['firms']=$firms;
         if($equity!==null)$row['public_equity']=$equity;

@@ -103,6 +103,10 @@ final class EuropeanSpillovers
                 if($native===null||$native['instrument_sha']!==$t['instrument_sha']||$native['latest']['day']!==$day)throw new \DomainException('Missing committed native budget');
                 $latest=$native['latest'];$fund=$franc['latest']['funding'];
                 if($latest['closing_state']['advance_liability']!==$fund['treasury']['advance_liability_franc_minor']||$latest['closing_state']['mark']!==$currency['new_currency_value_index_bps'])throw new \DomainException('Native monetary and FX reconciliation failure');
+                if(isset($latest['financial_version'])){
+                    $bank=$franc['commercial_banking']['latest']??null;$combined=$latest['bank_balance']['combined_modelled_slices']??null;
+                    if(($bank===null)!==($combined===null)||($combined!==null&&($combined['deposit_liabilities_frf_minor']!==$bank['bank_deposit_liabilities_franc_minor']||$combined['reserves_frf_minor']!==$bank['bank_reserves_franc_minor']||$combined['balance_difference_frf_minor']!==0)))throw new \DomainException('Native bank projection reconciliation failure');
+                }
             }else $native=FrancNativeBudgetProjection::project($eu,$ds,$currency,$franc,$fx);
         }
         return ['version'=>self::VERSION,'world_id'=>$world,'day'=>$day,'classification'=>'simulation_sensitivity_not_forecast',

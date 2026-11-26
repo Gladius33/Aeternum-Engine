@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrancNativeBudgetProjection.php';
 require_once __DIR__.'/FrancNativeSectors.php';
+require_once __DIR__.'/FrancFinancialIntegration.php';
 
 /** Prospective, replayed daily native treasury, with its own financing
  * choices. Legacy fiscal policy and GDP remain reference-denominated. */
@@ -29,12 +30,26 @@ final class FrancCommittedBudget
             'funding'=>['advance'=>$f['settled_public_spending_franc_minor'],'repay'=>$f['settled_levy_and_repayment_franc_minor'],'liability'=>$f['treasury']['advance_liability_franc_minor'],'asset'=>$f['central_bank']['treasury_advance_asset_franc_minor']],
             'fx_order'=>isset($eu['franc_fx_orders'][$day])?array_intersect_key($eu['franc_fx_orders'][$day],['kind'=>true,'eur_minor'=>true]):null];
         if(($terms['sector_integration']??false)===true)$v['sector_version']=FrancNativeSectors::VERSION;
+        if(($terms['financial_integration']??false)===true){
+            $v['financial_version']=FrancFinancialIntegration::VERSION;
+            $p=$money['commercial_banking']['latest']??null;
+            $v['bank_pilot']=$p===null?null:array_intersect_key($p,array_fill_keys(['bank_assets_franc_minor','bank_deposit_liabilities_franc_minor','bank_equity_franc_minor','bank_reserves_franc_minor','bank_balance_difference_franc_minor'],true));
+            if($p!==null&&isset($p['crisis']))$v['bank_pilot']['crisis']=array_intersect_key($p['crisis'],array_fill_keys(['bank_facility_liability_franc_minor','bank_subrogated_guarantee_liability_franc_minor'],true));
+        }
         self::validate($v,$day);return $v;
     }
     public static function validate(array $v,string $day):void
     {
-        self::fields($v,['version','start','instrument_sha','reserve_authorized','opening_fx','funding','fx_order',...(array_key_exists('sector_version',$v)?['sector_version']:[])]);
+        self::fields($v,['version','start','instrument_sha','reserve_authorized','opening_fx','funding','fx_order',...(array_key_exists('sector_version',$v)?['sector_version']:[]),...(array_key_exists('financial_version',$v)?['financial_version','bank_pilot']:[])]);
         if(array_key_exists('sector_version',$v)&&$v['sector_version']!==FrancNativeSectors::VERSION)throw new \DomainException('Invalid native sector version');
+        if(isset($v['financial_version'])){
+            if($v['financial_version']!==FrancFinancialIntegration::VERSION||!isset($v['sector_version']))throw new \DomainException('Invalid financial integration version');
+            if($v['bank_pilot']!==null){$p=$v['bank_pilot'];self::fields($p,['bank_assets_franc_minor','bank_deposit_liabilities_franc_minor','bank_equity_franc_minor','bank_reserves_franc_minor','bank_balance_difference_franc_minor',...(isset($p['crisis'])?['crisis']:[])]);
+                foreach(['bank_assets_franc_minor','bank_deposit_liabilities_franc_minor','bank_reserves_franc_minor'] as $key)self::requireAmount($p[$key]);
+                if(!is_int($p['bank_equity_franc_minor'])||abs($p['bank_equity_franc_minor'])>10000000000000000||$p['bank_balance_difference_franc_minor']!==0)throw new \DomainException('Invalid bank pilot');
+                if(isset($p['crisis'])){self::fields($p['crisis'],['bank_facility_liability_franc_minor','bank_subrogated_guarantee_liability_franc_minor']);foreach($p['crisis'] as $a)self::requireAmount($a);}
+            }
+        }
         if($v['version']!==self::VERSION||!is_string($v['start'])||($dt=\DateTimeImmutable::createFromFormat('!Y-m-d',$v['start']))===false||$dt->format('Y-m-d')!==$v['start']||$v['start']>$day||!is_string($v['instrument_sha'])||!preg_match('/^[a-f0-9]{64}$/D',$v['instrument_sha'])||!is_bool($v['reserve_authorized']))throw new \DomainException('Invalid committed budget observation');
         self::fields($v['opening_fx'],['official_eur_reserves_minor','official_franc_pool_minor','official_eur_reserve_floor_minor','counterparty_eur_assets_minor','counterparty_franc_pool_minor']);
         self::fields($v['funding'],['advance','repay','liability','asset']);
@@ -76,6 +91,8 @@ final class FrancCommittedBudget
         $f=$obs['funding'];$money=['funding'=>['settled_public_spending_franc_minor'=>$f['advance'],'settled_levy_and_repayment_franc_minor'=>$f['repay'],'treasury'=>['advance_liability_franc_minor'=>$f['liability']],'central_bank'=>['treasury_advance_asset_franc_minor'=>$f['asset']]]];
         $state=$previous['closing_state']??FrancNativeBudgetProjection::opening($row['frf_fiscal'],$prior,$obs['opening_fx'],$money,$ratio,$prior['frf_fiscal']['value_index_bps']??10000);
         $sector=isset($obs['sector_version']);
+        $financial=isset($obs['financial_version']);
+        if($previous!==null&&$financial!==isset($previous['financial_version']))throw new \DomainException('Native financial version changed');
         if($previous!==null&&$sector!==isset($previous['sector_version']))throw new \DomainException('Native sector version changed');
         $flow=FrancNativeBudgetProjection::flow($row,$state,$model,$money,$obs['fx_order'],$ratio);
         $calendar=$previous['bond_maturities']['closing']??[];
@@ -92,6 +109,10 @@ final class FrancCommittedBudget
             $maturities=FrancNativeSectors::schedule($calendar,$state['claims'],$row['day'],$finance['issues'],$model['new_issue_maturity_years']);
             FrancNativeSectors::checkCalendar($maturities['closing'],$result['closing_state']['claims']);
             $extra=['sector_version'=>FrancNativeSectors::VERSION,'bond_maturities'=>$maturities,'banking'=>FrancNativeSectors::banking($result,$model,$ratio,$mark)];
+        }
+        if($financial){
+            $extra['financial_version']=FrancFinancialIntegration::VERSION;
+            $extra['bank_balance']=FrancFinancialIntegration::bank([...$result,...$extra,'bank_haircuts_by_claim'=>$flow['haircuts']],$ratio,$mark,$previous,$obs['bank_pilot']);
         }
         return [...$result,...$extra,'instrument_sha'=>$obs['instrument_sha'],'effective_from'=>$obs['start'],'reserve_purchase_authorized'=>$obs['reserve_authorized'],'ratio'=>$ratio,'financing'=>$finance,'risk'=>self::risk($result,$row['macro']['real_gdp'],$ratio,$mark,$previous)];
     }
