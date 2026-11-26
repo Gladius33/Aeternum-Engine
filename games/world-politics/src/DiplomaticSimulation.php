@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/GeopoliticalActorRegistry.php';
+require_once __DIR__.'/UkraineAidDiplomacy.php';
 
 /** Adapter MUST use server-verified actor grants; never trust JSON for identity. */
 interface DiplomaticPrincipal
@@ -49,6 +50,11 @@ final class DiplomaticSimulation
     {
         if(isset($this->state['daily_ai'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Diplomatic AI must be pinned at bootstrap');
         $this->state['daily_ai']=self::DAILY_AI_VERSION;
+    }
+    public function enableAidBridge():void
+    {
+        if(!isset($this->state['daily_ai'])||isset($this->state['aid_bridge'])||$this->state['events']!==[]||$this->state['commands']!==[])throw new \DomainException('Aid bridge must be pinned at bootstrap');
+        $this->state['aid_bridge']=['version'=>UkraineAidDiplomacy::VERSION,'latest'=>null];
     }
     /** @return array<string,mixed> */
     public function propose(
@@ -154,7 +160,7 @@ final class DiplomaticSimulation
     }
 
     /** Advance a virtual date; unanswered diplomatic offers expire. */
-    public function advanceTo(string $targetDay,?DiplomaticPrincipal $clock=null):array
+    public function advanceTo(string $targetDay,?DiplomaticPrincipal $clock=null,?array $aid=null):array
     {
         self::day($targetDay);
         if ($targetDay<$this->state['day']) {
@@ -164,6 +170,8 @@ final class DiplomaticSimulation
             if($clock===null||!$clock->allows($this->state['world_id'],$clock->actorId(),'diplomacy.clock'))throw new \DomainException('Trusted diplomatic AI clock required');
             if($targetDay!==self::plus($this->state['day'],1))throw new \DomainException('Daily diplomacy requires one day per tick');
         }
+        if(isset($this->state['aid_bridge'])!==($aid!==null))throw new \DomainException('Aid diplomacy observation must match pinned model');
+        if($aid!==null)$this->state['aid_bridge']['latest']=UkraineAidDiplomacy::step($aid,$this->state['world_id'],$targetDay,$this->state['aid_bridge']['latest']);
         $expired=[];
         foreach ($this->state['proposals'] as $id=>&$proposal) {
             if ($proposal['status']==='pending_response'
@@ -205,7 +213,7 @@ final class DiplomaticSimulation
                 if($prior['from']==='state_fr'&&$prior['to']===$to&&isset($prior['responded_on'])&&$prior['responded_on']<$day){
                     $history+=str_starts_with($prior['status'],'accepted')?4:-4;
                 }
-            $score=$openness+max(-20,min(20,$history));
+            $score=$openness+max(-20,min(20,$history))+($this->state['aid_bridge']['latest']['signals'][$to]??0);
             $threshold=match($offer['action']){'dialogue'=>25,'humanitarian_assistance'=>35,'trade_cooperation'=>55,'treaty_proposal'=>75,default=>101};
             $bot=new class($world,$to) implements DiplomaticPrincipal{
                 public function __construct(private readonly string $world,private readonly string $target){}
@@ -244,6 +252,11 @@ final class DiplomaticSimulation
         if(array_key_exists('daily_ai',$state)){
             if($state['daily_ai']!==self::DAILY_AI_VERSION)throw new \DomainException('Unknown diplomatic AI model');
             $expected[]='daily_ai';
+        }
+        if(array_key_exists('aid_bridge',$state)){
+            if(!isset($state['daily_ai'])||($state['aid_bridge']['version']??null)!==UkraineAidDiplomacy::VERSION||!array_key_exists('latest',$state['aid_bridge']))throw new \DomainException('Invalid aid bridge');
+            $a=$state['aid_bridge']['latest'];if($a!==null&&($a['source']['world_id']!==$state['world_id']||$a['source']['day']!==$state['day']||$a['version']!==UkraineAidDiplomacy::VERSION||min($a['signals'])<-20||max($a['signals'])>20))throw new \DomainException('Invalid aid bridge state');
+            $expected[]='aid_bridge';
         }
         sort($keys);sort($expected);
         if ($keys!==$expected) throw new \InvalidArgumentException('Invalid diplomatic snapshot fields');

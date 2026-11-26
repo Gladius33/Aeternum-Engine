@@ -276,7 +276,7 @@ final class DomesticPolicySimulation
                 if($expense<=0)throw new \DomainException('Service adjustment exceeds fiscal flow');
                 foreach($prior['services']['next_day_pressure_delta']??[] as $k=>$v)if(isset($deltas[$k]))$deltas[$k]+=$v;
             }
-            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0,$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,0,$eu);
+            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,0,$eu);
             $nativeSectors=isset($eu['frf_committed_observation']['sector_version']);
             if($this->industrialEnabled){
                 $ordinaryTreasury=$loop['treasury'];$ordinaryExpense=$loop['expense'];$tr=$ordinaryTreasury;
@@ -284,7 +284,7 @@ final class DomesticPolicySimulation
                 $industrial=IndustrialCapital::advance($installed,$target,$corporationAction,$nativeSectors?0:$tr['cash'],$current&&!$nativeSectors,$prior);
                 $paid=$industrial['paid_today_minor'];
                 if($paid>0){
-                    $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense+$paid,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),$servicePlan['pension_transfer_delta_minor']??0,$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,$paid,$eu);
+                    $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense+$paid,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,$paid,$eu);
                     if($loop['treasury']['cash']!==$tr['cash']-$paid||$loop['treasury']['new_borrowing']!==$tr['new_borrowing']||$loop['expense']!==$ordinaryExpense+$paid)throw new \DomainException('Industrial fiscal settlement mismatch');
                 }
                 $loop['treasury']['industrial_capex_minor']=$paid;

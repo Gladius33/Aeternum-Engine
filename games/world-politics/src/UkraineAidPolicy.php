@@ -18,8 +18,30 @@ final class UkraineAidPolicy
             $last=$e['day'];
         }
     }
+    private static function stepV2(array $baseline,array $events,string $day,?array $prior):array
+    {
+        $ref=$baseline['aid_reference_v2'];$share=$ref['source_pack']['assumptions']['revocable_share_bps'];
+        $rate=10000;$action=null;foreach($events as $e){if($e['day']>=$day)break;$action=$e['action'];$rate=self::ACTIONS[$action];}
+        $n=(int)(new \DateTimeImmutable(InvestitureEconomicProjection::DAY))->diff(new \DateTimeImmutable($day))->days;
+        $slice=fn(int $v):int=>intdiv($v*$n,365)-intdiv($v*($n-1),365);
+        $base=0;$fixed=0;$actual=0;$industry=0;$categories=[];
+        foreach($ref['annual_scenario_cost_minor'] as $id=>$annual){
+            $discretionary=intdiv($annual*$share,10000);$protected=$annual-$discretionary;
+            $b=$slice($discretionary);$p=$slice($protected);$v=$slice(intdiv($discretionary*$rate,10000));$delta=$v-$b;
+            $categories[$id]=['baseline_discretionary_minor'=>$b,'protected_cost_proxy_minor'=>$p,'discretionary_planned_minor'=>$v,'budget_delta_minor'=>$delta];
+            $base+=$b;$fixed+=$p;$actual+=$v;if($id!=='humanitarian')$industry+=$delta;
+        }
+        $delta=$actual-$base;$industry=intdiv($industry*$ref['source_pack']['assumptions']['domestic_industry_share_of_defense_and_civil_discretionary_delta_bps'],10000);
+        return ['version'=>'wp54r-ukraine-aid-v2','day'=>$day,'classification'=>'historical_and_envelope_anchors_scenario_allocation','action'=>$action,'discretionary_rate_bps'=>$rate,'categories'=>$categories,
+            'baseline_discretionary_minor'=>$base,'protected_cost_proxy_minor'=>$fixed,'discretionary_planned_minor'=>$actual,'budget_delta_minor'=>$delta,
+            'domestic_demand_delta_proxy_minor'=>$industry,'external_transfer_delta_proxy_minor'=>$delta-$industry,
+            'cumulative_planned_savings_minor'=>($prior['cumulative_planned_savings_minor']??0)-$delta,
+            'new_bilateral_discretionary_grants_allowed'=>$rate>0,'new_bilateral_discretionary_loans_allowed'=>$rate>0,'new_bilateral_discretionary_guarantees_allowed'=>$rate>0,
+            'existing_obligations_cancelled'=>false,'european_obligations_changed'=>false,'unquantified_aid_categories_not_assumed_zero'=>true,'actual_contract_inventory_known'=>false,'paid_amount_not_inferred_from_appropriation'=>true,'reference_sha'=>$ref['source_sha']];
+    }
     public static function step(array $baseline,array $events,string $day,?array $prior):array
     {
+        if(isset($baseline['aid_reference_v2']))return self::stepV2($baseline,$events,$day,$prior);
         $a=$baseline['opening_projection']['source_pack']['assumptions'];$annual=$a['aid_annual_direct_cost_proxy']*100000000;
         $protected=intdiv($annual*(10000-$a['aid_discretionary_share_bps']),10000);
         $discretionary=$annual-$protected;$rate=10000;$action=null;

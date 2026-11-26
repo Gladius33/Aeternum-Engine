@@ -278,11 +278,11 @@ final class PdoDiplomaticStore
                 $outcomes=$planner->execute($sim,$this->principal,$payload['responder'],$payload['policy']);
                 return ['responder'=>$payload['responder'],'decisions'=>$outcomes];
             case 'clock':
-                self::fields($payload,['target_day']);
+                self::fields($payload,['target_day',...(array_key_exists('aid_observation',$payload)?['aid_observation']:[])]);
                 if (!is_string($payload['target_day'])) {
                     throw new \InvalidArgumentException('Invalid game date');
                 }
-                return $sim->advanceTo($payload['target_day'],$this->principal);
+                return $sim->advanceTo($payload['target_day'],$this->principal,$payload['aid_observation']??null);
         }
         throw new \InvalidArgumentException('Unknown operation');
     }

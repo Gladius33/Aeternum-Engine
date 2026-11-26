@@ -826,4 +826,8 @@ ck30($d27['status']===200&&$d27['body']['debt_model']['first_maturity_month']===
 $aid27=req30('GET',$r27.'/countries/FR/ukraine-aid',null,$t27);
 ck30($aid27['body']['latest']['discretionary_planned_minor']===0&&$aid27['body']['latest']['budget_delta_minor']<0&&!$aid27['body']['latest']['existing_obligations_cancelled'],'aid stops in first committed day without cancelling obligations');
 ck30($d27['body']['days'][0]['treasury']['opening_debt']===$aid27['body']['reference']['opening_debt_minor'],'projected debt actually booked');
+$aidDip=req30('GET',$r27.'/diplomacy',null,$t27);ck30($aidDip['body']['aid_bridge']['latest']['source']['rate_bps']===10000,'diplomacy uses prior committed aid not current day decision');
+$c27=req30('POST',$r27.'/clock/advances',['target_day'=>'2027-05-16'],$t27,['If-Match'=>$c27['etag'],'Idempotency-Key'=>'investiture-tick-002']);
+ck30($c27['status']===200&&$c27['body']['coherent'],'second investiture day commits');
+$aidDip=req30('GET',$r27.'/diplomacy',null,$t27);ck30($aidDip['body']['aid_bridge']['latest']['source']['rate_bps']===0&&$aidDip['body']['aid_bridge']['latest']['signals']['state_ua']<0&&!$aidDip['body']['aid_bridge']['latest']['automatic_sanctions_or_treaties'],'committed aid decision changes fictional diplomatic response sensitivity');
 echo "WP30 HTTP private alpha acceptance passed.\n";

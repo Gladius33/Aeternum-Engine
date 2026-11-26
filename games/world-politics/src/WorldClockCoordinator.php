@@ -412,6 +412,7 @@ final class WorldClockCoordinator
             $recovered=$day===$targetDay;
             if (!$recovered) {
                 $payload=['target_day'=>$targetDay];
+                if($step==='diplomacy'&&isset($current['state']['aid_bridge']))$payload['aid_observation']=UkraineAidDiplomacy::observe($this->domestic->read($world),$world,$targetDay);
                 if($step==='domestic'&&isset($current['state']['trade_feedback_version'])){
                     $trade=TradeMacroFeedback::observe($this->economy->read($world),$world,$targetDay);
                     $payload['trade_observation']=json_encode($trade,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);

@@ -358,7 +358,7 @@ final class AlphaGateway
             if($method==='GET'&&$suffix==='/countries/FR/ukraine-aid'&&$scenario->id===AlphaScenario::INVESTITURE){
                 $dr=(new PdoDomesticPolicyStore($this->db(),new AlphaDomesticPrincipal($session,$world,$this->db())))->read($world);
                 if(!isset($dr['state']['ukraine_aid_decisions']))throw new AlphaHttpError(404,'not_found');
-                $days=$dr['state']['days'];$response=self::ok(200,['world_id'=>$world,'day'=>$dr['state']['day'],'reference'=>$dr['state']['macro_baseline']['opening_projection'],'decisions'=>$dr['state']['ukraine_aid_decisions'],'latest'=>$days===[]?null:$days[array_key_last($days)]['ukraine_aid']]);$response['headers']['ETag']=$dr['etag'];return $response;
+                $days=$dr['state']['days'];$response=self::ok(200,['world_id'=>$world,'day'=>$dr['state']['day'],'reference'=>$dr['state']['macro_baseline']['opening_projection'],'aid_reference'=>$dr['state']['macro_baseline']['aid_reference_v2']??null,'decisions'=>$dr['state']['ukraine_aid_decisions'],'latest'=>$days===[]?null:$days[array_key_last($days)]['ukraine_aid']]);$response['headers']['ETag']=$dr['etag'];return $response;
             }
             if($method==='POST'&&$suffix==='/domestic/ukraine-aid'&&$scenario->id===AlphaScenario::INVESTITURE){
                 if(!is_string($body['action']??null)||!isset(UkraineAidPolicy::ACTIONS[$body['action']]))throw new AlphaHttpError(422,'invalid_aid_action');

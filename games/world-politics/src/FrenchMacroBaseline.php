@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/EuropeanTradeFeedback.php';
 require_once __DIR__.'/FrancMacroFeedback.php';
 require_once __DIR__.'/InvestitureEconomicProjection.php';
+require_once __DIR__.'/UkraineAidReference.php';
 
 /** WP48: version-pinned observations and a lagged, fictional fiscal loop.
  * The observations are not predictions, nor all dated to the game start.
@@ -15,9 +16,9 @@ final class FrenchMacroBaseline
     public static function load(bool $investiture=false):array
     {
         $pack=json_decode(file_get_contents(__DIR__.'/../data/2026-11-25-france-observations-v2.json'),true,32,JSON_THROW_ON_ERROR);
-        return self::build($pack,$investiture);
+        return self::build($pack,$investiture,$investiture);
     }
-    public static function build(array $pack,bool $investiture=false):array
+    public static function build(array $pack,bool $investiture=false,bool $aidV2=false):array
     {
         if(($pack['schema']??null)!=='wp-fr-reference-v2'||($pack['country']??null)!=='FR'
             ||($pack['as_of']??null)!=='2026-11-25'||!is_array($pack['observations']??null)||count($pack['observations'])>256)
@@ -68,11 +69,13 @@ final class FrenchMacroBaseline
             'benefit_unemployment_sensitivity_bps'=>3000,'benefit_price_pass_through_bps'=>5000];
         $b['daily_statistical_discrepancy']=$b['daily_real_gdp']-($b['daily_consumption']+$b['daily_npish_consumption']+$b['daily_investment']
             +$b['daily_government_consumption']+$b['daily_exports']-$b['daily_imports']);
-        return $investiture?InvestitureEconomicProjection::apply($b):$b;
+        if($investiture)$b=InvestitureEconomicProjection::apply($b);
+        if($aidV2){if(!$investiture)throw new \DomainException('Aid v2 requires projected investiture');$b['aid_reference_v2']=UkraineAidReference::report();}
+        return $b;
     }
     public static function assertValid(array $b):void
     {
-        if(!isset($b['source_pack'])||self::build($b['source_pack'],isset($b['opening_projection']))!==$b)
+        if(!isset($b['source_pack'])||self::build($b['source_pack'],isset($b['opening_projection']),isset($b['aid_reference_v2']))!==$b)
             throw new \DomainException('French baseline replay mismatch');
     }
 }

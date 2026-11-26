@@ -65,3 +65,7 @@ $a0=UA::step($bb,[],'2027-05-15',null);$a1=UA::step($bb,$stop,'2027-05-15',null)
 ck31($a0['budget_delta_minor']===0&&$a1['discretionary_planned_minor']===0&&$a1['budget_delta_minor']===-$a0['baseline_discretionary_minor']&&$a1['protected_cost_proxy_minor']===$a0['protected_cost_proxy_minor'],'aid stop saves only modelled discretionary portion');
 $stop[]=['day'=>'2027-05-15','action'=>'ukraine-aid-resume'];$a2=UA::step($bb,$stop,'2027-05-16',$a1);
 ck31($a2['budget_delta_minor']===0&&$a2['cumulative_planned_savings_minor']===$a1['cumulative_planned_savings_minor'],'resumption no retroactive costs');
+
+$aidRef=$bb['aid_reference_v2'];ck31($aidRef['source_pack']['observed']['humanitarian_latest_tenths_million']['total']===4716&&$aidRef['source_pack']['observed']['civil_fund_2026_new_envelope']===71&&$aidRef['not_additive'],'dated civil and humanitarian scope preserved');
+ck31($aidRef['future_loans_guarantees_eu_and_refugee_costs_minor']===null&&$aidRef['cooperation_source_discrepancy_million']===-7,'unquantified future flows and source discrepancies explicit');
+ck31(count($a1['categories'])===3&&$a1['domestic_demand_delta_proxy_minor']+$a1['external_transfer_delta_proxy_minor']===$a1['budget_delta_minor']&&!$a1['new_bilateral_discretionary_loans_allowed'],'all three cost categories stop, no new discretionary commitments; transfer bridge balances');

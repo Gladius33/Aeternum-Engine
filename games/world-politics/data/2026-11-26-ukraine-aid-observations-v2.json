@@ -1,0 +1,70 @@
+{
+  "schema": "wp54r-ukraine-aid-observations-v2",
+  "retrieved_on": "2026-11-26",
+  "unit": "EUR_million_unless_specified",
+  "sources": {
+    "civil": {
+      "url": "https://www.tresor.economie.gouv.fr/Evenements/9bb0f264-83d2-450f-a7d4-08a70b7001b2/files/473f4674-149d-42a7-bb24-4f2922400688",
+      "page": 3,
+      "period": "since 2022-02-24; guide mentions December 2024; exact cutoff not specified"
+    },
+    "humanitarian": {
+      "url": "https://www.diplomatie.gouv.fr/fr/le-ministere-en-action/promouvoir-une-europe-souveraine/dossiers-europeens/guerre-en-ukraine-l-action-diplomatique-de-la-france/aide-humanitaire-a-l-ukraine",
+      "period": "2022-02-24 to 2026-07-01",
+      "updated": "2026-10-06"
+    },
+    "reconstruction": {
+      "url": "https://www.diplomatie.gouv.fr/fr/presse-et-ressources/decouvrir-et-informer/actualites/ukraine-35-ans-d-independance",
+      "published": "2026-08-24"
+    },
+    "defense": {
+      "url": "https://www.senat.fr/rap/r25-513/r25-5136.html",
+      "period": "2022–2025 direct budgetary costs; EPF 2022–2027"
+    },
+    "eu": {
+      "url": "https://www.senat.fr/rap/l26-156-22/l26-156-227.html",
+      "published": "2026-11-19"
+    },
+    "oecd": {
+      "url": "https://www.oecd.org/fr/publications/les-profils-de-cooperation-au-developpement_2ed76316-fr/france_a5ef278f-fr.html",
+      "period": "2025 net bilateral ODA USD; may overlap other categories"
+    }
+  },
+  "observed": {
+    "civil_guide": {
+      "economic_support_rounded_total": 1300,
+      "multilateral_guarantees": 600,
+      "direct_budget_aid": 400,
+      "civil_fund_grants": 200,
+      "concessional_treasury_loans": 84,
+      "bpifrance_export_guarantees": 66,
+      "fasep": 7,
+      "nuclear_safety": 9,
+      "afd_2024_2027_loan_ceiling": 400,
+      "humanitarian_older_total": 434,
+      "cooperation_reported_total": 36,
+      "student_aid": 29,
+      "technical_assistance": 14,
+      "refugee_hosting_france_2022": 472
+    },
+    "humanitarian_latest_tenths_million": {
+      "ngo": 1420,
+      "international_organizations": 2656,
+      "in_kind": 640,
+      "total": 4716
+    },
+    "civil_fund_2026_new_envelope": 71,
+    "eu_support_loan_2026_2027": 90000,
+    "eu_ukraine_facility_2024_2027": 50000,
+    "net_bilateral_oda_2025_tenths_usd_million": 4033,
+    "direct_defense_cost_2025": 588
+  },
+  "assumptions": {
+    "annual_direct_defense_proxy_million": 588,
+    "civil_annual_envelope_proxy_million": 71,
+    "humanitarian_cashlike_annualization": "NGO + international organizations, not in-kind; annualized 2022-02-24 to 2026-07-01; not a disbursement schedule",
+    "revocable_share_bps": 5000,
+    "domestic_industry_share_of_defense_and_civil_discretionary_delta_bps": 5000,
+    "aid_scope": "budget proxies already included in projected expenditure; other categories have unknown future flows"
+  }
+}

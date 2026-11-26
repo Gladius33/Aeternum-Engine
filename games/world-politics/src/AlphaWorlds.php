@@ -159,6 +159,7 @@ final class AlphaWorlds
             }
             $dip=new DiplomaticSimulation($world,$day,$this->scenario->actors);
             if(in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true))$dip->enableDailyReplies();
+            if($this->scenario->id===AlphaScenario::INVESTITURE)$dip->enableAidBridge();
             $this->insert('INSERT INTO wp_diplomatic_states(world_id,state_json,state_sha,actor_registry_sha,revision) VALUES(?,?,?,?,0)',
                 [$world,self::json($dip->snapshot()),$dip->hash(),$this->scenario->actors->hash()]);
             $org=new OrganizationSimulation($world,$day,$this->scenario->actors,$this->scenario->charters);
