@@ -704,10 +704,13 @@ $contract54=['kind'=>'currency_terms','data'=>['effective_on'=>'2026-11-27','uni
     ['id'=>'bond-fr','debtor'=>'fr_treasury','creditor'=>'foreign_private','kind'=>'sovereign_bond','principal_eur_minor'=>100000000000,'governing_law'=>'fr','treatment'=>'convert_certified','evidence_sha'=>str_repeat('3',64)],
     ['id'=>'bond-ext','debtor'=>'fr_treasury','creditor'=>'foreign_banks','kind'=>'sovereign_bond','principal_eur_minor'=>200000000000,'governing_law'=>'foreign','treatment'=>'retain_eur','evidence_sha'=>str_repeat('4',64)]
 ]]];
-$euStore54->execute($euWorld54,'eu_evidence',$contract54,'eu-contract-test-001',$es54['etag']);
+$ec54=$euStore54->execute($euWorld54,'eu_evidence',$contract54,'eu-contract-test-001',$es54['etag']);
+$franc54=['kind'=>'franc_rule','data'=>['effective_on'=>'2026-11-27','opening_base_franc_minor'=>10000000000000,'instrument_sha'=>str_repeat('6',64)]];
+$euStore54->execute($euWorld54,'eu_evidence',$franc54,'eu-franc-rule-test-001',$ec54['etag']);
 $sp54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);
 ck30($sp54['status']===200&&$sp54['body']['membership_scope']['current_modelled_eu_members']===27&&$sp54['body']['budget']['cumulative']['remaining_eu_financing_gap_minor']===0,'WP54r no premature EU scope or fiscal effect');
 ck30($sp54['body']['currency_contracts']['status']==='pending_effective_date'&&$sp54['body']['currency_contracts']['converted_opening_principal_eur_minor']===0,'WP54r no premature redenomination');
+ck30($sp54['body']['franc_monetary_rule']['status']==='pending_effective_date'&&$sp54['body']['franc_monetary_rule']['latest']===null,'WP54r no premature franc issuance');
 $c54=req30('GET',$r54.'/clock',null,$tc48);
 $c54=req30('POST',$r54.'/clock/advances',['target_day'=>'2026-11-27'],$tc48,['If-Match'=>$c54['etag'],'Idempotency-Key'=>'eu-trade-tick-001']);
 ck30($c54['status']===200&&$c54['body']['coherent'],'WP54r coherent exit tick');
@@ -724,6 +727,8 @@ ck30($sb54['monetary']['refinancing']['covered_countries']===1&&$sb54['monetary'
 $book54=$sb54['currency_contracts'];
 ck30($book54['status']==='conversion_simulated'&&$book54['sovereign_subset']['converted_xfr_principal_minor']===200000000000&&$book54['sovereign_subset']['retained_eur_principal_minor']===200000000000&&!$book54['national_treasury_booked'],'WP54r scoped conversion at parity, no actual debt rewrite');
 ck30($book54['consolidated_net_eur_valuation_delta_minor']===0&&$book54['claims'][0]['eur_valuation_minor']===100000000000,'WP54r parity conservation');
+$fr54=$sb54['franc_monetary_rule'];
+ck30($fr54['status']==='active'&&$fr54['currency_name']==='Franc'&&$fr54['latest']['issued_franc_minor']===0&&$fr54['latest']['closing_base_franc_minor']===10000000000000,'WP54r opening franc production parity');
 ck30(req30('GET',$r54.'/organizations/eu/spillovers',null,$ta2)['status']===404&&req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48)['etag']===$sp54['etag'],'WP54r projection isolation and deterministic ETag');
 $beforeMark54=req30('GET',$r54.'/domestic',null,$tc48);
 $os54=$euStore54->read($euWorld54);
@@ -739,7 +744,9 @@ $fx54=req30('GET',$r54.'/organizations/eu/spillovers',null,$tc48);$cb54=$fx54['b
 ck30($fx54['status']===200&&$cb54['new_currency_value_index_bps']===8000&&$cb54['sovereign_subset']['xfr_valuation_minor']===700000000000&&$cb54['claims'][0]['eur_valuation_minor']===80000000000,'WP54r persisted mixed-currency FX valuation');
 ck30($cb54['sectors']['foreign_private']['net_eur_valuation_delta_minor']===-20000000000&&$cb54['sectors']['fr_treasury']['net_eur_valuation_delta_minor']===20000000000&&!$cb54['national_treasury_booked'],'WP54r symmetric valuation without actual national booking');
 $afterMark54=req30('GET',$r54.'/domestic',null,$tc48);
-ck30($afterMark54['status']===200&&$afterMark54['body']['currency']==='EUR'&&$afterMark54['body']['days'][1]===$beforeMark54['body']['days'][1],'WP54r national EUR history remains unchanged');
+ck30($afterMark54['status']===200&&$afterMark54['body']['days'][2]['currency']==='EUR'&&$afterMark54['body']['days'][1]===$beforeMark54['body']['days'][1],'WP54r national EUR history remains unchanged');
+$fr54=$fx54['body']['franc_monetary_rule'];$fl54=$fr54['latest'];
+ck30(count($fr54['days'])===2&&$fl54['day']==='2026-11-28'&&$fl54['lagged_real_output_daily_minor']===intdiv($afterMark54['body']['days'][0]['macro']['real_gdp']+$afterMark54['body']['days'][1]['macro']['real_gdp'],2)&&$fl54['central_bank_incremental_claim_franc_minor']===$fl54['central_bank_incremental_liability_franc_minor']&&!$fr54['treasury_spending_booked'],'WP54r franc issuance uses previous real production and balanced counterpart');
 
 $pdo->prepare('UPDATE wp_sessions SET expires_at=0 WHERE token_sha=?')->execute([hash('sha256',$ta2)]);
 ck30(req30('GET','/worlds',null,$ta2)['status']===401,'expired token denied');

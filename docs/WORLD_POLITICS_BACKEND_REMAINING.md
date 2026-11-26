@@ -558,3 +558,10 @@ Closed fictional EUR/XFR contract projection with explicit treatment, parity,
 reciprocal FX and symmetric counterparty valuation. Actual debt/treasury
 currency migration, bank and central-bank balance sheets, maturities and
 legal certification issuance remain open. WP55 deferred.
+
+### WP54r production-indexed Franc
+
+New worlds pin a certified pilot monetary-base rule with lagged real GDP
+and balanced issuance, explicit contraction and inflation safeguards. Franc
+name exposed, XFR retained internally. No fiscal spending, full bank money
+or live FX peg until central-bank and treasury migration is implemented.

@@ -276,3 +276,16 @@ Legacy states unchanged. CI pending.
 Integration now also schedules a prospective FX mark through the trusted store,
 checks receipt idempotency, advances a further coherent HTTP tick and verifies
 symmetric valuation, unchanged past EUR ledger and no premature booking.
+
+### WP54r franc monetary rule
+
+User-specified fictional national currency is the Franc (internal XFR marker
+preserved for compatibility). Certified pilot opening monetary base, effective
+only after currency transition. Target equals opening base times lagged real
+GDP rolling mean / opening real GDP anchor; up to 30 prior days. Positive
+shortfall issued in a separate balanced pilot account as central bank claim
+and liability, contraction freezes issuance and records excess. Nominal GDP
+inflation cannot increase issuance. No assumed automatic FX peg, broad money,
+price stability, repayment or spending in the EUR treasury. Actual monetary
+and fiscal migration remain open. Fixed HTTP test: currency is a daily row
+field, not a top-level domestic snapshot field. CI pending.
