@@ -21,7 +21,12 @@ final class PdoCampaignScores
             ||$report['income_proxy_gain_bps']!==(int)$r['gain_bps']||$report['terminal']!==((int)$r['terminal']===1)
             ||$report['clock_revision']!==(int)$r['clock_revision']||$report['clock_revision']!==$report['elapsed_office_days']
             ||$report['league']!==CampaignScore::LEAGUE||$report['official_ranking_eligible']!==false||$report['rankable_in_alpha']!==true
-            ||CampaignScore::points($report['elapsed_office_days'],$report['income_proxy_gain_bps'])['score']!==$report['score'])
+            ||$report['income_proxy_index_bps']!==10000+$report['income_proxy_gain_bps']
+            ||$report['window_days']!==min(365,$report['elapsed_office_days'])
+            ||$report['complete_365_day_window']!==($report['elapsed_office_days']>=365)
+            ||$report['early_window_provisional']!==($report['elapsed_office_days']<365)
+            ||($report['terminal']?$report['ended_on']!==$report['day']:$report['ended_on']!==null)
+            ||CampaignScore::points($report['elapsed_office_days'],$report['income_proxy_gain_bps'])!==array_intersect_key($report,array_flip(['tenure_points','purchasing_power_points','score'])))
             throw new \UnexpectedValueException('Score projection integrity mismatch');
         return $report;
     }
@@ -91,7 +96,7 @@ final class PdoCampaignScores
         $q=$this->db->query("SELECT s.cohort_sha,COUNT(DISTINCT w.owner_id) AS players,COUNT(*) AS campaigns
             FROM wp_campaign_scores s JOIN wp_alpha_worlds w ON w.world_id=s.world_id
             JOIN wp_accounts a ON a.account_id=w.owner_id AND a.enabled=1
-            JOIN wp_world_clock c ON c.world_id=s.world_id AND c.score_enabled=1 AND c.committed_day=s.committed_day AND c.revision=s.clock_revision
+            JOIN wp_world_clock c ON c.world_id=s.world_id AND c.score_enabled=1 AND c.committed_day=s.committed_day AND c.revision=s.clock_revision AND c.game_over=s.terminal
             WHERE s.score_version='".CampaignScore::VERSION."' GROUP BY s.cohort_sha ORDER BY s.cohort_sha LIMIT $limit OFFSET $offset");
         $rows=[];foreach($q->fetchAll(\PDO::FETCH_ASSOC) as $r)$rows[]=['cohort_sha'=>$r['cohort_sha'],'players'=>(int)$r['players'],'campaigns'=>(int)$r['campaigns']];
         return ['league'=>CampaignScore::LEAGUE,'score_version'=>CampaignScore::VERSION,'page'=>$page,'page_size'=>$limit,'cohorts'=>$rows,
@@ -109,21 +114,25 @@ final class PdoCampaignScores
                 ROW_NUMBER() OVER(PARTITION BY w.owner_id ORDER BY s.score DESC,s.elapsed_days DESC,s.gain_bps DESC,s.world_id ASC) AS selection_order
             FROM wp_campaign_scores s JOIN wp_alpha_worlds w ON w.world_id=s.world_id
             JOIN wp_accounts a ON a.account_id=w.owner_id AND a.enabled=1
-            JOIN wp_world_clock c ON c.world_id=s.world_id AND c.score_enabled=1 AND c.committed_day=s.committed_day AND c.revision=s.clock_revision
+            JOIN wp_world_clock c ON c.world_id=s.world_id AND c.score_enabled=1 AND c.committed_day=s.committed_day AND c.revision=s.clock_revision AND c.game_over=s.terminal
             WHERE s.cohort_sha=? AND s.score_version=?
         ), ranked AS (
             SELECT world_id,owner_id,score,elapsed_days,gain_bps,
                 RANK() OVER(ORDER BY score DESC,elapsed_days DESC,gain_bps DESC) AS player_rank,
                 COUNT(*) OVER() AS total_players
             FROM candidates WHERE selection_order=1
+        ), totals AS (
+            SELECT COUNT(*) AS total_players FROM ranked
         ), page_rows AS (
             SELECT * FROM ranked ORDER BY score DESC,elapsed_days DESC,gain_bps DESC,owner_id ASC LIMIT $limit OFFSET $offset
         )
-        SELECT s.*,r.owner_id,r.player_rank,r.total_players FROM page_rows r JOIN wp_campaign_scores s ON s.world_id=r.world_id
+        SELECT s.*,r.owner_id,r.player_rank,t.total_players FROM totals t LEFT JOIN page_rows r ON 1=1
+        LEFT JOIN wp_campaign_scores s ON s.world_id=r.world_id
         ORDER BY r.score DESC,r.elapsed_days DESC,r.gain_bps DESC,r.owner_id ASC");
-        $q->execute([$cohort,CampaignScore::VERSION]);$rows=[];$total=null;
+        $q->execute([$cohort,CampaignScore::VERSION]);$rows=[];$total=0;
         foreach($q->fetchAll(\PDO::FETCH_ASSOC) as $r){
-            $report=self::rowReport($r);$total=(int)$r['total_players'];
+            $total=(int)$r['total_players'];if($r['world_id']===null)continue;
+            $report=self::rowReport($r);
             $rows[]=['rank'=>(int)$r['player_rank'],'player'=>'joueur-'.substr(hash('sha256','wp78-public-alias/'.$r['owner_id']),0,20),
                 'is_you'=>hash_equals($r['owner_id'],$viewer),'score'=>$report['score'],'elapsed_office_days'=>$report['elapsed_office_days'],
                 'income_proxy_gain_bps'=>$report['income_proxy_gain_bps'],'day'=>$report['day'],'terminal'=>$report['terminal'],

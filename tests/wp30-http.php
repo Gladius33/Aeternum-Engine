@@ -955,3 +955,13 @@ $terminalBoard78=req30('GET',$board78,null,$t78);
 $terminalOwn78=array_values(array_filter($terminalBoard78['body']['entries'],fn($e)=>$e['is_you']))[0];
 ck30($terminalOwn78['terminal']&&$terminalOwn78['day']==='2027-05-15','WP78 ended campaign remains ranked');
 
+// WP79: empty page retains accurate total and unknown cohort is empty.
+$empty79=req30('GET','/leaderboards/'.$cohort78.'/2',null,$t27);
+ck30($empty79['status']===200&&$empty79['body']['total_players']===2&&$empty79['body']['entries']===[],'WP79 empty page preserves total');
+$none79=req30('GET','/leaderboards/'.str_repeat('0',64).'/1',null,$t27);
+ck30($none79['status']===200&&$none79['body']['total_players']===0&&$none79['body']['entries']===[],'WP79 unknown cohort is empty');
+$q79=$pdo->prepare('UPDATE wp_campaign_scores SET terminal=0 WHERE world_id=?');$q79->execute([$terminalWorld78]);
+ck30(req30('GET',$board78,null,$t27)['body']['total_players']===1&&req30('GET',$terminalRoot78.'/score',null,$t78)['status']===503,'WP79 inconsistent terminal checkpoint excluded and private read fails closed');
+$q79=$pdo->prepare('UPDATE wp_campaign_scores SET terminal=1 WHERE world_id=?');$q79->execute([$terminalWorld78]);
+ck30(req30('GET',$terminalRoot78.'/score',null,$t78)===$terminalScore78,'WP79 checkpoint integrity recovery');
+

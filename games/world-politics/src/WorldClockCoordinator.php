@@ -297,7 +297,7 @@ final class WorldClockCoordinator
             }
             $this->trust($world,'world.clock.advance');
             $this->assertDomesticConfiguration($world,$row);
-            $this->assertDomainsAt($world,$targetDay);
+            $verified=$this->assertDomainsAt($world,$targetDay,true);
             $this->assertCountryDaysAt($world,$targetDay);
             $this->assertFranceDayAt($world,$targetDay,true);
             if ($this->franceParliament!==null
@@ -312,7 +312,7 @@ final class WorldClockCoordinator
                 throw new \DomainException('All domains must be checkpointed before publication');
             }
 
-            $opinionRecord=$this->opinion?->read($world);
+            $opinionRecord=$verified['opinion']??null;
             $campaign=$opinionRecord['state']['campaign']??null;
             if(($campaign!==null)!==((int)($row['campaign_enabled']??0)===1))
                 throw new \DomainException('Campaign configuration differs from pinned world');
@@ -320,7 +320,7 @@ final class WorldClockCoordinator
             $revision=(int)$row['revision']+1;
             if((int)($row['score_enabled']??0)===1){
                 if($this->domestic===null||$opinionRecord===null)throw new \DomainException('Ranked world missing required domain');
-                (new PdoCampaignScores($this->pdo))->publish($world,$row,$targetDay,$this->domestic->read($world),$this->diplomacy->read($world),$opinionRecord);
+                (new PdoCampaignScores($this->pdo))->publish($world,$row,$targetDay,$verified['domestic'],$verified['diplomacy'],$opinionRecord);
             }
             $result=[
                 'status'=>200,
@@ -361,7 +361,7 @@ final class WorldClockCoordinator
     }
 
     /** @return array<string,array{day:string,etag:string}> */
-    private function componentStates(string $world):array
+    private function componentStates(string $world,bool $retain=false):array
     {
         $result=[];
         foreach ($this->steps() as $step) {
@@ -372,20 +372,23 @@ final class WorldClockCoordinator
                 throw new \UnexpectedValueException('Domain has no canonical game date: '.$step);
             }
             self::day($day);
-            $result[$step]=['day'=>$day,'etag'=>$record['etag']];
+            $result[$step]=['day'=>$day,'etag'=>$record['etag'],...($retain&&in_array($step,['domestic','diplomacy','opinion'],true)?['record'=>$record]:[])];
         }
         return $result;
     }
 
-    private function assertDomainsAt(string $world,string $day):void
+    private function assertDomainsAt(string $world,string $day,bool $retain=false):array
     {
-        foreach ($this->componentStates($world) as $step=>$state) {
+        $verified=[];
+        foreach ($this->componentStates($world,$retain) as $step=>$state) {
             if ($state['day']!==$day) {
                 throw new \DomainException(
                     'World clock domain not at required date: '.$step
                 );
             }
+            if(isset($state['record']))$verified[$step]=$state['record'];
         }
+        return $verified;
     }
 
     private function completeStep(

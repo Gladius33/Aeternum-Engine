@@ -797,3 +797,8 @@ Migration additive 025, pin score_enabled uniquement pour nouvelles campagnes ca
 
 
 Qualification WP78 complément : correction de l'insertion YAML de la regex de cohorte (contrat OpenAPI), vérification du digest domestique observé par l'opinion à la publication du score. Test HTTP/MariaDB avec trigger d'échec sur UPDATE de score : maintien du dernier jour classé, reprise du tick avec le même reçu, puis campagne terminale certifiée et gel du score. Les événements de fin sont des fixtures émises côté serveur de test, jamais des ordres du joueur.
+
+
+## WP79 tranche A — intégrité et coût de publication
+
+Réutilisation des trois états déjà vérifiés dans la transaction finale du calendrier (domestique, diplomatie, opinion), au lieu de les rejouer une seconde fois pour le score. Pas de changement des règles ou des empreintes métier. Contrôle supplémentaire de cohérence des composantes du score, des fenêtres et de la fin de mandat. Classement : total exact sur page vide, exclusion des checkpoints terminaux incohérents, lecture privée toujours fail closed. Tests HTTP réels. Cette optimisation élimine des relectures mais ne résout pas la complexité globale des rejeux historiques ni ne certifie un débit de production.
