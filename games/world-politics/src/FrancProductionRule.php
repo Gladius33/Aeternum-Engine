@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrancPublicFunding.php';
+require_once __DIR__.'/FrancCommercialBank.php';
 
 /** Fictional franc monetary-base rule. All output inputs use the fixed
  * real national-accounts price basis, not nominal GDP or gross sales.
@@ -84,7 +85,7 @@ final class FrancProductionRule
         if($active&&($history===[]||$history[array_key_last($history)]['day']!==$dom['day']))throw new \DomainException('Missing current production ledger');
         $settled=$funding?FrancPublicFunding::settle($history,$terms['opening_base_franc_minor']??null,$eu['franc_funding_orders']):null;
         if($funding)$history=$settled['rows'];
-        return ['version'=>self::VERSION,'classification'=>'fictional_production_indexed_monetary_base_pilot',
+        $result=['version'=>self::VERSION,'classification'=>'fictional_production_indexed_monetary_base_pilot',
             'currency_name'=>'Franc','internal_currency_code'=>'XFR','status'=>$terms===null?'not_configured':($active?'active':'pending_effective_date'),
             'effective_from'=>$start,'production_measure'=>'real_gdp_fixed_price_value_added','lagged_window_days'=>self::WINDOW,
             'anchor_real_output_daily_minor'=>$anchor,'opening_base_franc_minor'=>$terms['opening_base_franc_minor']??null,
@@ -93,5 +94,7 @@ final class FrancProductionRule
             'incremental_claim_classification'=>'fictional_central_bank_advance','treasury_spending_booked'=>false,
             'national_currency_changed'=>false,'broad_money_modelled'=>false,'fx_peg_implied'=>false,
             'price_stability_guaranteed'=>false,...($funding?['public_funding_version'=>FrancPublicFunding::VERSION,'production_anchor_source'=>$anchorSource,'pilot_public_funding_settled'=>$active,'executed_order_days'=>$settled['executed_order_days'],'opening_legacy_balance_sheet_unmodelled'=>true,'actual_eur_treasury_booked'=>false]:[]),'not_a_forecast'=>true];
+        if(isset($eu['franc_bank_version']))$result['commercial_banking']=FrancCommercialBank::project($eu,$result);
+        return $result;
     }
 }

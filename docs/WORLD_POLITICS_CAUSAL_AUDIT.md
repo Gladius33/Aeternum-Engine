@@ -307,3 +307,17 @@ First-tick transition now uses the pinned macro baseline daily real GDP only
 when the new funding model lacks preceding daily rows. Subsequent issuance
 still uses prior committed production; missing baseline fails closed. Added
 integer capacity checks and first-day/next-day regression tests.
+
+### WP54r Franc commercial bank pilot
+
+Opening anchor CI 45838024367 green. New worlds pin a consolidated bank
+scenario with reserves allocated from existing opening base (no additional
+issuance), public deposits from the funding ledger included once, separate
+private credit deposits and matching borrower loan debt. New credit bounded
+by fictional capital/loan and reserve/deposit floors, suspended during excess
+base or insolvency. Certified principal repayments extinguish private deposits,
+interest paid from deposits increases retained equity, certified writeoffs
+reduce equity and leave deposits intact. No interbank clearing, deposit
+withdrawal or bank resolution, interest accrual, actual prudential regulation,
+opening national bank balance sheets, macro credit feedback or full M2. Existing
+worlds unchanged. CI pending.

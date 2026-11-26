@@ -573,3 +573,11 @@ within production ceiling, levy-funded repayment and destruction, no automatic
 issuance or actual EUR fiscal booking. Full national currency migration,
 central bank opening balance sheet, commercial banking solvency/credit and
 macro demand effects remain open.
+
+### WP54r Franc commercial banking
+
+Pinned incremental consolidated-bank pilot with separate credit deposits,
+capital/liquidity constraints, repayments, interest and losses. No new base
+money from private credit; public deposits included once. Actual national
+banks, interbank clearing, deposit runs, resolution, FX reserves and economic
+feedback remain open. WP55 deferred.
