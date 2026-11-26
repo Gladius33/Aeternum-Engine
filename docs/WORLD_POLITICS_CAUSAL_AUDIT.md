@@ -174,3 +174,15 @@ the same economic clock transaction. No authorization, no tariff, no economic
 impact merely from a diplomatic declaration. Up to 32 pending rows per day;
 unsupported participants require review. The statutory legal gate, differentiated
 trade exposure, and EU powers remain open. CI pending.
+
+### WP54r daily legal activation
+
+Diplomatic/economic bridge CI 45798259162 green. New worlds pin automatic
+reconciliation of previously certified published standard bills, exact
+regulatory decrees and finance laws with matching pending domestic proposals.
+Uses verified institutional snapshot, exact effective date, unambiguous text
+and existing final-act ledger. No client authority, no auto certification or
+retroactive effect; transaction commits alongside daily domestic ledger.
+Amended texts without fiscal mapping, missing proposal and ambiguous instruments
+remain inactive. Manual clerk certification and full pack legislative workflows
+remain open. CI pending.

@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/DomesticPolicySimulation.php';
 require_once __DIR__.'/WorldMutationFence.php';
+require_once __DIR__.'/DailyLegalActivation.php';
 
 interface PersistentDomesticPolicyAuthority extends DomesticPolicyAuthority
 {
@@ -97,6 +98,7 @@ final class PdoDomesticPolicyStore
             }
             $before = $sim->hash();
             if (!hash_equals('"'.$before.'"',$ifMatch)) throw new \DomainException('Stale domestic state');
+            if($operation==='clock'&&isset($sim->snapshot()['daily_legal_version']))DailyLegalActivation::apply($this->pdo,$sim,$world,$payload['target_day'],$actor);
             $result = match($operation) {
                 'propose'=>$this->propose($sim,$payload),
                 'enact'=>$this->enact($sim,$payload),
@@ -180,7 +182,7 @@ final class PdoDomesticPolicyStore
     private static function build(string $world,array $config): DomesticPolicySimulation
     {
         self::fields($config,['start_day','currency','opening_balance','baseline_revenue',
-            'baseline_expense','cohorts','catalog',...(array_key_exists('macro_baseline',$config)?['macro_baseline']:[]),...(array_key_exists('debt_model',$config)?['debt_model']:[]),...(array_key_exists('population_model',$config)?['population_model']:[]),...(array_key_exists('services_model',$config)?['services_model']:[]),...(array_key_exists('corporations_enabled',$config)?['corporations_enabled']:[]),...(array_key_exists('wage_feedback_enabled',$config)?['wage_feedback_enabled']:[]),...(array_key_exists('trade_feedback_enabled',$config)?['trade_feedback_enabled']:[]),...(array_key_exists('firm_model',$config)?['firm_model']:[]),...(array_key_exists('public_equity_enabled',$config)?['public_equity_enabled']:[]),...(array_key_exists('industrial_enabled',$config)?['industrial_enabled']:[])]);
+            'baseline_expense','cohorts','catalog',...(array_key_exists('macro_baseline',$config)?['macro_baseline']:[]),...(array_key_exists('debt_model',$config)?['debt_model']:[]),...(array_key_exists('population_model',$config)?['population_model']:[]),...(array_key_exists('services_model',$config)?['services_model']:[]),...(array_key_exists('corporations_enabled',$config)?['corporations_enabled']:[]),...(array_key_exists('wage_feedback_enabled',$config)?['wage_feedback_enabled']:[]),...(array_key_exists('trade_feedback_enabled',$config)?['trade_feedback_enabled']:[]),...(array_key_exists('firm_model',$config)?['firm_model']:[]),...(array_key_exists('public_equity_enabled',$config)?['public_equity_enabled']:[]),...(array_key_exists('industrial_enabled',$config)?['industrial_enabled']:[]),...(array_key_exists('daily_legal_enabled',$config)?['daily_legal_enabled']:[])]);
         if (!is_string($config['start_day']) || !is_string($config['currency'])
             || !is_int($config['opening_balance']) || !is_int($config['baseline_revenue'])
             || !is_int($config['baseline_expense']) || !is_array($config['cohorts']) || !is_array($config['catalog'])) {
@@ -188,7 +190,7 @@ final class PdoDomesticPolicyStore
         }
         return new DomesticPolicySimulation($world,$config['start_day'],$config['currency'],
             $config['opening_balance'],$config['baseline_revenue'],$config['baseline_expense'],
-            $config['cohorts'],$config['catalog'],$config['macro_baseline']??null,$config['debt_model']??null,$config['population_model']??null,$config['services_model']??null,$config['corporations_enabled']??false,$config['wage_feedback_enabled']??false,$config['trade_feedback_enabled']??false,$config['firm_model']??null,$config['public_equity_enabled']??false,$config['industrial_enabled']??false);
+            $config['cohorts'],$config['catalog'],$config['macro_baseline']??null,$config['debt_model']??null,$config['population_model']??null,$config['services_model']??null,$config['corporations_enabled']??false,$config['wage_feedback_enabled']??false,$config['trade_feedback_enabled']??false,$config['firm_model']??null,$config['public_equity_enabled']??false,$config['industrial_enabled']??false,$config['daily_legal_enabled']??false);
     }
 
     private function permit(string $world,string $ability): string

@@ -518,3 +518,10 @@ open. WP55 deferred.
 Pinned daily economic bridge now materializes pending proposals from verified
 committed diplomatic intentions, atomically acknowledges source. Not legal
 approval; actual trade sanctions and EU instruments remain open. WP55 deferred.
+
+### WP54r daily legal reconciliation
+
+Previous daily diplomatic-economic bridge green. New domestic clock matches
+certified final publications to pending policies and records legal proofs
+atomically. Does not bypass clerk, constitutional review or text scope.
+Full programmes and trade legal authority remain open. WP55 deferred.
