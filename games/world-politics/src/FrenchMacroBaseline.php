@@ -88,7 +88,7 @@ final class MacroFiscalLoop
      * day's macro row. No uncommitted values, implicit circular equation
      * or read-side mutation. No trade/monetary feedback in this first loop.
      */
-    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0,?int $wagePremiumBps=null):array
+    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0,?int $wagePremiumBps=null,?int $tradeExposureBps=null):array
     {
         if(!empty($debtModel['crisis_enabled'])){
             $credit=$previous['treasury']['banking']['credit_availability_bps']??10000;
@@ -128,6 +128,9 @@ final class MacroFiscalLoop
                 'payroll_tax_base_minor'=>$payrollTaxBase,'payroll_tax_feedback_minor'=>$payrollTaxFeedback,
                 'nonpayroll_tax_feedback_minor'=>$taxFeedback-$payrollTaxFeedback,'labour_cost_gap_bps'=>$costGap];
         }
+        $trade=$tradeExposureBps??0;
+        if($trade<0||$trade>2000)throw new \DomainException('Invalid trade exposure');
+        $employment-=intdiv($trade,2);$production-=intdiv($trade,2);
         $socialFeedback=self::scale($b['daily_social_benefits'],self::scale($jobGap,$b['benefit_unemployment_sensitivity_bps'])
             +self::scale(self::clamp(intdiv($price-100000000,10000),-2000,4000),$b['benefit_price_pass_through_bps']));
         $actualRevenue=max(0,$revenue+$taxFeedback);$primaryExpense=max(0,$expense+$socialFeedback);
@@ -135,14 +138,16 @@ final class MacroFiscalLoop
         $realWageBps=intdiv($wage*10000,$price);
         $consumption=max(0,$b['daily_consumption']-intdiv($revenue-$b['daily_revenue'],2)
             +self::scale($b['daily_consumption'],self::clamp($realWageBps-10000-intdiv($jobGap,2)+intdiv($employment-10000,2),-2500,2500))
-            +intdiv($socialFeedback,3));
+            +intdiv($socialFeedback,3)-self::scale($b['daily_consumption'],intdiv($trade,2)));
         $investment=max(0,$b['daily_investment']+self::scale($b['daily_investment'],
             self::clamp(intdiv(self::gap($priorReal,$b['daily_real_gdp']),3)+$production-10000,-2500,2500)));
         $government=max(0,$b['daily_government_consumption']+intdiv($expense-$b['daily_primary_expense']-$serviceTransferDelta,2));
-        $real=$consumption+$b['daily_npish_consumption']+$investment+$government+$b['daily_exports']-$b['daily_imports']+$b['daily_statistical_discrepancy'];
+        $exports=$b['daily_exports']-self::scale($b['daily_exports'],$trade);
+        $imports=$b['daily_imports']-self::scale($b['daily_imports'],$trade);
+        $real=$consumption+$b['daily_npish_consumption']+$investment+$government+$exports-$imports+$b['daily_statistical_discrepancy'];
         if($real<=0)throw new \DomainException('Nonpositive output');
         $outputGap=self::clamp(self::gap($real,$b['daily_real_gdp']),-3000,3000);
-        $inflation=self::move($inflation,self::clamp($b['initial_annual_inflation_bps']+intdiv($outputGap,4)+intdiv($costGap,3),-500,2000),20);
+        $inflation=self::move($inflation,self::clamp($b['initial_annual_inflation_bps']+intdiv($outputGap,4)+intdiv($costGap,3)+intdiv($trade,2),-500,2000),20);
         $price=max(10000000,$price+intdiv($price*$inflation,3650000));
         $wage=self::move($wage,$wagePremiumBps===null?$price:self::scale($price,10000+$wagePremiumBps),180);
         $unemployment=self::move($unemployment,self::clamp($b['initial_unemployment_bps']-intdiv($outputGap,4)-intdiv($employment-10000,5),100,3000),30);
@@ -161,12 +166,12 @@ final class MacroFiscalLoop
         }
         return ['revenue'=>$actualRevenue,'expense'=>$primaryExpense,'balance'=>$closing,
             'macro'=>['version'=>self::VERSION,'real_gdp'=>$real,'nominal_gdp'=>$nominal,'consumption'=>$consumption,
-                'npish_consumption'=>$b['daily_npish_consumption'],'investment'=>$investment,'government_consumption'=>$government,'exports'=>$b['daily_exports'],'imports'=>$b['daily_imports'],
+                'npish_consumption'=>$b['daily_npish_consumption'],'investment'=>$investment,'government_consumption'=>$government,'exports'=>$exports,'imports'=>$imports,
                 'statistical_discrepancy'=>$b['daily_statistical_discrepancy'],'real_output_index_bps'=>self::gap($real,$b['daily_real_gdp'])+10000,
                 'daily_real_growth_bps'=>self::gap($real,$priorReal),'price_index_scaled'=>$price,'wage_index_scaled'=>$wage,
                 'annual_inflation_bps'=>$inflation,'unemployment_bps'=>$unemployment,'real_wage_index_bps'=>intdiv($wage*10000,$price),
                 'statutory_revenue'=>$revenue,'statutory_primary_expense'=>$expense,'tax_feedback'=>$taxFeedback,
-                'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap,...($payroll===null?[]:['corporation_payroll'=>$payroll])],
+                'social_expense_feedback'=>$socialFeedback,'lagged_nominal_gap_bps'=>$nominalGap,'lagged_unemployment_gap_bps'=>$jobGap,...($payroll===null?[]:['corporation_payroll'=>$payroll]),...($tradeExposureBps===null?[]:['trade_exposure_bps'=>$trade])],
             'treasury'=>$treasury];
     }
     public static function project(array $dom):array
@@ -176,6 +181,6 @@ final class MacroFiscalLoop
             'actual_revenue'=>$d['revenue'],'primary_expense'=>$d['expense']];
         return ['version'=>self::VERSION,'classification'=>'fictional_simulation_observed_anchors','world_id'=>$dom['world_id'],
             'day'=>$dom['day'],'baseline'=>$b,'latest'=>$rows===[]?null:$rows[array_key_last($rows)],'days'=>$rows,
-            'feedback_to_domestic_ledger'=>true,'trade_feedback_enabled'=>false,'not_a_forecast'=>true];
+            'feedback_to_domestic_ledger'=>true,'trade_feedback_enabled'=>isset($dom['trade_feedback_version']),'not_a_forecast'=>true];
     }
 }

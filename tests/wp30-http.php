@@ -598,6 +598,8 @@ ck30($ac53['status']===200,'WP53b owner decision');
 $cc53=req30('GET',$rc53.'/clock',null,$tc48);
 $cc53=req30('POST',$rc53.'/clock/advances',['target_day'=>'2026-11-26'],$tc48,['If-Match'=>$cc53['etag'],'Idempotency-Key'=>'corporation-tick-001']);
 ck30($cc53['status']===200&&$cc53['body']['coherent'],'WP53b coherent clock');
+$trade53=req30('GET',$rc53.'/domestic',null,$tc48);
+ck30(isset($trade53['body']['days'][0]['trade_observation']['economic_sha'])&&$trade53['body']['days'][0]['macro']['trade_exposure_bps']===0,'WP54r trusted trade evidence in committed day');
 $vc53=req30('GET',$pc53,null,$tc48);
 ck30($vc53['status']===200&&$vc53['body']['state']['mode']==='parallel','WP53b durable corporate decision');
 ck30(req30('GET',$pc53,null,$ta2)['status']===404&&req30('GET',$r53.'/countries/FR/corporations',null,$tc48)['status']===404,'WP53b isolation');

@@ -97,3 +97,14 @@ approval; no real candidates or polling. Other cycles retain fixtures. Legacy
 worlds retain original hash and replay. Counterfactual and replay tests added.
 Remaining acceptance gates above stay OPEN, notably trade, company ownership,
 industrial capital, constitutional authorization, EU/currency and performance.
+
+### WP54r trade correction
+
+New corporation/civil-crisis worlds pin trade feedback. Clock obtains a committed,
+verified economic source and stores a compact hash-bound observation in domestic
+history. Effective restrictions now alter simulated exports/imports, consumption,
+investment, employment, prices and lagged fiscal flows. Overlapping same-partner
+restrictions use max; missing bilateral references flagged, never filled with
+invented USD/EUR conversions. Symmetric, damped exposure is an explicit uncalibrated
+proxy, not a directional trade model. Alpha legal authorization and player tariff
+policy remain unavailable. Old save behaviour unchanged. CI required.

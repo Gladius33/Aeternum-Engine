@@ -411,8 +411,13 @@ final class WorldClockCoordinator
 
             $recovered=$day===$targetDay;
             if (!$recovered) {
+                $payload=['target_day'=>$targetDay];
+                if($step==='domestic'&&isset($current['state']['trade_feedback_version'])){
+                    $trade=TradeMacroFeedback::observe($this->economy->read($world),$world,$targetDay);
+                    $payload['trade_observation']=json_encode($trade,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
+                }
                 $receipt=$store->execute(
-                    $world,'clock',['target_day'=>$targetDay],
+                    $world,'clock',$payload,
                     self::stepKey($world,$targetDay,$step),
                     $current['etag']
                 );

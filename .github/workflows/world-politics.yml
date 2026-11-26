@@ -80,6 +80,8 @@ jobs:
         run: php tests/wp28-french-parliament.php
       - name: Domestic policy fiscal ledger and multi-day scenario WP29A
         run: php tests/wp29a-domestic-policy.php
+      - name: WP54r trade feedback and overlap regression
+        run: php tests/wp54r-trade.php
       - name: WP54r wage feedback and dynamic fictional ballots
         run: php tests/wp54r-corrections.php
       - name: WP54 civil mobilisation and nonterminal continuity regression
