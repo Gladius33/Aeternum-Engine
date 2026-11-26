@@ -16,6 +16,7 @@ require_once __DIR__.'/LegislativeResponsibility.php';
 final class PublicOpinion
 {
     public const VERSION='wp35-public-opinion-v1';
+    public const MAX_DAYS=7305;
     private array $s;
     public function __construct(string $world,string $start,array $baseline)
     {
@@ -116,7 +117,7 @@ final class PublicOpinion
             'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[]),...(isset($this->s['civil_mobilisation'])?['civil_observation']:[]),...(isset($this->s['party_responses'])?['party_observation']:[])]);
         self::day($e['day']);
         if($e['world_id']!==$this->s['world_id']||$e['day']!==(new \DateTimeImmutable($this->s['day']))->modify('+1 day')->format('Y-m-d')
-            ||count($this->s['history'])>=3650)throw new \DomainException('Invalid daily opinion transition');
+            ||count($this->s['history'])>=self::MAX_DAYS)throw new \DomainException('Invalid daily opinion transition');
         foreach(['domestic_sha','institutional_sha'] as $k)if(!is_string($e[$k])||!preg_match('/^[a-f0-9]{64}$/D',$e[$k]))throw new \InvalidArgumentException('Missing source hash');
         $b=$this->s['baseline'];self::fields($e['pressure'],array_keys($b['weights']));
         foreach($e['pressure'] as $n)self::range($n,0,1000);
@@ -235,7 +236,7 @@ final class PublicOpinion
     public static function restore(array $s):self
     {
         $x=new self($s['world_id'],$s['start_day'],$s['baseline']);
-        if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>3650)throw new \DomainException('Invalid opinion journal');
+        if(!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>self::MAX_DAYS)throw new \DomainException('Invalid opinion journal');
         if(array_key_exists('dialogue',$s))$x->enableDialogue();
         if(array_key_exists('social_partners',$s))$x->enableSocialPartners();
         if(array_key_exists('campaign',$s))$x->enableCampaign();

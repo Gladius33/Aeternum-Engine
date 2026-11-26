@@ -126,3 +126,11 @@ for($i=0;$i<4384;$i++){
     $matured+=array_sum($calendarStep['due']);$issued+=$result['issued_principal']['FRF'];$paid+=$result['paid_principal']['FRF'];
 }
 ckCB($matured>0&&$state['claims'][$id]['principal_outstanding_minor']===$issued-$paid,'4384-day native kernel crosses actual ten-year maturities');
+
+use Aeternum\WorldPolitics\FrancFinancialAudit as FA;
+$audit=$report['financial_audit'];
+ckCB($audit['status']==='accounting_checks_passed'&&$audit['audited_days']===4&&$audit['checks_executed']>=48,'independent committed financial audit');
+$badDays=$report['days'];$badDays[0]['closing_state']['accounts']['treasury_frf_minor']++;
+noCB(fn()=>FA::verify($badDays));
+$badDays=$report['days'];$badDays[0]['bank_balance']['combined_modelled_slices']['assets_frf_minor']++;
+noCB(fn()=>FA::verify($badDays));

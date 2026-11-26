@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/FrancNativeBudgetProjection.php';
 require_once __DIR__.'/FrancNativeSectors.php';
 require_once __DIR__.'/FrancFinancialIntegration.php';
+require_once __DIR__.'/FrancFinancialAudit.php';
 
 /** Prospective, replayed daily native treasury, with its own financing
  * choices. Legacy fiscal policy and GDP remain reference-denominated. */
@@ -121,6 +122,6 @@ final class FrancCommittedBudget
         $days=[];$active=false;
         foreach($dom['days'] as $d){if(isset($d['frf_committed_budget'])){$active=true;$days[]=['day'=>$d['day'],...$d['frf_committed_budget']];}elseif($active)throw new \DomainException('Committed native budget history gap');}
         if(!$active)return null;$last=$days[array_key_last($days)];
-        return ['version'=>self::VERSION,'status'=>'active','currency'=>'FRF','classification'=>'committed_native_treasury_with_reference_policy_inputs','effective_from'=>$days[0]['day'],'instrument_sha'=>$last['instrument_sha'],'latest'=>$last,'days'=>$days,'months'=>FrancNativeBudgetProjection::aggregate($days,7),'years'=>FrancNativeBudgetProjection::aggregate($days,4),'reference_financing_policy_retained'=>false,'shared_reserves_within_projection'=>true,'daily_state_committed'=>true,'national_reference_ledger_changed'=>false,'macro_feedback_from_native_arrears_modelled'=>true,'other_currencies_modelled'=>false,...(isset($last['sector_version'])?['sector_version'=>$last['sector_version'],'future_bond_maturities'=>$last['bond_maturities']['closing'],'pretransition_new_issues_maturity_coverage'=>false]:[])];
+        return ['version'=>self::VERSION,'status'=>'active','currency'=>'FRF','classification'=>'committed_native_treasury_with_reference_policy_inputs','effective_from'=>$days[0]['day'],'instrument_sha'=>$last['instrument_sha'],'latest'=>$last,'days'=>$days,'months'=>FrancNativeBudgetProjection::aggregate($days,7),'years'=>FrancNativeBudgetProjection::aggregate($days,4),'reference_financing_policy_retained'=>false,'shared_reserves_within_projection'=>true,'daily_state_committed'=>true,'national_reference_ledger_changed'=>false,'macro_feedback_from_native_arrears_modelled'=>true,'other_currencies_modelled'=>false,...(isset($last['sector_version'])?['sector_version'=>$last['sector_version'],'future_bond_maturities'=>$last['bond_maturities']['closing'],'pretransition_new_issues_maturity_coverage'=>false]:[]),...(isset($last['financial_version'])?['financial_audit'=>FrancFinancialAudit::verify($days)]:[])];
     }
 }

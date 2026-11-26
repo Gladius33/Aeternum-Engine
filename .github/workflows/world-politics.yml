@@ -94,6 +94,8 @@ jobs:
         run: php tests/wp54r-frf-native-sectors.php
       - name: WP54r native financial integration and twelve-year maturity replay
         run: php tests/wp54r-frf-financial-integration.php
+      - name: WP54r extended domestic and opinion horizon replay
+        run: php tests/wp54r-frf-horizon.php
       - name: WP54r FRF macro price and trade pass-through regression
         run: php tests/wp54r-frf-macro.php
       - name: WP54r Franc foreign exchange reserve conservation regression
@@ -217,6 +219,7 @@ jobs:
       - name: Transactional persistent roster and journal regression
         run: |
           php tests/wp29b-domestic-policy-db.php
+          php tests/wp54r-frf-financial-db.php
           php tests/wp03-store-db.php
           php tests/wp04-rest-db.php
           php tests/wp06-institutions-db.php

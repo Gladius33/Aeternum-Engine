@@ -30,6 +30,7 @@ interface DomesticPolicyAuthority
 final class DomesticPolicySimulation
 {
     public const VERSION = 'wp29a-domestic-policy-1';
+    public const MAX_DAYS=7305;
     private array $policies = [];
     private array $days = [];
     private array $crisisDecisions=[];
@@ -169,7 +170,7 @@ final class DomesticPolicySimulation
         $this->require($principal, 'domestic.clock');
         self::date($target);
         if ($principal->clockDay($this->world) !== $target || self::next($this->day) !== $target
-            || count($this->days) >= 3650) throw new \DomainException('Invalid or uncertified daily transition');
+            || count($this->days) >= self::MAX_DAYS) throw new \DomainException('Invalid or uncertified daily transition');
         $row = $this->calculate($target, $this->balance, $this->pressure,$trade,$eu);
         $this->days[] = $row;
         $this->balance = $row['closing_balance'];
@@ -197,7 +198,7 @@ final class DomesticPolicySimulation
         // Retain historic branch events for replay only; new requests select a company.
         if(str_starts_with($action,'request-nationalisation:'))throw new \InvalidArgumentException('Select an individual company');
         $last=$this->corporationDecisions===[]?null:$this->corporationDecisions[array_key_last($this->corporationDecisions)];
-        if(($last['day']??null)===$this->day||count($this->corporationDecisions)>=3650)throw new \DomainException('One corporation decision per day');
+        if(($last['day']??null)===$this->day||count($this->corporationDecisions)>=self::MAX_DAYS)throw new \DomainException('One corporation decision per day');
         $state=$this->days===[]?ProfessionalCorporations::initial($this->startDay):$this->days[array_key_last($this->days)]['corporations'];
         ProfessionalCorporations::validateEvent($state,$action);
         if(str_starts_with($action,'offer-voluntary-equity:')){
@@ -375,7 +376,7 @@ final class DomesticPolicySimulation
         if ($snapshot['version'] !== self::VERSION || $snapshot['world_id'] !== $this->world
             || $snapshot['assumptions_sha'] !== $this->assumptionsHash()
             || !is_array($snapshot['policies']) || !is_array($snapshot['days'])
-            || !array_is_list($snapshot['days']) || count($snapshot['days']) > 3650) {
+            || !array_is_list($snapshot['days']) || count($snapshot['days']) > self::MAX_DAYS) {
             throw new \DomainException('Incompatible scenario snapshot');
         }
         self::date($snapshot['day']);
@@ -388,7 +389,7 @@ final class DomesticPolicySimulation
         }
         if($this->corporationsEnabled){
             $events=$snapshot['corporation_decisions'];
-            if(!is_array($events)||!array_is_list($events)||count($events)>3650)throw new \DomainException('Invalid corporation journal');
+            if(!is_array($events)||!array_is_list($events)||count($events)>self::MAX_DAYS)throw new \DomainException('Invalid corporation journal');
             $last=null;
             foreach($events as $e){
                 if(!is_array($e)||array_keys($e)!==['day','action']||!is_string($e['action']))throw new \DomainException('Invalid corporation event');
