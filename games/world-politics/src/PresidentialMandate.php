@@ -52,7 +52,7 @@ final class PresidentialMandate
             ...($published?['calendar_version'=>FrenchElectionCalendar::VERSION,'calendar_status'=>$dates['status'],'candidacy_lock_day'=>$dates['candidacy_lock'],'term_limit'=>2,'term_limit_revision'=>null,'candidacy_locked'=>false]:[]),
             'officeholder'=>CampaignLifecycle::PLAYER,'successor'=>null,'handover_on'=>null,'reason'=>null,'elections'=>[]];
     }
-    public static function advance(array $s,string $day,?int $priorApproval=null,?array $termLimitRevision=null):array
+    public static function advance(array $s,string $day,?int $priorApproval=null,?array $termLimitRevision=null,?array $termLengthRevision=null):array
     {
         self::day($day);
         if($s['version']!==self::VERSION||$s['status']==='ended'||$day!==self::shift($s['day'],1))
@@ -64,11 +64,14 @@ final class PresidentialMandate
             if($termLimitRevision!==null)ConstitutionalRevision::validateTermLimitProof($termLimitRevision,$day);
             if($s['term_limit_revision']!==null&&$s['term_limit_revision']!==$termLimitRevision)throw new \DomainException('Effective constitutional evidence cannot disappear');
             if($termLimitRevision!==null){$s['term_limit']=null;$s['term_limit_revision']=$termLimitRevision;}
+            if($termLengthRevision!==null)ConstitutionalRevision::validateTermLengthProof($termLengthRevision,$day);
+            if(isset($s['term_length_revision'])&&$s['term_length_revision']!==$termLengthRevision)throw new \DomainException('Effective duration proof cannot disappear');
+            if($termLengthRevision!==null){$s['term_length_revision']=$termLengthRevision;$s['next_term_years']=$termLengthRevision['next_term_years'];}
             if(!$s['candidacy_locked']){
                 $s['eligible_for_re_election']=$s['term_limit']===null||$s['consecutive_terms']<$s['term_limit'];
                 if($day>=$s['candidacy_lock_day'])$s['candidacy_locked']=true;
             }
-        }elseif($termLimitRevision!==null)throw new \DomainException('Legacy electoral rules pinned');
+        }elseif($termLimitRevision!==null||$termLengthRevision!==null)throw new \DomainException('Legacy electoral rules pinned');
         $s['day']=$day;
         if($day===$s['first_round_day']||$day===$s['second_round_day']){
             $cycle=$s['config']['cycles'][$published?($s['eligible_for_re_election']?0:1):$s['cycle_index']];
@@ -110,7 +113,7 @@ final class PresidentialMandate
             $s['elections'][]=['term_end'=>$day,'first_result'=>$s['first_result'],'result'=>$s['result'],'winner'=>$winner];
             if($winner===CampaignLifecycle::PLAYER&&$s['eligible_for_re_election']){
                 $s['consecutive_terms']++;$s['eligible_for_re_election']=$published?($s['term_limit']===null||$s['consecutive_terms']<$s['term_limit']):false;$s['cycle_index']++;
-                $s['term_start']=$day;$s['term_end']=self::termEnd($day);
+                $s['term_start']=$day;$s['term_end']=self::termEnd($day,$s['next_term_years']??5);
                 $s['first_round_day']=self::shift($s['term_end'],-25);
                 $s['second_round_day']=self::shift($s['first_round_day'],14);
                 if($published){
@@ -178,7 +181,7 @@ final class PresidentialMandate
     }
     private static function restartIncumbent(array $s,string $day,string $winner,int $ordinal):array
     {
-        $s['day']=$day;$end=self::termEnd($day);$dates=FrenchElectionCalendar::presidentialPoll($end);
+        $s['day']=$day;$end=self::termEnd($day,$s['next_term_years']??5);$dates=FrenchElectionCalendar::presidentialPoll($end);
         $s['term_start']=$day;$s['term_end']=$end;$s['consecutive_terms']=1;
         $s['eligible_for_re_election']=true;$s['cycle_index']=0;$s['status']='scheduled';
         $s['first_round_day']=$dates['first'];$s['second_round_day']=$dates['second'];
@@ -228,10 +231,10 @@ final class PresidentialMandate
         return ['votes'=>$b['votes'],'valid_votes'=>$total,'blank_invalid'=>$b['blank_invalid'],'registered'=>$registered,
             'ballots'=>$total+$b['blank_invalid'],'abstentions'=>$registered-$total-$b['blank_invalid']];
     }
-    private static function termEnd(string $start):string
+    private static function termEnd(string $start,int $years=5):string
     {
         // Clamp Feb 29 to Feb 28 in the non-leap anniversary year.
-        $date=new \DateTimeImmutable($start);$year=(int)$date->format('Y')+5;$month=(int)$date->format('m');
+        $date=new \DateTimeImmutable($start);$year=(int)$date->format('Y')+$years;$month=(int)$date->format('m');
         $first=$date->setDate($year,$month,1);$day=min((int)$date->format('d'),(int)$first->format('t'));
         return $first->setDate($year,$month,$day)->format('Y-m-d');
     }

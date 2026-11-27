@@ -337,3 +337,11 @@ $nr=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
 ck102($nr['nato_withdrawal']===null&&$nr['social_measure_ids']===[$natoId],'WP114 no notice before effective law');
 $q114e->execute([$spare]);$ni=json_decode($q114e->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
 ck102(count(array_filter($ni['legislation']['bills'],fn($b)=>$b['policy_id']===$natoId))===1,'WP114 separate treaty authorization bill');
+
+
+$durId='pf2022-jean-lassalle-4';
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>[$durId]],8)['status']===200,'WP114 prospective duration referendum programme accepted');
+// There may already be a pending constitutional procedure in this fixture;
+// selecting a different objective cannot force an instant new amendment.
+$durationState=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($durationState['agenda']['revision']==='presidential-seven-year-referendum'&&$durationState['agenda']['ratification']==='referendum','WP114 duration referendum canonical and durable');

@@ -16,7 +16,8 @@ final class ConstitutionalRevision
         return [
             'environment-report'=>['article'=>'fictional-89-a','text'=>'An annual public report describes the state of the environment and the implementation of environmental commitments.'],
             'institutional-report'=>['article'=>'fictional-89-b','text'=>'An annual public report describes the functioning of parliamentary institutions and access to their public records.'],
-            'remove-presidential-term-limit'=>['article'=>'6','text'=>'In this fictional constitutional revision, the second paragraph of Article 6 is repealed. The five-year presidential term, popular election and republican form remain unchanged.']
+            'remove-presidential-term-limit'=>['article'=>'6','text'=>'In this fictional constitutional revision, the second paragraph of Article 6 is repealed. The five-year presidential term, popular election and republican form remain unchanged.'],
+            'presidential-seven-year-referendum'=>['article'=>'6-duration','text'=>'In this fictional constitutional revision, the President is elected for seven years from the next investiture. The incumbent term and existing consecutive-term limit are not modified. Ratification by referendum is required.']
         ];
     }
     public function __construct(string $world,string $day)
@@ -97,7 +98,7 @@ final class ConstitutionalRevision
                 case 'route':
                     self::fields($d,['route','presidential_decision']);
                     if($p['status']!=='chambers_approved'||!in_array($d['route'],['referendum','congress'],true)
-                        ||$d['presidential_decision']!==true||($d['route']==='congress'&&$p['initiative']!=='government_project'))
+                        ||$d['presidential_decision']!==true||($d['route']==='congress'&&($p['initiative']!=='government_project'||$p['template']==='presidential-seven-year-referendum')))
                         throw new \DomainException('Invalid ratification route');
                     $p['route']=$d['route'];$p['status']='ratification_pending';break;
                 case 'ratify':
@@ -139,6 +140,25 @@ final class ConstitutionalRevision
     {
         self::fields($p,['revision_id','text_sha','effective_on']);self::id($p['revision_id']);self::day($p['effective_on']);
         if($p['effective_on']>$day||$p['text_sha']!==hash('sha256',self::catalog()['remove-presidential-term-limit']['text']))throw new \DomainException('Invalid effective Article 6 proof');
+    }
+    /** Orthogonal subclause of Article 6; term limit proof is preserved. */
+    public static function termLengthProof(array $state,string $world,string $day):?array
+    {
+        $r=self::restore($state)->snapshot();
+        if($r['world_id']!==$world||$r['day']!==$day)throw new \DomainException('Revision observation scope');
+        $c=$r['effective_clauses']['6-duration']??null;
+        if($c===null)return null;
+        $p=$r['procedures'][$c['revision_id']]??null;
+        if(($p['template']??null)!=='presidential-seven-year-referendum'||$p['status']!=='effective'||$p['route']!=='referendum')
+            throw new \DomainException('Unknown presidential duration revision');
+        $proof=['revision_id'=>$c['revision_id'],'text_sha'=>$c['text_sha'],'effective_on'=>$c['effective_on'],'next_term_years'=>7];
+        self::validateTermLengthProof($proof,$day);return $proof;
+    }
+    public static function validateTermLengthProof(array $p,string $day):void
+    {
+        self::fields($p,['revision_id','text_sha','effective_on','next_term_years']);self::id($p['revision_id']);self::day($p['effective_on']);self::day($day);
+        if($p['effective_on']>$day||$p['next_term_years']!==7||$p['text_sha']!==hash('sha256',self::catalog()['presidential-seven-year-referendum']['text']))
+            throw new \DomainException('Invalid effective duration proof');
     }
     private function allowed():bool
     {

@@ -399,6 +399,7 @@ final class InstitutionalSimulation
             self::keys($payload,['template',...($auto?['ratification_route']:[])]);
             if($auto&&(!isset($this->state['revision_requests'])||!in_array($payload['ratification_route'],['congress','referendum'],true)||$this->state['legislature']!=='sitting'))throw new \DomainException('Autonomous revision unavailable');
             if(!is_string($payload['template']))throw new \InvalidArgumentException('Invalid template');
+            if($auto&&$payload['template']==='presidential-seven-year-referendum'&&$payload['ratification_route']!=='referendum')throw new \DomainException('Duration reform requires referendum');
             $result=['procedure'=>$r->draft($commandId,$payload['template']),'legal_effect'=>false];
             if($auto){$this->state['revision_requests'][$commandId]=RevisionAutonomy::request($this->state,$commandId,$payload['ratification_route']);$result['request']=$this->state['revision_requests'][$commandId];}
         }elseif($action==='revision_evidence'&&$role==='revision_clerk'){

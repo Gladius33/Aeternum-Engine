@@ -243,7 +243,7 @@ no82(fn()=>SE::calculate([],[],'2027-09-11',$pop,$services,$base,null,['job_guar
 
 require_once __DIR__.'/../games/world-politics/src/HistoricalProgrammeCoverage.php';
 $historicalCoverage=\Aeternum\WorldPolitics\HistoricalProgrammeCoverage::report();
-ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===4&&$historicalCoverage['additional_executable_count']===43,'WP114i separate all twelve source inventories from executable historical measures');
+ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===3&&$historicalCoverage['additional_executable_count']===44,'WP114i separate all twelve source inventories from executable historical measures');
 ck82(!$historicalCoverage['wp114_closure_qualified'],'WP114i no false exhaustive coverage');
 ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['employment_bps'][2]===[2017,2900,8060,6230,6540],'WP114j exact verified INSEE training anchors');
 
@@ -331,3 +331,37 @@ $orgNato->natoNotice($serviceNato,$natoId,'2027-09-11',$nh,$dh);
 no82(fn()=>$orgNato->natoNotice($serviceNato,$natoId,'2027-09-11',$nh,$dh));
 $orgNato->advanceTo($serviceNato,'2028-09-11','nato-test-before');$orgNato->advanceTo($serviceNato,'2028-09-12','nato-test-effective');
 ck82($orgNato->snapshot()['nato_withdrawal']['status']==='withdrawn'&&OS::fromSnapshot($orgNato->snapshot(),$actorsNato,[])->hash()===$orgNato->hash(),'WP114 durable treaty receipt and restore');
+
+
+// WP114 actual constitutional duration change, not an executive extension.
+// A separately replayed Article 89 proof controls the next investiture only.
+use Aeternum\WorldPolitics\{ConstitutionalRevision as CR,PresidentialMandate as PRES};
+require_once __DIR__.'/../games/world-politics/src/PresidentialMandate.php';
+$durationId='pf2022-jean-lassalle-4';
+$durationProfile=PP::compileProfile([$durationId,'industry-active']);
+ck82(PP::agenda($durationProfile)['revision']==='presidential-seven-year-referendum'&&PP::agenda($durationProfile)['ratification']==='referendum','WP114 duration agenda exact route');
+$wrongDuration=PP::agenda($durationProfile);$wrongDuration['ratification']='congress';
+no82(fn()=>PP::encodeAgenda($wrongDuration));
+$revisionDuration=new CR('world-test','2027-05-14');
+$draftDuration=$revisionDuration->draft('seven-years','presidential-seven-year-referendum');
+$shaDuration=$draftDuration['text_sha'];
+ck82(CR::termLengthProof($revisionDuration->snapshot(),'world-test','2027-05-14')===null,'WP114 draft does not extend mandate');
+$seq=0;
+$certDuration=function(string $kind,array $data)use($revisionDuration,&$seq){
+    return $revisionDuration->certify(['world_id'=>'world-test','country'=>'FR','day'=>'2027-05-14','evidence_id'=>'duration-e-'.(++$seq),'revision_id'=>'seven-years','kind'=>$kind,'procedure_certified'=>true,'data'=>$data]);
+};
+$certDuration('file',['initiative'=>'government_project','sponsor'=>'president','prime_minister_proposal'=>true,'republican_form_preserved'=>true]);
+foreach(['assembly','senate'] as $ch)$certDuration('chamber_vote',['chamber'=>$ch,'text_sha'=>$shaDuration,'yes'=>200,'no'=>100,'abstain'=>0,'blank_invalid'=>0]);
+no82(fn()=>$certDuration('route',['route'=>'congress','presidential_decision'=>true]));
+$certDuration('route',['route'=>'referendum','presidential_decision'=>true]);
+$certDuration('ratify',['route'=>'referendum','text_sha'=>$shaDuration,'yes'=>60000,'no'=>40000,'abstain'=>0,'blank_invalid'=>0]);
+ck82(CR::termLengthProof($revisionDuration->snapshot(),'world-test','2027-05-14')===null,'WP114 adopted but unpublished text cannot change date');
+$certDuration('promulgate',['text_sha'=>$shaDuration,'published_on'=>'2027-05-14']);
+$proofDuration=CR::termLengthProof($revisionDuration->snapshot(),'world-test','2027-05-14');
+ck82($proofDuration['next_term_years']===7&&CR::termLimitProof($revisionDuration->snapshot(),'world-test','2027-05-14')===null,'WP114 duration and term limit orthogonal');
+$presDuration=PRES::initial('world-test','2027-05-14',PRES::investitureFixture());
+$presDuration=PRES::advance($presDuration,'2027-05-15',900,null,$proofDuration);
+ck82($presDuration['term_end']==='2032-05-14'&&$presDuration['next_term_years']===7,'WP114 incumbent term not retroactively extended');
+for($day='2027-05-16';$day<='2032-05-14';$day=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d'))
+    $presDuration=PRES::advance($presDuration,$day,900,null,$proofDuration);
+ck82($presDuration['term_start']==='2032-05-14'&&$presDuration['term_end']==='2039-05-14'&&$presDuration['consecutive_terms']===2&&!$presDuration['eligible_for_re_election'],'WP114 seven-year next mandate with unchanged consecutive term limit');

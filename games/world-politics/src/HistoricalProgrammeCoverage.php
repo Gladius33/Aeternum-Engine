@@ -24,9 +24,9 @@ final class HistoricalProgrammeCoverage
             $id=$m['candidate'];$doc=$docs[$id]??null;
             if($doc===null||!isset($report[$id])||$m['source']!==$doc['url']||!is_int($m['page'])||$m['page']<1||$m['page']>$doc['pages']
                 ||!preg_match('/^pf2022-[a-z0-9-]+$/D',$m['id'])||isset($seen[$m['id']])||$m['execution_status']!=='unmapped_requires_review'
-                ||!in_array(PresidentialProgramme::measureSupport($m['id'])['status'],['no_reviewed_mapping','primary_quantitative_proxy'],true))throw new \DomainException('Invalid or ambiguous primary-source mapping');
+                ||!in_array(PresidentialProgramme::measureSupport($m['id'])['status'],['no_reviewed_mapping','primary_quantitative_proxy','primary_constitutional_route'],true))throw new \DomainException('Invalid or ambiguous primary-source mapping');
             $seen[$m['id']]=true;$support=PresidentialProgramme::measureSupport($m['id']);
-            if($support['status']==='primary_quantitative_proxy'){
+            if(in_array($support['status'],['primary_quantitative_proxy','primary_constitutional_route'],true)){
                 if($support['mapping']['target']!==$m['target'])throw new \DomainException('Primary target drift');
                 $report[$id]['additional_executable'][]=$m+['mapping'=>$support['mapping']];++$mapped;
             }else $report[$id]['additional_unmapped'][]=$m;

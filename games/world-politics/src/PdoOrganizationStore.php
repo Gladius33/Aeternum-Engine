@@ -194,7 +194,7 @@ final class PdoOrganizationStore
         $q=$this->pdo->prepare('SELECT state_json,state_sha FROM wp_domestic_states WHERE world_id=?');$q->execute([$world]);$raw=$q->fetch(\PDO::FETCH_ASSOC);
         if($raw===false)throw new \DomainException('Missing notice authorization source');
         $d=json_decode($raw['state_json'],true,64,JSON_THROW_ON_ERROR);
-        if($d['world_id']!==$world||$d['day']!==$day||!hash_equals($raw['state_sha'],hash('sha256',$raw['state_json'])))throw new \DomainException('Invalid committed notice source');
+        if($d['world_id']!==$world||$d['day']!==$day||!hash_equals($raw['state_sha'],hash('sha256',json_encode($d,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES))))throw new \DomainException('Invalid committed notice source');
         $active=$d['days']===[]?[]:$d['days'][array_key_last($d['days'])]['active_policies'];
         foreach($active as $id){
             if(!preg_match('/^pf2022-philippe-poutou-4(?:-r(?:[2-9]|[1-9][0-9]{1,2}))?$/D',$id))continue;

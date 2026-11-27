@@ -117,6 +117,7 @@ final class PublicOpinion
             throw new \DomainException('Opinion source scope or date mismatch');
         $last=$d['days'][count($d['days'])-1]??null;
         if(!is_array($last)||$last['day']!==$d['day']||$last['pressure']!==$d['pressure'])throw new \DomainException('Domestic day is not committed');
+        $length=$constitutionalElection&&isset($i['revision']['effective_clauses']['6-duration'])?ConstitutionalRevision::termLengthProof($i['revision'],$d['world_id'],$d['day']):null;
         return ['world_id'=>$d['world_id'],'day'=>$d['day'],'domestic_sha'=>trim($dom['etag'],'"'),
             'institutional_sha'=>trim($inst['etag'],'"'),'pressure'=>$last['pressure'],'active_policies'=>$last['active_policies'],
             'production_index_bps'=>$last['economic']['production_index_bps']??null,
@@ -127,12 +128,13 @@ final class PublicOpinion
             ...($civilCrisis?['civil_observation'=>CivilMobilisation::observe($last)]:[]),
             ...($partyResponses?['party_observation'=>PartyPolicyResponse::observe($last,$i)]:[]),
             ...($constitutionalElection?['term_limit_revision'=>ConstitutionalRevision::termLimitProof($i['revision']??throw new \DomainException('Missing revision aggregate'),$d['world_id'],$d['day'])]:[]),
+            ...($length===null?[]:['term_length_revision'=>$length]),
             ...(isset($i['legislation']['responsibility'])?['responsibility'=>LegislativeResponsibility::observation($i['legislation']['responsibility'])]:[])];
     }
     public function advance(array $e,?array $campaignEvent=null):array
     {
         self::fields($e,['world_id','day','domestic_sha','institutional_sha','pressure','active_policies','production_index_bps',
-            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[]),...(isset($this->s['civil_mobilisation'])?['civil_observation']:[]),...(isset($this->s['party_responses'])?['party_observation']:[]),...(isset($this->s['presidency']['calendar_version'])?['term_limit_revision']:[])]);
+            'employment_index_bps','constitutional_breaches','legislature','election_status',...(array_key_exists('responsibility',$e)?['responsibility']:[]),...(isset($this->s['social_partners'])?['partner_observation']:[]),...(isset($this->s['civil_mobilisation'])?['civil_observation']:[]),...(isset($this->s['party_responses'])?['party_observation']:[]),...(isset($this->s['presidency']['calendar_version'])?['term_limit_revision']:[]),...(array_key_exists('term_length_revision',$e)?['term_length_revision']:[])]);
         self::day($e['day']);
         if($e['world_id']!==$this->s['world_id']||$e['day']!==(new \DateTimeImmutable($this->s['day']))->modify('+1 day')->format('Y-m-d')
             ||count($this->s['history'])>=self::MAX_DAYS)throw new \DomainException('Invalid daily opinion transition');
@@ -185,7 +187,7 @@ final class PublicOpinion
         elseif(isset($this->s['presidency'])){
             if($campaignEvent!==null&&in_array($campaignEvent['type'],['presidential_election_lost','presidential_mandate_ended'],true))
                 throw new \DomainException('Presidential calendar owns electoral outcomes');
-            $presidency=PresidentialMandate::advance($previousPresidency,$e['day'],isset($previousPresidency['ballot_model'])?$this->s['approval']:null,$e['term_limit_revision']??null);
+            $presidency=PresidentialMandate::advance($previousPresidency,$e['day'],isset($previousPresidency['ballot_model'])?$this->s['approval']:null,$e['term_limit_revision']??null,$e['term_length_revision']??null);
             if($campaign['status']==='game_over'){
                 // A prior independently certified terminal event takes precedence.
                 if($presidency['status']!=='ended')$presidency=PresidentialMandate::interrupt($presidency,$e['day'],$campaign['reason']);

@@ -125,7 +125,7 @@ paths:
                     health: { type: string, enum: [none, reduce, increase] }
                     ukraine_aid: { type: string, enum: [none, maintain, reduce, increase, stop] }
                     cabinet: { type: string, enum: [none, civic, social, liberal, independent], description: Optional fictional appointment preference when a vacancy exists }
-                    revision: { type: string, enum: [none, environment-report, institutional-report, remove-presidential-term-limit] }
+                    revision: { type: string, enum: [none, environment-report, institutional-report, remove-presidential-term-limit, presidential-seven-year-referendum] }
                     ratification: { type: string, enum: [congress, referendum], default: congress }
                     industry: { type: string, enum: [none, active, paused] }
                     commitments: { type: string, enum: [none, request_deferral, request_termination], description: Optional negotiation of fictional bilateral civil commitment only }

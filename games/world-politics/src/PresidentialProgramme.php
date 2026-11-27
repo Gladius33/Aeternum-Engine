@@ -14,7 +14,7 @@ final class PresidentialProgramme
      * Immutable action rows retain the exact configuration that produced them. */
     private const EXT=[
         'cabinet'=>['none'=>'n','civic'=>'c','social'=>'s','liberal'=>'l','independent'=>'i'],
-        'revision'=>['none'=>'n','environment-report'=>'e','institutional-report'=>'i','remove-presidential-term-limit'=>'t'],
+        'revision'=>['none'=>'n','environment-report'=>'e','institutional-report'=>'i','remove-presidential-term-limit'=>'t','presidential-seven-year-referendum'=>'d'],
         'ratification'=>['congress'=>'c','referendum'=>'r'],
         'industry'=>['none'=>'n','active'=>'a','paused'=>'p'],
         'commitments'=>['none'=>'n','request_deferral'=>'d','request_termination'=>'t'],
@@ -35,12 +35,17 @@ final class PresidentialProgramme
         foreach(['request_deferral','request_termination'] as $v)$m['commitment-'.str_replace('_','-',$v)]=['field'=>'commitments','value'=>$v,'route'=>'bilateral_negotiation'];
         return $m;
     }
+    public static function primaryRevisionCatalog():array
+    {
+        return ['pf2022-jean-lassalle-4'=>['field'=>'revision','value'=>'presidential-seven-year-referendum','ratification'=>'referendum',
+            'route'=>'article89','target'=>['options_years'=>[5,7]],'scope'=>'prospective_seven_year_term_if_approved']];
+    }
     public static function compileMeasures(array $ids):array
     {
-        if(!array_is_list($ids)||count($ids)>count(self::measureCatalog()))throw new \InvalidArgumentException('Invalid measure list');
+        if(!array_is_list($ids)||count($ids)>count(self::measureCatalog()+self::primaryRevisionCatalog()))throw new \InvalidArgumentException('Invalid measure list');
         $a=['education'=>false,'administration'=>false,'defense'=>'none','health'=>'none','ukraine_aid'=>'none',
             'cabinet'=>'none','revision'=>'none','ratification'=>'congress','industry'=>'none','commitments'=>'none'];
-        $catalog=self::measureCatalog();$used=[];
+        $catalog=self::measureCatalog()+self::primaryRevisionCatalog();$used=[];
         foreach($ids as $id){
             if(!is_string($id)||!isset($catalog[$id]))throw new \InvalidArgumentException('Measure has no reviewed execution mapping');
             $m=$catalog[$id];$key=$m['field'];
@@ -69,7 +74,7 @@ final class PresidentialProgramme
     }
     public static function socialIds(string $p):?array
     {
-        if(preg_match('/^mix-([01]{2}[nmri][nri][nmris][ncsli][neit][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$m)){
+        if(preg_match('/^mix-([01]{2}[nmri][nri][nmris][ncsli][neitd][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$m)){
             if(self::agenda($p)===null)return null;
             return SocialProgramme::decode('social-'.$m[2]);
         }
@@ -78,6 +83,7 @@ final class PresidentialProgramme
     public static function measureSupport(string $id):array
     {
         $catalog=self::measureCatalog();
+        if(isset(self::primaryRevisionCatalog()[$id]))return ['status'=>'primary_constitutional_route','mapping'=>self::primaryRevisionCatalog()[$id]];
         if(isset($catalog[$id]))return ['status'=>'reviewed_objective','mapping'=>$catalog[$id]];
         if(SocialProgramme::isPolicy($id))return ['status'=>SocialProgramme::isRepeal($id)?'reviewed_social_repeal':(PrimaryManifestoPolicy::isPolicy(SocialProgramme::objectiveId($id))?'primary_quantitative_proxy':'historical_social_proxy'),'mapping'=>SocialProgramme::definition($id)];
         if(preg_match('/^(?:budget-(20[0-9]{2})-defense-(maintain|reduce|increase)|corrective-(20[0-9]{2})-health-(reduce|increase))$/D',$id,$m)){
@@ -107,17 +113,18 @@ final class PresidentialProgramme
             if(!is_string($v)||!isset($options[$v]))throw new \InvalidArgumentException('Unknown extended objective');
             $suffix.=$options[$v];
         }
+        if(($a['revision']??'none')==='presidential-seven-year-referendum'&&($a['ratification']??'congress')!=='referendum')throw new \InvalidArgumentException('Duration requires referendum');
         if(($a['revision']??'none')==='none'&&($a['ratification']??'congress')!=='congress')throw new \InvalidArgumentException('Ratification without revision');
         return $base.'-'.$suffix;
     }
     public static function agenda(string $p):?array
     {
-        if(preg_match('/^mix-([01]{2})([nmri])([nri])([nmris])([ncsli][neit][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$x)){
+        if(preg_match('/^mix-([01]{2})([nmri])([nri])([nmris])([ncsli][neitd][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$x)){
             if(SocialProgramme::decode('social-'.$x[6])===null)return null;
             $p='custom-'.$x[1].'-'.$x[2].'-'.$x[3].'-'.$x[4].'-'.$x[5];
         }
-        if(!preg_match('/^custom-([01])([01])-([nmri])-([nri])-([nmris])(?:-([ncsli])([neit])([cr])([nap])([ndt]))?$/D',$p,$m))return null;
-        if(isset($m[6])&&$m[7]==='n'&&$m[8]!=='c')return null;
+        if(!preg_match('/^custom-([01])([01])-([nmri])-([nri])-([nmris])(?:-([ncsli])([neitd])([cr])([nap])([ndt]))?$/D',$p,$m))return null;
+        if(isset($m[6])&&(($m[7]==='n'&&$m[8]!=='c')||($m[7]==='d'&&$m[8]!=='r')))return null;
         $values=['n'=>'none','m'=>'maintain','r'=>'reduce','i'=>'increase','s'=>'stop'];
         $a=['education'=>$m[1]==='1','administration'=>$m[2]==='1','defense'=>$values[$m[3]],'health'=>$values[$m[4]],'ukraine_aid'=>$values[$m[5]]];
         if(isset($m[6])){$i=6;foreach(self::EXT as $k=>$options)$a[$k]=array_flip($options)[$m[$i++]];}
