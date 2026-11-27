@@ -90,6 +90,18 @@ $ball=L::automaticBallot($npc,'2027-05-14');ck(count($ball['ballot']['first']['v
 $ne=evt($npc,'presidential_ballot',$ball);$ne['actor']='career-election-clerk';$ne['evidence_sha']=L::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$npc['world'],'day'=>$ne['day'],'payload'=>$ball]);
 $npc=L::apply($npc,$ne);$nm=$npc['active']['president'];$winner=$npc['mandates'][$nm]['career'];
 ck($npc['careers'][$winner]['account']===null&&!L::allows($npc,$winner,$nm,1,'president.represent','2027-05-14'),'AI winner has no human session capability');
+// WP112 vacancy calendar with an independently certified interim mandate.
+$vac=add(add(add(add(L::initial('vacancy-world','FR','career','2027-05-14'),'a'),'b'),'c'),'d');
+$vac=change($vac,'election',[],[grant('president','a')]);
+$vac=change($vac,'succession',['president'],[grant('president','b','2027-07-07',true)],'2027-06-01');
+$vi=$vac['active']['president'];
+ck(L::automaticBallot($vac,'2027-07-06')===null,'no premature vacancy handover');
+$vp=L::automaticBallot($vac,'2027-07-07');
+ck($vp['first_round_day']==='2027-06-22'&&$vp['second_round_day']==='2027-07-06'&&!isset($vp['ballot']['first']['votes']['a']),'vacancy dates and interrupted incumbent exclusion');
+$ve=evt($vac,'presidential_ballot',$vp,'2027-07-07');$ve['actor']='career-election-clerk';$ve['evidence_sha']=L::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$vac['world'],'day'=>$ve['day'],'payload'=>$vp]);
+$vv=L::apply($vac,$ve);$vm=$vv['active']['president'];
+ck($vv['mandates'][$vi]['end']==='2027-07-07'&&!$vv['mandates'][$vm]['interim']&&$vv['mandates'][$vm]['generation']===3,'vacancy handover revokes interim');
+no(fn()=>L::apply($vv,$ve));
 // International identity / research isolation and existing constructive succession replay.
 foreach(['DE','ES','GB','IT','JP','US'] as $cc){
     $f=add(L::initial('foreign-'.$cc,$cc,'career','2027-05-14'),'a');

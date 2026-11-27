@@ -103,6 +103,15 @@ final class CareerInstitutionLedger
             $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>$e['day']===CareerScoreContract::START?'opening':'late_takeover','first_series'=>null,'controller'=>'ai'];
         }
     }
+    /** Reuse the WP112 fictional vacancy timing, only for an already
+     * certified interim whose mandate expires on the modeled handover day.
+     * No assumption is made about the cause or legal certification of vacancy. */
+    private static function vacancyCalendar(array $interim):?array{
+        if(!$interim['interim'])return null;
+        $start=new \DateTimeImmutable($interim['start']);
+        if($interim['expires']!==$start->modify('+36 days')->format('Y-m-d'))return null;
+        return ['first'=>$start->modify('+21 days')->format('Y-m-d'),'second'=>$start->modify('+35 days')->format('Y-m-d'),'candidacy_lock'=>$interim['start']];
+    }
     /** Deterministic fictional election fixture, not calibrated opinion or real voter data.
      * At least two admitted eligible careers are required; no fabricated human accounts. */
     public static function automaticBallot(array $s,string $day):?array{
@@ -112,12 +121,19 @@ final class CareerInstitutionLedger
             if($day!==CareerScoreContract::START)return null;
             $dates=['first'=>$day,'second'=>$day,'candidacy_lock'=>$day];
         }else{
-            if($old['interim']||$old['expires']!==$day)return null;
-            $dates=FrenchElectionCalendar::presidentialPoll($day);
+            if($old['expires']!==$day)return null;
+            $dates=$old['interim']?self::vacancyCalendar($old):FrenchElectionCalendar::presidentialPoll($day);
+            if($dates===null)return null;
         }
         $occupied=[];foreach($s['active'] as $office=>$id)if($office!=='president')$occupied[$s['mandates'][$id]['career']]=true;
-        $eligible=[];
+        $eligible=[];$outgoing=null;
+        if($old!==null&&$old['interim']){
+            foreach($s['mandates'] as $m)if($m['office']==='president'&&!$m['interim']&&($outgoing===null||$m['generation']>$outgoing['generation']))$outgoing=$m;
+        }
         foreach($s['careers'] as $id=>$c){
+            // Conservative vacancy fixture: the interrupted incumbent is not
+            // a candidate until the reason-specific eligibility adapter exists.
+            if($outgoing!==null&&$id===$outgoing['career'])continue;
             if($c['admitted_on']>$dates['candidacy_lock']||isset($occupied[$id]))continue;
             if($old!==null&&$id===$old['career']&&$s['constitution_rules']['term_limit']!==null&&$old['terms']>=$s['constitution_rules']['term_limit'])continue;
             $eligible[$id]=1000+hexdec(substr(hash('sha256','wp119-synthetic-ballot-v1|'.$s['world'].'|'.$day.'|'.$id),0,4));
@@ -147,14 +163,15 @@ final class CareerInstitutionLedger
         if($day===CareerScoreContract::START){
             self::check($old===null&&$p['first_round_day']===$day&&$p['second_round_day']===$day,'opening scenario ballot convention');
         }else{
-            self::check($old!==null&&!$old['interim']&&$old['expires']===$day,'ordinary election requires incumbent term expiry');
-            $dates=FrenchElectionCalendar::presidentialPoll($day);
-            self::check($p['first_round_day']===$dates['first']&&$p['second_round_day']===$dates['second'],'ballot dates differ from calendar');
+            self::check($old!==null&&$old['expires']===$day,'election requires term expiry');
+            $dates=$old['interim']?self::vacancyCalendar($old):FrenchElectionCalendar::presidentialPoll($day);
+            self::check($dates!==null&&$p['first_round_day']===$dates['first']&&$p['second_round_day']===$dates['second'],'ballot dates differ from calendar');
+            if($old['interim'])self::check(self::json($p)===self::json(self::automaticBallot($s,$day)),'vacancy ballot differs from certified fixture');
         }
         foreach(array_keys($p['ballot']['first']['votes']) as $id)self::check(isset($s['careers'][$id])&&$s['careers'][$id]['admitted_on']<=$p['first_round_day'],'candidate not admitted');
         $count=PresidentialMandate::countElection($p['ballot'],false);$winner=$count['first']['winner']??$count['second']['winner']??null;
         self::check(is_string($winner)&&isset($s['careers'][$winner]),'unresolved ballot');
-        $reason=$old===null?'election':($old['career']===$winner?'renewal':'succession');
+        $reason=$old===null?'election':(!$old['interim']&&$old['career']===$winner?'renewal':'succession');
         $date=new \DateTimeImmutable($day);$year=(int)$date->format('Y')+$s['constitution_rules']['next_term_years'];$month=(int)$date->format('m');
         $first=$date->setDate($year,$month,1);$expires=$first->setDate($year,$month,min((int)$date->format('d'),(int)$first->format('t')))->format('Y-m-d');
         return ['reason'=>$reason,'close'=>$old===null?[]:['president'],'grants'=>[['office'=>'president','career'=>$winner,'expires'=>$expires,'interim'=>false]]];

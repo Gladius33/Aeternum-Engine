@@ -119,7 +119,7 @@ final class CareerEconomicWorld
         $due=$mid!==null&&$state['mandates'][$mid]['expires']===$day;
         $missingAI=!isset($state['careers'][CareerInstitutionLedger::autonomousRoster($state)[0]]);
         // Existing worlds acquire NPCs prospectively, never after the candidacy cutoff.
-        if($opening||$due||($missingAI&&$mid!==null&&$day<FrenchElectionCalendar::presidentialPoll($state['mandates'][$mid]['expires'])['candidacy_lock'])){
+        if($opening||$due||($missingAI&&$mid!==null&&!$state['mandates'][$mid]['interim']&&$day<FrenchElectionCalendar::presidentialPoll($state['mandates'][$mid]['expires'])['candidacy_lock'])){
             $secret=getenv('WP_CAREER_EVIDENCE_KEY');CareerInstitutionLedger::check(is_string($secret)&&strlen($secret)>=32,'election signing key required');
             $store=new PdoCareerInstitutionStore($db,new CareerInstitutionEvidence($secret));
             if($missingAI&&!$due)$store->seedAutonomousCareers($world,$secret);
