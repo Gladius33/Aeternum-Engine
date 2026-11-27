@@ -162,7 +162,7 @@ paths:
           required: true
           schema: {type: string}
       responses:
-        '200': {description: Verified economy at committed day}
+        '200': {description: Verified economy at committed day with own unranked experimental score_preview using replayed mandate and post-accession household proxy}
         '404': {description: Inaccessible world}
         '409': {description: Profile missing or transition in progress}
   /career-worlds/{world}/characters:

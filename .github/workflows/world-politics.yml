@@ -223,6 +223,8 @@ jobs:
         run: php tests/wp77-campaign-score.php
       - name: WP116 career and score v2 executable design contract
         run: php tests/wp116-career-score-contract.php
+      - name: WP120 private post-accession score preview
+        run: php tests/wp120-score-preview.php
       - name: WP118–119 career and institutional lifecycle
         run: php tests/wp118-119-career.php
       - name: WP80 twenty-year score horizon and deterministic replay

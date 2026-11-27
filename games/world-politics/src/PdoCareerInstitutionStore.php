@@ -620,8 +620,12 @@ final class PdoCareerInstitutionStore
     }
     public function economicForSession(string $world,string $token):array{
         return $this->tx(function()use($world,$token){
-            $clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);$this->replay($world,$this->row($world));
-            require_once __DIR__.'/CareerEconomicWorld.php';return CareerEconomicWorld::readLocked($this->db,$world,$clock['committed_day']);
+            $clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);$s=$this->replay($world,$this->row($world));
+            require_once __DIR__.'/CareerEconomicWorld.php';require_once __DIR__.'/CareerScorePreview.php';
+            $report=CareerEconomicWorld::readLocked($this->db,$world,$clock['committed_day']);
+            $career=null;foreach($s['careers'] as $id=>$c)if($c['account']===$a)$career=$id;
+            $report['score_preview']=CareerScorePreview::preview($s,$career,$clock['committed_day'],$report['domestic']);
+            return $report;
         });
     }
     /** Called only inside the final recoverable clock publication, after
