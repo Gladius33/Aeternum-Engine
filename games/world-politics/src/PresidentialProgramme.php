@@ -87,6 +87,7 @@ final class PresidentialProgramme
         $catalog=self::measureCatalog();
         if(isset(self::primaryRevisionCatalog()[$id]))return ['status'=>'primary_constitutional_route','mapping'=>self::primaryRevisionCatalog()[$id]];
         if(isset($catalog[$id]))return ['status'=>'reviewed_objective','mapping'=>$catalog[$id]];
+        if(isset(SocialProgramme::target2027()[SocialProgramme::objectiveId($id)]))return ['status'=>'target_2027_cohort_proxy','mapping'=>SocialProgramme::definition($id)];
         if(SocialProgramme::isPolicy($id))return ['status'=>SocialProgramme::isRepeal($id)?'reviewed_social_repeal':(PrimaryManifestoPolicy::isPolicy(SocialProgramme::objectiveId($id))?'primary_quantitative_proxy':'historical_social_proxy'),'mapping'=>SocialProgramme::definition($id)];
         if(preg_match('/^(?:budget-(20[0-9]{2})-defense-(maintain|reduce|increase)|corrective-(20[0-9]{2})-health-(reduce|increase))$/D',$id,$m)){
             $annual=$m[1]!=='';
