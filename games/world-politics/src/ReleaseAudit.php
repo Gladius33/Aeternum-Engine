@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/AlphaWorlds.php';
+require_once __DIR__.'/HouseholdAccount.php';
 
 /** Offline audit authority, never mounted in HTTP. Read grants only. */
 final class ReleaseAuditPrincipal implements InstitutionalActorAuthorizer,EconomicPolicyPrincipal
@@ -68,9 +69,22 @@ final class ReleaseAudit
             }
             unset($expected['source_hashes']);$actual=array_intersect_key($saved,$expected);
             if($actual!==$expected)throw new \DomainException('Recomputed score differs');
+            // Independently qualify the experimental household account if the
+            // world was provisioned with the matching historical reference.
+            // Older ranked saves remain readable without synthetic backfill.
+            $household=null;
+            if(isset($dip['state']['household_reference'])){
+                $h=HouseholdAccount::report($dom,$dip);
+                if($h['score_eligible']||$h['additional_budget_delta_minor']!==null)
+                    throw new \DomainException('Household audit scope mismatch');
+                $household=['version'=>$h['version'],'window_days'=>$h['window_days'],
+                    'reference_sha'=>$h['account_reference_sha'],
+                    'report_sha'=>hash('sha256',json_encode($h,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
+                    'score_eligible'=>false];
+            }
             $report=['world_id'=>$world,'day'=>$date,'score'=>$saved['score'],'revision'=>$saved['clock_revision'],
                 'countries_checked'=>count($scenario->countries),'domains_checked'=>['domestic','diplomacy','opinion','organizations','economy','institutions'],'cohort_sha'=>$cohort,'status'=>'verified_ranked_alpha_score',
-                'official_ranking_eligible'=>false,'scope'=>'six_clock_domains_and_score_not_full_security_audit'];
+                'household_account'=>$household,'official_ranking_eligible'=>false,'scope'=>'six_clock_domains_and_score_not_full_security_audit'];
             $db->commit();return $report;
         }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
     }

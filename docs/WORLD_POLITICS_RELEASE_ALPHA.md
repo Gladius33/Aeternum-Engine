@@ -9,6 +9,10 @@ Scope: private headless alpha, canonical France investiture 2027. This is NOT a 
 - Score, deterministic twenty-year synthetic horizon, world-clock recovery, terminal freeze, session scope and SQL integrity regressions.
 - Offline `WP_RELEASE_AUDIT=YES php games/world-politics/bin/audit-campaign.php WORLD_ID` using dedicated read-only database credentials; refuses pending/unranked worlds. It verifies domestic, diplomacy, opinion, organizations, economy and seven institutional states using their existing restore rules and recomputes the committed score. It is not a comprehensive journal/receipt, security or production-capacity audit.
 
+## Additional qualification (WP87)
+
+The read-only audit additionally recomputes the experimental household account on worlds with the pinned historical reference; the report includes its SHA-256 digest and committed window. This check does not validate economic calibration or authorize an official leaderboard. Existing worlds without a household reference are not backfilled.
+
 ## Existing databases
 
 Backup and restore-test first, stop writers and recover pending ticks; apply migration 025 using a dedicated migration account. Do not use fresh installer against a populated schema. DDL is not globally atomic. Old saves retain score_enabled=0; no silent leaderboard backfill. Verify schema, reopen only after smoke tests; restore backup if migration fails. No database migration has been applied to any user system.

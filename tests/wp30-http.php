@@ -862,6 +862,8 @@ $proxy76=req30('GET',$r27.'/countries/FR/purchasing-power-proxy',null,$t27);
 ck30($proxy76['status']===200&&$proxy76['body']['window_days']===1&&$proxy76['body']['latest']['day']==='2027-05-15'&&$proxy76['body']['actual_real_rdb_per_uc_index_bps']===null,'WP76 committed income proxy after coordinated clock');
 $acc85=req30('GET',$r27.'/countries/FR/household-account',null,$t27);
 ck30($acc85['status']===200&&$acc85['body']['window_days']===1&&$acc85['body']['latest']['day']==='2027-05-15'&&$acc85['body']['additional_budget_delta_minor']===null,'WP85 committed household accounts');
+$tax86=$acc85['body']['latest']['cases']['fixed_household_structure']['direct_tax_sensitivity'];
+ck30(array_column($tax86,'direct_tax_rate_shift_bps')===[-100,0,100]&&$tax86[0]['rdb_reference_scaled']>$tax86[2]['rdb_reference_scaled']&&$acc85['body']['direct_tax_sensitivity_is_counterfactual'],'WP86 HTTP tax sensitivity is read-only');
 $d27=req30('GET',$r27.'/domestic',null,$t27);
 ck30($d27['status']===200&&$d27['body']['debt_model']['first_maturity_month']==='2027-06'&&$d27['body']['debt_model']['source_pack']['as_of']==='2026-11-25'&&$d27['body']['population_model']['opening_anchor_vintage']==='2026-11-25','historical opening data not represented as future observation');
 $aid27=req30('GET',$r27.'/countries/FR/ukraine-aid',null,$t27);
@@ -990,6 +992,9 @@ $audit80=\Aeternum\WorldPolitics\ReleaseAudit::inspect($pdo,$g27['body']['world_
 ck30($audit80['day']==='2027-05-19'&&$audit80['revision']===5,'WP80 recovered campaign independently audited');
 
 ck30(count($audit80['domains_checked'])===6,'WP80 audit covers all canonical clock domains');
+$house87=req30('GET',$r27.'/countries/FR/household-account',null,$t27);
+ck30($house87['status']===200&&$audit80['household_account']['window_days']===5&&!$audit80['household_account']['score_eligible'],'WP87 audit qualifies committed household window');
+ck30($audit80['household_account']['reference_sha']===$house87['body']['account_reference_sha']&&$audit80['household_account']['report_sha']===hash('sha256',json_encode($house87['body'],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),'WP87 audit and authenticated HTTP account agree');
 $world80=$g27['body']['world_id'];
 $q80=$pdo->prepare('SELECT state_sha FROM wp_economic_states WHERE world_id=?');$q80->execute([$world80]);$prior80=$q80->fetchColumn();
 $q80=$pdo->prepare('UPDATE wp_economic_states SET state_sha=? WHERE world_id=?');$q80->execute([str_repeat('0',64),$world80]);

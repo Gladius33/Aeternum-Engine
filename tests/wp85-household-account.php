@@ -39,4 +39,16 @@ ck85($rejected,'missing committed history rejected');
 $d['state']['day']='2027-05-16';$di['state']['day']='2027-05-16';$r['day']='2027-05-16';$d['state']['days']=[$r];
 $rejected=false;try{HouseholdAccount::report($d,$di);}catch(DomainException $e){$rejected=true;}
 ck85($rejected,'truncated short window rejected');
-echo "WP85/WP86 household accounting OK\n";
+$rows=[];
+for($day=1;$day<=366;$day++){
+    $row=$r;$row['day']=(new DateTimeImmutable('2027-05-14'))->modify('+'.$day.' days')->format('Y-m-d');$rows[]=$row;
+}
+$d['state']['days']=$rows;$d['state']['day']=$rows[365]['day'];$di['state']['day']=$rows[365]['day'];
+$long=HouseholdAccount::report($d,$di);
+ck85($long['window_days']===365&&$long['complete_365_day_window']&&$long['latest']['day']===$rows[365]['day'],'365-day moving window across leap day');
+$d['state']['days']=array_slice($rows,1);
+ck85(HouseholdAccount::report($d,$di)===$long,'only committed trailing window affects household report');
+$d['state']['days']=array_slice($rows,2);
+$rejected=false;try{HouseholdAccount::report($d,$di);}catch(DomainException $e){$rejected=true;}
+ck85($rejected,'364-day history rejected after first year');
+echo "WP85/WP86/WP87 household accounting OK\n";

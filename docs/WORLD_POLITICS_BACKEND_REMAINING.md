@@ -848,3 +848,8 @@ Ancrage Insee 2025 provisoire (1 876,9 milliards EUR de RDB), huit composantes s
 ## WP86 — incidence fiscale des ménages et intégrité de fenêtre
 
 Le rapport WP85 passe à `wp86-household-account-v2`. Trois sensibilités (−1, 0, +1 point de taux effectif d'impôts directs sur le même revenu avant impôt) réconcilient le revenu disponible et l'indice réel par UC, à autres flux et prix constants. Il ne s'agit ni de mesures votées, ni de barèmes fiscaux réels, ni d'une estimation causale des réactions. Aucun effet sur les recettes publiques, les soldes ou le score. Le rapport refuse une fenêtre de jours validés incomplète, y compris un historique vide après l'ouverture. Les tests vérifient le sens de l'incidence, la réconciliation du scénario central, la symétrie et le rejet des historiques tronqués. Les règles de classement existantes ne changent pas. La calibration causale et les barèmes par ménage restent ouverts.
+
+
+## WP87 — qualification croisée du compte des ménages
+
+L'audit CLI en lecture seule recalcule le rapport ménage si le monde possède le pack historique correspondant, expose son empreinte et la longueur de la fenêtre, sans habiliter le classement officiel. Les anciens mondes sans pack ne sont pas rétroalimentés. Les tests couvrent la fenêtre glissante de 365 jours au-delà d'une année bissextile, la troncature, et la concordance exacte du rapport entre audit et HTTP authentifié après récupération du calendrier. L'audit ne certifie pas les coefficients économiques.
