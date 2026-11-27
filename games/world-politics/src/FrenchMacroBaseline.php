@@ -96,7 +96,7 @@ final class MacroFiscalLoop
      * day's macro row. No uncommitted values, implicit circular equation
      * or read-side mutation. No trade/monetary feedback in this first loop.
      */
-    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0,?int $wagePremiumBps=null,?int $tradeExposureBps=null,int $industrialCapex=0,?array $eu=null):array
+    public static function step(array $b,?array $previous,int $cash,int $revenue,int $expense,int $production,int $employment,?array $debtModel=null,?string $target=null,?string $crisisAction=null,int $serviceTransferDelta=0,?int $wagePremiumBps=null,?int $tradeExposureBps=null,int $industrialCapex=0,?array $eu=null,bool $signedWagePremium=false):array
     {
         if(!empty($debtModel['crisis_enabled'])||isset($previous['frf_committed_budget'])){
             $credit=FrancNativeSectors::credit($previous);
@@ -115,7 +115,7 @@ final class MacroFiscalLoop
         $jobGap=$unemployment-$b['initial_unemployment_bps'];
         $payroll=null;$costGap=0;
         if($wagePremiumBps!==null){
-            if($wagePremiumBps<0||$wagePremiumBps>3000)throw new \DomainException('Invalid wage premium');
+            if($wagePremiumBps<($signedWagePremium?-3000:0)||$wagePremiumBps>3000)throw new \DomainException('Invalid wage premium');
             // Split the existing tax base rather than adding a second tax on GDP.
             $payrollTaxBase=intdiv($b['daily_tax_base'],3);
             $employmentGap=self::clamp(-$jobGap,-3000,3000);
@@ -123,7 +123,7 @@ final class MacroFiscalLoop
             $payrollGap=self::clamp($nominalWageGap+$employmentGap+self::scale($nominalWageGap,$employmentGap),-5000,7000);
             $payrollTaxFeedback=self::scale($payrollTaxBase,$payrollGap);
             $taxFeedback=self::scale($b['daily_tax_base']-$payrollTaxBase,self::scale($nominalGap,$b['tax_elasticity_bps']))+$payrollTaxFeedback;
-            $realisedPremium=max(0,intdiv($wage*10000,$price)-10000);
+            $realisedPremium=max($signedWagePremium?-3000:0,intdiv($wage*10000,$price)-10000);
             $productivityProxy=max(0,min(3000,($prior['real_output_index_bps']??10000)-10000));
             $costGap=max(0,$realisedPremium-$productivityProxy);
             $production-=intdiv($costGap,2);$employment-=intdiv($costGap,2);

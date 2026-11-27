@@ -623,3 +623,10 @@ foreach($cc2027::campaign2027Choices() as $choice)
 ck82(!$cc2027::mayStart(['type'=>'historical','reference_id'=>'real-emmanuel-macron'])
     &&$cc2027::mayStart(['type'=>'fictional','name'=>'Fiction']),'WP114 historical archives read only; custom player allowed');
 ck82($cc2027::discoveryOnly(['type'=>'campaign2027','reference_id'=>'campaign2027-francois-asselineau']),'WP114 discovery-only profile known but disabled');
+
+$branchLaw='frv1-benedetti-branch-wage';
+$branchPlan=SE::calculate([$branchLaw],[$branchLaw=>['effective_on'=>'2027-09-11']],'2027-09-11',$pop,$services,$base,null);
+ck82($branchPlan['measures'][0]['institutional_regime_only']&&$branchPlan['daily_revenue_delta_minor']===0&&$branchPlan['daily_expense_delta_minor']===0,'branch wage statute does not invent fiscal effects at enactment');
+$loop=\Aeternum\WorldPolitics\MacroFiscalLoop::step($base,null,10000000000,$base['daily_tax_base'],$base['daily_social_benefits'],10000,10000,null,null,null,0,-100,null,0,null,true);
+ck82($loop['macro']['wage_index_scaled']<100000000,'signed branch wage pressure supported by macro loop');
+no82(fn()=>\Aeternum\WorldPolitics\MacroFiscalLoop::step($base,null,10000000000,$base['daily_tax_base'],$base['daily_social_benefits'],10000,10000,null,null,null,0,-100));

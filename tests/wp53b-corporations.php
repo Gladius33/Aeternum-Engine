@@ -38,3 +38,13 @@ ck($branch['branches']['industry']['minimum_net_minor']!==150000&&$branch['branc
 ck(W::report($old,150000,$branch)['national_legal_floor_minor']===null&&F::weightedFloor($branch)>0,'branch regime distinct from national legal minimum');
 $branch=C::step($branch,'2028-01-03',null,['unemployment_bps'=>800],['active'=>false,'opening_floor_minor'=>150000]);
 ck(!isset($branch['minimum_wage_regime'])&&W::report($old,150000,$branch)['national_legal_floor_minor']===150000,'repeal restores national legal floor');
+
+$down=C::initial('2027-12-29');$down=C::step($down,'2027-12-30',null,['unemployment_bps'=>2600],$ctx);
+$down=C::step($down,'2027-12-31',null,['unemployment_bps'=>2600],$ctx);
+$down=C::step($down,'2028-01-01',null,['unemployment_bps'=>2600,'annual_inflation_bps'=>-400],$ctx);
+ck($down['branches']['industry']['report']['proposed_minimum_minor']<150000,'economic deterioration may lead to a lower negotiated minimum');
+$industryBefore=$down['branches']['industry']['minimum_net_minor'];
+if($down['branches']['industry']['report']['status']==='pending_state_review'){
+    $down=C::step($down,'2028-01-02','approve:industry',['unemployment_bps'=>2600],$ctx);
+    ck($down['branches']['industry']['minimum_net_minor']<$industryBefore&&F::premium($down)<0,'validated branch reduction feeds signed macro premium');
+}else ck($industryBefore===150000,'failed vote leaves lawful minimum unchanged');
