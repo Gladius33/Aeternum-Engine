@@ -93,3 +93,16 @@ CREATE TABLE wp_research_game_dataset (
  envelope_json LONGTEXT NOT NULL CHECK(JSON_VALID(envelope_json)),
  UNIQUE KEY world_day(world_alias,committed_day)
 ) ENGINE=InnoDB;
+
+-- Shared, live operator-configurable capacity profiles. Zero stops admission.
+CREATE TABLE wp_research_capacity_profiles (
+ profile ENUM('standard','pro','global') NOT NULL,
+ period_seconds INT UNSIGNED NOT NULL,
+ max_requests INT UNSIGNED NOT NULL,
+ max_units BIGINT UNSIGNED NOT NULL,
+ PRIMARY KEY(profile,period_seconds)
+) ENGINE=InnoDB;
+INSERT INTO wp_research_capacity_profiles(profile,period_seconds,max_requests,max_units) VALUES
+ ('standard',1,30,300),('standard',60,120,600),('standard',3600,1200,6000),('standard',86400,5000,30000),
+ ('pro',1,40,800),('pro',60,120,2400),('pro',3600,3000,30000),('pro',86400,20000,150000),
+ ('global',1,100,2000),('global',60,1000,10000),('global',3600,20000,200000),('global',86400,150000,1000000);

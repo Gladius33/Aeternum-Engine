@@ -52,6 +52,9 @@ final class ResearchQueue
         self::id($tenant);
         return $this->tx(fn()=>ResearchBilling::fund($this->db,$tenant,$reference,$kind,$units,$until,$plan,$mode,$overage));
     }
+    public function configureCapacity(string $profile,int $period,int $requests,int $units):array{
+        return $this->tx(fn()=>ResearchBilling::configure($this->db,$profile,$period,$requests,$units));
+    }
     public function usage(string $token):array{
         return $this->tx(fn()=>ResearchBilling::usage($this->db,$this->authorized($token)));
     }

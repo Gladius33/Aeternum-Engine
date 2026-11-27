@@ -38,6 +38,21 @@ final class ResearchBilling
         if($n+$requests>$maxRequests||$u+$units>$maxUnits)throw new ResearchBillingError(429,'capacity_limit');
         self::q($db,'UPDATE wp_research_capacity SET window_no=?,requests=?,units=? WHERE scope_key=? AND period_seconds=?',[$now,$n+$requests,$u+$units,$scope,$period]);
     }
+    private static function profile(\PDO $db,string $profile):array{
+        $r=self::q($db,'SELECT period_seconds,max_requests,max_units FROM wp_research_capacity_profiles WHERE profile=? ORDER BY period_seconds',[$profile])->fetchAll(\PDO::FETCH_ASSOC);
+        $out=[];
+        foreach($r as $x)$out[]=[(int)$x['period_seconds'],(int)$x['max_requests'],(int)$x['max_units']];
+        if(array_column($out,0)!==[1,60,3600,86400])throw new \DomainException('Incomplete capacity policy');
+        return $out;
+    }
+    public static function configure(\PDO $db,string $profile,int $period,int $requests,int $units):array{
+        if(!$db->inTransaction()||!in_array($profile,['standard','pro','global'],true)||!in_array($period,[1,60,3600,86400],true)
+            ||$requests<0||$requests>1000000||$units<0||$units>100000000)throw new \DomainException('Invalid capacity policy');
+        // The existing fixed 120/minute authenticated tenant brake remains a second hard fence.
+        if($profile!=='global'&&$period===60&&$requests>120)throw new \DomainException('Tenant minute hard fence');
+        self::q($db,'UPDATE wp_research_capacity_profiles SET max_requests=?,max_units=? WHERE profile=? AND period_seconds=?',[$requests,$units,$profile,$period]);
+        return ['profile'=>$profile,'period_seconds'=>$period,'max_requests'=>$requests,'max_units'=>$units];
+    }
     private static function debit(\PDO $db,array $r,string $operation,string $key,int $requests):void{
         if(!$db->inTransaction())throw new \LogicException('Meter requires transaction');
         $tenant=$r['tenant_id'];$cost=self::cost($operation);
@@ -47,15 +62,14 @@ final class ResearchBilling
         $prepaid=$cost-$included;
         if($prepaid>0&&($r['billing_mode']==='monthly'&&!(bool)$r['allow_overage']||$prepaid>(int)$r['prepaid_units']))
             throw new ResearchBillingError(402,'insufficient_usage_credits');
-        $pro=$r['plan']==='pro';
         // All writers acquire tenant first, global second; same period order.
-        foreach([[1,$pro?40:30,$pro?800:300],[60,120,$pro?2400:600],[3600,$pro?3000:1200,$pro?30000:6000],[86400,$pro?20000:5000,$pro?150000:30000]] as [$period,$req,$units])
+        foreach(self::profile($db,$r['plan']) as [$period,$req,$units])
             self::window($db,$tenant,$period,$req,$units,$cost,$requests);
-        foreach([[1,100,2000],[60,1000,10000],[3600,20000,200000],[86400,150000,1000000]] as [$period,$req,$units])
+        foreach(self::profile($db,'global') as [$period,$req,$units])
             self::window($db,'global',$period,$req,$units,$cost,$requests);
         if($operation==='compute'){
             // The global capacity row is locked already: serialize queue admission.
-            if((int)self::q($db,"SELECT COUNT(*) FROM wp_research_jobs WHERE status='queued'")->fetchColumn()>=100)
+            if(count(self::q($db,"SELECT job_id FROM wp_research_jobs WHERE status='queued' ORDER BY created_at,job_id LIMIT 100 FOR UPDATE")->fetchAll(\PDO::FETCH_COLUMN))>=100)
                 throw new ResearchBillingError(429,'global_queue_limit');
         }
         if($cost===0)return;
@@ -95,6 +109,7 @@ final class ResearchBilling
         return ['meter_version'=>self::VERSION,'plan'=>$r['plan'],'billing_mode'=>$r['billing_mode'],'paid_until'=>(int)$r['paid_until'],
             'included_remaining'=>(int)$r['included_units'],'prepaid_remaining'=>(int)$r['prepaid_units'],'allow_overage'=>(bool)$r['allow_overage'],
             'lifetime_included_used'=>(int)$tot['included_used'],'lifetime_prepaid_used'=>(int)$tot['prepaid_used'],
-            'unit_costs'=>['request'=>1,'export'=>5,'global_export'=>20,'new_experiment'=>10,'usage'=>0]];
+            'unit_costs'=>['request'=>1,'export'=>5,'global_export'=>20,'new_experiment'=>10,'usage'=>0],
+            'plan_capacity'=>array_map(fn($x)=>['period_seconds'=>$x[0],'max_requests'=>$x[1],'max_units'=>$x[2]],self::profile($db,$r['plan']))];
     }
 }

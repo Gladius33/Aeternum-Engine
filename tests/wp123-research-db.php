@@ -50,4 +50,13 @@ ckResearch($q->importGameDataset($pack)['inserted']===1&&$q->importGameDataset($
 $pro=$q->createTenant('pro',30);
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pro['token']))['body']['rows'][0]['row']===$game['row'],'Pro game data feed');
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pay['token']))['status']===403,'standard game feed denied');
+$meter=$q->usage($pro['token']);$remaining=$meter['included_remaining'];
+$q->configureCapacity('global',86400,0,0);
+ckResearch($g->handle('GET','/research/v1/models','',$head($pro['token']))['status']===429,'global emergency stop despite credit');
+ckResearch($q->usage($pro['token'])['included_remaining']===$remaining,'capacity denial does not debit');
+$q->configureCapacity('global',86400,150000,1000000);
+$q->configureCapacity('pro',3600,0,0);
+ckResearch($g->handle('GET','/research/v1/models','',$head($pro['token']))['status']===429,'per-tier operator hard limit');
+$q->configureCapacity('pro',3600,3000,30000);
+ckResearch($g->handle('GET','/research/v1/models','',$head($pro['token']))['status']===200,'live operator limit restored');
 echo "PASS WP123 isolated tenant queue, worker, CSV, cancellation, rotation and evidence pin\n";
