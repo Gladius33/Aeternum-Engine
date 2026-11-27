@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/UsPresidentialElection.php';
 
 /** Comparative accountability subset. Every count and procedural attestation
  * is certified by a simulation-side clerk, not submitted by a player.
@@ -165,6 +166,20 @@ final class ComparativeGovernment
         $this->state['incumbent']=$e['candidate'];
         $this->state['history'][]=['action'=>'certified_electoral_formation','role'=>'constitutional_clerk','evidence'=>$e,'formation'=>$formation];
     }
+    public function installUsPresidential(array $proof):void
+    {
+        $year=$proof['year']??null;
+        if(!is_int($year)||$this->state['country']!=='US'||$this->state['status']!=='in_office'||$this->state['pending']!==null
+            ||$this->state['day']!==UsPresidentialElection::dates($year)['inauguration']||UsPresidentialElection::result($this->state,$year)!==$proof
+            ||$proof['winner']===null)throw new \DomainException('Unresolved US presidential accession');
+        foreach($this->state['history'] as $h){
+            if($h['action']==='us_presidential_inauguration'&&$h['evidence']['year']===$year)
+                throw new \DomainException('Duplicate US election');
+            if($h['action']==='accountability_resolve')throw new \DomainException('Exceptional US succession requires separate term eligibility evidence');
+        }
+        $this->state['incumbent']=$proof['winner'];
+        $this->state['history'][]=['action'=>'us_presidential_inauguration','role'=>'constitutional_clerk','evidence'=>$proof];
+    }
     public static function restore(array $s):self
     {
         $x=new self($s['world_id'],$s['country'],$s['start_day'],$s['initial_incumbent'],$s['seats']);
@@ -172,6 +187,8 @@ final class ComparativeGovernment
         foreach($s['history'] as $h) {
             if($h['action']==='certified_electoral_formation'){
                 $x->advance($h['evidence']['day']);$x->installCertifiedFormation($h['evidence'],$h['formation']);
+            }elseif($h['action']==='us_presidential_inauguration'){
+                $x->advance($h['evidence']['dates']['inauguration']);$x->installUsPresidential($h['evidence']);
             }else{
                 $x->advance(substr($h['evidence']['at'],0,10));$x->apply($h['action'],$h['role'],$h['evidence']);
             }

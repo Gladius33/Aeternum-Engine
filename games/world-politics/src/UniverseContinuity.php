@@ -24,6 +24,7 @@ final class UniverseContinuity
             if($on>$beforeDay)break;
             $old->advance($on);
             if($event['action']==='certified_electoral_formation')$old->installCertifiedFormation($proof,$event['formation']);
+            elseif($event['action']==='us_presidential_inauguration')$old->installUsPresidential($proof);
             else $old->apply($event['action'],$event['role'],$proof);
         }
         $old->advance($beforeDay);$prior=$old->snapshot();

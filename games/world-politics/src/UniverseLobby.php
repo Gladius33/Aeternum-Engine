@@ -93,7 +93,7 @@ final class UniverseLobby
                             $gov=$sim->snapshot()['accountability'];
                             $runtime=$gov['incumbent']===$p['id']&&$gov['status']==='in_office';
                             if($version===UniverseIdentityReference::DOCUMENTARY_ROSTER&&$gov['status']==='in_office'){
-                                $person=DocumentaryForeignBallot::people($country)[$gov['incumbent']]??null;
+                                $person=(($country==='US'?UsPresidentialElection::people():[])+DocumentaryForeignBallot::people($country))[$gov['incumbent']]??null;
                                 if($person!==null){
                                     $opening=['name'=>$person['name'],'kind'=>'real','as_of'=>$person['as_of'],'sources'=>$person['sources']];$runtime=true;
                                 }

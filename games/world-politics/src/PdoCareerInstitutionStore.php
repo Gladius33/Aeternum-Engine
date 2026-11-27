@@ -246,9 +246,15 @@ final class PdoCareerInstitutionStore
         $admission=['world'=>$world,'country'=>$cc,'day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'documentary-party-careers-v1','actor'=>'career-ai-clerk','operation'=>'admit_party_ai_roster','payload'=>$p,
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'documentary-party-careers-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
         $this->applyLocked($admission,$this->evidence->sign($admission));
+        if($cc==='US'){
+            $p=['people'=>UsPresidentialElection::extraCareers()];
+            $e=['world'=>$world,'country'=>$cc,'day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'us-presidential-roster-v1','actor'=>'career-ai-clerk','operation'=>'admit_us_presidential_roster','payload'=>$p,
+                'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'us-presidential-roster-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
+            $this->applyLocked($e,$this->evidence->sign($e));
+        }
         $state=$this->replay($world,$this->row($world));
         $sim->enableElectoral(DocumentaryForeignBallot::config($cc,ComparativeElectionCalendar::config($cc,$day),true));
-        $sim->enablePoliticalAI();$sim->enableForeignRecurring();$sim->enableFormationProtocol();$sim->enableAutonomousFormation($cc==='JP');
+        $sim->enablePoliticalAI();$sim->enableForeignRecurring();$sim->enableFormationProtocol();$sim->enableAutonomousFormation($cc==='JP');if($cc==='US')$sim->enableUsPresidential();
         require_once __DIR__.'/PoliticalRoster.php';
         $roster=new PoliticalRoster($world,$state['country'],['government']);
         foreach($state['careers'] as $career){
@@ -296,8 +302,11 @@ final class PdoCareerInstitutionStore
             $before=$sim->snapshot()['accountability'];$result=$sim->advanceTo($target);$after=$sim->snapshot()['accountability'];
             $out=$this->publishForeignInstitution($world,$state['country'],$sim,$prior,'advance_clock',['target_day'=>$target],$result);
             $this->query('UPDATE wp_world_clock SET committed_day=?,revision=revision+1 WHERE world_id=?',[$target,$world]);
-            if($after['status']==='in_office'&&$after['incumbent']!==$before['incumbent']){
-                $p=['government_json'=>CareerForeignWorld::json($after),'expires'=>CareerForeignWorld::boundary($state['country'])];
+            $last=$after['history'][array_key_last($after['history'])]??null;
+            $usElection=($last['action']??null)==='us_presidential_inauguration'&&count($after['history'])>count($before['history']);
+            if($after['status']==='in_office'&&($after['incumbent']!==$before['incumbent']||$usElection)){
+                $expires=$usElection?(new \DateTimeImmutable($target))->modify('+4 years')->format('Y-m-d'):CareerForeignWorld::boundary($state['country']);
+                $p=['government_json'=>CareerForeignWorld::json($after),'expires'=>$expires];
                 $digest=CareerInstitutionLedger::digest(['kind'=>'comparative-government-replay-v1','world'=>$world,'country'=>$state['country'],'payload'=>$p]);
                 $e=['world'=>$world,'country'=>$state['country'],'day'=>$target,'world_revision'=>(int)$clock['revision']+1,'command'=>'foreign-'.substr($digest,0,48),'actor'=>'career-comparative-clerk','operation'=>'foreign_government','payload'=>$p,'evidence_sha'=>$digest];
                 $this->applyLocked($e,$this->evidence->sign($e));

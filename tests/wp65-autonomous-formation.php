@@ -97,3 +97,26 @@ if(($cycle['coalition']['status']??null)==='majority_agreement'){
     $proof['procedure']['steps'][1]['yes']=20;$proof['procedure']['steps'][1]['no']=27;
     try{\Aeternum\WorldPolitics\FormationProtocol::certificate($proof,$cycle,A::formationSeats($j));throw new RuntimeException('Failed Japanese designation accepted');}catch(DomainException $expected){}
 }
+
+/* WP119 separate US presidency: no congressional appointment, deterministic
+ * electoral college, historical term limits, replay and exact inauguration. */
+$us=new I('us-president-test','US','2027-05-14');
+$us->enableAccountability(\Aeternum\WorldPolitics\UsPresidentialElection::initial(false),['house'=>100,'senate'=>50]);
+$us->enableElectoral(\Aeternum\WorldPolitics\DocumentaryForeignBallot::config('US',C::config('US','2027-05-14')));
+$us->enablePoliticalAI();$us->enableForeignRecurring();$us->enableFormationProtocol();$us->enableAutonomousFormation();$us->enableUsPresidential();
+$u=\Aeternum\WorldPolitics\UsPresidentialElection::class;
+$dates=$u::dates(2028);
+ck65($dates['ballot']==='2028-11-07'&&$dates['electors']==='2028-12-19'&&$dates['inauguration']==='2029-01-20','US presidential calendar independent of Congress');
+$original=$us->snapshot()['accountability']['incumbent'];
+$r=$u::result($us->snapshot()['accountability'],2028);
+ck65(array_sum($r['electoral_votes'])===538&&!in_array($original,$r['nominees'],true)&&$r['winner']!==null,'US electoral college and twice-elected incumbent exclusion');
+for($d=new DateTimeImmutable('2027-05-15');$d->format('Y-m-d')<=$dates['inauguration'];$d=$d->modify('+1 day')){
+    $day=$d->format('Y-m-d');$us->advanceTo($day);
+    if($day<$dates['inauguration']&&in_array($day,$dates,true))ck65($us->snapshot()['accountability']['incumbent']===$original,'no early presidential accession '.$day);
+}
+$usState=$us->snapshot();
+ck65($usState['accountability']['incumbent']===$r['winner']&&I::restore($usState)->snapshot()===$usState,'US inaugurated winner and replay');
+$bad=$usState;foreach($bad['events'] as &$event)if($event['kind']==='us_presidential_count')$event['result']['electoral_votes'][$r['winner']]++;unset($event);
+try{I::restore($bad);throw new RuntimeException('US forged count accepted');}catch(DomainException $expected){}
+$bad=$usState;$bad['events']=array_values(array_filter($bad['events'],fn($e)=>$e['kind']!=='us_presidential_electors'));
+try{I::restore($bad);throw new RuntimeException('Missing US elector stage accepted');}catch(DomainException $expected){}

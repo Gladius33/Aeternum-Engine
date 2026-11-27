@@ -141,6 +141,17 @@ final class CareerInstitutionLedger
             $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>'opening','first_series'=>null,'controller'=>'ai','person_reference'=>$person['person_reference'],'identity'=>$person];
         }
     }
+    private static function admitUsPresidentialRoster(array &$s,array $e):void{
+        $p=$e['payload'];self::fields($p,['people']);
+        self::check($s['country']==='US'&&$s['mode']==='career'&&$e['actor']==='career-ai-clerk'&&$e['day']===CareerScoreContract::START
+            &&self::json($p['people'])===self::json(UsPresidentialElection::extraCareers())
+            &&$e['evidence_sha']===self::digest(['kind'=>'us-presidential-roster-v1','world'=>$s['world'],'day'=>$e['day'],'payload'=>$p]),'US documentary roster evidence');
+        foreach($p['people'] as $id=>$person){
+            self::id($id);self::check(!isset($s['careers'][$id]),'US identity already admitted');
+            foreach($s['careers'] as $c)self::check($c['character']!==$id&&($c['identity']['name']??null)!==$person['name'],'duplicate US identity');
+            $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>'opening','first_series'=>null,'controller'=>'ai','person_reference'=>$person['person_reference'],'identity'=>$person];
+        }
+    }
     /** A human may take the existing documented character, never create a
      * duplicate. The trusted store verifies the approved programme edition. */
     private static function claimRealCareer(array &$s,array $e):void{
@@ -328,16 +339,19 @@ final class CareerInstitutionLedger
         $office=str_replace('_','-',InstitutionalRulebook::forCountry($s['country'])['head_of_government']);
         $previous=$s['active'][$office]??null;
         if($gov['status']==='in_office'){
-            self::check(($opening||in_array($last['action'],['accountability_resolve','certified_electoral_formation'],true))&&isset($s['careers'][$gov['incumbent']])&&is_string($p['expires']),'certified foreign successor required');
+            self::check(($opening||in_array($last['action'],['accountability_resolve','certified_electoral_formation','us_presidential_inauguration'],true))&&isset($s['careers'][$gov['incumbent']])&&is_string($p['expires']),'certified foreign successor required');
             self::day($p['expires']);self::check($p['expires']>$day,'foreign expiry');
             if($s['country']==='US')self::check($p['expires']<=(new \DateTimeImmutable($day))->modify('+4 years')->format('Y-m-d'),'US maximum modeled term');
+            $usElection=($last['action']??null)==='us_presidential_inauguration';
+            if($usElection)self::check($s['country']==='US'&&$p['expires']===(new \DateTimeImmutable($day))->modify('+4 years')->format('Y-m-d'),'US elected term boundary');
             if($previous!==null){
-                self::check($s['mandates'][$previous]['career']!==$gov['incumbent'],'same incumbent does not create new mandate');
-                self::close($s,$office,$day,'succession');
+                $same=$s['mandates'][$previous]['career']===$gov['incumbent'];
+                self::check(!$same||($usElection&&$s['mandates'][$previous]['expires']===$day),'same incumbent does not create new mandate');
+                self::close($s,$office,$day,$same?'renewal':'succession');
             }
             $generation=($s['generations'][$office]??0)+1;$s['generations'][$office]=$generation;
             $mandate='mandate-'.hash('sha256',self::json([$s['world'],$s['country'],$office,$generation,$e['command']]));
-            $s['mandates'][$mandate]=['id'=>$mandate,'office'=>$office,'career'=>$gov['incumbent'],'generation'=>$generation,'start'=>$day,'expires'=>$p['expires'],'end'=>null,'end_reason'=>null,'interim'=>false,'constitution_revision'=>$s['constitution_revision'],'powers'=>['foreign.government.represent'],'series'=>null,'terms'=>0];
+            $s['mandates'][$mandate]=['id'=>$mandate,'office'=>$office,'career'=>$gov['incumbent'],'generation'=>$generation,'start'=>$day,'expires'=>$p['expires'],'end'=>null,'end_reason'=>null,'interim'=>false,'constitution_revision'=>$s['constitution_revision'],'powers'=>['foreign.government.represent'],'series'=>null,'terms'=>$usElection?$last['evidence']['prior_elected_terms'][$gov['incumbent']]+1:0];
             $s['active'][$office]=$mandate;$s['government']='in_office';
         }else{
             self::check(in_array($gov['status'],['caretaker','election_pending','removed_successor_pending'],true)&&$p['expires']===null&&$previous!==null&&$s['mandates'][$previous]['career']===$gov['incumbent'],'foreign closure proof');
@@ -351,7 +365,7 @@ final class CareerInstitutionLedger
         self::id($e['command']);self::id($e['actor']);self::day($e['day']);
         self::check($e['world']===$s['world']&&$e['country']===$s['country']&&$e['day']>=$s['day']&&is_int($e['world_revision'])&&$e['world_revision']>=0&&preg_match('/^[a-f0-9]{64}$/D',$e['evidence_sha'])===1,'event scope');
         $p=$e['payload'];$day=$e['day'];$op=$e['operation'];
-        if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','admit_party_ai_roster','foreign_opening','foreign_government','research_observe'],true),'French powers unavailable outside France');
+        if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','admit_party_ai_roster','admit_us_presidential_roster','foreign_opening','foreign_government','research_observe'],true),'French powers unavailable outside France');
         if($s['mode']==='career'&&$op==='presidential_ballot'){$p=self::ballotTransition($s,$e);$op='transition';}
         if($s['mode']==='career'&&in_array($op,['cabinet_act','automatic_cabinet'],true)){$p=self::cabinetTransition($s,$e);$op=$p===null?'cabinet_proposal_recorded':'transition';}
         if($s['mode']==='research'){
@@ -363,6 +377,8 @@ final class CareerInstitutionLedger
             self::admitRealAutonomousRoster($s,$e);
         }elseif($op==='admit_party_ai_roster'){
             self::admitPartyAutonomousRoster($s,$e);
+        }elseif($op==='admit_us_presidential_roster'){
+            self::admitUsPresidentialRoster($s,$e);
         }elseif($op==='claim_real_career'){
             self::claimRealCareer($s,$e);
         }elseif($op==='admit_ai_roster'){

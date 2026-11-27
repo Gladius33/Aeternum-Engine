@@ -67,6 +67,7 @@ final class InstitutionalSimulation
         if(array_key_exists('foreign_recurring',$state))$expected[]='foreign_recurring';
         if(array_key_exists('formation_protocol',$state))$expected[]='formation_protocol';
         if(array_key_exists('autonomous_formation',$state))$expected[]='autonomous_formation';
+        if(array_key_exists('us_presidential',$state))$expected[]='us_presidential';
         if(array_key_exists('revision_requests',$state))$expected[]='revision_requests';
         if(array_key_exists('civic_initiative',$state))$expected[]='civic_initiative';
         if(array_key_exists('senate',$state))$expected[]='senate';
@@ -121,6 +122,8 @@ final class InstitutionalSimulation
         if(array_key_exists('foreign_recurring',$state))ForeignRecurringElections::validate($state);
         if(array_key_exists('formation_protocol',$state))FormationProtocol::validateHistory($state);
         if(array_key_exists('autonomous_formation',$state))AutonomousForeignFormation::validateHistory($state);
+        if(array_key_exists('us_presidential',$state))UsPresidentialElection::validateHistory($state);
+        else foreach($state['accountability']['history']??[] as $h)if($h['action']==='us_presidential_inauguration')throw new \DomainException('Unpinned US presidency');
         if(array_key_exists('revision',$state)){
             if(!is_array($state['revision'])||$state['country_code']!=='FR')throw new \DomainException('Invalid revision scope');
             $r=ConstitutionalRevision::restore($state['revision'])->snapshot();
@@ -354,6 +357,7 @@ final class InstitutionalSimulation
         return $result;
     }
 
+    public function enableUsPresidential():void{$this->state=UsPresidentialElection::bootstrap($this->state);}
     public function enableAutonomousFormation(bool $japan=false):void
     {
         $this->state=AutonomousForeignFormation::bootstrap($this->state,$japan);
@@ -458,7 +462,7 @@ final class InstitutionalSimulation
     {
         self::day($targetDay);
         if ($targetDay<$this->state['day']) throw new \InvalidArgumentException('Game clock cannot regress');
-        if(isset($this->state['autonomous_formation'])&&$targetDay!==self::plus($this->state['day'],1))throw new \DomainException('Autonomous foreign formation requires daily ticks');
+        if((isset($this->state['autonomous_formation'])||isset($this->state['us_presidential']))&&$targetDay!==self::plus($this->state['day'],1))throw new \DomainException('Autonomous foreign formation requires daily ticks');
         if(isset($this->state['recurring_elections'])&&$targetDay!==self::plus($this->state['day'],1))throw new \DomainException('Recurring institution clock requires daily ticks');
         $due=[];$remain=[];
         foreach ($this->state['agenda'] as $event) {
@@ -553,6 +557,7 @@ final class InstitutionalSimulation
                 $this->state['events'][]=['id'=>$id,'on'=>$targetDay,'kind'=>'foreign_formation_attempt','actor_role'=>'simulation_clock','result'=>$attempt];
             }
         }
+        if(isset($this->state['us_presidential']))$this->state=UsPresidentialElection::advance($this->state);
         if(isset($this->state['senate']))$this->state['senate']=FrenchSenateCycle::project($this->state['world_id'],$targetDay);
         if(isset($this->state['cabinet_requests']))$this->state=CabinetRequests::advance($this->state);
         if(isset($this->state['finance_requests'])&&$this->state['finance_requests']!==[])$this->state=FinanceRequests::advance($this->state);
