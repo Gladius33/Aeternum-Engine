@@ -18,6 +18,39 @@ final class UniverseAutonomy
         $q=$db->prepare('UPDATE wp_universe_slots SET last_human_diplomacy_day=? WHERE world_id=? AND account_id=?');
         $q->execute([$day,$world,$actor]);
     }
+    public static function markDomestic(\PDO $db,string $world,string $actor,string $day):void
+    {
+        if(!preg_match('/^acct-[a-f0-9]{32}$/D',$actor)||!self::managed($db,$world))return;
+        if(!$db->inTransaction())throw new \LogicException('Domestic mark requires command transaction');
+        $q=$db->prepare("UPDATE wp_universe_slots SET last_human_domestic_day=? WHERE world_id=? AND country_code='FR' AND account_id=? AND closed_on IS NULL");
+        $q->execute([$day,$world,$actor]);
+    }
+    /** Fenced, opt-in proposal only; never enactment or legal signature. */
+    public static function proposeDomestic(\PDO $db,DomesticPolicySimulation $sim,string $world,string $actor,string $target):void
+    {
+        if(!self::managed($db,$world))return;
+        if(!$db->inTransaction()||$actor!=='alpha-clock-'.$world)throw new \LogicException('Managed clock required');
+        $s=$sim->snapshot();$day=$s['day'];
+        if($s['world_id']!==$world||$target!==(new \DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d'))throw new \DomainException('Domestic autonomy scope');
+        $q=$db->prepare("SELECT domestic_programme,last_human_domestic_day,closed_on,generation FROM wp_universe_slots WHERE world_id=? AND country_code='FR' FOR UPDATE");
+        $q->execute([$world]);$slot=$q->fetch(\PDO::FETCH_ASSOC);
+        if($slot===false)throw new \DomainException('Missing domestic slot');
+        if($slot['closed_on']!==null||$slot['last_human_domestic_day']===$day)return;
+        $policy=match($slot['domestic_programme']){
+            'manual'=>null,'education'=>'education-reform','administration'=>'administration-report',
+            default=>throw new \DomainException('Unknown domestic programme')};
+        if($policy===null||isset($s['policies'][$policy]))return;
+        $effective=(new \DateTimeImmutable($day))->modify('+90 days')->format('Y-m-d');
+        $authority=new class($world) implements DomesticPolicyAuthority{
+            public function __construct(private readonly string $world){}
+            public function allows(string $world,string $ability):bool{return $world===$this->world&&$ability==='domestic.propose';}
+            public function enactedInstrument(string $world,string $policy):?string{return null;}
+            public function clockDay(string $world):string{throw new \DomainException('No clock delegation');}
+        };
+        $sim->propose($authority,$policy,$effective);
+        $q=$db->prepare('INSERT INTO wp_universe_programme_actions(world_id,decision_day,generation,programme,policy_id,effective_day) VALUES(?,?,?,?,?,?)');
+        $q->execute([$world,$day,$slot['generation'],$slot['domestic_programme'],$policy,$effective]);
+    }
     public static function policies(\PDO $db,string $world,string $committedDay):?array
     {
         if(!self::managed($db,$world))return null;

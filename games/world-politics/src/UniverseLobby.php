@@ -28,13 +28,13 @@ final class UniverseLobby
             FROM wp_universes u JOIN wp_world_clock c ON c.world_id=u.world_id ORDER BY u.universe_no LIMIT 50 OFFSET ".$offset)->fetchAll(\PDO::FETCH_ASSOC);
         foreach($rows as &$r){
             $r['universe_no']=(int)$r['universe_no'];
-            $slots=$this->query('SELECT country_code,account_id,diplomacy_programme,closed_on FROM wp_universe_slots WHERE world_id=? ORDER BY country_code',[$r['world_id']])->fetchAll(\PDO::FETCH_ASSOC);
-            $r['slots']=array_map(fn($v)=>['country'=>$v['country_code'],'controller'=>$v['closed_on']!==null?'succession_pending':($v['account_id']===null?'ai':'human'),'is_you'=>$v['account_id']===$s->id,'diplomacy_programme'=>$v['diplomacy_programme']],$slots);
+            $slots=$this->query('SELECT country_code,account_id,diplomacy_programme,domestic_programme,closed_on FROM wp_universe_slots WHERE world_id=? ORDER BY country_code',[$r['world_id']])->fetchAll(\PDO::FETCH_ASSOC);
+            $r['slots']=array_map(fn($v)=>['country'=>$v['country_code'],'controller'=>$v['closed_on']!==null?'succession_pending':($v['account_id']===null?'ai':'human'),'is_you'=>$v['account_id']===$s->id,'diplomacy_programme'=>$v['diplomacy_programme'],...($v['country_code']==='FR'?['domestic_programme'=>$v['domestic_programme']]:[])],$slots);
             $r['vacant']=count(array_filter($r['slots'],fn($v)=>$v['controller']==='ai'));
             $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
             unset($r['pending_day'],$r['game_over']);
         }unset($r);
-        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::COUNTRIES,'complete_multiplayer_model'=>false];
+        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::COUNTRIES,'complete_multiplayer_model'=>false,'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','full_national_simulation'=>false],self::COUNTRIES)];
     }
     private function create():array
     {
@@ -75,7 +75,12 @@ final class UniverseLobby
             $prior=$this->query('SELECT request_sha,response_json FROM wp_universe_join_receipts WHERE account_id=? AND receipt_key=?',[$s->id,$key])->fetch(\PDO::FETCH_ASSOC);
             if($prior!==false){
                 if(!hash_equals($prior['request_sha'],$fingerprint))throw new AlphaHttpError(409,'idempotency_conflict');
-                return json_decode($prior['response_json'],true,32,JSON_THROW_ON_ERROR);
+                $receipt=json_decode($prior['response_json'],true,32,JSON_THROW_ON_ERROR);
+                $this->lockWorld($receipt['world_id']);
+                $slot=$this->query('SELECT account_id,generation,closed_on FROM wp_universe_slots WHERE world_id=? AND country_code=? FOR UPDATE',[$receipt['world_id'],$receipt['country']])->fetch(\PDO::FETCH_ASSOC);
+                if($slot===false||$slot['account_id']!==$s->id||(int)$slot['generation']!==$receipt['generation']||$slot['closed_on']!==null||!$s->active())
+                    throw new AlphaHttpError(409,'stale_join_receipt');
+                return $receipt;
             }
             if($no===null)$this->ensureSpare();
             $args=[$country,$s->id];
@@ -129,8 +134,8 @@ final class UniverseLobby
      * or a claim about a real politician's preferences. */
     public function programme(AlphaSession $s,int $no,array $body):array
     {
-        AlphaAccounts::fields($body,['diplomacy']);
-        if(!in_array($body['diplomacy'],['cooperative','balanced','cautious'],true))
+        AlphaAccounts::fields($body,['diplomacy',...(array_key_exists('domestic',$body)?['domestic']:[])]);
+        if(!in_array($body['diplomacy'],['cooperative','balanced','cautious'],true)||(array_key_exists('domestic',$body)&&!in_array($body['domestic'],['manual','education','administration'],true)))
             throw new AlphaHttpError(422,'invalid_programme');
         return $this->transaction(function()use($s,$no,$body){
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
@@ -140,8 +145,13 @@ final class UniverseLobby
             if((int)$c['game_over']===1)throw new AlphaHttpError(409,'game_over');
             $slot=$this->query('SELECT country_code FROM wp_universe_slots WHERE world_id=? AND account_id=? FOR UPDATE',[$world,$s->id])->fetchColumn();
             if(!is_string($slot)||!$s->active())throw new AlphaHttpError(404,'not_found');
+            if(array_key_exists('domestic',$body)){
+                if($slot!=='FR')throw new AlphaHttpError(403,'domestic_programme_not_available');
+                $this->query('UPDATE wp_universe_slots SET domestic_programme=? WHERE world_id=? AND country_code=?',[$body['domestic'],$world,$slot]);
+            }
             $this->query('UPDATE wp_universe_slots SET diplomacy_programme=? WHERE world_id=? AND country_code=?',[$body['diplomacy'],$world,$slot]);
-            return ['country'=>$slot,'diplomacy'=>$body['diplomacy'],'effective_day'=>$c['committed_day'],'inherited'=>true];
+            return ['country'=>$slot,'diplomacy'=>$body['diplomacy'],'effective_day'=>$c['committed_day'],'inherited'=>true,
+                ...(array_key_exists('domestic',$body)?['domestic'=>$body['domestic']]:[])];
         });
     }
     /** Interim standings: control periods, NOT certified national tenure or
@@ -159,8 +169,8 @@ final class UniverseLobby
           JOIN wp_world_clock c ON c.world_id=p.world_id JOIN wp_accounts a ON a.account_id=p.account_id
           WHERE a.enabled=1".$where."),
           choices AS (SELECT periods.*,ROW_NUMBER() OVER(PARTITION BY account_id ORDER BY control_days DESC,universe_no,country_code,generation) AS choice_no FROM periods),
-          ranked AS (SELECT choices.*,ROW_NUMBER() OVER(ORDER BY control_days DESC,account_id) AS player_rank FROM choices WHERE choice_no=1)
-          SELECT * FROM ranked ORDER BY player_rank LIMIT 50 OFFSET ".$offset,$no===null?[]:[$no])->fetchAll(\PDO::FETCH_ASSOC);
+          ranked AS (SELECT choices.*,RANK() OVER(ORDER BY control_days DESC) AS player_rank FROM choices WHERE choice_no=1)
+          SELECT * FROM ranked ORDER BY player_rank,account_id LIMIT 50 OFFSET ".$offset,$no===null?[]:[$no])->fetchAll(\PDO::FETCH_ASSOC);
         $out=[];foreach($rows as $r)$out[]=['rank'=>(int)$r['player_rank'],'player'=>'joueur-'.substr(hash('sha256','wp102-universe/'.$r['account_id']),0,20),
             'is_you'=>$r['account_id']===$s->id,'universe_no'=>(int)$r['universe_no'],'country'=>$r['country_code'],'control_days'=>(int)$r['control_days'],'score'=>null];
         return ['scope'=>$no===null?'global':'universe','universe_no'=>$no,'page'=>$page,'rows'=>$out,

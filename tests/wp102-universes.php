@@ -39,6 +39,7 @@ $payload['from']='state_fr';$payload['to']='state_de';
 ck102(call102('POST',$root.'/diplomacy/proposals',$payload,2,['if-match'=>$dip['headers']['ETag'],'idempotency-key'=>'wp102-spoof-fr'])['status']===403,'foreign player cannot spoof another state');
 ck102(call102('DELETE','/universes/'.$no.'/membership',null,1)['status']===200,'release France to AI');
 ck102(call102('GET',$root.'/clock',null,1)['status']===404,'former member access revoked');
+ck102(join102(1,'FR')['status']===409,'WP109 stale join receipt cannot resurrect released control');
 $rejoin=join102(8,'FR',$no);
 ck102($rejoin['status']===201&&$rejoin['body']['world_id']===$world&&$rejoin['body']['generation']===2,'late claimant inherits same world');
 ck102(call102('GET',$root.'/countries/FR/institutions',null,8)===$before,'institutional state unchanged at handover');
@@ -51,11 +52,19 @@ require_once __DIR__.'/../games/world-politics/src/UniverseScheduler.php';
 $scheduler=new \Aeternum\WorldPolitics\UniverseScheduler($connect);
 $spare=$directory[1]['world_id'];$spareNo=$directory[1]['universe_no'];
 ck102(call102('POST','/universes/'.$no.'/programme',['diplomacy'=>'cooperative'],8)['status']===200,'WP103 inherited diplomatic programme');
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','domestic'=>'education'],8)['status']===200,'WP107 opt-in domestic programme');
+ck102(call102('POST','/universes/'.$no.'/programme',['diplomacy'=>'balanced','domestic'=>'education'],2)['status']===403,'WP108 foreign pilot cannot set French domestic programme');
 ck102(call102('DELETE','/universes/'.$spareNo.'/membership',null,8)['status']===200,'WP103 activated second world empty');
 $due=$db->prepare('UPDATE wp_universes SET next_tick_epoch=UNIX_TIMESTAMP()-1 WHERE world_id=?');
 $due->execute([$spare]);
 ck102($scheduler->tick($spare)['day']==='2027-05-15','WP103 server advances world with no humans');
 ck102($scheduler->tick($spare)['status']==='not_due','WP103 no extra tick before deadline');
+$q107=$db->prepare('SELECT policy_id,decision_day FROM wp_universe_programme_actions WHERE world_id=?');
+$q107->execute([$spare]);$p107=$q107->fetchAll(PDO::FETCH_ASSOC);
+ck102(count($p107)===1&&$p107[0]['policy_id']==='education-reform'&&$p107[0]['decision_day']==='2027-05-14','WP107 inherited programme proposes once with no human');
+$q107=$db->prepare('SELECT state_json FROM wp_domestic_states WHERE world_id=?');$q107->execute([$spare]);
+$p107=json_decode($q107->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['policies']['education-reform'];
+ck102($p107['authorized_on']===null&&$p107['instrument_sha']===null,'WP107 programme cannot bypass enactment');
 $due->execute([$world]);
 ck102($scheduler->tick($world)['day']==='2027-05-15','WP103 server advances shared clock');
 $dip103=call102('GET',$root.'/diplomacy',null,8);
@@ -102,3 +111,10 @@ $o105=\Aeternum\WorldPolitics\PublicOpinion::restore(json_decode($row105['state_
 ck102($o105['day']===$next105&&$o105['campaign']['ended_on']===$end105&&$o105['campaign']['day']===$end105,'WP105 ended mandate frozen, opinion continues and replays');
 $q104->execute([$world]);$r105=$q104->fetch(PDO::FETCH_ASSOC);
 ck102((int)$r105['elapsed_control_days']===1,'WP105 former player score remains frozen');
+
+
+require_once __DIR__.'/../games/world-politics/src/UniverseAudit.php';
+$aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$no);
+ck102($aud['integrity']==='passed'&&$aud['human_slots']===6&&$aud['recomputed_scores']===3,'WP110 independent committed universe audit');
+$aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo);
+ck102($aud['integrity']==='passed'&&$aud['human_slots']===0,'WP110 empty active universe audit');

@@ -134,6 +134,27 @@ final class PresidentialMandate
         if($s['status']==='ended'||$day!==$s['day'])throw new \DomainException('Invalid mandate interruption');
         $s['status']='ended';$s['officeholder']=null;$s['successor']=null;$s['handover_on']=$day;$s['reason']=$reason;return $s;
     }
+    /** New fictional incumbent after a replayed, resolved ordinary election. */
+    public static function beginSuccessor(array $s,int $ordinal):array
+    {
+        $winner=$s['result']['winner']??null;
+        if(!isset($s['calendar_version'])||$s['status']!=='ended'||$ordinal<2
+            ||!is_string($winner)||$winner===CampaignLifecycle::PLAYER||$winner!==$s['successor']
+            ||$winner!==$s['officeholder']||$s['handover_on']!==$s['day']||$s['term_end']!==$s['day']
+            ||!in_array($s['reason'],['presidential_election_lost','presidential_mandate_ended'],true))
+            throw new \DomainException('No resolved elected successor');
+        $day=$s['day'];$end=self::termEnd($day);$dates=FrenchElectionCalendar::presidentialPoll($end);
+        $s['term_start']=$day;$s['term_end']=$end;$s['consecutive_terms']=1;
+        $s['eligible_for_re_election']=true;$s['cycle_index']=0;$s['status']='scheduled';
+        $s['first_round_day']=$dates['first'];$s['second_round_day']=$dates['second'];
+        $s['candidacy_lock_day']=$dates['candidacy_lock'];$s['calendar_status']=$dates['status'];
+        $s['candidacy_locked']=false;$s['first_result']=null;$s['result']=null;
+        $s['officeholder']=CampaignLifecycle::PLAYER;$s['successor']=null;$s['handover_on']=null;
+        $s['reason']=null;$s['elections']=[];
+        $s['managed_successor']=['ordinal'=>$ordinal,'elected_as'=>$winner,'invested_on'=>$day,
+            'identity_scope'=>'fictional_office_alias'];
+        return $s;
+    }
     public static function countElection(array $c,bool $eligible):array
     {
         self::fields($c,['registered','first','second']);

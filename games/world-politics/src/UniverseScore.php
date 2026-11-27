@@ -19,15 +19,15 @@ final class UniverseScore
         if($index<1||$index>1000000)throw new \DomainException('Invalid income index');
         return ['day'=>$h['day'],'index'=>$index,'source'=>CampaignScore::digest($h['source_hashes'])];
     }
-    private static function cohort(string $bundle,array $config,array $dip):string
-    {return CampaignScore::digest(['rules'=>self::VERSION,'country'=>'FR','source_cohort'=>CampaignScore::cohort($bundle,$config,$dip)]);}
-    public static function seed(\PDO $db,string $world,string $bundle,array $config,array $dom,array $dip):void
+    private static function cohort(string $bundle,array $config,array $dip,bool $recurring=false):string
+    {return CampaignScore::digest(['rules'=>self::VERSION,'country'=>'FR','source_cohort'=>CampaignScore::cohort($bundle,$config,$dip),...($recurring?['continuity'=>'wp106-managed-continuity-v2']:[])]);}
+    public static function seed(\PDO $db,string $world,string $bundle,array $config,array $dom,array $dip,bool $recurring=false):void
     {
         if(!$db->inTransaction())throw new \LogicException('Income checkpoint requires world transaction');
         $m=self::measured($dom,$dip);
         if($m['day']!==CampaignScore::START||$dom['state']['world_id']!==$world)throw new \DomainException('Invalid opening checkpoint');
         self::query($db,'INSERT INTO wp_universe_income_checkpoints(world_id,country_code,day,index_bps,cohort_sha,source_sha) VALUES(?,\'FR\',?,?,?,?)',
-            [$world,$m['day'],$m['index'],self::cohort($bundle,$config,$dip['state']),$m['source']]);
+            [$world,$m['day'],$m['index'],self::cohort($bundle,$config,$dip['state'],$recurring),$m['source']]);
     }
     public static function claim(\PDO $db,string $world,string $country,int $generation,string $day):void
     {
@@ -84,23 +84,34 @@ final class UniverseScore
             WHERE a.enabled=1'.$where.' GROUP BY s.cohort_sha ORDER BY s.cohort_sha LIMIT 50',$no===null?[]:[$no])->fetchAll(\PDO::FETCH_ASSOC);
         return array_map(fn($r)=>['cohort_sha'=>$r['cohort_sha'],'players'=>(int)$r['players'],'country'=>'FR'],$rows);
     }
+    /** Independently recompute published arithmetic and date fences. */
+    public static function assertPeriod(array $r):void
+    {
+        $end=$r['left_on']??$r['committed_day'];
+        $days=(int)(new \DateTimeImmutable($r['joined_on']))->diff(new \DateTimeImmutable($end))->format('%r%a');
+        $p=self::points($days,(int)$r['opening_index_bps'],(int)$r['latest_index_bps']);
+        if($end>$r['committed_day']||$r['through_day']!==$end||$days!==(int)$r['elapsed_control_days']
+            ||$p['gain_bps']!==(int)$r['gain_bps']||$p['score']!==(int)$r['score'])
+            throw new \DomainException('Invalid published period score');
+    }
     public static function rankings(\PDO $db,AlphaSession $session,?int $no,string $cohort,int $page=1):array
     {
         if(!$session->active())throw new AlphaHttpError(401,'authentication_required');
         if(!preg_match('/^[a-f0-9]{64}$/D',$cohort)||$page<1||$page>100000)throw new AlphaHttpError(422,'invalid_score_query');
         $where=$no===null?'':' AND u.universe_no=?';$offset=($page-1)*50;
         $rows=self::query($db,'WITH candidates AS (
-            SELECT s.*,p.account_id,u.universe_no,p.joined_on,p.left_on FROM wp_universe_period_scores s
+            SELECT s.*,p.account_id,u.universe_no,p.joined_on,p.left_on,c.committed_day FROM wp_universe_period_scores s
             JOIN wp_universe_control_periods p USING(world_id,country_code,generation)
             JOIN wp_universes u ON u.world_id=s.world_id JOIN wp_accounts a ON a.account_id=p.account_id
+            JOIN wp_world_clock c ON c.world_id=s.world_id
             WHERE a.enabled=1 AND s.cohort_sha=?'.$where.'),
             chosen AS (SELECT candidates.*,ROW_NUMBER() OVER(PARTITION BY account_id ORDER BY score DESC,elapsed_control_days DESC,gain_bps DESC,universe_no,generation) AS selection_no FROM candidates),
-            ranked AS (SELECT chosen.*,ROW_NUMBER() OVER(ORDER BY score DESC,elapsed_control_days DESC,gain_bps DESC,account_id) AS rank_no FROM chosen WHERE selection_no=1)
-            SELECT * FROM ranked ORDER BY rank_no LIMIT 50 OFFSET '.$offset,$no===null?[$cohort]:[$cohort,$no])->fetchAll(\PDO::FETCH_ASSOC);
-        $out=[];foreach($rows as $r)$out[]=['rank'=>(int)$r['rank_no'],'player'=>'joueur-'.substr(hash('sha256','wp102-universe/'.$r['account_id']),0,20),
+            ranked AS (SELECT chosen.*,RANK() OVER(ORDER BY score DESC,elapsed_control_days DESC,gain_bps DESC) AS rank_no FROM chosen WHERE selection_no=1)
+            SELECT * FROM ranked ORDER BY rank_no,account_id LIMIT 50 OFFSET '.$offset,$no===null?[$cohort]:[$cohort,$no])->fetchAll(\PDO::FETCH_ASSOC);
+        $out=[];foreach($rows as $r){self::assertPeriod($r);$out[]=['rank'=>(int)$r['rank_no'],'player'=>'joueur-'.substr(hash('sha256','wp102-universe/'.$r['account_id']),0,20),
             'is_you'=>$r['account_id']===$session->id,'country'=>$r['country_code'],'universe_no'=>(int)$r['universe_no'],
             'joined_on'=>$r['joined_on'],'through_day'=>$r['through_day'],'left_on'=>$r['left_on'],'control_days'=>(int)$r['elapsed_control_days'],
-            'opening_income_index_bps'=>(int)$r['opening_index_bps'],'latest_income_index_bps'=>(int)$r['latest_index_bps'],'gain_bps'=>(int)$r['gain_bps'],'score'=>(int)$r['score']];
+            'opening_income_index_bps'=>(int)$r['opening_index_bps'],'latest_income_index_bps'=>(int)$r['latest_index_bps'],'gain_bps'=>(int)$r['gain_bps'],'score'=>(int)$r['score']];}
         return ['scope'=>$no===null?'global':'universe','universe_no'=>$no,'page'=>$page,'cohort_sha'=>$cohort,'rows'=>$out,
             'version'=>self::VERSION,'country_scope'=>['FR'],'official_ranking_eligible'=>false,
             'income_model'=>'experimental_household_proxy','score_basis'=>'best_single_control_period_with_relative_income_gain',

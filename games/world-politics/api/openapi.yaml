@@ -71,7 +71,7 @@ paths:
   /universes/{universe_no}/programme:
     post:
       operationId: updateUniverseDiplomaticProgramme
-      summary: Set the inherited fictional diplomatic fallback policy for your national slot
+      summary: Set the inherited fictional diplomatic fallback and optional French domestic proposal programme
       parameters:
         - name: universe_no
           in: path
@@ -87,8 +87,10 @@ paths:
               required: [diplomacy]
               properties:
                 diplomacy: { type: string, enum: [cooperative, balanced, cautious] }
+                domestic: { type: string, enum: [manual, education, administration], description: France-only proposal preset; does not enact measures }
       responses:
         '200': { description: Programme persisted for the national slot }
+        '403': { description: Foreign slot cannot change French domestic programme }
   /universes/{universe_no}/rankings:
     get:
       operationId: readUniverseStandings

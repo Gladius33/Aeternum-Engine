@@ -91,3 +91,21 @@ ck38($unchanged['status']==='ended'&&$unchanged['consecutive_terms']===2,'first 
 $proof27=$proof;$proof27['effective_on']='2027-05-15';
 while($amended['day']<'2042-05-14')$amended=PresidentialMandate::advance($amended,(new DateTimeImmutable($amended['day']))->modify('+1 day')->format('Y-m-d'),1000,$proof27);
 ck38($amended['status']==='scheduled'&&$amended['consecutive_terms']===4&&$amended['term_end']==='2047-05-14','third full term won after effective constitutional amendment');
+
+
+// WP106: ordinary elected succession only, preserving WP105 legacy mode.
+$managed=new PublicOpinion('world-test','2026-11-25',PublicOpinion::fixture());
+$managed->enableDialogue();$managed->enableCampaign();$managed->enablePresidentialMandate(PresidentialMandate::publishedFixture(),true);
+$managed->enableManagedContinuity(true);
+for($day='2026-11-26';$day<='2027-05-15';$day=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d')){
+    $e=observation38($day);$e['pressure']=['workers'=>1000,'retired'=>1000];
+    $e['production_index_bps']=4000;$e['employment_index_bps']=4000;$e['term_limit_revision']=null;
+    $managed->advance($e);
+    if($day==='2027-05-14')ck38($managed->snapshot()['campaign']['status']==='game_over','WP106 outgoing mandate ends on election handover');
+}
+$ms=$managed->snapshot();
+ck38(count($ms['managed_mandates'])===1&&$ms['campaign']['status']==='active'&&$ms['campaign']['start_day']==='2027-05-14','WP106 elected successor starts without resetting world');
+ck38($ms['presidency']['consecutive_terms']===1&&$ms['presidency']['term_end']==='2032-05-14'&&$ms['presidency']['managed_successor']['ordinal']===2,'WP106 new incumbent has independent term limit');
+ck38($ms['managed_mandates'][0]['campaign']['ended_on']==='2027-05-14'&&PublicOpinion::restore($ms)->hash()===$managed->hash(),'WP106 archives prior mandate and replays');
+$bad=$ms;$bad['managed_mandates'][0]['campaign']['ended_on']='2027-05-13';
+no38(fn()=>PublicOpinion::restore($bad),'WP106 rejects tampered mandate archive');

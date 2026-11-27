@@ -881,3 +881,16 @@ WP103 : horloge serveur persistante (1 jour simulé/heure réelle par défaut), 
 WP104 : score composite expérimental par période de contrôle France, indice de départ épinglé à la reprise du pays, mise à jour atomique avec l'horloge, gel à la libération, deux portées de classement par cohorte compatible ; les pays étrangers restent sans score économique tant que les données comparables manquent.
 
 WP105 : fin de mandat national isolée de l'horloge commune ; gel de la présidence sortante et de son score, révocation d'accès, poursuite des autres pays et des observations sociales. La succession française non modélisée reste explicitement indisponible, sans faux président. Le mode individuel conserve sa fin de campagne.
+
+
+## WP106–WP110 — grouped multiplayer increment (partial qualification)
+
+WP106: newly provisioned managed universes pin continuity v2. A resolved ordinary presidential election archives the former campaign and presidency, then opens an independent fictional incumbent's term on the next committed day. The world, economy and other slots are not reset. The outgoing human remains released and its score frozen. The generic player identifier is an office alias, with successor ordinal and elected alias explicit. Unresolved results, resignation, death, removal, disputed constitutional order and events scoped to the succession day are not auto-resolved. Existing continuity v1 histories are unchanged.
+
+WP107: optional French domestic programme (manual, education, administration) is inherited. One bounded proposal for a curated policy with a 90-day fictional lead time may be made on an idle domestic day inside the trusted fenced clock. Accepted domestic human commands suppress that day's fallback. No automatic enactment, fiscal effects or full political programme execution. Diplomacy remains a separate domain.
+
+WP108: capability matrix exposes seven pilot slots honestly: French domestic control, six foreign diplomacy-only slots. Foreign players cannot set French domestic programmes. Other states require reviewed institutions, economy and authority adapters; do not advertise unsupported slots.
+
+WP109: stale join receipts cannot revive released generations; tied ranks share rank with stable ordering. Published composite rows revalidate elapsed days, gain and score. New succession rules have a separate cohort. France-only income remains experimental; comparable international purchasing-power models and independent anti-abuse validation are open.
+
+WP110: read-only universe integrity audit and regression tests for elected succession/replay/tampering, inherited proposals, former access and score consistency. No production capacity or release approval. Existing 7305-day journals impose a bounded horizon. Full vacancy succession, policy coverage, foreign models and national actions, long-horizon compaction, load and security qualification and frontend remain open.

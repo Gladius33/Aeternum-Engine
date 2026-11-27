@@ -193,7 +193,7 @@ final class AlphaGateway
                 $country=$session->country($world);
                 // Only existing country-scoped command APIs; never grant
                 // clock, sharing or generic ownership to a national slot.
-                if($country===null||in_array($suffix,['/members','/clock/advances'],true)||
+                if($country===null||in_array($suffix,['/members','/clock/advances','/countries/FR/politics/head-of-state'],true)||
                     ($country!=='FR'&&!in_array($suffix,['/diplomacy/proposals','/diplomacy/responses'],true)))
                     throw new AlphaHttpError(403,'forbidden');
             }

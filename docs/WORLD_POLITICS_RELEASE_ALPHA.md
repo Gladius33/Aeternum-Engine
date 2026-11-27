@@ -80,3 +80,8 @@ Migration 029 adds committed France income checkpoints and per-control-period sc
 ## WP105 national termination isolation
 
 New managed universes pin continuity of social observations after the original French campaign ends. The former campaign and presidency are frozen, its human control period and score close atomically at the committed terminal day, its access is revoked, and other countries continue on the same world clock. The French slot is explicitly `succession_pending`, not falsely advertised as an elected successor. No diplomatic autopilot acts for that unresolved national slot. Full independent post-mandate succession and recurring playable French presidents remain open; pre-WP105 managed worlds are not silently rewritten. Solo campaign termination remains unchanged.
+
+
+## WP106–WP110 grouped increment
+
+Apply additive migration 031 before deploying this managed-world service; stop the tick worker and use the reviewed backup procedure. New universes pin electoral succession v2; existing v1 histories remain unchanged. An ordinary resolved fictional election closes the outgoing office at handover and installs the successor alias as a new AI-controlled office on the next published day. Optional French domestic presets create proposals only; certified legal activation is still required. Use the read-only CLI audit-universe.php UNIVERSE_NO with a dedicated SELECT-only connection and a coherent committed day. Composite rankings remain experimental and France-only. See the remaining-backend document for residual gates.

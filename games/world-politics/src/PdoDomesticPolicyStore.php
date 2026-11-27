@@ -6,6 +6,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/DomesticPolicySimulation.php';
 require_once __DIR__.'/WorldMutationFence.php';
 require_once __DIR__.'/DailyLegalActivation.php';
+require_once __DIR__.'/UniverseAutonomy.php';
 
 interface PersistentDomesticPolicyAuthority extends DomesticPolicyAuthority
 {
@@ -103,6 +104,7 @@ final class PdoDomesticPolicyStore
                 if(isset($source['frf_committed_observation'])&&!hash_equals($before,$source['prior_domestic_sha']??''))throw new \DomainException('Stale native budget source');
             }
             if($operation==='clock'&&isset($sim->snapshot()['daily_legal_version']))DailyLegalActivation::apply($this->pdo,$sim,$world,$payload['target_day'],$actor);
+            if($operation==='clock')UniverseAutonomy::proposeDomestic($this->pdo,$sim,$world,$actor,$payload['target_day']);
             $result = match($operation) {
                 'propose'=>$this->propose($sim,$payload),
                 'enact'=>$this->enact($sim,$payload),
@@ -110,6 +112,7 @@ final class PdoDomesticPolicyStore
             };
             $this->sameActor($world,$ability,$actor);
             $this->sameActor($world,'domestic.read',$actor);
+            if(in_array($operation,['propose','crisis','corporation'],true))UniverseAutonomy::markDomestic($this->pdo,$world,$actor,$sim->snapshot()['day']);
             $after = $sim->hash();
             $revision = (int)$row['revision']+1;
             $response = ['status'=>$operation==='propose'?202:200,'result'=>$result,
