@@ -5,7 +5,19 @@ require_once __DIR__.'/ResearchExperiment.php';
 
 final class ResearchQueue
 {
-    public function __construct(private readonly \PDO $db){}
+    private readonly string $evidenceKey;
+    public function __construct(private readonly \PDO $db){
+        $key=getenv('WP_RESEARCH_EVIDENCE_KEY');
+        if(!is_string($key)||strlen($key)<32||$key===getenv('WP_CAREER_EVIDENCE_KEY'))throw new \DomainException('Independent research evidence key required');
+        $this->evidenceKey=$key;
+    }
+    private function seal(array $p):string{return hash_hmac('sha256',ResearchExperiment::json($p),$this->evidenceKey);}
+    private function requestSeal(string $id,string $tenant,string $request,string $manifest):string{
+        return $this->seal(['kind'=>'research-request-v1','job'=>$id,'tenant'=>$tenant,'request'=>$request,'manifest'=>$manifest]);
+    }
+    private function resultSeal(string $id,string $tenant,string $requestSignature,string $result):string{
+        return $this->seal(['kind'=>'research-result-v1','job'=>$id,'tenant'=>$tenant,'request_signature'=>$requestSignature,'result'=>$result]);
+    }
     private function q(string $sql,array $p=[]):\PDOStatement{$q=$this->db->prepare($sql);$q->execute($p);return $q;}
     private function tx(callable $f):mixed{
         $this->db->beginTransaction();try{$r=$f();$this->db->commit();return $r;}
@@ -35,6 +47,19 @@ final class ResearchQueue
         $r=$this->q('SELECT k.tenant_id FROM wp_research_keys k JOIN wp_research_tenants t USING(tenant_id) WHERE k.key_sha=? AND k.expires_at>? AND k.revoked=0 AND t.enabled=1'.($lock?' FOR UPDATE':''),[hash('sha256',$token),time()])->fetchColumn();
         return is_string($r)?$r:null;
     }
+    /** Authenticated request admission, serialized with tenant/key changes. */
+    public function admit(string $token):?bool{
+        return $this->tx(function()use($token){
+            $tenant=$this->authenticate($token,true);if($tenant===null)return null;
+            $minute=intdiv(time(),60);
+            $r=$this->q('SELECT minute_no,requests FROM wp_research_rate WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
+            $count=$r!==false&&(int)$r['minute_no']===$minute?(int)$r['requests']:0;
+            if($count>=120)return false;
+            $this->q('INSERT INTO wp_research_rate(tenant_id,minute_no,requests) VALUES(?,?,?) ON DUPLICATE KEY UPDATE minute_no=VALUES(minute_no),requests=VALUES(requests)',
+                [$tenant,$minute,$count+1]);
+            return true;
+        });
+    }
     private function authorized(string $token):string{
         $tenant=$this->authenticate($token,true);if($tenant===null)throw new \DomainException('Invalid research credential');return $tenant;
     }
@@ -51,8 +76,9 @@ final class ResearchQueue
             // Validate the bounded deterministic contract before admitting a job.
             $pin=ResearchExperiment::pin();ResearchExperiment::run($request,$pin);
             $id=bin2hex(random_bytes(16));
-            $this->q('INSERT INTO wp_research_jobs(job_id,tenant_id,request_key,request_sha,request_json,manifest_json,created_at) VALUES(?,?,?,?,?,?,?)',
-                [$id,$tenant,$key,$sha,ResearchExperiment::json($request),ResearchExperiment::json($pin),time()]);
+            $requestJson=ResearchExperiment::json($request);$manifestJson=ResearchExperiment::json($pin);
+            $this->q('INSERT INTO wp_research_jobs(job_id,tenant_id,request_key,request_sha,request_json,manifest_json,request_signature,created_at) VALUES(?,?,?,?,?,?,?,?)',
+                [$id,$tenant,$key,$sha,$requestJson,$manifestJson,$this->requestSeal($id,$tenant,$requestJson,$manifestJson),time()]);
             return ['job_id'=>$id];
         });
     }
@@ -60,12 +86,16 @@ final class ResearchQueue
         self::id($id);
         return $this->tx(function()use($token,$id){
             $tenant=$this->authorized($token);
-            $r=$this->q('SELECT job_id,status,created_at,completed_at,result_json,result_sha,error_code FROM wp_research_jobs WHERE job_id=? AND tenant_id=?',[$id,$tenant])->fetch(\PDO::FETCH_ASSOC);
+            $r=$this->q('SELECT job_id,status,created_at,completed_at,result_json,result_sha,result_signature,request_json,manifest_json,request_signature,error_code FROM wp_research_jobs WHERE job_id=? AND tenant_id=?',[$id,$tenant])->fetch(\PDO::FETCH_ASSOC);
             if($r===false)return null;
+            if(!hash_equals($r['request_signature'],$this->requestSeal($id,$tenant,$r['request_json'],$r['manifest_json'])))throw new \DomainException('Request seal mismatch');
             $result=null;if($r['result_json']!==null){
-                if(!hash_equals($r['result_sha'],hash('sha256',$r['result_json'])))throw new \DomainException('Result digest mismatch');
+                if($r['status']!=='complete'||!is_string($r['result_sha'])||!is_string($r['result_signature'])
+                    ||!hash_equals($r['result_sha'],hash('sha256',$r['result_json']))
+                    ||!hash_equals($r['result_signature'],$this->resultSeal($id,$tenant,$r['request_signature'],$r['result_json'])))
+                    throw new \DomainException('Result digest or seal mismatch');
                 $result=json_decode($r['result_json'],true,64,JSON_THROW_ON_ERROR);
-            }
+            }elseif($r['status']==='complete')throw new \DomainException('Missing completed result');
             return ['job_id'=>$r['job_id'],'status'=>$r['status'],'created_at'=>(int)$r['created_at'],
                 'completed_at'=>$r['completed_at']===null?null:(int)$r['completed_at'],'result'=>$result,'error_code'=>$r['error_code']];
         });
@@ -84,14 +114,17 @@ final class ResearchQueue
             if($r===false)return null;
             $status='complete';$json=null;$error=null;
             try{
+                if(!hash_equals($r['request_signature'],$this->requestSeal($r['job_id'],$r['tenant_id'],$r['request_json'],$r['manifest_json'])))
+                    throw new \DomainException('Request seal');
                 $request=json_decode($r['request_json'],true,32,JSON_THROW_ON_ERROR);
                 if(!hash_equals($r['request_sha'],ResearchExperiment::hash($request)))throw new \DomainException('Request digest');
                 $pin=json_decode($r['manifest_json'],true,32,JSON_THROW_ON_ERROR);
                 $result=ResearchExperiment::run($request,$pin);$json=ResearchExperiment::json($result);
                 if(strlen($json)>262144)throw new \DomainException('Result bound');
             }catch(\DomainException|\JsonException $e){$status='failed';$error='invalid_or_changed_evidence';$json=null;}
-            $this->q('UPDATE wp_research_jobs SET status=?,completed_at=?,result_json=?,result_sha=?,error_code=? WHERE job_id=?',
-                [$status,time(),$json,$json===null?null:hash('sha256',$json),$error,$r['job_id']]);
+            $signature=$json===null?null:$this->resultSeal($r['job_id'],$r['tenant_id'],$r['request_signature'],$json);
+            $this->q('UPDATE wp_research_jobs SET status=?,completed_at=?,result_json=?,result_sha=?,result_signature=?,error_code=? WHERE job_id=?',
+                [$status,time(),$json,$json===null?null:hash('sha256',$json),$signature,$error,$r['job_id']]);
             return ['job_id'=>$r['job_id'],'status'=>$status];
         });
     }

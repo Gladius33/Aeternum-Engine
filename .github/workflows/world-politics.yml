@@ -458,6 +458,7 @@ jobs:
       WP_RESEARCH_DB_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_research_test;charset=utf8mb4
       WP_RESEARCH_DB_USER: wp_research_test
       WP_RESEARCH_DB_PASSWORD: ci-only
+      WP_RESEARCH_EVIDENCE_KEY: ci-only-research-evidence-not-for-deployment
       WP_RESEARCH_OPERATOR: 'YES'
       WP_RESEARCH_TEST: 'YES'
       WP_RESEARCH_ENABLED: 'YES'
@@ -473,6 +474,11 @@ jobs:
           coverage: none
       - name: Dedicated research database and real HTTP acceptance
         run: |
+          tmp=$(mktemp -d)
+          bash games/world-politics/bin/package-alpha.sh "$GITHUB_SHA" "$tmp/research-source.tar.gz"
+          tar -xzf "$tmp/research-source.tar.gz" -C "$tmp"
+          cd "$tmp/world-politics"
+          find games/world-politics/research -name '*.php' -print0 | xargs -0 -n1 php -l
           php games/world-politics/research/operator.php install
           php -S 127.0.0.1:18731 games/world-politics/research/public/index.php > /tmp/research-http.log 2>&1 &
           pid=$!
@@ -482,3 +488,25 @@ jobs:
             sleep 1
           done
           php tests/wp123-research-http.php
+
+  wp125-source-handoff:
+    needs: [headless-contract, mariadb-rosters, private-alpha-http, research-isolated-http]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Deterministic exact-commit source handoff
+        run: |
+          mkdir -p handoff
+          bash games/world-politics/bin/package-alpha.sh "$GITHUB_SHA" "handoff/world-politics-source.tar.gz"
+          (cd handoff && sha256sum world-politics-source.tar.gz > SHA256SUMS)
+          printf '%s\n' "$GITHUB_SHA" > handoff/COMMIT_SHA
+          printf '%s\n' 'Engineering source candidate; reduced reference inputs; not production authorization.' > handoff/STATUS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: world-politics-backend-source-${{ github.sha }}
+          path: handoff/
+          if-no-files-found: error
+          retention-days: 14

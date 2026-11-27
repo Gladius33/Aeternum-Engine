@@ -6,6 +6,7 @@ use Aeternum\WorldPolitics\{ResearchQueue as Q,ResearchGateway as G};
 function ckResearch(bool $b,string $m):void{if(!$b)throw new RuntimeException($m);}
 $db=new PDO(getenv('WP_TEST_DSN'),getenv('WP_TEST_USER'),getenv('WP_TEST_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
 $db->exec(file_get_contents(__DIR__.'/../games/world-politics/research/database/001_research.sql'));
+putenv('WP_RESEARCH_EVIDENCE_KEY=ci-only-research-evidence-not-for-deployment');
 $q=new Q($db);$g=new G($q);
 $a=$q->createTenant();$b=$q->createTenant();
 $head=fn($t,$key='research-test-key-01')=>['authorization'=>'Bearer '.$t,'content-type'=>'application/json','idempotency-key'=>$key];

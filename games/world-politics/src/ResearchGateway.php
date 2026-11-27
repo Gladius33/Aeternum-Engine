@@ -12,9 +12,11 @@ final class ResearchGateway
         try{
             if(strlen($raw)>16384||strlen($path)>256)return self::response(413,['code'=>'request_bound']);
             $h=array_change_key_case($headers,CASE_LOWER);
-            if(!preg_match('/^Bearer ([a-f0-9]{64})$/D',$h['authorization']??'',$m)||$this->queue->authenticate($m[1])===null)
+            if(!preg_match('/^Bearer ([a-f0-9]{64})$/D',$h['authorization']??'',$m))
                 return self::response(401,['code'=>'research_authentication_required']);
-            $token=$m[1];
+            $token=$m[1];$admitted=$this->queue->admit($token);
+            if($admitted===null)return self::response(401,['code'=>'research_authentication_required']);
+            if(!$admitted)return self::response(429,['code'=>'research_rate_limited']);
             if($method!=='POST'&&$raw!=='')return self::response(400,['code'=>'body_forbidden']);
             if($method==='GET'&&$path==='/research/v1/models')return self::response(200,['models'=>ResearchExperiment::TYPES,'manifest'=>ResearchExperiment::pin()]);
             if($method==='POST'&&$path==='/research/v1/experiments'){
