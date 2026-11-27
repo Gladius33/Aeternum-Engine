@@ -69,7 +69,7 @@ final class ResearchQueue
         return $this->tx(fn()=>ResearchBilling::usage($this->db,$this->authorized($token)));
     }
     private function entitlement(string $tenant):array{
-        $r=$this->q('SELECT plan,paid_until,share_dataset,admin_exempt FROM wp_research_tenants WHERE tenant_id=? AND enabled=1 AND (paid_until>? OR admin_exempt=1 OR billing_mode='payg') FOR UPDATE',[$tenant,time()])->fetch(\PDO::FETCH_ASSOC);
+        $r=$this->q('SELECT plan,paid_until,share_dataset,admin_exempt FROM wp_research_tenants WHERE tenant_id=? AND enabled=1 AND (paid_until>? OR admin_exempt=1 OR billing_mode=\'payg\') FOR UPDATE',[$tenant,time()])->fetch(\PDO::FETCH_ASSOC);
         if($r===false)throw new \DomainException('Research entitlement expired');
         return $r;
     }
@@ -143,7 +143,7 @@ final class ResearchQueue
             $id=$this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? AND plan=? AND billing_mode=? AND admin_exempt=1 AND enabled=1'.($lock?' FOR UPDATE':''),[$admin['tenant'],$admin['plan'],$admin['mode']])->fetchColumn();
             return is_string($id)?$id:null;
         }
-        $r=$this->q('SELECT k.tenant_id FROM wp_research_keys k JOIN wp_research_tenants t USING(tenant_id) WHERE k.key_sha=? AND k.expires_at>? AND k.revoked=0 AND t.enabled=1 AND t.admin_exempt=0 AND (t.paid_until>? OR t.billing_mode='payg')'.($lock?' FOR UPDATE':''),[hash('sha256',$token),time(),time()])->fetchColumn();
+        $r=$this->q('SELECT k.tenant_id FROM wp_research_keys k JOIN wp_research_tenants t USING(tenant_id) WHERE k.key_sha=? AND k.expires_at>? AND k.revoked=0 AND t.enabled=1 AND t.admin_exempt=0 AND (t.paid_until>? OR t.billing_mode=\'payg\')'.($lock?' FOR UPDATE':''),[hash('sha256',$token),time(),time()])->fetchColumn();
         return is_string($r)?$r:null;
     }
     /** Authenticated request admission, serialized with tenant/key changes. */
