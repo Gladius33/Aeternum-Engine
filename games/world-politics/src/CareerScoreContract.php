@@ -66,7 +66,7 @@ final class CareerScoreContract
         foreach($state['series'] as $id=>$series){
             if($series['career']!==$careerId)continue;
             $start=$series['start'];$end=$series['end'];
-            if($end!==null&&$end<=$joined)continue; // previous AI history
+            if(isset($c['claimed_on'])&&$end!==null&&$end<=$joined)continue; // previous AI history
             $humanStart=max($joined,$start);
             if($end===null){
                 $mid=$state['active']['president']??null;
@@ -79,12 +79,13 @@ final class CareerScoreContract
             if($cutoff<$humanStart)continue;
             $tenure=self::elapsed($humanStart,$cutoff);
             // An inherited AI series cannot earn an opening-accession bonus,
-            // even if the account claimed it on the opening day.
+            // even if claimed on the opening day. A real identity claimed before
+            // its first accession is treated like a fictional opening career.
             $maximum=$mode==='opening'&&$series['first']&&$start>=$joined
-                &&!isset($c['claimed_on'])?self::elapsed($joined,$start):0;
+                &&(!isset($c['claimed_on'])||$joined<$start)?self::elapsed($joined,$start):0;
             $out[]=['series_id'=>$id,'accession_on'=>$start,'human_tenure_from'=>$humanStart,
                 'through_day'=>$cutoff,'status'=>$status,'tenure_days'=>$tenure,
-                'tenure_time_points'=>self::timePoints($tenure),'maximum_unverified_credit_days'=>$maximum,
+                'tenure_time_points'=>self::timePoints($tenure),'minimum_tenure_reached'=>$tenure>=self::MIN_TENURE,'maximum_unverified_credit_days'=>$maximum,
                 'maximum_unverified_credit_points'=>self::timePoints($tenure+$maximum)-self::timePoints($tenure),
                 'verified_credit_days'=>null,'purchasing_power_gain_bps'=>null,'score'=>null,'rankable'=>false];
         }

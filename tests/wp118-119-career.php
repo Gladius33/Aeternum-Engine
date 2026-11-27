@@ -216,7 +216,7 @@ foreach(['DE','ES','GB','IT','JP','US'] as $cc){
     $inst->enableElectoral($config);$inst->enablePoliticalAI();$inst->enableForeignRecurring();$inst->enableFormationProtocol();$inst->enableAutonomousFormation();
     ck(\Aeternum\WorldPolitics\InstitutionalSimulation::restore($inst->snapshot())->snapshot()===$inst->snapshot(),'versioned career electoral bootstrap '.$cc);
 }
-echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";
+
 
 
 $progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($s,'c','2028-07-15');
@@ -235,3 +235,14 @@ $ce=evt($claimed,'claim_real_career',$claim,'2028-05-14');$ce['actor']='career-a
 $claimed=L::apply($claimed,$ce);
 $progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($claimed,'real-jean-luc-melenchon','2029-05-14');
 ck($progress['admission_mode']==='late_takeover'&&$progress['series'][0]['tenure_days']===365&&$progress['series'][0]['maximum_unverified_credit_days']===0,'AI history is excluded from human tenure and compensation');
+
+$early=change($real,'appointment',[],[grant('prime-minister','real-jean-luc-melenchon')]);
+$earlyEvent=evt($early,'claim_real_career',$claim);$earlyEvent['actor']='career-admission';$earlyEvent['evidence_sha']=L::digest(['kind'=>'approved-real-career-claim-v1','world'=>$early['world'],'day'=>$earlyEvent['day'],'payload'=>$claim]);
+$early=L::apply($early,$earlyEvent);
+$early=change($early,'resignation',['prime-minister'],[],'2027-07-15');
+$early=change($early,'election',[],[grant('president','real-jean-luc-melenchon','2032-07-15')],'2027-07-15');
+$progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($early,'real-jean-luc-melenchon','2028-07-15');
+ck($progress['series'][0]['maximum_unverified_credit_days']===62&&$progress['series'][0]['minimum_tenure_reached'],'opening real claim before accession has same potential credit as fictional career');
+$progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($early,'real-jean-luc-melenchon','2032-07-16');
+ck($progress['series'][0]['status']==='expiry_pending'&&$progress['series'][0]['through_day']==='2032-07-15'&&$progress['score']===null,'unresolved expiry cannot accrue tenure');
+echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";
