@@ -124,6 +124,8 @@ final class PrimaryManifestoPolicy
             $net=intdiv($a['reference_monthly_net_eur']*$increase,10000);
             $r['affected_persons_proxy']=$a['workers'];$r['annual_expense_delta_eur']=intdiv($net*$a['employer_cost_bps'],10000)*$a['workers']*12;
             $r['wage_premium_bps']=intdiv($increase*min($a['workers'],$employed),max(1,$employed));
+        }elseif($f==='wage-setting'){
+            $r['institutional_regime_only']=true;$r['branch_validation_required']=true;
         }elseif($f==='adaptation-fund'){
             // The stated envelope is restricted to its budget year. No invented
             // climate resilience or guaranteed implementation effect.

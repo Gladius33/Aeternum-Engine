@@ -82,7 +82,7 @@ final class SocialEconomy
     }
     /** Prior-day anchors; no dependence on today's not-yet-calculated GDP.
      * Multiple active laws may affect distinct families only. */
-    public static function calculate(array $active,array $policies,string $day,array $population,array $services,array $macro,?array $prior,array $sensitivity=[],array $primarySensitivity=[]):array
+    public static function calculate(array $active,array $policies,string $day,array $population,array $services,array $macro,?array $prior,array $sensitivity=[],array $primarySensitivity=[],?int $indexedSmic=null):array
     {
         // Sensitivity is an offline analytical tool. The authoritative
         // daily clock never passes this parameter, preserving replay.
@@ -110,7 +110,7 @@ final class SocialEconomy
         $unemployed=self::scale($labour,$u);$employed=$labour-$unemployed;
         $recipients=$services['pension_recipients'];$pensionDaily=$services['baseline_daily_public_minor']['pensions'];
         $referencePension=intdiv($pensionDaily*365,max(1,$recipients)*12);
-        $smic=$a['reference_net_smic_minor'];$hours=$a['reference_workweek_hours'];
+        $smic=$indexedSmic??$a['reference_net_smic_minor'];$hours=$a['reference_workweek_hours'];
         $netFloor=$smic;
         foreach($active as $id){$d=SocialProgramme::definition($id);if(($d['family']??null)==='wage-floor'&&!SocialProgramme::isRepeal($id)){$t=$d['target'];$netFloor=self::wageFloor($t,$smic,$a['employee_rate_bps']);}}
         $tax=0;$benefits=0;$pensionTransfer=0;$production=0;$employment=0;$wage=0;$details=[];

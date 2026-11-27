@@ -8,8 +8,12 @@ final class CorporationWageFeedback
     public const VERSION='wp54r-wage-feedback-v1';
     private const WEIGHTS=['agriculture'=>300,'industry'=>1600,'construction'=>800,'commerce'=>1700,
         'transport'=>700,'health'=>800,'education'=>400,'digital'=>600,'finance'=>700,'other-services'=>2400];
+    public static function weightedFloor(array $state):int{
+        $sum=0;foreach(self::WEIGHTS as $id=>$weight){$floor=$state['branches'][$id]['minimum_net_minor']??null;if(!is_int($floor)||$floor<1||$floor>100000000)throw new \DomainException('Invalid branch minimum');$sum+=$floor*$weight;}return intdiv($sum,10000);
+    }
     public static function premium(array $state):int
     {
+        if(($state['minimum_wage_regime']??null)==='state_validated_branches')return max(-3000,min(3000,intdiv(self::weightedFloor($state)*10000,max(1,$state['minimum_reference_minor']))-10000));
         $sum=0;
         foreach(self::WEIGHTS as $id=>$weight){
             $index=$state['branches'][$id]['wage_index_bps']??null;

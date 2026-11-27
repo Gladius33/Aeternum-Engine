@@ -21,6 +21,7 @@ final class FrenchV1Policy
             ['frv1-ruffin-smic',136,'wages','wage-floor',['monthly_net_eur'=>1600],[]],
             ['frv1-faure-smic',137,'wages','wage-floor',['monthly_net_eur'=>1700],[]],
             ['frv1-faure-pension',138,'retirement','pension',['age'=>62],[]],
+            ['frv1-benedetti-branch-wage',140,'employment','wage-setting',['regime'=>'state_validated_branches'],['review_frequency'=>'quarterly','state_review_delay_days'=>7]],
         ];
         $out=[];foreach($rows as [$id,$bit,$domain,$family,$target,$parameters])$out[$id]=['bit'=>$bit,'domain'=>$domain,'family'=>$family,'target'=>$target,'parameters'=>$parameters,'assumptions'=>$zero,'classification'=>'fictional_public_source_cohort_proxy','model_version'=>self::VERSION];
         return $out;

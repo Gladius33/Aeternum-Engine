@@ -54,10 +54,27 @@ final class ProfessionalCorporations
     private static function toward(int $a,int $b):int
     {$d=$b-$a;return $a+($d===0?0:($d>0?1:-1)*max(1,intdiv(abs($d),20)));}
     /** Daily state uses previous committed macro evidence only. */
-    public static function step(array $state,string $day,?string $action,?array $macro):array
+    public static function step(array $state,string $day,?string $action,?array $macro,?array $minimumContext=null):array
     {
         if($day!==(new \DateTimeImmutable($state['day']))->modify('+1 day')->format('Y-m-d'))throw new \DomainException('Nonconsecutive corporation day');
         $state['day']=$day;
+        $minimumActive=($minimumContext['active']??false)===true;
+        $wasMinimum=($state['minimum_wage_regime']??null)==='state_validated_branches';
+        if($wasMinimum&&!$minimumActive){
+            // Repeal ends the branch-minimum law, not ordinary collective bargaining.
+            unset($state['minimum_wage_regime'],$state['minimum_reference_minor']);
+            foreach($state['branches'] as &$b){unset($b['minimum_net_minor']);if(isset($b['report']['proposed_minimum_minor'])&&$b['report']['status']==='pending_state_review'){$b['report']['status']='cancelled';$b['revote_on']=null;}}unset($b);
+        }
+        // Statutory default review after seven days, only if no explicit State
+        // decision for that day. No approval before both colleges vote.
+        $automaticReview=false;
+        if($minimumActive&&$wasMinimum&&$action===null){
+            foreach($state['branches'] as $sector=>$b){
+                $r=$b['report'];
+                if(($r['status']??null)!=='pending_state_review'||!isset($r['proposed_minimum_minor'])||$r['day']>(new \DateTimeImmutable($day))->modify('-7 days')->format('Y-m-d'))continue;
+                $action='approve:'.$sector;$automaticReview=true;break;
+            }
+        }
         if($action!==null){
             self::validateEvent($state,$action);[$kind,$sector]=self::parse($action);
             if(str_starts_with($kind,'establish-')){
@@ -84,12 +101,28 @@ final class ProfessionalCorporations
             }else{
                 $b=&$state['branches'][$sector];
                 if($kind==='approve'){
-                    $b['wage_index_bps']=intdiv($b['wage_index_bps']*(10000+$b['report']['proposed_wage_change_bps']),10000);
+                    if($minimumActive&&isset($b['report']['proposed_minimum_minor'],$b['minimum_net_minor'])){
+                        $b['minimum_net_minor']=$b['report']['proposed_minimum_minor'];$b['report']['state_review_kind']=$automaticReview?'statutory_default_review':'explicit_state_review';
+                    }else $b['wage_index_bps']=max(10000,intdiv($b['wage_index_bps']*(10000+$b['report']['proposed_wage_change_bps']),10000));
                     $b['report']['status']='approved';
                 }else{
                     $b['report']['status']='returned';$b['revote_on']=(new \DateTimeImmutable($day))->modify('+7 days')->format('Y-m-d');
                 }
                 $b['report']['state_decision_day']=$day;unset($b);
+            }
+        }
+        if($minimumActive){
+            if($state['mode']==='pluralist'){
+                $state['mode']='parallel';$state['frequency']='quarterly';$state['next_report']=self::nextReport($day,'quarterly');
+            }
+            if(!$wasMinimum){
+                $opening=$minimumContext['opening_floor_minor'];
+                if(!is_int($opening)||$opening<1||$opening>100000000)throw new \DomainException('Invalid opening branch minimum');
+                $state['minimum_wage_regime']='state_validated_branches';$state['minimum_reference_minor']=$opening;
+                foreach($state['branches'] as &$b){
+                    $b['minimum_net_minor']=$opening;
+                    if(($b['report']['status']??null)==='pending_state_review'){$b['report']['status']='cancelled';$b['revote_on']=null;}
+                }unset($b);
             }
         }
         $active=$state['mode']!=='pluralist';$exclusive=$state['mode']==='exclusive_contested';
@@ -103,6 +136,12 @@ final class ProfessionalCorporations
             if(!$active||(!$period&&!$revote)||($b['report']['status']??null)==='pending_state_review')continue;
             $round=$revote?($b['report']['round']+1):1;
             $proposal=max(0,min(500,200+intdiv(800-$u,10)-($round-1)*25));
+            if($minimumActive){
+                // Transparent synthetic sector sensitivity, not observed branch wages.
+                $offset=(array_search($id,self::SECTORS,true)-4)*15;
+                $inflation=max(-1000,min(3000,(int)($macro['annual_inflation_bps']??200)));
+                $proposal=max(-500,min(500,intdiv($inflation,4)+intdiv(800-$u,4)+$offset-($round-1)*25));
+            }
             // Two autonomous fictional colleges; neither the government nor a
             // single social class can certify a branch proposal unilaterally.
             $worker=max(0,min(10000,6500+2*$proposal-intdiv($state['worker_opposition'],2)));
@@ -111,6 +150,7 @@ final class ProfessionalCorporations
             $b['report']=['day'=>$day,'round'=>$round,'proposed_wage_change_bps'=>$proposal,
                 'employee_yes_bps'=>$worker,'employer_yes_bps'=>$employer,
                 'status'=>$passed?'pending_state_review':'branch_vote_failed','state_decision_day'=>null];
+            if($minimumActive)$b['report']['proposed_minimum_minor']=max(1,intdiv($b['minimum_net_minor']*(10000+$proposal),10000));
             $b['revote_on']=$passed?null:(new \DateTimeImmutable($day))->modify('+7 days')->format('Y-m-d');
         }unset($b);
         return $state;

@@ -172,7 +172,7 @@ final class CampaignCandidate
         $reviewed=self::programme2027Reference()['reviewed_measures'];
         $base=FrenchPublicSourceEditions::choices($reviewed);
         $expanded=FrenchExpandedProgramme::choices($base,$reviewed);
-        return $all=[...self::provisionalChoices(),...$base,...$expanded,...FrenchV1QuantitativeEditions::choices([...$base,...$expanded])];
+        return $all=[...self::provisionalChoices(),...$base,...$expanded,...FrenchV1QuantitativeEditions::choices([...$base,...$expanded]),FrenchV1QuantitativeEditions::corporatistChoice($base)];
     }
     public static function v1Choices():array{
         // Most recent edition per identity; previous IDs remain selectable.
@@ -210,6 +210,8 @@ final class CampaignCandidate
         foreach($r['people'] as &$person){$v=$byName[$person['name']]??null;$person['v1_reference_id']=$v['id']??null;$person['v1_playable']=$v!==null&&$v['playable'];$person['v1_autonomy_scope']=$v===null?'none':($v['autonomy_scope']??'reviewed_mapped_subset');}unset($person);
         $r['v1_playable_count']=count(array_filter($r['people'],fn($p)=>$p['v1_playable']));
         $r['full_programme_playable_count']=$r['playable_count'];
+        $r['unmapped_domain_default']='continue_enacted_law_and_economic_dynamics';
+        $r['missing_proposal_is_not_opposition']=true;
         return $r;
     }
     public static function options():array

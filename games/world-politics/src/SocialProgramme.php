@@ -124,6 +124,7 @@ final class SocialProgramme
             'bit'=>$bit,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
             'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         $d['social-repeal-adaptation-fund']=['bit'=>139,'domain'=>'social_repeal','family'=>'adaptation-fund','target'=>['repeal_family'=>'adaptation-fund'],'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
+        $d['social-repeal-wage-setting']=['bit'=>141,'domain'=>'social_repeal','family'=>'wage-setting','target'=>['repeal_family'=>'wage-setting'],'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         return $cached=$d;
     }
     public static function objectiveId(string $id):string

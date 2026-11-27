@@ -255,9 +255,15 @@ final class DomesticPolicySimulation
             $concessionCost+=$a['concession_daily_cost']??0;
             $production+=$a['production_delta_bps']??0; $employment+=$a['employment_delta_bps']??0;
         }
-        $social=null;
+        $social=null;$nationalFloor=null;$branchMinimumActive=false;
+        if($socialV2&&isset($this->catalog['frv1-benedetti-branch-wage'])){
+            require_once __DIR__.'/WageFloorRegime.php';
+            $previous=$this->days===[]?null:$this->days[array_key_last($this->days)];
+            $nationalFloor=WageFloorRegime::national($target,$previous);
+            foreach($active as $id)if(SocialProgramme::objectiveId($id)===WageFloorRegime::POLICY)$branchMinimumActive=true;
+        }
         if($socialV2){
-            $social=SocialEconomy::calculate($active,$this->policies,$target,$this->populationModel,$this->servicesModel,$this->macroBaseline,$this->days===[]?null:$this->days[array_key_last($this->days)]);
+            $social=SocialEconomy::calculate($active,$this->policies,$target,$this->populationModel,$this->servicesModel,$this->macroBaseline,$this->days===[]?null:$this->days[array_key_last($this->days)],[],[],$nationalFloor['monthly_net_minor']??null);
             $revenue+=$social['daily_revenue_delta_minor'];$expense+=$social['daily_expense_delta_minor']-$social['pension_transfer_delta_minor'];$production+=$social['production_delta_bps'];$employment+=$social['employment_delta_bps'];
         }
         if ($revenue < 0 || $expense < 0) throw new \DomainException('Scenario implies negative gross fiscal flow');
@@ -278,9 +284,15 @@ final class DomesticPolicySimulation
         }
         if($this->corporationsEnabled){
             $previous=$this->days===[]?null:$this->days[array_key_last($this->days)];
-            $corporations=ProfessionalCorporations::step($previous['corporations']??ProfessionalCorporations::initial($this->startDay),$target,$corporationAction,$previous['macro']??null);
+            $corporations=ProfessionalCorporations::step($previous['corporations']??ProfessionalCorporations::initial($this->startDay),$target,$corporationAction,$previous['macro']??null,$nationalFloor===null?null:['active'=>$branchMinimumActive,'opening_floor_minor'=>$previous['social_economy']['monthly_net_floor_minor']??$social['monthly_net_floor_minor']]);
             $deltas['workers']+=intdiv($corporations['worker_opposition'],4);
             $production-=intdiv($corporations['employer_resistance'],2);
+        }
+        if($nationalFloor!==null&&$social!==null){
+            $social['wage_floor_regime']=WageFloorRegime::report($nationalFloor,$social['monthly_net_floor_minor'],$corporations);
+            if($branchMinimumActive&&$social['wage_floor_regime']['weighted_branch_floor_minor']!==null){
+                $social['monthly_net_floor_minor']=$social['wage_floor_regime']['weighted_branch_floor_minor'];
+            }
         }
         if($this->macroBaseline!==null){
             $prior=$this->days===[]?null:$this->days[array_key_last($this->days)];
@@ -405,7 +417,7 @@ final class DomesticPolicySimulation
         $primary=array_intersect_key(PrimaryManifestoPolicy::definitions(),$catalog);
         $publicV1=array_intersect_key(FrenchV1Policy::definitions(),$catalog);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:[FirmEconomy::VERSION,$this->firmModel]),...($this->publicEquityEnabled?[PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?[IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?[$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[]),...($this->financeAutonomy?['wp82-finance-requests-v1']:[]),...($this->socialEconomyFrom===null?[]:[SocialEconomy::VERSION,$this->socialEconomyFrom,SocialEconomy::ASSUMPTIONS]),...($primary===[]?[]:[PrimaryManifestoPolicy::VERSION,$primary]),...($publicV1===[]?[]:[FrenchV1Policy::VERSION,$publicV1])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:[FirmEconomy::VERSION,$this->firmModel]),...($this->publicEquityEnabled?[PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?[IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?[$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[]),...($this->financeAutonomy?['wp82-finance-requests-v1']:[]),...($this->socialEconomyFrom===null?[]:[SocialEconomy::VERSION,$this->socialEconomyFrom,SocialEconomy::ASSUMPTIONS]),...($primary===[]?[]:[PrimaryManifestoPolicy::VERSION,$primary]),...($publicV1===[]?[]:[FrenchV1Policy::VERSION,$publicV1]),...(isset($catalog['frv1-benedetti-branch-wage'])?['fr-wage-floor-regime-v1']:[])]);
     }
 
     public function snapshot(): array
