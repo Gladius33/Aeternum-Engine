@@ -67,6 +67,10 @@ final class SocialProgramme
             'pf2027-jean-luc-melenchon-pension'=>['bit'=>79,'domain'=>'retirement','family'=>'pension',
                 'target'=>['age'=>60,'contribution_years'=>40],'assumptions'=>$zero,
                 'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-ecologistes-renovation'=>['bit'=>80,'domain'=>'housing','family'=>'renovation',
+                'target'=>['annual_units'=>500000],'assumptions'=>$zero,
+                'parameters'=>['reference_annual_units'=>200000,'public_cost_per_unit_eur'=>10000],
+                'classification'=>'fictional_2027_cohort_proxy'],
         ];
     }
     // Stable allocation beyond the original 24 historical bits.
