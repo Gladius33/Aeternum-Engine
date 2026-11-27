@@ -166,4 +166,10 @@ $fe=evt($f,'foreign_government',$fp,'2027-05-16');$fe['actor']='career-comparati
 $f=L::apply($f,$fe);$fm=$f['active']['federal-chancellor'];
 ck(L::allows($f,'acct-a',$fm,1,'foreign.government.represent','2027-05-16')&&!L::allows($f,'acct-a',$fm,1,'president.request_dissolution','2027-05-16'),'country-specific authority');
 no(fn()=>L::apply($f,$fe));
+require_once __DIR__.'/../games/world-politics/src/UniverseIdentityReference.php';
+$refs=\Aeternum\WorldPolitics\UniverseIdentityReference::catalogue();
+ck(count($refs)===43&&count($refs['FR']['people'])===22,'all managed country references');
+foreach($refs as $country=>$ref)ck(count($ref['people'])>=1&&$ref['country']===$country,'documentary coverage');
+ck($refs['CH']['government_mode']==='collective_executive_not_single_prime_minister','collective executive preserved');
+ck(!\Aeternum\WorldPolitics\UniverseIdentityReference::country('DE')['runtime_authority'],'documentary reference not a grant');
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";

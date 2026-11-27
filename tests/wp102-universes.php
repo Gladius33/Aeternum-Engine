@@ -22,6 +22,12 @@ ck102(join102(2,'FR',$no)['status']===409,'country exclusive');
 ck102(join102(1,'DE',$no,'wp102-double-claim')['status']===409,'one slot per account and universe');
 $directory=call102('GET','/universes',null,1)['body']['universes'];
 ck102(count($directory)===1&&$directory[0]['vacant']===42,'42 automatic slots');
+$refs102=call102('GET','/universes/'.$no.'/characters/CH',null,1);
+ck102($refs102['status']===200&&$refs102['body']['controller']==='ai'&&!$refs102['body']['runtime_identity_bound']&&$refs102['body']['reference']['government_mode']==='collective_executive_not_single_prime_minister','Swiss documentary directory not a presidential grant');
+$refs102=call102('GET','/universes/'.$no.'/characters/FR',null,1);
+ck102($refs102['status']===200&&$refs102['body']['is_you']&&count($refs102['body']['reference']['people'])===22,'French directory alongside actual slot');
+ck102(call102('GET','/universes/'.$no.'/characters/IL',null,1)['status']===404,'restricted slot absent');
+
 $before=call102('GET',$root.'/countries/FR/institutions',null,1);
 ck102($before['status']===200&&call102('GET',$root.'/clock',null,2)['status']===404,'read membership isolation');
 ck102(call102('POST',$root.'/clock/advances',['target_day'=>'2027-05-15'],1)['status']===403,'no human world clock grant');

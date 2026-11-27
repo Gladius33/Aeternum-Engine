@@ -110,6 +110,8 @@ final class AlphaGateway
                 catch(\InvalidArgumentException $e){throw new AlphaHttpError(422,'invalid_career_request');}
                 throw new AlphaHttpError(404,'not_found');
             }
+            if($method==='GET'&&preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/characters/([A-Z]{2})$~D',$path,$uc))
+                return self::ok(200,(new UniverseLobby($this->db()))->characters($session,(int)$uc[1],$uc[2]));
             if($path==='/api/v1/universes'&&$method==='GET')return self::ok(200,(new UniverseLobby($this->db()))->list($session));
             if($path==='/api/v1/universes/join'&&$method==='POST'){
                 if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');

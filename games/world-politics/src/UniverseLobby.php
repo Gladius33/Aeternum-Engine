@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/AlphaWorlds.php';
 require_once __DIR__.'/PresidentialProgramme.php';
 require_once __DIR__.'/ProgrammeProgress.php';
+require_once __DIR__.'/UniverseIdentityReference.php';
 
 /** Managed alpha universe pool. A claimed slot is control, not a new president. */
 final class UniverseLobby
@@ -44,6 +45,35 @@ final class UniverseLobby
             unset($r['pending_day'],$r['game_over']);
         }unset($r);
         return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),'historical_social_catalog'=>SocialProgramme::definitions(),'social_lifecycle_catalog'=>SocialProgramme::objectives(),'primary_quantitative_catalog'=>PrimaryManifestoPolicy::definitions(),'target_2027_catalog'=>SocialProgramme::target2027(),'primary_constitutional_catalog'=>PresidentialProgramme::primaryRevisionCatalog(),'opening_candidate_selection'=>['country'=>'FR','day'=>FrenchElectionCalendar::PRESIDENTIAL_HANDOVER,'first_control_only'=>true,'options'=>CampaignCandidate::options()],'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
+    }
+    /** A coherent documentary view alongside the existing national slot.
+     * Legacy slots are not silently rebound to a person or a new mandate. */
+    public function characters(AlphaSession $s,int $no,string $country):array{
+        if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+        if(!in_array($country,self::DIPLOMATIC_COUNTRIES,true))throw new AlphaHttpError(404,'not_found');
+        return $this->transaction(function()use($s,$no,$country){
+            $world=$this->query('SELECT world_id FROM wp_universes WHERE universe_no=?',[$no])->fetchColumn();
+            if(!is_string($world))throw new AlphaHttpError(404,'not_found');
+            $clock=$this->lockWorld($world);
+            $slot=$this->query('SELECT account_id,generation,closed_on FROM wp_universe_slots WHERE world_id=? AND country_code=? FOR UPDATE',[$world,$country])->fetch(\PDO::FETCH_ASSOC);
+            if($slot===false)throw new AlphaHttpError(404,'not_found');
+            $opening=null;
+            if($country==='FR'){
+                $r=$this->query("SELECT state_json,state_sha FROM wp_world_rosters WHERE world_id=? AND country_code='FR' FOR UPDATE",[$world])->fetch(\PDO::FETCH_ASSOC);
+                if($r!==false){
+                    $snapshot=json_decode($r['state_json'],true,64,JSON_THROW_ON_ERROR);
+                    $roster=PoliticalRoster::fromSnapshot($snapshot);
+                    if(!hash_equals($r['state_sha'],$roster->snapshotHash())||$snapshot['world_id']!==$world||$snapshot['country_code']!=='FR')throw new \DomainException('Invalid opening identity source');
+                    $person=$snapshot['people'][CampaignLifecycle::PLAYER]??null;
+                    if($person!==null&&$person['name']!=='Scenario president')$opening=['name'=>$person['name'],'kind'=>$person['kind'],'as_of'=>$person['as_of'],'sources'=>$person['sources']];
+                }
+            }
+            return ['universe_no'=>$no,'world_id'=>$world,'day'=>$clock['committed_day'],'country'=>$country,
+                'controller'=>$slot['closed_on']!==null?'succession_pending':($slot['account_id']===null?'ai':'human'),
+                'generation'=>(int)$slot['generation'],'is_you'=>$slot['account_id']===$s->id,
+                'opening_identity'=>$opening,'runtime_identity_bound'=>false,
+                'reference'=>UniverseIdentityReference::country($country)];
+        });
     }
     private function create():array
     {
