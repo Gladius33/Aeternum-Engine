@@ -5,7 +5,7 @@ use Aeternum\WorldPolitics\ResearchQueue;
 if(getenv('WP_RESEARCH_TEST')!=='YES'||!str_contains(getenv('WP_RESEARCH_DB_DSN')?:'','dbname=wp_research_test;'))exit(2);
 function ckr(bool $b,string $m):void{if(!$b)throw new RuntimeException($m);}
 $db=\Aeternum\WorldPolitics\researchDatabase();$q=new ResearchQueue($db);
-$a=$q->createTenant();$b=$q->createTenant();
+$a=$q->createTenant('standard',30,true);$b=$q->createTenant('pro',30,false);
 function rr(string $method,string $path,?string $token=null,?array $body=null,string $key='real-research-key-01'):array{
     $h=['Content-Type: application/json','Idempotency-Key: '.$key];if($token!==null)$h[]='Authorization: Bearer '.$token;
     $o=['method'=>$method,'header'=>implode("\r\n",$h),'ignore_errors'=>true,'timeout'=>5];
@@ -27,6 +27,19 @@ $done=rr('GET',$p.'/'.$id,$a['token']);
 ckr($done['status']===200&&count($done['body']['result']['result']['rows'])===195,'real country result');
 ckr(rr('GET',$p.'/'.$id.'/csv',$a['token'])['status']===200,'real CSV');
 ckr(rr('GET','/api/v1/worlds',$a['token'])['status']===404,'no player route');
+$world=rr('POST','/research/v1/worlds',$a['token'],null,'research-world-001')['body']['world_id'];
+ckr(rr('POST','/research/v1/worlds/'.$world.'/experiments',$b['token'],$body,'research-world-job-01')['status']===409,'Pro cannot write another tenant world');
+$x2=rr('POST','/research/v1/worlds/'.$world.'/experiments',$a['token'],$body,'research-world-job-01');
+ckr($x2['status']===202&&$q->work()['status']==='complete','own world job');
+ckr(count(rr('GET','/research/v1/worlds/'.$world.'/dataset',$a['token'])['body']['rows'])===1,'own world data');
+ckr(rr('GET','/research/v1/datasets/global',$a['token'])['status']===403,'standard global denied');
+$global=rr('GET','/research/v1/datasets/global',$b['token']);
+ckr($global['status']===200&&count($global['body']['rows'])===2&&$global['body']['rows'][0]['experiment']!==$id,'Pro sees eligible deidentified data');
+$q->changePlan($b['tenant_id'],'standard',30,false);
+ckr(rr('GET','/research/v1/datasets/global',$b['token'])['status']===403,'downgrade immediate');
+$q->changePlan($b['tenant_id'],'pro',0,false);
+ckr(rr('GET','/research/v1/models',$b['token'])['status']===401,'expiry immediate');
+$q->changePlan($a['tenant_id'],'standard',30,false);
 $rot=$q->rotate($a['tenant_id']);ckr(rr('GET',$p.'/'.$id,$a['token'])['status']===401,'HTTP revoked key');
 ckr(rr('GET',$p.'/'.$id,$rot['token'])===$done,'rotation preserves result');
 $db->prepare('UPDATE wp_research_jobs SET result_json=?,result_sha=? WHERE job_id=?')->execute(['{}',hash('sha256','{}'),$id]);

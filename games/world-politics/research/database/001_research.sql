@@ -2,6 +2,9 @@
 CREATE TABLE wp_research_tenants (
  tenant_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
  enabled TINYINT UNSIGNED NOT NULL DEFAULT 1,
+ plan ENUM('standard','pro') NOT NULL DEFAULT 'standard',
+ paid_until BIGINT UNSIGNED NOT NULL,
+ share_dataset TINYINT UNSIGNED NOT NULL DEFAULT 0,
  created_at BIGINT UNSIGNED NOT NULL
 ) ENGINE=InnoDB;
 CREATE TABLE wp_research_keys (
@@ -17,9 +20,19 @@ CREATE TABLE wp_research_rate (
  requests INT UNSIGNED NOT NULL,
  FOREIGN KEY(tenant_id) REFERENCES wp_research_tenants(tenant_id)
 ) ENGINE=InnoDB;
+CREATE TABLE wp_research_worlds (
+ world_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ tenant_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ request_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ created_at BIGINT UNSIGNED NOT NULL,
+ UNIQUE KEY world_owner(world_id,tenant_id),
+ UNIQUE KEY world_request(tenant_id,request_key),
+ FOREIGN KEY(tenant_id) REFERENCES wp_research_tenants(tenant_id)
+) ENGINE=InnoDB;
 CREATE TABLE wp_research_jobs (
  job_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
  tenant_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ world_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL,
  request_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  request_sha CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  request_json LONGTEXT NOT NULL CHECK(JSON_VALID(request_json)),
@@ -35,5 +48,12 @@ CREATE TABLE wp_research_jobs (
  UNIQUE KEY tenant_request(tenant_id,request_key),
  INDEX worker_queue(status,created_at,job_id),
  INDEX tenant_created(tenant_id,created_at),
+ FOREIGN KEY(world_id,tenant_id) REFERENCES wp_research_worlds(world_id,tenant_id),
  FOREIGN KEY(tenant_id) REFERENCES wp_research_tenants(tenant_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE wp_research_dataset (
+ seq BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ job_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+ FOREIGN KEY(job_id) REFERENCES wp_research_jobs(job_id)
 ) ENGINE=InnoDB;

@@ -8,6 +8,45 @@ servers:
 security:
   - researchBearer: []
 paths:
+  /entitlements:
+    get:
+      responses:
+        '200': {description: Active server-side subscription and capabilities}
+  /worlds:
+    get:
+      responses:
+        '200': {description: Own research experiment collections}
+    post:
+      responses:
+        '201': {description: Create own collection with Idempotency-Key}
+  /worlds/{world}/experiments:
+    post:
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+      responses:
+        '202': {description: Queue experiment in own collection}
+  /worlds/{world}/dataset:
+    get:
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Own world dataset page}
+  /datasets/{scope}:
+    get:
+      parameters:
+        - in: path
+          name: scope
+          required: true
+          schema: {enum: [own, global]}
+      responses:
+        '200': {description: Dataset page with highwater and next cursor}
+        '403': {description: Global dataset requires active Research Pro}
   /models:
     get:
       responses:

@@ -18,13 +18,26 @@ final class ResearchGateway
             if($admitted===null)return self::response(401,['code'=>'research_authentication_required']);
             if(!$admitted)return self::response(429,['code'=>'research_rate_limited']);
             if($method!=='POST'&&$raw!=='')return self::response(400,['code'=>'body_forbidden']);
+            if($method==='GET'&&$path==='/research/v1/entitlements')return self::response(200,$this->queue->capabilities($token));
+            if($method==='GET'&&$path==='/research/v1/worlds')return self::response(200,$this->queue->worlds($token));
+            if($method==='POST'&&$path==='/research/v1/worlds'){
+                if(!isset($h['idempotency-key']))return self::response(428,['code'=>'idempotency_required']);
+                if($raw!==''&&$raw!=='{}')return self::response(400,['code'=>'body_forbidden']);
+                return self::response(201,$this->queue->createWorld($token,$h['idempotency-key']));
+            }
+            if($method==='GET'&&preg_match('~^/research/v1/datasets/(own|global)(?:/([0-9]{1,15})/([0-9]{1,15}))?$~D',$path,$ds)){
+                if($ds[1]==='global'&&!$this->queue->capabilities($token)['global_dataset'])return self::response(403,['code'=>'research_pro_required']);
+                return self::response(200,$this->queue->dataset($token,$ds[1],null,isset($ds[2])?(int)$ds[2]:0,isset($ds[3])?(int)$ds[3]:null));
+            }
+            if($method==='GET'&&preg_match('~^/research/v1/worlds/([a-f0-9]{32})/dataset(?:/([0-9]{1,15})/([0-9]{1,15}))?$~D',$path,$ds))
+                return self::response(200,$this->queue->dataset($token,'own',$ds[1],isset($ds[2])?(int)$ds[2]:0,isset($ds[3])?(int)$ds[3]:null));
             if($method==='GET'&&$path==='/research/v1/models')return self::response(200,['models'=>ResearchExperiment::TYPES,'manifest'=>ResearchExperiment::pin()]);
-            if($method==='POST'&&$path==='/research/v1/experiments'){
+            if($method==='POST'&&($path==='/research/v1/experiments'||preg_match('~^/research/v1/worlds/([a-f0-9]{32})/experiments$~D',$path,$w))){
                 if(!preg_match('/^application\/json(?:; ?charset=utf-8)?$/iD',$h['content-type']??''))return self::response(415,['code'=>'json_required']);
                 if(!isset($h['idempotency-key']))return self::response(428,['code'=>'idempotency_required']);
                 $body=json_decode($raw,true,16,JSON_THROW_ON_ERROR);
                 if(!is_array($body))return self::response(400,['code'=>'invalid_json']);
-                return self::response(202,$this->queue->submit($token,$h['idempotency-key'],$body));
+                return self::response(202,$this->queue->submit($token,$h['idempotency-key'],$body,$w[1]??null));
             }
             if(preg_match('~^/research/v1/experiments/([a-f0-9]{32})(/csv)?$~D',$path,$m)){
                 $r=$this->queue->read($token,$m[1]);if($r===null)return self::response(404,['code'=>'not_found']);
