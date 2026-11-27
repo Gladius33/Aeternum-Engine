@@ -136,3 +136,11 @@ CREATE TABLE wp_research_game_dataset_withdrawn (
  world_alias CHAR(64) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
  withdrawn_at BIGINT UNSIGNED NOT NULL
 ) ENGINE=InnoDB;
+
+-- Durable incremental synchronization checkpoint in Research only.
+CREATE TABLE wp_research_dataset_sync (
+ stream_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ last_seq BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ last_success_epoch BIGINT UNSIGNED NULL,
+ last_run_epoch BIGINT UNSIGNED NULL
+) ENGINE=InnoDB;

@@ -194,7 +194,8 @@ $publicCareer=$public['body']['career_id'];
 $publicRoster=$cs->audit($pw)['careers'];$publicOpponent=array_key_first(array_filter($publicRoster,fn($c)=>$c['account']===null));
 $cs->certifyBallot($pw,['ballot'=>['registered'=>1000,'first'=>['votes'=>[$publicCareer=>600,$publicOpponent=>300],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'],'public-score-ballot-01',$secret);
 putenv('WP_DATASET_BRIDGE_KEY=ci-dataset-bridge-key-not-for-production');
-$exec('INSERT INTO wp_game_dataset_consent(world_id,enabled) VALUES(?,1)',[$pw]);
+putenv('WP_DATASET_AUTO_CAPTURE=YES');
+// The game world is enrolled by capture, independently of any player's paid tier.
 $exec('UPDATE wp_career_public_worlds SET next_tick_epoch=UNIX_TIMESTAMP()-1 WHERE world_id=?',[$pw]);
 $sch=new \Aeternum\WorldPolitics\CareerUniverseScheduler($connect);
 ck($sch->tick($pw)['day']==='2027-05-15','one human public world ticks autonomously');

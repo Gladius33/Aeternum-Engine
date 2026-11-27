@@ -48,12 +48,24 @@ putenv('WP_DATASET_BRIDGE_KEY=ci-dataset-bridge-key-not-for-production');
 $game=\Aeternum\WorldPolitics\GameDataset::project('world-example','2027-05-15',1,['state'=>['world_id'=>'world-example','day'=>'2027-05-15','days'=>[['day'=>'2027-05-15','currency'=>'EUR','revenue'=>100,'expense'=>200,'closing_balance'=>300,'macro'=>['unemployment_bps'=>800]]]]]);
 $pack=['version'=>\Aeternum\WorldPolitics\GameDataset::VERSION,'rows'=>[$game]];
 ckResearch($q->importGameDataset($pack)['inserted']===1&&$q->importGameDataset($pack)['inserted']===0,'game dataset import idempotent');
+require_once __DIR__.'/../games/world-politics/src/GameDatasetSync.php';
+$sync=\Aeternum\WorldPolitics\GameDatasetSync::class;
+$fetch=fn(int $after)=>$after===0?($pack+['next_after'=>8,'has_more'=>true]):['version'=>$pack['version'],'rows'=>[],'next_after'=>$after,'has_more'=>false];
+$first=$sync::run($db,$q,'ci-source',1,$fetch);
+ckResearch($first['status']==='backlog_remaining'&&$first['through_seq']===8&&$first['inserted']===0,'durable cursor after idempotent batch');
+$second=$sync::run($db,$q,'ci-source',10,$fetch);
+ckResearch($second['status']==='complete'&&$second['from_seq']===8&&$second['through_seq']===8,'resume after cursor');
+try{$sync::run($db,$q,'ci-source',10,fn($after)=>['version'=>$pack['version'],'rows'=>[$pack['rows'][0]],'next_after'=>$after,'has_more'=>true]);throw new RuntimeException('Invalid cursor accepted');}catch(DomainException $expected){}
+ckResearch((int)$db->query("SELECT last_seq FROM wp_research_dataset_sync WHERE stream_id='ci-source'")->fetchColumn()===8,'invalid page did not advance cursor');
+
 $pro=$q->createTenant('pro',30);
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pro['token']))['body']['rows'][0]['row']===$game['row'],'Pro game data feed');
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pay['token']))['status']===403,'standard game feed denied');
 ckResearch($q->withdrawGameDataset($game['row']['world'])['deleted_rows']===1,'withdrawn imported aggregate');
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pro['token']))['body']['rows']===[],'withdrawn data no longer served');
 try{$q->importGameDataset($pack);throw new RuntimeException('Withdrawn world reimported');}catch(DomainException $expected){}
+$withdrawn=$sync::run($db,$q,'ci-withdrawn',10,fn(int $after)=>$after===0?($pack+['next_after'=>1,'has_more'=>false]):['version'=>$pack['version'],'rows'=>[],'next_after'=>$after,'has_more'=>false]);
+ckResearch($withdrawn['withdrawn_skipped']===1&&$withdrawn['through_seq']===1,'withdrawn batch does not block daily stream');
 $meter=$q->usage($pro['token']);$remaining=$meter['included_remaining'];
 $q->configureCapacity('global',86400,0,0);
 ckResearch($g->handle('GET','/research/v1/models','',$head($pro['token']))['status']===429,'global emergency stop despite credit');

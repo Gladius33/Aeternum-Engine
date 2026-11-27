@@ -10,7 +10,7 @@ foreach($lines as $line){
 }
 foreach(['WP_DB_PASSWORD','WP_RESEARCH_DB_PASSWORD','WP_DATASET_DB_PASSWORD','WP_ALPHA_INVITE','WP_CAREER_EVIDENCE_KEY','WP_RESEARCH_EVIDENCE_KEY','WP_DATASET_BRIDGE_KEY','WP_STRIPE_SECRET_KEY','WP_STRIPE_PUBLISHABLE_KEY','WP_STRIPE_WEBHOOK_SECRET'] as $k)
     if(!array_key_exists($k,$vars)||$vars[$k]!=='')throw new RuntimeException('Secret must be blank: '.$k);
-foreach(['WP_ALPHA_ENABLED','WP_RESEARCH_ENABLED','WP_STRIPE_ENABLED','WP_ALPHA_LOOPBACK','WP_RESEARCH_LOOPBACK','WP_ALPHA_INSTALL','WP_RESEARCH_OPERATOR','WP_BILLING_OPERATOR','WP_DATASET_OPERATOR','WP_RESEARCH_TEST'] as $k)
+foreach(['WP_ALPHA_ENABLED','WP_RESEARCH_ENABLED','WP_STRIPE_ENABLED','WP_ALPHA_LOOPBACK','WP_RESEARCH_LOOPBACK','WP_ALPHA_INSTALL','WP_RESEARCH_OPERATOR','WP_BILLING_OPERATOR','WP_DATASET_OPERATOR','WP_RESEARCH_TEST','WP_DATASET_AUTO_CAPTURE'] as $k)
     if(($vars[$k]??null)!=='NO')throw new RuntimeException('Unsafe default: '.$k);
 if($vars['WP_DB_DSN']===$vars['WP_RESEARCH_DB_DSN']||$vars['WP_STRIPE_MODE']!=='test')throw new RuntimeException('Unsafe environment separation');
 echo "PASS World Politics safe environment template\n";

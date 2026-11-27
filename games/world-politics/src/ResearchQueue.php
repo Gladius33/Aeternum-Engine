@@ -227,19 +227,21 @@ final class ResearchQueue
         });
     }
     /** Operator-only import of signed aggregate envelopes, idempotent by world/day. */
-    public function importGameDataset(array $pack):array{
+    public function importGameDataset(array $pack,bool $skipWithdrawn=false):array{
         require_once __DIR__.'/GameDataset.php';
         if(($pack['version']??null)!==GameDataset::VERSION||!is_array($pack['rows']??null)||!array_is_list($pack['rows'])||count($pack['rows'])>100)
             throw new \DomainException('Invalid dataset batch');
-        return $this->tx(function()use($pack){
-            $n=0;foreach($pack['rows'] as $e){
+        return $this->tx(function()use($pack,$skipWithdrawn){
+            $n=0;$skipped=0;foreach($pack['rows'] as $e){
                 $r=GameDataset::verify($e);$json=ResearchExperiment::json($e);
-                if($this->q('SELECT 1 FROM wp_research_game_dataset_withdrawn WHERE world_alias=? FOR UPDATE',[$r['world']])->fetchColumn()!==false)throw new \DomainException('Dataset withdrawn');
+                if($this->q('SELECT 1 FROM wp_research_game_dataset_withdrawn WHERE world_alias=? FOR UPDATE',[$r['world']])->fetchColumn()!==false){
+                    if($skipWithdrawn){$skipped++;continue;}throw new \DomainException('Dataset withdrawn');
+                }
                 $old=$this->q('SELECT envelope_json FROM wp_research_game_dataset WHERE world_alias=? AND committed_day=? FOR UPDATE',[$r['world'],$r['day']])->fetchColumn();
                 if(is_string($old)){if(!hash_equals($old,$json))throw new \DomainException('Dataset revision conflict');continue;}
                 $this->q('INSERT INTO wp_research_game_dataset(world_alias,committed_day,envelope_json) VALUES(?,?,?)',[$r['world'],$r['day'],$json]);$n++;
             }
-            return ['inserted'=>$n];
+            return $skipWithdrawn?['inserted'=>$n,'withdrawn_skipped'=>$skipped]:['inserted'=>$n];
         });
     }
     /** Trusted operator withdrawal using the exported pseudonymous world ID.

@@ -48,3 +48,6 @@ The isolated extracted-source HTTP suite also starts a second PHP HTTP instance 
 
 ## Environment and selected payment provider
 The canonical `.env.example` is now tracked within the game source and tested both in source and extracted packaging. All secrets blank, web and operator flags disabled, Stripe test mode reserved. See [environment and Stripe prerequisites](WORLD_POLITICS_ENV_STRIPE.md). Stripe integration is not active in this increment; commercial pricing, webhook implementation and test-mode reconciliation remain pending.
+
+## Daily ingestion — updated release policy
+See [daily Game → Research sync](WORLD_POLITICS_DAILY_DATASET_SYNC.md). All supported worlds can automatically contribute regardless of free/Premium participant status when the operator activates the approved data-use policy. Migration 044 serializes committed outbox sequence allocation, and the daily CLI imports with a durable cursor and bounded batches, skips withdrawn aliases and resumes idempotently. This supersedes the earlier per-world opt-in-only capture behavior without overriding explicit exclusions. Coverage remains French EUR aggregate simulation data, not complete game records.

@@ -39,16 +39,26 @@ final class GameDataset
         foreach($r['features'] as $k=>$v)if($v!==null&&(!is_int($v)||abs($v)>100000000000000000))throw new \DomainException('Dataset feature bounds');
         return $r;
     }
-    /** Called inside final clock transaction, only for explicitly approved
-     * worlds; old installations remain unaffected until migration. */
+    /** Capture committed simulation facts independently of account tiers.
+     * Automatic coverage is enabled by the operator after the published data
+     * policy is in force; explicit world exclusions always take precedence. */
     public static function capture(\PDO $db,string $world,string $day,int $revision,array $dom):void{
         if(!$db->inTransaction())throw new \LogicException('Dataset capture outside transaction');
-        try{$enabled=self::q($db,'SELECT enabled FROM wp_game_dataset_consent WHERE world_id=? FOR UPDATE',[$world])->fetchColumn();}
-        catch(\PDOException $e){if((int)($e->errorInfo[1]??0)===1146)return;throw $e;}
-        if((int)$enabled!==1)return;
         // Current schema covers EUR French macroeconomic observations only.
         $d=$dom['state'];$last=end($d['days']);
         if(!isset($last['macro'])||($last['currency']??null)!=='EUR')return;
+        $automatic=getenv('WP_DATASET_AUTO_CAPTURE')==='YES';
+        try{$enabled=self::q($db,'SELECT enabled FROM wp_game_dataset_consent WHERE world_id=? FOR UPDATE',[$world])->fetchColumn();}
+        catch(\PDOException $e){if((int)($e->errorInfo[1]??0)===1146&&!$automatic)return;throw $e;}
+        if($enabled===false&&$automatic){
+            self::q($db,'INSERT INTO wp_game_dataset_consent(world_id,enabled) VALUES(?,1)',[$world]);$enabled=1;
+        }
+        if((int)$enabled!==1)return;
+        // A shared transactional lock orders outbox sequence allocation by
+        // commit across worlds, so a forward-only consumer cannot skip a
+        // lower sequence that was still uncommitted at the time of its read.
+        if(self::q($db,'SELECT singleton_id FROM wp_game_dataset_order WHERE singleton_id=1 FOR UPDATE')->fetchColumn()===false)
+            throw new \DomainException('Dataset ordering fence unavailable');
         $e=self::project($world,$day,$revision,$dom);
         self::q($db,'INSERT INTO wp_game_dataset_outbox(world_id,committed_day,envelope_json) VALUES(?,?,?)',[$world,$day,self::json($e)]);
     }
