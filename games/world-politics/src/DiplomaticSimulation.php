@@ -197,7 +197,7 @@ final class DiplomaticSimulation
     }
 
     /** Advance a virtual date; unanswered diplomatic offers expire. */
-    public function advanceTo(string $targetDay,?DiplomaticPrincipal $clock=null,?array $aid=null):array
+    public function advanceTo(string $targetDay,?DiplomaticPrincipal $clock=null,?array $aid=null,?array $universePolicy=null):array
     {
         self::day($targetDay);
         if ($targetDay<$this->state['day']) {
@@ -230,17 +230,22 @@ final class DiplomaticSimulation
         $this->state['day']=$targetDay;
         $result=['day'=>$targetDay,'expired'=>$expired];
         if(isset($this->state['commitment_risk']))$result['commitment_risk']=CommitmentRisk::report($this->state['commitments']);
-        if(isset($this->state['daily_ai']))$result['autonomous_replies']=$this->dailyReplies();
+        if(isset($this->state['daily_ai']))$result['autonomous_replies']=$this->dailyReplies($universePolicy);
+        if($universePolicy!==null)$result['universe_diplomacy_policy']=$universePolicy;
         return $result;
     }
 
     /** Only the trusted clock calls this private routine. Each response is
      * non-binding and scoped to the particular incoming foreign offer. */
-    private function dailyReplies():array
+    private function dailyReplies(?array $universePolicy=null):array
     {
         $world=$this->state['world_id'];$day=$this->state['day'];$due=[];
         foreach($this->state['proposals'] as $offer){
-            if($offer['status']!=='pending_response'||$offer['to']==='state_fr'||$offer['from']!=='state_fr')continue;
+            if($offer['status']!=='pending_response')continue;
+            $policy=$universePolicy[$offer['to']]??null;
+            if($policy!==null){
+                if($policy['human_action_this_day'])continue;
+            }elseif($offer['to']==='state_fr'||$offer['from']!=='state_fr')continue;
             $delay=2+(hexdec(substr(hash('sha256',self::DAILY_AI_VERSION.'|delay|'.$offer['to']),0,4))%4);
             if(self::plus($offer['created_on'],$delay)<=$day)$due[]=$offer;
         }
@@ -256,6 +261,9 @@ final class DiplomaticSimulation
                 }
             $score=$openness+max(-20,min(20,$history))+($this->state['aid_bridge']['latest']['signals'][$to]??0)+($risk[$to]??0);
             $threshold=match($offer['action']){'dialogue'=>25,'humanitarian_assistance'=>35,'trade_cooperation'=>55,'treaty_proposal'=>75,default=>101};
+            if(isset($universePolicy[$to]))$threshold+=match($universePolicy[$to]['programme']){
+                'cooperative'=>-15,'balanced'=>0,'cautious'=>15,default=>throw new \DomainException('Invalid diplomatic programme')
+            };
             $bot=new class($world,$to) implements DiplomaticPrincipal{
                 public function __construct(private readonly string $world,private readonly string $target){}
                 public function actorId():string{return 'fictional-diplomatic-reply';}

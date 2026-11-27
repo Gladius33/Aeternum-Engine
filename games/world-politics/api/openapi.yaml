@@ -68,6 +68,27 @@ paths:
           schema: { type: integer, minimum: 1 }
       responses:
         '200': { description: Slot returned to automatic control }
+  /universes/{universe_no}/programme:
+    post:
+      operationId: updateUniverseDiplomaticProgramme
+      summary: Set the inherited fictional diplomatic fallback policy for your national slot
+      parameters:
+        - name: universe_no
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [diplomacy]
+              properties:
+                diplomacy: { type: string, enum: [cooperative, balanced, cautious] }
+      responses:
+        '200': { description: Programme persisted for the national slot }
   /universes/{universe_no}/rankings:
     get:
       operationId: readUniverseStandings

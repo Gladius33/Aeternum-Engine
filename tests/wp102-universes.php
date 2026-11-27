@@ -46,3 +46,26 @@ ck102(count(call102('GET','/universes/'.$no.'/rankings',null,8)['body']['rows'])
 ck102(join102(8,'FR',$directory[1]['universe_no'],'wp102-other-universe')['status']===201,'account may join separate universe');
 $global=call102('GET','/universe-rankings/global',null,8)['body'];
 ck102(count($global['rows'])===8&&!$global['composite_score_available']&&$global['rows'][0]['score']===null,'global standings one row per player; no fabricated scores');
+
+require_once __DIR__.'/../games/world-politics/src/UniverseScheduler.php';
+$scheduler=new \Aeternum\WorldPolitics\UniverseScheduler($connect);
+$spare=$directory[1]['world_id'];$spareNo=$directory[1]['universe_no'];
+ck102(call102('POST','/universes/'.$no.'/programme',['diplomacy'=>'cooperative'],8)['status']===200,'WP103 inherited diplomatic programme');
+ck102(call102('DELETE','/universes/'.$spareNo.'/membership',null,8)['status']===200,'WP103 activated second world empty');
+$due=$db->prepare('UPDATE wp_universes SET next_tick_epoch=UNIX_TIMESTAMP()-1 WHERE world_id=?');
+$due->execute([$spare]);
+ck102($scheduler->tick($spare)['day']==='2027-05-15','WP103 server advances world with no humans');
+ck102($scheduler->tick($spare)['status']==='not_due','WP103 no extra tick before deadline');
+$due->execute([$world]);
+ck102($scheduler->tick($world)['day']==='2027-05-15','WP103 server advances shared clock');
+$dip103=call102('GET',$root.'/diplomacy',null,8);
+ck102($dip103['status']===200,'WP103 shared diplomacy after tick');
+$check=$db->prepare('SELECT state_json FROM wp_diplomatic_states WHERE world_id=?');$check->execute([$world]);
+$offer=array_values(json_decode($check->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['proposals'])[0];
+for($n=0;$n<5&&$offer['status']==='pending_response';$n++){
+    $due->execute([$world]);ck102($scheduler->tick($world)['status']==='committed','WP103 automatic tick');
+    $check->execute([$world]);$offer=array_values(json_decode($check->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['proposals'])[0];
+}
+ck102($offer['status']!=='pending_response'&&$offer['responded_on']!==null,'WP103 idle French player gets automatic diplomatic response');
+$global=call102('GET','/universe-rankings/global',null,8)['body'];
+ck102($global['rows'][0]['control_days']>0&&count($global['rows'])===8,'WP103 standings reflect committed control time');

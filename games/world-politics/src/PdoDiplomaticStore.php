@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/DiplomaticSimulation.php';
 require_once __DIR__.'/WorldMutationFence.php';
+require_once __DIR__.'/UniverseAutonomy.php';
 
 /**
  * WP08: global, transactionally serialized, server-authorized diplomacy.
@@ -153,6 +154,7 @@ final class PdoDiplomaticStore
             $this->checkCommandAuthority($world,$operation,$payload);
             $before=$sim->hash();
             $result=$this->apply($sim,$operation,$payload,$commandId);
+            if(in_array($operation,['propose','respond','commitment'],true))UniverseAutonomy::markDiplomacy($this->pdo,$world,$actor,$sim->snapshot()['day']);
             $after=$sim->hash();
             $revision=(int)$row['revision']+1;
             $response=[
@@ -290,7 +292,8 @@ final class PdoDiplomaticStore
                 if (!is_string($payload['target_day'])) {
                     throw new \InvalidArgumentException('Invalid game date');
                 }
-                return $sim->advanceTo($payload['target_day'],$this->principal,$payload['aid_observation']??null);
+                $s=$sim->snapshot();
+                return $sim->advanceTo($payload['target_day'],$this->principal,$payload['aid_observation']??null,UniverseAutonomy::policies($this->pdo,$s['world_id'],$s['day']));
         }
         throw new \InvalidArgumentException('Unknown operation');
     }

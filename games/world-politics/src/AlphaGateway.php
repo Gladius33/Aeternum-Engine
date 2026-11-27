@@ -78,10 +78,11 @@ final class AlphaGateway
             }
             if($path==='/api/v1/universe-rankings/global'&&$method==='GET')
                 return self::ok(200,(new UniverseLobby($this->db()))->rankings($session,null));
-            if(preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/(rankings|membership)$~D',$path,$um)){
+            if(preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/(rankings|membership|programme)$~D',$path,$um)){
                 $lobby=new UniverseLobby($this->db());
                 if($um[2]==='rankings'&&$method==='GET')return self::ok(200,$lobby->rankings($session,(int)$um[1]));
                 if($um[2]==='membership'&&$method==='DELETE')return self::ok(200,$lobby->leave($session,(int)$um[1]));
+                if($um[2]==='programme'&&$method==='POST')return self::ok(200,$lobby->programme($session,(int)$um[1],$body));
                 throw new AlphaHttpError(405,'method_not_allowed');
             }
             if ($path==='/api/v1/national-renewal-calendar' && $method==='GET') return self::ok(200,NationalRenewalCalendar::report());

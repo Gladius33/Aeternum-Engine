@@ -24,12 +24,12 @@ final class UniverseLobby
         if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
         if($page<1||$page>100000)throw new AlphaHttpError(422,'invalid_page');
         $offset=($page-1)*50;
-        $rows=$this->query("SELECT u.universe_no,u.world_id,c.committed_day,c.pending_day,c.game_over
+        $rows=$this->query("SELECT u.universe_no,u.world_id,u.tick_seconds,u.next_tick_epoch,c.committed_day,c.pending_day,c.game_over
             FROM wp_universes u JOIN wp_world_clock c ON c.world_id=u.world_id ORDER BY u.universe_no LIMIT 50 OFFSET ".$offset)->fetchAll(\PDO::FETCH_ASSOC);
         foreach($rows as &$r){
             $r['universe_no']=(int)$r['universe_no'];
-            $slots=$this->query('SELECT country_code,account_id FROM wp_universe_slots WHERE world_id=? ORDER BY country_code',[$r['world_id']])->fetchAll(\PDO::FETCH_ASSOC);
-            $r['slots']=array_map(fn($v)=>['country'=>$v['country_code'],'controller'=>$v['account_id']===null?'ai':'human','is_you'=>$v['account_id']===$s->id],$slots);
+            $slots=$this->query('SELECT country_code,account_id,diplomacy_programme FROM wp_universe_slots WHERE world_id=? ORDER BY country_code',[$r['world_id']])->fetchAll(\PDO::FETCH_ASSOC);
+            $r['slots']=array_map(fn($v)=>['country'=>$v['country_code'],'controller'=>$v['account_id']===null?'ai':'human','is_you'=>$v['account_id']===$s->id,'diplomacy_programme'=>$v['diplomacy_programme']],$slots);
             $r['vacant']=count(array_filter($r['slots'],fn($v)=>$v['controller']==='ai'));
             $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
             unset($r['pending_day'],$r['game_over']);
@@ -95,9 +95,10 @@ final class UniverseLobby
             $gen=(int)$slot['generation'];$spare=null;
             if($slot['account_id']===null){
                 ++$gen;
-                $this->query('UPDATE wp_universe_slots SET account_id=?,generation=? WHERE world_id=? AND country_code=?',[$s->id,$gen,$world,$country]);
+                $this->query('UPDATE wp_universe_slots SET account_id=?,generation=?,last_human_diplomacy_day=NULL WHERE world_id=? AND country_code=?',[$s->id,$gen,$world,$country]);
                 $this->query('INSERT INTO wp_universe_control_periods(world_id,country_code,generation,account_id,joined_on) VALUES(?,?,?,?,?)',[$world,$country,$gen,$s->id,$c['committed_day']]);
                 $this->query("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'viewer')",[$world,$s->id]);
+                $this->query('UPDATE wp_universes SET next_game_day=DATE_ADD(?,INTERVAL 1 DAY),next_tick_epoch=UNIX_TIMESTAMP()+tick_seconds WHERE world_id=? AND next_tick_epoch IS NULL',[$c['committed_day'],$world]);
                 $spare=$this->ensureSpare();
             }
             $r=['universe_no'=>(int)$u['universe_no'],'world_id'=>$world,'country'=>$country,'generation'=>$gen,
@@ -117,9 +118,28 @@ final class UniverseLobby
             $slot=$this->query('SELECT country_code,generation FROM wp_universe_slots WHERE world_id=? AND account_id=? FOR UPDATE',[$world,$s->id])->fetch(\PDO::FETCH_ASSOC);
             if($slot===false)throw new AlphaHttpError(404,'not_found');
             $this->query('UPDATE wp_universe_control_periods SET left_on=? WHERE world_id=? AND country_code=? AND generation=? AND left_on IS NULL',[$c['committed_day'],$world,$slot['country_code'],$slot['generation']]);
-            $this->query('UPDATE wp_universe_slots SET account_id=NULL WHERE world_id=? AND country_code=?',[$world,$slot['country_code']]);
+            $this->query('UPDATE wp_universe_slots SET account_id=NULL,last_human_diplomacy_day=NULL WHERE world_id=? AND country_code=?',[$world,$slot['country_code']]);
             $this->query('DELETE FROM wp_alpha_members WHERE world_id=? AND account_id=?',[$world,$s->id]);
             return ['universe_no'=>$no,'country'=>$slot['country_code'],'controller'=>'ai','day'=>$c['committed_day'],'state_reset'=>false];
+        });
+    }
+    /** A programme is inherited with the government, not a new campaign
+     * or a claim about a real politician's preferences. */
+    public function programme(AlphaSession $s,int $no,array $body):array
+    {
+        AlphaAccounts::fields($body,['diplomacy']);
+        if(!in_array($body['diplomacy'],['cooperative','balanced','cautious'],true))
+            throw new AlphaHttpError(422,'invalid_programme');
+        return $this->transaction(function()use($s,$no,$body){
+            if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+            $world=$this->query('SELECT world_id FROM wp_universes WHERE universe_no=?',[$no])->fetchColumn();
+            if(!is_string($world))throw new AlphaHttpError(404,'not_found');
+            $c=$this->lockWorld($world);
+            if((int)$c['game_over']===1)throw new AlphaHttpError(409,'game_over');
+            $slot=$this->query('SELECT country_code FROM wp_universe_slots WHERE world_id=? AND account_id=? FOR UPDATE',[$world,$s->id])->fetchColumn();
+            if(!is_string($slot)||!$s->active())throw new AlphaHttpError(404,'not_found');
+            $this->query('UPDATE wp_universe_slots SET diplomacy_programme=? WHERE world_id=? AND country_code=?',[$body['diplomacy'],$world,$slot]);
+            return ['country'=>$slot,'diplomacy'=>$body['diplomacy'],'effective_day'=>$c['committed_day'],'inherited'=>true];
         });
     }
     /** Interim standings: control periods, NOT certified national tenure or
