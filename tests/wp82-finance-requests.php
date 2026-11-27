@@ -441,3 +441,9 @@ foreach($ps114['measures'] as $r)foreach($r['periods'] as $period)foreach($perio
 $oa114=SC::observedAnchors($services);
 ck82($oa114['public_pay_observed_net_eur']===2742&&$oa114['public_pay_reference_eur']===2500&&!$oa114['pension_scope_comparable'],'WP114 observed pay and pension scopes disclosed');
 no82(fn()=>SE::calculate(['pf2022-yannick-jadot-2'],['pf2022-yannick-jadot-2'=>['effective_on'=>'2027-09-11']],'2027-09-11',$pop,$services,$base,null,[],['pf2022-yannick-jadot-2'=>['ramp_years'=>1]]));
+
+
+$managedCandidate=\Aeternum\WorldPolitics\CampaignCandidate::normalizeManaged(['type'=>'historical','reference_id'=>'real-emmanuel-macron']);
+ck82(count($managedCandidate['programme'])===6&&$managedCandidate['kind']==='real','WP114 managed identity contains separate selected primary and secondary programmes');
+$fictionalCandidate=\Aeternum\WorldPolitics\CampaignCandidate::normalizeManaged(['type'=>'fictional','name'=>'Personnage de test','mode'=>'quick']);
+ck82($fictionalCandidate['kind']==='fictional'&&$fictionalCandidate['programme']===[],'WP114 custom opening identity');

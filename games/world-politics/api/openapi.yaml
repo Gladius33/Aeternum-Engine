@@ -54,6 +54,18 @@ paths:
               properties:
                 country: { type: string, enum: [AT, AU, BE, BG, BR, CA, CH, CN, CY, CZ, DE, DK, EE, ES, FI, FR, GB, GR, HR, HU, ID, IE, IN, IT, JP, KR, LT, LU, LV, MT, MX, NL, PL, PT, RO, RU, SA, SE, SI, SK, TR, US, ZA] }
                 universe_no: { type: integer, minimum: 1 }
+                candidate:
+                  type: object
+                  description: Optional historical or fictional identity only for the first French control on the opening scenario day. An inherited mandate cannot be renamed.
+                  required: [type]
+                  properties:
+                    type: { type: string, enum: [historical, fictional] }
+                    reference_id: { type: string }
+                    name: { type: string }
+                    mode: { type: string, enum: [quick, detailed] }
+                    biography: { type: string }
+                    programme: { type: array, items: { type: object } }
+                    profile: { type: object }
       responses:
         '201': { description: Recorded handover and optional new spare universe }
         '409': { description: Slot unavailable or world advancing }

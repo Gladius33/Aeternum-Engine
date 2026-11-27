@@ -50,7 +50,16 @@ $rejoin=join102(8,'FR',$no);
 ck102($rejoin['status']===201&&$rejoin['body']['world_id']===$world&&$rejoin['body']['generation']===2,'late claimant inherits same world');
 ck102(call102('GET',$root.'/countries/FR/institutions',null,8)===$before,'institutional state unchanged at handover');
 ck102(count(call102('GET','/universes/'.$no.'/rankings',null,8)['body']['rows'])===44,'universe standings preserve past player');
-ck102(join102(8,'FR',$directory[1]['universe_no'],'wp102-other-universe')['status']===201,'account may join separate universe');
+$openingPayload=['country'=>'FR','universe_no'=>$directory[1]['universe_no'],'candidate'=>['type'=>'historical','reference_id'=>'real-emmanuel-macron']];
+$openingHeaders=['idempotency-key'=>'wp102-other-universe'];
+$opening=call102('POST','/universes/join',$openingPayload,8,$openingHeaders);
+ck102($opening['status']===201&&$opening['body']['opening_candidate']['programme_count']===6,'account may choose a historical opening identity in a separate universe');
+ck102(call102('POST','/universes/join',$openingPayload,8,$openingHeaders)===$opening,'candidate join receipt stable');
+$qr=$db->prepare("SELECT state_json,state_sha,revision FROM wp_world_rosters WHERE world_id=? AND country_code='FR'");$qr->execute([$directory[1]['world_id']]);$openingRoster=$qr->fetch(PDO::FETCH_ASSOC);
+ck102((int)$openingRoster['revision']===1&&json_decode($openingRoster['state_json'],true,64,JSON_THROW_ON_ERROR)['people']['campaign-president']['kind']==='real','opening candidate identity durably recorded');
+$openingConflict=$openingPayload;$openingConflict['candidate']=['type'=>'historical','reference_id'=>'real-marine-le-pen'];
+ck102(call102('POST','/universes/join',$openingConflict,8,$openingHeaders)['status']===409,'candidate idempotency conflict');
+ck102(call102('POST','/universes/join',$openingConflict,8,['idempotency-key'=>'wp114-replace-candidate'])['status']===409,'cannot rename an already claimed country');
 $global=call102('GET','/universe-rankings/global',null,8)['body'];
 ck102(count($global['rows'])===44&&!$global['composite_score_available']&&$global['rows'][0]['score']===null,'global standings one row per player; no fabricated scores');
 
@@ -61,6 +70,8 @@ ck102(call102('POST','/universes/'.$no.'/programme',['diplomacy'=>'cooperative',
 ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','domestic'=>'education'],8)['status']===200,'WP107 opt-in domestic programme');
 ck102(call102('POST','/universes/'.$no.'/programme',['diplomacy'=>'balanced','domestic'=>'education'],2)['status']===403,'WP108 foreign pilot cannot set French domestic programme');
 ck102(call102('DELETE','/universes/'.$spareNo.'/membership',null,8)['status']===200,'WP103 activated second world empty');
+ck102(call102('POST','/universes/join',$openingConflict,8,['idempotency-key'=>'wp114-replace-after-leave'])['status']===409,'cannot rename inherited AI leader even on opening day');
+$qr->execute([$spare]);ck102($qr->fetch(PDO::FETCH_ASSOC)===$openingRoster,'candidate survives release to AI unchanged');
 $due=$db->prepare('UPDATE wp_universes SET next_tick_epoch=UNIX_TIMESTAMP()-1 WHERE world_id=?');
 $due->execute([$spare]);
 ck102($scheduler->tick($spare)['day']==='2027-05-15','WP103 server advances world with no humans');

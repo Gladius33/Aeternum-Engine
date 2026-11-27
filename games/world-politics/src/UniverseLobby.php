@@ -42,7 +42,7 @@ final class UniverseLobby
             $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
             unset($r['pending_day'],$r['game_over']);
         }unset($r);
-        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),'historical_social_catalog'=>SocialProgramme::definitions(),'social_lifecycle_catalog'=>SocialProgramme::objectives(),'primary_quantitative_catalog'=>PrimaryManifestoPolicy::definitions(),'primary_constitutional_catalog'=>PresidentialProgramme::primaryRevisionCatalog(),'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
+        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),'historical_social_catalog'=>SocialProgramme::definitions(),'social_lifecycle_catalog'=>SocialProgramme::objectives(),'primary_quantitative_catalog'=>PrimaryManifestoPolicy::definitions(),'primary_constitutional_catalog'=>PresidentialProgramme::primaryRevisionCatalog(),'opening_candidate_selection'=>['country'=>'FR','day'=>FrenchElectionCalendar::PRESIDENTIAL_HANDOVER,'first_control_only'=>true,'options'=>CampaignCandidate::options()],'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
     }
     private function create():array
     {
@@ -73,12 +73,18 @@ final class UniverseLobby
     }
     public function join(AlphaSession $s,array $body,string $key):array
     {
-        AlphaAccounts::fields($body,['country',...(array_key_exists('universe_no',$body)?['universe_no']:[])]);
+        AlphaAccounts::fields($body,['country',...(array_key_exists('universe_no',$body)?['universe_no']:[]),...(array_key_exists('candidate',$body)?['candidate']:[])]);
         $country=$body['country'];$no=$body['universe_no']??null;
         if(!is_string($country)||!in_array($country,self::DIPLOMATIC_COUNTRIES,true)||($no!==null&&(!is_int($no)||$no<1))
             ||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key))throw new AlphaHttpError(422,'invalid_universe_join');
-        $key=hash('sha256',$key);$fingerprint=hash('sha256',json_encode([$country,$no],JSON_THROW_ON_ERROR));
-        return $this->transaction(function()use($s,$country,$no,$key,$fingerprint){
+        $candidate=null;
+        if(array_key_exists('candidate',$body)){
+            if($country!=='FR')throw new AlphaHttpError(422,'candidate_selection_france_only');
+            try{$candidate=CampaignCandidate::normalizeManaged($body['candidate']);}
+            catch(\InvalidArgumentException|\DomainException $e){throw new AlphaHttpError(422,'invalid_candidate');}
+        }
+        $key=hash('sha256',$key);$fingerprint=hash('sha256',json_encode([$country,$no,...($candidate===null?[]:[$candidate])],JSON_THROW_ON_ERROR));
+        return $this->transaction(function()use($s,$country,$no,$key,$fingerprint,$candidate){
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
             $prior=$this->query('SELECT request_sha,response_json FROM wp_universe_join_receipts WHERE account_id=? AND receipt_key=?',[$s->id,$key])->fetch(\PDO::FETCH_ASSOC);
             if($prior!==false){
@@ -101,6 +107,7 @@ final class UniverseLobby
                 JOIN wp_world_clock c ON c.world_id=u.world_id WHERE s.country_code=? AND s.closed_on IS NULL AND (s.account_id IS NULL OR s.account_id=?)
                 AND c.game_over=0";
             if($no!==null){$sql.=' AND u.universe_no=?';$args[]=$no;}
+            if($candidate!==null){$sql.=' AND s.generation=0 AND s.account_id IS NULL AND c.committed_day=?';$args[]=FrenchElectionCalendar::PRESIDENTIAL_HANDOVER;}
             $sql.=" AND NOT EXISTS(SELECT 1 FROM wp_universe_slots x WHERE x.world_id=u.world_id AND x.account_id=? AND x.country_code<>?) ORDER BY u.universe_no LIMIT 1";
             $args[]=$s->id;$args[]=$country;
             $u=$this->query($sql,$args)->fetch(\PDO::FETCH_ASSOC);
@@ -112,6 +119,10 @@ final class UniverseLobby
             if($slot['closed_on']!==null)throw new AlphaHttpError(409,'succession_pending');
             if($slot['account_id']!==null&&$slot['account_id']!==$s->id)throw new AlphaHttpError(409,'country_unavailable');
             $gen=(int)$slot['generation'];$spare=null;
+            if($candidate!==null){
+                if($gen!==0||$slot['account_id']!==null||$c['committed_day']!==FrenchElectionCalendar::PRESIDENTIAL_HANDOVER)throw new AlphaHttpError(409,'candidate_requires_opening_slot');
+                $this->openingCandidate($world,$s->id,$candidate,$fingerprint);
+            }
             if($slot['account_id']===null){
                 ++$gen;
                 $this->query('UPDATE wp_universe_slots SET account_id=?,generation=?,last_human_diplomacy_day=NULL,last_human_domestic_day=NULL WHERE world_id=? AND country_code=?',[$s->id,$gen,$world,$country]);
@@ -122,11 +133,26 @@ final class UniverseLobby
                 $spare=$this->ensureSpare();
             }
             $r=['universe_no'=>(int)$u['universe_no'],'world_id'=>$world,'country'=>$country,'generation'=>$gen,
-                'handover_day'=>$c['committed_day'],'new_universe'=>$spare,'state_reset'=>false];
+                'handover_day'=>$c['committed_day'],'new_universe'=>$spare,'state_reset'=>false,...($candidate===null?[]:['opening_candidate'=>['name'=>$candidate['name'],'kind'=>$candidate['kind'],'programme_count'=>count($candidate['programme']),'historical_alternate_history'=>$candidate['kind']==='real']])];
             $this->query('INSERT INTO wp_universe_join_receipts(account_id,receipt_key,request_sha,response_json) VALUES(?,?,?,?)',
                 [$s->id,$key,$fingerprint,json_encode($r,JSON_THROW_ON_ERROR)]);
             return $r;
         });
+    }
+    private function openingCandidate(string $world,string $actor,array $candidate,string $fingerprint):void
+    {
+        $row=$this->query("SELECT state_json,state_sha,revision FROM wp_world_rosters WHERE world_id=? AND country_code='FR' FOR UPDATE",[$world])->fetch(\PDO::FETCH_ASSOC);
+        if($row===false)throw new \DomainException('Missing opening roster');
+        $state=json_decode($row['state_json'],true,64,JSON_THROW_ON_ERROR);$old=PoliticalRoster::fromSnapshot($state);
+        if(!hash_equals($row['state_sha'],$old->snapshotHash())||$state['world_id']!==$world||$state['country_code']!=='FR')throw new \DomainException('Invalid opening roster');
+        $placeholder=$state['people'][CampaignLifecycle::PLAYER]??null;
+        if((int)$row['revision']!==0||count($state['people'])!==1||$state['head_of_state']!==CampaignLifecycle::PLAYER
+            ||$state['cabinet']!==[]||$state['pending_nominations']!==[]||($placeholder['name']??null)!=='Scenario president'
+            ||$placeholder['kind']!=='fictional'||$placeholder['programme']!==[])throw new AlphaHttpError(409,'candidate_requires_opening_slot');
+        $state['people'][CampaignLifecycle::PLAYER]=$candidate;$new=PoliticalRoster::fromSnapshot($state);
+        $after=$new->snapshotHash();$json=static fn(array $v):string=>json_encode($v,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+        $this->query("UPDATE wp_world_rosters SET state_json=?,state_sha=?,revision=1 WHERE world_id=? AND country_code='FR' AND revision=0",[$json($new->snapshot()),$after,$world]);
+        $this->query("INSERT INTO wp_world_events(world_id,country_code,revision,actor_id,operation,request_sha,before_sha,after_sha,result_json) VALUES(?,'FR',1,?,'opening_candidate_selection',?,?,?,?)",[$world,$actor,$fingerprint,$row['state_sha'],$after,$json(['identity'=>$candidate,'selected_on'=>FrenchElectionCalendar::PRESIDENTIAL_HANDOVER,'score_rules_changed'=>false])]);
     }
     public function leave(AlphaSession $s,int $no):array
     {

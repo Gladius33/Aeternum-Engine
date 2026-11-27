@@ -23,6 +23,22 @@ final class CampaignCandidate
             'managed_universe_explicit_programme_catalog'=>PresidentialProgramme::measureCatalog(),
             'historical_social_measure_catalog'=>SocialProgramme::definitions(),'historical_measures_automatically_imported'=>false,'changes_score_rules'=>false];
     }
+    /** Managed opening identity only; historical programme provenance is
+     * extended without changing the immutable earlier reference pack. */
+    public static function normalizeManaged(mixed $input):array
+    {
+        $person=self::normalize($input);
+        if($input['type']==='historical'){
+            require_once __DIR__.'/HistoricalProgrammeCoverage.php';
+            $id=substr($input['reference_id'],5);$r=HistoricalProgrammeCoverage::report()['candidates'][$id]??throw new \DomainException('Missing candidate coverage');
+            foreach([...$r['additional_executable'],...$r['additional_unmapped']] as $m){
+                $person['programme'][]=['id'=>$m['id'],'domain'=>$m['domain'],'proposal'=>$m['summary'],'sources'=>[$m['source']]];
+            }
+        }
+        $roster=new PoliticalRoster('candidate-validation','FR',['prime_minister']);
+        $roster->addPerson($person);$roster->setHeadOfState(CampaignLifecycle::PLAYER);
+        return $person;
+    }
     public static function normalize(mixed $input):array
     {
         if(!is_array($input)||array_is_list($input)||!is_string($input['type']??null))throw new \InvalidArgumentException('Invalid candidate selection');
