@@ -159,3 +159,16 @@ try{$q->fund($adm['tenant_id'],'admin-funding-test-01','topup',100);throw new Ru
 putenv('WP_ADMIN_RESEARCH_ENABLED=NO');
 ckResearch($g->handle('GET','/research/v1/models','',$head($at))['status']===401,'operator switch revokes access');
 echo "PASS dedicated operator profiles, zero billing, preserved scope and capacity\n";
+
+$unpaid=$q->createTenant('standard',0,false,'payg');
+ckResearch($q->authenticate($unpaid['token'])===null&&$q->billingIdentity($unpaid['token'])===$unpaid['tenant_id'],'expired plan can access billing only');
+for($i=0;$i<4;$i++)$q->billingIdentity($unpaid['token']);
+try{$q->billingIdentity($unpaid['token']);throw new RuntimeException('Billing rate bypass');}catch(\Aeternum\WorldPolitics\ResearchBillingError $e){ckResearch($e->status===429,'billing rate bound');}
+try{$q->billingIdentity($at);throw new RuntimeException('Admin billable');}catch(\Aeternum\WorldPolitics\ResearchBillingError $e){ckResearch($e->status===401,'admin excluded from billing');}
+putenv('WP_STRIPE_PORTAL_CONFIGURATION=bpc_fixture123');putenv('WP_STRIPE_PORTAL_RETURN_URL=https://example.invalid/return');
+$features=['subscription_update'=>['enabled'=>false],'subscription_cancel'=>['enabled'=>true,'mode'=>'at_period_end']];
+$portalApi=function($m,$p,$a,$k)use(&$features){if($m==='GET')return ['id'=>'bpc_fixture123','livemode'=>false,'active'=>true,'features'=>$features];return ['url'=>'https://billing.stripe.com/p/session/fixture'];};
+ckResearch(SC::portal($portalApi,'cus_fixture001')['test_mode'],'explicit restricted portal config');
+$features['subscription_update']['enabled']=true;
+try{SC::portal($portalApi,'cus_fixture001');throw new RuntimeException('Unsafe portal accepted');}catch(DomainException $expected){}
+echo "PASS billing-only credentials, bounded admission and restricted portal\n";

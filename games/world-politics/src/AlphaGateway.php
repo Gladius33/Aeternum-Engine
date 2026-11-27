@@ -84,6 +84,18 @@ final class AlphaGateway
             }
             if ($path==='/api/v1/me/recovery-code' && $method==='POST') return self::ok(201,$accounts->createRecovery($session,$body));
             if ($path==='/api/v1/me/password' && $method==='POST') return self::ok(200,$accounts->changePassword($session,$body));
+            if(in_array($path,['/api/v1/me/billing/checkout','/api/v1/me/billing/portal'],true)){
+                if($method!=='POST')throw new AlphaHttpError(405,'method_not_allowed');
+                AlphaAccounts::fields($body,[]);
+                if(getenv('WP_STRIPE_ENABLED')!=='YES')throw new AlphaHttpError(503,'stripe_disabled');
+                $accounts->limit('billing-peer',$peer,15,60);$accounts->limit('billing-account',$session->id,5,60);
+                require_once __DIR__.'/GameStripe.php';
+                StripeConfiguration::ready();$client=new StripeTestClient();
+                $stripe=new GameStripe($this->db(),$client->request(...));
+                if($path==='/api/v1/me/billing/portal')return self::ok(200,$stripe->portal($session->id));
+                if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
+                return self::ok(201,$stripe->checkout($session->id,$h['idempotency-key']));
+            }
             if($path==='/api/v1/me/data-token'){
                 require_once __DIR__.'/PlayerDataAccess.php';
                 if($method==='POST'){AlphaAccounts::fields($body,[]);return self::ok(201,PlayerDataAccess::issue($this->db(),$session));}

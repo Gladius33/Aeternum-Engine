@@ -185,3 +185,9 @@ CREATE TABLE wp_stripe_research_holds (
  created_at BIGINT UNSIGNED NOT NULL,
  FOREIGN KEY(payment_id) REFERENCES wp_stripe_research_receipts(payment_id)
 ) ENGINE=InnoDB;
+
+CREATE TABLE wp_research_checkout_rate (
+ scope_key VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ minute_no BIGINT UNSIGNED NOT NULL,
+ requests INT UNSIGNED NOT NULL
+) ENGINE=InnoDB;

@@ -147,6 +147,32 @@ final class ResearchQueue
         return is_string($r)?$r:null;
     }
     /** Authenticated request admission, serialized with tenant/key changes. */
+    /** Billing-only identity permits a still-valid ordinary key even when a
+     * subscription has expired. Never confers Research data rights. */
+    public function billingIdentity(string $token):string{
+        if(!preg_match('/^[a-f0-9]{64}$/D',$token))throw new ResearchBillingError(401,'billing_authentication_required');
+        return $this->tx(function()use($token){
+            $id=$this->q('SELECT k.tenant_id FROM wp_research_keys k JOIN wp_research_tenants t USING(tenant_id)
+                WHERE k.key_sha=? AND k.expires_at>? AND k.revoked=0 AND t.enabled=1 AND t.admin_exempt=0 FOR UPDATE',
+                [hash('sha256',$token),time()])->fetchColumn();
+            if(!is_string($id))throw new ResearchBillingError(401,'billing_authentication_required');
+            $window=intdiv(time(),60);
+            foreach([[$id,5],['global',60]] as [$scope,$limit]){
+                $this->q('INSERT IGNORE INTO wp_research_checkout_rate(scope_key,minute_no,requests) VALUES(?,?,0)',[$scope,$window]);
+                $r=$this->q('SELECT minute_no,requests FROM wp_research_checkout_rate WHERE scope_key=? FOR UPDATE',[$scope])->fetch(\PDO::FETCH_ASSOC);
+                $n=(int)$r['minute_no']===$window?(int)$r['requests']:0;
+                if($n>=$limit)throw new ResearchBillingError(429,'billing_rate_limited');
+                $this->q('UPDATE wp_research_checkout_rate SET minute_no=?,requests=? WHERE scope_key=?',[$window,$n+1,$scope]);
+            }
+            return $id;
+        });
+    }
+    public function stripeBilling(string $token,string $op,string $offer='',string $key=''):array{
+        require_once __DIR__.'/ResearchStripe.php';
+        $id=$this->billingIdentity($token);StripeConfiguration::ready();$c=new StripeTestClient();
+        $s=new ResearchStripe($this->db,$c->request(...));
+        return $op==='portal'?$s->portal($id):($op==='checkout'?$s->checkout($id,$offer,$key):throw new \DomainException('Invalid billing operation'));
+    }
     public function admit(string $token,string $operation='read'):?bool{
         return $this->tx(function()use($token,$operation){
             $tenant=$this->authenticate($token,true);if($tenant===null)return null;

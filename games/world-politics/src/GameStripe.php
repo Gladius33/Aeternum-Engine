@@ -44,6 +44,11 @@ final class GameStripe
             return ['order_id'=>$id,'checkout_id'=>$sid,'checkout_url'=>$url,'test_mode'=>true];
         });
     }
+    public function portal(string $account):array{
+        if(OperatorAccess::game($account))throw new \DomainException('Operator is not billable');
+        $r=$this->q('SELECT o.customer_id FROM wp_stripe_game_orders o JOIN wp_accounts a USING(account_id) WHERE o.account_id=? AND a.enabled=1',[$account])->fetchColumn();
+        return StripeConfiguration::portal($this->api,ResearchStripe::id($r,'cus_'));
+    }
     private function revoke(string $account):void{
         $this->q('UPDATE wp_player_api_entitlements SET paid_until=0 WHERE account_id=?',[$account]);
         $this->q('DELETE FROM wp_player_api_keys WHERE account_id=?',[$account]);

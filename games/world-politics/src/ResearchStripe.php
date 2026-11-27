@@ -25,6 +25,21 @@ final class StripeConfiguration
             throw new \DomainException('Offer not configured');
         return ['plan'=>$plan,'mode'=>$mode,'price'=>$price,'units'=>(int)$units];
     }
+    public static function portal(\Closure $api,string $customer):array{
+        $id=ResearchStripe::id(getenv('WP_STRIPE_PORTAL_CONFIGURATION')?:'','bpc_');
+        $c=$api('GET','/v1/billing_portal/configurations/'.$id,[],null);
+        ResearchStripe::testObject($c,$id);
+        // Price changes/proration are not yet implemented. Refuse even a
+        // misconfigured portal with subscription update capability.
+        if(($c['active']??null)!==true||($c['features']['subscription_update']['enabled']??null)!==false
+            ||($c['features']['subscription_cancel']['enabled']??null)!==true||($c['features']['subscription_cancel']['mode']??null)!=='at_period_end')
+            throw new \DomainException('Unsafe portal configuration');
+        $p=$api('POST','/v1/billing_portal/sessions',['customer'=>$customer,'configuration'=>$id,'return_url'=>self::url('WP_STRIPE_PORTAL_RETURN_URL')],null);
+        $url=$p['url']??null;
+        if(!is_string($url)||parse_url($url,PHP_URL_SCHEME)!=='https'||parse_url($url,PHP_URL_HOST)!=='billing.stripe.com'||strlen($url)>2048)
+            throw new \DomainException('Unexpected portal URL');
+        return ['portal_url'=>$url,'test_mode'=>true];
+    }
     public static function url(string $name):string{
         $u=getenv($name)?:'';$p=parse_url($u);
         if(!filter_var($u,FILTER_VALIDATE_URL)||!is_array($p)||($p['scheme']??'')!=='https'||!isset($p['host'])||isset($p['user'],$p['pass'])||isset($p['user'])||isset($p['pass'])||isset($p['fragment']))
@@ -36,7 +51,7 @@ final class StripeTestClient
 {
     public function request(string $method,string $path,array $args=[],?string $key=null):array{
         StripeConfiguration::ready();
-        if(!in_array($method,['GET','POST'],true)||!preg_match('~^/v1/(?:prices/[A-Za-z0-9_]+|checkout/sessions(?:/[A-Za-z0-9_]+(?:/line_items)?)?|invoices/[A-Za-z0-9_]+|subscriptions/[A-Za-z0-9_]+|payment_intents/[A-Za-z0-9_]+|charges/[A-Za-z0-9_]+|billing_portal/sessions)$~D',$path))
+        if(!in_array($method,['GET','POST'],true)||!preg_match('~^/v1/(?:prices/[A-Za-z0-9_]+|checkout/sessions(?:/[A-Za-z0-9_]+(?:/line_items)?)?|invoices/[A-Za-z0-9_]+|subscriptions/[A-Za-z0-9_]+|payment_intents/[A-Za-z0-9_]+|charges/[A-Za-z0-9_]+|billing_portal/sessions|billing_portal/configurations/[A-Za-z0-9_]+)$~D',$path))
             throw new \DomainException('Unsupported Stripe request');
         $url='https://api.stripe.com'.$path;
         if($method==='GET'&&$args!==[])$url.='?'.http_build_query($args,'','&',PHP_QUERY_RFC3986);
@@ -130,10 +145,7 @@ final class ResearchStripe
         $r=$this->q("SELECT o.customer_id FROM wp_stripe_research_orders o JOIN wp_research_tenants t USING(tenant_id)
             WHERE o.tenant_id=? AND o.mode='subscription' AND o.customer_id IS NOT NULL AND t.admin_exempt=0 AND t.enabled=1",[$tenant])->fetchColumn();
         $customer=self::id($r,'cus_');
-        $p=($this->api)('POST','/v1/billing_portal/sessions',['customer'=>$customer,'return_url'=>StripeConfiguration::url('WP_STRIPE_PORTAL_RETURN_URL')],null);
-        $url=$p['url']??null;
-        if(!is_string($url)||parse_url($url,PHP_URL_SCHEME)!=='https'||parse_url($url,PHP_URL_HOST)!=='billing.stripe.com'||strlen($url)>2048)throw new \DomainException('Unexpected portal URL');
-        return ['portal_url'=>$url,'test_mode'=>true];
+        return StripeConfiguration::portal($this->api,$customer);
     }
     /** Freeze rather than silently destroy credits on a confirmed reversal.
      * Operator reconciliation required, including partial refunds and disputes. */
@@ -175,7 +187,8 @@ final class ResearchStripe
             $sid=self::id($obj['id']??null,'sub_');$sub=$this->get('subscriptions',$sid);self::testObject($sub,$sid);
             $status=$sub['status']??null;
             if(!in_array($status,['canceled','unpaid','incomplete_expired'],true))return ['status'=>'unchanged'];
-            $o=$this->order($sub['metadata']['wp_order']??'');
+            if(!isset($sub['metadata']['wp_order']))return ['status'=>'unrelated'];
+            $o=$this->order($sub['metadata']['wp_order']);
             return $this->tx(function()use($o,$sub,$sid){
                 $a=$this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$o['tenant_id']])->fetchColumn();
                 $r=$this->order($o['order_id'],true);
@@ -190,7 +203,8 @@ final class ResearchStripe
             $sid=self::id($obj['id']??null,'cs_test_');$s=$this->get('checkout/sessions',$sid);self::testObject($s,$sid);
             if(($s['mode']??null)==='subscription')return ['status'=>'await_invoice'];
             if(($s['mode']??null)!=='payment'||($s['status']??null)!=='complete'||($s['payment_status']??null)!=='paid')return ['status'=>'await_payment'];
-            $o=$this->order($s['metadata']['wp_order']??'');$customer=self::id($s['customer']??null,'cus_');
+            if(!isset($s['metadata']['wp_order']))return ['status'=>'unrelated'];
+            $o=$this->order($s['metadata']['wp_order']);$customer=self::id($s['customer']??null,'cus_');
             if($o['mode']!=='payment'||$o['checkout_id']!==$sid||($s['client_reference_id']??null)!==$o['order_id']||($s['currency']??null)!=='eur'
                 ||($s['amount_subtotal']??null)!==(int)$o['amount_minor']||($s['amount_total']??null)!==(int)$o['amount_minor'])
                 throw new \DomainException('Checkout mismatch');
@@ -203,7 +217,8 @@ final class ResearchStripe
         if($type==='invoice.paid'){
             $iid=self::id($obj['id']??null,'in_');$i=$this->get('invoices',$iid);self::testObject($i,$iid);
             $subid=self::id($i['subscription']??null,'sub_');$sub=$this->get('subscriptions',$subid);self::testObject($sub,$subid);
-            $o=$this->order($sub['metadata']['wp_order']??'');$customer=self::id($i['customer']??null,'cus_');
+            if(!isset($sub['metadata']['wp_order']))return ['status'=>'unrelated'];
+            $o=$this->order($sub['metadata']['wp_order']);$customer=self::id($i['customer']??null,'cus_');
             if($o['mode']!=='subscription'||$o['checkout_id']===null||($sub['customer']??null)!==$customer||($sub['status']??null)!=='active'
                 ||($i['status']??null)!=='paid'||($i['paid_out_of_band']??null)!==false||($i['currency']??null)!=='eur'||($i['collection_method']??null)!=='charge_automatically'
                 ||!in_array($i['billing_reason']??null,['subscription_create','subscription_cycle'],true)

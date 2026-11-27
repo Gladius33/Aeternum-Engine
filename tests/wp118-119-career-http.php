@@ -82,6 +82,8 @@ $exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[
 ck(req('POST',$ep.'/members',['account_id'=>$e2],$etoken)['status']===200,'economic member invited');
 $eac=req('GET',$ep.'/career',null,$etoken)['body']['career']['id'];
 ck(req('POST','/me/data-token',(object)[],$etoken)['status']===403,'free game account cannot mint export token');
+ck(req('POST','/me/billing/checkout',(object)[],$etoken)['status']===503,'Stripe disabled by default');
+ck(req('POST','/me/billing/checkout',(object)[])['status']===401,'billing requires session');
 require_once __DIR__.'/../games/world-politics/src/PlayerDataAccess.php';
 \Aeternum\WorldPolitics\PlayerDataAccess::setEntitlement($pdo,$eid,time()+86400);
 $pk=req('POST','/me/data-token',(object)[],$etoken);ck($pk['status']===201,'premium data token issued');

@@ -14,7 +14,23 @@ final class ResearchGateway
             $h=array_change_key_case($headers,CASE_LOWER);
             if(!preg_match('/^Bearer ([a-f0-9]{64})$/D',$h['authorization']??'',$m))
                 return self::response(401,['code'=>'research_authentication_required']);
-            $token=$m[1];$admitted=$this->queue->admit($token,ResearchBilling::operation($method,$path));
+            $token=$m[1];
+            if(in_array($path,['/research/v1/billing/checkout','/research/v1/billing/portal'],true)){
+                if($method!=='POST')return self::response(405,['code'=>'method_not_allowed']);
+                if(getenv('WP_STRIPE_ENABLED')!=='YES')return self::response(503,['code'=>'stripe_disabled']);
+                if(!preg_match('/^application\/json(?:; ?charset=utf-8)?$/iD',$h['content-type']??''))return self::response(415,['code'=>'json_required']);
+                $obj=json_decode($raw,false,16,JSON_THROW_ON_ERROR);
+                if(!$obj instanceof \stdClass)return self::response(400,['code'=>'invalid_json']);
+                $body=(array)$obj;
+                if($path==='/research/v1/billing/portal'){
+                    if($body!==[])return self::response(400,['code'=>'invalid_fields']);
+                    return self::response(200,$this->queue->stripeBilling($token,'portal'));
+                }
+                if(array_keys($body)!==['offer']||!is_string($body['offer']))return self::response(400,['code'=>'invalid_fields']);
+                if(!isset($h['idempotency-key']))return self::response(428,['code'=>'idempotency_required']);
+                return self::response(201,$this->queue->stripeBilling($token,'checkout',$body['offer'],$h['idempotency-key']));
+            }
+            $admitted=$this->queue->admit($token,ResearchBilling::operation($method,$path));
             if($admitted===null)return self::response(401,['code'=>'research_authentication_required']);
             if(!$admitted)return self::response(429,['code'=>'research_rate_limited']);
             if($method!=='POST'&&$raw!=='')return self::response(400,['code'=>'body_forbidden']);
