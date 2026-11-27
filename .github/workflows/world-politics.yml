@@ -361,6 +361,7 @@ jobs:
           php -l games/world-politics/public/index.php
           php -l games/world-politics/bin/prune-alpha.php
           php games/world-politics/bin/install-alpha.php
+          export WP_CAREER_EVIDENCE_KEY=ci-only-career-evidence-key-not-for-deployment
           php -S 127.0.0.1:18730 -t games/world-politics/public games/world-politics/public/index.php > /tmp/wp30-http.log 2>&1 &
           server=$!
           trap 'kill "$server" 2>/dev/null || true; cat /tmp/wp30-http.log' EXIT
@@ -369,6 +370,7 @@ jobs:
             sleep 1
           done
           php tests/wp30-http.php
+          php tests/wp118-119-career-http.php
           php tests/wp71-finance-2028-db.php
           php tests/wp99-corrective-finance-db.php
       - name: WP96 isolated logical backup restoration and read-only audit

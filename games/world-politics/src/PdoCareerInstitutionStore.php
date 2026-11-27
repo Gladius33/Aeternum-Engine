@@ -115,6 +115,23 @@ final class PdoCareerInstitutionStore
     public function admitForSession(string $world,string $token,string $secret):array{
         return $this->tx(function()use($world,$token,$secret){$clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);return $this->admitLocked($world,$a,$clock,$secret);});
     }
+    /** A private career-world owner may invite an account as a member, not confer an office. */
+    public function inviteForSession(string $world,string $token,string $target):array{
+        CareerInstitutionLedger::id($target);
+        return $this->tx(function()use($world,$token,$target){
+            $this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);
+            $this->replay($world,$this->row($world));
+            $w=$this->query('SELECT owner_id,scenario FROM wp_alpha_worlds WHERE world_id=? FOR UPDATE',[$world])->fetch(\PDO::FETCH_ASSOC);
+            CareerInstitutionLedger::check($w!==false&&$w['scenario']==='wp-career-v1'&&$w['owner_id']===$a&&$target!==$a,'invitation denied');
+            CareerInstitutionLedger::check((int)$this->query('SELECT enabled FROM wp_accounts WHERE account_id=? FOR UPDATE',[$target])->fetchColumn()===1,'target unavailable');
+            $exists=$this->query('SELECT role FROM wp_alpha_members WHERE world_id=? AND account_id=?',[$world,$target])->fetchColumn();
+            if($exists===false){
+                CareerInstitutionLedger::check((int)$this->query('SELECT COUNT(*) FROM wp_alpha_members WHERE world_id=?',[$world])->fetchColumn()<64,'member limit');
+                $this->query("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'viewer')",[$world,$target]);
+            }
+            return ['world_id'=>$world,'account_id'=>$target,'membership'=>'viewer','office_granted'=>false];
+        });
+    }
     /** Private institution-only sandbox; never grants legacy ownership powers. */
     public function createForSession(string $token,string $label,string $key,string $secret):array{
         CareerInstitutionLedger::check(trim($label)!==''&&strlen($label)<=100&&!preg_match('/[\x00-\x1f\x7f]/',$label)&&preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)===1,'invalid career world');

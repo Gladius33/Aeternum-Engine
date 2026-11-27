@@ -65,6 +65,28 @@ paths:
         '200': {description: Own career and institutional projection}
         '404': {description: Feature disabled or world inaccessible}
         '409': {description: Verification failure}
+  /career-worlds/{world}/members:
+    post:
+      summary: Invite an account to private career world without conferring office
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [account_id]
+              properties:
+                account_id: {type: string}
+      responses:
+        '200': {description: Viewer membership only}
+        '404': {description: World inaccessible}
+        '409': {description: Invitation denied}
   /career-worlds/{world}/admission:
     post:
       summary: Admit existing member as fictional non-executive career
