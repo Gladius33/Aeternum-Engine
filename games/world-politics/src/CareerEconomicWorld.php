@@ -56,7 +56,7 @@ final class CareerLegislativePrincipal implements InstitutionalActorAuthorizer{
 final class CareerEconomicWorld
 {
     private static function json(array $x):string{return json_encode($x,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
-    public static function seed(\PDO $db,string $world,string $day):void{
+    public static function seed(\PDO $db,string $world,string $day,bool $expandedProgramme=false):void{
         CareerInstitutionLedger::check($db->inTransaction()&&$day===CareerScoreContract::START,'economic bootstrap requires opening transaction');
         $put=static function(string $sql,array $params)use($db):void{$q=$db->prepare($sql);$q->execute($params);};
         $bundle=GlobalReferenceBundle::published();$sha=(new PdoGlobalReferenceBundles($db))->install($bundle);
@@ -78,6 +78,7 @@ final class CareerEconomicWorld
         // stay off until new mandates can legally authorize their actions.
         $c=$scenario->domestic();
         $c['catalog']+=array_intersect_key(SocialProgramme::policies($c['macro_baseline']),SocialProgramme::target2027());
+        if($expandedProgramme){require_once __DIR__.'/FrenchExpandedProgramme.php';$c['catalog']+=array_intersect_key(SocialProgramme::policies($c['macro_baseline']),array_fill_keys(FrenchExpandedProgramme::policyIds(),true));}
         foreach(['finance_autonomy','daily_legal_enabled','trade_feedback_enabled','eu_trade_enabled','eu_trade_v2','eu_trade_v3','eu_trade_v4'] as $flag)$c[$flag]=false;
         $dom=PdoDomesticPolicyStore::build($world,$c);
         $put('INSERT INTO wp_domestic_states(world_id,assumptions_json,assumptions_sha,state_json,state_sha,revision) VALUES(?,?,?,?,?,0)',[$world,self::json($c),$dom->assumptionsHash(),self::json($dom->snapshot()),$dom->hash()]);

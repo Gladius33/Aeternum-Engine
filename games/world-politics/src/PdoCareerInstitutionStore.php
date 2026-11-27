@@ -441,7 +441,7 @@ final class PdoCareerInstitutionStore
         WorldMutationFence::seed($this->db,$world);
         $s=CareerInstitutionLedger::initial($world,'FR','career',$day);$j=CareerInstitutionLedger::json($s);
         $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
-        require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);
+        require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day,true);
         $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
         $this->seedFrenchSupplementLocked($world,['committed_day'=>$day,'revision'=>0]);
         $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>0,'command'=>'participation-opening-v1','actor'=>'career-participation-clerk','operation'=>'participation_enable','payload'=>['version'=>CareerParticipation::VERSION]];
@@ -546,7 +546,7 @@ final class PdoCareerInstitutionStore
             WorldMutationFence::seed($this->db,$world);
             $s=CareerInstitutionLedger::initial($world,$country,'career',$day);$j=CareerInstitutionLedger::json($s);
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
-            if($profile==='economic'){require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);}
+            if($profile==='economic'){require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day,true);}
             $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
         $this->seedFrenchSupplementLocked($world,['committed_day'=>$day,'revision'=>0]);
             if($country!=='FR')$this->seedForeignOpening($world,$secret);

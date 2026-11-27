@@ -8,6 +8,7 @@ require_once __DIR__.'/ProgrammeSourceInventory.php';
 require_once __DIR__.'/FrenchPoliticalDirectory.php';
 require_once __DIR__.'/ProvisionalFrenchProgramme.php';
 require_once __DIR__.'/FrenchPublicSourceEditions.php';
+require_once __DIR__.'/FrenchExpandedProgramme.php';
 
 /** Choose the player-controlled identity at creation, not an electoral claim.
  * The immutable simulation character ID and all score rules are unchanged.
@@ -165,27 +166,35 @@ final class CampaignCandidate
     public static function provisionalChoices():array{
         return ProvisionalFrenchProgramme::choices(self::programme2027Reference()['reviewed_measures'],self::campaign2027Choices());
     }
+    public static function allV1Choices():array{
+        static $all=null;if($all!==null)return $all;
+        $reviewed=self::programme2027Reference()['reviewed_measures'];
+        $base=FrenchPublicSourceEditions::choices($reviewed);
+        return $all=[...self::provisionalChoices(),...$base,...FrenchExpandedProgramme::choices($base,$reviewed)];
+    }
     public static function v1Choices():array{
-        return [...self::provisionalChoices(),...FrenchPublicSourceEditions::choices(self::programme2027Reference()['reviewed_measures'])];
+        // Most recent edition per identity; previous IDs remain selectable.
+        return array_values(array_column(self::allV1Choices(),null,'base'));
     }
     public static function editionEvidence(string $id):?array{
         $approved=ProgrammeSourceInventory::report()['approved_editions'][$id]??null;
         if($approved!==null)return $approved;
-        return array_column(self::v1Choices(),null,'id')[$id]??null;
+        return array_column(self::allV1Choices(),null,'id')[$id]??null;
     }
     public static function mayStart(mixed $input):bool
     {
         if(!is_array($input))return false;
         if(($input['type']??null)==='fictional')return true;
         if(($input['type']??null)!=='campaign2027')return false;
-        return (array_column([...self::campaign2027Choices(),...self::v1Choices()],null,'id')[$input['reference_id']??'']['playable']??false)===true;
+        return (array_column([...self::campaign2027Choices(),...self::allV1Choices()],null,'id')[$input['reference_id']??'']['playable']??false)===true;
     }
     private static function normalize2027(string $id):array
     {
-        $choice=array_column([...self::campaign2027Choices(),...self::v1Choices()],null,'id')[$id]??throw new \DomainException('Unknown 2027 campaign reference');
+        $choice=array_column([...self::campaign2027Choices(),...self::allV1Choices()],null,'id')[$id]??throw new \DomainException('Unknown 2027 campaign reference');
         $measures=array_column(self::programme2027Reference()['reviewed_measures'],null,'id');
         $programme=[];
-        foreach($choice['measure_ids'] as $mid){
+        if(isset($choice['mapped_programme']))$programme=$choice['mapped_programme'];
+        else foreach($choice['measure_ids'] as $mid){
             $m=$measures[$mid];$d=SocialProgramme::target2027()[$mid]??throw new \DomainException('Missing 2027 execution mapping');
             if($d['target']!==$m['target'])throw new \DomainException('Target source mismatch');
             $programme[]=['id'=>$mid,'domain'=>$d['domain'],'proposal'=>json_encode($m['target'],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE),'sources'=>[$m['source']]];

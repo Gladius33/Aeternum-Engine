@@ -214,7 +214,7 @@ ck($frd['body']['additional_political_references']===[],'new expanded world cont
 $provisional=req('POST','/career-worlds',['label'=>'Provisional','reference_id'=>'campaign2027-jean-luc-melenchon-v3'],$etoken,'provisional-career-create-001');
 ck($provisional['status']===201,'explicit provisional real identity admission');
 ck(req('GET','/career-worlds/'.$provisional['body']['world_id'].'/career',null,$etoken)['body']['career']['id']==='real-jean-luc-melenchon','provisional claim retains identity');
-$manual=req('POST','/career-worlds',['label'=>'Manual public source','reference_id'=>'campaign2027-jordan-bardella-v1-public'],$etoken,'manual-career-create-001');
+$manual=req('POST','/career-worlds',['label'=>'Manual public source','reference_id'=>'campaign2027-jordan-bardella-v2-public'],$etoken,'manual-career-create-001');
 ck($manual['status']===201,'manual source edition admits supplementary identity');
 ck(req('GET','/career-worlds/'.$manual['body']['world_id'].'/career',null,$etoken)['body']['career']['id']==='real-jordan-bardella','manual claim bound to same documentary identity');
 ck(req('POST','/career-worlds',['label'=>'Unknown','country'=>'CH'],$etoken,'career-ch-creation-001')['status']===409,'unimplemented rules fail closed');

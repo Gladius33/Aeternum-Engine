@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/SocialProgramme.php';
+require_once __DIR__.'/FrenchExpandedProgramme.php';
 
 /** Bounded, proposal-only career autonomy. No inference from a name or free text.
  * The frozen WP114 mappings describe simulated proposals, not real intentions. */
@@ -31,11 +32,11 @@ final class CareerProgrammeAutonomy
     public static function portfolio(string $id):?string{
         if($id==='education-reform')return 'education';
         if($id==='administration-report')return null;
-        $definition=SocialProgramme::target2027()[$id]??null;
+        $definition=SocialProgramme::target2027()[$id]??(in_array($id,FrenchExpandedProgramme::policyIds(),true)?SocialProgramme::definition($id):null);
         if($definition===null)throw new \DomainException('Policy not mapped to career powers');
         return match($definition['domain']){
             'education'=>'education','eldercare'=>'health','tax','industry'=>'economy',
-            'wages','retirement','housing'=>null,
+            'wages','retirement','housing','employment','social','public_services','agriculture','culture','transport'=>null,
             default=>throw new \DomainException('Policy portfolio not reviewed')
         };
     }
@@ -43,7 +44,18 @@ final class CareerProgrammeAutonomy
         $portfolio=self::portfolio($id);
         return $office==='prime-minister'||($portfolio!==null&&$office==='minister-'.$portfolio);
     }
-    public static function objectives(array $career):array{
+    public static function objectives(array $career,bool $expanded=false):array{
+        if($expanded&&isset($career['person_reference'])){
+            require_once __DIR__.'/CampaignCandidate.php';
+            if(isset($career['programme_edition'])){
+                $v=CampaignCandidate::editionEvidence($career['programme_edition']);
+                if(is_array($v)&&isset($v['document_sha256'],$career['programme_sha'])&&hash_equals($v['document_sha256'],$career['programme_sha']))
+                    return $v['measure_ids'];
+            }elseif(($career['controller']??null)==='ai'){
+                $v=array_column(CampaignCandidate::v1Choices(),null,'base')[$career['person_reference']]??null;
+                if($v!==null)return $v['measure_ids'];
+            }
+        }
         if(($career['person_reference']??null)==='campaign2027-marine-tondelier'&&($career['programme_edition']??null)==='campaign2027-marine-tondelier-v1-public')
             return ['pf2027-ecologistes-smic','pf2027-ecologistes-renovation'];
         if(isset($career['person_reference']))return self::DOCUMENTED[$career['person_reference']]??[];
@@ -59,11 +71,11 @@ final class CareerProgrammeAutonomy
             $m=$state['mandates'][$mid];$career=$state['careers'][$m['career']];
             $ability=$office==='prime-minister'?'government.coordinate':'ministry.'.substr($office,9).'.propose';
             if($m['end']!==null||$m['interim']||$m['start']>$day||$m['expires']<=$day||!in_array($ability,$m['powers'],true)||isset($humanActed[$m['career']]))continue;
-            foreach(self::objectives($career) as $id){
+            foreach(self::objectives($career,isset($catalog['hist2022-fabien-roussel-1'])) as $id){
                 if(!isset($catalog[$id])||isset($policies[$id]))continue;
-                if(!in_array($id,['education-reform','administration-report'],true)&&!isset(SocialProgramme::target2027()[$id]))continue;
+                if(!in_array($id,['education-reform','administration-report'],true)&&!isset(SocialProgramme::target2027()[$id])&&!in_array($id,FrenchExpandedProgramme::policyIds(),true))continue;
                 if(!self::permitted($office,$id))continue;
-                $effective=isset(SocialProgramme::target2027()[$id])?SocialProgramme::effectiveDay($id,$day):
+                $effective=SocialProgramme::definition($id)!==null?SocialProgramme::effectiveDay($id,$day):
                     (new \DateTimeImmutable($day))->modify($id==='education-reform'?'+120 days':'+14 days')->format('Y-m-d');
                 if(SocialProgramme::sameEffectiveFamily($id,$effective,$policies))continue;
                 return ['mandate'=>$mid,'generation'=>$m['generation'],'career'=>$m['career'],'policy_id'=>$id,'effective_day'=>$effective];

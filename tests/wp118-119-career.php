@@ -262,7 +262,8 @@ ck($plan['career']==='minister'&&$plan['policy_id']==='pf2027-dlf-production-tax
 ck($planClass::next($cs,'2027-05-14',['pf2027-dlf-production-tax'=>true],$catalog)===null,'economy cannot borrow education portfolio');
 ck($planClass::next($cs,'2027-05-14',[],$catalog,['minister'=>true])===null,'human economic proposal suppresses replacement');
 foreach(\Aeternum\WorldPolitics\SocialProgramme::target2027() as $id=>$definition)ck($planClass::permitted('prime-minister',$id)&&!$planClass::permitted('president',$id),'reviewed catalogue authority '.$id);
-no(fn()=>$planClass::portfolio('pf2022-marine-le-pen-2'));
+ck($planClass::portfolio('pf2022-marine-le-pen-2')==='economy','reviewed historical domestic instrument');
+no(fn()=>$planClass::portfolio('pf2022-philippe-poutou-4'));
 
 // Participation is sealed only from contiguous clock-owned intervals.
 $part=add(add(L::initial('participation-world','FR','career','2027-05-14'),'a'),'b');
@@ -320,3 +321,10 @@ $expanded=L::apply($expanded,$re);ck(count($expanded['careers'])===36,'new roste
 $rb=L::automaticBallot($expanded,'2027-05-14');ck(count($rb['ballot']['first']['votes'])===36,'expanded synthetic ballot capacity');
 $be=evt($expanded,'presidential_ballot',$rb);$be['actor']='career-election-clerk';$be['evidence_sha']=L::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$expanded['world'],'day'=>$be['day'],'payload'=>$rb]);
 ck(isset(L::apply($expanded,$be)['active']['president']),'expanded election can be certified');
+
+$sourceEdition=\Aeternum\WorldPolitics\CampaignCandidate::editionEvidence('campaign2027-fabien-roussel-v2-public');
+$claimCareer=['person_reference'=>'campaign2027-fabien-roussel','controller'=>'human','account'=>'acct-fixture','programme_edition'=>$sourceEdition['id'],'programme_sha'=>$sourceEdition['document_sha256']];
+ck($planClass::objectives($claimCareer,true)===$sourceEdition['measure_ids'],'signed historical programme drives human fallback');
+ck($planClass::objectives(['person_reference'=>'campaign2027-fabien-roussel','controller'=>'ai'],true)===$sourceEdition['measure_ids'],'unclaimed AI uses preferred reviewed edition');
+ck($planClass::objectives(['person_reference'=>'campaign2027-fabien-roussel','controller'=>'ai'],false)===[],'legacy autonomy unchanged');
+ck($planClass::objectives(array_replace($claimCareer,['programme_sha'=>str_repeat('0',64)]),true)===[],'incorrect digest cannot unlock historical mapping');

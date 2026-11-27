@@ -47,10 +47,18 @@ foreach($provisional as $r){
 ck75b(count(\Aeternum\WorldPolitics\ProvisionalFrenchProgramme::evidence()['records'])===9,'documentary evidence separate from executable editions');
 
 $v1=C::v1Choices();ck75b(count($v1)===36&&count(array_unique(array_column($v1,'name')))===36,'all 36 public-source V1 identities');
-ck75b(array_sum(array_column($v1,'reviewed_measure_count'))===13,'13 existing quantitative mappings, not fabricated new effects');
+ck75b(array_sum(array_column($v1,'reviewed_measure_count'))===49,'49 attributed quantitative mappings across 13 profiles');
 ck75b(C::politicalDirectory()['v1_playable_count']===36&&C::politicalDirectory()['full_programme_playable_count']===0,'provisional and complete availability separated');
 foreach($v1 as $r){
     $sel=['type'=>'campaign2027','reference_id'=>$r['id']];
     ck75b(C::mayStart($sel)&&!$r['programme_complete']&&strlen(C::editionEvidence($r['id'])['document_sha256'])===64,'explicit edition permitted and digest-bound');
     ck75b(count(C::normalizeManaged($sel)['programme'])===count($r['measure_ids']),'only executable measures enter runtime profile');
+}
+
+ck75b(count(C::allV1Choices())===44,'older immutable provisional editions remain selectable');
+foreach(C::v1Choices() as $v){
+    if(!str_ends_with($v['id'],'-v2-public'))continue;
+    $old=C::editionEvidence($v['mapped_evidence']['previous_edition']);
+    ck75b($old!==null&&$old['id']!==$v['id']&&$old['document_sha256']!==$v['document_sha256'],'expanded profile never mutates previous edition');
+    ck75b($v['mapped_evidence']['source_period']!==''&&count($v['mapped_programme'])===count($v['measure_ids']),'attributed executable source evidence');
 }
