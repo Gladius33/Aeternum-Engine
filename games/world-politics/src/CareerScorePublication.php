@@ -124,6 +124,36 @@ final class CareerScorePublication
             self::append($db,$e);
         }
     }
+    /** Independent journal audit; verifies signatures, predecessor links,
+     * actual career event anchors and exact latest projection. Read-only. */
+    public static function audit(\PDO $db,string $world):array{
+        if(self::pin($db,$world)===null)throw new \DomainException('World is not score-pinned');
+        $last=[];$count=0;
+        $q=self::q($db,'SELECT e.*,c.event_sha AS career_event_sha FROM wp_career_score_events e
+            LEFT JOIN wp_career_events c ON c.world_id=e.world_id AND c.sequence_no=e.sequence_no
+            WHERE e.world_id=? ORDER BY e.series_id,e.sequence_no',[$world]);
+        foreach($q as $r){
+            $e=self::decode($r['evidence_json']);
+            $e=self::verified($r+['account_id'=>$e['account'],'cohort_sha'=>$e['cohort'],'qualified'=>(int)$e['qualified']]);
+            $id=$e['series'];$prev=$last[$id]??null;
+            if($r['career_event_sha']!==$e['ledger_sha']||!preg_match('/^[a-f0-9]{64}$/D',$e['source_sha'])
+                ||$e['previous_sha']!==($prev===null?str_repeat('0',64):CareerInstitutionLedger::digest($prev))
+                ||($prev!==null&&($prev['preview']['terminal']||$prev['account']!==$e['account']||$prev['cohort']!==$e['cohort']
+                    ||$prev['preview']['through']>$e['preview']['through']||$prev['published_day']>$e['published_day']
+                    ||(isset($prev['preview']['baseline_index_bps'],$e['preview']['baseline_index_bps'])
+                        &&$prev['preview']['baseline_index_bps']!==$e['preview']['baseline_index_bps']))))
+                throw new \DomainException('Score journal chain mismatch');
+            $last[$id]=$e;$count++;
+        }
+        $n=0;
+        foreach(self::q($db,'SELECT l.*,e.evidence_json,e.signature_sha FROM wp_career_score_latest l JOIN wp_career_score_events e USING(world_id,series_id,sequence_no) WHERE l.world_id=?',[$world]) as $r){
+            $e=self::verified($r);
+            if(($last[$e['series']]??null)!==$e)throw new \DomainException('Score head mismatch');
+            $n++;
+        }
+        if($n!==count($last))throw new \DomainException('Missing score projection');
+        return ['world_id'=>$world,'version'=>self::VERSION,'events'=>$count,'series'=>$n,'verified'=>true];
+    }
     /** Best single series per account; shared ties; stable order. */
     public static function rank(array $rows):array{
         $cmp=static fn(array $a,array $b):int=>$b['score']<=>$a['score']?:$b['gain']<=>$a['gain']?:$b['tenure']<=>$a['tenure'];

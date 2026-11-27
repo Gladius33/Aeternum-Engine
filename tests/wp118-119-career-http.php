@@ -195,6 +195,42 @@ ck($rank2['status']===200&&$rank2['body']['rows']===[],'snapshot pagination');
 ck(req('GET','/career-worlds/rankings/global/'.$opening.'/2/'.str_repeat('0',64),null,$etoken)['status']===409,'stale snapshot rejected');
 $pubq=$pdo->prepare('SELECT COUNT(*) FROM wp_career_score_latest WHERE world_id=? AND qualified=0');$pubq->execute([$pw]);
 ck((int)$pubq->fetchColumn()===1,'daily score committed atomically');
+$pubClass=\Aeternum\WorldPolitics\CareerScorePublication::class;
+ck($pubClass::audit($pdo,$pw)['events']===1,'actual committed score journal verifies');
+$realLedger=$cs->audit($pw);
+// Isolated rolled-back long-window SQL fixture: exercise the positive
+// ranking, terminal freeze and stale/tampered evidence branches without
+// pretending to have run a full year of daily economic simulation.
+$pdo->beginTransaction();
+try{
+    $fixture=$realLedger;
+    $sid=array_key_first($fixture['series']);
+    $end='2028-05-13';
+    $fixture['sequence']+=365;$fixture['day']='2028-05-12';$fixture['last_event_sha']=str_repeat('a',64);
+    $fixture['participation']['through']=$end;
+    $fixture['participation']['series'][$sid]=['from'=>'2027-05-14','through'=>$end,'verified_days'=>365,'continuous'=>true];
+    $dom=$shared['body']['domestic'];$row=$dom['state']['days'][0];$dom['state']['day']=$end;$dom['state']['days']=[];
+    for($i=1;$i<=365;$i++){
+        $r=$row;$r['day']=(new DateTimeImmutable('2027-05-14'))->modify('+'.$i.' days')->format('Y-m-d');
+        $dom['state']['days'][]=$r;
+    }
+    $dom['etag']='"'.str_repeat('b',64).'"';
+    $exec('UPDATE wp_world_clock SET committed_day=? WHERE world_id=?',[$end,$pw]);
+    $pubClass::publish($pdo,$fixture,$end,$dom);
+    $positive=$pubClass::rankings($pdo,$eid,null,$opening);
+    ck(count($positive['rows'])===1&&$positive['rows'][0]['is_you']&&$positive['rows'][0]['tenure_days']===365,'qualified global ranking');
+    $local=$pubClass::rankings($pdo,$eid,$public['body']['universe_no'],$opening);
+    ck($local['rows']===$positive['rows'],'qualified universe ranking');
+    $closed=$fixture;$closed['sequence']++;$closed['last_event_sha']=str_repeat('c',64);$closed['series'][$sid]['end']=$end;
+    $pubClass::close($pdo,$fixture,$closed);
+    $final=$pubClass::rankings($pdo,$eid,null,$opening);
+    ck($final['rows'][0]['terminal']&&$final['rows'][0]['score']===$positive['rows'][0]['score'],'terminal score freeze');
+    try{$pubClass::rankings($pdo,$eid,null,$opening,2,$positive['snapshot']);throw new RuntimeException('stale snapshot accepted');}catch(DomainException $expected){}
+    $exec('UPDATE wp_career_score_events SET signature_sha=? WHERE world_id=? AND series_id=? AND sequence_no=?',[str_repeat('0',64),$pw,$sid,$closed['sequence']]);
+    try{$pubClass::rankings($pdo,$eid,null,$opening);throw new RuntimeException('tampered score accepted');}catch(DomainException $expected){}
+}finally{$pdo->rollBack();}
+ck($pubClass::audit($pdo,$pw)['events']===1,'fixture rollback preserves actual journal');
+
 
 $public2=req('POST','/career-worlds/join',['world_id'=>$pw],$t2,'public-career-join-02');
 ck($public2['status']===201&&$public2['body']['world_id']===$pw&&$public2['body']['career_id']!==$public['body']['career_id']
