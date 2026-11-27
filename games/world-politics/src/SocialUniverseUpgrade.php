@@ -21,13 +21,15 @@ final class SocialUniverseUpgrade
         $old->restore($dom,$domSha);
         $legal=InstitutionalSimulation::restore($inst);
         if($inst['world_id']!==$world||$inst['country_code']!=='FR'||$inst['day']!==$day||!hash_equals($legal->hash(),$instSha))throw new \DomainException('Old legal source mismatch');
-        if(isset($cfg['social_economy_from'])){
+        $pinned=isset($cfg['social_economy_from']);
+        if($pinned){
             if(!isset($inst['legislation']['social_programme']))throw new \DomainException('Inconsistent social model pin');
-            return ['changed'=>false,'day'=>$day];
+            if(array_diff_key(PrimaryManifestoPolicy::definitions(),$cfg['catalog'])===[])return ['changed'=>false,'day'=>$day];
         }
         if(!isset($cfg['finance_autonomy'],$cfg['population_model'],$cfg['services_model'],$cfg['macro_baseline'],$inst['legislation']['national_service']))throw new \DomainException('Unsupported legacy world');
         $cfg['catalog']+=SocialProgramme::policies($cfg['macro_baseline']);
-        $cfg['social_economy_from']=(new \DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d');
+        $effective=(new \DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d');
+        if(!$pinned)$cfg['social_economy_from']=$effective;
         $next=PdoDomesticPolicyStore::build($world,$cfg);
         // Rebuild in canonical field order; the new assumption hash is explicit.
         $v=$next->snapshot();
@@ -37,7 +39,7 @@ final class SocialUniverseUpgrade
         if($next->snapshot()['days']!==$dom['days'])throw new \DomainException('Historical rows would change');
         $inst['legislation']['social_programme']=SocialProgramme::VERSION;
         $newInst=InstitutionalSimulation::restore($inst);
-        return ['changed'=>true,'day'=>$day,'effective_on'=>$cfg['social_economy_from'],'config'=>$cfg,
+        return ['changed'=>true,'day'=>$day,'effective_on'=>$effective,'config'=>$cfg,
             'domestic'=>$v,'domestic_sha'=>$hash,'assumptions_sha'=>$next->assumptionsHash(),
             'institutional'=>$inst,'institutional_sha'=>$newInst->hash()];
     }

@@ -128,3 +128,6 @@ The social_lifecycle_catalog adds ten explicit repeal objectives to the 24 histo
 
 
 The social migration dry-run also reports the old and new ranking cohort hashes. Applied migrations reclassify the current French control period without changing its accumulated score, and retain all closed periods. No official cross-model comparison is claimed.
+
+
+Migration 037 widens programme storage to 40 characters for extended canonical mixed profiles. The existing maintenance command adds primary quantitative entries to older pinned universes, verifies replay and isolates the score cohort. New scenario parameters are assumptions, not verified actual unit costs. No production universe has been migrated by this change.

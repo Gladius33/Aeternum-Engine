@@ -84,7 +84,7 @@ final class SocialEconomy
         $referencePension=intdiv($pensionDaily*365,max(1,$recipients)*12);
         $smic=$a['reference_net_smic_minor'];$hours=$a['reference_workweek_hours'];
         $netFloor=$smic;
-        foreach($active as $id){$d=SocialProgramme::definition($id);if(($d['family']??null)==='wage-floor'&&!SocialProgramme::isRepeal($id)){$t=$d['target'];$netFloor=max($smic,isset($t['increase_bps'])?self::scale($smic,10000+$t['increase_bps']):($t['monthly_net_eur']??$t['monthly_floor_eur'])*100);}}
+        foreach($active as $id){$d=SocialProgramme::definition($id);if(($d['family']??null)==='wage-floor'&&!SocialProgramme::isRepeal($id)){$t=$d['target'];$netFloor=max($smic,isset($t['increase_bps'])?self::scale($smic,10000+$t['increase_bps']):(isset($t['monthly_increase_eur'])?$smic+$t['monthly_increase_eur']*100:($t['monthly_net_eur']??$t['monthly_floor_eur'])*100));}}
         $tax=0;$benefits=0;$pensionTransfer=0;$production=0;$employment=0;$wage=0;$details=[];
         foreach($active as $id){
             $d=SocialProgramme::definition($id);if($d===null)continue;
@@ -105,7 +105,7 @@ final class SocialEconomy
                 $employment-=intdiv($people*10000,max(1,$employed));
                 $r['reference_monthly_pension_minor']=$referencePension;$r['phase_bps']=$phase;
             }elseif($family==='wage-floor'){
-                $netFloor=max($smic,isset($t['increase_bps'])?self::scale($smic,10000+$t['increase_bps']):($t['monthly_net_eur']??$t['monthly_floor_eur'])*100);
+                $netFloor=max($smic,isset($t['increase_bps'])?self::scale($smic,10000+$t['increase_bps']):(isset($t['monthly_increase_eur'])?$smic+$t['monthly_increase_eur']*100:($t['monthly_net_eur']??$t['monthly_floor_eur'])*100));
                 $covered=self::scale($employed,$a['wage_floor_share_bps']);$old=self::payroll($smic);$new=self::payroll($netFloor);
                 $monthly=$netFloor-$smic;$r['affected_persons_proxy']=$covered;
                 $r['monthly_net_floor_minor']=$netFloor;$r['monthly_payroll']=$new;
@@ -158,8 +158,26 @@ final class SocialEconomy
                 $r['daily_expense_delta_minor']=intdiv($n*$a['annual_claim_minor'],365);
             }elseif($family==='representation'){
                 $r['affected_persons_proxy']=$employed;$r['worker_representation_bps']=$t['worker_representation_bps'];
+            }elseif(PrimaryManifestoPolicy::isPolicy(SocialProgramme::objectiveId($id))){
+                $v=PrimaryManifestoPolicy::calculate($d,$policies[$id],$day,$macro,$netFloor,$recipients,$labour,$employed);
+                $r=array_replace($r,$v);$employment+=$v['employment_delta_bps'];$wage+=$v['wage_premium_bps'];$pensionTransfer+=$v['pension_transfer_delta_minor'];
             }else throw new \DomainException('Unimplemented social family');
             $tax+=$r['daily_revenue_delta_minor'];$benefits+=$r['daily_expense_delta_minor'];$details[]=$r;
+        }
+        $totalIndex=null;$sectorHires=0;$sectorCost=0;
+        foreach($details as $i=>$detail){
+            if($detail['family']==='public-hiring')$totalIndex=$i;
+            elseif(isset($detail['planned_positions_proxy'])){$sectorHires+=$detail['planned_positions_proxy'];$sectorCost+=$detail['daily_expense_delta_minor'];}
+        }
+        if($totalIndex!==null&&$sectorHires>0){
+            // Broad target includes these public jobs; cost the residual
+            // at its own representative unit cost, not the sector costs twice.
+            $r=&$details[$totalIndex];$n=min($sectorHires,$r['planned_positions_proxy']);
+            $removed=intdiv($n*$r['parameters']['annual_cost_per_hire_eur']*100,365);
+            $r['overlap_positions_excluded']=$n;$r['planned_positions_proxy']-=$n;$r['affected_persons_proxy']-=$n;
+            $r['annual_expense_delta_eur']-=$n*$r['parameters']['annual_cost_per_hire_eur'];
+            $r['daily_expense_delta_minor']-=$removed;$benefits-=$removed;
+            $delta=intdiv($n*10000,max(1,$labour));$r['employment_delta_bps']-=$delta;$employment-=$delta;unset($r);
         }
         return ['version'=>self::VERSION,'classification'=>'fictional_cohort_model_observed_demography_anchors',
             'assumptions_sha'=>hash('sha256',json_encode($a,JSON_THROW_ON_ERROR)),'day'=>$day,'labour_force_proxy'=>$labour,

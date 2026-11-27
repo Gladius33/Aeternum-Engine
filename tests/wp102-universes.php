@@ -299,3 +299,15 @@ $due->execute([$wk]);ck102($scheduler->tick($wk)['status']==='committed','WP114k
 $qu->execute([$wk]);$afterK=json_decode($qu->fetch(PDO::FETCH_ASSOC)['state_json'],true,64,JSON_THROW_ON_ERROR);
 ck102(array_slice($afterK['days'],0,count($oldDaysK))===$oldDaysK&&isset($afterK['days'][array_key_last($afterK['days'])]['social_economy']),'WP114k new model starts on exact next day');
 ck102(\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$nk)['integrity']==='passed','WP114k post-migration score and control audit');
+
+
+// WP114 quantitative primary commitments use the same HTTP and daily
+// institutional/domestic pipeline; longer mixed masks persist in SQL.
+$primIds=['pf2022-nicolas-dupont-aignan-2','pf2022-yannick-jadot-2','industry-active'];
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>$primIds],8)['status']===200,'WP114 extended primary mixed profile accepted');
+for($n=0;$n<5;$n++){$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114 primary programme daily pipeline');}
+$rp=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($rp['social_measure_ids']===array_slice($primIds,0,2)&&strlen($rp['domestic'])>24,'WP114 extended profile durable');
+$q114e->execute([$spare]);$ip=json_decode($q114e->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck102(count(array_filter($ip['legislation']['bills'],fn($b)=>$b['policy_id']===$primIds[0]))===1,'WP114 primary law draft is not an unrelated policy');
+ck102(\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo)['integrity']==='passed','WP114 primary programme audit');

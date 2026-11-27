@@ -54,7 +54,7 @@ final class PresidentialProgramme
      * objectives. No unchecked free text is interpreted as an order. */
     public static function compileProfile(array $ids):string
     {
-        if(!array_is_list($ids)||count($ids)>59)throw new \InvalidArgumentException('Invalid measure list');
+        if(!array_is_list($ids)||count($ids)>88)throw new \InvalidArgumentException('Invalid measure list');
         $general=[];$social=[];
         foreach($ids as $id){
             if(!is_string($id))throw new \InvalidArgumentException('Invalid measure ID');
@@ -69,7 +69,7 @@ final class PresidentialProgramme
     }
     public static function socialIds(string $p):?array
     {
-        if(preg_match('/^mix-([01]{2}[nmri][nri][nmris][ncsli][neit][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9})$/D',$p,$m)){
+        if(preg_match('/^mix-([01]{2}[nmri][nri][nmris][ncsli][neit][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15})$/D',$p,$m)){
             if(self::agenda($p)===null)return null;
             return SocialProgramme::decode('social-'.$m[2]);
         }
@@ -79,7 +79,7 @@ final class PresidentialProgramme
     {
         $catalog=self::measureCatalog();
         if(isset($catalog[$id]))return ['status'=>'reviewed_objective','mapping'=>$catalog[$id]];
-        if(SocialProgramme::isPolicy($id))return ['status'=>SocialProgramme::isRepeal($id)?'reviewed_social_repeal':'historical_social_proxy','mapping'=>SocialProgramme::definition($id)];
+        if(SocialProgramme::isPolicy($id))return ['status'=>SocialProgramme::isRepeal($id)?'reviewed_social_repeal':(PrimaryManifestoPolicy::isPolicy(SocialProgramme::objectiveId($id))?'primary_quantitative_proxy':'historical_social_proxy'),'mapping'=>SocialProgramme::definition($id)];
         if(preg_match('/^(?:budget-(20[0-9]{2})-defense-(maintain|reduce|increase)|corrective-(20[0-9]{2})-health-(reduce|increase))$/D',$id,$m)){
             $annual=$m[1]!=='';
             $year=(int)($annual?$m[1]:$m[3]);
@@ -112,7 +112,7 @@ final class PresidentialProgramme
     }
     public static function agenda(string $p):?array
     {
-        if(preg_match('/^mix-([01]{2})([nmri])([nri])([nmris])([ncsli][neit][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9})$/D',$p,$x)){
+        if(preg_match('/^mix-([01]{2})([nmri])([nri])([nmris])([ncsli][neit][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15})$/D',$p,$x)){
             if(SocialProgramme::decode('social-'.$x[6])===null)return null;
             $p='custom-'.$x[1].'-'.$x[2].'-'.$x[3].'-'.$x[4].'-'.$x[5];
         }

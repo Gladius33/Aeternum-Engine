@@ -207,7 +207,7 @@ $reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
 $resetProfile=PP::compileProfile([$reset114,'industry-active']);
 ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
 no82(fn()=>PP::compileProfile([$reset114,$pension114]));
-ck82(count(SP::objectives())===34&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
+ck82(count(SP::objectives())===63&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
 $pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
 ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
 $resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
@@ -243,6 +243,33 @@ no82(fn()=>SE::calculate([],[],'2027-09-11',$pop,$services,$base,null,['job_guar
 
 require_once __DIR__.'/../games/world-politics/src/HistoricalProgrammeCoverage.php';
 $historicalCoverage=\Aeternum\WorldPolitics\HistoricalProgrammeCoverage::report();
-ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===47,'WP114i separate all twelve source inventories from executable historical measures');
+ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===18&&$historicalCoverage['additional_executable_count']===29,'WP114i separate all twelve source inventories from executable historical measures');
 ck82(!$historicalCoverage['wp114_closure_qualified'],'WP114i no false exhaustive coverage');
 ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['employment_bps'][2]===[2017,2900,8060,6230,6540],'WP114j exact verified INSEE training anchors');
+
+
+// WP114 primary quantitative: exact source targets, extended masks,
+// separately costed routes and legal identity for each primary measure.
+use Aeternum\WorldPolitics\PrimaryManifestoPolicy as PM;
+ck82(count(PM::definitions())===29,'WP114 29 independently reviewed quantitative routes');
+$primaryMix=PP::compileProfile(['pf2022-eric-zemmour-3','pf2022-yannick-jadot-2','hist2022-emmanuel-macron-1','industry-active']);
+ck82(strlen($primaryMix)<=40&&count(PP::socialIds($primaryMix))===3&&PP::agenda($primaryMix)['industry']==='active','WP114 extended mixed canonical mask');
+no82(fn()=>PP::compileProfile(['pf2022-anne-hidalgo-4','pf2022-philippe-poutou-1']));
+$pc=SP::policies($base);$primaryResults=[];
+foreach(PM::definitions() as $id=>$def){
+    $day=SP::effectiveDay($id,'2027-05-14');
+    $profile=PP::compileProfile([$id]);
+    ck82(PP::socialIds($profile)===[$id]&&PP::permits($profile,$id)&&isset($pc[$id]),'WP114 exact policy route '.$id);
+    $r=SE::calculate([$id],[$id=>['effective_on'=>$day]],$day,$pop,$services,$base,null);
+    ck82(count($r['measures'])===1&&$r['measures'][0]['target']===$def['target'],'WP114 primary calculation '.$id);
+    $primaryResults[$id]=$r;
+}
+ck82($primaryResults['pf2022-valerie-pecresse-3']['daily_revenue_delta_minor']===-intdiv(1000000000000,365),'WP114 specified annual tax cut');
+ck82($primaryResults['pf2022-yannick-jadot-4']['daily_revenue_delta_minor']===intdiv(1050000000000,365),'WP114 collection assumption disclosed');
+ck82($primaryResults['pf2022-anne-hidalgo-4']['monthly_net_floor_minor']===SE::ASSUMPTIONS['reference_net_smic_minor']+20000,'WP114 nominal wage increment');
+ck82($primaryResults['pf2022-emmanuel-macron-1']['pension_transfer_delta_minor']>0,'WP114 pension minimum has actual transfer');
+$hires='pf2022-yannick-jadot-2';$staff=SE::calculate([$hires],[$hires=>['effective_on'=>'2027-09-11']],'2032-09-11',$pop,$services,$base,null);
+ck82($staff['measures'][0]['planned_positions_proxy']===65000&&$staff['daily_expense_delta_minor']===intdiv(65000*62000*100,365),'WP114 completed staffing ramp');
+$both=SE::calculate([$hires,'pf2022-fabien-roussel-1'],[$hires=>['effective_on'=>'2027-09-11'],'pf2022-fabien-roussel-1'=>['effective_on'=>'2027-09-11']],'2032-09-11',$pop,$services,$base,null);
+ck82(array_sum(array_column($both['measures'],'planned_positions_proxy'))===500000,'WP114 overlapping public staffing targets not counted twice');
+ck82(SP::legalText('pf2022-yannick-jadot-2')['standard']!==SP::legalText('pf2022-yannick-jadot-2-r2')['standard'],'WP114 primary legal instance proof');

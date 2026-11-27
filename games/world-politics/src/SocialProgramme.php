@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/PrimaryManifestoPolicy.php';
 
 /** WP114e: immutable historic-text-to-fictional-policy mapping. Rates,
  * coverage shares and cost coefficients below are scenario assumptions,
@@ -65,7 +66,7 @@ final class SocialProgramme
             $d[$id]=['bit'=>24+$n,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
                 'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         }
-        return $cached=$d;
+        return $cached=$d+PrimaryManifestoPolicy::definitions();
     }
     public static function objectiveId(string $id):string
     {
@@ -118,17 +119,17 @@ final class SocialProgramme
     }
     public static function encode(array $ids):string
     {
-        if(!array_is_list($ids)||$ids===[]||count($ids)>34)throw new \InvalidArgumentException('Invalid social objectives');
+        if(!array_is_list($ids)||$ids===[]||count($ids)>63)throw new \InvalidArgumentException('Invalid social objectives');
         $d=self::objectives();$families=[];$mask=0;
         foreach($ids as $id){
             if(!is_string($id)||!isset($d[$id])||isset($families[$d[$id]['family']]))throw new \InvalidArgumentException('Unknown or conflicting social objective');
             $families[$d[$id]['family']]=true;$mask|=1<<$d[$id]['bit'];
         }
-        return 'social-'.str_pad(dechex($mask),$mask<16777216?6:9,'0',STR_PAD_LEFT);
+        return 'social-'.str_pad(dechex($mask),$mask<16777216?6:($mask<68719476736?9:16),'0',STR_PAD_LEFT);
     }
     public static function decode(string $profile):?array
     {
-        if(!preg_match('/^social-([a-f0-9]{6}|[a-f0-9]{9})$/D',$profile,$m))return null;
+        if(!preg_match('/^social-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15})$/D',$profile,$m))return null;
         $mask=hexdec($m[1]);$ids=[];
         foreach(self::objectives() as $id=>$d)if(($mask&(1<<$d['bit']))!==0)$ids[]=$id;
         try{if(self::encode($ids)!==$profile)return null;}catch(\InvalidArgumentException $e){return null;}
@@ -156,7 +157,7 @@ final class SocialProgramme
     public static function policies(array $baseline):array
     {
         $out=[];
-        foreach(self::definitions() as $id=>$d){
+        foreach(self::definitions()+PrimaryManifestoPolicy::definitions() as $id=>$d){
             $a=$d['assumptions'];
             // Ratio to existing daily aggregates, not added observed spending.
             $scale=static fn(int $v,int $bp):int=>intdiv($v*$bp,10000);
