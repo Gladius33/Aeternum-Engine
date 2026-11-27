@@ -66,6 +66,38 @@ final class CampaignCandidate
             ],
             'selection_enabled'=>false,'requires_primary_source_review'=>true];
     }
+    /** Dated published projects, distinct from the final official ballot.
+     * Party-only programmes are not attributed to an individual without
+     * reviewed evidence. Selection never activates any policy. */
+    public static function campaign2027Choices():array
+    {
+        $reference=self::programme2027Reference();
+        $rows=[
+            ['id'=>'campaign2027-jean-luc-melenchon','name'=>'Jean-Luc Mélenchon','publisher'=>'La France insoumise','source'=>'https://melenchon2027.fr/programme/decouvrir'],
+            ['id'=>'campaign2027-bruno-retailleau','name'=>'Bruno Retailleau','publisher'=>'Bruno Retailleau','source'=>'https://www.avecretailleau.fr/projet/faq'],
+            ['id'=>'campaign2027-nicolas-dupont-aignan','name'=>'Nicolas Dupont-Aignan','publisher'=>'Debout la France','source'=>'https://www.debout-la-france.fr/wp-content/uploads/2026/11/Programme-et-plan-de-financement-economique.pdf'],
+        ];
+        foreach($rows as &$row){
+            $row['as_of']=$reference['observed_on'];
+            $row['measure_ids']=array_column(array_values(array_filter($reference['reviewed_measures'],fn($m)=>$m['publisher']===$row['publisher'])),'id');
+            $row['final_ballot_verified']=false;
+        }unset($row);
+        return $rows;
+    }
+    private static function normalize2027(string $id):array
+    {
+        $choice=array_column(self::campaign2027Choices(),null,'id')[$id]??throw new \DomainException('Unknown 2027 campaign reference');
+        $measures=array_column(self::programme2027Reference()['reviewed_measures'],null,'id');
+        $programme=[];
+        foreach($choice['measure_ids'] as $mid){
+            $m=$measures[$mid];$d=SocialProgramme::target2027()[$mid]??throw new \DomainException('Missing 2027 execution mapping');
+            if($d['target']!==$m['target'])throw new \DomainException('Target source mismatch');
+            $programme[]=['id'=>$mid,'domain'=>$d['domain'],'proposal'=>json_encode($m['target'],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE),'sources'=>[$m['source']]];
+        }
+        return ['id'=>CampaignLifecycle::PLAYER,'kind'=>'real','name'=>$choice['name'],'country'=>'FR',
+            'biography'=>'Projet public pour 2027, observé avant le scrutin. Personnage de simulation, sans certification de candidature définitive ni de résultat électoral.',
+            'as_of'=>$choice['as_of'],'sources'=>[$choice['source']],'programme'=>$programme,'avatar'=>PoliticalProfileTemplate::AVATAR];
+    }
     public static function options():array
     {
         $ref=HistoricalCandidateReference::report(HistoricalCandidateReference::pin());
@@ -74,7 +106,7 @@ final class CampaignCandidate
             'historical_choices'=>array_map(fn($p)=>['id'=>$p['id'],'name'=>$p['name'],'as_of'=>$p['as_of'],'sources'=>$p['sources']],$ref['roster_compatible_profiles']),
             'historical_reference_sha'=>$ref['reference_sha'],'historical_programme_scope'=>$ref['programme_partial_scope'],'historical_measure_count'=>$ref['curated_measure_count'],'historical_selection_is_alternate_history'=>true,
             'target_election_year'=>2027,'historical_reference_election_year'=>2022,'historical_choices_are_2027_candidates'=>false,
-            'programme_2027_reference'=>self::programme2027Reference(),
+            'programme_2027_reference'=>self::programme2027Reference(),'campaign_2027_choices'=>self::campaign2027Choices(),
             'future_eligibility_certified'=>false,'programme_mechanics_enabled'=>false,
             'managed_universe_explicit_programme_catalog'=>PresidentialProgramme::measureCatalog(),
             'historical_social_measure_catalog'=>SocialProgramme::definitions(),'historical_measures_automatically_imported'=>false,'changes_score_rules'=>false];
@@ -107,6 +139,10 @@ final class CampaignCandidate
             if($person===null)throw new \DomainException('Unknown historical identity');
             $person['id']=CampaignLifecycle::PLAYER;
             $person['biography'].=' Identité utilisée dans une histoire alternative fictive ; ne constitue pas une candidature attestée en 2027.';
+        }elseif($input['type']==='campaign2027'){
+            $keys=array_keys($input);sort($keys);
+            if($keys!==['reference_id','type']||!is_string($input['reference_id']))throw new \InvalidArgumentException('Invalid 2027 campaign fields');
+            $person=self::normalize2027($input['reference_id']);
         }elseif($input['type']==='fictional'){
             foreach(array_keys($input) as $k)if(!in_array($k,['type','name','mode','biography','programme','profile'],true))throw new \InvalidArgumentException('Unknown fictional candidate field');
             unset($input['type']);$input['id']=CampaignLifecycle::PLAYER;

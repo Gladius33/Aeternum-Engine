@@ -576,3 +576,20 @@ ck82($taxFlow['daily_revenue_delta_minor']===-intdiv(3000000000000,365)-intdiv(5
 ck82(!$taxFlow['measures'][0]['offsetting_savings_automatically_booked'],'WP114 no automatic campaign financing');
 foreach(['social-repeal-contribution-cut','social-repeal-industrial-grants'] as $id)
     ck82(SP::assumption($id,SP::policies($base),true)['expense_delta']===0,'WP114 new policy family repeal');
+
+
+$cc2027=\Aeternum\WorldPolitics\CampaignCandidate::class;
+$choices2027=$cc2027::campaign2027Choices();
+ck82(count($choices2027)===3,'WP114 provisional candidate references separately discoverable');
+foreach($choices2027 as $choice){
+    $p2027=$cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>$choice['id']]);
+    ck82($p2027['kind']==='real'&&$p2027['as_of']==='2026-11-27'
+        &&array_column($p2027['programme'],'id')===$choice['measure_ids'],'WP114 2027 profile has only reviewed dated measures');
+    foreach($p2027['programme'] as $measure)ck82(str_starts_with($measure['id'],'pf2027-'),'WP114 no historical substitution');
+}
+no82(fn()=>$cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'real-emmanuel-macron']));
+no82(fn()=>$cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'campaign2027-jean-luc-melenchon','programme'=>[]]));
+$sensitivity2027=SC::target2027Sensitivity($pop,$services,$base);
+ck82(count($sensitivity2027['measures'])===7&&!$sensitivity2027['causal_calibration_qualified'],'WP114 all reviewed 2027 objectives have explicit scenario diagnostics');
+foreach($sensitivity2027['measures'] as $m)foreach($m['periods'] as $p)foreach($p['metrics'] as $v)
+    ck82($v['min']<=$v['central']&&$v['central']<=$v['max'],'WP114 2027 sensitivity contains central');

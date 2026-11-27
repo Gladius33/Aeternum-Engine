@@ -71,6 +71,35 @@ final class SocialCalibration
         }
         return ['classification'=>'joint_parameter_scenarios_not_confidence_intervals','measures'=>$out,'causal_calibration_qualified'=>false];
     }
+    /** Target-election diagnostics; keep the historical report stable. */
+    public static function target2027Sensitivity(array $population,array $services,array $macro):array
+    {
+        $out=[];
+        foreach(SocialProgramme::target2027() as $id=>$d){
+            $low=[];$high=[];$cohortLow=[];$cohortHigh=[];
+            foreach($d['parameters']??[] as $k=>$v)if(SocialEconomy::primarySensitivityKey($k)){
+                $low[$k]=intdiv($v*3,4);$high[$k]=intdiv($v*5,4);
+                if(str_ends_with($k,'_bps')&&$k!=='employer_cost_bps')$high[$k]=min(10000,$high[$k]);
+            }
+            foreach(['employment_participation_bps','wage_floor_share_bps','retirement_takeup_bps'] as $k){
+                $v=SocialEconomy::ASSUMPTIONS[$k];$cohortLow[$k]=intdiv($v*3,4);$cohortHigh[$k]=min(10000,intdiv($v*5,4));
+            }
+            $start=SocialProgramme::effectiveDay($id,'2027-05-14');$policy=[$id=>['effective_on'=>$start]];
+            $periods=[];
+            foreach(['opening'=>$start,'year_five'=>(new \DateTimeImmutable($start))->modify('+5 years')->format('Y-m-d')] as $period=>$day){
+                $scenarios=[];
+                foreach(['low'=>[$cohortLow,$low],'central'=>[[],[]],'high'=>[$cohortHigh,$high]] as $key=>[$cohort,$params])
+                    $scenarios[$key]=SocialEconomy::calculate([$id],$policy,$day,$population,$services,$macro,null,$cohort,[$id=>$params]);
+                $metrics=[];
+                foreach(['daily_revenue_delta_minor','daily_expense_delta_minor','pension_transfer_delta_minor','production_delta_bps','employment_delta_bps','wage_premium_bps'] as $metric){
+                    $v=array_column($scenarios,$metric);$metrics[$metric]=['min'=>min($v),'central'=>$scenarios['central'][$metric],'max'=>max($v)];
+                }
+                $periods[$period]=['day'=>$day,'metrics'=>$metrics];
+            }
+            $out[$id]=['target'=>$d['target'],'periods'=>$periods,'low_parameters'=>$low,'high_parameters'=>$high];
+        }
+        return ['classification'=>'joint_parameter_scenarios_not_confidence_intervals','measures'=>$out,'causal_calibration_qualified'=>false];
+    }
     /** Historical reference comparison with explicit scope, not fitted
      * policy elasticities or a claim of exact 2027 salaries. */
     public static function observedAnchors(array $services):array
