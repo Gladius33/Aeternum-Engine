@@ -159,7 +159,7 @@ final class SocialEconomy
             }elseif($family==='representation'){
                 $r['affected_persons_proxy']=$employed;$r['worker_representation_bps']=$t['worker_representation_bps'];
             }elseif(PrimaryManifestoPolicy::isPolicy(SocialProgramme::objectiveId($id))){
-                $v=PrimaryManifestoPolicy::calculate($d,$policies[$id],$day,$macro,$netFloor,$recipients,$labour,$employed);
+                $v=PrimaryManifestoPolicy::calculate($d,$policies[$id],$day,$macro,$netFloor,$recipients,$labour,$employed,$prior);
                 $r=array_replace($r,$v);$employment+=$v['employment_delta_bps'];$wage+=$v['wage_premium_bps'];$pensionTransfer+=$v['pension_transfer_delta_minor'];
             }else throw new \DomainException('Unimplemented social family');
             $tax+=$r['daily_revenue_delta_minor'];$benefits+=$r['daily_expense_delta_minor'];$details[]=$r;

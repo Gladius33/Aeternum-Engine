@@ -85,7 +85,7 @@ final class DomesticPolicySimulation
         if (!preg_match('/^[A-Z]{3}$/D', $currency)) throw new \InvalidArgumentException('Invalid currency');
         self::amount($openingBalance, true);
         self::amount($baselineRevenue); self::amount($baselineExpense);
-        if (count($cohorts) < 1 || count($cohorts) > 32 || count($catalog) > 128) {
+        if (count($cohorts) < 1 || count($cohorts) > 32 || count($catalog) > ($socialEconomyFrom!==null?256:128)) {
             throw new \InvalidArgumentException('Scenario size');
         }
         foreach ($cohorts as $id => $score) {

@@ -131,3 +131,6 @@ The social migration dry-run also reports the old and new ranking cohort hashes.
 
 
 Migration 037 widens programme storage to 40 characters for extended canonical mixed profiles. The existing maintenance command adds primary quantitative entries to older pinned universes, verifies replay and isolates the score cohort. New scenario parameters are assumptions, not verified actual unit costs. No production universe has been migrated by this change.
+
+
+Apply migration 038 after 037. Extended canonical masks retain old profile encodings; primary-family repeals require the corresponding pinned base catalogue entries. The wider catalogue bound is restricted to cohort-model scenarios. The quantitative routes remain uncalibrated scenario models.

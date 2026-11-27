@@ -207,7 +207,7 @@ $reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
 $resetProfile=PP::compileProfile([$reset114,'industry-active']);
 ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
 no82(fn()=>PP::compileProfile([$reset114,$pension114]));
-ck82(count(SP::objectives())===63&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
+ck82(count(SP::objectives())===105&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
 $pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
 ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
 $resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
@@ -243,7 +243,7 @@ no82(fn()=>SE::calculate([],[],'2027-09-11',$pop,$services,$base,null,['job_guar
 
 require_once __DIR__.'/../games/world-politics/src/HistoricalProgrammeCoverage.php';
 $historicalCoverage=\Aeternum\WorldPolitics\HistoricalProgrammeCoverage::report();
-ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===18&&$historicalCoverage['additional_executable_count']===29,'WP114i separate all twelve source inventories from executable historical measures');
+ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===7&&$historicalCoverage['additional_executable_count']===40,'WP114i separate all twelve source inventories from executable historical measures');
 ck82(!$historicalCoverage['wp114_closure_qualified'],'WP114i no false exhaustive coverage');
 ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['employment_bps'][2]===[2017,2900,8060,6230,6540],'WP114j exact verified INSEE training anchors');
 
@@ -251,7 +251,7 @@ ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['e
 // WP114 primary quantitative: exact source targets, extended masks,
 // separately costed routes and legal identity for each primary measure.
 use Aeternum\WorldPolitics\PrimaryManifestoPolicy as PM;
-ck82(count(PM::definitions())===29,'WP114 29 independently reviewed quantitative routes');
+ck82(count(PM::definitions())===40,'WP114 40 independently reviewed quantitative routes');
 $primaryMix=PP::compileProfile(['pf2022-eric-zemmour-3','pf2022-yannick-jadot-2','hist2022-emmanuel-macron-1','industry-active']);
 ck82(strlen($primaryMix)<=40&&count(PP::socialIds($primaryMix))===3&&PP::agenda($primaryMix)['industry']==='active','WP114 extended mixed canonical mask');
 no82(fn()=>PP::compileProfile(['pf2022-anne-hidalgo-4','pf2022-philippe-poutou-1']));
@@ -273,3 +273,18 @@ ck82($staff['measures'][0]['planned_positions_proxy']===65000&&$staff['daily_exp
 $both=SE::calculate([$hires,'pf2022-fabien-roussel-1'],[$hires=>['effective_on'=>'2027-09-11'],'pf2022-fabien-roussel-1'=>['effective_on'=>'2027-09-11']],'2032-09-11',$pop,$services,$base,null);
 ck82(array_sum(array_column($both['measures'],'planned_positions_proxy'))===500000,'WP114 overlapping public staffing targets not counted twice');
 ck82(SP::legalText('pf2022-yannick-jadot-2')['standard']!==SP::legalText('pf2022-yannick-jadot-2-r2')['standard'],'WP114 primary legal instance proof');
+
+
+// WP114 fiscal continuation: additional primary commitments and new-family
+// repeal identity beyond native PHP integer mask capacity.
+$large=PP::compileProfile(['pf2022-marine-le-pen-1','social-repeal-hospital-beds','industry-active']);
+ck82(strlen($large)<=64&&PP::socialIds($large)===['pf2022-marine-le-pen-1','social-repeal-hospital-beds'],'WP114 arbitrary-width canonical mask');
+no82(fn()=>PP::compileProfile(['pf2022-marine-le-pen-1','social-repeal-sme-procurement']));
+ck82(SP::assumption('social-repeal-hospital-beds',$pc,true)['expense_delta']===0,'WP114 repeal of additional family');
+ck82($primaryResults['pf2022-nicolas-dupont-aignan-1']['daily_revenue_delta_minor']===-intdiv(600000000000,365),'WP114 reinvested profits tax base');
+ck82($primaryResults['pf2022-jean-lassalle-1']['daily_revenue_delta_minor']===-intdiv(580000000000,365),'WP114 fuel VAT difference');
+ck82($primaryResults['pf2022-valerie-pecresse-2']['measures'][0]['weekly_activity_hours_proxy']===14250000,'WP114 RSA activity hours');
+$cap='pf2022-eric-zemmour-4';$expired=SE::calculate([$cap],[$cap=>['effective_on'=>'2027-09-11']],'2028-09-11',$pop,$services,$base,null);
+ck82($primaryResults[$cap]['daily_expense_delta_minor']>0&&$expired['daily_expense_delta_minor']===0,'WP114 temporary fuel compensation expires');
+ck82($primaryResults['pf2022-philippe-poutou-3']['daily_expense_delta_minor']>0,'WP114 transport fare compensation');
+ck82($primaryResults['pf2022-marine-le-pen-1']['daily_expense_delta_minor']===intdiv(5000000000,365),'WP114 procurement redirected not double spent');

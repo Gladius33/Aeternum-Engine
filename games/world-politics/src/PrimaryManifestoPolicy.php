@@ -42,6 +42,17 @@ final class PrimaryManifestoPolicy
             ['fabien-roussel-3','agriculture','agriculture-fund',['annual_eur'=>10000000000],[]],
             ['fabien-roussel-4','culture','culture-budget',['gdp_share_bps'=>100],['reference_gdp_share_bps'=>40]],
             ['eric-zemmour-3','transport','fuel-refund',['share_bps'=>5000,'monthly_cap_eur'=>40],['eligible_persons'=>12000000,'reference_monthly_fuel_eur'=>100]],
+            ['nicolas-dupont-aignan-1','tax','reinvestment-tax',['reduction_bps'=>5000],['annual_tax_on_reinvested_profit_eur'=>12000000000]],
+            ['jean-lassalle-1','tax','fuel-vat',['rate_bps'=>550],['reference_rate_bps'=>2000,'annual_tax_exclusive_base_eur'=>40000000000]],
+            ['marine-le-pen-2','tax','business-property-tax',[],['annual_reference_cfe_eur'=>8000000000]],
+            ['valerie-pecresse-2','social','rsa-activity',['hours'=>15],['recipients'=>1900000,'participation_bps'=>5000,'annual_support_cost_eur'=>2000,'placement_bps'=>500]],
+            ['philippe-poutou-3','transport','free-transit',[],['annual_fare_revenue_eur'=>7000000000,'extra_service_cost_bps'=>2000]],
+            ['eric-zemmour-1','tax','pension-levy',['monthly_threshold_eur'=>1300],['eligible_share_bps'=>3000,'reference_monthly_pension_eur'=>1100,'effective_levy_bps'=>400]],
+            ['eric-zemmour-2','wages','overtime-relief',[],['workers_share_bps'=>1500,'annual_gross_overtime_eur'=>2000,'effective_tax_and_levy_bps'=>2000]],
+            ['eric-zemmour-4','energy','fuel-cap',['minor_eur_per_litre'=>180],['reference_price_minor'=>195,'annual_litres'=>35000000000,'duration_days'=>180]],
+            ['nathalie-arthaud-1','wages','wage-indexation',[],[]],
+            ['nathalie-arthaud-2','employment','work-sharing',[],['assumed_hours_reduction_bps'=>1000,'coverage_bps'=>5000,'replacement_hiring_bps'=>5000]],
+            ['marine-le-pen-1','industry','sme-procurement',[],['annual_procurement_eur'=>100000000000,'reference_sme_share_bps'=>3000,'scenario_target_share_bps'=>4000,'administration_cost_bps'=>50]],
         ];
         $out=[];
         foreach($rows as $n=>$row){
@@ -56,7 +67,7 @@ final class PrimaryManifestoPolicy
     /** Incremental annual flows divided into daily cents. Capacity and
      * staffing commitments use explicit linear construction/hiring ramps.
      * No assumption that appropriated funds guarantee delivery. */
-    public static function calculate(array $d,array $p,string $day,array $macro,int $netFloor,int $recipients,int $labour,int $employed):array
+    public static function calculate(array $d,array $p,string $day,array $macro,int $netFloor,int $recipients,int $labour,int $employed,?array $prior=null):array
     {
         $t=$d['target'];$a=$d['parameters'];$f=$d['family'];
         $elapsed=(int)(new \DateTimeImmutable($p['effective_on']))->diff(new \DateTimeImmutable($day))->days;
@@ -103,6 +114,58 @@ final class PrimaryManifestoPolicy
             $monthly=min($t['monthly_cap_eur'],intdiv($a['reference_monthly_fuel_eur']*$t['share_bps'],10000));
             $r['affected_persons_proxy']=$a['eligible_persons'];$r['annual_expense_delta_eur']=$monthly*$a['eligible_persons']*12;
             $r['benefit_floor_cash_minor']=intdiv($r['annual_expense_delta_eur']*100,365);
+        }elseif($f==='reinvestment-tax'){
+            $r['annual_revenue_delta_eur']=-intdiv($a['annual_tax_on_reinvested_profit_eur']*$t['reduction_bps'],10000);
+        }elseif($f==='fuel-vat'){
+            $r['annual_revenue_delta_eur']=intdiv($a['annual_tax_exclusive_base_eur']*($t['rate_bps']-$a['reference_rate_bps']),10000);
+            $r['price_including_tax_index_bps']=intdiv((10000+$t['rate_bps'])*10000,10000+$a['reference_rate_bps']);
+        }elseif($f==='business-property-tax'){
+            $r['annual_revenue_delta_eur']=-$a['annual_reference_cfe_eur'];
+            $r['local_authority_compensation_modelled']=false;
+        }elseif($f==='rsa-activity'){
+            $n=intdiv($a['recipients']*$a['participation_bps'],10000);
+            $r['affected_persons_proxy']=$n;$r['weekly_activity_hours_proxy']=$n*$t['hours'];
+            $r['annual_expense_delta_eur']=$n*$a['annual_support_cost_eur'];
+            $r['placement_proxy']=intdiv($n*$a['placement_bps'],10000);
+            $r['employment_delta_bps']=intdiv($r['placement_proxy']*10000,max(1,$labour));
+        }elseif($f==='free-transit'){
+            $r['annual_expense_delta_eur']=$a['annual_fare_revenue_eur']+intdiv($a['annual_fare_revenue_eur']*$a['extra_service_cost_bps'],10000);
+            $r['fare_minor']=0;
+        }elseif($f==='pension-levy'){
+            $n=intdiv($recipients*$a['eligible_share_bps'],10000);
+            $r['affected_persons_proxy']=$n;
+            $r['annual_revenue_delta_eur']=-intdiv($n*$a['reference_monthly_pension_eur']*12*$a['effective_levy_bps'],10000);
+            $r['benefit_floor_cash_minor']=-intdiv($r['annual_revenue_delta_eur']*100,365);
+        }elseif($f==='overtime-relief'){
+            $n=intdiv($employed*$a['workers_share_bps'],10000);$r['affected_persons_proxy']=$n;
+            $r['annual_revenue_delta_eur']=-intdiv($n*$a['annual_gross_overtime_eur']*$a['effective_tax_and_levy_bps'],10000);
+            $r['wage_premium_bps']=intdiv($a['annual_gross_overtime_eur']*$a['effective_tax_and_levy_bps']*$a['workers_share_bps'],10000*30000);
+        }elseif($f==='fuel-cap'){
+            // Temporary compensated ceiling. No permanent subsidy after expiry.
+            $gap=max(0,$a['reference_price_minor']-$t['minor_eur_per_litre']);
+            $r['ceiling_active']=$elapsed<$a['duration_days'];
+            $r['annual_expense_delta_eur']=$r['ceiling_active']?intdiv($a['annual_litres']*$gap,100):0;
+            $r['ceiling_minor_per_litre']=$t['minor_eur_per_litre'];
+        }elseif($f==='wage-indexation'){
+            // The existing macro wage target tracks prices. Measure the
+            // remaining purchasing-power gap; do not compound an annual
+            // percentage on every simulated day.
+            $price=$prior['macro']['price_index_scaled']??100000000;
+            $wage=$prior['macro']['wage_index_scaled']??100000000;
+            $r['price_indexation_gap_bps']=max(0,intdiv($price*10000,max(1,$wage))-10000);
+            $r['wage_premium_bps']=min(3000,$r['price_indexation_gap_bps']);
+        }elseif($f==='work-sharing'){
+            $covered=intdiv($employed*$a['coverage_bps'],10000);
+            $n=intdiv(intdiv($covered*$a['assumed_hours_reduction_bps'],10000)*$a['replacement_hiring_bps'],10000);
+            $r['affected_persons_proxy']=$covered;$r['replacement_jobs_proxy']=$n;$r['employment_delta_bps']=intdiv($n*10000,max(1,$labour));
+            $r['weekly_hours_reduction_bps']=$a['assumed_hours_reduction_bps'];
+            $r['monthly_wage_preserved']=true;
+        }elseif($f==='sme-procurement'){
+            // Redirect existing procurement, not the entire value as new
+            // spending. The additional administrative cost is explicit.
+            $r['annual_contract_value_redirected_eur']=intdiv($a['annual_procurement_eur']*($a['scenario_target_share_bps']-$a['reference_sme_share_bps']),10000);
+            $r['annual_expense_delta_eur']=intdiv($r['annual_contract_value_redirected_eur']*$a['administration_cost_bps'],10000);
+            $r['procurement_legal_compliance_qualified']=false;
         }else throw new \DomainException('No quantitative route for primary commitment');
         $r['daily_revenue_delta_minor']=intdiv($r['annual_revenue_delta_eur']*100,365);
         $r['daily_expense_delta_minor']=intdiv($r['annual_expense_delta_eur']*100,365);

@@ -102,14 +102,14 @@ paths:
                 domestic: { type: string, enum: [manual, education, administration, education-law, administration-law, governance, governance-reduce, governance-increase], description: France-only profile; mutually exclusive with agenda }
                 measure_ids:
                   type: array
-                  maxItems: 88
+                  maxItems: 153
                   uniqueItems: true
                   description: France-only reviewed objective IDs or historical social IDs. Social policies require a universe with the pinned WP114e catalogue. Conflicts and unsupported IDs are rejected.
                   items: { type: string }
                 social_measure_ids:
                   type: array
                   minItems: 1
-                  maxItems: 63
+                  maxItems: 128
                   uniqueItems: true
                   description: Historical social measures and social-repeal objectives only, alternative to measure_ids, domestic and agenda.
                   items: { type: string }

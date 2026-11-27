@@ -241,6 +241,7 @@ ck102(isset($du['social_economy_from'])&&isset($du['days'][array_key_last($du['d
 $up=\Aeternum\WorldPolitics\SocialUniverseUpgrade::run($db,$spareNo);
 ck102($up['changed']===false&&$up['applied']===false,'WP114k idempotent upgrade dry run');
 unset($cu['social_economy_from']);
+$cu['catalog']=array_diff_key($cu['catalog'],\Aeternum\WorldPolitics\PrimaryManifestoPolicy::definitions());
 $legacy=\Aeternum\WorldPolitics\PdoDomesticPolicyStore::build($spare,$cu);
 $old=$legacy->snapshot();
 foreach($old as $k=>$v)if($k!=='assumptions_sha'&&array_key_exists($k,$du))$old[$k]=$du[$k];
@@ -311,3 +312,9 @@ ck102($rp['social_measure_ids']===array_slice($primIds,0,2)&&strlen($rp['domesti
 $q114e->execute([$spare]);$ip=json_decode($q114e->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
 ck102(count(array_filter($ip['legislation']['bills'],fn($b)=>$b['policy_id']===$primIds[0]))===1,'WP114 primary law draft is not an unrelated policy');
 ck102(\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo)['integrity']==='passed','WP114 primary programme audit');
+
+
+$largeIds=['pf2022-marine-le-pen-1','social-repeal-hospital-beds','industry-active'];
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>$largeIds],8)['status']===200,'WP114 32 digit profile accepted');
+$largeState=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102(strlen($largeState['domestic'])>40&&$largeState['social_measure_ids']===array_slice($largeIds,0,2),'WP114 widened profile retains exact objectives');
