@@ -53,7 +53,7 @@ final class RevisionAutonomy
             $kind=null;$data=[];$next=0;$after=null;
             switch($status){
                 case 'pending_pm':
-                    if(($s['legislation']['responsibility']['cabinet']['status']??null)!=='in_office'){$req['status']='declined';$s['revision_requests'][$id]=$req;continue;}
+                    if(($s['legislation']['responsibility']['cabinet']['status']??null)!=='in_office'){$req['status']='declined';$s['revision_requests'][$id]=$req;continue 2;}
                     $kind='file';$data=['initiative'=>'government_project','sponsor'=>'president','prime_minister_proposal'=>true,'republican_form_preserved'=>true];$next=30;$after='filed';break;
                 case 'filed':$kind='chamber_vote';$data=['chamber'=>'assembly','text_sha'=>$sha,...self::ballot($seed,$assembly,'assembly',$approval)];$next=30;$after='assembly_approved';break;
                 case 'assembly_approved':$kind='chamber_vote';$data=['chamber'=>'senate','text_sha'=>$sha,...self::ballot($seed,$assembly,'senate',$approval,$s['senate']??null)];$next=15;$after='chambers_approved';break;

@@ -443,6 +443,7 @@ ck82($oa114['public_pay_observed_net_eur']===2742&&$oa114['public_pay_reference_
 no82(fn()=>SE::calculate(['pf2022-yannick-jadot-2'],['pf2022-yannick-jadot-2'=>['effective_on'=>'2027-09-11']],'2027-09-11',$pop,$services,$base,null,[],['pf2022-yannick-jadot-2'=>['ramp_years'=>1]]));
 
 
+require_once __DIR__.'/../games/world-politics/src/CampaignCandidate.php';
 $managedCandidate=\Aeternum\WorldPolitics\CampaignCandidate::normalizeManaged(['type'=>'historical','reference_id'=>'real-emmanuel-macron']);
 ck82(count($managedCandidate['programme'])===6&&$managedCandidate['kind']==='real','WP114 managed identity contains separate selected primary and secondary programmes');
 $fictionalCandidate=\Aeternum\WorldPolitics\CampaignCandidate::normalizeManaged(['type'=>'fictional','name'=>'Personnage de test','mode'=>'quick']);
