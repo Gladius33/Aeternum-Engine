@@ -42,6 +42,11 @@ paths:
           schema: {type: string}
       responses:
         '200': {description: Own world dataset page}
+  /datasets/game-worlds:
+    get:
+      responses:
+        '200': {description: Approved synthetic game-world aggregate feature page}
+        '403': {description: Research Pro required}
   /datasets/{scope}:
     get:
       parameters:

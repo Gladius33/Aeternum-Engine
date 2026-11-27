@@ -12,6 +12,7 @@ try{
         'topup'=>$q->fund($argv[2]??'', $argv[3]??'','topup',(int)($argv[4]??0)),
         'renew'=>$q->fund($argv[2]??'', $argv[3]??'','renewal',(int)($argv[4]??0),(int)($argv[5]??0),$argv[6]??'', $argv[7]??'',($argv[8]??'no')==='overage'),
         'rotate'=>$q->rotate($argv[2]??''),
+        'import-game-dataset'=>(function()use($q){$raw=stream_get_contents(STDIN,1048577);if($raw===false||strlen($raw)>1048576)throw new RuntimeException('Dataset batch bound');return $q->importGameDataset(json_decode($raw,true,32,JSON_THROW_ON_ERROR));})(),
         'work'=>$q->work(),
         default=>throw new RuntimeException('Unknown command')
     };

@@ -15,7 +15,7 @@ final class ResearchBilling
     public static function included(string $plan):int{return match($plan){'standard'=>10000,'pro'=>50000,default=>throw new \DomainException('Invalid plan')};}
     public static function operation(string $method,string $path):string{
         if($method==='GET'&&in_array($path,['/research/v1/usage','/research/v1/entitlements'],true))return 'usage';
-        if(str_starts_with($path,'/research/v1/datasets/global'))return 'global_export';
+        if(str_starts_with($path,'/research/v1/datasets/global')||str_starts_with($path,'/research/v1/datasets/game-worlds'))return 'global_export';
         if(str_contains($path,'/dataset')||str_ends_with($path,'/csv'))return 'export';
         return 'request';
     }

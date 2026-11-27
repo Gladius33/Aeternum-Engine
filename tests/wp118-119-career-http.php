@@ -193,11 +193,17 @@ ck(req('GET',$pp.'/career',null,$etoken)['body']['mandates']===[],'joining confe
 $publicCareer=$public['body']['career_id'];
 $publicRoster=$cs->audit($pw)['careers'];$publicOpponent=array_key_first(array_filter($publicRoster,fn($c)=>$c['account']===null));
 $cs->certifyBallot($pw,['ballot'=>['registered'=>1000,'first'=>['votes'=>[$publicCareer=>600,$publicOpponent=>300],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'],'public-score-ballot-01',$secret);
+putenv('WP_DATASET_BRIDGE_KEY=ci-dataset-bridge-key-not-for-production');
+$exec('INSERT INTO wp_game_dataset_consent(world_id,enabled) VALUES(?,1)',[$pw]);
 $exec('UPDATE wp_career_public_worlds SET next_tick_epoch=UNIX_TIMESTAMP()-1 WHERE world_id=?',[$pw]);
 $sch=new \Aeternum\WorldPolitics\CareerUniverseScheduler($connect);
 ck($sch->tick($pw)['day']==='2027-05-15','one human public world ticks autonomously');
 ck($sch->tick($pw)['status']==='not_due','public clock cannot double tick');
 $shared=req('GET',$pp.'/economy',null,$etoken);
+require_once __DIR__.'/../games/world-politics/src/GameDataset.php';
+$gamePage=\Aeternum\WorldPolitics\GameDataset::page($pdo,0);
+ck(count($gamePage['rows'])===1&&$gamePage['rows'][0]['row']['day']==='2027-05-15'&&$gamePage['rows'][0]['row']['world']!==$pw,'committed sanitized world aggregate');
+
 $pin=req('GET','/career-worlds/rankings/global/cohorts',null,$etoken);
 ck($pin['status']===200&&count($pin['body']['cohorts'])>=2,'public score cohort discovery');
 $opening=array_values(array_filter($pin['body']['cohorts'],fn($c)=>$c['admission_mode']==='opening'))[0]['cohort_sha'];

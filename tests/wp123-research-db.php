@@ -42,4 +42,12 @@ ckResearch($x['status']===202&&$q->usage($pay['token'])['prepaid_remaining']===3
 ckResearch($g->handle('POST',$path,$body,$head($pay['token']))===$x&&$q->usage($pay['token'])['prepaid_remaining']===38,'retry only transport debit');
 $q->fund($pay['tenant_id'],'renewal-fixture-001','renewal',10,time()+86400*30,'standard','monthly',true);
 ckResearch($q->usage($pay['token'])['included_remaining']===10&&$q->usage($pay['token'])['prepaid_remaining']===38,'renewal preserves wallet');
+require_once __DIR__.'/../games/world-politics/src/GameDataset.php';
+putenv('WP_DATASET_BRIDGE_KEY=ci-dataset-bridge-key-not-for-production');
+$game=\Aeternum\WorldPolitics\GameDataset::project('world-example','2027-05-15',1,['state'=>['world_id'=>'world-example','day'=>'2027-05-15','days'=>[['day'=>'2027-05-15','currency'=>'EUR','revenue'=>100,'expense'=>200,'closing_balance'=>300,'macro'=>['unemployment_bps'=>800]]]]]);
+$pack=['version'=>\Aeternum\WorldPolitics\GameDataset::VERSION,'rows'=>[$game]];
+ckResearch($q->importGameDataset($pack)['inserted']===1&&$q->importGameDataset($pack)['inserted']===0,'game dataset import idempotent');
+$pro=$q->createTenant('pro',30);
+ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pro['token']))['body']['rows'][0]['row']===$game['row'],'Pro game data feed');
+ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pay['token']))['status']===403,'standard game feed denied');
 echo "PASS WP123 isolated tenant queue, worker, CSV, cancellation, rotation and evidence pin\n";

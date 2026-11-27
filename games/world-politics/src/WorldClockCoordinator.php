@@ -340,6 +340,7 @@ final class WorldClockCoordinator
             }
             if($this->principal->actorId()==='career-clock-'.$world)
                 PdoCareerInstitutionStore::publishParticipation($this->pdo,$world,$row['committed_day'],$targetDay,(int)$row['revision'],$verified['domestic']??null);
+            if(isset($verified['domestic'])){require_once __DIR__.'/GameDataset.php';GameDataset::capture($this->pdo,$world,$targetDay,$revision,$verified['domestic']);}
             $result=[
                 'status'=>200,
                 'result'=>[

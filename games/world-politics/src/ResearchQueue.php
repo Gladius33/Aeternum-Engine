@@ -201,6 +201,35 @@ final class ResearchQueue
             return ['version'=>'wp-research-dataset-v1','scope'=>$scope,'through'=>$max,'next_after'=>$next,'rows'=>$out,'synthetic_simulations'=>true];
         });
     }
+    /** Operator-only import of signed aggregate envelopes, idempotent by world/day. */
+    public function importGameDataset(array $pack):array{
+        require_once __DIR__.'/GameDataset.php';
+        if(($pack['version']??null)!==GameDataset::VERSION||!is_array($pack['rows']??null)||!array_is_list($pack['rows'])||count($pack['rows'])>100)
+            throw new \DomainException('Invalid dataset batch');
+        return $this->tx(function()use($pack){
+            $n=0;foreach($pack['rows'] as $e){
+                $r=GameDataset::verify($e);$json=ResearchExperiment::json($e);
+                $old=$this->q('SELECT envelope_json FROM wp_research_game_dataset WHERE world_alias=? AND committed_day=? FOR UPDATE',[$r['world'],$r['day']])->fetchColumn();
+                if(is_string($old)){if(!hash_equals($old,$json))throw new \DomainException('Dataset revision conflict');continue;}
+                $this->q('INSERT INTO wp_research_game_dataset(world_alias,committed_day,envelope_json) VALUES(?,?,?)',[$r['world'],$r['day'],$json]);$n++;
+            }
+            return ['inserted'=>$n];
+        });
+    }
+    public function gameDataset(string $token,int $after=0,?int $through=null):array{
+        require_once __DIR__.'/GameDataset.php';
+        if($after<0||($through!==null&&$through<$after))throw new \DomainException('Invalid cursor');
+        return $this->tx(function()use($token,$after,$through){
+            $plan=$this->entitlement($this->authorized($token));
+            if($plan['plan']!=='pro')throw new ResearchBillingError(403,'research_pro_required');
+            $max=$through??(int)$this->q('SELECT COALESCE(MAX(seq),0) FROM wp_research_game_dataset')->fetchColumn();
+            $raw=$this->q('SELECT seq,envelope_json FROM wp_research_game_dataset WHERE seq>? AND seq<=? ORDER BY seq LIMIT 101',[$after,$max])->fetchAll(\PDO::FETCH_ASSOC);
+            $rows=[];$next=null;
+            foreach(array_slice($raw,0,100) as $x){$e=json_decode($x['envelope_json'],true,32,JSON_THROW_ON_ERROR);$rows[]=['seq'=>(int)$x['seq'],'row'=>GameDataset::verify($e)];}
+            if(count($raw)>100)$next=$rows[99]['seq'];
+            return ['version'=>GameDataset::VERSION,'scope'=>'global_eligible_game_worlds','through'=>$max,'next_after'=>$next,'rows'=>$rows];
+        });
+    }
     /** One bounded job per worker transaction; interrupted work rolls back
      * to queued. No untrusted code or unbounded scenarios are executed. */
     public function work():?array{

@@ -85,3 +85,11 @@ CREATE TABLE wp_research_capacity (
  units BIGINT UNSIGNED NOT NULL,
  PRIMARY KEY(scope_key,period_seconds)
 ) ENGINE=InnoDB;
+
+CREATE TABLE wp_research_game_dataset (
+ seq BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ world_alias CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ committed_day DATE NOT NULL,
+ envelope_json LONGTEXT NOT NULL CHECK(JSON_VALID(envelope_json)),
+ UNIQUE KEY world_day(world_alias,committed_day)
+) ENGINE=InnoDB;

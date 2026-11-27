@@ -30,4 +30,10 @@ $family=M::family(['first_births'=>100,'subsequent_births'=>200,'first_grant_eur
 ck125($family['total_outlay_eur']===160000,'conditional family transfer accounting');
 $countries=E::run(['type'=>'countries','parameters'=>[]]);
 ck125(count($countries['result']['rows'])===195,'195 documentary countries');
+require_once __DIR__.'/../games/world-politics/src/GameDataset.php';
+putenv('WP_DATASET_BRIDGE_KEY=ci-dataset-bridge-key-not-for-production');
+$raw=['state'=>['world_id'=>'world-fixture','day'=>'2027-05-15','days'=>[['day'=>'2027-05-15','currency'=>'EUR','revenue'=>100,'expense'=>200,'closing_balance'=>300,'macro'=>['unemployment_bps'=>800],'secret'=>'must-not-leak']]]];
+$envelope=\Aeternum\WorldPolitics\GameDataset::project('world-fixture','2027-05-15',1,$raw);
+ck125(!str_contains(json_encode($envelope),'must-not-leak')&&!str_contains(json_encode($envelope),'world-fixture'),'closed aggregate schema');
+no125(fn()=>\Aeternum\WorldPolitics\GameDataset::verify(array_replace($envelope,['signature'=>str_repeat('0',64)])));
 echo "PASS WP121-125: bounded models, historical validation, pinned research, exports and isolation\n";
