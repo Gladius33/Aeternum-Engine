@@ -192,4 +192,17 @@ $cast=\Aeternum\WorldPolitics\UniverseIdentityReference::frenchChallengers('cast
 ck($opening['kind']==='real'&&count(array_unique(array_column($cast,'name')))===3&&!in_array($opening['name'],array_column($cast,'name'),true),'real distinct scenario challenger casting');
 ck($cast===\Aeternum\WorldPolitics\UniverseIdentityReference::frenchChallengers('cast-fixture',1,$opening['name']),'stable casting');
 ck(\Aeternum\WorldPolitics\UniverseIdentityReference::openingPerson('cast-fixture','CH')===null,'Swiss collective executive not cast as president');
+foreach(['DE','ES','GB','IT','JP','US'] as $cc){
+    $base=\Aeternum\WorldPolitics\ComparativeElectionCalendar::config($cc,'2027-05-14');
+    $config=\Aeternum\WorldPolitics\DocumentaryForeignBallot::config($cc,$base);
+    $cycle=new \Aeternum\WorldPolitics\ElectoralCycle('doc-ballot-'.strtolower($cc),$cc,'2027-05-14',$config);
+    $cycle->advance($config['poll_day']);$snap=$cycle->snapshot();
+    ck(array_sum($snap['result']['seats'])===100,'documentary ballot conserves seats '.$cc);
+    ck(\Aeternum\WorldPolitics\ElectoralCycle::restore($snap)->snapshot()===$snap,'documentary ballot replay '.$cc);
+    foreach($config['parties'] as $party)ck(str_starts_with($party['leader'],'observation-')&&$party['programme']===['economy'=>500,'services'=>500],'real identity and neutral fixture');
+    $neg=\Aeternum\WorldPolitics\PoliticalNegotiator::evaluate($snap);
+    ck($neg['legislative_projections']===[],'no political predictions from unknown programmes '.$cc);
+}
+ck(\Aeternum\WorldPolitics\DocumentaryForeignBallot::compatible('DE',['spd','cdu-csu']),'observed coalition pattern');
+ck(!\Aeternum\WorldPolitics\DocumentaryForeignBallot::compatible('DE',['afd','spd']),'unreviewed coalition blocked');
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";

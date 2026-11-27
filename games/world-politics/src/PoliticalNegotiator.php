@@ -32,6 +32,7 @@ final class PoliticalNegotiator
                         $weighted[$axis]+=$n*$p['programme'][$axis];
                     }
                 }
+                if(isset($electoral['config']['documentary_cast'])&&!DocumentaryForeignBallot::compatible($electoral['country'],$members))continue;
                 if($low['economy']>$high['economy']||$low['services']>$high['services'])continue;
                 $programme=[];foreach($low as $axis=>$v)$programme[$axis]=max($v,min($high[$axis],intdiv($weighted[$axis]+intdiv($total,2),$total)));
                 $cost=0;foreach($members as $id){
@@ -62,6 +63,10 @@ final class PoliticalNegotiator
         $aligned=$government['parties']??($agreement!==null&&in_array($agreement['status'],['majority_agreement','minority_agreement'],true)?$agreement['accepted']:[]);
         foreach($ids as $id)$out['opposition'][$id]=['seats'=>$seats[$id],
             'alignment'=>in_array($id,$aligned,true)?($government!==null?'certified_coalition':'negotiating_coalition'):'outside_coalition'];
+        if(isset($electoral['config']['documentary_cast'])){
+            $out['classification']='documentary_cast_uncalibrated_ballot';
+            return $out; // No ideological forecasts from unknown manifestos.
+        }
         foreach(['public_services'=>['economy'=>450,'services'=>750],'fiscal_restraint'=>['economy'=>750,'services'=>400]] as $key=>$programme)
             $out['legislative_projections'][$key]=self::project($electoral,$programme);
         return $out;

@@ -1,0 +1,193 @@
+{
+  "version": "wp119-documentary-ballot-v1",
+  "observed_on": "2026-11-27",
+  "classification": "documentary_party_affiliation_not_future_candidacy_or_programme",
+  "countries": {
+    "DE": {
+      "parties": [
+        [
+          "cdu-csu",
+          "Friedrich Merz",
+          "CDU/CSU",
+          "https://www.bundestag.de/abgeordnete/biografien/M/merz_friedrich-1046080"
+        ],
+        [
+          "spd",
+          "Lars Klingbeil",
+          "SPD",
+          "https://www.bundestag.de/abgeordnete/biografien/K/klingbeil_lars-1045428"
+        ],
+        [
+          "afd",
+          "Alice Weidel",
+          "AfD",
+          "https://www.bundestag.de/abgeordnete/biografien/W/weidel_alice-1048026"
+        ],
+        [
+          "greens",
+          "Felix Banaszak",
+          "Bündnis 90/Die Grünen",
+          "https://www.bundestag.de/abgeordnete/biografien/B/banaszak_felix-1043522"
+        ]
+      ],
+      "coalitions": [
+        {
+          "parties": [
+            "cdu-csu",
+            "spd"
+          ],
+          "source": "https://www.bundesregierung.de/breg-de/aktuelles/koalitionsvertrag-2025-2340970"
+        }
+      ]
+    },
+    "ES": {
+      "parties": [
+        [
+          "psoe",
+          "Pedro Sánchez Pérez-Castejón",
+          "PSOE",
+          "https://www.lamoncloa.gob.es/lang/en/presidente/intervenciones/Paginas/2023/20231115_investiture-speech.aspx?mode=Light"
+        ],
+        [
+          "sumar",
+          "Yolanda Díaz",
+          "SUMAR",
+          "https://www.congreso.es/en/notas-de-prensa?_notasprensa_mvcPath=detalle&_notasprensa_notaId=45970"
+        ],
+        [
+          "pp",
+          "Alberto Núñez Feijóo",
+          "PP",
+          "https://www.congreso.es/en/notas-de-prensa?_notasprensa_mvcPath=detalle&_notasprensa_notaId=45970"
+        ],
+        [
+          "vox",
+          "Santiago Abascal",
+          "VOX",
+          "https://www.congreso.es/en/notas-de-prensa?_notasprensa_mvcPath=detalle&_notasprensa_notaId=45970"
+        ]
+      ],
+      "coalitions": [
+        {
+          "parties": [
+            "psoe",
+            "sumar"
+          ],
+          "source": "https://www.lamoncloa.gob.es/lang/en/presidente/news/Paginas/2023/20231120_new-government.aspx"
+        }
+      ]
+    },
+    "GB": {
+      "parties": [
+        [
+          "labour",
+          "Andrew Burnham",
+          "Labour",
+          "https://members.parliament.uk/member/1427/career"
+        ],
+        [
+          "conservative",
+          "Kemi Badenoch",
+          "Conservative",
+          "https://members.parliament.uk/member/4597/career/"
+        ],
+        [
+          "libdem",
+          "Ed Davey",
+          "Liberal Democrats",
+          "https://members.parliament.uk/member/188/career"
+        ],
+        [
+          "reform",
+          "Nigel Farage",
+          "Reform UK",
+          "https://members.parliament.uk/member/5091/career"
+        ]
+      ],
+      "coalitions": []
+    },
+    "IT": {
+      "parties": [
+        [
+          "fdi",
+          "Giorgia Meloni",
+          "Fratelli d'Italia",
+          "https://www.camera.it/deputati/elenco/19-302103?tab=anagrafica"
+        ],
+        [
+          "fi",
+          "Antonio Tajani",
+          "Forza Italia",
+          "https://www.camera.it/deputati/elenco/19-308838"
+        ],
+        [
+          "pd",
+          "Elly Schlein",
+          "Partito Democratico",
+          "https://www.camera.it/deputati/elezioni/eletti"
+        ],
+        [
+          "m5s",
+          "Giuseppe Conte",
+          "Movimento 5 Stelle",
+          "https://www.camera.it/deputati/statistiche_voto/vista?id_gruppo=4131&leg=19&riepil_mese_end=2026-09-30&type=gruppo"
+        ]
+      ],
+      "coalitions": [
+        {
+          "parties": [
+            "fdi",
+            "fi"
+          ],
+          "source": "https://www.camera.it/deputati/elenco/19-308838"
+        }
+      ]
+    },
+    "JP": {
+      "parties": [
+        [
+          "ldp",
+          "Takaichi Sanae",
+          "Liberal Democratic Party",
+          "https://www.shugiin.go.jp/internet/itdb_english.nsf/html/statics/member/e230.htm"
+        ],
+        [
+          "cra",
+          "Noda Yoshihiko",
+          "Centrist Reform Alliance",
+          "https://www.shugiin.go.jp/internet/itdb_english.nsf/html/statics/member/mem_n.htm"
+        ],
+        [
+          "ishin",
+          "Baba Nobuyuki",
+          "Nippon Ishin",
+          "https://www.shugiin.go.jp/internet/itdb_english.nsf/html/statics/member/e336.htm"
+        ],
+        [
+          "dpfp",
+          "Tamaki Yuichiro",
+          "Democratic Party for the People",
+          "https://www.shugiin.go.jp/internet/itdb_english.nsf/html/statics/member/e258.htm"
+        ]
+      ],
+      "coalitions": []
+    },
+    "US": {
+      "parties": [
+        [
+          "republican",
+          "Mike Johnson",
+          "Republican",
+          "https://history.house.gov/Congressional-Overview/Profiles/119th/"
+        ],
+        [
+          "democrat",
+          "Hakeem Jeffries",
+          "Democratic",
+          "https://history.house.gov/Congressional-Overview/Profiles/119th/"
+        ]
+      ],
+      "coalitions": []
+    }
+  }
+}

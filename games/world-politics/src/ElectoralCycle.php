@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/DocumentaryForeignBallot.php';
 
 /** Deterministic fictional electoral pilot, not certified real election data.
  * Integer counts, no floating-point seat allocation, reproducible tie draws.
@@ -13,7 +14,8 @@ final class ElectoralCycle
     public function __construct(string $world,string $country,string $day,array $config)
     {
         self::id($world);self::day($day);
-        self::fields($config,['method','poll_day','runoff_day','threshold_bps','parties','districts','formation']);
+        self::fields($config,['method','poll_day','runoff_day','threshold_bps','parties','districts','formation',...(array_key_exists('documentary_cast',$config)?['documentary_cast']:[])]);
+        if(array_key_exists('documentary_cast',$config))DocumentaryForeignBallot::validate($country,$config);
         $method=$config['method'];
         if(!in_array($method,['plurality','two_round','dhondt'],true)||!is_bool($config['formation'])
             ||!is_int($config['threshold_bps'])||$config['threshold_bps']<0||$config['threshold_bps']>10000)
@@ -150,6 +152,7 @@ final class ElectoralCycle
         if(!array_is_list($parties)||$parties===[]||count($parties)!==count(array_unique($parties)))throw new \InvalidArgumentException('Invalid coalition roster');
         foreach($this->s['history'] as $h)if($h['id']===$id)throw new \DomainException('Duplicate coalition command');
         sort($parties,SORT_STRING);ksort($programme);
+        if(isset($this->s['config']['documentary_cast'])&&(!DocumentaryForeignBallot::compatible($this->s['country'],$parties)||$programme!==['economy'=>500,'services'=>500]))throw new \DomainException('Undocumented coalition or programme');
         $total=0;$accepted=[];$rejected=[];$leaderFound=false;
         foreach($parties as $p){
             self::id($p);$party=$this->s['config']['parties'][$p]??null;$seats=$this->s['result']['seats'][$p]??0;

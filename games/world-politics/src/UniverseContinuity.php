@@ -27,7 +27,7 @@ final class UniverseContinuity
                 ||$day!==(new \DateTimeImmutable($invested))->modify('+1 day')->format('Y-m-d'))
                 throw new \DomainException('Uncertified reopening');
             $q=$db->prepare('SELECT roster_version FROM wp_universes WHERE world_id=?');$q->execute([$world]);
-            if($q->fetchColumn()===UniverseIdentityReference::BOUND_ROSTER){
+            if(UniverseIdentityReference::isBound((string)$q->fetchColumn())){
                 $q=$db->prepare("SELECT state_json,state_sha,revision FROM wp_world_rosters WHERE world_id=? AND country_code='FR' FOR UPDATE");$q->execute([$world]);$r=$q->fetch(\PDO::FETCH_ASSOC);
                 if($r===false)throw new \DomainException('Missing successor roster');
                 $state=json_decode($r['state_json'],true,64,JSON_THROW_ON_ERROR);$roster=PoliticalRoster::fromSnapshot($state);

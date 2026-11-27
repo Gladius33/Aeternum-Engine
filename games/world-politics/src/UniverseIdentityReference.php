@@ -44,6 +44,8 @@ final class UniverseIdentityReference
         return $out;
     }
     public const BOUND_ROSTER='wp119-identity-roster-v1';
+    public const DOCUMENTARY_ROSTER='wp119-identity-roster-v2';
+    public static function isBound(string $version):bool{return in_array($version,[self::BOUND_ROSTER,self::DOCUMENTARY_ROSTER],true);}
     /** Deterministic scenario casting, not a forecast, endorsement, or
      * a claimed affiliation. Only the documented name is imported. */
     public static function openingPerson(string $world,string $country):?array{

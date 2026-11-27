@@ -15,7 +15,7 @@ final class UniverseLobby
     public const ROSTER_VERSION='wp111-diplomatic-roster-v2';
     public static function roster(string $version):array
     {
-        return match($version){'wp102-pilot-v1'=>self::COUNTRIES,self::ROSTER_VERSION,UniverseIdentityReference::BOUND_ROSTER=>self::DIPLOMATIC_COUNTRIES,default=>throw new \DomainException('Unknown universe roster')};
+        return match($version){'wp102-pilot-v1'=>self::COUNTRIES,self::ROSTER_VERSION,UniverseIdentityReference::BOUND_ROSTER,UniverseIdentityReference::DOCUMENTARY_ROSTER=>self::DIPLOMATIC_COUNTRIES,default=>throw new \DomainException('Unknown universe roster')};
     }
     public function __construct(private readonly \PDO $db){}
     private function query(string $sql,array $args=[]):\PDOStatement
@@ -68,7 +68,7 @@ final class UniverseLobby
                     $person=$snapshot['people'][CampaignLifecycle::PLAYER]??null;
                     if($person!==null&&$person['name']!=='Scenario president'){
                         $opening=['name'=>$person['name'],'kind'=>$person['kind'],'as_of'=>$person['as_of'],'sources'=>$person['sources']];
-                        if($version===UniverseIdentityReference::BOUND_ROSTER){
+                        if(UniverseIdentityReference::isBound($version)){
                             $op=$this->query('SELECT state_json FROM wp_opinion_states WHERE world_id=?',[$world])->fetchColumn();
                             if(is_string($op)){
                                 $os=json_decode($op,true,64,JSON_THROW_ON_ERROR);
@@ -80,7 +80,7 @@ final class UniverseLobby
                     }
                 }
             }
-            if($country!=='FR'&&$version===UniverseIdentityReference::BOUND_ROSTER){
+            if($country!=='FR'&&UniverseIdentityReference::isBound($version)){
                 $p=UniverseIdentityReference::openingPerson($world,$country);
                 if($p!==null){
                     $opening=['name'=>$p['name'],'kind'=>$p['kind'],'as_of'=>$p['as_of'],'sources'=>$p['sources']];
@@ -91,7 +91,14 @@ final class UniverseLobby
                             $sim=InstitutionalSimulation::restore(json_decode($r['state_json'],true,64,JSON_THROW_ON_ERROR));
                             if(!hash_equals($r['state_sha'],$sim->hash()))throw new \DomainException('Invalid national institution source');
                             $gov=$sim->snapshot()['accountability'];
-                            $runtime=$gov['incumbent']===$p['id']&&$gov['status']==='in_office';$scope=$runtime?'scenario_government':'unresolved_current_identity';
+                            $runtime=$gov['incumbent']===$p['id']&&$gov['status']==='in_office';
+                            if($version===UniverseIdentityReference::DOCUMENTARY_ROSTER&&$gov['status']==='in_office'){
+                                $person=DocumentaryForeignBallot::people($country)[$gov['incumbent']]??null;
+                                if($person!==null){
+                                    $opening=['name'=>$person['name'],'kind'=>'real','as_of'=>$person['as_of'],'sources'=>$person['sources']];$runtime=true;
+                                }
+                            }
+                            $scope=$runtime?'scenario_government':'unresolved_current_identity';
                         }
                     }
                 }
@@ -100,7 +107,7 @@ final class UniverseLobby
                 'controller'=>$slot['closed_on']!==null?'succession_pending':($slot['account_id']===null?'ai':'human'),
                 'generation'=>(int)$slot['generation'],'is_you'=>$slot['account_id']===$s->id,
                 'opening_identity'=>$opening,'runtime_identity_bound'=>$runtime,'identity_scope'=>$scope,'scenario_challengers'=>$challengers,
-                'reference'=>UniverseIdentityReference::country($country)];
+                'reference'=>UniverseIdentityReference::country($country),...($country!=='FR'&&in_array($country,self::COUNTRIES,true)&&$version===UniverseIdentityReference::DOCUMENTARY_ROSTER?['documentary_parties'=>DocumentaryForeignBallot::reference($country)]:[])];
         });
     }
     private function create():array
@@ -108,7 +115,7 @@ final class UniverseLobby
         $bundle=GlobalReferenceBundle::published();$sha=(new PdoGlobalReferenceBundles($this->db))->install($bundle);
         $scenario=new AlphaScenario(AlphaScenario::INVESTITURE,$bundle,$sha);
         $r=(new AlphaWorlds($this->db,$scenario))->provisionUniverse(true);$world=$r['world_id'];
-        $this->query('INSERT INTO wp_universes(world_id,roster_version) VALUES(?,?)',[$world,UniverseIdentityReference::BOUND_ROSTER]);$no=(int)$this->db->lastInsertId();
+        $this->query('INSERT INTO wp_universes(world_id,roster_version) VALUES(?,?)',[$world,UniverseIdentityReference::DOCUMENTARY_ROSTER]);$no=(int)$this->db->lastInsertId();
         foreach(self::DIPLOMATIC_COUNTRIES as $country){
             if(!$scenario->actors->isHumanPlayable('state_'.strtolower($country)))
                 throw new \LogicException('Unreviewed playable slot');
@@ -169,7 +176,7 @@ final class UniverseLobby
                 $this->ensureSpare();
                 // Legacy spare worlds have no expanded slots. Allocate one
                 // expanded reserve if none exists, not on every failed claim.
-                if(!in_array($country,self::COUNTRIES,true)&&$this->query('SELECT 1 FROM wp_universes WHERE roster_version IN (?,?) LIMIT 1',[self::ROSTER_VERSION,UniverseIdentityReference::BOUND_ROSTER])->fetchColumn()===false)$this->create();
+                if(!in_array($country,self::COUNTRIES,true)&&$this->query('SELECT 1 FROM wp_universes WHERE roster_version IN (?,?,?) LIMIT 1',[self::ROSTER_VERSION,UniverseIdentityReference::BOUND_ROSTER,UniverseIdentityReference::DOCUMENTARY_ROSTER])->fetchColumn()===false)$this->create();
             }
             $args=[$country,$s->id];
             $sql="SELECT u.universe_no,u.world_id FROM wp_universes u JOIN wp_universe_slots s ON s.world_id=u.world_id
@@ -225,7 +232,7 @@ final class UniverseLobby
         $placeholder=$state['people'][CampaignLifecycle::PLAYER]??null;
         $legacy=($placeholder['name']??null)==='Scenario president'&&($placeholder['kind']??null)==='fictional';
         $version=$this->query('SELECT roster_version FROM wp_universes WHERE world_id=?',[$world])->fetchColumn();
-        $bound=$version===UniverseIdentityReference::BOUND_ROSTER&&$placeholder===UniverseIdentityReference::openingPerson($world,'FR');
+        $bound=UniverseIdentityReference::isBound($version)&&$placeholder===UniverseIdentityReference::openingPerson($world,'FR');
         if((int)$row['revision']!==0||count($state['people'])!==1||$state['head_of_state']!==CampaignLifecycle::PLAYER
             ||$state['cabinet']!==[]||$state['pending_nominations']!==[]||(!$legacy&&!$bound)||$placeholder['programme']!==[])throw new AlphaHttpError(409,'candidate_requires_opening_slot');
         $state['people'][CampaignLifecycle::PLAYER]=$candidate;$new=PoliticalRoster::fromSnapshot($state);

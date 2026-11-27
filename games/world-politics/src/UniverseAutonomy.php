@@ -201,7 +201,7 @@ final class UniverseAutonomy
             if(!in_array($r['diplomacy_programme'],['cooperative','balanced','cautious'],true))throw new \DomainException('Invalid programme');
             $out['state_'.strtolower($r['country_code'])]=['programme'=>$r['diplomacy_programme'],
                 'succession_pending'=>$r['closed_on']!==null,'human_action_this_day'=>$r['account_id']!==null&&$r['last_human_diplomacy_day']===$committedDay,
-                ...(in_array($r['roster_version'],['wp111-diplomatic-roster-v2','wp119-identity-roster-v1'],true)?['initiative_enabled'=>true]:[])];
+                ...(in_array($r['roster_version'],['wp111-diplomatic-roster-v2','wp119-identity-roster-v1','wp119-identity-roster-v2'],true)?['initiative_enabled'=>true]:[])];
         }
         if($out===[])throw new \DomainException('Managed universe without slots');
         return $out;
