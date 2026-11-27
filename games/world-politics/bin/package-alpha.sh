@@ -12,7 +12,7 @@ out=$(realpath -m "$2")
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 [[ $(git rev-parse "$sha^{commit}") == "$sha" ]]
-mapfile -t selected < <(git ls-tree -r --name-only "$sha" -- games/world-politics docs tests LICENSE.md NOTICE WORLD_POLITICS_BRANCH_ONLY.md | awk '/^games\/world-politics\// || /^docs\/WORLD_POLITICS.*\.md$/ || /^tests\/wp.*\.(php|py)$/ || /^(LICENSE\.md|NOTICE|WORLD_POLITICS_BRANCH_ONLY\.md)$/')
+mapfile -t selected < <(git ls-tree -r --name-only "$sha" -- games/world-politics docs tests LICENSE.md NOTICE WORLD_POLITICS_BRANCH_ONLY.md | grep -vE '^games/world-politics/data/wp115-(collection-v0\\.4(/|\\.zip$)|fiscal-staging-v1\\.json$)' | awk '/^games\/world-politics\// || /^docs\/WORLD_POLITICS.*\.md$/ || /^tests\/wp.*\.(php|py)$/ || /^(LICENSE\.md|NOTICE|WORLD_POLITICS_BRANCH_ONLY\.md)$/')
 (("${#selected[@]}" > 10))
 tmp=$(mktemp "${out}.XXXXXX")
 raw=""
