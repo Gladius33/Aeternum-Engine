@@ -24,24 +24,43 @@ final class CareerProgrammeAutonomy
         $seen=[];foreach($ids as $id){CareerInstitutionLedger::check(is_string($id)&&isset($catalog[$id])&&!isset($seen[$id]),'unmapped or duplicate objective');$seen[$id]=true;}
         return ['name'=>trim($name),'biography'=>$bio,'measure_ids'=>$ids];
     }
+    /** Explicitly reviewed proposal capabilities. The PM may coordinate
+     * every mapped objective; the relevant portfolio may propose only its
+     * own domain. Housing, wages and retirement remain PM-only rather than
+     * assigning them to a nonexistent labor/housing ministry. */
+    public static function portfolio(string $id):?string{
+        if($id==='education-reform')return 'education';
+        if($id==='administration-report')return null;
+        $definition=SocialProgramme::target2027()[$id]??null;
+        if($definition===null)throw new \DomainException('Policy not mapped to career powers');
+        return match($definition['domain']){
+            'education'=>'education','eldercare'=>'health','tax','industry'=>'economy',
+            'wages','retirement','housing'=>null,
+            default=>throw new \DomainException('Policy portfolio not reviewed')
+        };
+    }
+    public static function permitted(string $office,string $id):bool{
+        $portfolio=self::portfolio($id);
+        return $office==='prime-minister'||($portfolio!==null&&$office==='minister-'.$portfolio);
+    }
     public static function objectives(array $career):array{
         if(isset($career['person_reference']))return self::DOCUMENTED[$career['person_reference']]??[];
         if(($career['controller']??null)==='ai'||$career['account']===null)return [];
         return $career['fictional_profile']['measure_ids']??[];
     }
-    /** Only an active PM or education minister may originate the supported
+    /** Only the PM or explicitly competent minister may originate supported
      * requests. No president receives PM powers, no law is enacted. */
     public static function next(array $state,string $day,array $policies,array $catalog,array $humanActed=[]):?array{
         if($state['country']!=='FR'||$state['mode']!=='career')return null;
-        foreach(['prime-minister','minister-education'] as $office){
+        foreach(['prime-minister','minister-economy','minister-education','minister-health'] as $office){
             $mid=$state['active'][$office]??null;if($mid===null)continue;
             $m=$state['mandates'][$mid];$career=$state['careers'][$m['career']];
-            $ability=$office==='prime-minister'?'government.coordinate':'ministry.education.propose';
+            $ability=$office==='prime-minister'?'government.coordinate':'ministry.'.substr($office,9).'.propose';
             if($m['end']!==null||$m['interim']||$m['start']>$day||$m['expires']<=$day||!in_array($ability,$m['powers'],true)||isset($humanActed[$m['career']]))continue;
             foreach(self::objectives($career) as $id){
                 if(!isset($catalog[$id])||isset($policies[$id]))continue;
-                if($office==='minister-education'&&!in_array($id,['education-reform','pf2027-philippe-teacher-pay'],true))continue;
                 if(!in_array($id,['education-reform','administration-report'],true)&&!isset(SocialProgramme::target2027()[$id]))continue;
+                if(!self::permitted($office,$id))continue;
                 $effective=isset(SocialProgramme::target2027()[$id])?SocialProgramme::effectiveDay($id,$day):
                     (new \DateTimeImmutable($day))->modify($id==='education-reform'?'+120 days':'+14 days')->format('Y-m-d');
                 if(SocialProgramme::sameEffectiveFamily($id,$effective,$policies))continue;

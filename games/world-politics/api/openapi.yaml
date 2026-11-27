@@ -169,7 +169,7 @@ paths:
               properties:
                 mandate: {type: string}
                 generation: {type: integer, minimum: 1}
-                policy_id: {type: string, enum: [education-reform, administration-report]}
+                policy_id: {type: string, enum: [education-reform, administration-report, pf2027-jean-luc-melenchon-smic, pf2027-jean-luc-melenchon-pension, pf2027-ecologistes-renovation, pf2027-ecologistes-smic, pf2027-retailleau-contributions, pf2027-dlf-production-tax, pf2027-dlf-industrial-grants, pf2027-lfi-public-housing, pf2027-lfi-renovation, pf2027-lfi-public-index, pf2027-lfi-eldercare-capacity, pf2027-retailleau-overtime, pf2027-philippe-teacher-pay]}
                 effective_day: {type: string, format: date}
       responses:
         '202': {description: Inert proposal recorded in domestic journal}

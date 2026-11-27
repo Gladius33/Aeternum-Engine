@@ -101,6 +101,12 @@ ck(req('POST',$ep.'/policy-proposals',$policy,$etoken,'policy-denied-001',$tag)[
 $pr=req('POST',$ep.'/policy-proposals',$policy,$t2,'policy-propose-001',$tag);
 ck($pr['status']===202,'PM proposal written to existing domestic journal');
 ck(req('POST',$ep.'/policy-proposals',$policy,$t2,'policy-propose-001',$tag)===$pr,'domestic receipt replay');
+$tag2=req('GET',$ep.'/economy',null,$etoken)['body']['domestic']['etag'];
+$newPolicy=['mandate'=>$epm['id'],'generation'=>$epm['generation'],'policy_id'=>'pf2027-dlf-production-tax','effective_day'=>'2027-10-01'];
+ck(req('POST',$ep.'/policy-proposals',$newPolicy,$etoken,'policy-denied-002',$tag2)['status']===409,'president cannot borrow programme proposal powers');
+$newResult=req('POST',$ep.'/policy-proposals',$newPolicy,$t2,'policy-propose-002',$tag2);
+ck($newResult['status']===202,'reviewed 2027 economic measure allowed for PM');
+
 \Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-15');
 $after=req('GET',$ep.'/economy',null,$etoken);
 ck($after['status']===200&&$after['body']['day']==='2027-05-15'&&$after['body']['domestic']['state']['day']==='2027-05-15'&&count($after['body']['domestic']['state']['days'])===1,'coordinated economic day');

@@ -246,3 +246,20 @@ ck($progress['series'][0]['maximum_unverified_credit_days']===62&&$progress['ser
 $progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($early,'real-jean-luc-melenchon','2032-07-16');
 ck($progress['series'][0]['status']==='expiry_pending'&&$progress['series'][0]['through_day']==='2032-07-15'&&$progress['score']===null,'unresolved expiry cannot accrue tenure');
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";
+
+
+// All mapped programme proposals use the same portfolio gate for human and
+// replacement actions; unknown ministries and foreign powers never qualify.
+$pc=$planClass::normalizeFictional(['name'=>'Economic minister','measure_ids'=>['pf2027-dlf-production-tax','pf2027-philippe-teacher-pay']],'FR');
+$cs=L::initial('portfolio-world','FR','career','2027-05-14');
+$cs=add(add($cs,'president'),'pm');
+$cs=L::apply($cs,evt($cs,'admit',['career'=>'minister','account'=>'acct-minister','character'=>'person-minister','mode'=>'opening','fictional_profile'=>$pc]));
+$cs=change($cs,'election',[],[grant('president','president')]);
+$cs=change($cs,'appointment',[],[grant('prime-minister','pm'),grant('minister-economy','minister')]);
+$catalog=array_fill_keys(['pf2027-dlf-production-tax','pf2027-philippe-teacher-pay'],true);
+$plan=$planClass::next($cs,'2027-05-14',[],$catalog);
+ck($plan['career']==='minister'&&$plan['policy_id']==='pf2027-dlf-production-tax','economic minister fallback respects portfolio');
+ck($planClass::next($cs,'2027-05-14',['pf2027-dlf-production-tax'=>true],$catalog)===null,'economy cannot borrow education portfolio');
+ck($planClass::next($cs,'2027-05-14',[],$catalog,['minister'=>true])===null,'human economic proposal suppresses replacement');
+foreach(\Aeternum\WorldPolitics\SocialProgramme::target2027() as $id=>$definition)ck($planClass::permitted('prime-minister',$id)&&!$planClass::permitted('president',$id),'reviewed catalogue authority '.$id);
+no(fn()=>$planClass::portfolio('pf2022-marine-le-pen-2'));

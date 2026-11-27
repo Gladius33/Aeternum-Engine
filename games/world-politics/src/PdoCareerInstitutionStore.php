@@ -416,7 +416,8 @@ final class PdoCareerInstitutionStore
         CareerInstitutionLedger::check(is_string($p['mandate'])&&is_int($p['generation'])&&$p['generation']>=1&&is_string($p['policy_id'])&&is_string($p['effective_day']),'invalid proposal fields');
         // Explicit reviewed portfolio mapping; no implicit right to arbitrary
         // budgets, industrial acts or policy enactments.
-        $portfolio=match($p['policy_id']){'education-reform'=>'education','administration-report'=>null,default=>throw new \DomainException('Policy not mapped to career powers')};
+        require_once __DIR__.'/CareerProgrammeAutonomy.php';
+        $portfolio=CareerProgrammeAutonomy::portfolio($p['policy_id']);
         return $this->tx(function()use($world,$token,$p,$key,$etag,$portfolio){
             $clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);$s=$this->replay($world,$this->row($world));
             $day=$clock['committed_day'];$ok=CareerInstitutionLedger::allows($s,$a,$p['mandate'],$p['generation'],'government.coordinate',$day);
