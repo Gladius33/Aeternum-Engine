@@ -151,6 +151,7 @@ final class BicameralLegislation
     public function draft(string $id,string $policy):array
     {
         self::id($id);$catalog=self::catalog(isset($this->s['minor_units']),isset($this->s['national_service']),isset($this->s['social_programme']));
+        if(isset($this->s['social_programme'])&&!isset($catalog[$policy])&&($text=SocialProgramme::legalText($policy))!==null)$catalog[$policy]=$text;
         if(!isset($catalog[$policy])||isset($this->s['bills'][$id])||count($this->s['bills'])>=100)
             throw new \DomainException('Unknown or duplicate bill');
         if(NationalServiceLaw::isPolicy($policy))NationalServiceLaw::validateDraft($this->s,$policy);

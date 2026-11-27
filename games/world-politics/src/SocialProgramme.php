@@ -54,28 +54,89 @@ final class SocialProgramme
         }
         return $cached=$out;
     }
-    public static function isPolicy(string $id):bool{return isset(self::definitions()[$id]);}
+    // Stable allocation beyond the original 24 historical bits.
+    private const RESET_FAMILIES=['pension','job-service','wage-incentive','job-guarantee','apprenticeship','work-time','wage-floor','representation','hiring-relief','occupational-health'];
+    public static function objectives():array
+    {
+        static $cached=null;if($cached!==null)return $cached;
+        $d=self::definitions();
+        foreach(self::RESET_FAMILIES as $n=>$family){
+            $id='social-repeal-'.$family;
+            $d[$id]=['bit'=>24+$n,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
+                'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
+        }
+        return $cached=$d;
+    }
+    public static function objectiveId(string $id):string
+    {
+        if(preg_match('/^(.+)-r([2-9]|[1-9][0-9]{1,2})$/D',$id,$m))return $m[1];
+        return $id;
+    }
+    public static function definition(string $id):?array{return self::objectives()[self::objectiveId($id)]??null;}
+    public static function isPolicy(string $id):bool{return self::definition($id)!==null;}
+    public static function isRepeal(string $id):bool{return isset(self::definition($id)['target']['repeal_family']);}
+    /** Derived assumptions do not alter the immutable archived base catalog. */
+    public static function assumption(string $id,array $catalog,bool $lifecycle):?array
+    {
+        if(isset($catalog[$id]))return $catalog[$id];
+        if(!$lifecycle||!self::isPolicy($id))return null;
+        $base=self::objectiveId($id);
+        if(isset($catalog[$base]))return $catalog[$base];
+        if(!self::isRepeal($id))return null;
+        $family=self::definition($id)['family'];
+        foreach(self::definitions() as $key=>$d){
+            if($d['family']!==$family||!isset($catalog[$key]))continue;
+            $v=$catalog[$key];
+            foreach(['revenue_delta','expense_delta','concession_daily_cost','production_delta_bps','employment_delta_bps'] as $k)if(isset($v[$k]))$v[$k]=0;
+            foreach(['pressure_delta','concessions'] as $k)if(isset($v[$k]))foreach($v[$k] as &$x)$x=0;
+            unset($x);return $v;
+        }
+        return null;
+    }
+    /** A pending proposal is never duplicated, and an unsuccessful proposal
+     * is not retried endlessly. A later effective replacement or repeal
+     * enables a new instance of a previously attempted objective. */
+    public static function nextInstance(string $base,string $day,array $policies):?string
+    {
+        $d=self::objectives()[$base]??null;if($d===null)return null;
+        $latest=null;$latestDate=null;$max=0;
+        foreach($policies as $id=>$p){
+            $def=self::definition($id);if($def===null||$def['family']!==$d['family'])continue;
+            if(self::objectiveId($id)===$base){
+                $max=max($max,$id===$base?1:(int)substr($id,strrpos($id,'-r')+2));
+                if($latestDate===null||$p['proposed_on']>$latestDate)$latestDate=$p['proposed_on'];
+            }
+            if($p['effective_on']>$day)return null;
+        }
+        // Consider a law effective today too; it is already authorized.
+        $latest=self::effectiveFamilies($policies,$day)[$d['family']]??null;
+        if($latest!==null&&self::objectiveId($latest)===$base)return null;
+        if(self::isRepeal($base)&&($latest===null||self::isRepeal($latest)))return null;
+        if($max>0&&($latest===null||$policies[$latest]['effective_on']<=$latestDate))return null;
+        if($max>=999)throw new \DomainException('Social law instance limit');
+        return $max===0?$base:$base.'-r'.($max+1);
+    }
     public static function encode(array $ids):string
     {
-        if(!array_is_list($ids)||$ids===[]||count($ids)>24)throw new \InvalidArgumentException('Invalid social objectives');
-        $d=self::definitions();$families=[];$mask=0;
+        if(!array_is_list($ids)||$ids===[]||count($ids)>34)throw new \InvalidArgumentException('Invalid social objectives');
+        $d=self::objectives();$families=[];$mask=0;
         foreach($ids as $id){
             if(!is_string($id)||!isset($d[$id])||isset($families[$d[$id]['family']]))throw new \InvalidArgumentException('Unknown or conflicting social objective');
             $families[$d[$id]['family']]=true;$mask|=1<<$d[$id]['bit'];
         }
-        return 'social-'.str_pad(dechex($mask),6,'0',STR_PAD_LEFT);
+        return 'social-'.str_pad(dechex($mask),$mask<16777216?6:9,'0',STR_PAD_LEFT);
     }
     public static function decode(string $profile):?array
     {
-        if(!preg_match('/^social-([a-f0-9]{6})$/D',$profile,$m))return null;
+        if(!preg_match('/^social-([a-f0-9]{6}|[a-f0-9]{9})$/D',$profile,$m))return null;
         $mask=hexdec($m[1]);$ids=[];
-        foreach(self::definitions() as $id=>$d)if(($mask&(1<<$d['bit']))!==0)$ids[]=$id;
+        foreach(self::objectives() as $id=>$d)if(($mask&(1<<$d['bit']))!==0)$ids[]=$id;
         try{if(self::encode($ids)!==$profile)return null;}catch(\InvalidArgumentException $e){return null;}
         return $ids;
     }
     public static function effectiveDay(string $id,string $day):string
     {
-        $d=self::definitions()[$id]??throw new \InvalidArgumentException('Unknown social measure');
+        $d=self::definition($id)??throw new \InvalidArgumentException('Unknown social measure');
         // Allow ordinary readings and review; dated promises retain their
         // target-year start, not a fabricated instantaneous policy.
         $min=(new \DateTimeImmutable($day))->modify('+120 days')->format('Y-m-d');
@@ -83,11 +144,14 @@ final class SocialProgramme
     }
     public static function legalCatalog():array
     {
-        $out=[];foreach(self::definitions() as $id=>$d){
-            $text=json_encode(['version'=>self::VERSION,'id'=>$id,'target'=>$d['target']],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
-            $out[$id]=['standard'=>$text,'amended'=>$text.'; implementation subject to a separate reviewed instrument'];
-        }
+        $out=[];foreach(self::objectives() as $id=>$d)$out[$id]=self::legalText($id);
         return $out;
+    }
+    public static function legalText(string $id):?array
+    {
+        $d=self::definition($id);if($d===null)return null;
+        $text=json_encode(['version'=>self::VERSION,'id'=>$id,'target'=>$d['target']],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
+        return ['standard'=>$text,'amended'=>$text.'; implementation subject to a separate reviewed instrument'];
     }
     public static function policies(array $baseline):array
     {
@@ -115,23 +179,24 @@ final class SocialProgramme
      * A later expired replacement does not revive its predecessor. */
     public static function effectiveFamilies(array $policies,string $day):array
     {
-        $d=self::definitions();$out=[];
+        $out=[];
         foreach($policies as $id=>$p){
-            if(!isset($d[$id])||$p['authorized_on']===null||$p['authorized_on']>=$day||$p['effective_on']>$day)continue;
-            $family=$d[$id]['family'];$old=$out[$family]??null;
+            $d=self::definition($id);
+            if($d===null||$p['authorized_on']===null||$p['authorized_on']>=$day||$p['effective_on']>$day)continue;
+            $family=$d['family'];$old=$out[$family]??null;
             if($old===null||[$p['effective_on'],$p['proposed_on'],$id]>[$policies[$old]['effective_on'],$policies[$old]['proposed_on'],$old])$out[$family]=$id;
         }
         return $out;
     }
     public static function sameEffectiveFamily(string $id,string $day,array $policies):bool
     {
-        $d=self::definitions();if(!isset($d[$id]))return false;
-        foreach($policies as $old=>$p)if($old!==$id&&isset($d[$old])&&$d[$old]['family']===$d[$id]['family']&&$p['effective_on']===$day)return true;
+        $d=self::definition($id);if($d===null)return false;
+        foreach($policies as $old=>$p)if($old!==$id&&(self::definition($old)['family']??null)===$d['family']&&$p['effective_on']===$day)return true;
         return false;
     }
     public static function phaseBps(string $id,int $elapsed):int
     {
-        $d=self::definitions()[$id]??null;
+        $d=self::definition($id);
         if($d===null||!isset($d['target']['phase_years']))return 10000;
         // Five equal annual cohorts for the explicitly progressive proposal.
         return min(10000,2000*(1+intdiv(max(0,$elapsed),365)));
@@ -146,20 +211,20 @@ final class SocialProgramme
     }
     public static function wagePremium(array $active):int
     {
-        $d=self::definitions();$n=0;
-        foreach($active as $id)$n+=$d[$id]['assumptions']['aggregate_wage_premium_bps']??0;
+        $n=0;
+        foreach($active as $id)$n+=self::definition($id)['assumptions']['aggregate_wage_premium_bps']??0;
         return min(3000,$n);
     }
     public static function report(array $state):array
     {
-        $d=self::definitions();$rows=[];
+        $rows=[];
         $active=$state['days']===[]?[]:$state['days'][array_key_last($state['days'])]['active_policies'];
         $families=isset($state['social_economy_from'])&&$state['day']>=$state['social_economy_from']?self::effectiveFamilies($state['policies'],$state['day']):[];
-        foreach($state['policies'] as $id=>$p)if(isset($d[$id])){
+        foreach($state['policies'] as $id=>$p)if(($d=self::definition($id))!==null){
             $running=in_array($id,$active,true);$elapsed=$running?(int)(new \DateTimeImmutable($p['effective_on']))->diff(new \DateTimeImmutable($state['day']))->days:0;
-            $rows[]=['measure_id'=>$id,'definition'=>$d[$id],'proposal'=>$p,'active'=>$running,
+            $rows[]=['measure_id'=>$id,'definition'=>$d,'proposal'=>$p,'active'=>$running,
                 'implementation_phase_bps'=>$running?self::phaseBps($id,$elapsed):0,
-                'superseded_by'=>$p['authorized_on']!==null&&$p['effective_on']<=$state['day']&&isset($families[$d[$id]['family']])&&$families[$d[$id]['family']]!==$id?$families[$d[$id]['family']]:null];
+                'superseded_by'=>$p['authorized_on']!==null&&$p['effective_on']<=$state['day']&&isset($families[$d['family']])&&$families[$d['family']]!==$id?$families[$d['family']]:null];
         }
         return ['version'=>self::VERSION,'classification'=>'fictional_uncalibrated_aggregate_proxy','measures'=>$rows,
             'individual_entitlements_modelled'=>false,'economic_forecast_qualified'=>false];

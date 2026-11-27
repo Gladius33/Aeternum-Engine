@@ -67,7 +67,7 @@ final class SocialEconomy
      * Multiple active laws may affect distinct families only. */
     public static function calculate(array $active,array $policies,string $day,array $population,array $services,array $macro,?array $prior):array
     {
-        $a=self::ASSUMPTIONS;$defs=SocialProgramme::definitions();
+        $a=self::ASSUMPTIONS;
         $cohorts=$prior['population']['cohorts']??$population['opening_cohorts'];
         $ind=$prior['population']['indicators']??$population['opening_indicators'];
         $u=self::limit($prior['macro']['unemployment_bps']??$macro['initial_unemployment_bps'],0,3000);
@@ -77,11 +77,12 @@ final class SocialEconomy
         $referencePension=intdiv($pensionDaily*365,max(1,$recipients)*12);
         $smic=$a['reference_net_smic_minor'];$hours=$a['reference_workweek_hours'];
         $netFloor=$smic;
-        foreach($active as $id){$d=$defs[$id]??null;if(($d['family']??null)==='wage-floor'){$t=$d['target'];$netFloor=max($smic,isset($t['increase_bps'])?self::scale($smic,10000+$t['increase_bps']):($t['monthly_net_eur']??$t['monthly_floor_eur'])*100);}}
+        foreach($active as $id){$d=SocialProgramme::definition($id);if(($d['family']??null)==='wage-floor'&&!SocialProgramme::isRepeal($id)){$t=$d['target'];$netFloor=max($smic,isset($t['increase_bps'])?self::scale($smic,10000+$t['increase_bps']):($t['monthly_net_eur']??$t['monthly_floor_eur'])*100);}}
         $tax=0;$benefits=0;$pensionTransfer=0;$production=0;$employment=0;$wage=0;$details=[];
         foreach($active as $id){
-            if(!isset($defs[$id]))continue;
-            $d=$defs[$id];$t=$d['target'];$family=$d['family'];
+            $d=SocialProgramme::definition($id);if($d===null)continue;
+            if(SocialProgramme::isRepeal($id))continue;
+            $t=$d['target'];$family=$d['family'];
             $r=['id'=>$id,'family'=>$family,'target'=>$t,'daily_revenue_delta_minor'=>0,'daily_expense_delta_minor'=>0,'affected_persons_proxy'=>0];
             if($family==='pension'){
                 $age=$t['age'];$coverage=isset($t['entry_age_before'])?$a['long_career_share_bps']:10000;

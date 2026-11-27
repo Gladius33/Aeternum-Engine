@@ -42,7 +42,7 @@ final class UniverseLobby
             $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
             unset($r['pending_day'],$r['game_over']);
         }unset($r);
-        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),'historical_social_catalog'=>SocialProgramme::definitions(),'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
+        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),'historical_social_catalog'=>SocialProgramme::definitions(),'social_lifecycle_catalog'=>SocialProgramme::objectives(),'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
     }
     private function create():array
     {
@@ -182,7 +182,7 @@ final class UniverseLobby
                 if(PresidentialProgramme::socialIds($body['domestic'])!==null){
                     $raw=$this->query('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?',[$world])->fetchColumn();
                     $cfg=json_decode($raw,true,64,JSON_THROW_ON_ERROR);
-                    foreach(PresidentialProgramme::socialIds($body['domestic']) as $id)if(!isset($cfg['catalog'][$id]))throw new AlphaHttpError(409,'social_programme_requires_new_universe');
+                    foreach(PresidentialProgramme::socialIds($body['domestic']) as $id)if(SocialProgramme::assumption($id,$cfg['catalog'],isset($cfg['social_economy_from']))===null)throw new AlphaHttpError(409,'social_programme_requires_new_universe');
                 }
                 $this->query('UPDATE wp_universe_slots SET programme_set_on=IF(domestic_programme<>?, ?, programme_set_on),domestic_programme=? WHERE world_id=? AND country_code=?',[$body['domestic'],$c['committed_day'],$body['domestic'],$world,$slot]);
             }

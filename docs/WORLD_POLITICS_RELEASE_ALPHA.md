@@ -120,3 +120,8 @@ New managed universes provision 24 exact historical social policy entries and an
 ### WP114f–k grouped increment
 
 Migration 036 adds the model_upgrade journal operation. With workers stopped and a verified backup, run php games/world-politics/bin/upgrade-social-universe.php UNIVERSE_NO for a replay-verified dry run, and explicitly append --apply only after reviewing the digest transition. No startup rewrite. Existing active legal proofs and past rows are retained; pending unconsumed proofs or an advancing fence refuse the upgrade. Newly provisioned worlds use the richer social scenario immediately. Source register and model assumptions remain versioned; this is not statutory or behavioral calibration. WP114 remains open.
+
+
+### WP114 social law lifecycle
+
+The social_lifecycle_catalog adds ten explicit repeal objectives to the 24 historical objectives. The same measure_ids contract accepts these IDs. Repeals use ordinary legislation and repeated instruments are uniquely identified, preserving original receipts and past rows. Old worlds without the social economy pin reject the new objectives. The existing institutional bill count limit still applies.

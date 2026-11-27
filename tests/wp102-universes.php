@@ -250,3 +250,11 @@ $q114e->execute([$spare]);$iu=json_decode($q114e->fetchColumn(),true,64,JSON_THR
 $ih=\Aeternum\WorldPolitics\InstitutionalSimulation::restore($iu)->hash();
 $plan=\Aeternum\WorldPolitics\SocialUniverseUpgrade::prepare($cu,$old,$oldHash,$legacy->assumptionsHash(),$iu,$ih);
 ck102($plan['changed']&&$plan['domestic']['days']===$old['days']&&$plan['effective_on']>$old['day'],'WP114k prior daily rows preserved exactly');
+
+
+// WP114j: HTTP configuration recognizes explicit family repeal without
+// changing current enacted laws at configuration time.
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['social-repeal-pension','hist2022-jean-luc-melenchon-1']],8)['status']===422,'WP114j contradictory repeal and reform rejected');
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['social-repeal-pension','industry-active']],8)['status']===200,'WP114j mixed repeal configuration accepted');
+$rj=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($rj['social_measure_ids']===['social-repeal-pension'],'WP114j persisted repeal objective');

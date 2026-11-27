@@ -200,3 +200,28 @@ ck82(SP::effectiveFamilies($twoSocial,'2028-01-29')['pension']==='hist2022-jean-
 $twoSocial['hist2022-emmanuel-macron-1']['authorized_on']='2028-01-28';
 ck82(SP::effectiveFamilies($twoSocial,'2028-01-29')['pension']==='hist2022-emmanuel-macron-1','WP114j published replacement supersedes prior law');
 ck82(PP::nextProposal(PP::compileProfile(['hist2022-emmanuel-macron-1']),'2027-10-01',['hist2022-jean-luc-melenchon-1'=>$oldSocial],true)['policy_id']==='hist2022-emmanuel-macron-1','WP114j replacement may be proposed without revoking previous law');
+
+
+// WP114 lifecycle: neutral repeal, no premature effect, repeated law identity.
+$reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
+$resetProfile=PP::compileProfile([$reset114,'industry-active']);
+ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
+no82(fn()=>PP::compileProfile([$reset114,$pension114]));
+ck82(count(SP::objectives())===34&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
+$pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
+ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
+$resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
+$cycle=[$pension114=>$oldSocial,$reset114=>$resetPolicy];
+ck82(SP::effectiveFamilies($cycle,'2028-01-29')['pension']===$pension114,'WP114j repeal requires actual legal proof');
+$cycle[$reset114]['authorized_on']='2028-01-28';$cycle[$reset114]['instrument_sha']=str_repeat('b',64);
+ck82(SP::effectiveFamilies($cycle,'2028-01-29')['pension']===$reset114,'WP114j legal repeal supersedes pension law');
+$reintroduced=PP::nextProposal(PP::compileProfile([$pension114]),'2028-02-01',$cycle,true);
+ck82($reintroduced['policy_id']===$pension114.'-r2'&&PP::permits(PP::compileProfile([$pension114]),$reintroduced['policy_id']),'WP114j new immutable instance can reintroduce repealed law');
+ck82(SP::legalText($pension114)['standard']!==SP::legalText($pension114.'-r2')['standard'],'WP114j distinct instrument digest');
+$neutral=SE::calculate([$reset114],$cycle,'2028-01-29',$pop,$services,$base,null);
+ck82($neutral['daily_expense_delta_minor']===0&&$neutral['daily_revenue_delta_minor']===0&&$neutral['pension_transfer_delta_minor']===0,'WP114j repeal returns reference scenario');
+$catalogLifecycle=SP::policies($base);
+ck82(SP::assumption($reset114,$catalogLifecycle,false)===null&&SP::assumption($reset114,$catalogLifecycle,true)['expense_delta']===0,'WP114j legacy world cannot accept unpinned lifecycle');
+ck82(SP::assumption($pension114.'-r2',$catalogLifecycle,true)===$catalogLifecycle[$pension114],'WP114j repeat uses pinned assumptions');
+$cycle[$pension114.'-r2']=['proposed_on'=>'2028-02-01','effective_on'=>$reintroduced['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
+ck82(SP::nextInstance($pension114,'2028-02-02',$cycle)===null,'WP114j pending instance is not duplicated');

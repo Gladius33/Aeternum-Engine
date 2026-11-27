@@ -149,7 +149,7 @@ final class DomesticPolicySimulation
     {
         $this->require($principal, 'domestic.propose');
         self::id($id); self::date($effectiveDay);
-        if (!isset($this->catalog[$id]) || $effectiveDay <= $this->day || isset($this->policies[$id]) || ($this->socialEconomyFrom===null?SocialProgramme::conflicts($id,$this->policies):SocialProgramme::sameEffectiveFamily($id,$effectiveDay,$this->policies))) {
+        if (SocialProgramme::assumption($id,$this->catalog,$this->socialEconomyFrom!==null&&$this->day>=$this->socialEconomyFrom)===null || $effectiveDay <= $this->day || isset($this->policies[$id]) || ($this->socialEconomyFrom===null?SocialProgramme::conflicts($id,$this->policies):SocialProgramme::sameEffectiveFamily($id,$effectiveDay,$this->policies))) {
             throw new \DomainException('Unknown, duplicate or retroactive proposal');
         }
         $this->policies[$id] = ['proposed_on'=>$this->day,'effective_on'=>$effectiveDay,'authorized_on'=>null,'instrument_sha'=>null];
@@ -242,7 +242,7 @@ final class DomesticPolicySimulation
             if ($p['authorized_on'] === null || $p['authorized_on'] >= $target || $p['effective_on'] > $target) continue;
             $elapsed = (int)(new \DateTimeImmutable($p['effective_on'], new \DateTimeZone('UTC')))
                 ->diff(new \DateTimeImmutable($target, new \DateTimeZone('UTC')))->days;
-            $a = $this->catalog[$id];
+            $a = SocialProgramme::assumption($id,$this->catalog,$socialV2)??throw new \DomainException('Unknown active policy');
             if ($elapsed >= $a['duration_days']) continue;
             if(SocialProgramme::isPolicy($id)){
                 $a=SocialProgramme::phasedPolicy($a,SocialProgramme::phaseBps($id,$elapsed));
@@ -453,7 +453,7 @@ final class DomesticPolicySimulation
         }
         foreach ($snapshot['policies'] as $id => $p) {
             self::id($id);
-            if (!isset($this->catalog[$id]) || !is_array($p)) throw new \DomainException('Unknown persisted policy');
+            if (!is_array($p)||SocialProgramme::assumption($id,$this->catalog,$this->socialEconomyFrom!==null&&($p['proposed_on']??'')>=$this->socialEconomyFrom)===null) throw new \DomainException('Unknown persisted policy');
             self::fields($p, ['proposed_on','effective_on','authorized_on','instrument_sha']);
             self::date($p['proposed_on']); self::date($p['effective_on']);
             if ($p['proposed_on'] < $this->startDay || $p['proposed_on'] > $snapshot['day']
