@@ -127,10 +127,59 @@ final class AlphaAccounts
                 throw new AlphaHttpError(401,'invalid_credentials');
             $q=$this->db->prepare('UPDATE wp_accounts SET password_hash=? WHERE account_id=?');
             $q->execute([password_hash($new,PASSWORD_ARGON2ID),$session->id]);
+            $q=$this->db->prepare('DELETE FROM wp_account_recovery WHERE account_id=?');$q->execute([$session->id]);
             $q=$this->db->prepare('DELETE FROM wp_sessions WHERE account_id=?');
             $q->execute([$session->id]);$count=$q->rowCount();
             $this->db->commit();
             return ['password_changed'=>true,'revoked_sessions'=>$count,'login_required'=>true];
+        }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
+    }
+
+    /** One optional high-entropy recovery credential, displayed once.
+     * Generation requires a live session and the current password. */
+    public function createRecovery(AlphaSession $session,array $body):array
+    {
+        self::fields($body,['current_password']);
+        $password=self::password($body['current_password']);
+        $this->limit('recovery-create-account',$session->id,5,300);
+        $this->db->beginTransaction();
+        try{
+            $q=$this->db->prepare('SELECT enabled,password_hash FROM wp_accounts WHERE account_id=? FOR UPDATE');
+            $q->execute([$session->id]);$row=$q->fetch(\PDO::FETCH_ASSOC);
+            if($row===false||(int)$row['enabled']!==1||!$session->active()||!password_verify($password,$row['password_hash']))
+                throw new AlphaHttpError(401,'invalid_credentials');
+            $secret=bin2hex(random_bytes(32));$expires=time()+31536000;
+            $q=$this->db->prepare('INSERT INTO wp_account_recovery(account_id,secret_sha,expires_at) VALUES(?,?,?) ON DUPLICATE KEY UPDATE secret_sha=VALUES(secret_sha),expires_at=VALUES(expires_at)');
+            $q->execute([$session->id,hash('sha256',$secret),$expires]);
+            $this->db->commit();
+            return ['recovery_code'=>$secret,'expires_at'=>$expires,'single_use'=>true];
+        }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
+    }
+
+    /** Reset only with a pre-enrolled recovery credential. No email or
+     * operator bypass. Account lock serializes with login and rotation. */
+    public function recover(array $body):array
+    {
+        self::fields($body,['username','recovery_code','new_password']);
+        $name=self::username($body['username']);$password=self::password($body['new_password']);
+        $secret=$body['recovery_code'];
+        if(!is_string($secret)||!preg_match('/^[a-f0-9]{64}$/D',$secret))throw new AlphaHttpError(401,'invalid_recovery');
+        $this->limit('recovery-account',$name,5,300);
+        $this->db->beginTransaction();
+        try{
+            $q=$this->db->prepare('SELECT account_id,enabled FROM wp_accounts WHERE username=? FOR UPDATE');
+            $q->execute([$name]);$row=$q->fetch(\PDO::FETCH_ASSOC);
+            if($row===false||(int)$row['enabled']!==1)throw new AlphaHttpError(401,'invalid_recovery');
+            $id=$row['account_id'];
+            $q=$this->db->prepare('SELECT secret_sha,expires_at FROM wp_account_recovery WHERE account_id=? FOR UPDATE');
+            $q->execute([$id]);$record=$q->fetch(\PDO::FETCH_ASSOC);
+            if($record===false||(int)$record['expires_at']<=time()||!hash_equals($record['secret_sha'],hash('sha256',$secret)))
+                throw new AlphaHttpError(401,'invalid_recovery');
+            $q=$this->db->prepare('UPDATE wp_accounts SET password_hash=? WHERE account_id=?');
+            $q->execute([password_hash($password,PASSWORD_ARGON2ID),$id]);
+            $q=$this->db->prepare('DELETE FROM wp_account_recovery WHERE account_id=?');$q->execute([$id]);
+            $q=$this->db->prepare('DELETE FROM wp_sessions WHERE account_id=?');$q->execute([$id]);
+            $this->db->commit();return ['password_changed'=>true,'login_required'=>true];
         }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
     }
 

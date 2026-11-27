@@ -4,7 +4,7 @@ Scope: private headless alpha, canonical France investiture 2027. This is NOT a 
 
 ## Acceptance gates
 
-- Fresh dedicated MariaDB installation with migrations 001–025 (014 excluded: maintenance-only).
+- Fresh dedicated MariaDB installation with migrations 001–026 (014 excluded: maintenance-only).
 - All three GitHub jobs green on the exact revision: headless contract, isolated MariaDB, real HTTP.
 - Score, deterministic twenty-year synthetic horizon, world-clock recovery, terminal freeze, session scope and SQL integrity regressions.
 - Offline `WP_RELEASE_AUDIT=YES php games/world-politics/bin/audit-campaign.php WORLD_ID` using dedicated read-only database credentials; refuses pending/unranked worlds. It verifies domestic, diplomacy, opinion, organizations, economy and seven institutional states using their existing restore rules and recomputes the committed score. It is not a comprehensive journal/receipt, security or production-capacity audit.
@@ -33,11 +33,11 @@ From a Git checkout, run `bash games/world-politics/bin/package-alpha.sh FULL_CO
 
 ## Existing databases
 
-Backup and restore-test first, stop writers and recover pending ticks; apply migration 025 using a dedicated migration account. Do not use fresh installer against a populated schema. DDL is not globally atomic. Old saves retain score_enabled=0; no silent leaderboard backfill. Verify schema, reopen only after smoke tests; restore backup if migration fails. No database migration has been applied to any user system.
+Backup and restore-test first, stop writers and recover pending ticks; apply the missing reviewed migrations through 026 using a dedicated migration account. Do not use fresh installer against a populated schema. DDL is not globally atomic. Old saves retain score_enabled=0; no silent leaderboard backfill. Verify schema, reopen only after smoke tests; restore backup if migration fails. No database migration has been applied to any user system.
 
 ## Grouped finalization — partial delivery WP88–WP97
 
-Rolling tax sensitivities and scenario extrema are diagnostics only; future commitment maturity buckets reconcile fictional outstanding amounts without booking them. Password rotation authenticates the current secret and revokes all existing sessions; this is not account recovery or MFA. No claim of full completion of the ten work packages.
+Rolling tax sensitivities and scenario extrema are diagnostics only; future commitment maturity buckets reconcile fictional outstanding amounts without booking them. Password rotation authenticates the current secret and revokes all existing sessions; recovery is now separately supported by a pre-enrolled one-time secret (WP98); MFA remains unsupported. No claim of full completion of the ten work packages.
 
 ## Outstanding release blockers beyond the private alpha
 
@@ -45,4 +45,8 @@ Rolling tax sensitivities and scenario extrema are diagnostics only; future comm
 - Curated historical programme content and mechanical programme effects (creation-time candidate identity selection is implemented), playable foreign constitutional systems, independent upper chambers and presidential races, interim governments.
 - Real international obligation/creditor schedules, guarantees, enforceable accounting and diplomatic calibration; synthetic fixtures cannot substitute for contract inventories.
 - Corrective budgets and autonomous certified legislative path (ordinary annual series 2028–2047 implemented for new canonical worlds) (the 2028 legal-to-fiscal activation is covered by an isolated DB regression), national service law and administrative timing; no tactical security simulation.
-- Capacity and multi-node stress, account recovery, MFA, invite rotation, log/alerting, backup restoration in target environment, independent security review, dedicated repository and versioned engine dependency. No deployment or commercial readiness claimed.
+- Capacity and multi-node stress, MFA, invite rotation, log/alerting, backup restoration in target environment, independent security review, dedicated repository and versioned engine dependency. No deployment or commercial readiness claimed.
+
+## WP98 account recovery
+
+An authenticated account can replace its optional recovery code after current-password verification. The 256-bit random secret is displayed once, only its SHA-256 digest is persisted, it expires after 365 days and is consumed atomically with password reset and session revocation. Ordinary password rotation deletes it. No email-based recovery, operator impersonation, or MFA. Apply migration 026 before starting this revision. HTTP tests cover replacement, account binding, replay, digest storage and session invalidation.

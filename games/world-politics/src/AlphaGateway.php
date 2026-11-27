@@ -58,11 +58,16 @@ final class AlphaGateway
                 $accounts->limit('login-peer',$peer,20,300);
                 return self::ok(200,$accounts->login($body));
             }
+            if($method==='POST'&&$path==='/api/v1/account-recovery'){
+                $accounts->limit('recovery-peer',$peer,10,300);
+                return self::ok(200,$accounts->recover($body));
+            }
             $session=$accounts->authenticate($h['authorization']??'');
             $accounts->limit('http-account',$session->id,120,60);
             if ($path==='/api/v1/session' && $method==='DELETE') {
                 $session->revoke();return self::ok(200,['revoked'=>true]);
             }
+            if ($path==='/api/v1/me/recovery-code' && $method==='POST') return self::ok(201,$accounts->createRecovery($session,$body));
             if ($path==='/api/v1/me/password' && $method==='POST') return self::ok(200,$accounts->changePassword($session,$body));
             if ($path==='/api/v1/me' && $method==='GET') return self::ok(200,['account_id'=>$session->id,'username'=>$session->username]);
             if ($path==='/api/v1/national-renewal-calendar' && $method==='GET') return self::ok(200,NationalRenewalCalendar::report());

@@ -1061,3 +1061,27 @@ ck30($m96['expired_sessions_deleted']>=1&&req30('GET','/me',null,$bob3['body']['
 $select96=$pdo->prepare('SELECT hits FROM wp_http_limits WHERE bucket_sha=? AND window_id=?');
 $select96->execute([str_repeat('b',64),intdiv($now96,300)]);
 ck30((int)$select96->fetchColumn()===1,'WP96 current quota bucket preserved');
+
+/* Recovery is opt-in and the single-use secret is never stored in clear. */
+$token98=$bob3['body']['access_token'];
+ck30(req30('POST','/me/recovery-code',['current_password'=>'wrong-password-456'],$token98)['status']===401,'WP98 requires current password');
+$first98=req30('POST','/me/recovery-code',['current_password'=>'changed-password-456'],$token98);
+$second98=req30('POST','/me/recovery-code',['current_password'=>'changed-password-456'],$token98);
+ck30($first98['status']===201&&$second98['status']===201&&$first98['body']['recovery_code']!==$second98['body']['recovery_code'],'WP98 replacement recovery code');
+$q98=$pdo->prepare('SELECT secret_sha FROM wp_account_recovery WHERE account_id=?');$q98->execute([$id96]);
+ck30($q98->fetchColumn()===hash('sha256',$second98['body']['recovery_code']),'WP98 only digest persisted');
+$reset98=['username'=>'bob','recovery_code'=>$first98['body']['recovery_code'],'new_password'=>'recovered-password-456'];
+ck30(req30('POST','/account-recovery',$reset98)['status']===401,'WP98 replaced code rejected');
+$reset98['recovery_code']=$second98['body']['recovery_code'];
+$reset98['username']='alice';
+ck30(req30('POST','/account-recovery',$reset98)['status']===401,'WP98 code bound to account');
+$reset98['username']='bob';
+ck30(req30('POST','/account-recovery',$reset98)['status']===200,'WP98 recovery succeeds');
+ck30(req30('POST','/account-recovery',$reset98)['status']===401,'WP98 code cannot replay');
+ck30(req30('GET','/me',null,$token98)['status']===401,'WP98 previous session revoked');
+$login98=req30('POST','/sessions',['username'=>'bob','password'=>'recovered-password-456']);
+ck30($login98['status']===200,'WP98 recovered account logs in');
+$third98=req30('POST','/me/recovery-code',['current_password'=>'recovered-password-456'],$login98['body']['access_token']);
+ck30($third98['status']===201,'WP98 can enroll a new code');
+ck30(req30('POST','/me/password',['current_password'=>'recovered-password-456','new_password'=>'final-password-456'],$login98['body']['access_token'])['status']===200,'WP98 ordinary password rotation');
+$q98->execute([$id96]);ck30($q98->fetchColumn()===false,'WP98 password rotation clears recovery credential');

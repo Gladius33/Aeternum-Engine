@@ -31,6 +31,2437 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /me/recovery-code:
+    post:
+      operationId: replaceRecoveryCode
+      summary: Create or replace a single-use recovery code after password verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [current_password]
+              properties:
+                current_password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+      responses:
+        '201': { description: Recovery code returned once; expires after one year }
+        '401': { description: Invalid credentials or session }
+        '429': { description: Rate limited }
+  /account-recovery:
+    post:
+      operationId: recoverOwnAccount
+      security: []
+      summary: Consume a previously enrolled recovery code and revoke every session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username, recovery_code, new_password]
+              properties:
+                username: { type: string }
+                recovery_code: { type: string, pattern: '^[a-f0-9]{64}  /me/password:
+    post:
+      operationId: changeOwnPassword
+      summary: Verify current password and revoke every session after rotation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+                new_password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+      responses:
+        '200': { description: Password changed and all sessions revoked }
+        '401': { description: Invalid credentials or session }
+        '422': { description: Invalid fields or unchanged password }
+        '429': { description: Rate limited }
+  /worlds/{world}/countries/FR/national-service:
+    get:
+      operationId: readNationalServiceLegalStatus
+      summary: Fictional legal suspension or restoration and administrative authorization gate
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Legal status and pending laws without force generation or expenditure }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/household-backtest:
+    get:
+      operationId: readHouseholdHistoricalBacktest
+      summary: Historical conditional accounting benchmark with held-out years, not official ranking
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Training and holdout results and error metrics }
+        '404': { description: Unsupported or inaccessible world }
+  /worlds/{world}/countries/FR/programme-progress:
+    get:
+      operationId: readProgrammeProgress
+      summary: Exact identifier linkage between candidate measures and committed domestic policies
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Programme measures and observed policy activity, not semantic fulfilment }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
+  /candidate-options:
+    get:
+      operationId: readCampaignCandidateOptions
+      summary: Fictional candidate template and historically sourced alternate-history identity options
+      responses:
+        '200': { description: Creation-only options without predictions or programme effects }
+        '401': { description: Authentication required }
+  /worlds/{world}/score:
+    get:
+      operationId: readCampaignScore
+      summary: Private committed alpha campaign score, never supplied by player
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: "Versioned score, tenure, income proxy, cohort and provenance" }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
+  /leaderboards:
+    get:
+      operationId: listScoreCohorts
+      summary: Authenticated experimental alpha ranking cohorts, first page
+      responses:
+        '200': { description: Comparable cohorts with player counts }
+  /leaderboards/cohorts/{page}:
+    get:
+      operationId: listScoreCohortPage
+      parameters:
+        - in: path
+          name: page
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 100000 }
+      responses:
+        '200': { description: Paginated cohorts }
+  /leaderboards/{cohort}/{page}:
+    get:
+      operationId: readScoreLeaderboard
+      summary: One best committed campaign per enabled account; pseudonymous alpha league
+      parameters:
+        - in: path
+          name: cohort
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{64}$' }
+        - in: path
+          name: page
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 100000 }
+      responses:
+        '200': { description: "Ranked page, shared rank on equal scores and tie-break metrics" }
+        '401': { description: Authentication required }
+  /worlds/{world}/countries/FR/household-account:
+    get:
+      operationId: readHouseholdAccount
+      summary: Experimental reconciled disposable income, tax sensitivities and demographic consumption unit proxies
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Accounting components, scenario sensitivities and provenance, not ranking }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/purchasing-power-proxy:
+    get:
+      operationId: readPurchasingPowerProxy
+      summary: Experimental household-income proxy on committed days, not actual RDB per UC or score
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Normalized proxy and residual-income sensitivity, no ranking }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/historical-candidates:
+    get:
+      operationId: readHistoricalCandidates
+      summary: Official 2022 presidential election identities and results, not 2027 candidacy or selection
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Historical reference and roster-compatible profiles }
+        '404': { description: Unsupported or inaccessible world }
+  /worlds/{world}/countries/FR/household-reference:
+    get:
+      operationId: readHouseholdIncomeReference
+      summary: Pinned historical disposable income and purchasing power per consumption unit; arithmetic sensitivity only
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Historical observations and benchmark, not a score or forecast }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/civil-continuity:
+    get:
+      operationId: readCivilContinuityReport
+      summary: Committed civilian service coverage and rolling funding indicators
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Coherent thirty-day civilian continuity projection, without security action or budget booking }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/defense-planning:
+    get:
+      operationId: readStrategicDefensePlanning
+      summary: Read pinned fiscal reference and illustrative defense budget options, not authorized spending
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Source-labelled planning reference and legal prerequisites }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/international-finance:
+    get:
+      operationId: readInternationalFinanceDisclosure
+      summary: Distinguish historical aid, loan and guarantee references from fictional obligations and unknown actual balances
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Coherent read-only exposure disclosure without extra treasury booking }
+        '404': { description: Unsupported or inaccessible world }
+        '409': { description: World advancing }
+  /worlds/{world}/diplomacy/commitments:
+    get:
+      operationId: readInternationalCommitments
+      summary: Read fictional payable obligation fixtures; no treasury booking
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Reconciled scenario obligations, arrears and requests }
+        '404': { description: Unsupported world or inaccessible resource }
+    post:
+      operationId: decideInternationalCommitment
+      summary: Owner requests renegotiation or changes payment policy in a fictional scenario
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - in: header
+          name: If-Match
+          required: true
+          schema: { type: string }
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [commitment_id, action]
+              properties:
+                commitment_id: { type: string }
+                action: { type: string, enum: [withhold, resume, request_deferral, request_termination] }
+      responses:
+        '200': { description: Recorded decision without automatic legal release }
+        '403': { description: Unauthorized }
+        '409': { description: Conflicting decision }
+        '412': { description: Stale state }
+  /national-renewal-calendar:
+    get:
+      operationId: readNationalRenewalReference
+      summary: Read dated national legislature renewal references and a nonbinding twenty-year projection
+      responses:
+        '200': { description: Versioned reference and hypothetical recurrence, not a certified election or playable country list }
+        '401': { description: Authentication required }
+  /worlds/{world}/countries/FR/services:
+    get:
+      operationId: readFrenchPublicServices
+      summary: Read fictional service needs, operating capacity and incremental fiscal ledger
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Verified public services state and dated observations }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/population:
+    get:
+      operationId: readFrenchPopulation
+      summary: Read observed demographic anchors and fictional daily cohort ledger
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Population cohorts, dependency indicators and calendar flows }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/domestic/crisis:
+    post:
+      operationId: decideFictionalFinancialCrisis
+      summary: Record an owner decision for the next simulated day, in the crisis scenario only
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - in: header
+          name: If-Match
+          required: true
+          schema: { type: string }
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [action]
+              properties:
+                action: { type: string, enum: [moratorium, resume, request-support, request-restructuring] }
+      responses:
+        '200': { description: Recorded fictional decision }
+        '403': { description: Owner required }
+        '409': { description: Conflicting decision or pending world clock }
+        '412': { description: Stale domestic state }
+  /worlds/{world}/countries/FR/debt:
+    get:
+      operationId: readFrenchSovereignDebt
+      summary: Read fictional nominal creditor cohorts and daily monthly annual debt journal
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Verified debt ledger and dated observed anchors }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/macro:
+    get:
+      operationId: readFrenchMacroeconomicProjection
+      summary: Read deterministic fictional GDP, prices, employment and fiscal projection
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Macro projection and verified source hashes }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/finance:
+    get:
+      operationId: readFrenchFinanceBudget
+      summary: Read fictional annual finance bills and treasury projection
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Finance budget, policy catalog and treasury projection }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/executive:
+    get:
+      operationId: readFrenchExecutiveActs
+      summary: Read fictional executive acts, habilitations and ratification status
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Executive acts and reviewed template catalog }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/cabinet:
+    get:
+      operationId: readFrenchCabinet
+      summary: Read fictional cabinet, cohabitation and declared parliamentary support
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Cabinet, portfolio and competence projection }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/assembly:
+    get:
+      operationId: readFrenchIndividualAssembly
+      summary: Read fictional individual deputies, signatures and roll calls
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Fictional Assembly and individual roll calls }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/legislation:
+    get:
+      operationId: readFrenchOrdinaryLegislation
+      summary: Read fictional ordinary bill readings and final published texts
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Legislative proceedings and reviewed text catalog }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/constitution:
+    get:
+      operationId: readFrenchConstitutionalRevision
+      summary: Read Article 89 fictional procedural state and reviewed text catalog
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Versioned effective clauses and revision proceedings }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/presidency:
+    get:
+      operationId: readFrenchPresidentialMandate
+      summary: Read fictional presidential term, scheduled rounds, published results and handover
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Presidential mandate state and fictional election results }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/campaign:
+    get:
+      operationId: readCampaignLifecycle
+      summary: Read fictional player mandate and terminal outcome
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Current or terminal archived campaign
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [world_id, status, office_retained, regime_changed]
+                properties:
+                  world_id: { type: string }
+                  status: { type: string, enum: [active, game_over] }
+                  office_retained: { type: boolean }
+                  regime_changed: { type: boolean }
+                  ended_on: { type: [string, 'null'], format: date }
+                  reason: { type: [string, 'null'] }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/civil-mobilisation:
+    get:
+      operationId: readFrenchCivilMobilisation
+      summary: Read fictional attendance estimates and civil service continuity
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Coherent fictional state }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/organizations/eu/spillovers:
+    get:
+      operationId: readEuropeanSpillovers
+      summary: Read coherent EU membership, mirrored trade and counterfactual budget ledger
+      description: If trusted prospective franc_native_budget evidence is configured, also exposes a replayed native FRF/EUR budget with shared reserve use, earmarked advances and monthly/yearly reconciliation. With certified commit_daily mode, the response instead reads the daily committed native state; the legacy EUR ledger remains a separate policy reference.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Versioned sensitivity projection; not booked transfers or foreign GDP }
+        '404': { description: Inaccessible world or unsupported model }
+        '409': { description: World advancing }
+  /worlds/{world}/organizations/eu/withdrawal-intents:
+    post:
+      operationId: requestEuropeanWithdrawalIntent
+      summary: Record a fictional French withdrawal intent, not an Article 50 notification
+      parameters:
+        - $ref: '#/components/parameters/world'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        '202': { description: Intent recorded; membership unchanged }
+        '403': { description: Not authorized }
+        '409': { description: Invalid state or world advancing }
+  /worlds/{world}/countries/FR/party-responses:
+    get:
+      operationId: readFictionalPartyResponses
+      summary: Read simulated programme responses, not certified parliamentary votes
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Committed fictional party positions }
+        '404': { description: Inaccessible world or unsupported model }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/industrial:
+    get:
+      operationId: readFrenchIndustrialCapital
+      summary: Read the fictional cash-funded industrial pilot
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Committed capital and project state }
+        '404': { description: Inaccessible world or unsupported model }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/companies:
+    get:
+      operationId: readFrenchCompanySimulation
+      summary: Read fictional firm capacity and investment project simulation
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Coherent fictional state and public identities, not a forecast }
+        '404': { description: Inaccessible world or unsupported model }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/programme-packs:
+    get:
+      operationId: readFrenchProgrammePacks
+      summary: Read executable and not-yet-implemented policy packs and dated company identities
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Explicit readiness, action identifiers, company reference catalog }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/corporations:
+    get:
+      operationId: readFrenchCorporations
+      summary: Read fictional professional corporations and contested institutional status
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Verified corporate state and decisions }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/domestic/corporation:
+    post:
+      operationId: decideFrenchCorporations
+      summary: Submit a fictional corporation decision for the next day
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - { name: If-Match, in: header, required: true, schema: { type: string } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              additionalProperties: false
+              properties:
+                action: { type: string, maxLength: 64 }
+      responses:
+        '200': { description: Journaled decision }
+        '403': { description: Owner required }
+        '409': { description: Invalid state transition }
+        '412': { description: Stale ETag }
+        '428': { description: Preconditions required }
+  /worlds/{world}/countries/FR/social-partners:
+    get:
+      operationId: readFrenchSocialPartners
+      summary: Read replay-verified fictional social partner consultations
+      parameters:
+        - { name: world, in: path, required: true, schema: { type: string } }
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Coherent partner state and ETag }
+        '401': { description: Authentication required }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/dialogue:
+    get:
+      operationId: readFrenchCivicDialogue
+      summary: Read fictional civic associations and dialogue status
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Scenario-only dialogue and abstract continuity indices }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /worlds/{world}/countries/FR/opinion:
+    get:
+      operationId: readFrenchScenarioOpinion
+      summary: Read fictional aggregate opinion and source-attributed daily history
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Fictional opinion indices and daily history }
+        '404': { description: Inaccessible world or unsupported scenario }
+        '409': { description: World advancing }
+  /health:
+    get:
+      security: []
+      responses:
+        '200': { description: Private alpha transport health }
+  /accounts:
+    post:
+      security: []
+      summary: Private invite-gated account enrollment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username, password, invite]
+              properties:
+                username: { type: string, minLength: 3, maxLength: 32 }
+                password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+                invite: { type: string, writeOnly: true }
+      responses:
+        '201': { description: Account created }
+        '403': { description: Enrollment denied }
+        '409': { description: Account unavailable }
+        '429': { description: Rate limited }
+  /sessions:
+    post:
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, writeOnly: true }
+      responses:
+        '200': { description: Expiring opaque bearer token }
+        '401': { description: Invalid credentials }
+        '429': { description: Rate limited }
+  /session:
+    delete:
+      responses:
+        '200': { description: Current token revoked }
+        '401': { description: Authentication required }
+  /me:
+    get:
+      responses:
+        '200': { description: Authenticated account identity }
+        '401': { description: Authentication required }
+  /scenarios:
+    get:
+      operationId: listAlphaScenarios
+      responses:
+        '200': { description: Supported scenario versions and reference coverage }
+        '401': { description: Authentication required }
+  /worlds/{world}/references:
+    get:
+      operationId: readPinnedWorldReferences
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200': { description: Pinned country catalog and economic provenance coverage }
+        '404': { description: Inaccessible world or unsupported scenario }
+  /worlds:
+    get:
+      responses:
+        '200': { description: Accessible durable worlds }
+        '401': { description: Authentication required }
+    post:
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 12, maxLength: 100 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [label, scenario]
+              properties:
+                label: { type: string, maxLength: 100 }
+                scenario: { type: string, enum: [fr-sandbox-v1, fr-global-v1, fr-comparative-v1, fr-electoral-v1, fr-political-v1, fr-opinion-v1, fr-dialogue-v1, fr-survival-v1, fr-revolution-case-v1, fr-presidential-v1, fr-revision-v1, fr-legislative-v1, fr-responsibility-v1, fr-assembly-v1, fr-parliament-v1, fr-cabinet-v1, fr-executive-v1, fr-finance-v1, fr-macro-v1, fr-fiscal-loop-v1, fr-debt-v1, fr-financial-crisis-v1, fr-population-v1, fr-services-v1, fr-social-partners-v1, fr-corporations-v1, fr-civil-crisis-v1, fr-investiture-2027-v1] }
+                reference_bundle_sha: { type: string, pattern: '^[a-f0-9]{64}$', description: Optional operator-installed reference bundle for global or comparative scenarios }
+                candidate:
+                  description: Optional only at creation of the canonical investiture scenario; roleplay identity, not a legal or electoral prediction
+                  oneOf:
+                    - type: object
+                      additionalProperties: false
+                      required: [type, reference_id]
+                      properties:
+                        type: { const: historical }
+                        reference_id: { type: string }
+                    - type: object
+                      additionalProperties: false
+                      required: [type, name]
+                      properties:
+                        type: { const: fictional }
+                        name: { type: string, maxLength: 160 }
+                        mode: { enum: [quick, detailed] }
+                        biography: { type: string, maxLength: 2000 }
+                        programme: { type: array, maxItems: 100, items: { type: object } }
+                        profile: { type: object }
+      responses:
+        '201': { description: Atomically created or replayed private world }
+        '409': { description: World quota or idempotency conflict }
+        '428': { description: Missing idempotency key }
+  /worlds/{world}/members:
+    post:
+      parameters:
+        - $ref: '#/components/parameters/world'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [account_id, access]
+              properties:
+                account_id: { type: string, pattern: '^acct-[a-f0-9]{32}$' }
+                access: { type: string, enum: [viewer, none] }
+      responses:
+        '200': { description: Viewer granted or revoked }
+        '403': { description: Owner required }
+        '404': { description: Inaccessible world }
+  /worlds/{world}/diplomacy:
+    get:
+      operationId: readWorldDiplomacy
+      tags: [Diplomacy]
+      summary: Read world-scoped diplomatic proposals, declarations and events
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Durable diplomatic state with strong ETag
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/diplomacy/actors:
+    get:
+      operationId: listDiplomaticActors
+      tags: [Diplomacy]
+      description: Source-pinned states and separate governing authorities; no playable AI-only actors.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Dated actors and source dataset hash
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/diplomacy/proposals:
+    get:
+      operationId: listDiplomaticProposals
+      tags: [Diplomacy]
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Proposals in persistent world state
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+    post:
+      operationId: offerDiplomaticCooperation
+      tags: [Diplomacy]
+      description: Creates an offer or fictional declaration; never automatically ratifies treaties.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [from, to, action]
+              properties:
+                from: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                to: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                action:
+                  type: string
+                  enum: [dialogue, humanitarian_assistance, trade_cooperation, treaty_proposal, express_support, express_opposition, sanctions_proposal]
+      responses:
+        '202':
+          description: Offer stored with idempotent receipt and current ETag
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/diplomacy/responses:
+    post:
+      operationId: respondToDiplomaticProposal
+      tags: [Diplomacy]
+      description: Response is a fictional acceptance in principle, not a binding international treaty.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [responder, proposal_id, accepted]
+              properties:
+                responder: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                proposal_id: { $ref: '#/components/schemas/Identifier' }
+                accepted: { type: boolean }
+      responses:
+        '200': { description: Response recorded without binding treaty effect }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/diplomacy/ai/decisions:
+    post:
+      operationId: runAutonomousDiplomaticPlanner
+      tags: [Diplomacy]
+      description: Trusted service actor only; never allow a human client to impersonate another country.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [responder, policy]
+              properties:
+                responder: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                policy: { type: string, enum: [cautious, open_dialogue, humanitarian_open] }
+      responses:
+        '200': { description: Autonomous choices recorded atomically }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/diplomacy/clock:
+    post:
+      operationId: advanceWorldDiplomaticClock
+      tags: [Diplomacy]
+      description: Server worker-only virtual clock; progresses expiring proposals.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200': { description: Time advanced and due events stored }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/countries/{country}/institutions:
+    get:
+      operationId: readCountryInstitutionalState
+      summary: Read game-state of a specific country's institutions
+      description: No generic global presidential power exists. World access is checked by the trusted server.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+      responses:
+        '200':
+          description: Version-pinned institutional state with ETag
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/countries/{country}/institutions/rulebook:
+    get:
+      operationId: readCountryConstitutionalRulebook
+      summary: Inspect a country's reviewed partial constitutional rules
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+      responses:
+        '200':
+          description: Country-specific reviewed legal citations and supported actions (pilot; not exhaustive)
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/countries/{country}/institutions/decisions:
+    post:
+      operationId: proposeInstitutionalDecision
+      summary: Submit an authorized country-specific institutional action
+      description: |
+        Role is resolved exclusively by trusted server-side office authority.
+        Clients cannot declare president, prime minister or parliamentary role.
+        Legal conditions are checked against recorded world events.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [action, payload]
+              properties:
+                action:
+                  type: string
+                  enum: [record_consultation, submit_bill, dissolve_lower_house, hold_election, electoral_coalition, revision_draft, legislation_draft]
+                payload:
+                  type: object
+                  additionalProperties: true
+                  description: Validated against the chosen country's specific action schema
+      responses:
+        '202':
+          description: Command journaled; may create delayed game-time events
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/countries/{country}/institutions/clock:
+    post:
+      operationId: advanceInstitutionalGameClock
+      summary: Privileged simulation clock operation; never a public player permission
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200':
+          description: Due world events processed deterministically, with a durable receipt
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/countries/{country}/politics:
+    get:
+      operationId: readNationalPolitics
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+      responses:
+        '200':
+          description: World-scoped political roster and cabinet
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404':
+          $ref: '#/components/responses/notFound'
+  /worlds/{world}/countries/{country}/politics/person-template:
+    get:
+      operationId: readCharacterFormTemplate
+      tags: [Politics]
+      description: >
+        Backend-only schema metadata for both quick and detailed character
+        entry; clients choose how to render it. No graphic elements are served.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+      responses:
+        '200':
+          description: Versioned field groups, requirements and generic avatar marker
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [schema_version, avatar, modes, sections, fields]
+                properties:
+                  schema_version: { type: string }
+                  avatar: { type: object, additionalProperties: true }
+                  modes: { type: object, additionalProperties: true }
+                  sections: { type: array, items: { type: object, additionalProperties: true } }
+                  fields: { type: object, additionalProperties: true }
+        '404':
+          $ref: '#/components/responses/notFound'
+  /worlds/{world}/countries/{country}/politics/people/{personId}:
+    get:
+      operationId: readPoliticalPerson
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - name: personId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200':
+          description: Single source-attributed or fictional political person
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [person]
+                properties:
+                  person: { $ref: '#/components/schemas/Person' }
+        '404':
+          $ref: '#/components/responses/notFound'
+  /worlds/{world}/countries/{country}/politics/people:
+    post:
+      operationId: createFictionalPoliticalPerson
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CharacterCreate' }
+      responses:
+        '201':
+          description: Fictional person created in the scenario
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [person_id]
+                properties:
+                  person_id: { $ref: '#/components/schemas/Identifier' }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/countries/{country}/politics/head-of-state:
+    post:
+      operationId: initializeAlternatePresidency
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [person_id]
+              properties:
+                person_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200':
+          description: Alternate scenario head of state initialized
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/countries/{country}/politics/nominations:
+    post:
+      operationId: proposePoliticalNomination
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [office, person_id]
+              properties:
+                office: { $ref: '#/components/schemas/Identifier' }
+                person_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '202':
+          description: Proposal registered but no automatic appointment
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/countries/{country}/politics/nominations/{office}/resolution:
+    post:
+      operationId: resolvePoliticalNomination
+      tags: [Politics]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/country'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+        - name: office
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Identifier' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [accepted]
+              properties:
+                accepted: { type: boolean }
+      responses:
+        '200':
+          description: Proposal accepted or declined by an authorized simulation actor
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+  /worlds/{world}/organizations:
+    get:
+      tags: [Organizations]
+      operationId: listWorldOrganizations
+      description: Read source-pinned charter definitions and current memberships.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Fictional or carefully curated international organizations
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/organizations/{organization}:
+    get:
+      tags: [Organizations]
+      operationId: readWorldOrganization
+      description: Read the current membership, applications and withdrawal notices.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+      responses:
+        '200':
+          description: Organization with membership history
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/organizations/{organization}/applications:
+    post:
+      tags: [Organizations]
+      operationId: requestOrganizationMembership
+      description: A membership application is a request, not immediate accession.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [applicant]
+              properties:
+                applicant: { $ref: '#/components/schemas/GeopoliticalActorId' }
+      responses:
+        '202': { description: Membership application opened for member-state vote }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/organizations/{organization}/votes:
+    post:
+      tags: [Organizations]
+      operationId: voteOnOrganizationMembership
+      description: Authorized state vote; votes by AI-only states require trusted AI identity.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [voter, application_id, approve]
+              properties:
+                voter: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                application_id: { $ref: '#/components/schemas/Identifier' }
+                approve: { type: boolean }
+      responses:
+        '200': { description: Vote recorded without immediate treaty accession }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/organizations/{organization}/formalizations:
+    post:
+      tags: [Organizations]
+      operationId: formalizeOrganizationMembership
+      description: Trusted service only; approval threshold and ratification delay must be satisfied.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [application_id]
+              properties:
+                application_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200': { description: Membership formally entered into world state }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/organizations/{organization}/withdrawals:
+    post:
+      tags: [Organizations]
+      operationId: requestOrganizationWithdrawal
+      description: Withdrawal takes effect only after the organization-specific notice.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/organization'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [actor]
+              properties:
+                actor: { $ref: '#/components/schemas/GeopoliticalActorId' }
+      responses:
+        '202': { description: Withdrawal notice accepted but membership remains active }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/organizations/clock:
+    post:
+      tags: [Organizations]
+      operationId: advanceOrganizationWorldClock
+      description: Trusted simulation service only; applies due withdrawal notices.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200': { description: Game clock advanced and due notices handled }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
+  /worlds/{world}/organizations/ai/decisions:
+    post:
+      tags: [Organizations]
+      operationId: executeAutonomousOrganizationVotes
+      description: >
+        Trusted non-player service principal only. A configurable fictional
+        scenario policy evaluates open votes. It never represents the
+        documented intentions of a real government and cannot ratify membership.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [voter, policy]
+              properties:
+                voter: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                policy:
+                  type: string
+                  enum: [cautious, cooperative, consensus_seeking]
+      responses:
+        '200':
+          description: NPC voting decisions admitted by the same transaction gate as player votes
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
+  /worlds/{world}/economy:
+    get:
+      operationId: readWorldEconomy
+      tags: [Economy]
+      description: >
+        Read pinned scenario policies and modeled hypothetical consequences.
+        GDP and other official published reference values are never mutated.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Economic world scenario snapshot with strong ETag
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/economy/indicators:
+    get:
+      operationId: readWorldEconomicReferenceIndicators
+      tags: [Economy]
+      description: >
+        Dated indicators with explicit observed, scenario_assumption or missing
+        provenance; redistribution rights must be checked by data curators.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Source-attributed pinned economic reference data
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/economy/policies:
+    post:
+      operationId: proposeWorldTradeRestriction
+      tags: [Economy]
+      description: >
+        Proposal only. No automatic sanctions, trade change or GDP forecast.
+        Percentages are scenario-author assumptions, not historical outcomes.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [from, to, effect_bps, low_bps, high_bps, effective_on]
+              properties:
+                from: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                to: { $ref: '#/components/schemas/GeopoliticalActorId' }
+                effect_bps: { type: integer, minimum: 0, maximum: 10000 }
+                low_bps: { type: integer, minimum: 0, maximum: 10000 }
+                high_bps: { type: integer, minimum: 0, maximum: 10000 }
+                effective_on: { type: string, format: date }
+      responses:
+        '202': { description: Nonbinding policy proposal recorded }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/economy/policies/{policyId}:
+    get:
+      operationId: readWorldEconomicPolicy
+      tags: [Economy]
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/policyId'
+      responses:
+        '200':
+          description: Policy lifecycle with null or explicit scenario projection
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/economy/policies/{policyId}/authorization:
+    post:
+      operationId: authorizeWorldEconomicPolicy
+      tags: [Economy]
+      description: >
+        Country-specific lawful process verified by trusted server-side
+        institutional authority; never by a Boolean from request JSON.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/policyId'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              maxProperties: 0
+      responses:
+        '200': { description: Procedure authorized; effect still pending virtual date }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/economy/clock:
+    post:
+      operationId: advanceWorldEconomicClock
+      tags: [Economy]
+      description: >
+        Trusted simulation scheduler only. Computes synthetic policy
+        projections without changing observed reference indicators.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200': { description: Virtual clock advanced and due approved policies applied }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
+  /worlds/{world}/clock:
+    get:
+      operationId: readAuthoritativeWorldClock
+      tags: [WorldClock]
+      description: >
+        Read committed date and any pending cross-domain advance. A pending
+        tick is NOT presented as a coherent new game day. Privileged verified
+        server identity required in this experimental adapter.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Coherent or advancing world day and strong ETag
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorldClockState' }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/clock/advances:
+    post:
+      operationId: advanceAuthoritativeWorldClock
+      tags: [WorldClock]
+      description: >
+        Trusted server-only clock tick. Advances organizations, diplomacy and
+        economic aggregates through separately committed idempotent commands.
+        The persistent pending intent is resumed after a crash; the final
+        committed_day changes only when all three global aggregates,
+        each pinned country-specific institutional clock AND an optional
+        French parliamentary constitutional calendar reach target. France
+        checks use Europe/Paris end-of-day with daylight-saving time. A
+        single tick is limited to 366 game days. Country rulebooks are
+        currently partially implemented for FR, DE and US only.
+        Cross-domain policy resolution and data calibration remain future work.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_day]
+              properties:
+                target_day: { type: string, format: date }
+      responses:
+        '200':
+          description: All three world domain clocks coherently advanced
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '404': { $ref: '#/components/responses/notFound' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
+  /worlds/{world}/france/constitution:
+    get:
+      operationId: readFrenchConstitutionalScenario
+      tags: [FrenchConstitution]
+      description: Read parliamentary session, legal 49.3 acts, motions and government responsibility.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Verified and journaled game constitutional aggregate
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/constitution/engagements:
+    post:
+      operationId: engageFrenchGovernmentResponsibility49_3
+      tags: [FrenchConstitution]
+      description: >
+        The verified prime minister may engage responsibility after proven
+        Council of Ministers deliberation. Finance/social-finance exempt from
+        the one ordinary text per session limitation. Bill classification,
+        office and timestamp are verified by the server.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [bill_id, category, at]
+              properties:
+                bill_id: { $ref: '#/components/schemas/Identifier' }
+                category:
+                  type: string
+                  enum: [finance, social_security_finance, ordinary]
+                at: { type: string, format: date-time }
+      responses:
+        '202': { description: Responsibility engaged, opens exact 24-hour censure filing window }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/motions:
+    post:
+      operationId: fileFrenchGovernmentCensure
+      tags: [FrenchConstitution]
+      description: >
+        Actual verified parliamentary signatures, at least one tenth of all
+        Assembly members, are obtained from the server clerk, never from JSON.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [motion_id, at]
+              properties:
+                motion_id: { $ref: '#/components/schemas/Identifier' }
+                at: { type: string, format: date-time }
+      responses:
+        '202': { description: Properly signed motion filed during constitutional period }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/motions/{motionId}/votes:
+    post:
+      operationId: voteFrenchGovernmentCensure
+      tags: [FrenchConstitution]
+      description: >
+        The verified roll call may be voted 48 hours or more after filing.
+        Only yes votes count. Absolute majority of Assembly members triggers
+        Article 50 government resignation, not French regime change.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/motionId'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [at]
+              properties:
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Censure vote recorded; possible Article 50 resignation obligation }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/clock:
+    post:
+      operationId: advanceFrenchParliamentaryProcedure
+      tags: [FrenchConstitution]
+      description: >
+        Trusted constitutional scheduler. Closes 24-hour filing windows; any
+        pending censure ballot stays pending until a verified vote occurs.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [at]
+              properties:
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Legal parliamentary deadlines advanced }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/sessions:
+    post:
+      operationId: openFrenchParliamentarySession
+      tags: [FrenchConstitution]
+      description: >
+        Trusted parliamentary calendar only. A new session refreshes ordinary
+        49.3 quota, but does not appoint a replacement government.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [session_id, at]
+              properties:
+                session_id: { $ref: '#/components/schemas/Identifier' }
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Session rollover with parliamentary quota reset }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
+  /worlds/{world}/france/constitution/confidence/engagements:
+    post:
+      operationId: engageFrenchGovernmentConfidence49_1
+      tags: [FrenchConstitution]
+      description: >
+        Verified French PM and Council of Ministers engage responsibility
+        on a government programme or general policy declaration. All minister
+        competence checks and simulation time come from trusted server services.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [statement_id, kind, at]
+              properties:
+                statement_id: { $ref: '#/components/schemas/Identifier' }
+                kind: { type: string, enum: [programme, general_policy] }
+                at: { type: string, format: date-time }
+      responses:
+        '202': { description: Verified government confidence engagement recorded }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/confidence/{statementId}/votes:
+    post:
+      operationId: voteFrenchGovernmentConfidence49_1
+      tags: [FrenchConstitution]
+      description: >
+        Majority of votes CAST (for > against) determines government confidence;
+        abstentions are not expressed votes. If confidence fails, Article 50
+        requires the cabinet to resign, not the end of the republic.
+        The ballot totals come exclusively from authenticated parliamentary clerks.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/statementId'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [at]
+              properties:
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Constitutional confidence ballot verified and journaled }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/spontaneous-motions:
+    post:
+      operationId: fileFrenchSpontaneousCensure49_2
+      tags: [FrenchConstitution]
+      description: >
+        Filing Article 49(2) motion. The authenticated clerk provides actual,
+        unique deputy signatory IDs, at least one tenth of Assembly members.
+        Each deputy may sign at most three in ordinary sessions and one in
+        extraordinary sessions. Article 49(3) motions do not count towards
+        this separate per-deputy quota.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [motion_id, at]
+              properties:
+                motion_id: { $ref: '#/components/schemas/Identifier' }
+                at: { type: string, format: date-time }
+      responses:
+        '202': { description: Article 49(2) motion filed and deputy quotas updated }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/constitution/spontaneous-motions/{motionId}/votes:
+    post:
+      operationId: voteFrenchSpontaneousCensure49_2
+      tags: [FrenchConstitution]
+      description: >
+        At least 48 elapsed hours after filing, only affirmative votes count.
+        An absolute majority of Assembly members adopts the censure and triggers
+        mandatory cabinet resignation under Article 50. No regime change is
+        inferred from a parliamentary vote.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/motionId'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [at]
+              properties:
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Authenticated Article 49(2) roll call recorded }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
+  /worlds/{world}/france/social:
+    get:
+      operationId: readFranceSocialScenario
+      tags: [FrenchSociety]
+      description: >
+        Read immutable French professional cohorts and previously generated,
+        constitutionally anchored social reports. All numbers are fictional
+        scenario assumptions, not opinion polls or forecasts of real citizens.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Source-attributed social simulation snapshot
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/social/assessments:
+    post:
+      operationId: assessFranceSocioeconomic49_3Impact
+      tags: [FrenchSociety]
+      description: >
+        Requires a prior, legally verified Article 49(3) event in this world.
+        Impacts, concessions, professional cohorts and context parameters are
+        preapproved in immutable server-side configurations: the client may
+        submit a bill_id ONLY. Result cannot trigger any automatic regime change.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [bill_id]
+              properties:
+                bill_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '202': { description: Curated social reaction report evaluated and durably journaled }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/social/assessments/{billId}:
+    get:
+      operationId: readFranceSocialAssessment
+      tags: [FrenchSociety]
+      description: >
+        Read a saved professional-cohort impact report for an established
+        Article 49(3) simulation event. History is pinned to original
+        economic assumptions and constitutional source SHA256.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/billId'
+      responses:
+        '200':
+          description: Source-pinned social scenario report
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+
+  /worlds/{world}/france/calendar:
+    get:
+      operationId: readFrenchAssemblySittingCalendar
+      tags: [FrenchParliamentCalendar]
+      description: >
+        Read pinned and provenance-labelled French parliamentary sitting
+        dates and certified conference decisions. The rule is the third
+        sitting day after expiration of the Constitutional 48-hour delay;
+        scenario days are explicitly fictional and never represented
+        as actual historical Assembly sessions.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Immutable parliamentary date source and scheduled ballot slots
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/calendar/motions/{motionId}:
+    get:
+      operationId: readFrenchAssemblyCensureHearing
+      tags: [FrenchParliamentCalendar]
+      description: >
+        Read the certified censure hearing and roll-call instant, if
+        registered by an authorized parliamentary authority. Game
+        users cannot create or alter these slots through this API.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/motionId'
+      responses:
+        '200':
+          description: Scheduled motion with third-sitting-day deadline
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+
+  /worlds/{world}/france/assembly:
+    get:
+      operationId: readFrenchAssembly
+      tags: [FrenchAssembly]
+      description: >
+        Read historical or explicitly fictional, date-pinned deputy and group
+        rosters. The API reports all occupied seats, individual members,
+        coalitions and verified roll-call history. No real-world election
+        assumptions are implied by fictional scenario data.
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Reviewed Assembly roster and audit state
+          headers: { ETag: { schema: { type: string } } }
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/assembly/matters:
+    post:
+      operationId: openFrenchAssemblyAgenda
+      tags: [FrenchAssembly]
+      description: >
+        Only a server-curated and constitutionally pending 49(1), 49(2)
+        or 49(3) matter may enter a vote agenda. The client supplies an
+        identifier ONLY, not fabricated votes, political pressure, or a
+        forged parliamentary programme.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [matter_id]
+              properties:
+                matter_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '202': { description: Legally linked parliamentary agenda opened }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/assembly/matters/{matterId}:
+    get:
+      operationId: readFrenchAssemblyMatter
+      tags: [FrenchAssembly]
+      description: >
+        Read signed roll-call, group-specific negotiation concessions,
+        abstentions and legally pinned constitutional source if available.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/matterId'
+      responses:
+        '200':
+          description: Assembly matter and optional nominal ballot
+          content:
+            application/json: { schema: { type: object, additionalProperties: true } }
+        '404': { $ref: '#/components/responses/notFound' }
+  /worlds/{world}/france/assembly/ballots:
+    post:
+      operationId: castFrenchHumanDeputyBallot
+      tags: [FrenchAssembly]
+      description: >
+        Record an individual human-controlled deputy vote. Actual control
+        of that seat is verified by the authenticated server-side principal.
+        AI deputies cannot be impersonated by client JSON. Votes are sealed.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [matter_id, deputy_id, choice]
+              properties:
+                matter_id: { $ref: '#/components/schemas/Identifier' }
+                deputy_id: { $ref: '#/components/schemas/Identifier' }
+                choice: { type: string, enum: [for, against, abstain, absent] }
+      responses:
+        '200': { description: Verified unique deputy roll-call choice recorded }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/assembly/roll-calls:
+    post:
+      operationId: certifyFrenchAssemblyNominalRollCall
+      tags: [FrenchAssembly]
+      description: >
+        Trusted clerk finalizes human votes and reproducible deputy-specific
+        AI ballots. Confidence is a majority of expressed votes; censure
+        counts only yes votes and requires absolute majority of occupied
+        Assembly seats. No automatic regime collapse is generated.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [matter_id]
+              properties:
+                matter_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200': { description: All deputy ballots certified and auditable }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/assembly/coalitions:
+    post:
+      operationId: recordFrenchAssemblyCoalition
+      tags: [FrenchAssembly]
+      description: >
+        Coalition membership is obtained from a verified internal scenario
+        protocol. Clients may submit only the coalition identifier and
+        desired active status, not a fabricated list of allied groups.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [coalition_id, active]
+              properties:
+                coalition_id: { $ref: '#/components/schemas/Identifier' }
+                active: { type: boolean }
+      responses:
+        '202': { description: Verified coalition state stored }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+  /worlds/{world}/france/assembly/signatures:
+    post:
+      operationId: sealFrenchAssemblyCensureSignatories
+      tags: [FrenchAssembly]
+      description: >
+        The legislative clerk seals identities of actual sitting deputies,
+        sourced from the trusted Assembly signature service. Signature IDs
+        cannot be provided in player-controlled request bodies.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [motion_id]
+              properties:
+                motion_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '202': { description: Parliamentarian identity-verified signature roll sealed }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
+  /worlds/{world}/france/constitution/presidency/prime-minister-appointments:
+    post:
+      operationId: appointFrenchPrimeMinisterAfterCensure
+      tags: [FrenchConstitution]
+      description: >
+        Article 50 requires the censured or disapproved government to submit
+        resignation. An independently authenticated presidential decree under
+        Article 8 appoints a successor PM; the client may submit only the
+        certified appointment identifier and simulation time. The service
+        independently verifies the formal resignation and appointee.
+        No mandatory Assembly investiture is invented and the republic
+        is not automatically overthrown.
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - $ref: '#/components/parameters/idempotency'
+        - $ref: '#/components/parameters/ifMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [appointment_id, at]
+              properties:
+                appointment_id: { $ref: '#/components/schemas/Identifier' }
+                at: { type: string, format: date-time }
+      responses:
+        '200': { description: Verified presidential decree recorded after Article 50 resignation }
+        '403': { $ref: '#/components/responses/forbidden' }
+        '409': { $ref: '#/components/responses/conflict' }
+        '412': { $ref: '#/components/responses/precondition' }
+        '422': { $ref: '#/components/responses/invalid' }
+        '428': { $ref: '#/components/responses/missingPrecondition' }
+
+  /worlds/{world}/domestic:
+    get:
+      operationId: readDomesticPolicyState
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Source-pinned domestic state
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object } }
+        '404': { description: Unavailable world }
+  /worlds/{world}/domestic/summary:
+    get:
+      operationId: readDomesticPolicySummary
+      parameters:
+        - $ref: '#/components/parameters/world'
+      responses:
+        '200':
+          description: Cumulative fictional fiscal flows and social indicators
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json: { schema: { type: object } }
+        '404': { description: Unavailable world }
+  /worlds/{world}/domestic/proposals:
+    post:
+      operationId: proposeDomesticPolicy
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - { name: If-Match, in: header, required: true, schema: { type: string } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 12, maxLength: 100 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [policy_id, effective_day]
+              properties:
+                policy_id: { $ref: '#/components/schemas/Identifier' }
+                effective_day: { type: string, format: date }
+      responses:
+        '202': { description: Proposal recorded }
+        '403': { description: Forbidden }
+        '409': { description: State conflict }
+        '412': { description: Stale ETag }
+        '422': { description: Invalid request }
+        '428': { description: Preconditions required }
+  /worlds/{world}/domestic/enactments:
+    post:
+      operationId: authorizeDomesticEnactment
+      parameters:
+        - $ref: '#/components/parameters/world'
+        - { name: If-Match, in: header, required: true, schema: { type: string } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 12, maxLength: 100 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [policy_id]
+              properties:
+                policy_id: { $ref: '#/components/schemas/Identifier' }
+      responses:
+        '200': { description: Verified simulated final act applied }
+        '403': { description: Forbidden }
+        '409': { description: Missing final act or state conflict }
+        '412': { description: Stale ETag }
+        '422': { description: Invalid request }
+        '428': { description: Preconditions required }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Authentication gateway reserved; no production token verifier implemented.
+  parameters:
+    matterId:
+      name: matterId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
+    billId:
+      name: billId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
+    statementId:
+      name: statementId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
+    motionId:
+      name: motionId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
+    policyId:
+      name: policyId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
+    organization:
+      name: organization
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
+    world:
+      name: world
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Identifier' }
+    country:
+      name: country
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[A-Z]{2}$' }
+    idempotency:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, pattern: '^[A-Za-z0-9_-]{12,100}$' }
+      description: Actor- and world-scoped crash-safe receipt in the persistent store.
+    ifMatch:
+      name: If-Match
+      in: header
+      required: true
+      schema: { type: string }
+      description: Strong ETag precondition for state-changing commands.
+  schemas:
+    WorldClockState:
+      type: object
+      required: [world_id,committed_day,pending_day,status,revision,completed_subsystems,countries,completed_country_clocks,france_parliament_enabled,france_parliament_completed,coherent]
+      properties:
+        world_id: { $ref: '#/components/schemas/Identifier' }
+        committed_day: { type: string, format: date }
+        pending_day: { type: [string, 'null'], format: date }
+        status: { type: string, enum: [coherent, advancing] }
+        revision: { type: integer, minimum: 0 }
+        completed_subsystems:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [organizations, diplomacy, economy, domestic, opinion] }
+        countries:
+          type: array
+          uniqueItems: true
+          description: Pinned country rulebook list for active national clocks.
+          items: { type: string, pattern: '^[A-Z]{2}$' }
+        completed_country_clocks:
+          type: array
+          uniqueItems: true
+          description: National clocks already advanced during a pending tick.
+          items: { type: string, pattern: '^[A-Z]{2}$' }
+        france_parliament_enabled:
+          type: boolean
+          description: Whether the French constitutional day is a mandatory global-clock step.
+        domestic_enabled: { type: boolean }
+        opinion_enabled: { type: boolean }
+        game_over: { type: boolean }
+        campaign: { type: object, description: Optional terminal-aware campaign summary }
+        france_parliament_completed:
+          type: boolean
+          description: Whether the French constitutional checkpoint is durable for this pending game day.
+        coherent: { type: boolean }
+    Identifier:
+      type: string
+      pattern: '^[a-z][a-z0-9_-]{0,63}$'
+    GeopoliticalActorId:
+      type: string
+      pattern: '^[a-z0-9][a-z0-9_-]{0,63}$'
+    ProgrammeMeasure:
+      type: object
+      additionalProperties: false
+      required: [id, domain, proposal, sources]
+      properties:
+        id: { $ref: '#/components/schemas/Identifier' }
+        domain: { $ref: '#/components/schemas/Identifier' }
+        proposal: { type: string, minLength: 1, maxLength: 1000 }
+        sources:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uri, pattern: '^https://' }
+    Person:
+      type: object
+      additionalProperties: false
+      required: [id, kind, name, country, biography, as_of, sources, programme]
+      properties:
+        id: { $ref: '#/components/schemas/Identifier' }
+        kind: { type: string, enum: [real, fictional] }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        country: { type: string, pattern: '^[A-Z]{2}$' }
+        biography: { type: string, maxLength: 2000 }
+        as_of: { type: [string, 'null'], format: date }
+        sources:
+          type: array
+          maxItems: 20
+          items: { type: string, format: uri, pattern: '^https://' }
+        programme:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/ProgrammeMeasure' }
+        profile: { $ref: '#/components/schemas/CharacterProfile' }
+        avatar: { type: string, const: generic-v1 }
+    CharacterCreate:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        id: { $ref: '#/components/schemas/Identifier' }
+        name: { type: string, minLength: 1, maxLength: 160 }
+        mode: { type: string, enum: [quick, detailed], default: quick }
+        kind: { type: string, const: fictional }
+        country: { type: string, pattern: '^[A-Z]{2}$' }
+        biography: { type: string, maxLength: 2000, default: '' }
+        avatar: { type: string, const: generic-v1 }
+        profile: { $ref: '#/components/schemas/CharacterProfile' }
+        programme:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, domain, proposal]
+            properties:
+              id: { $ref: '#/components/schemas/Identifier' }
+              domain: { $ref: '#/components/schemas/Identifier' }
+              proposal: { type: string, minLength: 1, maxLength: 1000 }
+              sources: { type: array, maxItems: 0, default: [] }
+    CharacterProfile:
+      type: object
+      additionalProperties: false
+      properties:
+        birth_date: { type: string, format: date }
+        birth_place: { type: string, maxLength: 160 }
+        personal_statement: { type: string, maxLength: 2000 }
+        party: { type: string, maxLength: 160 }
+        orientation: { type: string, maxLength: 160 }
+        education: { $ref: '#/components/schemas/ProfileTextList' }
+        languages: { $ref: '#/components/schemas/ProfileTextList' }
+        professional_history: { $ref: '#/components/schemas/ProfileTextList' }
+        public_service: { $ref: '#/components/schemas/ProfileTextList' }
+        expertise: { $ref: '#/components/schemas/ProfileTextList' }
+        political_history: { $ref: '#/components/schemas/ProfileTextList' }
+        policy_priorities: { $ref: '#/components/schemas/ProfileTextList' }
+    ProfileTextList:
+      type: array
+      maxItems: 24
+      items: { type: string, maxLength: 300 }
+    Problem:
+      type: object
+      required: [type, status, code]
+      properties:
+        type: { type: string }
+        status: { type: integer }
+        code: { type: string }
+  responses:
+    notFound:
+      description: Missing or inaccessible resource
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    forbidden:
+      description: Insufficient ability for the operation
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    conflict:
+      description: Conflicting request or state
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    precondition:
+      description: Missing or stale state precondition
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    invalid:
+      description: Invalid request
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    missingPrecondition:
+      description: Idempotency key or If-Match was not supplied
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+, writeOnly: true }
+                new_password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+      responses:
+        '200': { description: Password reset; sign in again }
+        '401': { description: Invalid or expired recovery credential }
+        '429': { description: Rate limited }
   /me/password:
     post:
       operationId: changeOwnPassword
