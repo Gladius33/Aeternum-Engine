@@ -13,8 +13,16 @@ def main():
         source_url=res.geturl()
     try:text=raw.decode("utf-8-sig")
     except UnicodeDecodeError:text=raw.decode("cp1252")
-    dialect=csv.Sniffer().sniff(text[:10000],delimiters=";,\t")
-    reader=csv.DictReader(io.StringIO(text,newline=""),dialect=dialect)
+    # Header-only delimiter discovery avoids misclassification from long
+    # numeric rows, quoted text and embedded line breaks.
+    candidates=[]
+    for sep in (";",",","\t"):
+        first=next(csv.reader(io.StringIO(text,newline=""),delimiter=sep),[])
+        candidates.append((len(first),sep,first))
+    n,sep,first=max(candidates,key=lambda x:x[0])
+    print("Header preview:",json.dumps(first,ensure_ascii=False))
+    assert n>=3,"source does not have a tabular header"
+    reader=csv.DictReader(io.StringIO(text,newline=""),delimiter=sep)
     fields=reader.fieldnames or []
     norm={f:normalized(f) for f in fields}
     print("CSV headers:",json.dumps(fields,ensure_ascii=False))
