@@ -12,7 +12,10 @@ ck117((new R(null,$r->pin()['sha256']))->pin()===$r->pin(),'reproducible pin');
 reject117(fn()=>new R(null,str_repeat('0',64)));
 reject117(fn()=>$r->country('XX'));
 ck117($r->country('FR')['coverage']==='partial_documentary_evidence'&&!$r->country('FR')['runtime_admission'],'France curated');
-ck117($r->country('VA')['coverage']==='no_movement_evidence'&&!$r->country('VA')['exhaustive'],'explicit gaps not zero parties');
+ck117(!$r->country('VA')['exhaustive'],'explicit gaps not zero parties');
+ck117($s['partyfacts_references']===7199&&$s['countries_with_partyfacts']>100&&count($r->country('FR')['partyfacts_ids'])>0,'academic source expansion');
+$pf=$r->page('partyfacts_references','FR',null,17);ck117(count($pf['rows'])===17&&$pf['next']!==null,'bounded academic country page');
+foreach($pf['rows'] as $p)ck117($p['country']==='FR'&&$p['organization_id']===null&&!$p['runtime_admission'],'source IDs without inferred merge');
 $org=array_column($r->page('organizations','FR')['rows'],null,'id');
 ck117(isset($org['fr-craf'],$org['fr-aaf'],$org['fr-af-committee'],$org['fr-alliance-royale'],$org['fr-nar'],$org['fr-uclf'],$org['fr-gar']),'royalist identities distinct');
 ck117($org['fr-gar']['kind']==='advocacy_structure','GAR not a party');
@@ -31,12 +34,12 @@ reject117(fn()=>$r->page('people',null,null,101));
 reject117(fn()=>$r->page('documents','FR'));
 $root=sys_get_temp_dir().'/wp117-'.bin2hex(random_bytes(8));mkdir($root);
 try{
-    foreach($r->pin()['inputs'] as $name=>$hash)copy(__DIR__.'/../games/world-politics/data/'.$name,$root.'/'.$name);
+    foreach($r->pin()['inputs'] as $name=>$hash){if(!is_dir(dirname($root.'/'.$name)))mkdir(dirname($root.'/'.$name),0777,true);copy(__DIR__.'/../games/world-politics/data/'.$name,$root.'/'.$name);}
     $file=$root.'/wp117-movement-seed-v1.json';$bytes=file_get_contents($file);$d=json_decode($bytes,true,64,JSON_THROW_ON_ERROR);
     $d['organizations'][0]['runtime_admission']=true;file_put_contents($file,json_encode($d,JSON_THROW_ON_ERROR));reject117(fn()=>new R($root));
     $d=json_decode($bytes,true,64,JSON_THROW_ON_ERROR);$d['affiliations'][0]['organization']='missing';file_put_contents($file,json_encode($d,JSON_THROW_ON_ERROR));reject117(fn()=>new R($root));
     file_put_contents($file,$bytes);
     file_put_contents($root.'/wp115-ipu-party-seats-2026-11-27-v2.json',' ',FILE_APPEND);reject117(fn()=>new R($root));
-}finally{foreach(glob($root.'/*') as $f)unlink($f);rmdir($root);}
+}finally{$it=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root,FilesystemIterator::SKIP_DOTS),RecursiveIteratorIterator::CHILD_FIRST);foreach($it as $f){if($f->isDir())rmdir($f->getPathname());else unlink($f->getPathname());}rmdir($root);}
 echo "PASS WP117: immutable documentary movement registry, provenance, gaps, roles, cursor and tamper checks\n";
 echo json_encode($s,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)."\n";
