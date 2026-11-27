@@ -133,10 +133,11 @@ final class PdoCareerInstitutionStore
         });
     }
     /** Private institution-only sandbox; never grants legacy ownership powers. */
-    public function createForSession(string $token,string $label,string $key,string $secret):array{
+    public function createForSession(string $token,string $label,string $key,string $secret,string $profile='institutional'):array{
+        CareerInstitutionLedger::check(in_array($profile,['institutional','economic'],true),'unknown career profile');
         CareerInstitutionLedger::check(trim($label)!==''&&strlen($label)<=100&&!preg_match('/[\x00-\x1f\x7f]/',$label)&&preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)===1,'invalid career world');
-        $label=trim($label);$key=hash('sha256',"career-world-v1\n".$key);$fingerprint=CareerInstitutionLedger::digest(['label'=>$label,'scenario'=>'wp-career-v1']);
-        return $this->tx(function()use($token,$label,$key,$fingerprint,$secret){
+        $label=trim($label);$key=hash('sha256',"career-world-v1\n".$key);$fingerprint=CareerInstitutionLedger::digest(['label'=>$label,'scenario'=>'wp-career-v1',...($profile==='economic'?['profile'=>$profile]:[])]);
+        return $this->tx(function()use($token,$label,$key,$fingerprint,$secret,$profile){
             $a=$this->sessionAccount($token);
             $prior=$this->query('SELECT world_id,request_sha,scenario FROM wp_alpha_worlds WHERE owner_id=? AND create_key=?',[$a,$key])->fetch(\PDO::FETCH_ASSOC);
             if($prior!==false){CareerInstitutionLedger::check($prior['scenario']==='wp-career-v1'&&hash_equals($prior['request_sha'],$fingerprint),'idempotency conflict');return ['world_id'=>$prior['world_id'],'scenario'=>'wp-career-v1','label'=>$label];}
@@ -148,8 +149,15 @@ final class PdoCareerInstitutionStore
             WorldMutationFence::seed($this->db,$world);
             $s=CareerInstitutionLedger::initial($world,'FR','career',$day);$j=CareerInstitutionLedger::json($s);
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
+            if($profile==='economic'){require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);}
             $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret);
             return ['world_id'=>$world,'scenario'=>'wp-career-v1','label'=>$label];
+        });
+    }
+    public function economicForSession(string $world,string $token):array{
+        return $this->tx(function()use($world,$token){
+            $clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);$this->replay($world,$this->row($world));
+            require_once __DIR__.'/CareerEconomicWorld.php';return CareerEconomicWorld::readLocked($this->db,$world,$clock['committed_day']);
         });
     }
     /** Called by the clock with its fence and clock row already locked.

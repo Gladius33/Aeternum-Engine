@@ -34,4 +34,22 @@ ck(req('POST','/worlds/'.$w.'/clock/advances',['target_day'=>'2027-05-15'],$a)['
 ck(req('GET',$p.'/career',null,$c)['status']===404,'uninvited account denied');
 foreach(['wp_career_active_offices','wp_career_memberships','wp_career_events','wp_career_ledgers','wp_world_mutation_fences','wp_world_clock','wp_alpha_members','wp_alpha_worlds'] as $t)$exec("DELETE FROM $t WHERE world_id=?",[$w]);
 foreach($ids as $id){$exec('DELETE FROM wp_sessions WHERE account_id=?',[$id]);$exec('DELETE FROM wp_accounts WHERE account_id=?',[$id]);}
+// A second world uses the pinned 2027 economic models, with no v1 score.
+require_once __DIR__.'/../games/world-politics/src/CareerEconomicWorld.php';
+$eid='acct-'.bin2hex(random_bytes(10));$etoken=bin2hex(random_bytes(32));
+$exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$eid,$eid,'fixture']);
+$exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$etoken),$eid,time()+3600]);
+$en=req('POST','/career-worlds',['label'=>'Career economic regression','profile'=>'economic'],$etoken);
+ck($en['status']===201,'economic profile create');
+$ew=$en['body']['world_id'];$ep='/career-worlds/'.$ew;
+$before=req('GET',$ep.'/economy',null,$etoken);
+ck($before['status']===200&&$before['body']['day']==='2027-05-14'&&!$before['body']['rankable'],'economic opening date and no rank');
+$connect=fn()=>new PDO(getenv('WP_DB_DSN'),getenv('WP_DB_USER'),getenv('WP_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
+\Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-15');
+$after=req('GET',$ep.'/economy',null,$etoken);
+ck($after['status']===200&&$after['body']['day']==='2027-05-15'&&$after['body']['domestic']['state']['day']==='2027-05-15'&&count($after['body']['domestic']['state']['days'])===1,'coordinated economic day');
+\Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-15');
+ck(req('GET',$ep.'/economy',null,$etoken)===$after,'no duplicate accrual');
+ck(req('POST','/worlds/'.$ew.'/clock/advances',['target_day'=>'2027-05-16'],$etoken)['status']===404,'no player clock grant');
+echo "PASS WP118 economic profile, committed-day recovery, no duplicate economic accrual\n";
 echo "PASS WP118 HTTP career sandbox, invitations, admission, replay, principal and legacy isolation\n";

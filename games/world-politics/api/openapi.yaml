@@ -49,10 +49,23 @@ paths:
               required: [label]
               properties:
                 label: {type: string, minLength: 1, maxLength: 100}
+                profile: {type: string, enum: [institutional, economic], default: institutional}
       responses:
         '201': {description: World created or receipt replayed}
         '404': {description: Feature disabled}
         '409': {description: Admission or idempotency conflict}
+  /career-worlds/{world}/economy:
+    get:
+      summary: Read coherent domestic and international economy in opt-in economic profile
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Verified economy at committed day}
+        '404': {description: Inaccessible world}
+        '409': {description: Profile missing or transition in progress}
   /career-worlds/{world}/career:
     get:
       summary: Read own career and current office capabilities
