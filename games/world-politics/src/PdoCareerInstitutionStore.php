@@ -186,6 +186,25 @@ final class PdoCareerInstitutionStore
             return ['world_id'=>$world,'scenario'=>'wp-career-v1','label'=>$label];
         });
     }
+    public function proposePolicyForSession(string $world,string $token,array $p,string $key,string $etag):array{
+        CareerInstitutionLedger::fields($p,['mandate','generation','policy_id','effective_day']);
+        CareerInstitutionLedger::check(is_string($p['mandate'])&&is_int($p['generation'])&&$p['generation']>=1&&is_string($p['policy_id'])&&is_string($p['effective_day']),'invalid proposal fields');
+        // Explicit reviewed portfolio mapping; no implicit right to arbitrary
+        // budgets, industrial acts or policy enactments.
+        $portfolio=match($p['policy_id']){'education-reform'=>'education','administration-report'=>null,default=>throw new \DomainException('Policy not mapped to career powers')};
+        return $this->tx(function()use($world,$token,$p,$key,$etag,$portfolio){
+            $clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);$s=$this->replay($world,$this->row($world));
+            $day=$clock['committed_day'];$ok=CareerInstitutionLedger::allows($s,$a,$p['mandate'],$p['generation'],'government.coordinate',$day);
+            if($portfolio!==null)$ok=$ok||CareerInstitutionLedger::allows($s,$a,$p['mandate'],$p['generation'],'ministry.'.$portfolio.'.propose',$day);
+            CareerInstitutionLedger::check($ok,'policy proposal capability denied');
+            $sha=$this->query("SELECT reference_bundle_sha FROM wp_alpha_worlds WHERE world_id=? AND scenario='wp-career-v1'",[$world])->fetchColumn();
+            CareerInstitutionLedger::check(is_string($sha),'economic profile required');
+            require_once __DIR__.'/CareerEconomicWorld.php';
+            $principal=new CareerEconomicProposalPrincipal($this->db,$world,$p['mandate']);
+            $dom=new PdoDomesticPolicyStore($this->db,$principal);
+            return $dom->proposeInCareerTransaction($world,['policy_id'=>$p['policy_id'],'effective_day'=>$p['effective_day']],$key,$etag);
+        });
+    }
     public function economicForSession(string $world,string $token):array{
         return $this->tx(function()use($world,$token){
             $clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);$this->replay($world,$this->row($world));

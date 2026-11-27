@@ -83,10 +83,15 @@ final class AlphaGateway
                         if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
                         return self::ok(201,$cs->createForSession($token,$body['label'],$h['idempotency-key'],$secret,$body['profile']??'institutional'));
                     }
-                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|admission|members|economy|cabinet)$~D',$path,$cm)){
+                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|admission|members|economy|cabinet|policy-proposals)$~D',$path,$cm)){
                         if($session->role($cm[1])===null)throw new AlphaHttpError(404,'not_found');
                         if($cm[2]==='economy'&&$method==='GET')return self::ok(200,$cs->economicForSession($cm[1],$token));
                         if($cm[2]==='career'&&$method==='GET')return self::ok(200,$cs->readForSession($cm[1],$token));
+                        if($cm[2]==='policy-proposals'&&$method==='POST'){
+                            if(!isset($h['idempotency-key'],$h['if-match']))throw new AlphaHttpError(428,'precondition_required');
+                            $result=$cs->proposePolicyForSession($cm[1],$token,$body,$h['idempotency-key'],$h['if-match']);
+                            $response=self::ok($result['status'],$result['result']);$response['headers']['ETag']=$result['etag'];return $response;
+                        }
                         if($cm[2]==='cabinet'&&$method==='POST'){
                             if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
                             return self::ok(200,$cs->cabinetForSession($cm[1],$token,$body,$h['idempotency-key'],$secret));
@@ -95,6 +100,7 @@ final class AlphaGateway
                         if($cm[2]==='admission'&&$method==='POST'){AlphaAccounts::fields($body,[]);return self::ok(200,$cs->admitForSession($cm[1],$token,$secret));}
                     }
                 }catch(\DomainException $e){throw new AlphaHttpError(409,'career_request_rejected');}
+                catch(\InvalidArgumentException $e){throw new AlphaHttpError(422,'invalid_career_request');}
                 throw new AlphaHttpError(404,'not_found');
             }
             if($path==='/api/v1/universes'&&$method==='GET')return self::ok(200,(new UniverseLobby($this->db()))->list($session));

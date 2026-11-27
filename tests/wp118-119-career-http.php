@@ -2,8 +2,8 @@
 declare(strict_types=1);
 if(getenv('WP_TEST_ISOLATED')!=='YES'||!str_contains(getenv('WP_DB_DSN')?:'','dbname=wp_test;'))exit(2);
 function ck(bool $b,string $m):void{if(!$b)throw new RuntimeException('WP118 HTTP '.$m);}
-function req(string $method,string $path,mixed $body=null,?string $token=null,string $key='career-http-creation-001'):array{
-    $h=['Content-Type: application/json','Idempotency-Key: '.$key];if($token!==null)$h[]='Authorization: Bearer '.$token;
+function req(string $method,string $path,mixed $body=null,?string $token=null,string $key='career-http-creation-001',?string $etag=null):array{
+    $h=['Content-Type: application/json','Idempotency-Key: '.$key];if($token!==null)$h[]='Authorization: Bearer '.$token;if($etag!==null)$h[]='If-Match: '.$etag;
     $opts=['method'=>$method,'header'=>implode("\r\n",$h),'ignore_errors'=>true,'timeout'=>20];
     if($body!==null)$opts['content']=json_encode($body,JSON_THROW_ON_ERROR);
     $raw=file_get_contents('http://127.0.0.1:18730/api/v1'.$path,false,stream_context_create(['http'=>$opts]));
@@ -70,9 +70,30 @@ $ew=$en['body']['world_id'];$ep='/career-worlds/'.$ew;
 $before=req('GET',$ep.'/economy',null,$etoken);
 ck($before['status']===200&&$before['body']['day']==='2027-05-14'&&!$before['body']['rankable'],'economic opening date and no rank');
 $connect=fn()=>new PDO(getenv('WP_DB_DSN'),getenv('WP_DB_USER'),getenv('WP_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
+// Admit two careers before the opening fictional election, appoint the
+// government, then exercise its actual domestic proposal capability.
+$e2='acct-'.bin2hex(random_bytes(10));$t2=bin2hex(random_bytes(32));
+$exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$e2,$e2,'fixture']);
+$exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$t2),$e2,time()+3600]);
+ck(req('POST',$ep.'/members',['account_id'=>$e2],$etoken)['status']===200,'economic member invited');
+$eac=req('GET',$ep.'/career',null,$etoken)['body']['career']['id'];
+$ebc=req('POST',$ep.'/admission',(object)[],$t2)['body']['career']['id'];
+$ebp=['ballot'=>['registered'=>1000,'first'=>['votes'=>[$eac=>600,$ebc=>300],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'];
+$cs->certifyBallot($ew,$ebp,'economic-ballot-fixture-001',$secret);
+$em=req('GET',$ep.'/career',null,$etoken)['body']['mandates'][0];
+$eact=['kind'=>'appoint_pm','mandate'=>$em['id'],'generation'=>$em['generation'],'target'=>$ebc,'portfolio'=>null,'proposal'=>null];
+ck(req('POST',$ep.'/cabinet',$eact,$etoken,'economic-pm-001')['status']===200,'economic PM appointed');
+$epm=req('GET',$ep.'/career',null,$t2)['body']['mandates'][0];
+$policy=['mandate'=>$epm['id'],'generation'=>$epm['generation'],'policy_id'=>'education-reform','effective_day'=>'2027-05-15'];
+$tag=$before['body']['domestic']['etag'];
+ck(req('POST',$ep.'/policy-proposals',$policy,$etoken,'policy-denied-001',$tag)['status']===409,'president cannot spoof PM policy authority');
+$pr=req('POST',$ep.'/policy-proposals',$policy,$t2,'policy-propose-001',$tag);
+ck($pr['status']===202,'PM proposal written to existing domestic journal');
+ck(req('POST',$ep.'/policy-proposals',$policy,$t2,'policy-propose-001',$tag)===$pr,'domestic receipt replay');
 \Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-15');
 $after=req('GET',$ep.'/economy',null,$etoken);
 ck($after['status']===200&&$after['body']['day']==='2027-05-15'&&$after['body']['domestic']['state']['day']==='2027-05-15'&&count($after['body']['domestic']['state']['days'])===1,'coordinated economic day');
+ck($after['body']['domestic']['state']['days'][0]['active_policies']===[],'unlegislated policy remains inert');
 \Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-15');
 ck(req('GET',$ep.'/economy',null,$etoken)===$after,'no duplicate accrual');
 ck(req('POST','/worlds/'.$ew.'/clock/advances',['target_day'=>'2027-05-16'],$etoken)['status']===404,'no player clock grant');

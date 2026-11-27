@@ -78,6 +78,39 @@ paths:
         '200': {description: Own career and institutional projection}
         '404': {description: Feature disabled or world inaccessible}
         '409': {description: Verification failure}
+  /career-worlds/{world}/policy-proposals:
+    post:
+      summary: Propose a reviewed domestic policy under an active compatible mandate
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+        - in: header
+          name: If-Match
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [mandate, generation, policy_id, effective_day]
+              properties:
+                mandate: {type: string}
+                generation: {type: integer, minimum: 1}
+                policy_id: {type: string, enum: [education-reform, administration-report]}
+                effective_day: {type: string, format: date}
+      responses:
+        '202': {description: Inert proposal recorded in domestic journal}
+        '409': {description: Authority or precondition denied}
+        '428': {description: Idempotency key or ETag missing}
   /career-worlds/{world}/cabinet:
     post:
       summary: Exercise a verified presidential or prime-ministerial cabinet capability

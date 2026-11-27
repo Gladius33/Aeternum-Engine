@@ -30,6 +30,17 @@ final class CareerEconomicDomesticPrincipal implements PersistentDomesticPolicyA
         if(!is_string($r))throw new \DomainException('Missing pending clock day');return $r;
     }
 }
+/** Created only inside the verified career capability transaction. */
+final class CareerEconomicProposalPrincipal implements PersistentDomesticPolicyAuthority
+{
+    public function __construct(private readonly \PDO $db,private readonly string $world,private readonly string $mandate){}
+    public function actorId():string{return 'career-'.$this->mandate;}
+    public function allows(string $world,string $ability):bool{
+        return $this->db->inTransaction()&&$world===$this->world&&in_array($ability,['domestic.read','domestic.propose'],true);
+    }
+    public function enactedInstrument(string $world,string $policy):?string{return null;}
+    public function clockDay(string $world):string{throw new \DomainException('No clock delegation');}
+}
 final class CareerEconomicWorld
 {
     private static function json(array $x):string{return json_encode($x,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}

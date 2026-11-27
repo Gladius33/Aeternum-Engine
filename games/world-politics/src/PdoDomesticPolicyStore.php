@@ -21,6 +21,7 @@ interface PersistentDomesticPolicyAuthority extends DomesticPolicyAuthority
  */
 final class PdoDomesticPolicyStore
 {
+    private bool $careerTransaction=false;
     public function __construct(
         private readonly \PDO $pdo,
         private readonly PersistentDomesticPolicyAuthority $principal
@@ -131,6 +132,15 @@ final class PdoDomesticPolicyStore
         });
     }
 
+    /** Only the career adapter can join its already-fenced outer transaction,
+     * for a proposal (never enactment, clock, or direct economic action). */
+    public function proposeInCareerTransaction(string $world,array $payload,string $key,string $etag):array{
+        if(!$this->pdo->inTransaction()||!($this->principal instanceof CareerEconomicProposalPrincipal)||$this->careerTransaction)
+            throw new \LogicException('Verified career transaction required');
+        $this->careerTransaction=true;
+        try{return $this->execute($world,'propose',$payload,$key,$etag);}finally{$this->careerTransaction=false;}
+    }
+
     private function propose(DomesticPolicySimulation $sim,array $payload): array
     {
         $id=$payload['policy_id'];
@@ -216,6 +226,10 @@ final class PdoDomesticPolicyStore
 
     private function transaction(callable $work): mixed
     {
+        if ($this->careerTransaction) {
+            if(!$this->pdo->inTransaction())throw new \LogicException('Missing career transaction');
+            return $work();
+        }
         if ($this->pdo->inTransaction()) throw new \LogicException('Domestic store requires its own transaction');
         $this->pdo->beginTransaction();
         try {
