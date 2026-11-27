@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Aeternum\WorldPolitics;
 
+require_once __DIR__.'/PdoCareerInstitutionStore.php';
+
 require_once __DIR__.'/PdoDiplomaticStore.php';
 require_once __DIR__.'/PdoOrganizationStore.php';
 require_once __DIR__.'/PdoEconomicStore.php';
@@ -254,6 +256,7 @@ final class WorldClockCoordinator
                 if ($start->diff($target)->days>366) {
                     throw new \InvalidArgumentException('A world tick may not exceed 366 days');
                 }
+                PdoCareerInstitutionStore::assertClockAdvance($this->pdo,$world,$targetDay);
                 $this->assertDomainsAt($world,$row['committed_day']);
                 $this->assertCountryDaysAt($world,$row['committed_day']);
                 $this->assertFranceDayAt($world,$row['committed_day'],false);
@@ -299,6 +302,7 @@ final class WorldClockCoordinator
             }
             $this->trust($world,'world.clock.advance');
             $this->assertDomesticConfiguration($world,$row);
+            PdoCareerInstitutionStore::assertClockAdvance($this->pdo,$world,$targetDay);
             $verified=$this->assertDomainsAt($world,$targetDay,true);
             $this->assertCountryDaysAt($world,$targetDay);
             $this->assertFranceDayAt($world,$targetDay,true);

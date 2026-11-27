@@ -11,7 +11,7 @@ foreach(['007_world_clock.sql','013_world_mutation_fences.sql','019_wp30_alpha.s
 $world='wp118-'.bin2hex(random_bytes(6));$a='acct-'.bin2hex(random_bytes(10));$b='acct-'.bin2hex(random_bytes(10));$token=bin2hex(random_bytes(32));$secret=random_bytes(32);$evidence=new CareerInstitutionEvidence($secret);$store=new PdoCareerInstitutionStore($db,$evidence);$other=new PdoCareerInstitutionStore($db2,$evidence);
 $q=function(string $sql,array $args=[])use($db){$s=$db->prepare($sql);$s->execute($args);return $s;};
 foreach([$a,$b] as $account)$q('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$account,$account,'fixture']);
-$q('INSERT INTO wp_alpha_worlds(world_id,owner_id,create_key,request_sha,label,scenario) VALUES(?,?,?,?,?,?)',[$world,$a,hash('sha256',$world),str_repeat('a',64),'Career fixture','fixture']);
+$q('INSERT INTO wp_alpha_worlds(world_id,owner_id,create_key,request_sha,label,scenario) VALUES(?,?,?,?,?,?)',[$world,$a,hash('sha256',$world),str_repeat('a',64),'Career fixture','wp-career-v1']);
 foreach([$a,$b] as $account)$q('INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,?)',[$world,$account,'viewer']);
 $q('INSERT INTO wp_world_clock(world_id,committed_day,revision) VALUES(?,?,0)',[$world,'2027-05-14']);
 $q("INSERT INTO wp_world_mutation_fences(world_id,state,generation) VALUES(?,'idle',0)",[$world]);
@@ -27,7 +27,9 @@ $db->beginTransaction();$q('SELECT world_id FROM wp_world_mutation_fences WHERE 
 try{$other->execute($two,$sig($two));throw new RuntimeException('expected contention');}catch(PDOException $e){dbck((int)($e->errorInfo[1]??0)===1205,'lock timeout');}finally{$db->rollBack();}
 $other->execute($two,$sig($two));
 $grant=$event('grant-a','transition',['reason'=>'election','close'=>[],'grants'=>[['office'=>'president','career'=>'a','expires'=>'2032-05-14','interim'=>false]]]);
-$store->execute($grant,$sig($grant));$s=$store->audit($world);$m=$s['active']['president'];
+$store->execute($grant,$sig($grant));
+$db->beginTransaction();try{PdoCareerInstitutionStore::assertClockAdvance($db,$world,'2032-05-14');dbno(fn()=>PdoCareerInstitutionStore::assertClockAdvance($db,$world,'2032-05-15'));}finally{$db->rollBack();}
+$s=$store->audit($world);$m=$s['active']['president'];
 dbck($store->withCapability($world,$token,$m,1,'president.represent',fn()=>true),'session capability');
 dbno(fn()=>$store->withCapability($world,$token,$m,2,'president.represent',fn()=>true));
 $bad=$event('grant-b','transition',['reason'=>'election','close'=>[],'grants'=>[['office'=>'president','career'=>'b','expires'=>'2032-05-14','interim'=>false]]]);

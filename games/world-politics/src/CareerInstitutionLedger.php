@@ -38,7 +38,7 @@ final class CareerInstitutionLedger
     private static function compatible(string $a,string $b):bool{return $a==='minister'&&$b==='minister';}
     private static function close(array &$s,string $office,string $day,string $reason):array{
         self::check(isset($s['active'][$office]),'vacant office');$id=$s['active'][$office];$m=$s['mandates'][$id];
-        self::check($m['start']<=$day&&$day<=$m['expires'],'invalid closure day');
+        self::check($m['start']<=$day&&$day<=$m['expires']&&($reason!=='expiry'||$day===$m['expires']),'invalid closure day');
         $s['mandates'][$id]['end']=$day;$s['mandates'][$id]['end_reason']=$reason;unset($s['active'][$office]);
         if($m['series']!==null){$s['series'][$m['series']]['end']=$day;$s['series'][$m['series']]['end_reason']=$reason;}
         return $m;
@@ -63,7 +63,7 @@ final class CareerInstitutionLedger
                 // Track consecutive terms even after an explicitly closed same-day vacancy.
                 $latest=null;foreach($s['mandates'] as $old)if($old['office']==='president'&&!$old['interim']&&($latest===null||$old['generation']>$latest['generation']))$latest=$old;
                 self::check($latest===null||$latest['career']!==$g['career']||$latest['end']!==$day,'same-day renewal cannot reset terms');
-                $series='series-'.hash('sha256',$id);$terms=1;$first=$s['careers'][$g['career']]['first_series']===null;
+                $series='series-'.hash('sha256',$id);$terms=$latest!==null&&$latest['career']===$g['career']?$latest['terms']+1:1;self::check($terms<=2,'consecutive presidential term limit');$first=$s['careers'][$g['career']]['first_series']===null;
                 $s['series'][$series]=['career'=>$g['career'],'start'=>$day,'end'=>null,'end_reason'=>null,'credit_days'=>null,'credit_verified'=>false,'first'=>$first,'rankable'=>false];
                 if($first)$s['careers'][$g['career']]['first_series']=$series;
             }
@@ -111,12 +111,12 @@ final class CareerInstitutionLedger
         }elseif($op==='dissolve_assembly'){
             self::fields($p,['presidential_mandate']);$mid=$s['active']['president']??null;
             self::check($s['assembly']==='active'&&$mid!==null&&$mid===$p['presidential_mandate']&&!$s['mandates'][$mid]['interim']&&$day<$s['mandates'][$mid]['expires'],'only incumbent president, not interim');
-            if(isset($s['last_dissolution']))self::check($day>=(new \DateTimeImmutable($s['last_dissolution']))->modify('+1 year')->format('Y-m-d'),'dissolution interval');
+            if(isset($s['last_dissolution_election']))self::check($day>=(new \DateTimeImmutable($s['last_dissolution_election']))->modify('+1 year')->format('Y-m-d'),'dissolution interval');
             foreach(array_keys($s['active']) as $office)if(self::office($office)['kind']==='deputy')self::close($s,$office,$day,'dissolution');
             $s['assembly']='dissolved';$s['assembly_changed_on']=$day;$s['last_dissolution']=$day;
         }elseif($op==='restore_assembly'){
             self::fields($p,[]);self::check($s['assembly']==='dissolved','assembly not dissolved');
-            $elapsed=CareerScoreContract::elapsed($s['assembly_changed_on'],$day);self::check($elapsed>=20&&$elapsed<=40,'constitutional election window');$s['assembly']='active';$s['assembly_changed_on']=$day;
+            $elapsed=CareerScoreContract::elapsed($s['assembly_changed_on'],$day);self::check($elapsed>=20&&$elapsed<=40,'constitutional election window');$s['assembly']='active';$s['assembly_changed_on']=$day;$s['last_dissolution_election']=$day;
         }elseif($op==='constitution_revision'){
             self::fields($p,['previous_sha','next_sha','procedure']);
             self::check($p['procedure']==='article89'&&$p['previous_sha']===$s['constitution_sha']&&is_string($p['next_sha'])&&preg_match('/^[a-f0-9]{64}$/D',$p['next_sha'])===1&&$p['next_sha']!==$p['previous_sha'],'revision evidence');

@@ -20,7 +20,11 @@ final class PdoCareerInstitutionStore
         CareerInstitutionLedger::check($r!==false&&$r['pending_day']===null,'uncommitted world');return $r;
     }
     public function seed(string $world,string $mode):void{
-        $this->tx(function()use($world,$mode){$c=$this->clock($world);$s=CareerInstitutionLedger::initial($world,'FR',$mode,$c['committed_day']);$j=CareerInstitutionLedger::json($s);
+        $this->tx(function()use($world,$mode){$c=$this->clock($world);
+            $scenario=$this->query('SELECT scenario FROM wp_alpha_worlds WHERE world_id=? FOR UPDATE',[$world])->fetchColumn();
+            CareerInstitutionLedger::check($scenario==='wp-career-v1'||$scenario==='wp-career-research-v1','explicit opt-in scenario required');
+            CareerInstitutionLedger::check(($scenario==='wp-career-research-v1')===($mode==='research'),'scenario mode mismatch');
+            $s=CareerInstitutionLedger::initial($world,'FR',$mode,$c['committed_day']);$j=CareerInstitutionLedger::json($s);
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);});
     }
     private function row(string $world):array{
@@ -47,7 +51,7 @@ final class PdoCareerInstitutionStore
         $actual=[];foreach($this->query('SELECT account_id,career_id,character_id FROM wp_career_memberships WHERE world_id=?',[$world]) as $v)$actual[$v['account_id']]=[$v['career_id'],$v['character_id']];
         CareerInstitutionLedger::check(CareerInstitutionLedger::json($expected)===CareerInstitutionLedger::json($actual),'membership projection mismatch');return $s;
     }
-    private static function receipt(array $s):array{return ['sequence'=>$s['sequence'],'event_sha'=>$s['last_event_sha'],'state_sha'=>CareerInstitutionLedger::digest($s)];}
+    private static function receipt(array $s):array{return CareerInstitutionLedger::canonical(['sequence'=>$s['sequence'],'event_sha'=>$s['last_event_sha'],'state_sha'=>CareerInstitutionLedger::digest($s)]);}
     private function activeAccount(string $world,string $account):void{
         $r=$this->query('SELECT a.enabled FROM wp_accounts a JOIN wp_alpha_members m ON m.account_id=a.account_id WHERE m.world_id=? AND a.account_id=? FOR UPDATE',[$world,$account])->fetchColumn();
         CareerInstitutionLedger::check((int)$r===1,'no active world membership');
@@ -68,6 +72,21 @@ final class PdoCareerInstitutionStore
             foreach($next['active'] as $o=>$id){$m=$next['mandates'][$id];$this->query('INSERT INTO wp_career_active_offices(world_id,office_id,mandate_id,career_id,generation) VALUES(?,?,?,?,?)',[$world,$o,$id,$m['career'],$m['generation']]);}
             $this->query('UPDATE wp_career_ledgers SET state_json=?,state_sha=?,sequence_no=? WHERE world_id=?',[CareerInstitutionLedger::json($next),$receipt['state_sha'],$next['sequence'],$world]);return $receipt;
         });
+    }
+    /** Called by the clock with its fence and clock row already locked.
+     * Equal expiry may be reached, but no later day until a signed closure/renewal.
+     * Old schemas/worlds are unchanged; an opted-in row fails closed on projection corruption.
+     */
+    public static function assertClockAdvance(\PDO $db,string $world,string $target):void{
+        CareerInstitutionLedger::check($db->inTransaction(),'clock guard outside transaction');
+        try{$q=$db->prepare('SELECT state_json,state_sha,sequence_no FROM wp_career_ledgers WHERE world_id=? FOR UPDATE');$q->execute([$world]);$r=$q->fetch(\PDO::FETCH_ASSOC);}
+        catch(\PDOException $e){if((int)($e->errorInfo[1]??0)===1146)return;throw $e;}
+        if($r===false)return;
+        $s=self::decode($r['state_json']);
+        CareerInstitutionLedger::check($s['world']===$world&&$s['sequence']===(int)$r['sequence_no']&&hash_equals($r['state_sha'],CareerInstitutionLedger::digest($s)),'clock career projection mismatch');
+        CareerInstitutionLedger::day($target);
+        foreach($s['active'] as $id)CareerInstitutionLedger::check($s['mandates'][$id]['expires']>=$target,'certified mandate transition required before clock advances');
+        if($s['assembly']==='dissolved')CareerInstitutionLedger::check(CareerScoreContract::elapsed($s['assembly_changed_on'],$target)<=40,'assembly election evidence required before clock advances');
     }
     public function audit(string $world):array{return $this->tx(function()use($world){$this->clock($world);return $this->replay($world,$this->row($world));});}
     /** Resolve a bearer token through the existing session DB; callback is trusted server code and runs under the fence. */

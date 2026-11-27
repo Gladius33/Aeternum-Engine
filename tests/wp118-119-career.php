@@ -30,4 +30,6 @@ $r=L::initial('research-world','FR','research','2027-05-14');no(fn()=>add($r,'x'
 $t=add(L::initial('renewal-world','FR','career','2027-05-14'),'a');$t=change($t,'election',[],[grant('president','a')]);$old=$t['mandates'][$t['active']['president']]['series'];
 $t=change($t,'renewal',['president'],[grant('president','a','2037-05-14')],'2032-05-14');ck(count($t['series'])===1&&$t['series'][$old]['end']===null,'lawful continuous renewal preserves series');
 no(fn()=>change($t,'renewal',['president'],[grant('president','a','2042-05-14')],'2037-05-14'));
+$t=change($t,'resignation',['president'],[],'2033-05-14');
+no(fn()=>change($t,'election',[],[grant('president','a','2039-05-14')],'2034-05-14'));
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";
