@@ -87,6 +87,10 @@ final class FormationProtocol
             'IT'=>$k===['presidential_appointment','confidence_vote','confidence_vote']
                 &&(($simple($steps[1],'chamber')&&$simple($steps[2],'senate'))||($simple($steps[1],'senate')&&$simple($steps[2],'chamber')))
                 &&self::instant($steps[2]['at'])->getTimestamp()-self::instant($steps[0]['at'])->getTimestamp()<=864000,
+            'JP'=>isset($seats['councillors'])&&$k===['designation_vote','designation_vote','imperial_appointment']
+                &&$steps[1]['chamber']==='councillors'&&$steps[0]['chamber']==='representatives'
+                &&$steps[0]['yes']>intdiv($steps[0]['yes']+$steps[0]['no']+$steps[0]['abstain'],2)
+                &&$steps[1]['yes']>intdiv($steps[1]['yes']+$steps[1]['no']+$steps[1]['abstain'],2),
             default=>false
         };
         if(!$ok)throw new \DomainException('National formation procedure not satisfied or not implemented');
@@ -114,7 +118,7 @@ final class FormationProtocol
             $id=$proof['evidence_id']??'';
             if(isset($proofs[$id])||!isset($cycles[$id])||$event['on']!==$proof['day']||$event['actor_role']!=='constitutional_clerk')
                 throw new \DomainException('Unmatched formation proof');
-            $base=self::certificate($proof,$cycles[$id],$s['accountability']['seats']);
+            $base=self::certificate($proof,$cycles[$id],AutonomousForeignFormation::formationSeats($s));
             $result=$event['result'];unset($result['national_proof']);
             if($result!==$cycles[$id]['government'])throw new \DomainException('Formation event differs from electoral result');
             $proofs[$id]=['evidence'=>$base,'formation'=>$result];

@@ -68,3 +68,32 @@ foreach($bad['events'] as &$e){
     unset($step,$proof);
 }unset($e);
 try{A::validateHistory($bad);throw new RuntimeException('WP91 altered certified tally accepted');}catch(DomainException $expected){}
+
+/* WP119: opt-in Japanese concordant bicameral designation. Old snapshots
+ * retain the pre-existing unsupported-route behavior. */
+$jp=make65('jp-pilot','JP',false);
+$poll=$jp->snapshot()['electoral']['config']['poll_day'];
+$due=(new DateTimeImmutable($poll))->modify('+5 days')->format('Y-m-d');
+$jp->enableAutonomousFormation(true);
+for($d=new DateTimeImmutable('2027-05-15');$d->format('Y-m-d')<=$due;$d=$d->modify('+1 day'))$jp->advanceTo($d->format('Y-m-d'));
+$j=$jp->snapshot();
+$attempts=array_values(array_filter($j['events'],fn($e)=>$e['kind']==='foreign_formation_attempt'));
+ck65(count($attempts)===1&&I::restore($j)->snapshot()===$j,'Japanese opt-in designation journal replays');
+$attempt=$attempts[0]['result'];
+if($attempt['ballots']!==[]){
+    ck65(array_sum($attempt['upper_chamber']['votes'])===50&&array_sum($attempt['upper_chamber']['seats_by_party'])===50,'Japanese independent upper house conserves seats');
+    $bad=$j;foreach($bad['events'] as &$ev)if($ev['kind']==='foreign_formation_attempt')$ev['result']['upper_chamber']['votes']['yes']++;unset($ev);
+    try{I::restore($bad);throw new RuntimeException('Tampered Japanese upper house accepted');}catch(DomainException $expected){}
+}
+$bad=$j;$bad['events']=array_values(array_filter($bad['events'],fn($e)=>$e['kind']!=='foreign_formation_attempt'));
+try{I::restore($bad);throw new RuntimeException('Missing Japanese attempt accepted');}catch(DomainException $expected){}
+// Exercise positive procedural certificate independently of the random fixture.
+$cycle=$j['electoral'];
+if(($cycle['coalition']['status']??null)==='majority_agreement'){
+    $steps=[['kind'=>'designation_vote','at'=>$due.'T09:00:00Z','chamber'=>'representatives','yes'=>70,'no'=>25,'abstain'=>5],['kind'=>'designation_vote','at'=>$due.'T10:00:00Z','chamber'=>'councillors','yes'=>35,'no'=>12,'abstain'=>3],['kind'=>'imperial_appointment','at'=>$due.'T12:00:00Z']];
+    $proof=['world_id'=>$cycle['world_id'],'country'=>'JP','evidence_id'=>'jp-concordant-proof','coalition_id'=>$cycle['coalition']['id'],'candidate'=>$cycle['coalition']['candidate'],'day'=>$due,'procedure_certified'=>true,'procedure'=>['poll_day'=>$poll,'steps'=>$steps]];
+    $base=\Aeternum\WorldPolitics\FormationProtocol::certificate($proof,$cycle,A::formationSeats($j));
+    ck65($base['candidate']===$cycle['coalition']['candidate'],'both Diet chambers and imperial appointment required');
+    $proof['procedure']['steps'][1]['yes']=20;$proof['procedure']['steps'][1]['no']=27;
+    try{\Aeternum\WorldPolitics\FormationProtocol::certificate($proof,$cycle,A::formationSeats($j));throw new RuntimeException('Failed Japanese designation accepted');}catch(DomainException $expected){}
+}

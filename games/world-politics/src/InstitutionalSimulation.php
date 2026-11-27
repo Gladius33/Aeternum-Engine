@@ -335,7 +335,7 @@ final class InstitutionalSimulation
         }elseif($action==='electoral_certify'&&$role==='constitutional_clerk'){
             if(isset($this->state['formation_protocol'])){
                 if(($payload['day']??null)!==$this->state['day'])throw new \DomainException('Formation must certify current day');
-                $nationalProof=$payload;$payload=FormationProtocol::certificate($payload,$el->snapshot(),$this->state['accountability']['seats']);
+                $nationalProof=$payload;$payload=FormationProtocol::certificate($payload,$el->snapshot(),AutonomousForeignFormation::formationSeats($this->state));
             }
             $result=$el->certify($commandId,$payload);
         }
@@ -354,9 +354,9 @@ final class InstitutionalSimulation
         return $result;
     }
 
-    public function enableAutonomousFormation():void
+    public function enableAutonomousFormation(bool $japan=false):void
     {
-        $this->state=AutonomousForeignFormation::bootstrap($this->state);
+        $this->state=AutonomousForeignFormation::bootstrap($this->state,$japan);
     }
     public function enableFormationProtocol():void
     {
