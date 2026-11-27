@@ -69,7 +69,7 @@ final class UniverseLobby
                     if($person!==null&&$person['name']!=='Scenario president'){
                         $opening=['name'=>$person['name'],'kind'=>$person['kind'],'as_of'=>$person['as_of'],'sources'=>$person['sources']];
                         if($version===UniverseIdentityReference::BOUND_ROSTER){
-                            $op=$this->query('SELECT state_json FROM wp_public_opinion_states WHERE world_id=?',[$world])->fetchColumn();
+                            $op=$this->query('SELECT state_json FROM wp_opinion_states WHERE world_id=?',[$world])->fetchColumn();
                             if(is_string($op)){
                                 $os=json_decode($op,true,64,JSON_THROW_ON_ERROR);
                                 $ordinal=count($os['managed_mandates']??[])+1;
