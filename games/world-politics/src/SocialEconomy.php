@@ -67,7 +67,7 @@ final class SocialEconomy
             'reference_monthly_pension_eur','effective_levy_bps','workers_share_bps','annual_gross_overtime_eur','effective_tax_and_levy_bps',
             'reference_price_minor','annual_litres','coverage_bps','replacement_hiring_bps','annual_procurement_eur','administration_cost_bps',
             'annual_eligible_turnover_eur','support_rate_bps','domestic_value_added_bps','annual_output_per_job_eur',
-            'investment_eur_per_annual_gwh','public_finance_share_bps','annual_maintenance_bps','imported_equipment_bps'],true);
+            'reference_hourly_gross_eur','remaining_employee_rate_bps','remaining_employer_rate_bps','investment_eur_per_annual_gwh','public_finance_share_bps','annual_maintenance_bps','imported_equipment_bps'],true);
     }
     private static function agePopulation(array $cohorts,int $from,int $to):int
     {

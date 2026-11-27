@@ -91,6 +91,10 @@ final class PrimaryManifestoPolicy
                 $r['annual_incremental_units_proxy']=max(0,$annual-$a['reference_annual_units']);
                 $r['annual_expense_delta_eur']=$r['annual_incremental_units_proxy']*$a['public_cost_per_unit_eur'];
             }
+        }elseif($f==='eldercare-capacity'){
+            $n=intdiv($t['annual_places']*min($elapsed+1,365*$t['years']),365);
+            $r['planned_capacity_proxy']=$n;$r['annual_expense_delta_eur']=$n*$a['annual_cost_per_place_eur'];
+            $r['construction_and_capacity_delivery_certified']=false;
         }elseif($f==='home-care'){
             $r['annual_expense_delta_eur']=intdiv($a['annual_reference_eur']*$t['increase_bps'],10000);
         }elseif($f==='wealth-tax'){
@@ -149,6 +153,19 @@ final class PrimaryManifestoPolicy
             $r['affected_persons_proxy']=$n;
             $r['annual_revenue_delta_eur']=-intdiv($n*$a['reference_monthly_pension_eur']*12*$a['effective_levy_bps'],10000);
             $r['benefit_floor_cash_minor']=-intdiv($r['annual_revenue_delta_eur']*100,365);
+        }elseif($f==='overtime-relief'&&isset($t['annual_threshold_hours'])){
+            // Explicit synthetic residual contribution rates exclude CSG/CRDS
+            // and broad relief already assumed in this marginal scenario.
+            $n=intdiv($employed*$a['workers_share_bps'],10000);
+            $hours=max(0,$a['reference_annual_hours']-$t['annual_threshold_hours']);
+            $base=$n*$hours*$a['reference_hourly_gross_eur'];
+            $employee=intdiv($base*$a['remaining_employee_rate_bps'],10000);
+            $employer=intdiv($base*$a['remaining_employer_rate_bps'],10000);
+            $r['annual_revenue_delta_eur']=-($employee+$employer);
+            $r['affected_persons_proxy']=$n;$r['annual_eligible_hours_proxy']=$n*$hours;
+            $r['annual_employee_relief_eur']=$employee;$r['annual_employer_relief_eur']=$employer;
+            $r['wage_premium_bps']=intdiv($employee*10000,max(1,$employed*30000));
+            $r['csg_crds_retained']=true;$r['additional_hours_revenue_booked']=false;
         }elseif($f==='overtime-relief'){
             $n=intdiv($employed*$a['workers_share_bps'],10000);$r['affected_persons_proxy']=$n;
             $r['annual_revenue_delta_eur']=-intdiv($n*$a['annual_gross_overtime_eur']*$a['effective_tax_and_levy_bps'],10000);

@@ -207,7 +207,7 @@ $reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
 $resetProfile=PP::compileProfile([$reset114,'industry-active']);
 ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
 no82(fn()=>PP::compileProfile([$reset114,$pension114]));
-ck82(count(SP::objectives())===121&&count(SP::definitions())===24&&count(SP::target2027())===7,'WP114j ten explicit repeal families preserve historical archive');
+ck82(count(SP::objectives())===127&&count(SP::definitions())===24&&count(SP::target2027())===12,'WP114j ten explicit repeal families preserve historical archive');
 $pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
 ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
 $resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
@@ -499,7 +499,7 @@ ck82($reference2027['scenario_start']==='2027-05-14'&&$reference2027['observed_o
     &&!$reference2027['final_candidate_list_verified']&&!$reference2027['complete_programmes_verified']
     &&!$reference2027['historical_2022_is_2027_programme']&&!$reference2027['historical_2022_automatic_import'],
     'WP114 provisional sources cannot certify future programmes');
-ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_count']===7
+ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_count']===12
     &&count(array_unique(array_column($reference2027['sources'],'id')))===count($reference2027['sources']),
     'WP114 discovery register separates reviewed objectives from candidate selection');
 foreach($reference2027['sources'] as $source2027)ck82(str_starts_with($source2027['url'],'https://'),'WP114 dated programme discovery link');
@@ -580,7 +580,7 @@ foreach(['social-repeal-contribution-cut','social-repeal-industrial-grants'] as 
 
 $cc2027=\Aeternum\WorldPolitics\CampaignCandidate::class;
 $choices2027=$cc2027::campaign2027Choices();
-ck82(count($choices2027)===3,'WP114 provisional candidate references separately discoverable');
+ck82(count($choices2027)===5,'WP114 provisional candidate references separately discoverable');
 foreach($choices2027 as $choice){
     $p2027=$cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>$choice['id']]);
     ck82($p2027['kind']==='real'&&$p2027['as_of']==='2026-11-27'
@@ -590,6 +590,16 @@ foreach($choices2027 as $choice){
 no82(fn()=>$cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'real-emmanuel-macron']));
 no82(fn()=>$cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'campaign2027-jean-luc-melenchon','programme'=>[]]));
 $sensitivity2027=SC::target2027Sensitivity($pop,$services,$base);
-ck82(count($sensitivity2027['measures'])===7&&!$sensitivity2027['causal_calibration_qualified'],'WP114 all reviewed 2027 objectives have explicit scenario diagnostics');
+ck82(count($sensitivity2027['measures'])===12&&!$sensitivity2027['causal_calibration_qualified'],'WP114 all reviewed 2027 objectives have explicit scenario diagnostics');
 foreach($sensitivity2027['measures'] as $m)foreach($m['periods'] as $p)foreach($p['metrics'] as $v)
     ck82($v['min']<=$v['central']&&$v['central']<=$v['max'],'WP114 2027 sensitivity contains central');
+
+
+$housing2027='pf2027-lfi-public-housing';$ehpad2027='pf2027-lfi-eldercare-capacity';$overtime2027='pf2027-retailleau-overtime';
+$housingFlow=SE::calculate([$housing2027,$ehpad2027],array_fill_keys([$housing2027,$ehpad2027],['effective_on'=>$effect2027]),'2032-09-11',$pop,$services,$base,null);
+ck82($housingFlow['measures'][0]['annual_expense_delta_eur']===0&&$housingFlow['measures'][1]['planned_capacity_proxy']===50000,'WP114 five year flow ends while planned eldercare stock remains');
+$overtimeFlow=SE::calculate([$overtime2027],[$overtime2027=>['effective_on'=>$effect2027]],$effect2027,$pop,$services,$base,null);
+ck82($overtimeFlow['daily_revenue_delta_minor']<0&&$overtimeFlow['measures'][0]['csg_crds_retained']&&!$overtimeFlow['measures'][0]['additional_hours_revenue_booked'],'WP114 overtime relief retains residual levies and books no unproven financing');
+no82(fn()=>PP::compileProfile(['pf2027-lfi-renovation','pf2027-ecologistes-renovation']));
+ck82(count($cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'campaign2027-jean-luc-melenchon'])['programme'])===2
+    &&count($cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'campaign2027-jean-luc-melenchon-v2'])['programme'])===6,'WP114 immutable prior profile and expanded edition');

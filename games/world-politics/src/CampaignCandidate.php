@@ -16,7 +16,7 @@ final class CampaignCandidate
      * certified candidacy, completed extraction or executable programme. */
     public static function programme2027Reference():array
     {
-        return ['election_year'=>2027,'scenario_start'=>'2027-05-14','observed_on'=>'2026-11-27',
+        $r=['election_year'=>2027,'scenario_start'=>'2027-05-14','observed_on'=>'2026-11-27',
             'classification'=>'provisional_source_discovery_not_final_ballot',
             'final_candidate_list_verified'=>false,'complete_programmes_verified'=>false,
             'historical_2022_is_2027_programme'=>false,'historical_2022_automatic_import'=>false,
@@ -39,32 +39,49 @@ final class CampaignCandidate
             'reviewed_measures'=>[
                 ['id'=>'pf2027-jean-luc-melenchon-smic','publisher'=>'La France insoumise',
                     'source'=>'https://melenchon2027.fr/communique/plan-pauvrete/',
-                    'target'=>SocialProgramme::target2027()['pf2027-jean-luc-melenchon-smic']['target'],
+                    'target'=>['monthly_net_eur'=>1700],
                     'scope'=>'nominal_net_wage_floor_cohort_proxy'],
                 ['id'=>'pf2027-jean-luc-melenchon-pension','publisher'=>'La France insoumise',
                     'source'=>'https://melenchon2027.fr/programme/livre/mettre-en-securite-sociale/chapitre1',
-                    'target'=>SocialProgramme::target2027()['pf2027-jean-luc-melenchon-pension']['target'],
+                    'target'=>['age'=>60,'contribution_years'=>40],
                     'scope'=>'representative_pension_career_and_age_cohort_proxy'],
                 ['id'=>'pf2027-ecologistes-renovation','publisher'=>'Les Écologistes',
                     'source'=>'https://lesecologistes.fr/manifesto/1VEj8MDN3PHPwmprxozbqV/2-pouvoir-se-loger-decemment',
-                    'target'=>SocialProgramme::target2027()['pf2027-ecologistes-renovation']['target'],
+                    'target'=>['annual_units'=>500000],
                     'scope'=>'incremental_annual_renovation_funding_proxy_not_energy_saving_certification'],
                 ['id'=>'pf2027-ecologistes-smic','publisher'=>'Les Écologistes',
                     'source'=>'https://lesecologistes.fr/posts/4b3Vl4nRDOZk4nuMvI4eKa/nos-propositions-pour-un-travail-emancipateur-ecologique-et-democratique',
-                    'target'=>SocialProgramme::target2027()['pf2027-ecologistes-smic']['target'],'scope'=>'gross_wage_floor_with_fictional_payroll'],
+                    'target'=>['monthly_gross_eur'=>2000],'scope'=>'gross_wage_floor_with_fictional_payroll'],
                 ['id'=>'pf2027-retailleau-contributions','publisher'=>'Bruno Retailleau',
                     'source'=>'https://www.avecretailleau.fr/projet/mesure/rendre-30-milliards-d-euros-aux-salaries-et-aux-entreprises',
-                    'target'=>SocialProgramme::target2027()['pf2027-retailleau-contributions']['target'],'scope'=>'gross_revenue_loss_no_automatic_savings'],
+                    'target'=>['annual_employee_relief_eur'=>15000000000,'annual_employer_relief_eur'=>15000000000],'scope'=>'gross_revenue_loss_no_automatic_savings'],
                 ['id'=>'pf2027-dlf-production-tax','publisher'=>'Debout la France','source'=>'https://www.debout-la-france.fr/wp-content/uploads/2026/11/Programme-et-plan-de-financement-economique.pdf',
-                    'target'=>SocialProgramme::target2027()['pf2027-dlf-production-tax']['target'],'scope'=>'annual_budget_flow_only'],
+                    'target'=>['annual_reduction_eur'=>5000000000],'scope'=>'annual_budget_flow_only'],
                 ['id'=>'pf2027-dlf-industrial-grants','publisher'=>'Debout la France','source'=>'https://www.debout-la-france.fr/wp-content/uploads/2026/11/Programme-et-plan-de-financement-economique.pdf',
-                    'target'=>SocialProgramme::target2027()['pf2027-dlf-industrial-grants']['target'],'scope'=>'annual_grant_budget_only_no_guaranteed_jobs'],
+                    'target'=>['annual_eur'=>4000000000],'scope'=>'annual_grant_budget_only_no_guaranteed_jobs'],
+                ['id'=>'pf2027-lfi-public-housing','publisher'=>'La France insoumise','source'=>'https://melenchon2027.fr/programme/plans-investissement/btp-logement/',
+                    'target'=>['annual_units'=>200000,'years'=>5],'scope'=>'incremental_public_housing_proxy'],
+                ['id'=>'pf2027-lfi-renovation','publisher'=>'La France insoumise','source'=>'https://melenchon2027.fr/programme/livre/pour-une-bifurcation-ecologique-et-sociale/chapitre3/',
+                    'target'=>['annual_units'=>700000],'scope'=>'incremental_insulation_funding_proxy'],
+                ['id'=>'pf2027-lfi-public-index','publisher'=>'La France insoumise','source'=>'https://melenchon2027.fr/plans-thematiques/pauvrete/',
+                    'target'=>['increase_bps'=>1000],'scope'=>'indexed_pay_component_not_total_salary'],
+                ['id'=>'pf2027-lfi-eldercare-capacity','publisher'=>'La France insoumise','source'=>'https://melenchon2027.fr/programme/livre/mettre-en-securite-sociale/chapitre2/',
+                    'target'=>['annual_places'=>10000,'years'=>5],'scope'=>'incremental_operating_cost_not_construction_certification'],
+                ['id'=>'pf2027-retailleau-overtime','publisher'=>'Bruno Retailleau','source'=>'https://www.avecretailleau.fr/projet/mesure/rapprocher-le-brut-du-net-avec-le-seuil-zero-cotisation',
+                    'target'=>['annual_threshold_hours'=>1623,'social_contributions_above_threshold_bps'=>0,'csg_crds_retained'=>true],'scope'=>'residual_payroll_relief_without_claimed_financing'],
             ],
-            'identified_unmapped'=>[
-                ['id'=>'fr2027-retailleau-overtime','source'=>'https://www.avecretailleau.fr/projet/mesure/rapprocher-le-brut-du-net-avec-le-seuil-zero-cotisation',
-                    'target'=>['annual_threshold_hours'=>1623],'reason'=>'annualized_payroll_and_residual_levies_required'],
-            ],
-            'selection_enabled'=>false,'requires_primary_source_review'=>true];
+            'identified_unmapped'=>[],
+            'selection_enabled'=>false,'reviewed_profile_selection_enabled'=>true,'requires_primary_source_review'=>true];
+        $ids=[];
+        foreach($r['reviewed_measures'] as $m){
+            $id=$m['id'];$d=SocialProgramme::target2027()[$id]??null;
+            if(isset($ids[$id])||$d===null||$d['target']!==$m['target']||!str_starts_with($m['source'],'https://'))
+                throw new \DomainException('Invalid dated programme source mapping');
+            $ids[$id]=true;
+        }
+        if(array_diff_key(SocialProgramme::target2027(),$ids)!==[])throw new \DomainException('Missing dated programme provenance');
+        $r['reference_sha']=hash('sha256',json_encode($r,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+        return $r;
     }
     /** Dated published projects, distinct from the final official ballot.
      * Party-only programmes are not attributed to an individual without
@@ -77,9 +94,17 @@ final class CampaignCandidate
             ['id'=>'campaign2027-bruno-retailleau','name'=>'Bruno Retailleau','publisher'=>'Bruno Retailleau','source'=>'https://www.avecretailleau.fr/projet/faq'],
             ['id'=>'campaign2027-nicolas-dupont-aignan','name'=>'Nicolas Dupont-Aignan','publisher'=>'Debout la France','source'=>'https://www.debout-la-france.fr/wp-content/uploads/2026/11/Programme-et-plan-de-financement-economique.pdf'],
         ];
+        // Preserve previously issued reference IDs and their exact roster
+        // fingerprints. New programme editions have separate IDs.
+        $oldIds=[
+            'campaign2027-jean-luc-melenchon'=>['pf2027-jean-luc-melenchon-smic','pf2027-jean-luc-melenchon-pension'],
+            'campaign2027-bruno-retailleau'=>['pf2027-retailleau-contributions'],
+            'campaign2027-nicolas-dupont-aignan'=>['pf2027-dlf-production-tax','pf2027-dlf-industrial-grants'],
+        ];
+        foreach([$rows[0],$rows[1]] as $row){$row['id'].='-v2';$rows[]=$row;}
         foreach($rows as &$row){
             $row['as_of']=$reference['observed_on'];
-            $row['measure_ids']=array_column(array_values(array_filter($reference['reviewed_measures'],fn($m)=>$m['publisher']===$row['publisher'])),'id');
+            $row['measure_ids']=$oldIds[$row['id']]??array_column(array_values(array_filter($reference['reviewed_measures'],fn($m)=>$m['publisher']===$row['publisher'])),'id');
             $row['final_ballot_verified']=false;
         }unset($row);
         return $rows;

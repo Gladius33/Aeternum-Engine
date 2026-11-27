@@ -80,6 +80,22 @@ final class SocialProgramme
                 'target'=>['annual_reduction_eur'=>5000000000],'parameters'=>[],'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
             'pf2027-dlf-industrial-grants'=>['bit'=>84,'domain'=>'industry','family'=>'industrial-grants',
                 'target'=>['annual_eur'=>4000000000],'parameters'=>[],'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-lfi-public-housing'=>['bit'=>87,'domain'=>'housing','family'=>'social-housing',
+                'target'=>['annual_units'=>200000,'years'=>5],'parameters'=>['reference_annual_units'=>100000,'public_cost_per_unit_eur'=>40000],
+                'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-lfi-renovation'=>['bit'=>88,'domain'=>'housing','family'=>'renovation',
+                'target'=>['annual_units'=>700000],'parameters'=>['reference_annual_units'=>200000,'public_cost_per_unit_eur'=>10000],
+                'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-lfi-public-index'=>['bit'=>89,'domain'=>'wages','family'=>'public-pay',
+                'target'=>['increase_bps'=>1000],'parameters'=>['workers'=>4000000,'reference_monthly_net_eur'=>2000,'employer_cost_bps'=>16667],
+                'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-lfi-eldercare-capacity'=>['bit'=>90,'domain'=>'eldercare','family'=>'eldercare-capacity',
+                'target'=>['annual_places'=>10000,'years'=>5],'parameters'=>['annual_cost_per_place_eur'=>35000],
+                'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-retailleau-overtime'=>['bit'=>91,'domain'=>'wages','family'=>'overtime-relief',
+                'target'=>['annual_threshold_hours'=>1623,'social_contributions_above_threshold_bps'=>0,'csg_crds_retained'=>true],
+                'parameters'=>['workers_share_bps'=>2000,'reference_annual_hours'=>1700,'reference_hourly_gross_eur'=>20,'remaining_employee_rate_bps'=>900,'remaining_employer_rate_bps'=>1500],
+                'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
         ];
     }
     // Stable allocation beyond the original 24 historical bits.
@@ -99,7 +115,7 @@ final class SocialProgramme
         foreach($newFamilies as $n=>$family)$d['social-repeal-'.$family]=[
             'bit'=>96+$n,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
             'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
-        foreach(['local-supply'=>127,'renewable-transition'=>95,'collective-ownership'=>94,'contribution-cut'=>85,'industrial-grants'=>86] as $family=>$bit)$d['social-repeal-'.$family]=[
+        foreach(['local-supply'=>127,'renewable-transition'=>95,'collective-ownership'=>94,'contribution-cut'=>85,'industrial-grants'=>86,'eldercare-capacity'=>92] as $family=>$bit)$d['social-repeal-'.$family]=[
             'bit'=>$bit,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
             'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         return $cached=$d;

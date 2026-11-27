@@ -78,14 +78,15 @@ final class UniverseLobby
         $country=$body['country'];$no=$body['universe_no']??null;
         if(!is_string($country)||!in_array($country,self::DIPLOMATIC_COUNTRIES,true)||($no!==null&&(!is_int($no)||$no<1))
             ||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key))throw new AlphaHttpError(422,'invalid_universe_join');
-        $candidate=null;
+        $candidate=null;$openingProgramme=null;
         if(array_key_exists('candidate',$body)){
             if($country!=='FR')throw new AlphaHttpError(422,'candidate_selection_france_only');
-            try{$candidate=CampaignCandidate::normalizeManaged($body['candidate']);}
+            try{$candidate=CampaignCandidate::normalizeManaged($body['candidate']);
+                if($body['candidate']['type']==='campaign2027')$openingProgramme=PresidentialProgramme::compileProfile(array_column($candidate['programme'],'id'));}
             catch(\InvalidArgumentException|\DomainException $e){throw new AlphaHttpError(422,'invalid_candidate');}
         }
         $key=hash('sha256',$key);$fingerprint=hash('sha256',json_encode([$country,$no,...($candidate===null?[]:[$candidate])],JSON_THROW_ON_ERROR));
-        return $this->transaction(function()use($s,$country,$no,$key,$fingerprint,$candidate){
+        return $this->transaction(function()use($s,$country,$no,$key,$fingerprint,$candidate,$openingProgramme){
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
             $prior=$this->query('SELECT request_sha,response_json FROM wp_universe_join_receipts WHERE account_id=? AND receipt_key=?',[$s->id,$key])->fetch(\PDO::FETCH_ASSOC);
             if($prior!==false){
@@ -122,7 +123,15 @@ final class UniverseLobby
             $gen=(int)$slot['generation'];$spare=null;
             if($candidate!==null){
                 if($gen!==0||$slot['account_id']!==null||$c['committed_day']!==FrenchElectionCalendar::PRESIDENTIAL_HANDOVER)throw new AlphaHttpError(409,'candidate_requires_opening_slot');
+                if($openingProgramme!==null){
+                    $raw=$this->query('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?',[$world])->fetchColumn();
+                    $cfg=json_decode($raw,true,64,JSON_THROW_ON_ERROR);
+                    foreach(PresidentialProgramme::socialIds($openingProgramme)??[] as $id)
+                        if(SocialProgramme::assumption($id,$cfg['catalog'],isset($cfg['social_economy_from']))===null)
+                            throw new AlphaHttpError(409,'social_programme_requires_new_universe');
+                }
                 $this->openingCandidate($world,$s->id,$candidate,$fingerprint);
+                if($openingProgramme!==null)$this->query("UPDATE wp_universe_slots SET domestic_programme=?,programme_set_on=? WHERE world_id=? AND country_code='FR'",[$openingProgramme,$c['committed_day'],$world]);
             }
             if($slot['account_id']===null){
                 ++$gen;
@@ -134,7 +143,7 @@ final class UniverseLobby
                 $spare=$this->ensureSpare();
             }
             $r=['universe_no'=>(int)$u['universe_no'],'world_id'=>$world,'country'=>$country,'generation'=>$gen,
-                'handover_day'=>$c['committed_day'],'new_universe'=>$spare,'state_reset'=>false,...($candidate===null?[]:['opening_candidate'=>['name'=>$candidate['name'],'kind'=>$candidate['kind'],'programme_count'=>count($candidate['programme']),'historical_alternate_history'=>$candidate['kind']==='real']])];
+                'handover_day'=>$c['committed_day'],'new_universe'=>$spare,'state_reset'=>false,...($candidate===null?[]:['opening_candidate'=>['name'=>$candidate['name'],'kind'=>$candidate['kind'],'programme_count'=>count($candidate['programme']),'historical_alternate_history'=>$candidate['kind']==='real'&&$openingProgramme===null,...($openingProgramme===null?[]:['campaign_2027_provisional'=>true,'domestic_programme'=>$openingProgramme,'legal_effect'=>false])]])];
             $this->query('INSERT INTO wp_universe_join_receipts(account_id,receipt_key,request_sha,response_json) VALUES(?,?,?,?)',
                 [$s->id,$key,$fingerprint,json_encode($r,JSON_THROW_ON_ERROR)]);
             return $r;

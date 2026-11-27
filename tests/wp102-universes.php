@@ -385,3 +385,28 @@ ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced
 $targetState=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
 ck102($targetState['social_measure_ids']===$targetIds,'WP114 exact 2027 identities persist without substitution');
 ck102(\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo)['integrity']==='passed','WP114 2027 programme configuration preserves universe integrity');
+
+
+// New pristine universe: actual authenticated selection sets the idle
+// programme atomically, without automatically enacting an instrument.
+$db->beginTransaction();
+$cfg27=new \Aeternum\WorldPolitics\AlphaScenario(\Aeternum\WorldPolitics\AlphaScenario::INVESTITURE,$bundleK,$shaK);
+$w27=(new \Aeternum\WorldPolitics\AlphaWorlds($db,$cfg27))->provisionUniverse()['world_id'];
+$q27=$db->prepare('INSERT INTO wp_universes(world_id,roster_version) VALUES(?,?)');$q27->execute([$w27,UniverseLobby::ROSTER_VERSION]);$n27=(int)$db->lastInsertId();
+$q27=$db->prepare("INSERT INTO wp_universe_slots(world_id,country_code,domestic_programme) VALUES(?,?,'manual')");
+foreach(UniverseLobby::DIPLOMATIC_COUNTRIES as $cc)$q27->execute([$w27,$cc]);
+$db->commit();
+$body27=['country'=>'FR','universe_no'=>$n27,'candidate'=>['type'=>'campaign2027','reference_id'=>'campaign2027-jean-luc-melenchon-v2']];
+$hdr27=['idempotency-key'=>'wp114-2027-opening-choice'];
+$joined27=call102('POST','/universes/join',$body27,8,$hdr27);
+ck102($joined27['status']===201&&$joined27['body']['opening_candidate']['campaign_2027_provisional']&&!$joined27['body']['opening_candidate']['legal_effect'],'WP114 2027 candidate initializes programme without legal effect');
+ck102(call102('POST','/universes/join',$body27,8,$hdr27)===$joined27,'WP114 2027 opening receipt replay');
+$p27=call102('GET','/universes/'.$n27.'/programme',null,8)['body'];
+ck102(count($p27['social_measure_ids'])===6&&count($p27['candidate_programme']['measures'])===6&&count(array_filter($p27['candidate_programme']['measures'],fn($m)=>$m['selected']))===6,'WP114 idle programme follows selected candidate edition');
+ck102(call102('DELETE','/universes/'.$n27.'/membership',null,8)['status']===200,'WP114 2027 candidate released to autonomous government');
+$due->execute([$w27]);ck102($scheduler->tick($w27)['status']==='committed','WP114 autonomous government advances candidate programme');
+ck102(join102(8,'FR',$n27,'wp114-2027-inherited-choice')['status']===201,'WP114 inherit same candidate and programme');
+$p27=call102('GET','/universes/'.$n27.'/programme',null,8)['body'];
+ck102(count($p27['social_measure_ids'])===6,'WP114 AI programme inherited unchanged');
+ck102(call102('POST','/universes/'.$n27.'/programme',['diplomacy'=>'balanced','domestic'=>'manual'],8)['status']===200,'WP114 human may override candidate programme');
+ck102(\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$n27)['integrity']==='passed','WP114 candidate and programme transactional audit');
