@@ -5,7 +5,7 @@ namespace Aeternum\WorldPolitics;
 /** Documentary registry only: no election admission, authority or policy compilation. */
 final class PoliticalMovementReference
 {
-    public const VERSION='wp117-movement-reference-v6';
+    public const VERSION='wp117-movement-reference-v7';
     public const AS_OF='2026-11-27';
     private const INPUTS=[
         '2026-11-25-un-members-v1.json'=>'c648d718cb4b87d6652e1ecad0bd5afcc31b7dc7',
@@ -18,7 +18,7 @@ final class PoliticalMovementReference
         'wp117-cnccfp-2024-v1/parties.json'=>'a817286e2e8cd5da4ce5e5fb733d0fca5d5754ad',
     ];
     private array $countries=[],$organizations=[],$people=[],$sources=[],$doctrines=[],$affiliations=[],$relationships=[],$documents=[],$elections=[],$officeholders=[],$campaigns=[],$pins=[];
-    private array $partyfacts=[],$cnccfp=[],$crosswalks=[],$labelCorrespondences=[],$coverageAudit=[],$academicCrosswalks=[],$academicCountryCounts=[],$academicDatasetCounts=[],$academicStatusCounts=[];
+    private array $partyfacts=[],$cnccfp=[],$crosswalks=[],$labelCorrespondences=[],$coverageAudit=[],$academicCrosswalks=[],$academicCountryCounts=[],$academicDatasetCounts=[],$academicStatusCounts=[],$countryContexts=[],$sourceCatalogues=[],$programmeReferences=[];
     private const ISO3_TO_ISO2='AFG:AF ALB:AL DZA:DZ AND:AD AGO:AO ATG:AG ARG:AR ARM:AM AUS:AU AUT:AT AZE:AZ BHS:BS BHR:BH BGD:BD BRB:BB BLR:BY BEL:BE BLZ:BZ BEN:BJ BTN:BT BOL:BO BIH:BA BWA:BW BRA:BR BRN:BN BGR:BG BFA:BF BDI:BI CPV:CV KHM:KH CMR:CM CAN:CA CAF:CF TCD:TD CHL:CL CHN:CN COL:CO COM:KM COG:CG COD:CD CRI:CR CIV:CI HRV:HR CUB:CU CYP:CY CZE:CZ DNK:DK DJI:DJ DMA:DM DOM:DO ECU:EC EGY:EG SLV:SV GNQ:GQ ERI:ER EST:EE SWZ:SZ ETH:ET FJI:FJ FIN:FI FRA:FR GAB:GA GMB:GM GEO:GE DEU:DE GHA:GH GRC:GR GRD:GD GTM:GT GIN:GN GNB:GW GUY:GY HTI:HT HND:HN HUN:HU ISL:IS IND:IN IDN:ID IRN:IR IRQ:IQ IRL:IE ISR:IL ITA:IT JAM:JM JPN:JP JOR:JO KAZ:KZ KEN:KE KIR:KI PRK:KP KOR:KR KWT:KW KGZ:KG LAO:LA LVA:LV LBN:LB LSO:LS LBR:LR LBY:LY LIE:LI LTU:LT LUX:LU MDG:MG MWI:MW MYS:MY MDV:MV MLI:ML MLT:MT MHL:MH MRT:MR MUS:MU MEX:MX FSM:FM MDA:MD MCO:MC MNG:MN MNE:ME MAR:MA MOZ:MZ MMR:MM NAM:NA NRU:NR NPL:NP NLD:NL NZL:NZ NIC:NI NER:NE NGA:NG MKD:MK NOR:NO OMN:OM PAK:PK PLW:PW PAN:PA PNG:PG PRY:PY PER:PE PHL:PH POL:PL PRT:PT QAT:QA ROU:RO RUS:RU RWA:RW KNA:KN LCA:LC VCT:VC WSM:WS SMR:SM STP:ST SAU:SA SEN:SN SRB:RS SYC:SC SLE:SL SGP:SG SVK:SK SVN:SI SLB:SB SOM:SO ZAF:ZA SSD:SS ESP:ES LKA:LK SDN:SD SUR:SR SWE:SE CHE:CH SYR:SY TJK:TJ TZA:TZ THA:TH TLS:TL TGO:TG TON:TO TTO:TT TUN:TN TUR:TR TKM:TM TUV:TV UGA:UG UKR:UA ARE:AE GBR:GB USA:US URY:UY UZB:UZ VUT:VU VEN:VE VNM:VN YEM:YE ZMB:ZM ZWE:ZW PSE:PS VAT:VA';
     private string $sha;
     public function __construct(?string $root=null,?string $expectedSha=null)
@@ -136,6 +136,7 @@ final class PoliticalMovementReference
             self::need(!isset($this->crosswalks[$id])&&isset($this->organizations[$r['organization_id']],$this->cnccfp[$ref])&&$r['country']==='FR'&&$this->organizations[$r['organization_id']]['country']===$r['country']&&in_array($r['source_label'],$this->cnccfp[$ref]['names'],true)&&$r['classification']==='reviewed_name_correspondence_only'&&$r['legal_identity_verified']===false&&$r['runtime_admission']===false,'crosswalk evidence');
             self::day($r['observed_on']);$this->crosswalks[$id]=$r+['source_reference_id'=>$ref];
         }
+        $this->loadCoverageContext($this->load($root,'wp117-coverage-context-v1.json','8eef89a355307b10d5cf958c6b8dd94dc83c114a'));
         $this->buildDiscoveryIndexes();
         ksort($this->pins,SORT_STRING);
         $this->sha=hash('sha256',self::json(['version'=>self::VERSION,'pins'=>$this->pins]));
@@ -232,6 +233,25 @@ final class PoliticalMovementReference
         ksort($this->academicDatasetCounts,SORT_STRING);ksort($this->academicStatusCounts,SORT_STRING);
         self::need(count($this->academicCrosswalks)===$d['source_rows']&&$linked===$d['linked_rows']&&$this->academicDatasetCounts===$d['dataset_counts'],'academic crosswalk counts');
     }
+    private function loadCoverageContext(array $d):void
+    {
+        self::need($d['schema']==='wp117-coverage-context-v1'&&$d['as_of']===self::AS_OF&&$d['runtime_admission']===false&&$d['exhaustive']===false,'coverage context edition');
+        foreach($d['country_context'] as $r){
+            self::id($r['id']);self::day($r['source_date']);self::day($r['observed_on']);
+            self::need(isset($this->countries[$r['country']])&&!isset($this->countryContexts[$r['id']])&&$r['classification']==='appointed_legislature_context'&&str_starts_with($r['source_url'],'https://')&&$r['runtime_admission']===false,'institutional context');
+            $this->countryContexts[$r['id']]=$r;
+        }
+        foreach($d['catalogues'] as $r){
+            self::id($r['id']);self::day($r['observed_on']);
+            self::need(!isset($this->sourceCatalogues[$r['id']])&&$r['acquisition_status']==='catalogue_metadata_only'&&$r['imported_document_count']===0&&$r['runtime_admission']===false&&str_starts_with($r['source_url'],'https://'),'catalogue metadata only');
+            foreach($r['published_counts'] as $n)self::need(is_int($n)&&$n>=0,'catalogue counts');
+            $this->sourceCatalogues[$r['id']]=$r;
+        }
+        foreach($this->campaigns as $c){
+            $id='programme-ref-'.hash('sha256',self::json([$c['id'],$c['observed_on'],$c['source_url']]));
+            $this->programmeReferences[$id]=['id'=>$id,'country'=>$c['country'],'campaign_reference_id'=>$c['id'],'name'=>$c['name'],'source_url'=>$c['source_url'],'observed_on'=>$c['observed_on'],'election_year'=>$c['election_year'],'publication_state'=>$c['publication_state'],'content_status'=>'source_reference_only','document_bytes_sha256'=>null,'programme_complete'=>false,'runtime_admission'=>false];
+        }
+    }
     private function buildDiscoveryIndexes():void
     {
         $groups=[];
@@ -257,6 +277,9 @@ final class PoliticalMovementReference
             $counts=[];
             foreach(['organization_ids','election_observation_ids','office_observation_ids','campaign_reference_ids','partyfacts_ids','cnccfp_ids'] as $field)$counts[$field]=count($r[$field]);
             $counts['academic_crosswalk_observations']=$this->academicCountryCounts[$country]??0;
+            $counts['institutional_context_observations']=0;
+            foreach($this->countryContexts as $context)$counts['institutional_context_observations']+=(int)($context['country']===$country);
+            $counts['programme_source_references']=$counts['campaign_reference_ids'];
             $counts['registered_party_observations']=0;
             $counts['affiliation_observations']=0;
             $counts['document_references']=0;
@@ -267,7 +290,7 @@ final class PoliticalMovementReference
             foreach($this->documents as $d)$counts['document_references']+=(int)($this->organizations[$d['organization']]['country']===$country);
             foreach($this->crosswalks as $c)$counts['reviewed_name_correspondences']+=(int)($c['country']===$country);
             foreach($this->labelCorrespondences as $c)$counts['unverified_label_correspondences']+=(int)($c['country']===$country);
-            $this->coverageAudit[$id]=['id'=>$id,'country'=>$country,'counts'=>$counts,'current_roster_verified'=>false,'programme_completeness_verified'=>false,'exhaustive'=>false,'runtime_admission'=>false];
+            $this->coverageAudit[$id]=['id'=>$id,'country'=>$country,'counts'=>$counts,'evidence_status'=>($counts['organization_ids']+$counts['election_observation_ids']+$counts['partyfacts_ids']>0?'partial_movement_evidence':($counts['institutional_context_observations']>0?'institutional_context_only':'unresolved_gap')),'current_roster_verified'=>false,'programme_completeness_verified'=>false,'exhaustive'=>false,'runtime_admission'=>false];
         }
     }
     private function load(string $root,string $name,?string $blob):array
@@ -290,7 +313,7 @@ final class PoliticalMovementReference
         $covered=0;$labels=0;$offices=0;$academic=0;$unmapped=0;
         foreach($this->partyfacts as $row)$unmapped+=(int)($row['country']===null);
         foreach($this->countries as $r){$covered+=(int)($r['organization_ids']!==[]||$r['election_observation_ids']!==[]||$r['partyfacts_ids']!==[]);$academic+=(int)($r['partyfacts_ids']!==[]);$labels+=(int)($r['election_observation_ids']!==[]);$offices+=(int)($r['office_observation_ids']!==[]);}
-        return ['countries'=>count($this->countries),'countries_with_movement_evidence'=>$covered,'countries_with_electoral_labels'=>$labels,'countries_with_office_observations'=>$offices,'countries_with_partyfacts'=>$academic,'partyfacts_references'=>count($this->partyfacts),'partyfacts_unmapped_country_references'=>$unmapped,'cnccfp_references'=>count($this->cnccfp),'coverage_audit_countries'=>count($this->coverageAudit),'unverified_label_correspondences'=>count($this->labelCorrespondences),'academic_crosswalk_references'=>count($this->academicCrosswalks),'academic_crosswalk_datasets'=>count($this->academicDatasetCounts),'academic_crosswalk_status_counts'=>$this->academicStatusCounts,'crosswalks'=>count($this->crosswalks),'organizations'=>count($this->organizations),'electoral_observations'=>count($this->elections),'office_observations'=>count($this->officeholders),'campaign_sources'=>count($this->campaigns),'people'=>count($this->people),'affiliations'=>count($this->affiliations),'relationships'=>count($this->relationships),'doctrines'=>count($this->doctrines),'documents'=>count($this->documents),'exhaustive'=>false,'runtime_admission'=>false];
+        return ['countries'=>count($this->countries),'countries_with_movement_evidence'=>$covered,'countries_with_electoral_labels'=>$labels,'countries_with_office_observations'=>$offices,'countries_with_partyfacts'=>$academic,'partyfacts_references'=>count($this->partyfacts),'partyfacts_unmapped_country_references'=>$unmapped,'cnccfp_references'=>count($this->cnccfp),'coverage_audit_countries'=>count($this->coverageAudit),'coverage_status_counts'=>array_count_values(array_column($this->coverageAudit,'evidence_status')),'programme_source_references'=>count($this->programmeReferences),'source_catalogues'=>count($this->sourceCatalogues),'unverified_label_correspondences'=>count($this->labelCorrespondences),'academic_crosswalk_references'=>count($this->academicCrosswalks),'academic_crosswalk_datasets'=>count($this->academicDatasetCounts),'academic_crosswalk_status_counts'=>$this->academicStatusCounts,'crosswalks'=>count($this->crosswalks),'organizations'=>count($this->organizations),'electoral_observations'=>count($this->elections),'office_observations'=>count($this->officeholders),'campaign_sources'=>count($this->campaigns),'people'=>count($this->people),'affiliations'=>count($this->affiliations),'relationships'=>count($this->relationships),'doctrines'=>count($this->doctrines),'documents'=>count($this->documents),'exhaustive'=>false,'runtime_admission'=>false];
     }
     public function country(string $code):array
     {
@@ -302,8 +325,8 @@ final class PoliticalMovementReference
     public function page(string $kind,?string $country=null,?string $after=null,int $limit=100):array
     {
         self::need($limit>=1&&$limit<=100&&($country===null||isset($this->countries[$country])),'page scope');
-        $map=match($kind){'organizations'=>$this->organizations,'people'=>$this->people,'electoral_observations'=>$this->elections,'office_observations'=>$this->officeholders,'campaign_sources'=>$this->campaigns,'partyfacts_references'=>$this->partyfacts,'cnccfp_references'=>$this->cnccfp,'crosswalks'=>$this->crosswalks,'academic_crosswalks'=>$this->academicCrosswalks,'label_correspondences'=>$this->labelCorrespondences,'coverage_audit'=>$this->coverageAudit,'doctrines'=>$this->doctrines,'affiliations'=>$this->affiliations,'relationships'=>$this->relationships,'documents'=>$this->documents,'sources'=>$this->sources,default=>throw new \DomainException('Unknown reference kind')};
-        if($country!==null)self::need(in_array($kind,['organizations','people','electoral_observations','office_observations','campaign_sources','partyfacts_references','cnccfp_references','crosswalks','academic_crosswalks','label_correspondences','coverage_audit'],true),'unsupported country filter');
+        $map=match($kind){'organizations'=>$this->organizations,'people'=>$this->people,'electoral_observations'=>$this->elections,'office_observations'=>$this->officeholders,'campaign_sources'=>$this->campaigns,'partyfacts_references'=>$this->partyfacts,'cnccfp_references'=>$this->cnccfp,'crosswalks'=>$this->crosswalks,'academic_crosswalks'=>$this->academicCrosswalks,'label_correspondences'=>$this->labelCorrespondences,'coverage_audit'=>$this->coverageAudit,'country_contexts'=>$this->countryContexts,'source_catalogues'=>$this->sourceCatalogues,'programme_references'=>$this->programmeReferences,'doctrines'=>$this->doctrines,'affiliations'=>$this->affiliations,'relationships'=>$this->relationships,'documents'=>$this->documents,'sources'=>$this->sources,default=>throw new \DomainException('Unknown reference kind')};
+        if($country!==null)self::need(in_array($kind,['organizations','people','electoral_observations','office_observations','campaign_sources','partyfacts_references','cnccfp_references','crosswalks','academic_crosswalks','label_correspondences','coverage_audit','country_contexts','programme_references'],true),'unsupported country filter');
         if($country!==null)$map=array_filter($map,fn($r)=>$r['country']===$country);
         ksort($map,SORT_STRING);
         if($after!==null)self::need(isset($map[$after]),'unknown cursor');

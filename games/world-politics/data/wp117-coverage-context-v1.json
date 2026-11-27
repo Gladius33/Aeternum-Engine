@@ -1,0 +1,43 @@
+{
+  "schema": "wp117-coverage-context-v1",
+  "as_of": "2026-11-27",
+  "runtime_admission": false,
+  "exhaustive": false,
+  "country_context": [
+    {
+      "id": "va-institutional-context-2023",
+      "country": "VA",
+      "classification": "appointed_legislature_context",
+      "source_url": "https://www.vaticanstate.va/en/state-and-government/government-bodies/legislative-and-executive-function.html",
+      "source_date": "2023-05-13",
+      "observed_on": "2026-11-27",
+      "article_references": [
+        7,
+        8,
+        15
+      ],
+      "description": "Legislative power is exercised by the Pontifical Commission subject to reserved papal powers. Its members are appointed by the Pope for five years. This does not certify the absence of all political associations.",
+      "runtime_admission": false
+    }
+  ],
+  "catalogues": [
+    {
+      "id": "manifesto-project-2026a",
+      "edition": "2026a",
+      "doi": "10.25522/manifesto.mpds.2026a",
+      "source_url": "https://manifesto-project.wzb.eu/datasets",
+      "observed_on": "2026-11-27",
+      "published_counts": {
+        "countries": 67,
+        "elections": 884,
+        "parties": 1429,
+        "manifestos": 5330
+      },
+      "counts_source_url": "https://manifesto-project.wzb.eu/",
+      "acquisition_status": "catalogue_metadata_only",
+      "imported_document_count": 0,
+      "collection_run_url": "https://github.com/Gladius33/Aeternum-Engine/actions/runs/45994519192",
+      "runtime_admission": false
+    }
+  ]
+}

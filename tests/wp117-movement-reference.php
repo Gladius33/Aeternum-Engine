@@ -50,6 +50,14 @@ foreach($ca['rows'] as $v)ck117($v['country']==='FR'&&!$v['legal_identity_verifi
 $cb=$r->page('academic_crosswalks','FR',$ca['next'],97);
 ck117(count(array_intersect(array_column($ca['rows'],'id'),array_column($cb['rows'],'id')))===0,'academic cursor disjoint');
 reject117(fn()=>$r->page('academic_crosswalks','FR','not-a-cursor'));
+$ctx=$r->page('country_contexts','VA')['rows'];
+ck117(count($ctx)===1&&$ctx[0]['article_references']===[7,8,15]&&!$ctx[0]['runtime_admission'],'Vatican constitutional context not invented party');
+$catalogues=$r->page('source_catalogues')['rows'];
+ck117(count($catalogues)===1&&$catalogues[0]['published_counts']['manifestos']===5330&&$catalogues[0]['imported_document_count']===0,'publisher counts are not imported programmes');
+$pr=$r->page('programme_references','FR')['rows'];
+ck117(count($pr)===22&&$s['programme_source_references']===22,'versioned French campaign sources');
+foreach($pr as $v)ck117($v['election_year']===2027&&!$v['programme_complete']&&!$v['runtime_admission']&&$v['document_bytes_sha256']===null,'no invented programme contents');
+ck117(array_sum($s['coverage_status_counts'])===195,'all countries have explicit evidence status');
 $seen=[];$after=null;
 do{$p=$r->page('electoral_observations',null,$after,37);foreach($p['rows'] as $v){ck117(!isset($seen[$v['id']])&&$v['organization_id']===null&&!$v['current_membership_verified']&&!$v['runtime_admission'],'no label identity inference');$seen[$v['id']]=true;}$after=$p['next'];}while($after!==null);
 ck117(count($seen)===1095,'bounded pagination complete');
