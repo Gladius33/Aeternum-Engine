@@ -69,3 +69,18 @@ class ResearchClient:
                 raise ValueError("Invalid dataset cursor")
             path += f"/{after}/{through}"
         return self._request("GET", path)
+
+    def initialize_simulation(self, world_id):
+        return self._request("POST", "/worlds/" + self._id(world_id) + "/simulation")
+
+    def simulation(self, world_id):
+        return self._request("GET", "/worlds/" + self._id(world_id) + "/simulation")
+
+    def step_simulation(self, world_id, revision, days, policy, idempotency_key):
+        return self._request("POST", "/worlds/" + self._id(world_id) + "/simulation/step",
+                             {"expected_revision": revision, "days": days, "policy": policy}, idempotency_key)
+
+    def simulation_dataset(self, world_id, after=0):
+        if not isinstance(after, int) or not 0 <= after <= 64:
+            raise ValueError("Invalid transition cursor")
+        return self._request("GET", "/worlds/" + self._id(world_id) + "/simulation/dataset/" + str(after))

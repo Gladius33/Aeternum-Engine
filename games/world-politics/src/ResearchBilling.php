@@ -53,9 +53,9 @@ final class ResearchBilling
         self::q($db,'UPDATE wp_research_capacity_profiles SET max_requests=?,max_units=? WHERE profile=? AND period_seconds=?',[$requests,$units,$profile,$period]);
         return ['profile'=>$profile,'period_seconds'=>$period,'max_requests'=>$requests,'max_units'=>$units];
     }
-    private static function debit(\PDO $db,array $r,string $operation,string $key,int $requests):void{
+    private static function debit(\PDO $db,array $r,string $operation,string $key,int $requests,?int $override=null):void{
         if(!$db->inTransaction())throw new \LogicException('Meter requires transaction');
-        $tenant=$r['tenant_id'];$cost=self::cost($operation);
+        $tenant=$r['tenant_id'];$cost=$override??self::cost($operation);
         if($operation==='global_export'&&$r['plan']!=='pro')throw new ResearchBillingError(403,'research_pro_required');
         if((int)$r['paid_until']<=time()||(int)$r['enabled']!==1)throw new ResearchBillingError(401,'research_entitlement_expired');
         $included=$r['billing_mode']==='monthly'?min($cost,(int)$r['included_units']):0;
@@ -81,6 +81,10 @@ final class ResearchBilling
     }
     public static function compute(\PDO $db,string $tenant,string $job):void{
         self::debit($db,self::account($db,$tenant),'compute',hash('sha256','compute|'.$job),0);
+    }
+    public static function simulation(\PDO $db,string $tenant,string $world,string $command,int $days):void{
+        if($days<1||$days>7)throw new \DomainException('Invalid simulated days');
+        self::debit($db,self::account($db,$tenant),'simulation_step',hash('sha256','sim|'.$world.'|'.$command),0,10*$days);
     }
     public static function fund(\PDO $db,string $tenant,string $reference,string $kind,int $units,?int $until,?string $plan,?string $mode,bool $overage):array{
         if(!$db->inTransaction()||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$reference)||!in_array($kind,['renewal','topup'],true)||$units<0||$units>self::MAX)
@@ -109,7 +113,7 @@ final class ResearchBilling
         return ['meter_version'=>self::VERSION,'plan'=>$r['plan'],'billing_mode'=>$r['billing_mode'],'paid_until'=>(int)$r['paid_until'],
             'included_remaining'=>(int)$r['included_units'],'prepaid_remaining'=>(int)$r['prepaid_units'],'allow_overage'=>(bool)$r['allow_overage'],
             'lifetime_included_used'=>(int)$tot['included_used'],'lifetime_prepaid_used'=>(int)$tot['prepaid_used'],
-            'unit_costs'=>['request'=>1,'export'=>5,'global_export'=>20,'new_experiment'=>10,'usage'=>0],
+            'unit_costs'=>['request'=>1,'export'=>5,'global_export'=>20,'new_experiment'=>10,'simulation_day'=>10,'usage'=>0],
             'plan_capacity'=>array_map(fn($x)=>['period_seconds'=>$x[0],'max_requests'=>$x[1],'max_units'=>$x[2]],self::profile($db,$r['plan']))];
     }
 }

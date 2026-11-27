@@ -34,6 +34,21 @@ final class ResearchGateway
             }
             if($method==='GET'&&preg_match('~^/research/v1/worlds/([a-f0-9]{32})/dataset(?:/([0-9]{1,15})/([0-9]{1,15}))?$~D',$path,$ds))
                 return self::response(200,$this->queue->dataset($token,'own',$ds[1],isset($ds[2])?(int)$ds[2]:0,isset($ds[3])?(int)$ds[3]:null));
+            if(preg_match('~^/research/v1/worlds/([a-f0-9]{32})/simulation(?:/(step|dataset)(?:/([0-9]{1,3}))?)?$~D',$path,$sim)){
+                $op=$sim[2]??'';$after=isset($sim[3])?(int)$sim[3]:0;
+                if($method==='GET'&&in_array($op,['','dataset'],true))return self::response(200,$this->queue->simulation($token,$sim[1],$op===''?'read':'dataset',[],'',$after));
+                if($method==='POST'&&$op===''){
+                    if($raw!==''&&$raw!=='{}')return self::response(400,['code'=>'body_forbidden']);
+                    return self::response(201,$this->queue->simulation($token,$sim[1],'init'));
+                }
+                if($method==='POST'&&$op==='step'&&!isset($sim[3])){
+                    if(!isset($h['idempotency-key']))return self::response(428,['code'=>'idempotency_required']);
+                    if(!preg_match('/^application\/json(?:; ?charset=utf-8)?$/iD',$h['content-type']??''))return self::response(415,['code'=>'json_required']);
+                    $body=json_decode($raw,true,16,JSON_THROW_ON_ERROR);if(!is_array($body))return self::response(400,['code'=>'invalid_json']);
+                    return self::response(200,$this->queue->simulation($token,$sim[1],'step',$body,$h['idempotency-key']));
+                }
+                return self::response(405,['code'=>'method_not_allowed']);
+            }
             if($method==='GET'&&$path==='/research/v1/models')return self::response(200,['models'=>ResearchExperiment::TYPES,'manifest'=>ResearchExperiment::pin()]);
             if($method==='POST'&&($path==='/research/v1/experiments'||preg_match('~^/research/v1/worlds/([a-f0-9]{32})/experiments$~D',$path,$w))){
                 if(!preg_match('/^application\/json(?:; ?charset=utf-8)?$/iD',$h['content-type']??''))return self::response(415,['code'=>'json_required']);

@@ -106,3 +106,25 @@ INSERT INTO wp_research_capacity_profiles(profile,period_seconds,max_requests,ma
  ('standard',1,30,300),('standard',60,120,600),('standard',3600,1200,6000),('standard',86400,5000,30000),
  ('pro',1,40,800),('pro',60,120,2400),('pro',3600,3000,30000),('pro',86400,20000,150000),
  ('global',1,100,2000),('global',60,1000,10000),('global',3600,20000,200000),('global',86400,150000,1000000);
+
+-- Isolated persistent research model, no gameplay schema or credentials.
+CREATE TABLE wp_research_simulations (
+ world_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ tenant_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ revision INT UNSIGNED NOT NULL DEFAULT 0,
+ pin_json LONGTEXT NOT NULL CHECK(JSON_VALID(pin_json)),
+ state_sha CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ last_sha CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ head_signature CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ FOREIGN KEY(world_id,tenant_id) REFERENCES wp_research_worlds(world_id,tenant_id)
+) ENGINE=InnoDB;
+CREATE TABLE wp_research_simulation_events (
+ world_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ revision INT UNSIGNED NOT NULL,
+ command_sha CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ event_json LONGTEXT NOT NULL CHECK(JSON_VALID(event_json)),
+ signature_sha CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ PRIMARY KEY(world_id,revision),
+ UNIQUE KEY simulation_command(world_id,command_sha),
+ FOREIGN KEY(world_id) REFERENCES wp_research_simulations(world_id)
+) ENGINE=InnoDB;

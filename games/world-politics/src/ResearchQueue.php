@@ -92,6 +92,20 @@ final class ResearchQueue
             return ['worlds'=>$rows,'classification'=>'research_experiment_collections_not_persistent_game_worlds'];
         });
     }
+    public function simulation(string $token,string $world,string $operation,array $body=[],string $key='',int $after=0):array{
+        require_once __DIR__.'/ResearchPersistentStore.php';
+        return $this->tx(function()use($token,$world,$operation,$body,$key,$after){
+            $tenant=$this->authorized($token);$this->ownWorld($tenant,$world);
+            $store=new ResearchPersistentStore($this->db,$this->evidenceKey);
+            return match($operation){
+                'init'=>$store->init($world,$tenant),
+                'read'=>$store->read($world,$tenant),
+                'step'=>$store->step($world,$tenant,$key,$body),
+                'dataset'=>$store->dataset($world,$tenant,$after),
+                default=>throw new \DomainException('Unknown simulation operation')
+            };
+        });
+    }
     private function issueLocked(string $tenant):string{
         $token=bin2hex(random_bytes(32));$this->q('INSERT INTO wp_research_keys(key_sha,tenant_id,expires_at) VALUES(?,?,?)',[hash('sha256',$token),$tenant,time()+86400*90]);
         return $token;
