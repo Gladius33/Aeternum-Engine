@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CareerScoreContract.php';
 require_once __DIR__.'/ConstitutionalRevision.php';
+require_once __DIR__.'/PresidentialMandate.php';
 
 /** WP118–119 opt-in institutional ledger. Documentary identities never authorize acts. */
 final class CareerInstitutionLedger
@@ -76,12 +77,66 @@ final class CareerInstitutionLedger
         $s['mandates'][$id]=['id'=>$id,'office'=>$office,'career'=>$g['career'],'generation'=>$generation,'start'=>$day,'expires'=>$g['expires'],'end'=>null,'end_reason'=>null,'interim'=>$g['interim'],'constitution_revision'=>$s['constitution_revision'],'powers'=>$powers,'series'=>$series,'terms'=>$terms];
         $s['active'][$office]=$id;
     }
+    /** Recompute the national fictional ballot using the existing two-round count.
+     * Only a server-side simulation evidence service can sign this operation.
+     * It is not a prediction, nor a population-calibrated vote generator. */
+    public static function ballotTransition(array $s,array $e):array{
+        $p=$e['payload'];$day=$e['day'];self::fields($p,['ballot','first_round_day','second_round_day']);
+        self::check($e['actor']==='career-election-clerk'&&$e['evidence_sha']===self::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$s['world'],'day'=>$day,'payload'=>$p]),'ballot evidence binding');
+        self::day($p['first_round_day']);self::day($p['second_round_day']);
+        $current=$s['active']['president']??null;$old=$current===null?null:$s['mandates'][$current];
+        if($day===CareerScoreContract::START){
+            self::check($old===null&&$p['first_round_day']===$day&&$p['second_round_day']===$day,'opening scenario ballot convention');
+        }else{
+            self::check($old!==null&&!$old['interim']&&$old['expires']===$day,'ordinary election requires incumbent term expiry');
+            $dates=FrenchElectionCalendar::presidentialPoll($day);
+            self::check($p['first_round_day']===$dates['first']&&$p['second_round_day']===$dates['second'],'ballot dates differ from calendar');
+        }
+        foreach(array_keys($p['ballot']['first']['votes']) as $id)self::check(isset($s['careers'][$id])&&$s['careers'][$id]['admitted_on']<=$p['first_round_day'],'candidate not admitted');
+        $count=PresidentialMandate::countElection($p['ballot'],false);$winner=$count['first']['winner']??$count['second']['winner']??null;
+        self::check(is_string($winner)&&isset($s['careers'][$winner]),'unresolved ballot');
+        $reason=$old===null?'election':($old['career']===$winner?'renewal':'succession');
+        $date=new \DateTimeImmutable($day);$year=(int)$date->format('Y')+$s['constitution_rules']['next_term_years'];$month=(int)$date->format('m');
+        $first=$date->setDate($year,$month,1);$expires=$first->setDate($year,$month,min((int)$date->format('d'),(int)$first->format('t')))->format('Y-m-d');
+        return ['reason'=>$reason,'close'=>$old===null?[]:['president'],'grants'=>[['office'=>'president','career'=>$winner,'expires'=>$expires,'interim'=>false]]];
+    }
+    /** Institution-only cabinet decisions; the account and generation are derived from a verified session. */
+    public static function cabinetTransition(array &$s,array $e):?array{
+        $p=$e['payload'];self::fields($p,['kind','mandate','generation','target','portfolio','proposal']);
+        self::check(is_int($p['generation'])&&is_string($p['mandate'])&&is_string($p['kind'])&&$e['evidence_sha']===self::digest(['kind'=>'session-cabinet-act-v1','world'=>$s['world'],'day'=>$e['day'],'actor'=>$e['actor'],'payload'=>$p]),'cabinet evidence binding');
+        $day=$e['day'];$kind=$p['kind'];$account=$e['actor'];$mandate=$p['mandate'];$generation=$p['generation'];
+        $ability=match($kind){'appoint_pm'=>'president.request_appointment','propose_minister'=>'government.propose_ministers','confirm_minister'=>'president.request_appointment','resign_pm'=>'government.present_resignation',default=>throw new \DomainException('Unknown cabinet act')};
+        self::check(self::allows($s,$account,$mandate,$generation,$ability,$day),'cabinet authority denied');
+        $end=(new \DateTimeImmutable(CareerScoreContract::START))->modify('+'.CareerScoreContract::HORIZON.' days')->format('Y-m-d');
+        if($kind==='appoint_pm'){
+            self::check(is_string($p['target'])&&isset($s['careers'][$p['target']])&&$p['portfolio']===null&&$p['proposal']===null&&!isset($s['active']['prime-minister']),'PM appointment requires vacant office');
+            return ['reason'=>'appointment','close'=>[],'grants'=>[['office'=>'prime-minister','career'=>$p['target'],'expires'=>$end,'interim'=>false]]];
+        }
+        if($kind==='resign_pm'){
+            self::check($p['target']===null&&$p['portfolio']===null&&$p['proposal']===null,'resignation shape');
+            $close=array_values(array_filter(array_keys($s['active']),fn($o)=>$o==='prime-minister'||str_starts_with($o,'minister-')));
+            return ['reason'=>'resignation','close'=>$close,'grants'=>[]];
+        }
+        if($kind==='propose_minister'){
+            self::check(is_string($p['target'])&&isset($s['careers'][$p['target']])&&is_string($p['portfolio'])&&in_array($p['portfolio'],self::MINISTRIES,true)&&$p['proposal']===null,'minister proposal shape');
+            $id='proposal-'.hash('sha256',self::json([$s['world'],$e['actor'],$e['command']]));
+            self::check(!isset($s['appointment_proposals'][$id]),'duplicate appointment proposal');
+            $s['appointment_proposals'][$id]=['id'=>$id,'target'=>$p['target'],'portfolio'=>$p['portfolio'],'pm_mandate'=>$mandate,'day'=>$day,'status'=>'pending'];return null;
+        }
+        self::check($p['target']===null&&$p['portfolio']===null&&is_string($p['proposal']),'confirmation shape');
+        $proposal=$s['appointment_proposals'][$p['proposal']]??null;
+        self::check($proposal!==null&&$proposal['status']==='pending'&&($s['active']['prime-minister']??null)===$proposal['pm_mandate']&&$day<$s['mandates'][$proposal['pm_mandate']]['expires'],'stale or missing PM proposal');
+        $office='minister-'.$proposal['portfolio'];$s['appointment_proposals'][$p['proposal']]['status']='confirmed';
+        return ['reason'=>'reshuffle','close'=>isset($s['active'][$office])?[$office]:[],'grants'=>[['office'=>$office,'career'=>$proposal['target'],'expires'=>$end,'interim'=>false]]];
+    }
     /** Applies only institution-certified commands, never raw player inputs. */
     public static function apply(array $s,array $e):array{
         self::fields($e,['world','country','day','world_revision','command','actor','operation','payload','evidence_sha']);
         self::id($e['command']);self::id($e['actor']);self::day($e['day']);
         self::check($e['world']===$s['world']&&$e['country']===$s['country']&&$e['day']>=$s['day']&&is_int($e['world_revision'])&&$e['world_revision']>=0&&preg_match('/^[a-f0-9]{64}$/D',$e['evidence_sha'])===1,'event scope');
         $p=$e['payload'];$day=$e['day'];$op=$e['operation'];
+        if($s['mode']==='career'&&$op==='presidential_ballot'){$p=self::ballotTransition($s,$e);$op='transition';}
+        if($s['mode']==='career'&&$op==='cabinet_act'){$p=self::cabinetTransition($s,$e);$op=$p===null?'cabinet_proposal_recorded':'transition';}
         if($s['mode']==='research'){
             self::check($op==='research_observe','research cannot grant mandates');
             self::fields($p,['regime_label','assembly_status','legality']);
@@ -92,6 +147,8 @@ final class CareerInstitutionLedger
             self::check(!isset($s['careers'][$p['career']])&&in_array($p['mode'],['opening','late_takeover'],true)&&($p['mode']==='opening')===($day===CareerScoreContract::START),'admission mode');
             foreach($s['careers'] as $c)self::check($c['account']!==$p['account']&&$c['character']!==$p['character'],'duplicate career');
             $s['careers'][$p['career']]=['account'=>$p['account'],'character'=>$p['character'],'admitted_on'=>$day,'mode'=>$p['mode'],'first_series'=>null];
+        }elseif($op==='cabinet_proposal_recorded'){
+            self::check($e['operation']==='cabinet_act','invalid proposal event');
         }elseif($op==='transition'){
             self::fields($p,['reason','close','grants']);
             self::check(in_array($p['reason'],['election','renewal','succession','appointment','reshuffle','resignation','censure','expiry'],true)&&array_is_list($p['close'])&&array_is_list($p['grants'])&&count($p['close'])<=1000&&count($p['grants'])<=1000&&count($p['close'])+count($p['grants'])>0,'transition shape');

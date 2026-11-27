@@ -61,4 +61,15 @@ $oldMandate=$v['active']['president'];$v=L::apply($v,evt($v,'constitution_revisi
 ck($v['constitution_rules']['next_term_years']===7&&$v['constitution_rules']['term_limit']===2&&$v['mandates'][$oldMandate]['expires']==='2032-05-14','prospective revision preserves incumbent mandate');
 $v=change($v,'renewal',['president'],[grant('president','a','2039-05-14')],'2032-05-14');
 ck($v['mandates'][$v['active']['president']]['expires']==='2039-05-14','effective seven-year term');
+// The live adapter derives the winner from the existing two-round tally, not a supplied office.
+$b=add(add(L::initial('ballot-world','FR','career','2027-05-14'),'a'),'b');
+$payload=['ballot'=>['registered'=>1000,'first'=>['votes'=>['a'=>600,'b'=>300],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'];
+$be=evt($b,'presidential_ballot',$payload);$be['actor']='career-election-clerk';$be['evidence_sha']=L::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$b['world'],'day'=>$be['day'],'payload'=>$payload]);
+$b=L::apply($b,$be);$bp=$b['active']['president'];ck($b['mandates'][$bp]['career']==='a','winner derived');
+$act=function(array $s,string $actor,array $p):array{$e=evt($s,'cabinet_act',$p);$e['actor']=$actor;$e['evidence_sha']=L::digest(['kind'=>'session-cabinet-act-v1','world'=>$s['world'],'day'=>$e['day'],'actor'=>$actor,'payload'=>$p]);return $e;};
+$pm=['kind'=>'appoint_pm','mandate'=>$bp,'generation'=>1,'target'=>'b','portfolio'=>null,'proposal'=>null];
+no(fn()=>L::apply($b,$act($b,'acct-b',$pm)));
+$b=L::apply($b,$act($b,'acct-a',$pm));ck($b['mandates'][$b['active']['prime-minister']]['career']==='b','verified president appoints PM');
+$pmid=$b['active']['prime-minister'];$resign=['kind'=>'resign_pm','mandate'=>$pmid,'generation'=>1,'target'=>null,'portfolio'=>null,'proposal'=>null];$b=L::apply($b,$act($b,'acct-b',$resign));
+ck($b['government']==='vacant'&&isset($b['careers']['b']),'PM resignation preserves career');
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";

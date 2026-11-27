@@ -83,10 +83,14 @@ final class AlphaGateway
                         if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
                         return self::ok(201,$cs->createForSession($token,$body['label'],$h['idempotency-key'],$secret,$body['profile']??'institutional'));
                     }
-                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|admission|members|economy)$~D',$path,$cm)){
+                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|admission|members|economy|cabinet)$~D',$path,$cm)){
                         if($session->role($cm[1])===null)throw new AlphaHttpError(404,'not_found');
                         if($cm[2]==='economy'&&$method==='GET')return self::ok(200,$cs->economicForSession($cm[1],$token));
                         if($cm[2]==='career'&&$method==='GET')return self::ok(200,$cs->readForSession($cm[1],$token));
+                        if($cm[2]==='cabinet'&&$method==='POST'){
+                            if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
+                            return self::ok(200,$cs->cabinetForSession($cm[1],$token,$body,$h['idempotency-key'],$secret));
+                        }
                         if($cm[2]==='members'&&$method==='POST'){AlphaAccounts::fields($body,['account_id']);if(!is_string($body['account_id']))throw new AlphaHttpError(422,'invalid_account');return self::ok(200,$cs->inviteForSession($cm[1],$token,$body['account_id']));}
                         if($cm[2]==='admission'&&$method==='POST'){AlphaAccounts::fields($body,[]);return self::ok(200,$cs->admitForSession($cm[1],$token,$secret));}
                     }

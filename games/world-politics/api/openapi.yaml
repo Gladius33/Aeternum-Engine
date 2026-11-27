@@ -78,6 +78,37 @@ paths:
         '200': {description: Own career and institutional projection}
         '404': {description: Feature disabled or world inaccessible}
         '409': {description: Verification failure}
+  /career-worlds/{world}/cabinet:
+    post:
+      summary: Exercise a verified presidential or prime-ministerial cabinet capability
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [kind, mandate, generation, target, portfolio, proposal]
+              properties:
+                kind: {type: string, enum: [appoint_pm, propose_minister, confirm_minister, resign_pm]}
+                mandate: {type: string}
+                generation: {type: integer, minimum: 1}
+                target: {type: [string, 'null']}
+                portfolio: {type: [string, 'null']}
+                proposal: {type: [string, 'null']}
+      responses:
+        '200': {description: Committed journal receipt}
+        '404': {description: World inaccessible}
+        '409': {description: Authority or institutional rule denied}
   /career-worlds/{world}/members:
     post:
       summary: Invite an account to private career world without conferring office

@@ -74,7 +74,10 @@ final class PdoCareerInstitutionStore
                 CareerInstitutionLedger::check(hash_equals($digest,$e['evidence_sha']),'institution evidence digest mismatch');
             }
             if($e['operation']==='admit')$this->activeAccount($world,$e['payload']['account']);
-            foreach($e['payload']['grants']??[] as $g){$account=$s['careers'][$g['career']]['account']??null;CareerInstitutionLedger::check(is_string($account),'unknown career');$this->activeAccount($world,$account);}
+            $grants=$e['payload']['grants']??[];
+            if($e['operation']==='presidential_ballot')$grants=CareerInstitutionLedger::ballotTransition($s,$e)['grants'];
+            if($e['operation']==='cabinet_act'){$tmp=$s;$grants=CareerInstitutionLedger::cabinetTransition($tmp,$e)['grants']??[];}
+            foreach($grants as $g){$account=$s['careers'][$g['career']]['account']??null;CareerInstitutionLedger::check(is_string($account),'unknown career');$this->activeAccount($world,$account);}
             $next=CareerInstitutionLedger::apply($s,$e);$receipt=self::receipt($next);
             $this->query('INSERT INTO wp_career_events(world_id,sequence_no,actor_id,command_id,event_json,signature_sha,previous_sha,event_sha,receipt_json) VALUES(?,?,?,?,?,?,?,?,?)',[$world,$next['sequence'],$e['actor'],$e['command'],CareerInstitutionLedger::json($e),$signature,$s['last_event_sha'],$next['last_event_sha'],CareerInstitutionLedger::json($receipt)]);
             if($e['operation']==='admit'){$p=$e['payload'];$this->query('INSERT INTO wp_career_memberships(world_id,account_id,career_id,character_id) VALUES(?,?,?,?)',[$world,$p['account'],$p['career'],$p['character']]);}
@@ -96,7 +99,7 @@ final class PdoCareerInstitutionStore
         }
         return ['world_id'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],'revision'=>(int)$clock['revision'],'career'=>$career,'mandates'=>$mandates,'occupied_offices'=>$offices,
             'institution'=>['state_id'=>$s['state_id'],'regime'=>$s['regime'],'assembly'=>$s['assembly'],'senate'=>$s['senate'],'government'=>$s['government'],'constitution_revision'=>$s['constitution_revision']],
-            'rankable'=>false,'profile'=>'isolated-career-alpha'];
+            'appointment_proposals'=>array_values(array_filter($s['appointment_proposals']??[],fn($p)=>$p['status']==='pending'&&($s['active']['prime-minister']??null)===$p['pm_mandate'])),'rankable'=>false,'profile'=>'isolated-career-alpha'];
     }
     public function readForSession(string $world,string $token):array{
         return $this->tx(function()use($world,$token){$clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);return $this->viewLocked($world,$account,$clock);});
@@ -114,6 +117,35 @@ final class PdoCareerInstitutionStore
     }
     public function admitForSession(string $world,string $token,string $secret):array{
         return $this->tx(function()use($world,$token,$secret){$clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);return $this->admitLocked($world,$a,$clock,$secret);});
+    }
+    /** A verified president/PM may perform bounded cabinet acts. No client
+     * can choose the actor, date, institutional signature or expiry. */
+    public function cabinetForSession(string $world,string $token,array $p,string $key,string $secret):array{
+        CareerInstitutionLedger::fields($p,['kind','mandate','generation','target','portfolio','proposal']);
+        CareerInstitutionLedger::check(is_string($p['kind'])&&is_string($p['mandate'])&&is_int($p['generation'])&&$p['generation']>=1&&preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)===1,'invalid cabinet request');
+        foreach(['target','portfolio','proposal'] as $k)CareerInstitutionLedger::check($p[$k]===null||is_string($p[$k]),'invalid cabinet fields');
+        $command='cabinet-'.substr(hash('sha256',$key),0,48);
+        return $this->tx(function()use($world,$token,$p,$command,$secret){
+            $clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);$this->replay($world,$this->row($world));
+            $prior=$this->query('SELECT event_json,receipt_json FROM wp_career_events WHERE world_id=? AND actor_id=? AND command_id=?',[$world,$a,$command])->fetch(\PDO::FETCH_ASSOC);
+            if($prior!==false){$e=self::decode($prior['event_json']);CareerInstitutionLedger::check($e['operation']==='cabinet_act'&&CareerInstitutionLedger::json($e['payload'])===CareerInstitutionLedger::json($p),'idempotency conflict');return self::decode($prior['receipt_json']);}
+            $day=$clock['committed_day'];$e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>$command,'actor'=>$a,'operation'=>'cabinet_act','payload'=>$p,
+                'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'session-cabinet-act-v1','world'=>$world,'day'=>$day,'actor'=>$a,'payload'=>$p])];
+            return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
+        });
+    }
+    /** Server-side fictional ballot importer. No public route or competitive status. */
+    public function certifyBallot(string $world,array $p,string $key,string $secret):array{
+        CareerInstitutionLedger::check(preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)===1,'invalid ballot command');
+        $command='ballot-'.substr(hash('sha256',$key),0,48);
+        return $this->tx(function()use($world,$p,$command,$secret){
+            $clock=$this->clock($world);$this->replay($world,$this->row($world));
+            $prior=$this->query("SELECT event_json,receipt_json FROM wp_career_events WHERE world_id=? AND actor_id='career-election-clerk' AND command_id=?",[$world,$command])->fetch(\PDO::FETCH_ASSOC);
+            if($prior!==false){CareerInstitutionLedger::check(CareerInstitutionLedger::json(self::decode($prior['event_json'])['payload'])===CareerInstitutionLedger::json($p),'ballot idempotency conflict');return self::decode($prior['receipt_json']);}
+            $day=$clock['committed_day'];$e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>$command,'actor'=>'career-election-clerk','operation'=>'presidential_ballot','payload'=>$p,
+                'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
+            return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
+        });
     }
     /** A private career-world owner may invite an account as a member, not confer an office. */
     public function inviteForSession(string $world,string $token,string $target):array{

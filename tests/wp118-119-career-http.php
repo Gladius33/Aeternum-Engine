@@ -32,6 +32,31 @@ ck(req('POST',$p.'/transition',['office'=>'president'],$a)['status']===404,'no p
 ck(req('POST','/worlds/'.$w.'/domestic/proposals',['policy_id'=>'education-reform'],$a)['status']===404,'no legacy owner bypass');
 ck(req('POST','/worlds/'.$w.'/clock/advances',['target_day'=>'2027-05-15'],$a)['status']===404,'no legacy clock bypass');
 ck(req('GET',$p.'/career',null,$c)['status']===404,'uninvited account denied');
+require_once __DIR__.'/../games/world-politics/src/PdoCareerInstitutionStore.php';
+$secret=getenv('WP_CAREER_EVIDENCE_KEY');$cs=new \Aeternum\WorldPolitics\PdoCareerInstitutionStore($pdo,new \Aeternum\WorldPolitics\CareerInstitutionEvidence($secret));
+$ca=$read['body']['career']['id'];$cb=$ad['body']['career']['id'];
+$bp=['ballot'=>['registered'=>1000,'first'=>['votes'=>[$ca=>600,$cb=>300],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'];
+$br=$cs->certifyBallot($w,$bp,'opening-ballot-fixture-001',$secret);
+ck($cs->certifyBallot($w,$bp,'opening-ballot-fixture-001',$secret)===$br,'ballot replay');
+$pres=req('GET',$p.'/career',null,$a)['body']['mandates'][0];
+$act=['kind'=>'appoint_pm','mandate'=>$pres['id'],'generation'=>$pres['generation'],'target'=>$cb,'portfolio'=>null,'proposal'=>null];
+ck(req('POST',$p.'/cabinet',$act,$b,'cabinet-denied-001')['status']===409,'other account cannot appoint');
+$ok=req('POST',$p.'/cabinet',$act,$a,'cabinet-appoint-001');ck($ok['status']===200,'authenticated president appoints PM');
+ck(req('POST',$p.'/cabinet',$act,$a,'cabinet-appoint-001')===$ok,'cabinet receipt replay');
+$pm=req('GET',$p.'/career',null,$b)['body']['mandates'][0];
+ck($pm['office']==='prime-minister','PM grant published');
+$invite=req('POST',$p.'/members',['account_id'=>$ids[2]],$a);ck($invite['status']===200,'third career invited');
+$cc=req('POST',$p.'/admission',(object)[],$c)['body']['career']['id'];
+$proposal=['kind'=>'propose_minister','mandate'=>$pm['id'],'generation'=>$pm['generation'],'target'=>$cc,'portfolio'=>'health','proposal'=>null];
+ck(req('POST',$p.'/cabinet',$proposal,$b,'cabinet-proposal-001')['status']===200,'PM proposes minister');
+$pid=req('GET',$p.'/career',null,$a)['body']['appointment_proposals'][0]['id'];
+$confirm=['kind'=>'confirm_minister','mandate'=>$pres['id'],'generation'=>$pres['generation'],'target'=>null,'portfolio'=>null,'proposal'=>$pid];
+ck(req('POST',$p.'/cabinet',$confirm,$b,'cabinet-confirm-denied')['status']===409,'PM cannot confirm own proposal');
+ck(req('POST',$p.'/cabinet',$confirm,$a,'cabinet-confirm-001')['status']===200,'president confirms proposal');
+ck(req('GET',$p.'/career',null,$c)['body']['mandates'][0]['office']==='minister-health','minister mandate published');
+$resign=['kind'=>'resign_pm','mandate'=>$pm['id'],'generation'=>$pm['generation'],'target'=>null,'portfolio'=>null,'proposal'=>null];
+ck(req('POST',$p.'/cabinet',$resign,$b,'cabinet-resign-001')['status']===200,'PM resignation');
+ck(req('GET',$p.'/career',null,$c)['body']['mandates']===[],'cabinet revocation atomic');
 foreach(['wp_career_active_offices','wp_career_memberships','wp_career_events','wp_career_ledgers','wp_world_mutation_fences','wp_world_clock','wp_alpha_members','wp_alpha_worlds'] as $t)$exec("DELETE FROM $t WHERE world_id=?",[$w]);
 foreach($ids as $id){$exec('DELETE FROM wp_sessions WHERE account_id=?',[$id]);$exec('DELETE FROM wp_accounts WHERE account_id=?',[$id]);}
 // A second world uses the pinned 2027 economic models, with no v1 score.
