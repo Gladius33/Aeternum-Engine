@@ -28,8 +28,8 @@ final class UniverseLobby
             FROM wp_universes u JOIN wp_world_clock c ON c.world_id=u.world_id ORDER BY u.universe_no LIMIT 50 OFFSET ".$offset)->fetchAll(\PDO::FETCH_ASSOC);
         foreach($rows as &$r){
             $r['universe_no']=(int)$r['universe_no'];
-            $slots=$this->query('SELECT country_code,account_id,diplomacy_programme FROM wp_universe_slots WHERE world_id=? ORDER BY country_code',[$r['world_id']])->fetchAll(\PDO::FETCH_ASSOC);
-            $r['slots']=array_map(fn($v)=>['country'=>$v['country_code'],'controller'=>$v['account_id']===null?'ai':'human','is_you'=>$v['account_id']===$s->id,'diplomacy_programme'=>$v['diplomacy_programme']],$slots);
+            $slots=$this->query('SELECT country_code,account_id,diplomacy_programme,closed_on FROM wp_universe_slots WHERE world_id=? ORDER BY country_code',[$r['world_id']])->fetchAll(\PDO::FETCH_ASSOC);
+            $r['slots']=array_map(fn($v)=>['country'=>$v['country_code'],'controller'=>$v['closed_on']!==null?'succession_pending':($v['account_id']===null?'ai':'human'),'is_you'=>$v['account_id']===$s->id,'diplomacy_programme'=>$v['diplomacy_programme']],$slots);
             $r['vacant']=count(array_filter($r['slots'],fn($v)=>$v['controller']==='ai'));
             $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
             unset($r['pending_day'],$r['game_over']);
@@ -53,7 +53,7 @@ final class UniverseLobby
     {
         // Create immediately if every non-terminal universe is full; a pending
         // day is not a reason to allocate unbounded replacement universes.
-        $q=$this->query('SELECT 1 FROM wp_universe_slots s JOIN wp_world_clock c ON c.world_id=s.world_id WHERE s.account_id IS NULL AND c.game_over=0 LIMIT 1');
+        $q=$this->query('SELECT 1 FROM wp_universe_slots s JOIN wp_world_clock c ON c.world_id=s.world_id WHERE s.account_id IS NULL AND s.closed_on IS NULL AND c.game_over=0 LIMIT 1');
         return $q->fetchColumn()===false?$this->create():null;
     }
     private function lockWorld(string $world):array
@@ -80,7 +80,7 @@ final class UniverseLobby
             if($no===null)$this->ensureSpare();
             $args=[$country,$s->id];
             $sql="SELECT u.universe_no,u.world_id FROM wp_universes u JOIN wp_universe_slots s ON s.world_id=u.world_id
-                JOIN wp_world_clock c ON c.world_id=u.world_id WHERE s.country_code=? AND (s.account_id IS NULL OR s.account_id=?)
+                JOIN wp_world_clock c ON c.world_id=u.world_id WHERE s.country_code=? AND s.closed_on IS NULL AND (s.account_id IS NULL OR s.account_id=?)
                 AND c.game_over=0";
             if($no!==null){$sql.=' AND u.universe_no=?';$args[]=$no;}
             $sql.=" AND NOT EXISTS(SELECT 1 FROM wp_universe_slots x WHERE x.world_id=u.world_id AND x.account_id=? AND x.country_code<>?) ORDER BY u.universe_no LIMIT 1";
@@ -89,8 +89,9 @@ final class UniverseLobby
             if($u===false)throw new AlphaHttpError(409,'country_unavailable');
             $world=$u['world_id'];$c=$this->lockWorld($world);
             if((int)$c['game_over']===1)throw new AlphaHttpError(409,'game_over');
-            $slot=$this->query('SELECT account_id,generation FROM wp_universe_slots WHERE world_id=? AND country_code=? FOR UPDATE',[$world,$country])->fetch(\PDO::FETCH_ASSOC);
+            $slot=$this->query('SELECT account_id,generation,closed_on FROM wp_universe_slots WHERE world_id=? AND country_code=? FOR UPDATE',[$world,$country])->fetch(\PDO::FETCH_ASSOC);
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+            if($slot['closed_on']!==null)throw new AlphaHttpError(409,'succession_pending');
             if($slot['account_id']!==null&&$slot['account_id']!==$s->id)throw new AlphaHttpError(409,'country_unavailable');
             $gen=(int)$slot['generation'];$spare=null;
             if($slot['account_id']===null){

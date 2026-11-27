@@ -13,6 +13,7 @@ require_once __DIR__.'/PdoDomesticPolicyStore.php';
 require_once __DIR__.'/PdoPublicOpinionStore.php';
 require_once __DIR__.'/PdoCampaignScores.php';
 require_once __DIR__.'/UniverseScore.php';
+require_once __DIR__.'/UniverseContinuity.php';
 
 /**
  * WP17/WP18: recoverable WORLD clock for diplomacy, organizations,
@@ -317,7 +318,10 @@ final class WorldClockCoordinator
             $campaign=$opinionRecord['state']['campaign']??null;
             if(($campaign!==null)!==((int)($row['campaign_enabled']??0)===1))
                 throw new \DomainException('Campaign configuration differs from pinned world');
-            $ended=$campaign!==null&&$campaign['status']==='game_over';
+            $campaignEnded=$campaign!==null&&$campaign['status']==='game_over';
+            $managed=isset($opinionRecord['state']['managed_continuity']);
+            if($managed&&(int)($row['score_enabled']??0)===1)throw new \DomainException('Managed universe cannot use solo ranking');
+            $ended=$campaignEnded&&!$managed;
             $revision=(int)$row['revision']+1;
             if((int)($row['score_enabled']??0)===1){
                 if($this->domestic===null||$opinionRecord===null)throw new \DomainException('Ranked world missing required domain');
@@ -325,6 +329,7 @@ final class WorldClockCoordinator
             }
             if(isset($verified['domestic'],$verified['diplomacy'])&&$opinionRecord!==null&&(int)($row['score_enabled']??0)===0)
                 UniverseScore::publish($this->pdo,$world,$targetDay,$verified['domestic'],$verified['diplomacy']);
+            if($managed)UniverseContinuity::publish($this->pdo,$world,$campaign,$targetDay);
             $result=[
                 'status'=>200,
                 'result'=>[
@@ -337,6 +342,7 @@ final class WorldClockCoordinator
                     'domestic_enabled'=>$this->domestic!==null,
                     ...($this->opinion!==null?['opinion_enabled'=>true]:[]),
                     ...($campaign!==null?['campaign'=>CampaignLifecycle::summary($campaign),'game_over'=>$ended]:[]),
+                    ...($managed?['managed_universe'=>true,'france_campaign_ended'=>$campaignEnded,'france_successor_playable'=>!$campaignEnded]:[]),
                     'coherent'=>true
                 ],
                 'etag'=>self::etagFrom($world,$targetDay,null,$revision)

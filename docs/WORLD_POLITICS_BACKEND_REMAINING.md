@@ -879,3 +879,5 @@ WP102 : univers persistants provisionnés à partir du scénario canonique, prop
 WP103 : horloge serveur persistante (1 jour simulé/heure réelle par défaut), reprise après incident et verrou multi-worker, IA diplomatique de remplacement selon programme fictif paramétrable et priorité des commandes humaines validées. Les univers activés avancent même sans joueurs ; l'univers de réserve attend son premier joueur. Le reste du programme présidentiel et la succession indépendante restent ouverts.
 
 WP104 : score composite expérimental par période de contrôle France, indice de départ épinglé à la reprise du pays, mise à jour atomique avec l'horloge, gel à la libération, deux portées de classement par cohorte compatible ; les pays étrangers restent sans score économique tant que les données comparables manquent.
+
+WP105 : fin de mandat national isolée de l'horloge commune ; gel de la présidence sortante et de son score, révocation d'accès, poursuite des autres pays et des observations sociales. La succession française non modélisée reste explicitement indisponible, sans faux président. Le mode individuel conserve sa fin de campagne.

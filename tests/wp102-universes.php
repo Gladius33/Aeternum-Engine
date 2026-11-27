@@ -85,3 +85,20 @@ ck102(join102(1,'FR',$no,'wp104-late-claim')['status']===201,'WP104 late claim')
 $q104=$db->prepare("SELECT s.opening_index_bps,s.latest_index_bps,s.score,s.elapsed_control_days,c.index_bps FROM wp_universe_period_scores s JOIN wp_universe_income_checkpoints c USING(world_id,country_code) WHERE s.world_id=? AND s.country_code='FR' AND s.generation=3");
 $q104->execute([$world]);$r104=$q104->fetch(PDO::FETCH_ASSOC);
 ck102($r104!==false&&(int)$r104['opening_index_bps']===(int)$r104['index_bps']&&(int)$r104['latest_index_bps']===(int)$r104['index_bps']&&(int)$r104['score']===0&&(int)$r104['elapsed_control_days']===0,'WP104 late entrant starts at current income and zero score');
+
+/* WP105: a certified synthetic resignation freezes France only. */
+$clock105=call102('GET',$root.'/clock',null,1)['body']['committed_day'];
+$end105=(new DateTimeImmutable($clock105))->modify('+1 day')->format('Y-m-d');
+(new \Aeternum\WorldPolitics\CampaignEventQueue($db))->publish(\Aeternum\WorldPolitics\CampaignLifecycle::event($world,$end105,'wp105-synthetic-resignation','presidential_resignation'));
+$due->execute([$world]);ck102($scheduler->tick($world)['day']===$end105,'WP105 terminal national tick commits');
+ck102(call102('GET',$root.'/clock',null,1)['status']===404,'WP105 former officeholder loses command access');
+ck102(join102(1,'FR',$no,'wp105-closed-slot')['status']===409,'WP105 unresolved successor cannot be impersonated');
+$next105=(new DateTimeImmutable($end105))->modify('+1 day')->format('Y-m-d');
+$due->execute([$world]);ck102($scheduler->tick($world)['day']===$next105,'WP105 universe continues after France loses office');
+$c105=call102('GET',$root.'/clock',null,2);
+ck102($c105['status']===200&&$c105['body']['committed_day']===$next105&&!$c105['body']['game_over'],'WP105 other country continues');
+$q105=$db->prepare("SELECT state_json,state_sha FROM wp_opinion_states WHERE world_id=?");$q105->execute([$world]);$row105=$q105->fetch(PDO::FETCH_ASSOC);
+$o105=\Aeternum\WorldPolitics\PublicOpinion::restore(json_decode($row105['state_json'],true,64,JSON_THROW_ON_ERROR))->snapshot();
+ck102($o105['day']===$next105&&$o105['campaign']['ended_on']===$end105&&$o105['campaign']['day']===$end105,'WP105 ended mandate frozen, opinion continues and replays');
+$q104->execute([$world]);$r105=$q104->fetch(PDO::FETCH_ASSOC);
+ck102((int)$r105['elapsed_control_days']===1,'WP105 former player score remains frozen');

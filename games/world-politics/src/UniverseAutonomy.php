@@ -22,12 +22,12 @@ final class UniverseAutonomy
     {
         if(!self::managed($db,$world))return null;
         if(!$db->inTransaction())throw new \LogicException('Clock policy requires fenced transaction');
-        $q=$db->prepare('SELECT country_code,account_id,diplomacy_programme,last_human_diplomacy_day FROM wp_universe_slots WHERE world_id=? ORDER BY country_code');
+        $q=$db->prepare('SELECT country_code,account_id,diplomacy_programme,last_human_diplomacy_day,closed_on FROM wp_universe_slots WHERE world_id=? ORDER BY country_code');
         $q->execute([$world]);$out=[];
         foreach($q->fetchAll(\PDO::FETCH_ASSOC) as $r){
             if(!in_array($r['diplomacy_programme'],['cooperative','balanced','cautious'],true))throw new \DomainException('Invalid programme');
             $out['state_'.strtolower($r['country_code'])]=['programme'=>$r['diplomacy_programme'],
-                'human_action_this_day'=>$r['account_id']!==null&&$r['last_human_diplomacy_day']===$committedDay];
+                'succession_pending'=>$r['closed_on']!==null,'human_action_this_day'=>$r['account_id']!==null&&$r['last_human_diplomacy_day']===$committedDay];
         }
         if($out===[])throw new \DomainException('Managed universe without slots');
         return $out;

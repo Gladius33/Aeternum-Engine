@@ -244,7 +244,7 @@ final class DiplomaticSimulation
             if($offer['status']!=='pending_response')continue;
             $policy=$universePolicy[$offer['to']]??null;
             if($policy!==null){
-                if($policy['human_action_this_day'])continue;
+                if($policy['human_action_this_day']||($policy['succession_pending']??false))continue;
             }elseif($offer['to']==='state_fr'||$offer['from']!=='state_fr')continue;
             $delay=2+(hexdec(substr(hash('sha256',self::DAILY_AI_VERSION.'|delay|'.$offer['to']),0,4))%4);
             if(self::plus($offer['created_on'],$delay)<=$day)$due[]=$offer;
