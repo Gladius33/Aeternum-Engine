@@ -45,3 +45,6 @@ The Research Pro `/datasets/transitions` feed now exposes only currently opted-i
 
 ## Research multi-node acceptance
 The isolated extracted-source HTTP suite also starts a second PHP HTTP instance on the same MariaDB database. A ten-request concurrent burst is constrained by a four-request shared tenant daily ceiling; exactly four request units must be debited. Concurrent submission of an identical experiment on both nodes must yield the same job ID with only one compute charge and two transport charges. This is a small deterministic concurrency regression, not an infrastructure throughput or production saturation benchmark. The SDK also accepts the Pro game-world and transition dataset scopes.
+
+## Environment and selected payment provider
+The canonical `.env.example` is now tracked within the game source and tested both in source and extracted packaging. All secrets blank, web and operator flags disabled, Stripe test mode reserved. See [environment and Stripe prerequisites](WORLD_POLITICS_ENV_STRIPE.md). Stripe integration is not active in this increment; commercial pricing, webhook implementation and test-mode reconciliation remain pending.
