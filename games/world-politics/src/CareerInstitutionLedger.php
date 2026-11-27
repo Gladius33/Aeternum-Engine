@@ -140,6 +140,20 @@ final class CareerInstitutionLedger
             $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>$e['day']===CareerScoreContract::START?'opening':'late_takeover','first_series'=>null,'controller'=>'ai','person_reference'=>$person['person_reference'],'identity'=>$person];
         }
     }
+    private static function admitFrenchSupplement(array &$s,array $e):void{
+        require_once __DIR__.'/FrenchPoliticalDirectory.php';
+        $p=$e['payload'];self::fields($p,['people']);
+        self::check($s['country']==='FR'&&$s['mode']==='career'&&$e['actor']==='career-ai-clerk'&&$e['day']===CareerScoreContract::START
+            &&!isset($s['fr_supplementary_roster_version'])&&self::json($p['people'])===self::json(FrenchPoliticalDirectory::runtimeSupplementV1())
+            &&$e['evidence_sha']===self::digest(['kind'=>'fr-supplement-roster-v1','world'=>$s['world'],'day'=>$e['day'],'payload'=>$p]),'supplementary roster evidence');
+        foreach($p['people'] as $id=>$person){
+            self::id($id);self::id($person['person_reference']);self::check(!isset($s['careers'][$id]),'duplicate French supplementary identity');
+            foreach($s['careers'] as $c)self::check($c['character']!==$id&&($c['identity']['name']??null)!==$person['name'],'supplementary identity collision');
+            $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>'opening','first_series'=>null,'controller'=>'ai','person_reference'=>$person['person_reference'],'identity'=>$person];
+        }
+        $s['fr_supplementary_roster_version']='fr-supplement-roster-v1';
+    }
+    private static function ballotCapacity(array $s):int{return ($s['fr_supplementary_roster_version']??null)==='fr-supplement-roster-v1'?48:30;}
     private static function admitPartyAutonomousRoster(array &$s,array $e):void{
         require_once __DIR__.'/DocumentaryForeignBallot.php';
         $p=$e['payload'];self::fields($p,['people']);
@@ -216,7 +230,7 @@ final class CareerInstitutionLedger
             if($old!==null&&$id===$old['career']&&$s['constitution_rules']['term_limit']!==null&&$old['terms']>=$s['constitution_rules']['term_limit'])continue;
             $eligible[$id]=1000+hexdec(substr(hash('sha256','wp119-synthetic-ballot-v1|'.$s['world'].'|'.$day.'|'.$id),0,4));
         }
-        self::check(count($eligible)>=2&&count($eligible)<=30,'automatic ballot needs 2–30 eligible unencumbered careers');
+        self::check(count($eligible)>=2&&count($eligible)<=self::ballotCapacity($s),'automatic ballot exceeds edition capacity');
         ksort($eligible,SORT_STRING);$total=array_sum($eligible);$votes=[];
         foreach($eligible as $id=>$weight)$votes[$id]=intdiv(900000*$weight,$total);
         $rank=array_keys($votes);usort($rank,fn($a,$b)=>$votes[$b]<=>$votes[$a]?:strcmp($a,$b));
@@ -247,7 +261,7 @@ final class CareerInstitutionLedger
             if($old['interim'])self::check(self::json($p)===self::json(self::automaticBallot($s,$day)),'vacancy ballot differs from certified fixture');
         }
         foreach(array_keys($p['ballot']['first']['votes']) as $id)self::check(isset($s['careers'][$id])&&$s['careers'][$id]['admitted_on']<=$p['first_round_day'],'candidate not admitted');
-        $count=PresidentialMandate::countElection($p['ballot'],false);$winner=$count['first']['winner']??$count['second']['winner']??null;
+        $count=PresidentialMandate::countElection($p['ballot'],false,self::ballotCapacity($s));$winner=$count['first']['winner']??$count['second']['winner']??null;
         self::check(is_string($winner)&&isset($s['careers'][$winner]),'unresolved ballot');
         $reason=$old===null?'election':(!$old['interim']&&$old['career']===$winner?'renewal':'succession');
         $date=new \DateTimeImmutable($day);$year=(int)$date->format('Y')+$s['constitution_rules']['next_term_years'];$month=(int)$date->format('m');
@@ -397,6 +411,8 @@ final class CareerInstitutionLedger
             CareerParticipation::apply($s,$e);
         }elseif($op==='admit_real_ai_roster'){
             self::admitRealAutonomousRoster($s,$e);
+        }elseif($op==='admit_fr_supplement_roster'){
+            self::admitFrenchSupplement($s,$e);
         }elseif($op==='admit_party_ai_roster'){
             self::admitPartyAutonomousRoster($s,$e);
         }elseif($op==='admit_us_presidential_roster'){

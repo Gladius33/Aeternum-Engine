@@ -308,3 +308,15 @@ foreach(\Aeternum\WorldPolitics\UniverseIdentityReference::catalogue() as $count
     $tampered=$e2;$tampered['payload']['recognition']='unrecognized';no(fn()=>L::apply($s,$tampered));
     if(!\Aeternum\WorldPolitics\InstitutionalRulebook::hasRules($country))no(fn()=>L::initial('unsupported-career',$country,'career','2027-05-14'));
 }
+
+$expanded=L::initial('world-roster-expanded','FR','career','2027-05-14');
+$rp=['people'=>L::realAutonomousRoster($expanded)];
+$re=evt($expanded,'admit_real_ai_roster',$rp);$re['actor']='career-ai-clerk';$re['evidence_sha']=L::digest(['kind'=>'real-ai-roster-v1','world'=>$expanded['world'],'day'=>$re['day'],'payload'=>$rp]);
+$expanded=L::apply($expanded,$re);
+require_once __DIR__.'/../games/world-politics/src/FrenchPoliticalDirectory.php';
+$rp=['people'=>\Aeternum\WorldPolitics\FrenchPoliticalDirectory::runtimeSupplementV1()];
+$re=evt($expanded,'admit_fr_supplement_roster',$rp);$re['actor']='career-ai-clerk';$re['evidence_sha']=L::digest(['kind'=>'fr-supplement-roster-v1','world'=>$expanded['world'],'day'=>$re['day'],'payload'=>$rp]);
+$expanded=L::apply($expanded,$re);ck(count($expanded['careers'])===36,'new roster expands without changing old roster event');
+$rb=L::automaticBallot($expanded,'2027-05-14');ck(count($rb['ballot']['first']['votes'])===36,'expanded synthetic ballot capacity');
+$be=evt($expanded,'presidential_ballot',$rb);$be['actor']='career-election-clerk';$be['evidence_sha']=L::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$expanded['world'],'day'=>$be['day'],'payload'=>$rb]);
+ck(isset(L::apply($expanded,$be)['active']['president']),'expanded election can be certified');

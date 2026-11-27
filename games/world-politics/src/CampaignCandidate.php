@@ -7,6 +7,7 @@ require_once __DIR__.'/PresidentialProgramme.php';
 require_once __DIR__.'/ProgrammeSourceInventory.php';
 require_once __DIR__.'/FrenchPoliticalDirectory.php';
 require_once __DIR__.'/ProvisionalFrenchProgramme.php';
+require_once __DIR__.'/FrenchPublicSourceEditions.php';
 
 /** Choose the player-controlled identity at creation, not an electoral claim.
  * The immutable simulation character ID and all score rules are unchanged.
@@ -164,21 +165,24 @@ final class CampaignCandidate
     public static function provisionalChoices():array{
         return ProvisionalFrenchProgramme::choices(self::programme2027Reference()['reviewed_measures'],self::campaign2027Choices());
     }
+    public static function v1Choices():array{
+        return [...self::provisionalChoices(),...FrenchPublicSourceEditions::choices(self::programme2027Reference()['reviewed_measures'])];
+    }
     public static function editionEvidence(string $id):?array{
         $approved=ProgrammeSourceInventory::report()['approved_editions'][$id]??null;
         if($approved!==null)return $approved;
-        return array_column(self::provisionalChoices(),null,'id')[$id]??null;
+        return array_column(self::v1Choices(),null,'id')[$id]??null;
     }
     public static function mayStart(mixed $input):bool
     {
         if(!is_array($input))return false;
         if(($input['type']??null)==='fictional')return true;
         if(($input['type']??null)!=='campaign2027')return false;
-        return (array_column([...self::campaign2027Choices(),...self::provisionalChoices()],null,'id')[$input['reference_id']??'']['playable']??false)===true;
+        return (array_column([...self::campaign2027Choices(),...self::v1Choices()],null,'id')[$input['reference_id']??'']['playable']??false)===true;
     }
     private static function normalize2027(string $id):array
     {
-        $choice=array_column([...self::campaign2027Choices(),...self::provisionalChoices()],null,'id')[$id]??throw new \DomainException('Unknown 2027 campaign reference');
+        $choice=array_column([...self::campaign2027Choices(),...self::v1Choices()],null,'id')[$id]??throw new \DomainException('Unknown 2027 campaign reference');
         $measures=array_column(self::programme2027Reference()['reviewed_measures'],null,'id');
         $programme=[];
         foreach($choice['measure_ids'] as $mid){
@@ -187,10 +191,16 @@ final class CampaignCandidate
             $programme[]=['id'=>$mid,'domain'=>$d['domain'],'proposal'=>json_encode($m['target'],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE),'sources'=>[$m['source']]];
         }
         return ['id'=>CampaignLifecycle::PLAYER,'kind'=>'real','name'=>$choice['name'],'country'=>'FR',
-            'biography'=>($choice['provisional']??false)?'Programme provisoire V1 : sous-ensemble de mesures publiques modélisées, ni programme complet ni candidature certifiée.':'Projet public pour 2027, observé avant le scrutin. Personnage de simulation, sans certification de candidature définitive ni de résultat électoral.',
+            'biography'=>($choice['autonomy_scope']??null)==='manual_only'?'Personnage provisoire V1 : sources publiques documentaires, pilotage manuel, aucune mesure autonome attribuée.':(($choice['provisional']??false)?'Programme provisoire V1 : sous-ensemble de mesures publiques modélisées, ni programme complet ni candidature certifiée.':'Projet public pour 2027, observé avant le scrutin. Personnage de simulation, sans certification de candidature définitive ni de résultat électoral.'),
             'as_of'=>$choice['as_of'],'sources'=>[$choice['source']],'programme'=>$programme,'avatar'=>PoliticalProfileTemplate::AVATAR];
     }
-    public static function politicalDirectory():array{return FrenchPoliticalDirectory::report(self::candidateDirectory2027());}
+    public static function politicalDirectory():array{
+        $r=FrenchPoliticalDirectory::report(self::candidateDirectory2027());$byName=array_column(self::v1Choices(),null,'name');
+        foreach($r['people'] as &$person){$v=$byName[$person['name']]??null;$person['v1_reference_id']=$v['id']??null;$person['v1_playable']=$v!==null&&$v['playable'];$person['v1_autonomy_scope']=$v===null?'none':($v['autonomy_scope']??'reviewed_mapped_subset');}unset($person);
+        $r['v1_playable_count']=count(array_filter($r['people'],fn($p)=>$p['v1_playable']));
+        $r['full_programme_playable_count']=$r['playable_count'];
+        return $r;
+    }
     public static function options():array
     {
         $ref=HistoricalCandidateReference::report(HistoricalCandidateReference::pin());
@@ -199,7 +209,7 @@ final class CampaignCandidate
             'historical_choices'=>array_map(fn($p)=>['id'=>$p['id'],'name'=>$p['name'],'as_of'=>$p['as_of'],'sources'=>$p['sources'],'playable'=>false,'availability_code'=>'historical_archive_only','availability_label_fr'=>'Archive historique — non jouable en 2027'],$ref['roster_compatible_profiles']),
             'historical_reference_sha'=>$ref['reference_sha'],'historical_programme_scope'=>$ref['programme_partial_scope'],'historical_measure_count'=>$ref['curated_measure_count'],'historical_selection_is_alternate_history'=>true,
             'target_election_year'=>2027,'historical_reference_election_year'=>2022,'historical_choices_are_2027_candidates'=>false,
-            'programme_2027_reference'=>self::programme2027Reference(),'campaign_2027_choices'=>self::campaign2027Choices(),'candidate_directory_2027'=>self::candidateDirectory2027(),'french_political_directory'=>self::politicalDirectory(),'provisional_programme_choices'=>self::provisionalChoices(),'public_programme_evidence'=>ProvisionalFrenchProgramme::evidence(),'fictional_candidate_playable'=>true,'incomplete_candidate_selection_blocked'=>true,
+            'programme_2027_reference'=>self::programme2027Reference(),'campaign_2027_choices'=>self::campaign2027Choices(),'candidate_directory_2027'=>self::candidateDirectory2027(),'french_political_directory'=>self::politicalDirectory(),'provisional_programme_choices'=>self::v1Choices(),'public_programme_evidence'=>ProvisionalFrenchProgramme::evidence(),'fictional_candidate_playable'=>true,'incomplete_candidate_selection_blocked'=>true,'explicit_v1_source_editions_allowed'=>true,
             'future_eligibility_certified'=>false,'programme_mechanics_enabled'=>false,
             'managed_universe_explicit_programme_catalog'=>PresidentialProgramme::measureCatalog(),
             'historical_social_measure_catalog'=>SocialProgramme::definitions(),'historical_measures_automatically_imported'=>false,'changes_score_rules'=>false];

@@ -1,0 +1,362 @@
+{
+  "schema": "wp-fr-public-source-editions-v2",
+  "observed_on": "2026-11-27",
+  "exhaustive": false,
+  "records": [
+    {
+      "person": "marine-tondelier",
+      "period": "2026",
+      "attribution": "party_project",
+      "source": "https://lesecologistes.fr/posts/4b3Vl4nRDOZk4nuMvI4eKa/nos-propositions-pour-un-travail-emancipateur-ecologique-et-democratique",
+      "domain": "wages",
+      "summary": "Projet collectif : SMIC brut mensuel de 2 000 € dès 2027.",
+      "measure_ids": [
+        "pf2027-ecologistes-smic",
+        "pf2027-ecologistes-renovation"
+      ],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "gabriel-attal",
+      "period": "2026",
+      "attribution": "campaign_statement",
+      "source": "https://attalpresident.fr/",
+      "domain": "education",
+      "summary": "Proposition d'introduire un conseil de discipline dès le primaire.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "raphael-glucksmann",
+      "period": "2026-11",
+      "attribution": "campaign_project",
+      "source": "https://glucks2027.fr/revolution-ecologique/",
+      "domain": "climate",
+      "summary": "Projet d'investissement et de transformation écologique associé à une trajectoire de finances publiques.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "dominique-de-villepin",
+      "period": "2026-11",
+      "attribution": "campaign_project",
+      "source": "https://parti-humaniste.fr/programme/mesures.html",
+      "domain": "institutions",
+      "summary": "Projet de révision constitutionnelle incluant des garanties sociales et environnementales.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "david-lisnard",
+      "period": "2026",
+      "attribution": "party_project",
+      "source": "https://www.unenouvelleenergie.fr/questions/quel-candidat-veut-reindustrialiser-la-france/",
+      "domain": "tax",
+      "summary": "Programme collectif : suppression de plusieurs impôts de production, notamment C3S et CVAE.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "fabien-roussel",
+      "period": "2026",
+      "attribution": "reported_campaign_statement",
+      "source": "https://mandat2027.fr/candidats/fabien-roussel",
+      "domain": "wages",
+      "summary": "Les propositions recensées comprennent l'indexation des rémunérations sur les prix ; le détail doit être confronté au discours original.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "nathalie-arthaud",
+      "period": "2026",
+      "attribution": "reported_campaign_statement",
+      "source": "https://lafrancede2027.fr/programmes/arthaud-lutte-ouvriere/travail-salaires/",
+      "domain": "employment",
+      "summary": "Réduction du temps de travail sans perte de salaire selon la brochure de campagne recensée.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "clara-egger",
+      "period": "2026-11",
+      "attribution": "party_project",
+      "source": "https://solutiondemocratique.fr/presidentielle-2027-solution-democratique-devoile-son-programme-pour-rendre-aux-francais-le-pouvoir-de-decider/",
+      "domain": "institutions",
+      "summary": "Projet de référendum d'initiative citoyenne et de réforme des modalités de décision publique.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "juan-branco",
+      "period": "2026",
+      "attribution": "reported_campaign_project",
+      "source": "https://lafrancede2027.fr/programmes/branco-ruches/",
+      "domain": "employment",
+      "summary": "Le projet recensé prévoit d'ouvrir l'assurance chômage aux démissions.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "antoine-mikolajczak",
+      "period": "2026-11",
+      "attribution": "party_project",
+      "source": "https://parti-equinoxe.fr/contre-budget-2027/",
+      "domain": "climate",
+      "summary": "Contre-budget collectif prévoyant 9,5 milliards d'euros de dépenses d'adaptation climatique.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "bernard-cazeneuve",
+      "period": "2026-07-15",
+      "attribution": "reported_campaign_project",
+      "source": "https://lafrancede2027.fr/programmes/cazeneuve-la-convention/",
+      "domain": "employment",
+      "summary": "Le programme recensé prévoit de développer la formation tout au long de la vie.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "eric-zemmour",
+      "period": "2026",
+      "attribution": "campaign_project",
+      "source": "https://www.ericzemmour.fr/priorites",
+      "domain": "education",
+      "summary": "Fin du collège unique et rétablissement d'examens à chaque cycle scolaire.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "xavier-bertrand",
+      "period": "2021-10",
+      "attribution": "historical_statement",
+      "source": "https://www.nousfrance.fr/2021/10/pour-une-societe-du-travail/",
+      "domain": "employment",
+      "summary": "Orientation publiée en 2021 en faveur d'une politique valorisant le travail ; ne constitue pas son programme 2027.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "florian-philippot",
+      "period": "2026",
+      "attribution": "reported_party_project",
+      "source": "https://lafrancede2027.fr/programmes/philippot-les-patriotes/",
+      "domain": "europe",
+      "summary": "Le projet collectif recensé prévoit une sortie de l'Union européenne au titre de l'article 50.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "francois-asselineau",
+      "period": "2026-10",
+      "attribution": "campaign_statement",
+      "source": "https://upr.fr/universites/discours-de-rentree-2026-de-francois-asselineau-la-liberation-nationale",
+      "domain": "europe",
+      "summary": "Annonce d'une notification de retrait de l'Union européenne durant la première semaine du mandat.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "marine-le-pen",
+      "period": "2022",
+      "attribution": "historical_statement",
+      "source": "https://factuel.afp.com/doc.afp.com.34YN2DW",
+      "domain": "tax",
+      "summary": "Proposition de 2022 de réduire à 5,5 % la TVA sur plusieurs produits énergétiques.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "anasse-kazib",
+      "period": "2026",
+      "attribution": "campaign_statement",
+      "source": "https://www.revolutionpermanente.fr/Anasse-2027-28-heures-sans-baisse-de-salaire-travailler-moins-et-travailler-tous",
+      "domain": "employment",
+      "summary": "Semaine de 28 heures sans diminution de salaire.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "olivier-becht",
+      "period": "2026",
+      "attribution": "campaign_project",
+      "source": "https://becht2027.fr/projet-france/les-5-refondations/",
+      "domain": "energy",
+      "summary": "Développement annoncé de carburants de synthèse ; coûts et réalisations non établis.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "jordan-bardella",
+      "period": "2024-06-18",
+      "attribution": "reported_historical_statement",
+      "source": "https://www.latribune.fr/depeches/reuters/KBN38A0M6/france-elections-bataille-de-programmes-autour-de-l-economie-le-rn-accuse-de-reniement.html",
+      "domain": "tax",
+      "summary": "Annonce législative de 2024 : taux de TVA de 5,5 % sur l'énergie et les carburants.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "yvan-benedetti",
+      "period": "2023-02-22",
+      "attribution": "historical_statement",
+      "source": "https://www.les-nationalistes.com/retraites-nos-solutions/",
+      "domain": "retirement",
+      "summary": "Entretien historique abordant le financement des retraites, les revenus du travail et les conditions matérielles des familles. Aucun paramètre chiffré retenu.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "manuel-bompard",
+      "period": "2022-07-08",
+      "attribution": "historical_cosigned_bill",
+      "source": "https://www.assemblee-nationale.fr/dyn/docs/PIONANR5L16B0029.raw",
+      "domain": "social",
+      "summary": "Cosignature du texte parlementaire n°29 portant sur l'urgence sociale.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "eric-ciotti",
+      "period": "2025",
+      "attribution": "parliamentary_proposal",
+      "source": "https://www.assemblee-nationale.fr/dyn/opendata/PIONANR5L17B1411.html",
+      "domain": "housing-tax",
+      "summary": "Proposition collective de ramener à dix ans la durée de détention nécessaire à l'exonération fiscale des plus-values.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "olivier-faure",
+      "period": "2022-07-08",
+      "attribution": "historical_cosigned_bill",
+      "source": "https://www.assemblee-nationale.fr/dyn/docs/PIONANR5L16B0029.raw",
+      "domain": "social",
+      "summary": "Cosignature du texte parlementaire n°29 portant sur l'urgence sociale.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "fabien-gay",
+      "period": "2023-2024",
+      "attribution": "parliamentary_proposal",
+      "source": "https://www.senat.fr/propositions-de-loi/gay_fabien19695n2023.html",
+      "domain": "energy",
+      "summary": "Proposition de service public de l'énergie réunissant EDF, TotalEnergies et Engie via nationalisations.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "francois-hollande",
+      "period": "2026-08",
+      "attribution": "reported_statement",
+      "source": "https://lcp.fr/actualites/presidentielle-francois-hollande-propose-la-retraite-a-63-ans-et-dira-en-decembre-s-il",
+      "domain": "retirement",
+      "summary": "Proposition d'un âge légal de départ de 63 ans, avec augmentation progressive de la durée de cotisation.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "sarah-knafo",
+      "period": "2024-06",
+      "attribution": "historical_collective_project",
+      "source": "https://votezmarion.fr/",
+      "domain": "energy",
+      "summary": "Projet collectif de la liste européenne de 2024 incluant la coopération dans le domaine nucléaire. Ne vaut pas programme personnel actuel.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "marion-marechal",
+      "period": "2024-06",
+      "attribution": "historical_collective_project",
+      "source": "https://www.touteleurope.eu/vie-politique-des-etats-membres/elections-europeennes-2024-le-programme-de-marion-marechal-et-de-reconquete/",
+      "domain": "energy",
+      "summary": "Projet européen de 2024 de relance de la production nucléaire, financé à plusieurs niveaux. Ne vaut pas programme personnel actuel.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "mathilde-panot",
+      "period": "2022-07-08",
+      "attribution": "historical_cosigned_bill",
+      "source": "https://www.assemblee-nationale.fr/dyn/docs/PIONANR5L16B0029.raw",
+      "domain": "social",
+      "summary": "Cosignature du texte parlementaire n°29 portant sur l'urgence sociale.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "philippe-poutou",
+      "period": "2022-01-20",
+      "attribution": "historical_campaign_project",
+      "source": "https://npa-lanticapitaliste.org/agir/entreprises/travail-ne-pas-perdre-sa-vie-la-gagner-avec-philippe-poutou",
+      "domain": "wages",
+      "summary": "Campagne de 2022 : plancher de revenu mensuel net de 1 800 euros.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "sandrine-rousseau",
+      "period": "2022-07-08",
+      "attribution": "historical_cosigned_bill",
+      "source": "https://www.assemblee-nationale.fr/dyn/docs/PIONANR5L16B0029.raw",
+      "domain": "social",
+      "summary": "Cosignature du texte parlementaire n°29 portant sur l'urgence sociale.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "francois-ruffin",
+      "period": "2022",
+      "attribution": "historical_cosigned_bill",
+      "source": "https://www.assemblee-nationale.fr/dyn/opendata/PIONANR5L16B0328.html",
+      "domain": "wages",
+      "summary": "Cosignature d'un texte visant la revalorisation du salaire minimum.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "laurent-wauquiez",
+      "period": "2025",
+      "attribution": "parliamentary_proposal",
+      "source": "https://www.assemblee-nationale.fr/dyn/opendata/PIONANR5L17B0762.html",
+      "domain": "social",
+      "summary": "Proposition d'un plafond de certaines prestations non contributives à 70 % du SMIC et d'étude d'une aide sociale unique.",
+      "measure_ids": [],
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    }
+  ]
+}

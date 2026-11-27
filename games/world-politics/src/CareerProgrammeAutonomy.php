@@ -44,6 +44,8 @@ final class CareerProgrammeAutonomy
         return $office==='prime-minister'||($portfolio!==null&&$office==='minister-'.$portfolio);
     }
     public static function objectives(array $career):array{
+        if(($career['person_reference']??null)==='campaign2027-marine-tondelier'&&($career['programme_edition']??null)==='campaign2027-marine-tondelier-v1-public')
+            return ['pf2027-ecologistes-smic','pf2027-ecologistes-renovation'];
         if(isset($career['person_reference']))return self::DOCUMENTED[$career['person_reference']]??[];
         if(($career['controller']??null)==='ai'||$career['account']===null)return [];
         return $career['fictional_profile']['measure_ids']??[];

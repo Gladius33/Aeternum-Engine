@@ -167,7 +167,7 @@ final class PdoCareerInstitutionStore
             $state=$this->replay($world,$this->row($world));$out=[];$choices=[];
             if($state['country']==='FR'){
                 require_once __DIR__.'/CampaignCandidate.php';
-                foreach([...CampaignCandidate::candidateDirectory2027(),...CampaignCandidate::provisionalChoices()] as $choice)$choices[$choice['reference_id']]=$choice;
+                foreach([...CampaignCandidate::candidateDirectory2027(),...CampaignCandidate::v1Choices()] as $choice)$choices[$choice['reference_id']]=$choice;
             }
             foreach($state['careers'] as $id=>$c){
                 if(!isset($c['person_reference']))continue;
@@ -176,9 +176,9 @@ final class PdoCareerInstitutionStore
                 $offices=[];foreach($state['active'] as $office=>$mid)if($state['mandates'][$mid]['career']===$id)$offices[]=$office;
                 $out[]=['career_id'=>$id,'identity'=>$c['identity'],'controller'=>$c['controller'],'offices'=>$offices,
                     'claim_reference'=>$available,'playable'=>$available!==null&&$c['account']===null,
-                    'programme_provisional'=>$available!==null&&($choices[$available]['provisional']??false),'availability_code'=>$available===null?'programme_incomplete':($c['account']===null?($choices[$available]['availability_code']??'available'):'occupied')];
+                    'programme_provisional'=>$available!==null&&($choices[$available]['provisional']??false),'autonomy_scope'=>$available===null?'none':($choices[$available]['autonomy_scope']??'reviewed_mapped_subset'),'availability_code'=>$available===null?'programme_incomplete':($c['account']===null?($choices[$available]['availability_code']??'available'):'occupied')];
             }
-            return ['world_id'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'characters'=>$out,'additional_political_references'=>$state['country']==='FR'?FrenchPoliticalDirectory::supplementary():[],'fictional_creation_available'=>true,'final_ballot_verified'=>false];
+            return ['world_id'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'characters'=>$out,'additional_political_references'=>$state['country']==='FR'?array_values(array_filter(FrenchPoliticalDirectory::supplementary(),fn($r)=>!isset($state['careers'][$r['id']]))):[],'fictional_creation_available'=>true,'final_ballot_verified'=>false];
         });
     }
     private function admitLocked(string $world,string $account,array $clock,string $secret,?string $reference=null,?array $fictional=null):array{
@@ -255,6 +255,15 @@ final class PdoCareerInstitutionStore
         $e=['world'=>$world,'country'=>$state['country'],'day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-real-ai-roster-v1','actor'=>'career-ai-clerk','operation'=>'admit_real_ai_roster','payload'=>$p,
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'real-ai-roster-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
         return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
+    }
+    private function seedFrenchSupplementLocked(string $world,array $clock):void{
+        $state=$this->replay($world,$this->row($world));
+        if($state['country']!=='FR')return;
+        require_once __DIR__.'/FrenchPoliticalDirectory.php';
+        $day=$clock['committed_day'];$payload=['people'=>FrenchPoliticalDirectory::runtimeSupplementV1()];
+        $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-fr-supplement-roster-v1','actor'=>'career-ai-clerk','operation'=>'admit_fr_supplement_roster','payload'=>$payload,
+            'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'fr-supplement-roster-v1','world'=>$world,'day'=>$day,'payload'=>$payload])];
+        $this->applyLocked($e,$this->evidence->sign($e));
     }
     public function seedAutonomousCareers(string $world,string $secret):?array{
         return $this->tx(fn()=>$this->seedAutonomousLocked($world,$this->clock($world),$secret));
@@ -417,7 +426,7 @@ final class PdoCareerInstitutionStore
         });
     }
 
-    private const PUBLIC_CAPACITY=8; // 22 documentary AI + at most 8 additional human careers; existing ballot cap is 30.
+    private const PUBLIC_CAPACITY=8; // v1: 22+8; expanded v2: 36+8 <= 48.
     private const SERVICE_OWNER='acct-00000000000000000000000000000000';
 
     private function lockPublicPool():void{
@@ -434,6 +443,7 @@ final class PdoCareerInstitutionStore
         $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
         require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);
         $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
+        $this->seedFrenchSupplementLocked($world,['committed_day'=>$day,'revision'=>0]);
         $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>0,'command'=>'participation-opening-v1','actor'=>'career-participation-clerk','operation'=>'participation_enable','payload'=>['version'=>CareerParticipation::VERSION]];
         $e['evidence_sha']=CareerParticipation::digest($e);$this->applyLocked($e,$this->evidence->sign($e));
         $this->query('INSERT INTO wp_career_public_worlds(world_id) VALUES(?)',[$world]);
@@ -538,6 +548,7 @@ final class PdoCareerInstitutionStore
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
             if($profile==='economic'){require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);}
             $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
+        $this->seedFrenchSupplementLocked($world,['committed_day'=>$day,'revision'=>0]);
             if($country!=='FR')$this->seedForeignOpening($world,$secret);
             $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret,$reference,$fictional);
             if($profile==='economic'){

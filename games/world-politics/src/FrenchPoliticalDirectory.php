@@ -29,6 +29,15 @@ final class FrenchPoliticalDirectory
         }
         return $out;
     }
+    public static function runtimeSupplementV1():array{
+        $out=[];
+        foreach(self::supplementary() as $p){
+            $id=$p['id'];
+            $out[$id]=['id'=>$id,'person_reference'=>'campaign2027-'.substr($id,5),'name'=>$p['name'],'source'=>$p['source_url'],
+                'observed_on'=>$p['checked_on'],'publication_state'=>'documentary_non_ballot_observation'];
+        }
+        return $out;
+    }
     public static function report(array $campaign):array{
         $out=[];
         foreach($campaign as $r){

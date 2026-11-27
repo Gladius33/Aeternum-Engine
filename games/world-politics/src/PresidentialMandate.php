@@ -201,12 +201,13 @@ final class PresidentialMandate
             'identity_scope'=>'fictional_office_alias'];
         return $s;
     }
-    public static function countElection(array $c,bool $eligible):array
+    public static function countElection(array $c,bool $eligible,int $capacity=30):array
     {
+        if(!in_array($capacity,[30,48],true))throw new \InvalidArgumentException('Unknown ballot capacity');
         self::fields($c,['registered','first','second']);
         if(!is_int($c['registered'])||$c['registered']<1||$c['registered']>100000000)throw new \InvalidArgumentException('Invalid electorate');
-        $first=self::ballot($c['first'],$c['registered']);
-        if(count($first['votes'])<2||count($first['votes'])>30||isset($first['votes'][CampaignLifecycle::PLAYER])!==$eligible)
+        $first=self::ballot($c['first'],$c['registered'],$capacity);
+        if(count($first['votes'])<2||count($first['votes'])>$capacity||isset($first['votes'][CampaignLifecycle::PLAYER])!==$eligible)
             throw new \DomainException('Invalid presidential candidate eligibility');
         $rank=array_keys($first['votes']);usort($rank,fn($a,$b)=>$first['votes'][$b]<=>$first['votes'][$a]?:strcmp($a,$b));
         $winner=$first['votes'][$rank[0]]*2>$first['valid_votes']?$rank[0]:null;
@@ -219,17 +220,17 @@ final class PresidentialMandate
             return ['first'=>$first,'second'=>null];
         }
         if(!is_array($c['second']))throw new \DomainException('Missing runoff ballot');
-        $second=self::ballot($c['second'],$c['registered']);
+        $second=self::ballot($c['second'],$c['registered'],$capacity);
         $keys=array_keys($second['votes']);sort($keys);$f=$finalists;sort($f);
         if($keys!==$f)throw new \DomainException('Runoff candidate mismatch');
         $winner=null;foreach($second['votes'] as $id=>$votes)if($votes*2>$second['valid_votes'])$winner=$id;
         $second+=['round'=>2,'winner'=>$winner,'finalists'=>$finalists];
         return ['first'=>$first,'second'=>$second];
     }
-    private static function ballot(array $b,int $registered):array
+    private static function ballot(array $b,int $registered,int $capacity=30):array
     {
         self::fields($b,['votes','blank_invalid']);
-        if(!is_array($b['votes'])||count($b['votes'])<2||count($b['votes'])>30||!is_int($b['blank_invalid'])||$b['blank_invalid']<0||$b['blank_invalid']>$registered)
+        if(!is_array($b['votes'])||count($b['votes'])<2||count($b['votes'])>$capacity||!is_int($b['blank_invalid'])||$b['blank_invalid']<0||$b['blank_invalid']>$registered)
             throw new \InvalidArgumentException('Invalid presidential ballot');
         foreach($b['votes'] as $id=>$n)
             if(!is_string($id)||!preg_match('/^[a-z][a-z0-9_-]{0,63}$/D',$id)||!is_int($n)||$n<0||$n>$registered)

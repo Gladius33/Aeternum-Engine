@@ -207,13 +207,16 @@ $afterForeign=req('GET','/career-worlds/'.$fw.'/career',null,$etoken);
 ck($afterForeign['body']['occupied_offices'][0]['identity']['person_reference']==='person-de-johann-wadephul'&&$afterForeign['body']['mandates']===[],'certified successor identity projected atomically');
 
 $frd=req('GET',$ep.'/characters',null,$etoken);
-ck($frd['status']===200&&count($frd['body']['characters'])===22,'French directory');
-ck(count(array_filter($frd['body']['characters'],fn($r)=>$r['playable']&&$r['programme_provisional']))===4,'four provisional French claims available');
-ck(count($frd['body']['additional_political_references'])===14&&array_filter($frd['body']['additional_political_references'],fn($r)=>$r['playable']||$r['runtime_roster'])===[],'additional political references not silently seeded or unlocked');
+ck($frd['status']===200&&count($frd['body']['characters'])===36,'French directory');
+ck(count(array_filter($frd['body']['characters'],fn($r)=>$r['playable']&&$r['programme_provisional']))===36,'all 36 provisional French claims available');
+ck($frd['body']['additional_political_references']===[],'new expanded world contains supplementary identities');
 
 $provisional=req('POST','/career-worlds',['label'=>'Provisional','reference_id'=>'campaign2027-jean-luc-melenchon-v3'],$etoken,'provisional-career-create-001');
 ck($provisional['status']===201,'explicit provisional real identity admission');
 ck(req('GET','/career-worlds/'.$provisional['body']['world_id'].'/career',null,$etoken)['body']['career']['id']==='real-jean-luc-melenchon','provisional claim retains identity');
+$manual=req('POST','/career-worlds',['label'=>'Manual public source','reference_id'=>'campaign2027-jordan-bardella-v1-public'],$etoken,'manual-career-create-001');
+ck($manual['status']===201,'manual source edition admits supplementary identity');
+ck(req('GET','/career-worlds/'.$manual['body']['world_id'].'/career',null,$etoken)['body']['career']['id']==='real-jordan-bardella','manual claim bound to same documentary identity');
 ck(req('POST','/career-worlds',['label'=>'Unknown','country'=>'CH'],$etoken,'career-ch-creation-001')['status']===409,'unimplemented rules fail closed');
 echo "PASS WP118 HTTP career sandbox, invitations, admission, replay, principal and legacy isolation\n";
 

@@ -155,7 +155,7 @@ final class UniverseLobby
             if(CampaignCandidate::discoveryOnly($body['candidate']))throw new AlphaHttpError(409,'candidate_programme_unavailable');
             try{$candidate=CampaignCandidate::normalizeManaged($body['candidate']);
                 $candidateMayStart=CampaignCandidate::mayStart($body['candidate']);
-                if($body['candidate']['type']==='campaign2027')$openingProgramme=PresidentialProgramme::compileProfile(array_column($candidate['programme'],'id'));}
+                if($body['candidate']['type']==='campaign2027')$openingProgramme=$candidate['programme']===[]?'manual':PresidentialProgramme::compileProfile(array_column($candidate['programme'],'id'));}
             catch(\InvalidArgumentException|\DomainException $e){throw new AlphaHttpError(422,'invalid_candidate');}
         }
         $key=hash('sha256',$key);$fingerprint=hash('sha256',json_encode([$country,$no,...($candidate===null?[]:[$candidate])],JSON_THROW_ON_ERROR));
