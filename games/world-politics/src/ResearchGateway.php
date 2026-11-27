@@ -14,10 +14,11 @@ final class ResearchGateway
             $h=array_change_key_case($headers,CASE_LOWER);
             if(!preg_match('/^Bearer ([a-f0-9]{64})$/D',$h['authorization']??'',$m))
                 return self::response(401,['code'=>'research_authentication_required']);
-            $token=$m[1];$admitted=$this->queue->admit($token);
+            $token=$m[1];$admitted=$this->queue->admit($token,ResearchBilling::operation($method,$path));
             if($admitted===null)return self::response(401,['code'=>'research_authentication_required']);
             if(!$admitted)return self::response(429,['code'=>'research_rate_limited']);
             if($method!=='POST'&&$raw!=='')return self::response(400,['code'=>'body_forbidden']);
+            if($method==='GET'&&$path==='/research/v1/usage')return self::response(200,$this->queue->usage($token));
             if($method==='GET'&&$path==='/research/v1/entitlements')return self::response(200,$this->queue->capabilities($token));
             if($method==='GET'&&$path==='/research/v1/worlds')return self::response(200,$this->queue->worlds($token));
             if($method==='POST'&&$path==='/research/v1/worlds'){
@@ -47,7 +48,8 @@ final class ResearchGateway
                 return self::response(409,['code'=>'invalid_job_state']);
             }
             return self::response(404,['code'=>'not_found']);
-        }catch(\JsonException $e){return self::response(400,['code'=>'invalid_json']);}
+        }catch(ResearchBillingError $e){return self::response($e->status,['code'=>$e->getMessage()]);}
+        catch(\JsonException $e){return self::response(400,['code'=>'invalid_json']);}
         catch(\DomainException $e){return self::response(409,['code'=>'research_request_rejected']);}
         catch(\Throwable $e){return self::response(503,['code'=>'research_unavailable']);}
     }

@@ -8,6 +8,11 @@ servers:
 security:
   - researchBearer: []
 paths:
+  /usage:
+    get:
+      responses:
+        '200': {description: Remaining included and prepaid usage units and lifetime consumption}
+        '429': {description: Hard capacity limit}
   /entitlements:
     get:
       responses:

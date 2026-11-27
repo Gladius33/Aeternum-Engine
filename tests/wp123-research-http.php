@@ -44,6 +44,8 @@ $rot=$q->rotate($a['tenant_id']);ckr(rr('GET',$p.'/'.$id,$a['token'])['status']=
 ckr(rr('GET',$p.'/'.$id,$rot['token'])===$done,'rotation preserves result');
 $db->prepare('UPDATE wp_research_jobs SET result_json=?,result_sha=? WHERE job_id=?')->execute(['{}',hash('sha256','{}'),$id]);
 ckr(rr('GET',$p.'/'.$id,$rot['token'])['status']===409,'tampered result rejected');
+$u=rr('GET','/research/v1/usage',$rot['token']);
+ckr($u['status']===200&&$u['body']['lifetime_included_used']>0,'usage API');
 $db->prepare('UPDATE wp_research_rate SET minute_no=?,requests=120 WHERE tenant_id=?')->execute([intdiv(time(),60),$a['tenant_id']]);
 ckr(rr('GET','/research/v1/models',$rot['token'])['status']===429,'authenticated tenant rate limit');
 echo "PASS WP123 isolated dedicated MariaDB and actual HTTP research transport\n";

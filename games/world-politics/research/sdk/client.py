@@ -53,3 +53,19 @@ class ResearchClient:
 
     def csv(self, job_id):
         return self._request("GET", "/experiments/" + self._id(job_id) + "/csv")
+
+    def usage(self):
+        return self._request("GET", "/usage")
+
+    def entitlements(self):
+        return self._request("GET", "/entitlements")
+
+    def dataset(self, scope="own", after=None, through=None):
+        if scope not in ("own", "global"):
+            raise ValueError("Invalid dataset scope")
+        path = "/datasets/" + scope
+        if after is not None or through is not None:
+            if not isinstance(after, int) or not isinstance(through, int) or not 0 <= after <= through:
+                raise ValueError("Invalid dataset cursor")
+            path += f"/{after}/{through}"
+        return self._request("GET", path)

@@ -5,6 +5,10 @@ CREATE TABLE wp_research_tenants (
  plan ENUM('standard','pro') NOT NULL DEFAULT 'standard',
  paid_until BIGINT UNSIGNED NOT NULL,
  share_dataset TINYINT UNSIGNED NOT NULL DEFAULT 0,
+ billing_mode ENUM('monthly','payg') NOT NULL DEFAULT 'monthly',
+ included_units BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ prepaid_units BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ allow_overage TINYINT UNSIGNED NOT NULL DEFAULT 0,
  created_at BIGINT UNSIGNED NOT NULL
 ) ENGINE=InnoDB;
 CREATE TABLE wp_research_keys (
@@ -56,4 +60,28 @@ CREATE TABLE wp_research_dataset (
  seq BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  job_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
  FOREIGN KEY(job_id) REFERENCES wp_research_jobs(job_id)
+) ENGINE=InnoDB;
+
+-- Unit balances are accounting credits, not bearer credentials or currency.
+CREATE TABLE wp_research_billing_events (
+ event_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ tenant_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ event_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ event_kind ENUM('renewal','topup','usage') NOT NULL,
+ fingerprint CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ included_delta BIGINT NOT NULL,
+ prepaid_delta BIGINT NOT NULL,
+ operation VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ created_at BIGINT UNSIGNED NOT NULL,
+ UNIQUE KEY billing_idempotency(tenant_id,event_key),
+ INDEX billing_history(tenant_id,event_id),
+ FOREIGN KEY(tenant_id) REFERENCES wp_research_tenants(tenant_id)
+) ENGINE=InnoDB;
+CREATE TABLE wp_research_capacity (
+ scope_key VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ period_seconds INT UNSIGNED NOT NULL,
+ window_no BIGINT UNSIGNED NOT NULL,
+ requests INT UNSIGNED NOT NULL,
+ units BIGINT UNSIGNED NOT NULL,
+ PRIMARY KEY(scope_key,period_seconds)
 ) ENGINE=InnoDB;

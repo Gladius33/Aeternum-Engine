@@ -32,4 +32,14 @@ ckResearch($g->handle('GET','/api/v1/worlds','',$head($rot['token']))['status']=
 $z=$g->handle('POST',$path,$body,$head($rot['token'],'research-test-key-03'));
 $db->prepare('UPDATE wp_research_jobs SET manifest_json=? WHERE job_id=?')->execute(['{}',$z['body']['job_id']]);
 ckResearch($q->work()['status']==='failed','changed evidence fails closed');
+$pay=$q->createTenant('standard',30,false,'payg');
+ckResearch($g->handle('GET','/research/v1/models','',$head($pay['token']))['status']===402,'empty prepaid wallet denied');
+$q->fund($pay['tenant_id'],'payment-fixture-001','topup',50);
+$q->fund($pay['tenant_id'],'payment-fixture-001','topup',50);
+ckResearch($q->usage($pay['token'])['prepaid_remaining']===50,'idempotent funding');
+$x=$g->handle('POST',$path,$body,$head($pay['token']));
+ckResearch($x['status']===202&&$q->usage($pay['token'])['prepaid_remaining']===39,'admission plus compute debit');
+ckResearch($g->handle('POST',$path,$body,$head($pay['token']))===$x&&$q->usage($pay['token'])['prepaid_remaining']===38,'retry only transport debit');
+$q->fund($pay['tenant_id'],'renewal-fixture-001','renewal',10,time()+86400*30,'standard','monthly',true);
+ckResearch($q->usage($pay['token'])['included_remaining']===10&&$q->usage($pay['token'])['prepaid_remaining']===38,'renewal preserves wallet');
 echo "PASS WP123 isolated tenant queue, worker, CSV, cancellation, rotation and evidence pin\n";

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/ResearchExperiment.php';
+require_once __DIR__.'/ResearchBilling.php';
 
 final class ResearchQueue
 {
@@ -24,10 +25,10 @@ final class ResearchQueue
         catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
     }
     private static function id(string $id):void{if(!preg_match('/^[a-f0-9]{32}$/D',$id))throw new \DomainException('Invalid ID');}
-    public function createTenant(string $plan='standard',int $days=30,bool $share=false):array{
-        self::plan($plan,$days);
-        return $this->tx(function()use($plan,$days,$share){
-            $id=bin2hex(random_bytes(16));$this->q('INSERT INTO wp_research_tenants(tenant_id,created_at,plan,paid_until,share_dataset) VALUES(?,?,?,?,?)',[$id,time(),$plan,time()+86400*$days,(int)$share]);
+    public function createTenant(string $plan='standard',int $days=30,bool $share=false,string $billing='monthly'):array{
+        self::plan($plan,$days);ResearchBilling::mode($billing);
+        return $this->tx(function()use($plan,$days,$share,$billing){
+            $id=bin2hex(random_bytes(16));$this->q('INSERT INTO wp_research_tenants(tenant_id,created_at,plan,paid_until,share_dataset,billing_mode,included_units) VALUES(?,?,?,?,?,?,?)',[$id,time(),$plan,time()+86400*$days,(int)$share,$billing,$billing==='monthly'&&$days>0?ResearchBilling::included($plan):0]);
             return ['tenant_id'=>$id,'token'=>$this->issueLocked($id)];
         });
     }
@@ -44,6 +45,15 @@ final class ResearchQueue
             $this->q('UPDATE wp_research_tenants SET plan=?,paid_until=?,share_dataset=? WHERE tenant_id=?',[$plan,$until,(int)$share,$tenant]);
             return ['tenant_id'=>$tenant,'plan'=>$plan,'paid_until'=>$until,'share_dataset'=>$share];
         });
+    }
+    /** Trusted operator event: exact UTC expiry, unique payment reference.
+     * No public endpoint can credit or renew its own balance. */
+    public function fund(string $tenant,string $reference,string $kind,int $units,?int $until=null,?string $plan=null,?string $mode=null,bool $overage=false):array{
+        self::id($tenant);
+        return $this->tx(fn()=>ResearchBilling::fund($this->db,$tenant,$reference,$kind,$units,$until,$plan,$mode,$overage));
+    }
+    public function usage(string $token):array{
+        return $this->tx(fn()=>ResearchBilling::usage($this->db,$this->authorized($token)));
     }
     private function entitlement(string $tenant):array{
         $r=$this->q('SELECT plan,paid_until,share_dataset FROM wp_research_tenants WHERE tenant_id=? AND enabled=1 AND paid_until>? FOR UPDATE',[$tenant,time()])->fetch(\PDO::FETCH_ASSOC);
@@ -97,13 +107,14 @@ final class ResearchQueue
         return is_string($r)?$r:null;
     }
     /** Authenticated request admission, serialized with tenant/key changes. */
-    public function admit(string $token):?bool{
-        return $this->tx(function()use($token){
+    public function admit(string $token,string $operation='read'):?bool{
+        return $this->tx(function()use($token,$operation){
             $tenant=$this->authenticate($token,true);if($tenant===null)return null;
             $minute=intdiv(time(),60);
             $r=$this->q('SELECT minute_no,requests FROM wp_research_rate WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
             $count=$r!==false&&(int)$r['minute_no']===$minute?(int)$r['requests']:0;
             if($count>=120)return false;
+            ResearchBilling::admit($this->db,$tenant,$operation);
             $this->q('INSERT INTO wp_research_rate(tenant_id,minute_no,requests) VALUES(?,?,?) ON DUPLICATE KEY UPDATE minute_no=VALUES(minute_no),requests=VALUES(requests)',
                 [$tenant,$minute,$count+1]);
             return true;
@@ -122,9 +133,11 @@ final class ResearchQueue
             $n=(int)$this->q('SELECT COUNT(*) FROM wp_research_jobs WHERE tenant_id=? AND created_at>=?',[$tenant,time()-86400])->fetchColumn();
             $all=(int)$this->q('SELECT COUNT(*) FROM wp_research_jobs WHERE tenant_id=?',[$tenant])->fetchColumn();
             if($n>=20||$all>=1000)throw new \DomainException('Tenant quota');
+            if((int)$this->q("SELECT COUNT(*) FROM wp_research_jobs WHERE tenant_id=? AND status='queued'",[$tenant])->fetchColumn()>=5)throw new ResearchBillingError(429,'tenant_queue_limit');
             // Validate the bounded deterministic contract before admitting a job.
             $pin=ResearchExperiment::pin();ResearchExperiment::run($request,$pin);
             $id=bin2hex(random_bytes(16));
+            ResearchBilling::compute($this->db,$tenant,$id);
             $requestJson=ResearchExperiment::json($request);$manifestJson=ResearchExperiment::json($pin);
             $this->q('INSERT INTO wp_research_jobs(job_id,tenant_id,world_id,request_key,request_sha,request_json,manifest_json,request_signature,created_at) VALUES(?,?,?,?,?,?,?,?,?)',
                 [$id,$tenant,$world,$key,$sha,$requestJson,$manifestJson,$this->requestSeal($id,$tenant,$requestJson,$manifestJson,$world),time()]);
