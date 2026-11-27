@@ -139,7 +139,7 @@ paths:
           required: true
           schema: {type: string}
       responses:
-        '200': {description: Own career and institutional projection}
+        '200': {description: Own career and institutional projection with unranked score_progress from committed ledger; potential credit is not certified or awarded}
         '404': {description: Feature disabled or world inaccessible}
         '409': {description: Verification failure}
   /career-worlds/{world}/policy-proposals:

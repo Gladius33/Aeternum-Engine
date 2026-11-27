@@ -123,7 +123,7 @@ final class PdoCareerInstitutionStore
         }
         return ['world_id'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],'revision'=>(int)$clock['revision'],'career'=>$career,'mandates'=>$mandates,'occupied_offices'=>$offices,
             'institution'=>['state_id'=>$s['state_id'],'regime'=>$s['regime'],'assembly'=>$s['assembly'],'senate'=>$s['senate'],'government'=>$s['government'],'constitution_revision'=>$s['constitution_revision']],
-            'appointment_proposals'=>array_values(array_filter($s['appointment_proposals']??[],fn($p)=>$p['status']==='pending'&&($s['active']['prime-minister']??null)===$p['pm_mandate'])),'rankable'=>false,'profile'=>'isolated-career-alpha'];
+            'appointment_proposals'=>array_values(array_filter($s['appointment_proposals']??[],fn($p)=>$p['status']==='pending'&&($s['active']['prime-minister']??null)===$p['pm_mandate'])),'rankable'=>false,'score_progress'=>CareerScoreContract::ledgerProgress($s,$career['id']??null,$clock['committed_day']),'profile'=>'isolated-career-alpha'];
     }
     public function readForSession(string $world,string $token):array{
         return $this->tx(function()use($world,$token){$clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);return $this->viewLocked($world,$account,$clock);});

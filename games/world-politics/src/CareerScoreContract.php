@@ -43,6 +43,57 @@ final class CareerScoreContract
             'score'=>max(0,$total+$gainBps)];
     }
 
+
+    /** Read-only progress derived from the already authenticated, replayed
+     * ledger and the committed clock. Neither human participation nor income
+     * is certified by a mandate. Never use this report as ranking evidence. */
+    public static function ledgerProgress(array $state,?string $careerId,string $through):array
+    {
+        self::elapsed(self::START,$through);
+        self::elapsed($state['day'],$through);
+        $base=['version'=>self::VERSION,'day'=>$through,'score'=>null,'rankable'=>false,
+            'official_eligible'=>false,'participation_verified'=>false,'economic_evidence_verified'=>false];
+        if($careerId===null)return $base+['status'=>'not_admitted','series'=>[]];
+        $c=$state['careers'][$careerId]??null;
+        if($c===null||$c['account']===null)throw new \DomainException('No human career');
+        $joined=$c['claimed_on']??$c['admitted_on'];
+        self::elapsed($joined,$through);
+        $mode=$joined===self::START?'opening':'late_takeover';
+        $base+=['human_joined_on'=>$joined,'admission_mode'=>$mode];
+        if($state['mode']!=='career'||$state['country']!=='FR')
+            return $base+['status'=>'unsupported_country_or_mode','series'=>[]];
+        $out=[];
+        foreach($state['series'] as $id=>$series){
+            if($series['career']!==$careerId)continue;
+            $start=$series['start'];$end=$series['end'];
+            if($end!==null&&$end<=$joined)continue; // previous AI history
+            $humanStart=max($joined,$start);
+            if($end===null){
+                $mid=$state['active']['president']??null;
+                $m=$mid===null?null:$state['mandates'][$mid];
+                if($m===null||$m['series']!==$id||$m['career']!==$careerId||$m['interim'])
+                    throw new \DomainException('Open series without qualifying office');
+                $cutoff=min($through,$m['expires']);
+                $status=$through>=$m['expires']?'expiry_pending':'active';
+            }else{$cutoff=min($through,$end);$status='closed';}
+            if($cutoff<$humanStart)continue;
+            $tenure=self::elapsed($humanStart,$cutoff);
+            // An inherited AI series cannot earn an opening-accession bonus,
+            // even if the account claimed it on the opening day.
+            $maximum=$mode==='opening'&&$series['first']&&$start>=$joined
+                &&!isset($c['claimed_on'])?self::elapsed($joined,$start):0;
+            $out[]=['series_id'=>$id,'accession_on'=>$start,'human_tenure_from'=>$humanStart,
+                'through_day'=>$cutoff,'status'=>$status,'tenure_days'=>$tenure,
+                'tenure_time_points'=>self::timePoints($tenure),'maximum_unverified_credit_days'=>$maximum,
+                'maximum_unverified_credit_points'=>self::timePoints($tenure+$maximum)-self::timePoints($tenure),
+                'verified_credit_days'=>null,'purchasing_power_gain_bps'=>null,'score'=>null,'rankable'=>false];
+        }
+        usort($out,fn($a,$b)=>strcmp($a['accession_on'],$b['accession_on'])?:strcmp($a['series_id'],$b['series_id']));
+        $waiting=$out===[]&&$mode==='opening'&&$c['first_series']===null?self::elapsed($joined,$through):0;
+        return $base+['status'=>$out===[]?'pre_mandate':'evidence_pending',
+            'pre_mandate_elapsed_days'=>$waiting,'series'=>$out];
+    }
+
     /** Cohorts are world/account independent. Every pin is a canonical SHA-256
      * of an independently versioned manifest, not an arbitrary client label. */
     public static function cohort(array $pins,string $country,string $start,int $horizon,string $mode):string

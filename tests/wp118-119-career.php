@@ -217,3 +217,21 @@ foreach(['DE','ES','GB','IT','JP','US'] as $cc){
     ck(\Aeternum\WorldPolitics\InstitutionalSimulation::restore($inst->snapshot())->snapshot()===$inst->snapshot(),'versioned career electoral bootstrap '.$cc);
 }
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";
+
+
+$progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($s,'c','2028-07-15');
+ck($progress['score']===null&&!$progress['rankable']&&$progress['series'][0]['tenure_days']===366&&$progress['series'][0]['maximum_unverified_credit_days']===62&&$progress['series'][0]['verified_credit_days']===null,'career opportunity reported but never awarded without evidence');
+$progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($s,'b','2028-07-15');
+ck($progress['series']===[]&&$progress['score']===null,'interim does not count as presidency');
+$progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($s,'a','2028-07-15');
+ck($progress['series'][0]['through_day']==='2027-07-01'&&$progress['series'][0]['tenure_days']===48,'closed series frozen');
+$progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($t,'a','2034-05-14');
+ck(count($progress['series'])===1&&$progress['series'][0]['through_day']==='2033-05-14','renewed series remains continuous and freezes');
+$progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($s,'d','2028-07-15');
+ck($progress['status']==='pre_mandate'&&$progress['pre_mandate_elapsed_days']===428&&$progress['score']===null,'waiting without accession is not scored');
+$claimed=change($real,'election',[],[grant('president','real-jean-luc-melenchon')]);
+$claim=['career'=>'real-jean-luc-melenchon','account'=>'acct-claim','edition'=>'campaign2027-jean-luc-melenchon','programme_sha'=>str_repeat('b',64)];
+$ce=evt($claimed,'claim_real_career',$claim,'2028-05-14');$ce['actor']='career-admission';$ce['evidence_sha']=L::digest(['kind'=>'approved-real-career-claim-v1','world'=>$claimed['world'],'day'=>$ce['day'],'payload'=>$claim]);
+$claimed=L::apply($claimed,$ce);
+$progress=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($claimed,'real-jean-luc-melenchon','2029-05-14');
+ck($progress['admission_mode']==='late_takeover'&&$progress['series'][0]['tenure_days']===365&&$progress['series'][0]['maximum_unverified_credit_days']===0,'AI history is excluded from human tenure and compensation');
