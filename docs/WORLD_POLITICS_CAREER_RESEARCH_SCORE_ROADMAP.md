@@ -80,7 +80,7 @@ Reproductibilité : versions moteur/données/modèles/seed/config, manifeste d'e
 | Lot proposé | Dépendances et livrable | Gate |
 |---|---|---|
 | WP114 clôture bornée | Achever qualification du périmètre curaté, distinguer archives et calibration encore ouvertes ; pas de fausse clôture | CI exact-head et écarts documentés |
-| WP115 | Collecte, schémas, provenance, licences, données initiales et versionnage ; pas de données futures inventées | validation ingestion |
+| WP115 | Collecte initiale, schémas, provenance, données versionnées, ingestion et bilan de couverture par pays ; aucune donnée future inventée | catalogue v2 + tests exact-head ; voir WORLD_POLITICS_WP115_STAGING.md |
 | WP116 | ADR identité/office/mandat/career + contrat score v2 et horizon/cohortes ; inventaire code/données, tests formels | aucune modification v1 |
 | WP117 | Registre mondial mouvements/doctrines/responsables et documents versionnés, cas France | provenance/licence/neutralité |
 | WP118 | Carrière et autorisations, formation gouvernementale et nominations, multi-postes compatibles | transaction/replay/isolement |

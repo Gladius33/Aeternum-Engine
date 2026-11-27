@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WP115 opening reference export",
+  "type": "object",
+  "required": [
+    "schema",
+    "iso2",
+    "reference_as_of",
+    "scenario_start_day",
+    "snapshot_sha",
+    "latest_non_null_historical_references",
+    "annual_2027_projections",
+    "explicit_missing_values",
+    "actual_opening_state",
+    "runtime_admission",
+    "opening_state_status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "wp115-opening-reference-v1"
+    },
+    "iso2": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "reference_as_of": {
+      "type": "string",
+      "format": "date"
+    },
+    "scenario_start_day": {
+      "const": "2027-05-14"
+    },
+    "snapshot_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "latest_non_null_historical_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "year",
+          "value",
+          "classification",
+          "source_url",
+          "unit"
+        ],
+        "properties": {
+          "year": {
+            "type": "integer",
+            "maximum": 2026
+          },
+          "value": {
+            "type": "number"
+          },
+          "classification": {
+            "not": {
+              "enum": [
+                "projection",
+                "projection_unverified_excerpt",
+                "missing"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "annual_2027_projections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "year",
+          "classification",
+          "value",
+          "source_url",
+          "unit"
+        ],
+        "properties": {
+          "year": {
+            "const": 2027
+          },
+          "classification": {
+            "enum": [
+              "projection",
+              "projection_unverified_excerpt"
+            ]
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "explicit_missing_values": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "value",
+          "classification"
+        ],
+        "properties": {
+          "value": {
+            "type": "null"
+          },
+          "classification": {
+            "const": "missing"
+          }
+        }
+      }
+    },
+    "actual_opening_state": {
+      "type": "null"
+    },
+    "runtime_admission": {
+      "const": false
+    },
+    "opening_state_status": {
+      "const": "future_unknown_requires_separate_versioned_scenario_assumptions"
+    }
+  }
+}

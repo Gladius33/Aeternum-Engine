@@ -24,3 +24,24 @@ foreach($s['countries'] as $cc){
     $r=$c->country($cc);
     ck115($r['runtime_admission']===false&&count($r['unresolved_fields'])===22&&$r['renewal_reference']['certifies_result']===false,'country references isolated: '.$cc);
 }
+
+$elections=0;$entries=0;$covered=0;$nationalEntries=0;$coverageRows=0;
+foreach($s['countries'] as $cc){
+    $d=$c->country($cc);$records=$d['parliamentary_election_reference']['results'];
+    ck115(count($records)===count(array_unique(array_column($records,'election_code'))),'historical election IDs distinct: '.$cc);
+    $present=false;
+    foreach($records as $r){if($r['parties']!==[]){++$elections;$entries+=count($r['parties']);$present=true;}}
+    $covered+=(int)$present;
+    foreach($d['national_election_supplements'] as $r)$nationalEntries+=count($r['parties']);
+    $cov=$c->coverage($cc);
+    $coverageRows+=count($cov['fields']);
+    ck115(count($cov['fields'])===22&&$cov['snapshot_sha']===$c->hash()&&count(array_filter($cov['fields'],fn($r)=>$r['fully_closed']||$r['authorizes_runtime']))===0,'coverage is evidence not authority: '.$cc);
+    $opening=$c->openingReference($cc);
+    ck115($opening['actual_opening_state']===null&&$opening['runtime_admission']===false&&$opening['scenario_start_day']==='2027-05-14','future opening not fabricated: '.$cc);
+    ck115(count($opening['annual_2027_projections'])>0&&count(array_filter($opening['annual_2027_projections'],fn($r)=>$r['year']!==2027||!in_array($r['classification'],['projection','projection_unverified_excerpt'],true)))===0,'annual forecast preserved: '.$cc);
+    ck115(count(array_filter($opening['latest_non_null_historical_references'],fn($r)=>$r['year']>2026||$r['value']===null||str_contains($r['classification'],'projection')))===0,'historical reference separated: '.$cc);
+}
+ck115($elections===114&&$entries===1077&&$covered===40&&$nationalEntries===18&&$coverageRows===924,'IPU and national evidence exact totals');
+ck115($c->country('ZA')['national_election_supplements'][0]['seats_reported_sum']===400,'ZA official national seat fallback');
+ck115($c->country('US')['parliamentary_election_reference']['results'][0]['parties']===[],'unpublished latest US party table not replaced by prior election');
+ck115($c->country('CN')['parliamentary_election_reference']['results'][0]['parties']===[]&&$c->country('SA')['parliamentary_election_reference']['results'][0]['parties']===[],'no fabricated direct-election party table');

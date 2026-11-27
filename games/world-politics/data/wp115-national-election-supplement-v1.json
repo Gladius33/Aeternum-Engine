@@ -1,0 +1,96 @@
+{
+  "schema": "wp115-national-party-seat-reference-v1",
+  "as_of": "2026-11-27",
+  "countries": [
+    {
+      "iso2": "ZA",
+      "results": [
+        {
+          "election_code": "ZA-LC01-E20240529",
+          "source_election_date_identifier": "2024-05-29",
+          "source_publication_date": "2024-06-02",
+          "source_url": "https://www.sanews.gov.za/south-africa/sun-sets-2024-elections",
+          "publisher": "South African Government Communication and Information System (SAnews); Electoral Commission announced results",
+          "parties": [
+            {
+              "party_or_coalition": "African National Congress (ANC)",
+              "seats": 159
+            },
+            {
+              "party_or_coalition": "Democratic Alliance (DA)",
+              "seats": 87
+            },
+            {
+              "party_or_coalition": "uMkhonto weSizwe (MK)",
+              "seats": 58
+            },
+            {
+              "party_or_coalition": "Economic Freedom Fighters (EFF)",
+              "seats": 39
+            },
+            {
+              "party_or_coalition": "Inkatha Freedom Party (IFP)",
+              "seats": 17
+            },
+            {
+              "party_or_coalition": "Patriotic Alliance (PA)",
+              "seats": 9
+            },
+            {
+              "party_or_coalition": "Freedom Front Plus (FF Plus)",
+              "seats": 6
+            },
+            {
+              "party_or_coalition": "ActionSA",
+              "seats": 6
+            },
+            {
+              "party_or_coalition": "African Christian Democratic Party (ACDP)",
+              "seats": 3
+            },
+            {
+              "party_or_coalition": "United Democratic Movement (UDM)",
+              "seats": 3
+            },
+            {
+              "party_or_coalition": "African Transformation Movement (ATM)",
+              "seats": 2
+            },
+            {
+              "party_or_coalition": "Al Jama-ah",
+              "seats": 2
+            },
+            {
+              "party_or_coalition": "Build One South Africa (BOSA)",
+              "seats": 2
+            },
+            {
+              "party_or_coalition": "National Coloured Congress (NCC)",
+              "seats": 2
+            },
+            {
+              "party_or_coalition": "Rise Mzansi",
+              "seats": 2
+            },
+            {
+              "party_or_coalition": "GOOD",
+              "seats": 1
+            },
+            {
+              "party_or_coalition": "Pan Africanist Congress of Azania (PAC)",
+              "seats": 1
+            },
+            {
+              "party_or_coalition": "United Africans Transformation",
+              "seats": 1
+            }
+          ],
+          "seats_reported_sum": 400,
+          "status": "published_party_seat_reference",
+          "certifies_current_legislature": false
+        }
+      ]
+    }
+  ],
+  "runtime_admission": false
+}
