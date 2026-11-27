@@ -255,7 +255,7 @@ ck102(isset($du['social_economy_from'])&&isset($du['days'][array_key_last($du['d
 $up=\Aeternum\WorldPolitics\SocialUniverseUpgrade::run($db,$spareNo);
 ck102($up['changed']===false&&$up['applied']===false,'WP114k idempotent upgrade dry run');
 unset($cu['social_economy_from']);
-$cu['catalog']=array_diff_key($cu['catalog'],\Aeternum\WorldPolitics\PrimaryManifestoPolicy::definitions());
+$cu['catalog']=array_diff_key($cu['catalog'],\Aeternum\WorldPolitics\PrimaryManifestoPolicy::definitions()+\Aeternum\WorldPolitics\SocialProgramme::target2027());
 $legacy=\Aeternum\WorldPolitics\PdoDomesticPolicyStore::build($spare,$cu);
 $old=$legacy->snapshot();
 foreach($old as $k=>$v)if($k!=='assumptions_sha'&&array_key_exists($k,$du))$old[$k]=$du[$k];
