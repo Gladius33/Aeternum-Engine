@@ -187,4 +187,9 @@ foreach(['DE','ES','GB','IT','JP','US'] as $cc){
     ck(count($next['active'])===1&&$next['mandates'][array_values($next['active'])[0]]['career']===$id,'opening mandate '.$cc);
     no(fn()=>L::apply($next,$e));
 }
+$opening=\Aeternum\WorldPolitics\UniverseIdentityReference::openingPerson('cast-fixture','FR');
+$cast=\Aeternum\WorldPolitics\UniverseIdentityReference::frenchChallengers('cast-fixture',1,$opening['name']);
+ck($opening['kind']==='real'&&count(array_unique(array_column($cast,'name')))===3&&!in_array($opening['name'],array_column($cast,'name'),true),'real distinct scenario challenger casting');
+ck($cast===\Aeternum\WorldPolitics\UniverseIdentityReference::frenchChallengers('cast-fixture',1,$opening['name']),'stable casting');
+ck(\Aeternum\WorldPolitics\UniverseIdentityReference::openingPerson('cast-fixture','CH')===null,'Swiss collective executive not cast as president');
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";

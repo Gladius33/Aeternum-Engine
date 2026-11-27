@@ -10,6 +10,7 @@ require_once __DIR__.'/ComparativeElectionCalendar.php';
 require_once __DIR__.'/PdoCampaignScores.php';
 require_once __DIR__.'/CampaignCandidate.php';
 require_once __DIR__.'/UniverseScore.php';
+require_once __DIR__.'/UniverseIdentityReference.php';
 
 /** Immutable private alpha scenario. No real economic data is invented. */
 final class AlphaScenario
@@ -107,13 +108,13 @@ final class AlphaWorlds
     {return $this->provision($session,$body,$key,false);}
 
     /** Server-only; the universe pool owns the outer transaction. */
-    public function provisionUniverse():array
+    public function provisionUniverse(bool $bindIdentity=false):array
     {
         if(!$this->db->inTransaction()||$this->scenario->id!==AlphaScenario::INVESTITURE)
             throw new \LogicException('Universe allocation transaction required');
-        return $this->provision(null,['label'=>'Univers '.bin2hex(random_bytes(5)),'scenario'=>$this->scenario->id],bin2hex(random_bytes(16)),true);
+        return $this->provision(null,['label'=>'Univers '.bin2hex(random_bytes(5)),'scenario'=>$this->scenario->id],bin2hex(random_bytes(16)),true,$bindIdentity);
     }
-    private function provision(?AlphaSession $session,array $body,string $key,bool $managed):array
+    private function provision(?AlphaSession $session,array $body,string $key,bool $managed,bool $bindIdentity=false):array
     {
         $owner=$managed?'acct-00000000000000000000000000000000':$session->id;
         $fields=in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario'];
@@ -159,11 +160,12 @@ final class AlphaWorlds
             // commit separately and cannot provide atomic provisioning.
             foreach ($this->scenario->countries as $country) {
                 $roster=new PoliticalRoster($world,$country,$country==='FR'?['prime_minister','economy','education']:['government']);
+                $openingIdentity=$managed&&$bindIdentity?UniverseIdentityReference::openingPerson($world,$country):null;
                 if($country==='FR'&&$this->scenario->campaign()){
-                    $roster->addPerson($candidate??['id'=>CampaignLifecycle::PLAYER,'kind'=>'fictional','name'=>'Scenario president',
+                    $roster->addPerson($candidate??$openingIdentity??['id'=>CampaignLifecycle::PLAYER,'kind'=>'fictional','name'=>'Scenario president',
                         'country'=>'FR','biography'=>'Fictional player officeholder','as_of'=>null,'sources'=>[],'programme'=>[]]);
                     $roster->setHeadOfState(CampaignLifecycle::PLAYER);
-                }
+                }elseif($openingIdentity!==null)$roster->addPerson($openingIdentity);
                 $this->insert('INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
                     [$world,$country,self::json($roster->snapshot()),$roster->snapshotHash()]);
                 $inst=new InstitutionalSimulation($world,$country,$day);
@@ -173,7 +175,7 @@ final class AlphaWorlds
                         'DE'=>['bundestag'=>100],'ES'=>['congress'=>100],'GB'=>['commons'=>100],
                         'IT'=>['chamber'=>100,'senate'=>50],'JP'=>['representatives'=>100],'US'=>['house'=>100,'senate'=>50]
                     };
-                    $inst->enableAccountability('initial-government',$seats);
+                    $inst->enableAccountability($openingIdentity['id']??'initial-government',$seats);
                 }
                 if(in_array($this->scenario->id,[AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true))$inst->enableElectoral($country==='FR'&&in_array($this->scenario->id,[AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)?(in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)?ParliamentaryLifecycle::publishedElectionConfig($day):ParliamentaryLifecycle::electionConfig($day)):($country!=='FR'&&in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)?ComparativeElectionCalendar::config($country,$day):ElectoralScenario::config($country,$day)));
                 if(in_array($this->scenario->id,[AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true))$inst->enablePoliticalAI();

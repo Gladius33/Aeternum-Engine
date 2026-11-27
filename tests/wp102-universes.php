@@ -26,6 +26,9 @@ $refs102=call102('GET','/universes/'.$no.'/characters/CH',null,1);
 ck102($refs102['status']===200&&$refs102['body']['controller']==='ai'&&!$refs102['body']['runtime_identity_bound']&&$refs102['body']['reference']['government_mode']==='collective_executive_not_single_prime_minister','Swiss documentary directory not a presidential grant');
 $refs102=call102('GET','/universes/'.$no.'/characters/FR',null,1);
 ck102($refs102['status']===200&&$refs102['body']['is_you']&&count($refs102['body']['reference']['people'])===22,'French directory alongside actual slot');
+ck102($refs102['body']['opening_identity']['kind']==='real'&&$refs102['body']['runtime_identity_bound']&&count($refs102['body']['scenario_challengers'])===3,'French real scenario casting');
+$refsDE=call102('GET','/universes/'.$no.'/characters/DE',null,1);
+ck102($refsDE['status']===200&&$refsDE['body']['runtime_identity_bound']&&$refsDE['body']['opening_identity']['name']==='Friedrich Merz','German initial simulated government identity');
 ck102(call102('GET','/universes/'.$no.'/characters/IL',null,1)['status']===404,'restricted slot absent');
 
 $before=call102('GET',$root.'/countries/FR/institutions',null,1);

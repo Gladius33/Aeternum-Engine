@@ -43,6 +43,33 @@ final class UniverseIdentityReference
         ksort($out,SORT_STRING);
         return $out;
     }
+    public const BOUND_ROSTER='wp119-identity-roster-v1';
+    /** Deterministic scenario casting, not a forecast, endorsement, or
+     * a claimed affiliation. Only the documented name is imported. */
+    public static function openingPerson(string $world,string $country):?array{
+        $ref=self::country($country);
+        if($country==='FR'){
+            $people=$ref['people'];usort($people,fn($a,$b)=>strcmp(hash('sha256',$world.'|opening|'.$a['id']),hash('sha256',$world.'|opening|'.$b['id'])));
+            return self::record($people[0],$country,'campaign-president');
+        }
+        foreach($ref['people'] as $p)if(in_array('head_of_government',$p['observed_roles'],true))return self::record($p,$country,$p['id']);
+        return null; // Switzerland's collective executive is not a single office.
+    }
+    private static function record(array $p,string $country,string $id):array{
+        return ['id'=>$id,'kind'=>'real','name'=>$p['name'],'country'=>$country,
+            'biography'=>'Documentary identity; alternate-history scenario casting, not an asserted real appointment or programme.',
+            'as_of'=>$p['observed_on'],'sources'=>[$p['source']],'programme'=>[]];
+    }
+    /** Stable three-way casting of the legacy electoral aliases for one
+     * simulated mandate. Numerical ballot fixtures remain unchanged. */
+    public static function frenchChallengers(string $world,int $ordinal,string $incumbent):array{
+        if($ordinal<1||$ordinal>100)throw new \DomainException('Invalid mandate ordinal');
+        $people=array_values(array_filter(self::country('FR')['people'],fn($p)=>$p['name']!==$incumbent));
+        usort($people,fn($a,$b)=>strcmp(hash('sha256',$world.'|'.$ordinal.'|'.$a['id']),hash('sha256',$world.'|'.$ordinal.'|'.$b['id'])));
+        if(count($people)<3)throw new \DomainException('Insufficient documented challengers');
+        $out=[];foreach(['challenger-a','challenger-b','challenger-c'] as $i=>$alias)$out[$alias]=self::record($people[$i],'FR','campaign-president');
+        return $out;
+    }
     public static function country(string $country):array{
         $rows=self::catalogue();if(!isset($rows[$country]))throw new \DomainException('No identity reference');
         return ['version'=>self::VERSION,...$rows[$country],'runtime_authority'=>false,'certifies_2027_incumbent'=>false];
