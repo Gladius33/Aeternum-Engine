@@ -1,0 +1,34 @@
+name: WP115 freeze verified WDI edition
+on:
+  push:
+    branches: [feat/world-politics-wp01-identity-government]
+    paths: ['.github/workflows/world-politics-wp115-freeze.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  freeze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Download exact previously collected evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/Gladius33/Aeternum-Engine/actions/artifacts/15186464411/zip > /tmp/wp115-wdi.zip
+          echo 'd270193afb6891c842de9696d0a949f79960b31f46374e54f6389405a2b8eb76  /tmp/wp115-wdi.zip' | sha256sum -c -
+      - name: Freeze and verify all raw and normalized files
+        run: |
+          set -euo pipefail
+          target=games/world-politics/data/wp115-wdi-2026-11-27-v1
+          python3 games/world-politics/bin/freeze-wp115-wdi.py /tmp/wp115-wdi.zip "$target"
+          python3 tests/wp115-staging.py
+          git add -- "$target"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "WP115: pin 24 WDI series with exact source evidence and manifest"
+          git push origin HEAD:refs/heads/feat/world-politics-wp01-identity-government

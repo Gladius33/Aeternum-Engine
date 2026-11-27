@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Acquire a dated WDI evidence pack; network errors are not observations.
-No automatic repository commit, production import, or commercial clearance.
+No automatic repository commit or production import.
 """
 import argparse
 import concurrent.futures
@@ -125,7 +125,7 @@ def collect(code, out):
     meta = metadata[1][0]
     return {"indicator":code,"source_url":"https://data.worldbank.org/indicator/"+code,
             "source_vintage":vintage,"publisher":meta.get("sourceOrganization"),
-            "terms_url":TERMS,"license_status":"exact_indicator_rights_review_pending",
+            "terms_url":TERMS,
             "raw_files":hashes,"rows":rows}
 
 def main():
