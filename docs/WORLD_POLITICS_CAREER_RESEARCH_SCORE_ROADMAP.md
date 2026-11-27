@@ -103,3 +103,5 @@ See [WP116 ADR](WORLD_POLITICS_WP116_CAREER_SCORE_ADR.md). Identity/office/manda
 See [WP117 registry](WORLD_POLITICS_WP117_MOVEMENT_REFERENCE.md). Global directory, immutable WP115 electoral and office observations, WP114 campaign sources, French curated identities, attributed roles and restricted document indexes; exact-head CI required. Worldwide exhaustive collection, complete crosswalks and manifesto editions remain ongoing; no documentary record grants gameplay authority. WP118 is the next engineering lot.
 
 WP117 academic supplement: the exact Party Facts 2023 v1.1 CC0 release has been frozen and included as 7,199 documentary source IDs, preserving 223 source country codes and explicitly unmapped codes. No identity reconciliation or current office inference. Ordinary gameplay and v1 remain unchanged. Exact-head CI required.
+
+WP117 French supplement: 575 accounting identifiers from the CNCCFP 2024 official open-data export are now frozen; distinct from academic and electoral labels, no legal status inference. The source count is not an active-party census. Exact-head CI required.
