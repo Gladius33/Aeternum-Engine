@@ -95,3 +95,6 @@ Ces lots sont indicatifs ; aucune concurrence avec une itération déjà en cour
 
 ## 9. Critères de clôture
 Exigences traçables, tests verts sur commit exact, documents et licences, versionnage, absence de rétroactivité, fail closed, séparation recherche/jeu, pas de données ou d'intentions inventées, audit complet des limitations. Cette spécification ne constitue ni implémentation ni validation scientifique. Les calculs et seuils de score sont proposés, à tester et valider, et le classement officiel international reste non qualifié.
+
+## WP116 — executable design contract
+See [WP116 ADR](WORLD_POLITICS_WP116_CAREER_SCORE_ADR.md). Identity/office/mandate/career and score v2 architecture is specified; isolated executable specification and formal tests added to CI. No v1 edits, no migration or live activation. Exact-head CI required. WP118–120 remain implementation work; WP117 is the next documentary registry lot.

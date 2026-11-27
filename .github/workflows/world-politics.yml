@@ -221,6 +221,8 @@ jobs:
         run: php tests/wp76-purchasing-power-proxy.php
       - name: WP77 alpha campaign score, tenure and comparability
         run: php tests/wp77-campaign-score.php
+      - name: WP116 career and score v2 executable design contract
+        run: php tests/wp116-career-score-contract.php
       - name: WP80 twenty-year score horizon and deterministic replay
         run: php tests/wp80-score-horizon.php
       - name: WP33 election, seat allocation and coalition regression
