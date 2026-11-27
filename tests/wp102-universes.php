@@ -375,3 +375,13 @@ foreach(['pf2022-nicolas-dupont-aignan-4'=>'citizen-initiative-500k','pf2022-nat
     $cs=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
     ck102($cs['agenda']['revision']===$template&&$cs['agenda']['ratification']==='referendum','WP114 durable civic programme '.$id);
 }
+
+
+// WP114 target election: independently reviewed 2027 commitments use
+// the same authenticated, pinned and conflict-checked programme pipeline.
+$targetIds=['pf2027-jean-luc-melenchon-smic','pf2027-jean-luc-melenchon-pension'];
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>[$targetIds[0],'pf2022-jean-luc-melenchon-1']],8)['status']===422,'WP114 2027 and 2022 conflicting wage targets rejected');
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>$targetIds],8)['status']===200,'WP114 reviewed 2027 measures accepted');
+$targetState=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($targetState['social_measure_ids']===$targetIds,'WP114 exact 2027 identities persist without substitution');
+ck102(\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo)['integrity']==='passed','WP114 2027 programme configuration preserves universe integrity');
