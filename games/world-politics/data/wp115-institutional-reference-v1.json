@@ -1,0 +1,654 @@
+{
+  "schema": "wp115-institutional-reference-v1",
+  "retrieved_on": "2026-11-27",
+  "officeholder_observation_date": "2026-10-15",
+  "sources": {
+    "officeholders": {
+      "url": "https://stateintegrity.org.uk/power/world-leaders",
+      "primary_reference": "https://www.un.org/dgacm/sites/www.un.org.dgacm/files/Documents_Protocol/hspmfmlist.pdf",
+      "classification": "dated_secondary_transcription_of_UN_protocol_list"
+    },
+    "electoral": {
+      "url": "https://www.idea.int/data-tools/data/question-region?countries=all&database_theme=307&question_id=9380",
+      "classification": "published_comparative_electoral_system_category",
+      "year_meaning": "source reference year; not necessarily most recent election"
+    }
+  },
+  "notes": [
+    "Names and office relationships only; no claim of current office on the retrieval date or future May 2027 officeholders.",
+    "Swiss presidency is a rotating office within the collective Federal Council; Japan's source identifies office rather than personal name. No full cabinet or term validity certified.",
+    "IDEA categories are historical documentary classifications, not executable seat allocation rules. Cross-check recent amendments against national laws."
+  ],
+  "countries": [
+    {
+      "iso2": "AT",
+      "officeholders": {
+        "head_of_state_name": "Alexander Van der Bellen",
+        "head_of_state_label": null,
+        "head_of_government_name": "Christian Stocker",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Beate Meinl-Reisinger"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "AU",
+      "officeholders": {
+        "head_of_state_name": "Charles III",
+        "head_of_state_label": null,
+        "head_of_government_name": "Anthony Albanese",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Penny Wong"
+      },
+      "electoral_reference": {
+        "source_year": 2025,
+        "system": "AV"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "BE",
+      "officeholders": {
+        "head_of_state_name": "Philippe",
+        "head_of_state_label": null,
+        "head_of_government_name": "Bart De Wever",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Maxime Prévot"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "BG",
+      "officeholders": {
+        "head_of_state_name": "Iliana Iotova",
+        "head_of_state_label": null,
+        "head_of_government_name": "Rumen Radev",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Velislava Petrova-Chamova"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "BR",
+      "officeholders": {
+        "head_of_state_name": "Luiz Inácio Lula da Silva",
+        "head_of_state_label": null,
+        "head_of_government_name": "Luiz Inácio Lula da Silva",
+        "government_mode": "same_person_as_head_of_state",
+        "foreign_minister_name": "Mauro Luiz Iecker Vieira"
+      },
+      "electoral_reference": {
+        "source_year": 2026,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "CA",
+      "officeholders": {
+        "head_of_state_name": "Charles III",
+        "head_of_state_label": null,
+        "head_of_government_name": "Mark Carney",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Anita Anand"
+      },
+      "electoral_reference": {
+        "source_year": 2025,
+        "system": "FPTP"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "CH",
+      "officeholders": {
+        "head_of_state_name": "Guy Parmelin",
+        "head_of_state_label": null,
+        "head_of_government_name": null,
+        "government_mode": "collective_executive_not_single_prime_minister",
+        "foreign_minister_name": "Ignazio Cassis"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "CN",
+      "officeholders": {
+        "head_of_state_name": "Xi Jinping",
+        "head_of_state_label": null,
+        "head_of_government_name": "Li Qiang",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Wang Yi"
+      },
+      "electoral_reference": {
+        "source_year": 2017,
+        "system": "No direct elections"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "CY",
+      "officeholders": {
+        "head_of_state_name": "Nikos Christodoulides",
+        "head_of_state_label": null,
+        "head_of_government_name": "Nikos Christodoulides",
+        "government_mode": "same_person_as_head_of_state",
+        "foreign_minister_name": "Constantinos Kombos"
+      },
+      "electoral_reference": {
+        "source_year": 2026,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "CZ",
+      "officeholders": {
+        "head_of_state_name": "Petr Pavel",
+        "head_of_state_label": null,
+        "head_of_government_name": "Andrej Babiš",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Petr Macinka"
+      },
+      "electoral_reference": {
+        "source_year": 2025,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "DE",
+      "officeholders": {
+        "head_of_state_name": "Frank-Walter Steinmeier",
+        "head_of_state_label": null,
+        "head_of_government_name": "Friedrich Merz",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Johann Wadephul"
+      },
+      "electoral_reference": {
+        "source_year": 2025,
+        "system": "MMP"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "DK",
+      "officeholders": {
+        "head_of_state_name": "Frederik X",
+        "head_of_state_label": null,
+        "head_of_government_name": "Mette Frederiksen",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Lars Løkke Rasmussen"
+      },
+      "electoral_reference": {
+        "source_year": 2026,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "EE",
+      "officeholders": {
+        "head_of_state_name": "Ülle Madise",
+        "head_of_state_label": null,
+        "head_of_government_name": "Kristen Michal",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Margus Tsahkna"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "ES",
+      "officeholders": {
+        "head_of_state_name": "Felipe VI",
+        "head_of_state_label": null,
+        "head_of_government_name": "Pedro Sánchez Pérez-Castejón",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "José Manuel Albares Bueno"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "FI",
+      "officeholders": {
+        "head_of_state_name": "Alexander Stubb",
+        "head_of_state_label": null,
+        "head_of_government_name": "Petteri Orpo",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Elina Valtonen"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "GB",
+      "officeholders": {
+        "head_of_state_name": "Charles III",
+        "head_of_state_label": null,
+        "head_of_government_name": "Andrew Burnham",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Ed Miliband"
+      },
+      "electoral_reference": {
+        "source_year": 2019,
+        "system": "FPTP"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "GR",
+      "officeholders": {
+        "head_of_state_name": "Konstantinos An. Tasoulas",
+        "head_of_state_label": null,
+        "head_of_government_name": "Kyriakos Mitsotakis",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Georgios Gerapetritis"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HR",
+      "officeholders": {
+        "head_of_state_name": "Zoran Milanović",
+        "head_of_state_label": null,
+        "head_of_government_name": "Andrej Plenković",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Gordan Grlić-Radman"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HU",
+      "officeholders": {
+        "head_of_state_name": "András Bálint Baka",
+        "head_of_state_label": null,
+        "head_of_government_name": "Péter Magyar",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Anita Orbán"
+      },
+      "electoral_reference": {
+        "source_year": 2025,
+        "system": "MMP"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "ID",
+      "officeholders": {
+        "head_of_state_name": "Prabowo Subianto",
+        "head_of_state_label": null,
+        "head_of_government_name": "Prabowo Subianto",
+        "government_mode": "same_person_as_head_of_state",
+        "foreign_minister_name": "Sugiono"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "IE",
+      "officeholders": {
+        "head_of_state_name": "Catherine Connolly",
+        "head_of_state_label": null,
+        "head_of_government_name": "Micheál Martin",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Helen McEntee"
+      },
+      "electoral_reference": {
+        "source_year": 2025,
+        "system": "STV"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "IN",
+      "officeholders": {
+        "head_of_state_name": "Droupadi Murmu",
+        "head_of_state_label": null,
+        "head_of_government_name": "Narendra Modi",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Subrahmanyam Jaishankar"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "FPTP"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "IT",
+      "officeholders": {
+        "head_of_state_name": "Sergio Mattarella",
+        "head_of_state_label": null,
+        "head_of_government_name": "Giorgia Meloni",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Antonio Tajani"
+      },
+      "electoral_reference": {
+        "source_year": 2022,
+        "system": "Parallel"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "JP",
+      "officeholders": {
+        "head_of_state_name": null,
+        "head_of_state_label": "Emperor of Japan",
+        "head_of_government_name": "Takaichi Sanae",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Motegi Toshimitsu"
+      },
+      "electoral_reference": {
+        "source_year": 2026,
+        "system": "Parallel"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "KR",
+      "officeholders": {
+        "head_of_state_name": "Lee Jae Myung",
+        "head_of_state_label": null,
+        "head_of_government_name": "Han Seong-sook",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Cho Hyun"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "MMP"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "LT",
+      "officeholders": {
+        "head_of_state_name": "Gitanas Nausėda",
+        "head_of_state_label": null,
+        "head_of_government_name": "Inga Ruginienė",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Kęstutis Budrys"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "Parallel"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "LU",
+      "officeholders": {
+        "head_of_state_name": "Guillaume",
+        "head_of_state_label": null,
+        "head_of_government_name": "Luc Frieden",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Xavier Bettel"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "LV",
+      "officeholders": {
+        "head_of_state_name": "Edgars Rinkēvičs",
+        "head_of_state_label": null,
+        "head_of_government_name": "Andris Kulbergs",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Baiba Braže"
+      },
+      "electoral_reference": {
+        "source_year": 2022,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "MT",
+      "officeholders": {
+        "head_of_state_name": "Myriam Spiteri Debono",
+        "head_of_state_label": null,
+        "head_of_government_name": "Robert Abela",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Chris Fearne"
+      },
+      "electoral_reference": {
+        "source_year": 2026,
+        "system": "STV"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "MX",
+      "officeholders": {
+        "head_of_state_name": "Claudia Sheinbaum Pardo",
+        "head_of_state_label": null,
+        "head_of_government_name": "Claudia Sheinbaum Pardo",
+        "government_mode": "same_person_as_head_of_state",
+        "foreign_minister_name": "Roberto Velasco Álvarez"
+      },
+      "electoral_reference": {
+        "source_year": 2021,
+        "system": "MMP"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "NL",
+      "officeholders": {
+        "head_of_state_name": "Willem-Alexander",
+        "head_of_state_label": null,
+        "head_of_government_name": "Rob Jetten",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Tom Berendsen"
+      },
+      "electoral_reference": {
+        "source_year": 2025,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "PL",
+      "officeholders": {
+        "head_of_state_name": "Karol Nawrocki",
+        "head_of_state_label": null,
+        "head_of_government_name": "Donald Tusk",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Radosław Sikorski"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "PT",
+      "officeholders": {
+        "head_of_state_name": "António José Martins Seguro",
+        "head_of_state_label": null,
+        "head_of_government_name": "Luís Montenegro",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Paulo Rangel"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "RO",
+      "officeholders": {
+        "head_of_state_name": "Nicușor-Daniel Dan",
+        "head_of_state_label": null,
+        "head_of_government_name": "Ilie-Gavril Bolojan",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Oana-Silvia Țoiu"
+      },
+      "electoral_reference": {
+        "source_year": 2025,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "RU",
+      "officeholders": {
+        "head_of_state_name": "Vladimir V. Putin",
+        "head_of_state_label": null,
+        "head_of_government_name": "Mikhail Mishustin",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Sergey V. Lavrov"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "Parallel"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "SA",
+      "officeholders": {
+        "head_of_state_name": "Salman bin Abdulaziz Al Saud",
+        "head_of_state_label": null,
+        "head_of_government_name": "Mohammed bin Salman bin Abdulaziz Al Saud",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Faisal bin Farhan Al Saud"
+      },
+      "electoral_reference": {
+        "source_year": 2021,
+        "system": "No direct elections"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "SE",
+      "officeholders": {
+        "head_of_state_name": "Carl XVI Gustaf",
+        "head_of_state_label": null,
+        "head_of_government_name": "Ulf Kristersson",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Maria Malmer Stenergard"
+      },
+      "electoral_reference": {
+        "source_year": 2026,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "SI",
+      "officeholders": {
+        "head_of_state_name": "Nataša Pirc Musar",
+        "head_of_state_label": null,
+        "head_of_government_name": "Janez Janša",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Tone Kajzer"
+      },
+      "electoral_reference": {
+        "source_year": 2026,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "SK",
+      "officeholders": {
+        "head_of_state_name": "Peter Pellegrini",
+        "head_of_state_label": null,
+        "head_of_government_name": "Robert Fico",
+        "government_mode": "separate_office",
+        "foreign_minister_name": "Juraj Blanár"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "TR",
+      "officeholders": {
+        "head_of_state_name": "Recep Tayyip Erdoğan",
+        "head_of_state_label": null,
+        "head_of_government_name": "Recep Tayyip Erdoğan",
+        "government_mode": "same_person_as_head_of_state",
+        "foreign_minister_name": "Hakan Fidan"
+      },
+      "electoral_reference": {
+        "source_year": 2023,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "US",
+      "officeholders": {
+        "head_of_state_name": "Donald J. Trump",
+        "head_of_state_label": null,
+        "head_of_government_name": "Donald J. Trump",
+        "government_mode": "same_person_as_head_of_state",
+        "foreign_minister_name": "Marco A. Rubio"
+      },
+      "electoral_reference": {
+        "source_year": 2024,
+        "system": "FPTP"
+      },
+      "runtime_admission": false
+    },
+    {
+      "iso2": "ZA",
+      "officeholders": {
+        "head_of_state_name": "Cyril Matamela Ramaphosa",
+        "head_of_state_label": null,
+        "head_of_government_name": "Cyril Matamela Ramaphosa",
+        "government_mode": "same_person_as_head_of_state",
+        "foreign_minister_name": "Ronald Ozzy Lamola"
+      },
+      "electoral_reference": {
+        "source_year": 2019,
+        "system": "List PR"
+      },
+      "runtime_admission": false
+    }
+  ]
+}
