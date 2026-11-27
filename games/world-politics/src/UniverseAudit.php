@@ -58,8 +58,11 @@ final class UniverseAudit
             $q->execute([$world]);$direct=$q->fetchAll(\PDO::FETCH_ASSOC);
             if(count($direct)>10000)throw new \DomainException('Direct programme audit page limit exceeded');
             $q=$db->prepare('SELECT state_json,state_sha FROM wp_domestic_states WHERE world_id=?');$q->execute([$world]);$dom=$q->fetch(\PDO::FETCH_ASSOC);
-            if($dom===false||!hash_equals($dom['state_sha'],hash('sha256',$dom['state_json'])))throw new \DomainException('Missing domestic audit source');
+            if($dom===false)throw new \DomainException('Missing domestic audit source');
             $state=json_decode($dom['state_json'],true,64,JSON_THROW_ON_ERROR);
+            // Match DomesticPolicySimulation::digest, not the storage JSON encoding.
+            // Freshly provisioned states may contain unescaped Unicode.
+            if(!is_array($state)||!hash_equals($dom['state_sha'],hash('sha256',json_encode($state,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES))))throw new \DomainException('Domestic audit checksum mismatch');
             foreach($direct as $r){
                 $id=$r['action_id'];$industry=IndustrialCapital::isAction($id)||$id==='industry-no-change';
                 $a=PresidentialProgramme::agenda($r['programme']);
