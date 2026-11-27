@@ -192,6 +192,11 @@
         2
       ],
       "use": "historical employment trend holdout and age-band participation anchor; not a causal policy estimate"
+    },
+    {
+      "id": "wp114-observed-social-anchors",
+      "path": "wp114-observed-social-anchors.json",
+      "use": "scope-qualified comparison of observed public pay, direct pensions and employment"
     }
   ],
   "behavioral_calibration_completed": false,

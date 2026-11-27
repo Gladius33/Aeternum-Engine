@@ -52,6 +52,18 @@ final class SocialEconomy
         return ['net_minor'=>$net,'gross_minor'=>$gross,'employee_contribution_minor'=>$gross-$net,
             'employer_contribution_minor'=>$employer,'employer_cost_minor'=>$gross+$employer];
     }
+    public static function primarySensitivityKey(string $key):bool
+    {
+        return in_array($key,['annual_cost_per_bed_eur','annual_cost_per_place_eur','public_cost_per_unit_eur','annual_reference_eur',
+            'annual_cost_per_hire_eur','collection_bps','eligible_share_bps','reference_eligible_monthly_eur','eligible_persons',
+            'reference_monthly_eur','workers','reference_monthly_net_eur','employer_cost_bps','reference_gdp_share_bps',
+            'annual_tax_on_reinvested_profit_eur','annual_tax_exclusive_base_eur','annual_reference_cfe_eur','recipients',
+            'participation_bps','annual_support_cost_eur','placement_bps','annual_fare_revenue_eur','extra_service_cost_bps',
+            'reference_monthly_pension_eur','effective_levy_bps','workers_share_bps','annual_gross_overtime_eur','effective_tax_and_levy_bps',
+            'reference_price_minor','annual_litres','coverage_bps','replacement_hiring_bps','annual_procurement_eur','administration_cost_bps',
+            'annual_eligible_turnover_eur','support_rate_bps','domestic_value_added_bps','annual_output_per_job_eur',
+            'investment_eur_per_annual_gwh','public_finance_share_bps','annual_maintenance_bps','imported_equipment_bps'],true);
+    }
     private static function agePopulation(array $cohorts,int $from,int $to):int
     {
         $n=0;
@@ -65,7 +77,7 @@ final class SocialEconomy
     }
     /** Prior-day anchors; no dependence on today's not-yet-calculated GDP.
      * Multiple active laws may affect distinct families only. */
-    public static function calculate(array $active,array $policies,string $day,array $population,array $services,array $macro,?array $prior,array $sensitivity=[]):array
+    public static function calculate(array $active,array $policies,string $day,array $population,array $services,array $macro,?array $prior,array $sensitivity=[],array $primarySensitivity=[]):array
     {
         // Sensitivity is an offline analytical tool. The authoritative
         // daily clock never passes this parameter, preserving replay.
@@ -74,6 +86,17 @@ final class SocialEconomy
             if(!in_array($key,['employment_participation_bps','job_guarantee_takeup_bps','retirement_takeup_bps','long_career_share_bps','arduous_share_bps','wage_floor_share_bps','incentive_takeup_bps','apprentice_share_bps','sme_hiring_share_bps','annual_hiring_rate_bps','targeted_job_share_bps','job_service_placement_bps','sector_bargaining_takeup_bps'],true)
                 ||!is_int($value)||$value<0||$value>10000)throw new \InvalidArgumentException('Unreviewed sensitivity parameter');
             $a[$key]=$value;
+        }
+        // Offline cost sensitivity is separate from runtime assumptions.
+        // It cannot alter proposal targets, statutory rights or deadlines.
+        foreach($primarySensitivity as $id=>$params){
+            $d=PrimaryManifestoPolicy::definitions()[$id]??null;
+            if($d===null||!in_array($id,$active,true)||!is_array($params))throw new \InvalidArgumentException('Invalid primary sensitivity objective');
+            foreach($params as $k=>$v){
+                $b=$d['parameters'][$k]??null;
+                if(!self::primarySensitivityKey($k)||!is_int($b)||!is_int($v)||$v<intdiv($b*3,4)||$v>intdiv($b*5,4)|| (str_ends_with($k,'_bps')&&$k!=='employer_cost_bps'&&$v>10000))
+                    throw new \InvalidArgumentException('Unreviewed primary sensitivity parameter');
+            }
         }
         $cohorts=$prior['population']['cohorts']??$population['opening_cohorts'];
         $ind=$prior['population']['indicators']??$population['opening_indicators'];
@@ -159,6 +182,7 @@ final class SocialEconomy
             }elseif($family==='representation'){
                 $r['affected_persons_proxy']=$employed;$r['worker_representation_bps']=$t['worker_representation_bps'];
             }elseif(PrimaryManifestoPolicy::isPolicy(SocialProgramme::objectiveId($id))){
+                if(isset($primarySensitivity[$id]))$d['parameters']=array_replace($d['parameters'],$primarySensitivity[$id]);
                 $v=PrimaryManifestoPolicy::calculate($d,$policies[$id],$day,$macro,$netFloor,$recipients,$labour,$employed,$prior);
                 $r=array_replace($r,$v);$production+=$v['production_delta_bps']??0;$employment+=$v['employment_delta_bps'];$wage+=$v['wage_premium_bps'];$pensionTransfer+=$v['pension_transfer_delta_minor'];
             }else throw new \DomainException('Unimplemented social family');

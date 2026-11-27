@@ -1,0 +1,38 @@
+{
+  "schema": "wp114-observed-social-anchors-v1",
+  "as_of": "2026-11-27",
+  "observations": [
+    {
+      "id": "public-net-pay-2024",
+      "year": 2024,
+      "value": 2742,
+      "unit": "EUR net per month EQTP",
+      "scope": "all French public service branches",
+      "url": "https://www.insee.fr/fr/outil-interactif/5369554/salaires-moyens-dans-la-fonction-publique"
+    },
+    {
+      "id": "direct-pension-gross-2023",
+      "year": 2023,
+      "value": 1666,
+      "unit": "EUR gross per month",
+      "scope": "direct pension all schemes, pensioners residing in France",
+      "url": "https://www.drees.solidarites-sante.gouv.fr/sites/default/files/2025-07/Les%20retrait%C3%A9s%20et%20les%20retraites%20-%20%C3%89dition%202025.pdf"
+    },
+    {
+      "id": "direct-pensioners-2023",
+      "year": 2023,
+      "value": 17200000,
+      "unit": "persons",
+      "scope": "direct pension all French schemes, resident in France or abroad",
+      "url": "https://www.drees.solidarites-sante.gouv.fr/sites/default/files/2025-07/Fiche%2001%20-%20Les%20effectifs%20de%20retrait%C3%A9s.pdf"
+    },
+    {
+      "id": "employment-2025",
+      "year": 2025,
+      "value": 29383000,
+      "unit": "persons",
+      "scope": "BIT employed persons in France",
+      "url": "https://www.insee.fr/fr/statistiques/8733041?sommaire=8733125"
+    }
+  ]
+}

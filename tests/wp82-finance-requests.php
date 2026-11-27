@@ -432,3 +432,12 @@ $normalFr=FRE::early('2028-01-01');$newFr=FRE::early('2028-01-01',true);
 $eFr=new EC('world-test','FR','2028-01-01',$newFr);
 ck82(FRE::matches($eFr->snapshot(),true)&&!FRE::matches($eFr->snapshot(),false),'WP114 prospective assembly electorate canonical');
 ck82(array_sum(array_column($newFr['districts'],'registered'))>array_sum(array_column($normalFr['districts'],'registered')),'WP114 actual expanded assembly registers');
+
+
+$ps114=SC::primarySensitivity($pop,$services,$base);
+ck82(count($ps114['measures'])===44&&!$ps114['causal_calibration_qualified'],'WP114 primary sensitivity covers every typed primary route');
+foreach($ps114['measures'] as $r)foreach($r['periods'] as $period)foreach($period['metrics'] as $v)
+    ck82($v['min']<=$v['central']&&$v['central']<=$v['max'],'WP114 primary envelope contains central');
+$oa114=SC::observedAnchors($services);
+ck82($oa114['public_pay_observed_net_eur']===2742&&$oa114['public_pay_reference_eur']===2500&&!$oa114['pension_scope_comparable'],'WP114 observed pay and pension scopes disclosed');
+no82(fn()=>SE::calculate(['pf2022-yannick-jadot-2'],['pf2022-yannick-jadot-2'=>['effective_on'=>'2027-09-11']],'2027-09-11',$pop,$services,$base,null,[],['pf2022-yannick-jadot-2'=>['ramp_years'=>1]]));
