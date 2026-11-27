@@ -105,7 +105,7 @@ def audit(folder=FOLDER, archive=BASE / "wp115-collection-v0.4.zip"):
     require(missing == report["gaps_not_collected_or_not_validated"] == 729, "gap report")
     return {"countries": 42, "files": len(actual), "numeric_slots": 1676, "non_null": count,
             "gap_slots": len(gaps), "unresolved": missing, "partially_documented": len(gaps)-missing,
-            "runtime_admission": False, "commercial_clearance": False}
+            "runtime_admission": False}
 
 if __name__ == "__main__":
     print(json.dumps(audit(), sort_keys=True))
