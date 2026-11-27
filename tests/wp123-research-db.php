@@ -145,7 +145,13 @@ $co4=$stripe->checkout($st['tenant_id'],'standard-monthly','stripe-test-checkout
 ckResearch($co4['order_id']!==$co3['order_id'],'checkout can be retried after confirmed expiry');
 $objects['/v1/charges/ch_fixture001']['amount_refunded']=100;
 ckResearch($stripe->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_fixture001']]])['status']==='frozen_for_reconciliation','partial refund freezes tenant');
-ckResearch((int)$db->query("SELECT enabled FROM wp_research_tenants WHERE tenant_id='".$st['tenant_id']."'")->fetchColumn()===0,'refunded tenant disabled');
+ckResearch((int)$db->query("SELECT billing_hold FROM wp_research_tenants WHERE tenant_id='".$st['tenant_id']."'")->fetchColumn()===1,'refunded tenant held');
+ckResearch($stripe->resolveHold($pi,'reconcile-fixture-01',0,50,false)['status']==='resolved','reviewed partial refund adjustment');
+ckResearch($stripe->resolveHold($pi,'reconcile-fixture-01',0,50,false)['status']==='duplicate','reconciliation idempotent');
+ckResearch((int)$db->query("SELECT prepaid_units FROM wp_research_tenants WHERE tenant_id='".$st['tenant_id']."'")->fetchColumn()===200,'exact reviewed debit');
+ckResearch($stripe->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_fixture001']]])['status']==='already_reconciled','resolved refund replay harmless');
+$objects['/v1/charges/ch_fixture001']['amount_refunded']=200;
+ckResearch($stripe->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_fixture001']]])['status']==='frozen_for_reconciliation','new cumulative reversal reopens hold');
 echo "PASS Stripe test-mode signed events, server price validation, checkout/settlement idempotency, cancellation and refund hold\n";
 
 $adm=$q->createAdmin('pro','payg');$at=bin2hex(random_bytes(32));

@@ -123,7 +123,11 @@ $gpk=req('POST','/me/data-token',(object)[],$etoken);ck($gpk['status']===201,'pa
 $fixtures['/v1/charges/ch_gamefixture']['amount_refunded']=100;
 ck($gs->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_gamefixture']]])['status']==='frozen_for_reconciliation','game refund revokes premium');
 ck(req('GET','/player-data/worlds',null,$gpk['body']['token'])['status']===401,'refunded game export token revoked');
+ck($gs->resolveHold($pi,'game-resolution-fixture-01')['status']==='resolved','game hold reviewed');
+ck($gs->resolveHold($pi,'game-resolution-fixture-01')['status']==='duplicate','game resolution idempotent');
+ck(req('GET','/player-data/worlds',null,$gpk['body']['token'])['status']===401,'resolution never revives revoked premium token');
 // Fixture cleanup, not a production billing deletion operation.
+$exec('DELETE FROM wp_stripe_game_resolutions WHERE payment_id=?',[$pi]);
 $exec('DELETE FROM wp_stripe_game_holds WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_receipts WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_orders WHERE order_id=?',[$go['order_id']]);
 $fiction=['name'=>'Camille Simulation','measure_ids'=>['administration-report']];
 $ebc=req('POST',$ep.'/admission',['fictional'=>$fiction],$t2)['body']['career']['id'];

@@ -50,6 +50,20 @@ final class GameStripe
         $r=$this->q('SELECT o.customer_id FROM wp_stripe_game_orders o JOIN wp_accounts a USING(account_id) WHERE o.account_id=? AND o.ended_at IS NULL AND a.enabled=1',[$account])->fetchColumn();
         return StripeConfiguration::portal($this->api,ResearchStripe::id($r,'cus_'));
     }
+    /** A release allows future verified payments; it never reinstates a
+     * revoked Premium entitlement or issues a data token on its own. */
+    public function resolveHold(string $pi,string $ref):array{
+        ResearchStripe::id($pi,'pi_');
+        return $this->tx(function()use($pi,$ref){
+            $a=$this->q('SELECT o.account_id FROM wp_stripe_game_receipts r JOIN wp_stripe_game_orders o USING(order_id) WHERE r.payment_id=?',[$pi])->fetchColumn();
+            if(!is_string($a))throw new \DomainException('Unknown receipt');
+            $this->q('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE',[$a]);
+            $r=StripeHold::resolve($this->db,'game',$pi,$ref,['restore_premium'=>false],static fn()=>null);
+            if($r['status']==='resolved'&&$this->q('SELECT 1 FROM wp_stripe_game_holds h JOIN wp_stripe_game_receipts r USING(payment_id) JOIN wp_stripe_game_orders o USING(order_id) WHERE o.account_id=? AND h.resolved_at IS NULL LIMIT 1',[$a])->fetchColumn()===false)
+                $this->q('UPDATE wp_stripe_game_orders SET held=0 WHERE account_id=?',[$a]);
+            return $r;
+        });
+    }
     private function revoke(string $account):void{
         $this->q('UPDATE wp_player_api_entitlements SET paid_until=0 WHERE account_id=?',[$account]);
         $this->q('DELETE FROM wp_player_api_keys WHERE account_id=?',[$account]);
@@ -61,12 +75,12 @@ final class GameStripe
             $c=$this->get('charges',$cid);ResearchStripe::testObject($c,$cid);
             if(($c['disputed']??false)!==true&&(!is_int($c['amount_refunded']??null)||$c['amount_refunded']<1))return ['status'=>'no_confirmed_reversal'];
             $pi=ResearchStripe::id($c['payment_intent']??null,'pi_');
-            return $this->tx(function()use($pi,$type){
+            return $this->tx(function()use($pi,$type,$c){
                 $a=$this->q('SELECT o.account_id FROM wp_stripe_game_receipts r JOIN wp_stripe_game_orders o USING(order_id) WHERE r.payment_id=?',[$pi])->fetchColumn();
                 if(!is_string($a))return ['status'=>'unallocated_payment'];
                 $this->q('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE',[$a]);
+                if(!StripeHold::observe($this->db,'game',$pi,$type,(int)($c['amount_refunded']??0),($c['disputed']??false)===true))return ['status'=>'already_reconciled'];
                 $this->q('UPDATE wp_stripe_game_orders SET held=1 WHERE account_id=?',[$a]);
-                $this->q('INSERT IGNORE INTO wp_stripe_game_holds(payment_id,reason,created_at) VALUES(?,?,?)',[$pi,$type,time()]);
                 $this->revoke($a);return ['status'=>'frozen_for_reconciliation'];
             });
         }

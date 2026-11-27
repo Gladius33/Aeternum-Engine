@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/ResearchBilling.php';
 require_once __DIR__.'/DeploymentMode.php';
+require_once __DIR__.'/StripeHold.php';
 
 final class StripeConfiguration
 {
@@ -113,8 +114,8 @@ final class ResearchStripe
             throw new \DomainException('Unsupported Stripe price');
         $key=hash('sha256',$requestKey);
         $order=$this->tx(function()use($tenant,$offer,$p,$amount,$key){
-            $a=$this->q('SELECT plan,enabled,billing_mode,admin_exempt FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
-            if($a===false||(int)$a['enabled']!==1||(int)$a['admin_exempt']===1||($p['mode']==='payment'&&$a['plan']!==$p['plan']))throw new \DomainException('Ineligible tenant');
+            $a=$this->q('SELECT plan,enabled,billing_mode,admin_exempt,billing_hold FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
+            if($a===false||(int)$a['enabled']!==1||(int)$a['admin_exempt']===1||(int)$a['billing_hold']!==0||($p['mode']==='payment'&&$a['plan']!==$p['plan']))throw new \DomainException('Ineligible tenant');
             $old=$this->q('SELECT * FROM wp_stripe_research_orders WHERE tenant_id=? AND request_sha=?',[$tenant,$key])->fetch(\PDO::FETCH_ASSOC);
             if($old!==false){if($old['offer']!==$offer||$old['ended_at']!==null)throw new \DomainException('Checkout conflict or closed order');return $old;}
             if($p['mode']==='subscription'&&$this->q("SELECT 1 FROM wp_stripe_research_orders WHERE tenant_id=? AND mode='subscription' AND ended_at IS NULL LIMIT 1",[$tenant])->fetchColumn()!==false)
@@ -149,14 +150,29 @@ final class ResearchStripe
     }
     /** Freeze rather than silently destroy credits on a confirmed reversal.
      * Operator reconciliation required, including partial refunds and disputes. */
-    private function freezePayment(string $pi,string $reason):array{
-        return $this->tx(function()use($pi,$reason){
+    private function freezePayment(string $pi,string $reason,int $refunded,bool $disputed):array{
+        return $this->tx(function()use($pi,$reason,$refunded,$disputed){
             $r=$this->q('SELECT o.tenant_id FROM wp_stripe_research_receipts r JOIN wp_stripe_research_orders o USING(order_id) WHERE r.payment_id=?',[$pi])->fetchColumn();
             if(!is_string($r))return ['status'=>'unallocated_payment'];
             $this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$r]);
-            $this->q('INSERT IGNORE INTO wp_stripe_research_holds(payment_id,reason,created_at) VALUES(?,?,?)',[$pi,$reason,time()]);
-            $this->q('UPDATE wp_research_tenants SET enabled=0 WHERE tenant_id=? AND admin_exempt=0',[$r]);
+            if(!StripeHold::observe($this->db,'research',$pi,$reason,$refunded,$disputed))return ['status'=>'already_reconciled'];
+            $this->q('UPDATE wp_research_tenants SET billing_hold=1 WHERE tenant_id=? AND admin_exempt=0',[$r]);
             return ['status'=>'frozen_for_reconciliation'];
+        });
+    }
+    /** CLI-only operator decision after independent financial reconciliation.
+     * Explicit debit amounts are nonnegative and cannot overdraw the ledger. */
+    public function resolveHold(string $pi,string $ref,int $included,int $prepaid,bool $endMonthly):array{
+        self::id($pi,'pi_');
+        return $this->tx(function()use($pi,$ref,$included,$prepaid,$endMonthly){
+            $t=$this->q('SELECT o.tenant_id FROM wp_stripe_research_receipts r JOIN wp_stripe_research_orders o USING(order_id) WHERE r.payment_id=?',[$pi])->fetchColumn();
+            if(!is_string($t))throw new \DomainException('Unknown receipt');
+            $this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$t]);
+            $result=StripeHold::resolve($this->db,'research',$pi,$ref,['included_debit'=>$included,'prepaid_debit'=>$prepaid,'end_monthly'=>$endMonthly],
+                fn()=>ResearchBilling::reconcile($this->db,$t,$ref,$included,$prepaid,$endMonthly));
+            if($result['status']==='resolved'&&$this->q('SELECT 1 FROM wp_stripe_research_holds h JOIN wp_stripe_research_receipts r USING(payment_id) JOIN wp_stripe_research_orders o USING(order_id) WHERE o.tenant_id=? AND h.resolved_at IS NULL LIMIT 1',[$t])->fetchColumn()===false)
+                $this->q('UPDATE wp_research_tenants SET billing_hold=0 WHERE tenant_id=?',[$t]);
+            return $result;
         });
     }
     public static function line(array $line,array $o):void{
@@ -181,7 +197,7 @@ final class ResearchStripe
             $cid=self::id($type==='charge.refunded'?($obj['id']??null):($obj['charge']??null),'ch_');
             $c=$this->get('charges',$cid);self::testObject($c,$cid);
             if(($c['disputed']??false)!==true&&(!is_int($c['amount_refunded']??null)||$c['amount_refunded']<1))return ['status'=>'no_confirmed_reversal'];
-            return $this->freezePayment(self::id($c['payment_intent']??null,'pi_'),$type);
+            return $this->freezePayment(self::id($c['payment_intent']??null,'pi_'),$type,(int)($c['amount_refunded']??0),($c['disputed']??false)===true);
         }
         if(in_array($type,['customer.subscription.deleted','customer.subscription.updated'],true)){
             $sid=self::id($obj['id']??null,'sub_');$sub=$this->get('subscriptions',$sid);self::testObject($sub,$sid);
@@ -257,7 +273,7 @@ final class ResearchStripe
             $tenant=$o['tenant_id'];
             $a=$this->q('SELECT * FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
             $r=$this->order($o['order_id'],true);
-            if($a===false||(int)$a['enabled']!==1||$r['ended_at']!==null||($r['customer_id']!==null&&$r['customer_id']!==$customer)||($r['subscription_id']!==null&&$r['subscription_id']!==$sub))
+            if($a===false||(int)$a['enabled']!==1||(int)$a['billing_hold']!==0||$r['ended_at']!==null||($r['customer_id']!==null&&$r['customer_id']!==$customer)||($r['subscription_id']!==null&&$r['subscription_id']!==$sub))
                 throw new \DomainException('Settlement account binding');
             $old=$this->q('SELECT order_id FROM wp_stripe_research_receipts WHERE payment_id=?',[$payment])->fetchColumn();
             if($old!==false){if($old!==$r['order_id'])throw new \DomainException('Payment already allocated');return ['status'=>'duplicate'];}

@@ -31,5 +31,16 @@ CREATE TABLE wp_stripe_game_holds (
  payment_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
  reason VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  created_at BIGINT UNSIGNED NOT NULL,
+ refunded_minor BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ disputed TINYINT UNSIGNED NOT NULL DEFAULT 0,
+ resolved_at BIGINT UNSIGNED NULL,
  FOREIGN KEY(payment_id) REFERENCES wp_stripe_game_receipts(payment_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE wp_stripe_game_resolutions (
+ resolution_ref VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ payment_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ evidence_json LONGTEXT NOT NULL CHECK(JSON_VALID(evidence_json)),
+ created_at BIGINT UNSIGNED NOT NULL,
+ FOREIGN KEY(payment_id) REFERENCES wp_stripe_game_holds(payment_id)
 ) ENGINE=InnoDB;

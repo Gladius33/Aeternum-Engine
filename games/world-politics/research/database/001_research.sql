@@ -2,6 +2,7 @@
 CREATE TABLE wp_research_tenants (
  tenant_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
  enabled TINYINT UNSIGNED NOT NULL DEFAULT 1,
+ billing_hold TINYINT UNSIGNED NOT NULL DEFAULT 0,
  plan ENUM('standard','pro') NOT NULL DEFAULT 'standard',
  paid_until BIGINT UNSIGNED NOT NULL,
  share_dataset TINYINT UNSIGNED NOT NULL DEFAULT 0,
@@ -68,7 +69,7 @@ CREATE TABLE wp_research_billing_events (
  event_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  tenant_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  event_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
- event_kind ENUM('renewal','topup','usage') NOT NULL,
+ event_kind ENUM('renewal','topup','usage','adjustment') NOT NULL,
  fingerprint CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  included_delta BIGINT NOT NULL,
  prepaid_delta BIGINT NOT NULL,
@@ -184,6 +185,9 @@ CREATE TABLE wp_stripe_research_holds (
  payment_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
  reason VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  created_at BIGINT UNSIGNED NOT NULL,
+ refunded_minor BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ disputed TINYINT UNSIGNED NOT NULL DEFAULT 0,
+ resolved_at BIGINT UNSIGNED NULL,
  FOREIGN KEY(payment_id) REFERENCES wp_stripe_research_receipts(payment_id)
 ) ENGINE=InnoDB;
 
@@ -191,4 +195,12 @@ CREATE TABLE wp_research_checkout_rate (
  scope_key VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
  minute_no BIGINT UNSIGNED NOT NULL,
  requests INT UNSIGNED NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE wp_stripe_research_resolutions (
+ resolution_ref VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ payment_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ evidence_json LONGTEXT NOT NULL CHECK(JSON_VALID(evidence_json)),
+ created_at BIGINT UNSIGNED NOT NULL,
+ FOREIGN KEY(payment_id) REFERENCES wp_stripe_research_holds(payment_id)
 ) ENGINE=InnoDB;

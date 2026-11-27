@@ -9,6 +9,12 @@ try{
         require_once __DIR__.'/../src/DeploymentMode.php';
         echo json_encode(\Aeternum\WorldPolitics\DeploymentMode::bind($db),JSON_THROW_ON_ERROR).PHP_EOL;exit(0);
     }
+    if($cmd==='stripe-resolve-hold'){
+        require_once __DIR__.'/../src/ResearchStripe.php';
+        if($argc!==7||!ctype_digit($argv[4])||!ctype_digit($argv[5])||!in_array($argv[6],['end-monthly','keep-monthly'],true))throw new RuntimeException('Expected payment, resolution ref, included debit, prepaid debit, monthly decision');
+        $stripe=new \Aeternum\WorldPolitics\ResearchStripe($db,static fn()=>throw new RuntimeException('Offline reconciliation'));
+        echo json_encode($stripe->resolveHold($argv[2],$argv[3],(int)$argv[4],(int)$argv[5],$argv[6]==='end-monthly'),JSON_THROW_ON_ERROR).PHP_EOL;exit(0);
+    }
     if($cmd==='stripe-portal'){
         require_once __DIR__.'/../src/ResearchStripe.php';
         \Aeternum\WorldPolitics\StripeConfiguration::ready();

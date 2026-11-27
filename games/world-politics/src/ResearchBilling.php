@@ -58,7 +58,7 @@ final class ResearchBilling
         $tenant=$r['tenant_id'];$cost=$override??self::cost($operation);
         if($operation==='global_export'&&$r['plan']!=='pro')throw new ResearchBillingError(403,'research_pro_required');
         $admin=(int)$r['admin_exempt']===1;
-        if((!$admin&&$r['billing_mode']!=='payg'&&(int)$r['paid_until']<=time())||(int)$r['enabled']!==1)throw new ResearchBillingError(401,'research_entitlement_expired');
+        if((!$admin&&$r['billing_mode']!=='payg'&&(int)$r['paid_until']<=time())||(int)$r['enabled']!==1||(int)$r['billing_hold']!==0)throw new ResearchBillingError(401,'research_entitlement_expired');
         $included=!$admin&&$r['billing_mode']==='monthly'?min($cost,(int)$r['included_units']):0;
         $prepaid=$admin?0:$cost-$included;
         if($prepaid>0&&($r['billing_mode']==='monthly'&&!(bool)$r['allow_overage']||$prepaid>(int)$r['prepaid_units']))
@@ -111,6 +111,17 @@ final class ResearchBilling
             self::event($db,$tenant,$key,$kind,$fingerprint,$units-(int)$r['included_units'],0,'operator_renewal');
         }
         return self::usage($db,$tenant);
+    }
+    /** Operator-reviewed non-cash adjustment, not a refund instruction.
+     * Caller holds the tenant lock and records the corresponding resolution. */
+    public static function reconcile(\PDO $db,string $tenant,string $reference,int $included,int $prepaid,bool $endMonthly):void{
+        if(!$db->inTransaction()||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$reference)||$included<0||$prepaid<0)throw new \DomainException('Invalid reconciliation');
+        $r=self::account($db,$tenant);
+        if((int)$r['admin_exempt']===1||(int)$r['billing_hold']!==1||$included>(int)$r['included_units']||$prepaid>(int)$r['prepaid_units']
+            ||($endMonthly&&$included!==(int)$r['included_units']))throw new \DomainException('Reconciliation outside held balances');
+        self::q($db,'UPDATE wp_research_tenants SET included_units=included_units-?,prepaid_units=prepaid_units-? WHERE tenant_id=?',[$included,$prepaid,$tenant]);
+        if($endMonthly)self::q($db,'UPDATE wp_research_tenants SET paid_until=LEAST(paid_until,?) WHERE tenant_id=?',[time(),$tenant]);
+        self::event($db,$tenant,hash('sha256','reconcile|'.$reference),'adjustment',hash('sha256',json_encode([$included,$prepaid,$endMonthly],JSON_THROW_ON_ERROR)),-$included,-$prepaid,'refund_reconciliation');
     }
     public static function usage(\PDO $db,string $tenant):array{
         $r=self::account($db,$tenant);
