@@ -1,0 +1,63 @@
+openapi: 3.1.0
+info:
+  title: World Politics Research Alpha
+  version: 0.1.0
+  description: Isolated deterministic research jobs. Not calibrated forecasting or official ranking.
+servers:
+  - url: /research/v1
+security:
+  - researchBearer: []
+paths:
+  /models:
+    get:
+      responses:
+        '200': {description: Model catalogue and version pins}
+  /experiments:
+    post:
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [type, parameters]
+              properties:
+                type: {enum: [programme-coverage, policy-capacity, working-hours, household-sensitivity, household-backtest]}
+                parameters: {type: object}
+      responses:
+        '202': {description: Job accepted}
+        '409': {description: Contract or quota rejected}
+  /experiments/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: {type: string, pattern: '^[a-f0-9]{32}$'}
+    get:
+      responses:
+        '200': {description: Own job state and completed report}
+        '404': {description: Not found}
+    delete:
+      responses:
+        '200': {description: Queued job cancelled}
+        '409': {description: Job no longer queued}
+  /experiments/{id}/csv:
+    get:
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: JSON containing CSV and result digest}
+components:
+  securitySchemes:
+    researchBearer:
+      type: http
+      scheme: bearer

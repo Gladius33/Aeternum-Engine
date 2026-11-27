@@ -1,0 +1,21 @@
+# WP121–125 — consolidated backend engineering increment
+
+Baseline WP120 exact SHA d9efb1da7695c9f0f3bfc9eeab93cf86ae6186cc, CI 46043231128 succeeded. This increment is branch-only, no deployment, no official leaderboard or scientific qualification.
+
+- WP121: three conditional quantitative models (training capacity, all-housing construction, working volume), with explicit target/baseline/capacity/realization/cost assumptions and the four outstanding WP114 inventory entries mapped to research or unimplemented status. No new gameplay policy enactment, candidate unlock, full programme extraction, or source quotation. Broader sector, territory, family and institution implementation remains open.
+- WP122: existing INSEE annual conditional accounting benchmark exposes independent 2024–25 holdout error, plus 27-point nominal-income/price/consumption-unit sensitivity grid. This is not causal calibration, a confidence interval or empirical validation of the game. V1 and V2 rankings unchanged. Actual 2027 observations cannot exist yet.
+- WP123: separate Research API alpha, dedicated database and hashed 90-day keys, operator rotation, tenant-scoped idempotent job submission, quotas (20/day, 1000 lifetime), queued cancellation, bounded deterministic transactional worker, pinned source manifest, digest-checked reports and CSV in JSON. Closed five-model catalogue; no arbitrary code, live gameplay access, autonomous political actions, external payment or MCP. Python SDK uses HTTPS, validates IDs and refuses redirects.
+- WP124: deterministic tests, bounded integer arithmetic, SQL isolation, cancellation, rotation, tampering and exact-source pins. Existing full regression suite preserved. No full-season production load, independent security review, cross-country empirical validation, long-horizon compaction, Parquet, commercial billing or broad research simulations yet.
+- WP125: existing deterministic source archive now runs extracted research-model tests in addition to existing acceptance. Source handoff only, not a new remote repository or production deployment. The archive intentionally excludes the raw WP115 staging datasets as before; full documentary registry cannot be used from that reduced archive without separately provisioned inputs. No changes to Aeternum main.
+
+## Separate research installation (operator-only, not executed)
+Use an empty dedicated MariaDB database with a separate account, never the gameplay database. Configure WP_RESEARCH_DB_DSN, WP_RESEARCH_DB_USER, WP_RESEARCH_DB_PASSWORD in the private environment. Runtime account needs SELECT/INSERT/UPDATE on research tables only; installer uses separate DDL credentials.
+```sh
+WP_RESEARCH_OPERATOR=YES php games/world-politics/research/operator.php install
+WP_RESEARCH_OPERATOR=YES php games/world-politics/research/operator.php create-tenant
+WP_RESEARCH_OPERATOR=YES php games/world-politics/research/operator.php work
+```
+Tenant creation outputs a one-time secret; store it privately, do not log it. Rotation takes the tenant ID and revokes earlier keys. Worker consumes at most one job per invocation, rolling back interrupted transactions. Run by bounded operator scheduling. Research webroot is games/world-politics/research/public, with HTTPS, WP_RESEARCH_ENABLED=YES and upstream IP/rate/timeout controls. Do not enable public ingress before independent review. The API does not use gameplay account/session credentials. Use research/openapi.yaml and research/sdk/client.py.
+
+## Remaining release gates
+Full WP121–125 scope is not completed by these increments: international programme data and rulebooks, empirical calibration, comprehensive cross-country economies and career gameplay, general research orchestration/exports, scale/security and extraction to a separately approved destination repository remain open. Exact-head CI must pass before engineering acceptance.

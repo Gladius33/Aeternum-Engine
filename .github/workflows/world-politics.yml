@@ -227,6 +227,11 @@ jobs:
         run: php tests/wp120-score-preview.php
       - name: WP120 experimental ranking contract
         run: php tests/wp120-ranking.php
+      - name: WP121–125 consolidated research model and export contracts
+        run: |
+          php tests/wp121-125-research.php
+          python3 -m py_compile games/world-politics/research/sdk/client.py
+          ruby -ryaml -e 'abort unless YAML.load_file(ARGV[0])["openapi"] == "3.1.0"' games/world-politics/research/openapi.yaml
       - name: WP118–119 career and institutional lifecycle
         run: php tests/wp118-119-career.php
       - name: WP80 twenty-year score horizon and deterministic replay
@@ -266,6 +271,7 @@ jobs:
           cd "$tmp/world-politics"
           php tests/wp75b-candidate-selection.php
           php tests/wp85-household-account.php
+          php tests/wp121-125-research.php
 
   mariadb-rosters:
     runs-on: ubuntu-24.04
@@ -318,6 +324,7 @@ jobs:
           php tests/wp28-french-parliament-db.php
           php tests/wp29-final-db.php
           php tests/wp118-119-career-db.php
+          php tests/wp123-research-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4

@@ -1,0 +1,34 @@
+<?php
+declare(strict_types=1);
+if(getenv('WP_TEST_ISOLATED')!=='YES'||!str_contains(getenv('WP_TEST_DSN')?:'','dbname=wp_test;'))exit(2);
+require_once __DIR__.'/../games/world-politics/src/ResearchGateway.php';
+use Aeternum\WorldPolitics\{ResearchQueue as Q,ResearchGateway as G};
+function ckResearch(bool $b,string $m):void{if(!$b)throw new RuntimeException($m);}
+$db=new PDO(getenv('WP_TEST_DSN'),getenv('WP_TEST_USER'),getenv('WP_TEST_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
+$db->exec(file_get_contents(__DIR__.'/../games/world-politics/research/database/001_research.sql'));
+$q=new Q($db);$g=new G($q);
+$a=$q->createTenant();$b=$q->createTenant();
+$head=fn($t,$key='research-test-key-01')=>['authorization'=>'Bearer '.$t,'content-type'=>'application/json','idempotency-key'=>$key];
+$body=json_encode(['type'=>'household-backtest','parameters'=>[]],JSON_THROW_ON_ERROR);
+$path='/research/v1/experiments';
+ckResearch($g->handle('POST',$path,$body,[])['status']===401,'anonymous denied');
+$x=$g->handle('POST',$path,$body,$head($a['token']));ckResearch($x['status']===202,'queued');
+$id=$x['body']['job_id'];
+ckResearch($g->handle('POST',$path,$body,$head($a['token']))===$x,'same request receipt');
+ckResearch($g->handle('GET',$path.'/'.$id,'',$head($b['token']))['status']===404,'tenant isolation');
+ckResearch($g->handle('DELETE',$path.'/'.$id,'',$head($b['token']))['status']===404,'cross tenant cancellation denied');
+ckResearch($q->work()['status']==='complete','worker execution');
+$done=$g->handle('GET',$path.'/'.$id,'',$head($a['token']));
+ckResearch($done['body']['status']==='complete'&&$done['body']['result']['research_only'],'completed report');
+ckResearch($g->handle('GET',$path.'/'.$id.'/csv','',$head($a['token']))['status']===200,'CSV');
+$y=$g->handle('POST',$path,$body,$head($a['token'],'research-test-key-02'));
+ckResearch($g->handle('DELETE',$path.'/'.$y['body']['job_id'],'',$head($a['token']))['status']===200,'cancel queued');
+ckResearch($q->work()===null,'cancelled work not run');
+$rot=$q->rotate($a['tenant_id']);
+ckResearch($g->handle('GET',$path.'/'.$id,'',$head($a['token']))['status']===401,'old key revoked');
+ckResearch($g->handle('GET',$path.'/'.$id,'',$head($rot['token']))['status']===200,'rotated key works');
+ckResearch($g->handle('GET','/api/v1/worlds','',$head($rot['token']))['status']===404,'no gameplay route');
+$z=$g->handle('POST',$path,$body,$head($rot['token'],'research-test-key-03'));
+$db->prepare('UPDATE wp_research_jobs SET manifest_json=? WHERE job_id=?')->execute(['{}',$z['body']['job_id']]);
+ckResearch($q->work()['status']==='failed','changed evidence fails closed');
+echo "PASS WP123 isolated tenant queue, worker, CSV, cancellation, rotation and evidence pin\n";
