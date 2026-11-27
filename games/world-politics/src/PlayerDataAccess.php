@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/AlphaAccounts.php';
+require_once __DIR__.'/OperatorAccess.php';
 
 /** Data-only credential. Not accepted by ordinary gameplay sessions. */
 final class PlayerDataAccess
@@ -23,6 +24,7 @@ final class PlayerDataAccess
             $id=$session->id;
             if((int)self::q($db,'SELECT enabled FROM wp_accounts WHERE account_id=? FOR UPDATE',[$id])->fetchColumn()!==1||!$session->active())throw new AlphaHttpError(401,'authentication_required');
             $expiry=(int)self::q($db,'SELECT paid_until FROM wp_player_api_entitlements WHERE account_id=? FOR UPDATE',[$id])->fetchColumn();
+            if(OperatorAccess::game($id))$expiry=max($expiry,time()+90*86400);
             if($expiry<=time())throw new AlphaHttpError(403,'premium_required');
             $token=bin2hex(random_bytes(32));$expires=min($expiry,time()+90*86400);
             self::q($db,'DELETE FROM wp_player_api_keys WHERE account_id=?',[$id]);
@@ -39,8 +41,8 @@ final class PlayerDataAccess
     }
     public static function authenticate(\PDO $db,string $header,bool $lock=false):string{
         if(!preg_match('/^Bearer ([a-f0-9]{64})$/D',$header,$m))throw new AlphaHttpError(401,'data_token_required');
-        $r=self::q($db,'SELECT k.account_id FROM wp_player_api_keys k JOIN wp_accounts a USING(account_id) JOIN wp_player_api_entitlements e USING(account_id) WHERE k.key_sha=? AND k.expires_at>? AND e.paid_until>? AND a.enabled=1'.($lock?' FOR UPDATE':''),[hash('sha256',$m[1]),time(),time()])->fetchColumn();
-        if(!is_string($r))throw new AlphaHttpError(401,'data_token_required');return $r;
+        $r=self::q($db,'SELECT k.account_id,e.paid_until FROM wp_player_api_keys k JOIN wp_accounts a USING(account_id) LEFT JOIN wp_player_api_entitlements e USING(account_id) WHERE k.key_sha=? AND k.expires_at>? AND a.enabled=1'.($lock?' FOR UPDATE':''),[hash('sha256',$m[1]),time()])->fetch(\PDO::FETCH_ASSOC);
+        if($r===false||((int)$r['paid_until']<=time()&&!OperatorAccess::game($r['account_id'])))throw new AlphaHttpError(401,'data_token_required');return $r['account_id'];
     }
     public static function worlds(\PDO $db,string $header):array{
         return self::tx($db,function()use($db,$header){

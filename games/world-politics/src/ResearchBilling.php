@@ -24,9 +24,9 @@ final class ResearchBilling
         $r=self::q($db,'SELECT * FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
         if($r===false)throw new \DomainException('Unknown tenant');return $r;
     }
-    private static function event(\PDO $db,string $tenant,string $key,string $kind,string $fingerprint,int $included,int $prepaid,string $operation):void{
-        self::q($db,'INSERT INTO wp_research_billing_events(tenant_id,event_key,event_kind,fingerprint,included_delta,prepaid_delta,operation,created_at) VALUES(?,?,?,?,?,?,?,?)',
-            [$tenant,$key,$kind,$fingerprint,$included,$prepaid,$operation,time()]);
+    private static function event(\PDO $db,string $tenant,string $key,string $kind,string $fingerprint,int $included,int $prepaid,string $operation,int $waived=0):void{
+        self::q($db,'INSERT INTO wp_research_billing_events(tenant_id,event_key,event_kind,fingerprint,included_delta,prepaid_delta,operation,created_at,waived_units) VALUES(?,?,?,?,?,?,?,?,?)',
+            [$tenant,$key,$kind,$fingerprint,$included,$prepaid,$operation,time(),$waived]);
     }
     /** Fixed UTC windows, serialized across all application nodes. Per-scope
      * rows are bounded (one per period), no unbounded timestamp buckets. */
@@ -57,9 +57,10 @@ final class ResearchBilling
         if(!$db->inTransaction())throw new \LogicException('Meter requires transaction');
         $tenant=$r['tenant_id'];$cost=$override??self::cost($operation);
         if($operation==='global_export'&&$r['plan']!=='pro')throw new ResearchBillingError(403,'research_pro_required');
-        if((int)$r['paid_until']<=time()||(int)$r['enabled']!==1)throw new ResearchBillingError(401,'research_entitlement_expired');
-        $included=$r['billing_mode']==='monthly'?min($cost,(int)$r['included_units']):0;
-        $prepaid=$cost-$included;
+        $admin=(int)$r['admin_exempt']===1;
+        if((!$admin&&(int)$r['paid_until']<=time())||(int)$r['enabled']!==1)throw new ResearchBillingError(401,'research_entitlement_expired');
+        $included=!$admin&&$r['billing_mode']==='monthly'?min($cost,(int)$r['included_units']):0;
+        $prepaid=$admin?0:$cost-$included;
         if($prepaid>0&&($r['billing_mode']==='monthly'&&!(bool)$r['allow_overage']||$prepaid>(int)$r['prepaid_units']))
             throw new ResearchBillingError(402,'insufficient_usage_credits');
         // All writers acquire tenant first, global second; same period order.
@@ -73,6 +74,10 @@ final class ResearchBilling
                 throw new ResearchBillingError(429,'global_queue_limit');
         }
         if($cost===0)return;
+        if($admin){
+            self::event($db,$tenant,$key,'usage',hash('sha256',self::VERSION.'|'.$operation),0,0,$operation,$cost);
+            return;
+        }
         self::q($db,'UPDATE wp_research_tenants SET included_units=included_units-?,prepaid_units=prepaid_units-? WHERE tenant_id=?',[$included,$prepaid,$tenant]);
         self::event($db,$tenant,$key,'usage',hash('sha256',self::VERSION.'|'.$operation),-$included,-$prepaid,$operation);
     }
@@ -89,7 +94,7 @@ final class ResearchBilling
     public static function fund(\PDO $db,string $tenant,string $reference,string $kind,int $units,?int $until,?string $plan,?string $mode,bool $overage):array{
         if(!$db->inTransaction()||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$reference)||!in_array($kind,['renewal','topup'],true)||$units<0||$units>self::MAX)
             throw new \DomainException('Invalid payment event');
-        $r=self::account($db,$tenant);$key=hash('sha256','payment|'.$reference);
+        $r=self::account($db,$tenant);if((int)$r['admin_exempt']===1)throw new \DomainException('Operator account is not billable');$key=hash('sha256','payment|'.$reference);
         $fingerprint=hash('sha256',json_encode([$kind,$units,$until,$plan,$mode,$overage],JSON_THROW_ON_ERROR));
         $old=self::q($db,'SELECT tenant_id,fingerprint FROM wp_research_billing_events WHERE event_key=?',[$key])->fetch(\PDO::FETCH_ASSOC);
         if($old!==false){if($old['tenant_id']!==$tenant||!hash_equals($old['fingerprint'],$fingerprint))throw new \DomainException('Payment event conflict');return self::usage($db,$tenant);}
@@ -109,8 +114,8 @@ final class ResearchBilling
     }
     public static function usage(\PDO $db,string $tenant):array{
         $r=self::account($db,$tenant);
-        $tot=self::q($db,"SELECT COALESCE(-SUM(included_delta),0) AS included_used,COALESCE(-SUM(prepaid_delta),0) AS prepaid_used FROM wp_research_billing_events WHERE tenant_id=? AND event_kind='usage'",[$tenant])->fetch(\PDO::FETCH_ASSOC);
-        return ['meter_version'=>self::VERSION,'plan'=>$r['plan'],'billing_mode'=>$r['billing_mode'],'paid_until'=>(int)$r['paid_until'],
+        $tot=self::q($db,"SELECT COALESCE(-SUM(included_delta),0) AS included_used,COALESCE(-SUM(prepaid_delta),0) AS prepaid_used,COALESCE(SUM(waived_units),0) AS waived FROM wp_research_billing_events WHERE tenant_id=? AND event_kind='usage'",[$tenant])->fetch(\PDO::FETCH_ASSOC);
+        return ['meter_version'=>self::VERSION,'plan'=>$r['plan'],'billing_mode'=>$r['billing_mode'],'paid_until'=>(int)$r['paid_until'],'operator_exempt'=>(bool)$r['admin_exempt'],'lifetime_waived_units'=>(int)$tot['waived'],
             'included_remaining'=>(int)$r['included_units'],'prepaid_remaining'=>(int)$r['prepaid_units'],'allow_overage'=>(bool)$r['allow_overage'],
             'lifetime_included_used'=>(int)$tot['included_used'],'lifetime_prepaid_used'=>(int)$tot['prepaid_used'],
             'unit_costs'=>['request'=>1,'export'=>5,'global_export'=>20,'new_experiment'=>10,'simulation_day'=>10,'usage'=>0],

@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/ResearchExperiment.php';
 require_once __DIR__.'/ResearchBilling.php';
+require_once __DIR__.'/OperatorAccess.php';
 
 final class ResearchQueue
 {
@@ -32,6 +33,15 @@ final class ResearchQueue
             return ['tenant_id'=>$id,'token'=>$this->issueLocked($id)];
         });
     }
+    /** Operator CLI only. No ordinary client key is issued for this tenant. */
+    public function createAdmin(string $plan,string $billing):array{
+        self::plan($plan,0);ResearchBilling::mode($billing);
+        return $this->tx(function()use($plan,$billing){
+            $id=bin2hex(random_bytes(16));
+            $this->q('INSERT INTO wp_research_tenants(tenant_id,created_at,plan,paid_until,billing_mode,admin_exempt) VALUES(?,?,?,?,?,1)',[$id,time(),$plan,0,$billing]);
+            return ['tenant_id'=>$id,'plan'=>$plan,'billing_mode'=>$billing,'operator_exempt'=>true];
+        });
+    }
     private static function plan(string $plan,int $days):void{
         if(!in_array($plan,['standard','pro'],true)||$days<0||$days>366)throw new \DomainException('Invalid research entitlement');
     }
@@ -59,7 +69,7 @@ final class ResearchQueue
         return $this->tx(fn()=>ResearchBilling::usage($this->db,$this->authorized($token)));
     }
     private function entitlement(string $tenant):array{
-        $r=$this->q('SELECT plan,paid_until,share_dataset FROM wp_research_tenants WHERE tenant_id=? AND enabled=1 AND paid_until>? FOR UPDATE',[$tenant,time()])->fetch(\PDO::FETCH_ASSOC);
+        $r=$this->q('SELECT plan,paid_until,share_dataset,admin_exempt FROM wp_research_tenants WHERE tenant_id=? AND enabled=1 AND (paid_until>? OR admin_exempt=1) FOR UPDATE',[$tenant,time()])->fetch(\PDO::FETCH_ASSOC);
         if($r===false)throw new \DomainException('Research entitlement expired');
         return $r;
     }
@@ -67,7 +77,7 @@ final class ResearchQueue
         return $this->tx(function()use($token){
             $r=$this->entitlement($this->authorized($token));
             return ['plan'=>$r['plan'],'paid_until'=>(int)$r['paid_until'],'own_worlds'=>true,'own_experiments'=>true,
-                'global_dataset'=>$r['plan']==='pro','share_dataset'=>(bool)$r['share_dataset']];
+                'global_dataset'=>$r['plan']==='pro','share_dataset'=>(bool)$r['share_dataset'],'operator_exempt'=>(bool)$r['admin_exempt']];
         });
     }
     public function createWorld(string $token,string $key):array{
@@ -121,14 +131,19 @@ final class ResearchQueue
     public function rotate(string $tenant):array{
         self::id($tenant);
         return $this->tx(function()use($tenant){
-            if((int)$this->q('SELECT enabled FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetchColumn()!==1)throw new \DomainException('Inactive tenant');
+            if((int)$this->q('SELECT enabled FROM wp_research_tenants WHERE tenant_id=? AND admin_exempt=0 FOR UPDATE',[$tenant])->fetchColumn()!==1)throw new \DomainException('Inactive tenant');
             $this->q('UPDATE wp_research_keys SET revoked=1 WHERE tenant_id=?',[$tenant]);
             return ['tenant_id'=>$tenant,'token'=>$this->issueLocked($tenant)];
         });
     }
     public function authenticate(string $token,bool $lock=false):?string{
         if(!preg_match('/^[a-f0-9]{64}$/D',$token))return null;
-        $r=$this->q('SELECT k.tenant_id FROM wp_research_keys k JOIN wp_research_tenants t USING(tenant_id) WHERE k.key_sha=? AND k.expires_at>? AND k.revoked=0 AND t.enabled=1 AND t.paid_until>?'.($lock?' FOR UPDATE':''),[hash('sha256',$token),time(),time()])->fetchColumn();
+        $admin=OperatorAccess::research($token);
+        if($admin!==null){
+            $id=$this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? AND plan=? AND billing_mode=? AND admin_exempt=1 AND enabled=1'.($lock?' FOR UPDATE':''),[$admin['tenant'],$admin['plan'],$admin['mode']])->fetchColumn();
+            return is_string($id)?$id:null;
+        }
+        $r=$this->q('SELECT k.tenant_id FROM wp_research_keys k JOIN wp_research_tenants t USING(tenant_id) WHERE k.key_sha=? AND k.expires_at>? AND k.revoked=0 AND t.enabled=1 AND t.admin_exempt=0 AND t.paid_until>?'.($lock?' FOR UPDATE':''),[hash('sha256',$token),time(),time()])->fetchColumn();
         return is_string($r)?$r:null;
     }
     /** Authenticated request admission, serialized with tenant/key changes. */

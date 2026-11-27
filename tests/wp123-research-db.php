@@ -127,3 +127,23 @@ ckResearch($stripe->handle($invoice)['status']==='settled'&&$stripe->handle($inv
 $balance=$q->usage($st['token']);
 ckResearch($balance['included_remaining']===1000&&$balance['prepaid_remaining']===250&&$balance['paid_until']===$end,'subscription period and wallet retained');
 echo "PASS Stripe test-mode signed events, server price validation, checkout/settlement idempotency\n";
+
+$adm=$q->createAdmin('pro','payg');$at=bin2hex(random_bytes(32));
+putenv('WP_ADMIN_RESEARCH_ENABLED=YES');
+putenv('WP_ADMIN_RESEARCH_PRO_PAYG_TENANT='.$adm['tenant_id']);
+putenv('WP_ADMIN_RESEARCH_PRO_PAYG_TOKEN_SHA256='.hash('sha256',$at));
+ckResearch($g->handle('GET','/research/v1/datasets/global','',$head($at))['status']===200,'operator Pro global access without payment');
+$u=$q->usage($at);ckResearch($u['operator_exempt']&&$u['prepaid_remaining']===0&&$u['lifetime_waived_units']===20,'waived costs still metered');
+$ad2=$q->createAdmin('standard','monthly');$at2=bin2hex(random_bytes(32));
+putenv('WP_ADMIN_RESEARCH_STANDARD_MONTHLY_TENANT='.$ad2['tenant_id']);
+putenv('WP_ADMIN_RESEARCH_STANDARD_MONTHLY_TOKEN_SHA256='.hash('sha256',$at2));
+ckResearch($g->handle('GET','/research/v1/datasets/global','',$head($at2))['status']===403,'operator Standard preserves plan scope');
+ckResearch($g->handle('GET','/research/v1/models','',$head($at2))['status']===200,'operator Standard without subscription');
+$q->configureCapacity('global',86400,0,0);
+ckResearch($g->handle('GET','/research/v1/models','',$head($at))['status']===429,'operator does not bypass global safety');
+$q->configureCapacity('global',86400,150000,1000000);
+try{$q->rotate($adm['tenant_id']);throw new RuntimeException('Ordinary operator key issued');}catch(DomainException $expected){}
+try{$q->fund($adm['tenant_id'],'admin-funding-test-01','topup',100);throw new RuntimeException('Operator billed');}catch(DomainException $expected){}
+putenv('WP_ADMIN_RESEARCH_ENABLED=NO');
+ckResearch($g->handle('GET','/research/v1/models','',$head($at))['status']===401,'operator switch revokes access');
+echo "PASS dedicated operator profiles, zero billing, preserved scope and capacity\n";

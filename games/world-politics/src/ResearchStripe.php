@@ -96,8 +96,8 @@ final class ResearchStripe
             throw new \DomainException('Unsupported Stripe price');
         $key=hash('sha256',$requestKey);
         $order=$this->tx(function()use($tenant,$offer,$p,$amount,$key){
-            $a=$this->q('SELECT plan,enabled,billing_mode FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
-            if($a===false||(int)$a['enabled']!==1||($p['mode']==='payment'&&$a['plan']!==$p['plan']))throw new \DomainException('Ineligible tenant');
+            $a=$this->q('SELECT plan,enabled,billing_mode,admin_exempt FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
+            if($a===false||(int)$a['enabled']!==1||(int)$a['admin_exempt']===1||($p['mode']==='payment'&&$a['plan']!==$p['plan']))throw new \DomainException('Ineligible tenant');
             $old=$this->q('SELECT * FROM wp_stripe_research_orders WHERE tenant_id=? AND request_sha=?',[$tenant,$key])->fetch(\PDO::FETCH_ASSOC);
             if($old!==false){if($old['offer']!==$offer)throw new \DomainException('Checkout conflict');return $old;}
             if($p['mode']==='subscription'&&$this->q("SELECT 1 FROM wp_stripe_research_orders WHERE tenant_id=? AND mode='subscription' LIMIT 1",[$tenant])->fetchColumn()!==false)
