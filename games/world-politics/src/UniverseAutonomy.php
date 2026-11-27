@@ -38,7 +38,7 @@ final class UniverseAutonomy
         if($slot===false)throw new \DomainException('Missing domestic slot');
         if($slot['closed_on']!==null||$slot['last_human_domestic_day']===$day)return;
         if(self::directAid($db,$sim,$world,$day,$slot)||self::directIndustry($db,$sim,$world,$day,$slot))return;
-        $next=PresidentialProgramme::nextProposal($slot['domestic_programme'],$day,$s['policies']);
+        $next=PresidentialProgramme::nextProposal($slot['domestic_programme'],$day,$s['policies'],isset($s['social_economy_from']));
         if($next===null)return;
         $policy=$next['policy_id'];$effective=$next['effective_day'];
         $authority=new class($world) implements DomesticPolicyAuthority{

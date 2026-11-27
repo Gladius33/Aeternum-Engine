@@ -110,6 +110,25 @@ final class SocialProgramme
         foreach(array_keys($policies) as $old)if($old!==$id&&isset($d[$old])&&$d[$old]['family']===$d[$id]['family'])return true;
         return false;
     }
+    /** A later published, effective law supersedes an earlier law in the
+     * same family. Merely selecting a new programme does not repeal a law.
+     * A later expired replacement does not revive its predecessor. */
+    public static function effectiveFamilies(array $policies,string $day):array
+    {
+        $d=self::definitions();$out=[];
+        foreach($policies as $id=>$p){
+            if(!isset($d[$id])||$p['authorized_on']===null||$p['authorized_on']>=$day||$p['effective_on']>$day)continue;
+            $family=$d[$id]['family'];$old=$out[$family]??null;
+            if($old===null||[$p['effective_on'],$p['proposed_on'],$id]>[$policies[$old]['effective_on'],$policies[$old]['proposed_on'],$old])$out[$family]=$id;
+        }
+        return $out;
+    }
+    public static function sameEffectiveFamily(string $id,string $day,array $policies):bool
+    {
+        $d=self::definitions();if(!isset($d[$id]))return false;
+        foreach($policies as $old=>$p)if($old!==$id&&isset($d[$old])&&$d[$old]['family']===$d[$id]['family']&&$p['effective_on']===$day)return true;
+        return false;
+    }
     public static function phaseBps(string $id,int $elapsed):int
     {
         $d=self::definitions()[$id]??null;
@@ -135,10 +154,12 @@ final class SocialProgramme
     {
         $d=self::definitions();$rows=[];
         $active=$state['days']===[]?[]:$state['days'][array_key_last($state['days'])]['active_policies'];
+        $families=isset($state['social_economy_from'])&&$state['day']>=$state['social_economy_from']?self::effectiveFamilies($state['policies'],$state['day']):[];
         foreach($state['policies'] as $id=>$p)if(isset($d[$id])){
             $running=in_array($id,$active,true);$elapsed=$running?(int)(new \DateTimeImmutable($p['effective_on']))->diff(new \DateTimeImmutable($state['day']))->days:0;
             $rows[]=['measure_id'=>$id,'definition'=>$d[$id],'proposal'=>$p,'active'=>$running,
-                'implementation_phase_bps'=>$running?self::phaseBps($id,$elapsed):0];
+                'implementation_phase_bps'=>$running?self::phaseBps($id,$elapsed):0,
+                'superseded_by'=>$p['authorized_on']!==null&&$p['effective_on']<=$state['day']&&isset($families[$d[$id]['family']])&&$families[$d[$id]['family']]!==$id?$families[$d[$id]['family']]:null];
         }
         return ['version'=>self::VERSION,'classification'=>'fictional_uncalibrated_aggregate_proxy','measures'=>$rows,
             'individual_entitlements_modelled'=>false,'economic_forecast_qualified'=>false];

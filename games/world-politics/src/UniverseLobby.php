@@ -238,7 +238,7 @@ final class UniverseLobby
                 'automatic_legal_route'=>PresidentialProgramme::executable($slot['domestic_programme']),
                 'human_action_this_day'=>$slot['last_human_domestic_day']===$c['committed_day'],
                 'actions'=>$rows,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),
-                'social_measure_ids'=>PresidentialProgramme::socialIds($slot['domestic_programme']), 'social_programme'=>SocialProgramme::report($dom),
+                'social_measure_ids'=>PresidentialProgramme::socialIds($slot['domestic_programme']), 'social_programme'=>SocialProgramme::report($dom),'social_economy'=>$dom['days']===[]?null:($dom['days'][array_key_last($dom['days'])]['social_economy']??null),
                 'historical_real_programmes_fully_executable'=>false];
         });
     }

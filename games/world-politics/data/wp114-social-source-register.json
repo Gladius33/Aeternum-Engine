@@ -1,0 +1,42 @@
+{
+  "schema": "wp114-social-source-register-v1",
+  "as_of": "2026-11-27",
+  "classification": "source_inventory_not_exhaustive_extraction",
+  "sources": [
+    {
+      "id": "cnccep-first-round",
+      "url": "https://www.cnccep.fr/candidats.html",
+      "scope": "12 official 2022 first-round professions of faith",
+      "candidates": [
+        "nathalie-arthaud",
+        "nicolas-dupont-aignan",
+        "anne-hidalgo",
+        "yannick-jadot",
+        "jean-lassalle",
+        "marine-le-pen",
+        "emmanuel-macron",
+        "jean-luc-melenchon",
+        "valerie-pecresse",
+        "philippe-poutou",
+        "fabien-roussel",
+        "eric-zemmour"
+      ],
+      "extraction": "not_exhaustive"
+    },
+    {
+      "id": "insee-smic-net-2025",
+      "url": "https://www.insee.fr/fr/statistiques/9087193",
+      "observation": {
+        "period": "2025",
+        "monthly_net_eur": 1426
+      },
+      "use": "nominal scenario anchor carried forward, not 2027 observed amount"
+    },
+    {
+      "id": "insee-net-smic-series",
+      "url": "https://www.insee.fr/fr/statistiques/serie/000879878",
+      "use": "future calibration reference"
+    }
+  ],
+  "behavioral_calibration_completed": false
+}

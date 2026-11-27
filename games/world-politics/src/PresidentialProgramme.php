@@ -219,11 +219,11 @@ final class PresidentialProgramme
     /** At most one new proposal per tick. Existing user proposals are not
      * adopted by this planner and a previously filed annual budget excludes
      * any competing variant in the same year. */
-    public static function nextProposal(string $profile,string $day,array $policies):?array
+    public static function nextProposal(string $profile,string $day,array $policies,bool $replaceSocial=false):?array
     {
         if(!self::known($profile))throw new \DomainException('Unknown programme');
         if(($ids=self::socialIds($profile))!==null){
-            foreach($ids as $id)if(!isset($policies[$id])&&!SocialProgramme::conflicts($id,$policies))
+            foreach($ids as $id)if(!isset($policies[$id])&&($replaceSocial?!SocialProgramme::sameEffectiveFamily($id,SocialProgramme::effectiveDay($id,$day),$policies):!SocialProgramme::conflicts($id,$policies)))
                 return ['policy_id'=>$id,'effective_day'=>SocialProgramme::effectiveDay($id,$day)];
             if(self::agenda($profile)===null)return null;
         }

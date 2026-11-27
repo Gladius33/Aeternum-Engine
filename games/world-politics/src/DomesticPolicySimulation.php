@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/SocialProgramme.php';
+require_once __DIR__.'/SocialEconomy.php';
 require_once __DIR__.'/UkraineAidPolicy.php';
 require_once __DIR__.'/FrenchMacroBaseline.php';
 require_once __DIR__.'/SovereignDebtLedger.php';
@@ -71,9 +72,11 @@ final class DomesticPolicySimulation
         private readonly bool $euTradeV2=false,
         private readonly bool $euTradeV3=false,
         private readonly bool $euTradeV4=false,
-        private readonly bool $financeAutonomy=false
+        private readonly bool $financeAutonomy=false,
+        private readonly ?string $socialEconomyFrom=null
     ) {
         self::id($world); self::date($startDay);
+        if($socialEconomyFrom!==null){self::date($socialEconomyFrom);if($socialEconomyFrom<$startDay||$populationModel===null||$servicesModel===null||$macroBaseline===null||!isset($catalog['hist2022-emmanuel-macron-1']))throw new \DomainException('Social economy requires pinned population, services and policy catalogue');}
         if($financeAutonomy&&(!$dailyLegalEnabled||!isset($catalog['budget-2047-defense-maintain'])))throw new \DomainException('Finance autonomy requires annual series and legal activation');
         if($euTradeV4&&(!$euTradeV3||$debtModel===null))throw new \DomainException('EU trade v4 requires v3 and debt ledger');
         if($euTradeV3&&!$euTradeV2)throw new \DomainException('EU trade v3 requires v2');
@@ -146,7 +149,7 @@ final class DomesticPolicySimulation
     {
         $this->require($principal, 'domestic.propose');
         self::id($id); self::date($effectiveDay);
-        if (!isset($this->catalog[$id]) || $effectiveDay <= $this->day || isset($this->policies[$id]) || SocialProgramme::conflicts($id,$this->policies)) {
+        if (!isset($this->catalog[$id]) || $effectiveDay <= $this->day || isset($this->policies[$id]) || ($this->socialEconomyFrom===null?SocialProgramme::conflicts($id,$this->policies):SocialProgramme::sameEffectiveFamily($id,$effectiveDay,$this->policies))) {
             throw new \DomainException('Unknown, duplicate or retroactive proposal');
         }
         $this->policies[$id] = ['proposed_on'=>$this->day,'effective_on'=>$effectiveDay,'authorized_on'=>null,'instrument_sha'=>null];
@@ -230,20 +233,31 @@ final class DomesticPolicySimulation
         if($eu!==null)EuropeanTradeFeedback::validate($eu,$this->world,$target,$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION)));
         $revenue = $this->baselineRevenue; $expense = $this->baselineExpense;
         $deltas = array_fill_keys(array_keys($this->cohorts), 0);
+        $socialV2=$this->socialEconomyFrom!==null&&$target>=$this->socialEconomyFrom;
         $active = []; $extended=false; $concessionCost=0; $production=10000; $employment=10000;
         foreach ($this->catalog as $a) if (isset($a['concessions'])) $extended=true;
+        $socialFamilies=$socialV2?SocialProgramme::effectiveFamilies($this->policies,$target):[];
         foreach ($this->policies as $id => $p) {
+            if($socialV2&&SocialProgramme::isPolicy($id)&&!in_array($id,$socialFamilies,true))continue;
             if ($p['authorized_on'] === null || $p['authorized_on'] >= $target || $p['effective_on'] > $target) continue;
             $elapsed = (int)(new \DateTimeImmutable($p['effective_on'], new \DateTimeZone('UTC')))
                 ->diff(new \DateTimeImmutable($target, new \DateTimeZone('UTC')))->days;
             $a = $this->catalog[$id];
             if ($elapsed >= $a['duration_days']) continue;
-            if(SocialProgramme::isPolicy($id))$a=SocialProgramme::phasedPolicy($a,SocialProgramme::phaseBps($id,$elapsed));
+            if(SocialProgramme::isPolicy($id)){
+                $a=SocialProgramme::phasedPolicy($a,SocialProgramme::phaseBps($id,$elapsed));
+                if($socialV2){$a['revenue_delta']=0;$a['expense_delta']=0;$a['production_delta_bps']=0;$a['employment_delta_bps']=0;}
+            }
             $active[] = $id;
             $revenue += $a['revenue_delta']; $expense += $a['expense_delta'];
             foreach ($a['pressure_delta'] as $sector => $delta) $deltas[$sector] += $delta-($a['concessions'][$sector]??0);
             $concessionCost+=$a['concession_daily_cost']??0;
             $production+=$a['production_delta_bps']??0; $employment+=$a['employment_delta_bps']??0;
+        }
+        $social=null;
+        if($socialV2){
+            $social=SocialEconomy::calculate($active,$this->policies,$target,$this->populationModel,$this->servicesModel,$this->macroBaseline,$this->days===[]?null:$this->days[array_key_last($this->days)]);
+            $revenue+=$social['daily_revenue_delta_minor'];$expense+=$social['daily_expense_delta_minor']-$social['pension_transfer_delta_minor'];$production+=$social['production_delta_bps'];$employment+=$social['employment_delta_bps'];
         }
         if ($revenue < 0 || $expense < 0) throw new \DomainException('Scenario implies negative gross fiscal flow');
         $expense+=$concessionCost;
@@ -276,11 +290,24 @@ final class DomesticPolicySimulation
             if($this->populationModel!==null)$production+=FrenchDemography::outputAdjustment($this->populationModel,$prior);
             if($this->servicesModel!==null){
                 $servicePlan=FrenchPublicServices::plan($this->servicesModel,$prior);
+                if($social!==null){
+                    $pension=$social['pension_transfer_delta_minor'];
+                    $servicePlan['daily_reference_needs_minor']['pensions']+=$pension;
+                    $servicePlan['incremental_expense_minor']['pensions']+=$pension;
+                    $servicePlan['total_incremental_expense_minor']+=$pension;
+                    $servicePlan['pension_transfer_delta_minor']+=$pension;
+                    foreach($social['measures'] as $m){
+                        $n=$m['additional_recipients_proxy']??0;
+                        $servicePlan['pension_recipients_proxy']=max(1,$servicePlan['pension_recipients_proxy']+$n);
+                        $servicePlan['contributors_proxy']=max(1,$servicePlan['contributors_proxy']-$n);
+                    }
+                    if($servicePlan['daily_reference_needs_minor']['pensions']<0)throw new \DomainException('Negative pension need');
+                }
                 $expense+=$servicePlan['total_incremental_expense_minor'];
                 if($expense<=0)throw new \DomainException('Service adjustment exceeds fiscal flow');
                 foreach($prior['services']['next_day_pressure_delta']??[] as $k=>$v)if(isset($deltas[$k]))$deltas[$k]+=$v;
             }
-            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?min(3000,CorporationWageFeedback::premium($corporations)+SocialProgramme::wagePremium($active)):null,$trade['exposure_bps']??null,0,$eu);
+            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?min(3000,CorporationWageFeedback::premium($corporations)+($socialV2?$social['wage_premium_bps']:SocialProgramme::wagePremium($active))):null,$trade['exposure_bps']??null,0,$eu);
             $nativeSectors=isset($eu['frf_committed_observation']['sector_version']);
             if($this->industrialEnabled){
                 $ordinaryTreasury=$loop['treasury'];$ordinaryExpense=$loop['expense'];$tr=$ordinaryTreasury;
@@ -288,7 +315,7 @@ final class DomesticPolicySimulation
                 $industrial=IndustrialCapital::advance($installed,$target,$corporationAction,$nativeSectors?0:$tr['cash'],$current&&!$nativeSectors,$prior);
                 $paid=$industrial['paid_today_minor'];
                 if($paid>0){
-                    $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense+$paid,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?min(3000,CorporationWageFeedback::premium($corporations)+SocialProgramme::wagePremium($active)):null,$trade['exposure_bps']??null,$paid,$eu);
+                    $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense+$paid,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?min(3000,CorporationWageFeedback::premium($corporations)+($socialV2?$social['wage_premium_bps']:SocialProgramme::wagePremium($active))):null,$trade['exposure_bps']??null,$paid,$eu);
                     if($loop['treasury']['cash']!==$tr['cash']-$paid||$loop['treasury']['new_borrowing']!==$tr['new_borrowing']||$loop['expense']!==$ordinaryExpense+$paid)throw new \DomainException('Industrial fiscal settlement mismatch');
                 }
                 $loop['treasury']['industrial_capex_minor']=$paid;
@@ -316,6 +343,7 @@ final class DomesticPolicySimulation
             'active_policies'=>$active,'opening_balance'=>$balance,'revenue'=>$revenue,'expense'=>$expense,
             'closing_balance'=>$closing,'pressure'=>$pressure];
         if($aid!==null)$row['ukraine_aid']=$aid;
+        if($social!==null)$row['social_economy']=$social;
         if ($extended) $row['economic']=['net_flow'=>$revenue-$expense,'concession_cost'=>$concessionCost,
             'production_index_bps'=>max(0,$production),'employment_index_bps'=>max(0,$employment)];
         if($loop!==null){
@@ -372,7 +400,7 @@ final class DomesticPolicySimulation
         }
         unset($a);
         return self::digest([$this->world,$this->startDay,$this->currency,$this->openingBalance,
-            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:[FirmEconomy::VERSION,$this->firmModel]),...($this->publicEquityEnabled?[PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?[IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?[$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[]),...($this->financeAutonomy?['wp82-finance-requests-v1']:[])]);
+            $this->baselineRevenue,$this->baselineExpense,$cohorts,$catalog,...($this->macroBaseline===null?[]:[$this->macroBaseline]),...($this->debtModel===null?[]:[$this->debtModel]),...($this->populationModel===null?[]:[$this->populationModel]),...($this->servicesModel===null?[]:[$this->servicesModel]),...($this->corporationsEnabled?[ProfessionalCorporations::VERSION]:[]),...($this->wageFeedbackEnabled?[CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?[TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:[FirmEconomy::VERSION,$this->firmModel]),...($this->publicEquityEnabled?[PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?[IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?[$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[]),...($this->financeAutonomy?['wp82-finance-requests-v1']:[]),...($this->socialEconomyFrom===null?[]:[SocialEconomy::VERSION,$this->socialEconomyFrom,SocialEconomy::ASSUMPTIONS])]);
     }
 
     public function snapshot(): array
@@ -380,7 +408,7 @@ final class DomesticPolicySimulation
         $pressure = $this->pressure; ksort($pressure, SORT_STRING);
         return ['version'=>self::VERSION,'world_id'=>$this->world,'assumptions_sha'=>$this->assumptionsHash(),
             'day'=>$this->day,'balance'=>$this->balance,'pressure'=>$pressure,
-            'policies'=>$this->policies,'days'=>$this->days,...(isset($this->macroBaseline['opening_projection'])?['ukraine_aid_decisions'=>$this->aidDecisions]:[]),...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[]),...($this->wageFeedbackEnabled?['wage_feedback_version'=>CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?['trade_feedback_version'=>TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:['firm_model'=>$this->firmModel,'firm_model_version'=>FirmEconomy::VERSION]),...($this->publicEquityEnabled?['public_equity_version'=>PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?['industrial_version'=>IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['daily_legal_version'=>'wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?['eu_trade_version'=>$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[])];
+            'policies'=>$this->policies,'days'=>$this->days,...($this->socialEconomyFrom===null?[]:['social_economy_from'=>$this->socialEconomyFrom,'social_economy_version'=>SocialEconomy::VERSION]),...(isset($this->macroBaseline['opening_projection'])?['ukraine_aid_decisions'=>$this->aidDecisions]:[]),...($this->macroBaseline===null?[]:['macro_baseline'=>$this->macroBaseline]),...($this->debtModel===null?[]:['debt_model'=>$this->debtModel]),...(!empty($this->debtModel['crisis_enabled'])?['crisis_decisions'=>$this->crisisDecisions]:[]),...($this->populationModel===null?[]:['population_model'=>$this->populationModel]),...($this->servicesModel===null?[]:['services_model'=>$this->servicesModel]),...($this->corporationsEnabled?['corporations_version'=>ProfessionalCorporations::VERSION,'corporation_decisions'=>$this->corporationDecisions]:[]),...($this->wageFeedbackEnabled?['wage_feedback_version'=>CorporationWageFeedback::VERSION]:[]),...($this->tradeFeedbackEnabled?['trade_feedback_version'=>TradeMacroFeedback::VERSION]:[]),...($this->firmModel===null?[]:['firm_model'=>$this->firmModel,'firm_model_version'=>FirmEconomy::VERSION]),...($this->publicEquityEnabled?['public_equity_version'=>PublicEquityLedger::VERSION]:[]),...($this->industrialEnabled?['industrial_version'=>IndustrialCapital::VERSION]:[]),...($this->dailyLegalEnabled?['daily_legal_version'=>'wp54r-daily-legal-activation-v1']:[]),...($this->euTradeEnabled?['eu_trade_version'=>$this->euTradeV4?EuropeanTradeFeedback::VERSION_V4:($this->euTradeV3?EuropeanTradeFeedback::VERSION_V3:($this->euTradeV2?EuropeanTradeFeedback::VERSION_V2:EuropeanTradeFeedback::VERSION))]:[])];
     }
 
     public function hash(): string { return self::digest($this->snapshot()); }

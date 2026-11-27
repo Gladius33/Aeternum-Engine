@@ -166,3 +166,36 @@ ck82($bill114e['policy_id']===$histid114&&$bill114e['readings']['assembly']===1,
 ck82(I::restore($x114e->snapshot())->hash()===$x114e->hash(),'WP114e deterministic legal replay');
 if($bill114e['status']==='published')ck82($bill114e['review']==='cleared'&&$bill114e['effect_on']===$next114['effective_day'],'WP114e exact legal activation date');
 else ck82($bill114e['effect_on']===null,'WP114e blocked policy not enacted');
+
+
+// WP114f-h: representative careers, pay reconciliation and every social family.
+require_once __DIR__.'/../games/world-politics/src/SocialEconomy.php';
+require_once __DIR__.'/../games/world-politics/src/FrenchPublicServices.php';
+require_once __DIR__.'/../games/world-politics/src/FrenchDemography.php';
+use Aeternum\WorldPolitics\{SocialEconomy as SE,FrenchMacroBaseline as MB,FrenchDemography as FD,FrenchPublicServices as FS};
+$career=['age_months'=>720,'entry_age_months'=>216,'contributed_months'=>504,'reference_monthly_gross_minor'=>250000,'arduous'=>false];
+ck82(!SE::pension($career,['age'=>65])['eligible']&&SE::pension($career,['age'=>60,'contribution_years'=>40,'entry_age_before'=>20])['eligible'],'WP114f pension age and long career qualification');
+$career['entry_age_months']=252;$career['contributed_months']=468;
+ck82(!SE::pension($career,['age'=>60,'contribution_years'=>40,'entry_age_before'=>20])['eligible'],'WP114f long career exclusion');
+$career['age_months']=660;$career['entry_age_months']=216;$career['contributed_months']=444;$career['arduous']=true;
+ck82(SE::pension($career,['age'=>60,'arduous_age'=>55])['eligible'],'WP114f arduous career threshold');
+$pay=SE::payroll(150000);
+ck82($pay['gross_minor']===$pay['net_minor']+$pay['employee_contribution_minor']&&$pay['employer_cost_minor']===$pay['gross_minor']+$pay['employer_contribution_minor'],'WP114g payroll reconciliation');
+$base=MB::load(true);$pop=FD::load('2027-05-14',$base['initial_unemployment_bps'],true);$services=FS::load('2027-05-14',$pop,$base);
+$results=[];
+foreach(SP::definitions() as $id=>$definition){
+    $policy=['effective_on'=>'2027-09-11'];$r=SE::calculate([$id],[$id=>$policy],'2027-09-11',$pop,$services,$base,null);
+    ck82(count($r['measures'])===1&&$r['measures'][0]['target']===$definition['target']&&$r['daily_expense_delta_minor']===$r['measures'][0]['daily_expense_delta_minor'],'WP114f-h typed domain calculation '.$id);
+    ck82($r['labour_force_proxy']===$r['employed_proxy']+$r['unemployed_proxy'],'WP114f-h employment accounting '.$id);$results[$id]=$r;
+}
+ck82($results['hist2022-jean-luc-melenchon-1']['pension_transfer_delta_minor']>0&&$results['hist2022-emmanuel-macron-1']['pension_transfer_delta_minor']<0,'WP114f age direction affects pension outlay');
+ck82($results['hist2022-anne-hidalgo-1']['monthly_net_floor_minor']>$results['hist2022-yannick-jadot-1']['monthly_net_floor_minor'],'WP114g wage floor distinction');
+ck82($results['hist2022-jean-luc-melenchon-2']['daily_expense_delta_minor']>$results['hist2022-nicolas-dupont-aignan-2']['daily_expense_delta_minor'],'WP114h differentiated employment guarantee');
+ck82($results['hist2022-fabien-roussel-2']['weekly_hours']===32&&$results['hist2022-philippe-poutou-1']['measures'][0]['days_per_week']===4,'WP114h working time');
+$oldSocial=['proposed_on'=>'2027-05-14','effective_on'=>'2027-09-11','authorized_on'=>'2027-09-10','instrument_sha'=>str_repeat('a',64)];
+$newSocial=['proposed_on'=>'2027-10-01','effective_on'=>'2028-01-29','authorized_on'=>null,'instrument_sha'=>null];
+$twoSocial=['hist2022-jean-luc-melenchon-1'=>$oldSocial,'hist2022-emmanuel-macron-1'=>$newSocial];
+ck82(SP::effectiveFamilies($twoSocial,'2028-01-29')['pension']==='hist2022-jean-luc-melenchon-1','WP114j unapproved replacement cannot repeal');
+$twoSocial['hist2022-emmanuel-macron-1']['authorized_on']='2028-01-28';
+ck82(SP::effectiveFamilies($twoSocial,'2028-01-29')['pension']==='hist2022-emmanuel-macron-1','WP114j published replacement supersedes prior law');
+ck82(PP::nextProposal(PP::compileProfile(['hist2022-emmanuel-macron-1']),'2027-10-01',['hist2022-jean-luc-melenchon-1'=>$oldSocial],true)['policy_id']==='hist2022-emmanuel-macron-1','WP114j replacement may be proposed without revoking previous law');

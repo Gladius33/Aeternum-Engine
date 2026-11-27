@@ -230,3 +230,23 @@ $q114e=$db->prepare("SELECT state_json FROM wp_institutional_states WHERE world_
 $i114e=json_decode($q114e->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
 ck102(count(array_filter($i114e['legislation']['bills'],fn($b)=>$b['policy_id']===$ids114e[0]))===1,'WP114e actual legislative record for historic pension proposal');
 ck102(\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo)['integrity']==='passed','WP114e historical programme audit');
+
+
+// WP114k: replay-preserving upgrade preparation against a real progressed
+// coordinated fixture without active social laws, including its historic days.
+require_once __DIR__.'/../games/world-politics/src/SocialUniverseUpgrade.php';
+$qu=$db->prepare('SELECT assumptions_json,state_json,state_sha,assumptions_sha FROM wp_domestic_states WHERE world_id=?');$qu->execute([$spare]);$ru=$qu->fetch(PDO::FETCH_ASSOC);
+$cu=json_decode($ru['assumptions_json'],true,64,JSON_THROW_ON_ERROR);$du=json_decode($ru['state_json'],true,64,JSON_THROW_ON_ERROR);
+ck102(isset($du['social_economy_from'])&&isset($du['days'][array_key_last($du['days'])]['social_economy']),'WP114f-h daily social calculation persisted');
+$up=\Aeternum\WorldPolitics\SocialUniverseUpgrade::run($db,$spareNo);
+ck102($up['changed']===false&&$up['applied']===false,'WP114k idempotent upgrade dry run');
+unset($cu['social_economy_from']);
+$legacy=\Aeternum\WorldPolitics\PdoDomesticPolicyStore::build($spare,$cu);
+$old=$legacy->snapshot();
+foreach($old as $k=>$v)if($k!=='assumptions_sha'&&array_key_exists($k,$du))$old[$k]=$du[$k];
+foreach($old['days'] as &$dayu){unset($dayu['social_economy']);}unset($dayu);
+$oldHash=hash('sha256',json_encode($old,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));
+$q114e->execute([$spare]);$iu=json_decode($q114e->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+$ih=\Aeternum\WorldPolitics\InstitutionalSimulation::restore($iu)->hash();
+$plan=\Aeternum\WorldPolitics\SocialUniverseUpgrade::prepare($cu,$old,$oldHash,$legacy->assumptionsHash(),$iu,$ih);
+ck102($plan['changed']&&$plan['domestic']['days']===$old['days']&&$plan['effective_on']>$old['day'],'WP114k prior daily rows preserved exactly');

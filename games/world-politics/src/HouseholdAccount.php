@@ -55,7 +55,13 @@ final class HouseholdAccount
         $employment=self::ratio(10000-$u,10000-$u0);
         $wages=intdiv(intdiv($wage*$workers,10000)*$employment,10000);
         $pop=self::ratio($p['indicators']['population'],$opening['population']);
-        $benefits=self::ratio(max(0,$base['daily_social_benefits']+$m['social_expense_feedback']),$base['daily_social_benefits']);
+        $socialTransfer=$row['social_economy']['pension_transfer_delta_minor']??0;
+        foreach($row['social_economy']['measures']??[] as $measure)$socialTransfer+=$measure['benefit_floor_cash_minor']??0;
+        if(isset($row['social_economy'])){
+            $paid=$row['treasury']['primary_arrears']??0;
+            $positive=max(0,$socialTransfer);$socialTransfer=min(0,$socialTransfer)+max(0,$positive-min($positive,$paid));
+        }
+        $benefits=self::ratio(max(0,$base['daily_social_benefits']+$m['social_expense_feedback']+$socialTransfer),$base['daily_social_benefits']);
         $transfer=intdiv($price*$pop,10000);
         $openingUnits=self::units($population['opening_cohorts'],$opening,0,0);
         $cases=[];

@@ -115,3 +115,8 @@ No new migration after 035. POST programme accepts measure_ids as an alternative
 ### WP114e
 
 New managed universes provision 24 exact historical social policy entries and an independently pinned legal catalogue. No SQL migration is required. Existing universes without that pin reject social programme configuration with 409 rather than silently alter assumptions or historical hashes. The mixed objective IDs use the existing programme field. Historical measures remain fictional aggregate proxies; actual statutory entitlements and full manifestos are not qualified. WP114 remains open.
+
+
+### WP114f–k grouped increment
+
+Migration 036 adds the model_upgrade journal operation. With workers stopped and a verified backup, run php games/world-politics/bin/upgrade-social-universe.php UNIVERSE_NO for a replay-verified dry run, and explicitly append --apply only after reviewing the digest transition. No startup rewrite. Existing active legal proofs and past rows are retained; pending unconsumed proofs or an advancing fence refuse the upgrade. Newly provisioned worlds use the richer social scenario immediately. Source register and model assumptions remain versioned; this is not statutory or behavioral calibration. WP114 remains open.
