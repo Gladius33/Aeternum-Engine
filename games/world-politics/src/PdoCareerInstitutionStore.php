@@ -241,6 +241,12 @@ final class PdoCareerInstitutionStore
     private function seedForeignOpening(string $world,string $secret):void{
         require_once __DIR__.'/CareerForeignWorld.php';
         $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));$sim=CareerForeignWorld::opening($state);
+        require_once __DIR__.'/PoliticalRoster.php';
+        $roster=new PoliticalRoster($world,$state['country'],['government']);
+        $person=$state['careers'][$sim->snapshot()['accountability']['incumbent']]['identity'];
+        $roster->addPerson(['id'=>$person['id'],'kind'=>'real','name'=>$person['name'],'country'=>$state['country'],'biography'=>'Documentary identity in alternate-history scenario','as_of'=>$person['observed_on'],'sources'=>[$person['source']],'programme'=>[]]);
+        $this->query('INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
+            [$world,$state['country'],CareerForeignWorld::json($roster->snapshot()),$roster->snapshotHash()]);
         $this->query('INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
             [$world,$state['country'],CareerForeignWorld::json($sim->snapshot()),$sim->hash()]);
         $p=['government_json'=>CareerForeignWorld::json($sim->snapshot()['accountability']),'expires'=>CareerForeignWorld::boundary($state['country'])];
