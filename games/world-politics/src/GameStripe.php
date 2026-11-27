@@ -59,7 +59,7 @@ final class GameStripe
             if(!is_string($a))throw new \DomainException('Unknown receipt');
             $this->q('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE',[$a]);
             $r=StripeHold::resolve($this->db,'game',$pi,$ref,['restore_premium'=>false],static fn()=>null);
-            if($r['status']==='resolved'&&$this->q('SELECT 1 FROM wp_stripe_game_holds h JOIN wp_stripe_game_receipts r USING(payment_id) JOIN wp_stripe_game_orders o USING(order_id) WHERE o.account_id=? AND h.resolved_at IS NULL LIMIT 1',[$a])->fetchColumn()===false)
+            if($r['status']==='resolved'&&$this->q('SELECT 1 FROM wp_stripe_game_holds h JOIN wp_stripe_game_receipts r USING(payment_id) JOIN wp_stripe_game_orders o USING(order_id) WHERE o.account_id=? AND h.resolved_at IS NULL LIMIT 1 FOR UPDATE',[$a])->fetchColumn()===false)
                 $this->q('UPDATE wp_stripe_game_orders SET held=0 WHERE account_id=?',[$a]);
             return $r;
         });
@@ -76,8 +76,9 @@ final class GameStripe
             if(($c['disputed']??false)!==true&&(!is_int($c['amount_refunded']??null)||$c['amount_refunded']<1))return ['status'=>'no_confirmed_reversal'];
             $pi=ResearchStripe::id($c['payment_intent']??null,'pi_');
             return $this->tx(function()use($pi,$type,$c){
+                StripeHold::fence($this->db,$pi,true);
                 $a=$this->q('SELECT o.account_id FROM wp_stripe_game_receipts r JOIN wp_stripe_game_orders o USING(order_id) WHERE r.payment_id=?',[$pi])->fetchColumn();
-                if(!is_string($a))return ['status'=>'unallocated_payment'];
+                if(!is_string($a))return ['status'=>'unallocated_reversal_recorded'];
                 $this->q('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE',[$a]);
                 if(!StripeHold::observe($this->db,'game',$pi,$type,(int)($c['amount_refunded']??0),($c['disputed']??false)===true))return ['status'=>'already_reconciled'];
                 $this->q('UPDATE wp_stripe_game_orders SET held=1 WHERE account_id=?',[$a]);
@@ -121,11 +122,13 @@ final class GameStripe
         if(!is_int($end)||!is_int($start)||$end<=$start||$end-$start>32*86400||$end>time()+32*86400)throw new \DomainException('Invalid monthly service period');
         $pi=ResearchStripe::id($i['payment_intent']??null,'pi_');ResearchStripe::confirmPayment($this->get(...),$pi,$customer,(int)$o['amount_minor']);
         return $this->tx(function()use($o,$customer,$sid,$pi,$end){
+            $reversed=StripeHold::fence($this->db,$pi,false);
             if((int)$this->q('SELECT enabled FROM wp_accounts WHERE account_id=? FOR UPDATE',[$o['account_id']])->fetchColumn()!==1)throw new \DomainException('Inactive game account');
             $r=$this->order($o['order_id'],true);
             if((int)$r['held']===1||$r['ended_at']!==null||($r['customer_id']!==null&&$r['customer_id']!==$customer)||($r['subscription_id']!==null&&$r['subscription_id']!==$sid))throw new \DomainException('Game settlement binding');
             $old=$this->q('SELECT order_id FROM wp_stripe_game_receipts WHERE payment_id=?',[$pi])->fetchColumn();
             if($old!==false){if($old!==$r['order_id'])throw new \DomainException('Payment allocated');return ['status'=>'duplicate'];}
+            if($reversed)return ['status'=>'payment_reversed_before_settlement'];
             if($end<=time()||$end<=(int)$r['period_end'])return ['status'=>'stale_period'];
             $this->q('INSERT INTO wp_player_api_entitlements(account_id,paid_until) VALUES(?,?) ON DUPLICATE KEY UPDATE paid_until=GREATEST(paid_until,VALUES(paid_until))',[$r['account_id'],$end]);
             $this->q('INSERT INTO wp_stripe_game_receipts(payment_id,order_id,created_at) VALUES(?,?,?)',[$pi,$r['order_id'],time()]);

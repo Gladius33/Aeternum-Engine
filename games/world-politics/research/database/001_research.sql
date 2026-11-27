@@ -204,3 +204,9 @@ CREATE TABLE wp_stripe_research_resolutions (
  created_at BIGINT UNSIGNED NOT NULL,
  FOREIGN KEY(payment_id) REFERENCES wp_stripe_research_holds(payment_id)
 ) ENGINE=InnoDB;
+
+CREATE TABLE wp_stripe_payment_fence (
+ payment_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ reversed TINYINT UNSIGNED NOT NULL DEFAULT 0,
+ created_at BIGINT UNSIGNED NOT NULL
+) ENGINE=InnoDB;

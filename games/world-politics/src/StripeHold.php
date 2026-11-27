@@ -12,6 +12,14 @@ final class StripeHold
         return 'wp_stripe_'.$scope.'_'.$suffix;
     }
     private static function q(\PDO $db,string $sql,array $p):\PDOStatement{$q=$db->prepare($sql);$q->execute($p);return $q;}
+    public static function fence(\PDO $db,string $pi,bool $reversal):bool{
+        if(!$db->inTransaction()||!preg_match('/^pi_[A-Za-z0-9_]{5,100}$/D',$pi))throw new \DomainException('Invalid payment fence');
+        self::q($db,'INSERT IGNORE INTO wp_stripe_payment_fence(payment_id,reversed,created_at) VALUES(?,0,?)',[$pi,time()]);
+        $v=self::q($db,'SELECT reversed FROM wp_stripe_payment_fence WHERE payment_id=? FOR UPDATE',[$pi])->fetchColumn();
+        if($v===false)throw new \LogicException('Payment fence missing');
+        if($reversal)self::q($db,'UPDATE wp_stripe_payment_fence SET reversed=1 WHERE payment_id=?',[$pi]);
+        return (bool)$v||$reversal;
+    }
     public static function observe(\PDO $db,string $scope,string $pi,string $reason,int $refunded,bool $disputed):bool{
         if(!$db->inTransaction()||$refunded<0||(!$disputed&&$refunded===0))throw new \DomainException('Invalid reversal');
         $t=self::table($scope,'holds');
@@ -29,7 +37,7 @@ final class StripeHold
     public static function resolve(\PDO $db,string $scope,string $pi,string $ref,array $decision,callable $adjust):array{
         if(!$db->inTransaction()||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$ref))throw new \DomainException('Invalid resolution reference');
         $t=self::table($scope,'holds');$r=self::table($scope,'resolutions');
-        $old=self::q($db,"SELECT payment_id,evidence_json FROM $r WHERE resolution_ref=?",[$ref])->fetch(\PDO::FETCH_ASSOC);
+        $old=self::q($db,"SELECT payment_id,evidence_json FROM $r WHERE resolution_ref=? FOR UPDATE",[$ref])->fetch(\PDO::FETCH_ASSOC);
         if($old!==false){
             $e=json_decode($old['evidence_json'],true,16,JSON_THROW_ON_ERROR);
             if($old['payment_id']!==$pi||$e['decision']!==$decision)throw new \DomainException('Resolution reference conflict');

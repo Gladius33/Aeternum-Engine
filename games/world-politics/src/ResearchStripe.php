@@ -152,8 +152,9 @@ final class ResearchStripe
      * Operator reconciliation required, including partial refunds and disputes. */
     private function freezePayment(string $pi,string $reason,int $refunded,bool $disputed):array{
         return $this->tx(function()use($pi,$reason,$refunded,$disputed){
+            StripeHold::fence($this->db,$pi,true);
             $r=$this->q('SELECT o.tenant_id FROM wp_stripe_research_receipts r JOIN wp_stripe_research_orders o USING(order_id) WHERE r.payment_id=?',[$pi])->fetchColumn();
-            if(!is_string($r))return ['status'=>'unallocated_payment'];
+            if(!is_string($r))return ['status'=>'unallocated_reversal_recorded'];
             $this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$r]);
             if(!StripeHold::observe($this->db,'research',$pi,$reason,$refunded,$disputed))return ['status'=>'already_reconciled'];
             $this->q('UPDATE wp_research_tenants SET billing_hold=1 WHERE tenant_id=? AND admin_exempt=0',[$r]);
@@ -170,7 +171,7 @@ final class ResearchStripe
             $this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$t]);
             $result=StripeHold::resolve($this->db,'research',$pi,$ref,['included_debit'=>$included,'prepaid_debit'=>$prepaid,'end_monthly'=>$endMonthly],
                 fn()=>ResearchBilling::reconcile($this->db,$t,$ref,$included,$prepaid,$endMonthly));
-            if($result['status']==='resolved'&&$this->q('SELECT 1 FROM wp_stripe_research_holds h JOIN wp_stripe_research_receipts r USING(payment_id) JOIN wp_stripe_research_orders o USING(order_id) WHERE o.tenant_id=? AND h.resolved_at IS NULL LIMIT 1',[$t])->fetchColumn()===false)
+            if($result['status']==='resolved'&&$this->q('SELECT 1 FROM wp_stripe_research_holds h JOIN wp_stripe_research_receipts r USING(payment_id) JOIN wp_stripe_research_orders o USING(order_id) WHERE o.tenant_id=? AND h.resolved_at IS NULL LIMIT 1 FOR UPDATE',[$t])->fetchColumn()===false)
                 $this->q('UPDATE wp_research_tenants SET billing_hold=0 WHERE tenant_id=?',[$t]);
             return $result;
         });
@@ -270,6 +271,7 @@ final class ResearchStripe
     }
     private function settle(array $o,string $customer,string $payment,?string $sub,?int $end):array{
         return $this->tx(function()use($o,$customer,$payment,$sub,$end){
+            $reversed=StripeHold::fence($this->db,$payment,false);
             $tenant=$o['tenant_id'];
             $a=$this->q('SELECT * FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
             $r=$this->order($o['order_id'],true);
@@ -277,6 +279,7 @@ final class ResearchStripe
                 throw new \DomainException('Settlement account binding');
             $old=$this->q('SELECT order_id FROM wp_stripe_research_receipts WHERE payment_id=?',[$payment])->fetchColumn();
             if($old!==false){if($old!==$r['order_id'])throw new \DomainException('Payment already allocated');return ['status'=>'duplicate'];}
+            if($reversed)return ['status'=>'payment_reversed_before_settlement'];
             if($sub===null){
                 if($r['settled_at']!==null||$a['plan']!==$r['plan'])throw new \DomainException('Credit pack tier changed or already settled');
                 ResearchBilling::fund($this->db,$tenant,'stripe-'.$payment,'topup',(int)$r['units'],null,null,null,false);

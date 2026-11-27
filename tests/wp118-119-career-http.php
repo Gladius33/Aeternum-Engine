@@ -128,7 +128,7 @@ ck($gs->resolveHold($pi,'game-resolution-fixture-01')['status']==='duplicate','g
 ck(req('GET','/player-data/worlds',null,$gpk['body']['token'])['status']===401,'resolution never revives revoked premium token');
 // Fixture cleanup, not a production billing deletion operation.
 $exec('DELETE FROM wp_stripe_game_resolutions WHERE payment_id=?',[$pi]);
-$exec('DELETE FROM wp_stripe_game_holds WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_receipts WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_orders WHERE order_id=?',[$go['order_id']]);
+$exec('DELETE FROM wp_stripe_game_holds WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_receipts WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_orders WHERE order_id=?',[$go['order_id']]);$exec('DELETE FROM wp_stripe_payment_fence WHERE payment_id=?',[$pi]);
 $fiction=['name'=>'Camille Simulation','measure_ids'=>['administration-report']];
 $ebc=req('POST',$ep.'/admission',['fictional'=>$fiction],$t2)['body']['career']['id'];
 ck(req('GET',$ep.'/career',null,$t2)['body']['career']['fictional_profile']['name']==='Camille Simulation','named fictional profile persisted');

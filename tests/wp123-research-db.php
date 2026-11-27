@@ -150,6 +150,10 @@ ckResearch($stripe->resolveHold($pi,'reconcile-fixture-01',0,50,false)['status']
 ckResearch($stripe->resolveHold($pi,'reconcile-fixture-01',0,50,false)['status']==='duplicate','reconciliation idempotent');
 ckResearch((int)$db->query("SELECT prepaid_units FROM wp_research_tenants WHERE tenant_id='".$st['tenant_id']."'")->fetchColumn()===200,'exact reviewed debit');
 ckResearch($stripe->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_fixture001']]])['status']==='already_reconciled','resolved refund replay harmless');
+// A reversal can precede a delayed paid notification. Fence it before granting.
+$objects['/v1/charges/ch_earlyrefund']=['id'=>'ch_earlyrefund','livemode'=>false,'paid'=>true,'refunded'=>true,'disputed'=>false,'amount_refunded'=>500,'payment_intent'=>'pi_earlyrefund'];
+ckResearch($stripe->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_earlyrefund']]])['status']==='unallocated_reversal_recorded','early refund persists fence');
+$db->beginTransaction();ckResearch(\Aeternum\WorldPolitics\StripeHold::fence($db,'pi_earlyrefund',false),'settlement sees early reversal fence');$db->commit();
 $objects['/v1/charges/ch_fixture001']['amount_refunded']=200;
 ckResearch($stripe->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_fixture001']]])['status']==='frozen_for_reconciliation','new cumulative reversal reopens hold');
 echo "PASS Stripe test-mode signed events, server price validation, checkout/settlement idempotency, cancellation and refund hold\n";
