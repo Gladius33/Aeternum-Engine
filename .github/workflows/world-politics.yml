@@ -237,6 +237,8 @@ jobs:
         run: |
           python3 tests/wp115-staging.py
           python3 games/world-politics/bin/freeze-wp115-wdi.py --audit games/world-politics/data/wp115-wdi-2026-11-27-v1
+          python3 tests/wp115-wdi-economic-social.py
+          php tests/wp115-reference-catalog.php
       - name: WP97 deterministic source handoff and extracted tests
         run: |
           tmp=$(mktemp -d)
@@ -250,6 +252,7 @@ jobs:
           test ! -e "$tmp/world-politics/games/world-politics/data/wp115-collection-v0.4.zip"
           test ! -e "$tmp/world-politics/games/world-politics/data/wp115-fiscal-staging-v1.json"
           test ! -e "$tmp/world-politics/games/world-politics/data/wp115-wdi-2026-11-27-v1"
+          test ! -e "$tmp/world-politics/games/world-politics/data/wp115-wdi-economic-social-2026-11-27-v2"
           cd "$tmp/world-politics"
           php tests/wp75b-candidate-selection.php
           php tests/wp85-household-account.php

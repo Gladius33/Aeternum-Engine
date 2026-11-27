@@ -16,5 +16,12 @@ Run:
 python3 games/world-politics/bin/freeze-wp115-wdi.py --audit games/world-politics/data/wp115-wdi-2026-11-27-v1
 ```
 
+## Additional initial references
+- `wp115-institutional-reference-v1.json`: dated October 15 2026 officeholder reference and IDEA legislature electoral classifications for all 42 target countries; not a certification of May 2027 offices, election results or complete cabinet appointments.
+- `wp115-wdi-economic-social-2026-11-27-v2/`: 28 additional WDI indicators, 3528 slots, 2112 numeric and 1416 missing. Raw responses and source metadata preserved. Cumulative 6413 numeric values across distinct sources and vintages.
+- `InternationalReferenceCatalog` ingests the three numeric editions, institutional records, country working profiles and gap inventory read-only. Every consumed staged JSON is checked against its manifest; snapshot digest pins the editions. No changes to saved worlds or authority rules. `php games/world-politics/bin/wp115-reference.php` reports the content digest; append ISO2 for a dossier or ISO2 and metric for a series. Optional fourth argument pins the expected digest. Unknown countries and mismatched pins fail closed.
+
+The initial engineering acceptance is deliberately distinct from exhaustive national research: the original 924 categories are still tracked as unresolved and are not made complete by ingestion or a successful CI. Data gaps are part of the catalogue.
+
 ## Still open
 729 categories not collected or not validated, plus 195 partially documented; none of the 924 gap categories is fully closed. Full constitutional evidence, officeholders, party programmes and election results, tax/social law, creditor stocks, sector accounts, treaty obligations, and May 2027 scenario opening remain incomplete. Keep the real candidate admission and country capability gates closed for unsupported content. Later research editions must have new version IDs, provenance, units, dates, new manifests. No automated promotion of projections, estimates or unverified excerpts to observations. No new universe state or score change.
