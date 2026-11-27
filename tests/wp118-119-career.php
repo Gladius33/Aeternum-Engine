@@ -81,6 +81,15 @@ $ev=evt($auto,'presidential_ballot',$payload,'2032-05-14');$ev['actor']='career-
 $next=L::apply($auto,$ev);ck($next['active']['president']!==$auto['active']['president'],'automatic handover advances generation');
 $auto=change($auto,'renewal',['president'],[grant('president','a','2037-05-14')],'2032-05-14');
 $payload=L::automaticBallot($auto,'2037-05-14');ck(!isset($payload['ballot']['first']['votes']['a']),'third consecutive term excluded');
+// AI roster is deterministic and cannot authenticate as a human.
+$npc=L::initial('npc-world','FR','career','2027-05-14');
+$np=['careers'=>L::autonomousRoster($npc)];
+$ne=evt($npc,'admit_ai_roster',$np);$ne['actor']='career-ai-clerk';$ne['evidence_sha']=L::digest(['kind'=>'fictional-ai-roster-v1','world'=>$npc['world'],'day'=>$ne['day'],'payload'=>$np]);
+$npc=L::apply($npc,$ne);ck(count($npc['careers'])===3,'AI roster admitted');no(fn()=>L::apply($npc,$ne));
+$ball=L::automaticBallot($npc,'2027-05-14');ck(count($ball['ballot']['first']['votes'])===3,'autonomous opening candidates');
+$ne=evt($npc,'presidential_ballot',$ball);$ne['actor']='career-election-clerk';$ne['evidence_sha']=L::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$npc['world'],'day'=>$ne['day'],'payload'=>$ball]);
+$npc=L::apply($npc,$ne);$nm=$npc['active']['president'];$winner=$npc['mandates'][$nm]['career'];
+ck($npc['careers'][$winner]['account']===null&&!L::allows($npc,$winner,$nm,1,'president.represent','2027-05-14'),'AI winner has no human session capability');
 // International identity / research isolation and existing constructive succession replay.
 foreach(['DE','ES','GB','IT','JP','US'] as $cc){
     $f=add(L::initial('foreign-'.$cc,$cc,'career','2027-05-14'),'a');

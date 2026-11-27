@@ -39,6 +39,15 @@ dbno(fn()=>$store->withCapability($world,$token,$m,1,'president.represent',fn()=
 dbck($store->audit($world)['sequence']===4,'replay from second connection');
 $q('UPDATE wp_career_active_offices SET generation=999 WHERE world_id=?',[$world]);dbno(fn()=>$store->audit($world));$q('UPDATE wp_career_active_offices SET generation=2 WHERE world_id=?',[$world]);
 dbck($store->audit($world)['sequence']===4,'tamper detected and restored');
+dbck($store->seedAutonomousCareers($world,$secret)!==null,'AI roster persisted');
+dbck($other->seedAutonomousCareers($world,$secret)===null,'AI admission idempotent across connections');
+$state=$store->audit($world);$ai=L::autonomousRoster($state)[0];
+dbck(count($state['careers'])===5&&$state['careers'][$ai]['account']===null,'AI identity independent of accounts');
+dbck((int)$q('SELECT COUNT(*) FROM wp_career_memberships WHERE world_id=?',[$world])->fetchColumn()===2,'no artificial authenticated memberships');
+$aiGrant=$event('succession-ai','transition',['reason'=>'succession','close'=>['president'],'grants'=>[['office'=>'president','career'=>$ai,'expires'=>'2032-05-14','interim'=>false]]]);
+$other->execute($aiGrant,$sig($aiGrant));$state=$store->audit($world);$am=$state['active']['president'];
+dbck($state['mandates'][$am]['career']===$ai,'AI office projection verified');
+dbno(fn()=>$store->withCapability($world,$token,$am,3,'president.represent',fn()=>true));
 foreach(['wp_career_active_offices','wp_career_memberships','wp_career_events','wp_career_ledgers','wp_world_mutation_fences','wp_world_clock','wp_alpha_members','wp_alpha_worlds'] as $table)$q("DELETE FROM $table WHERE world_id=?",[$world]);
 $q('DELETE FROM wp_sessions WHERE account_id=?',[$a]);foreach([$a,$b] as $account)$q('DELETE FROM wp_accounts WHERE account_id=?',[$account]);
 // Isolated store admission uses session authentication and cannot grant an office.

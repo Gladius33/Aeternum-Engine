@@ -114,9 +114,16 @@ final class CareerEconomicWorld
         $guard=$db->prepare('SELECT state_json FROM wp_career_ledgers WHERE world_id=?');$guard->execute([$world]);
         $state=json_decode($guard->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
         $mid=$state['active']['president']??null;
-        if($mid!==null&&$state['mandates'][$mid]['expires']===$r['committed_day']){
+        $day=$r['committed_day'];
+        $opening=$mid===null&&$day===CareerScoreContract::START;
+        $due=$mid!==null&&$state['mandates'][$mid]['expires']===$day;
+        $missingAI=!isset($state['careers'][CareerInstitutionLedger::autonomousRoster($state)[0]]);
+        // Existing worlds acquire NPCs prospectively, never after the candidacy cutoff.
+        if($opening||$due||($missingAI&&$mid!==null&&$day<FrenchElectionCalendar::presidentialPoll($state['mandates'][$mid]['expires'])['candidacy_lock'])){
             $secret=getenv('WP_CAREER_EVIDENCE_KEY');CareerInstitutionLedger::check(is_string($secret)&&strlen($secret)>=32,'election signing key required');
-            (new PdoCareerInstitutionStore($db,new CareerInstitutionEvidence($secret)))->settleDuePresidency($world,$secret);
+            $store=new PdoCareerInstitutionStore($db,new CareerInstitutionEvidence($secret));
+            if($missingAI&&!$due)$store->seedAutonomousCareers($world,$secret);
+            if($opening||$due)$store->settleDuePresidency($world,$secret);
         }
         $current=$clock->read($world);return $clock->advance($world,$target,'career-day-'.$target,$current['etag']);
     }

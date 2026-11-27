@@ -85,18 +85,41 @@ final class CareerInstitutionLedger
         $s['mandates'][$id]=['id'=>$id,'office'=>$office,'career'=>$g['career'],'generation'=>$generation,'start'=>$day,'expires'=>$g['expires'],'end'=>null,'end_reason'=>null,'interim'=>$g['interim'],'constitution_revision'=>$s['constitution_revision'],'powers'=>$powers,'series'=>$series,'terms'=>$terms];
         $s['active'][$office]=$id;
     }
+    /** Deterministic NPC identities, never synthetic authentication accounts.
+     * This event is replayable and the roster is scoped to its own world. */
+    public static function autonomousRoster(array $s):array{
+        self::check($s['country']==='FR'&&$s['mode']==='career','French career AI only');
+        $ids=[];
+        for($i=1;$i<=3;$i++)$ids[]='ai-'.substr(hash('sha256','wp119-npc-v1|'.$s['world'].'|'.$i),0,40);
+        return $ids;
+    }
+    private static function admitAutonomousRoster(array &$s,array $e):void{
+        $p=$e['payload'];self::fields($p,['careers']);
+        self::check($e['actor']==='career-ai-clerk'&&$p['careers']===self::autonomousRoster($s)&&
+            $e['evidence_sha']===self::digest(['kind'=>'fictional-ai-roster-v1','world'=>$s['world'],'day'=>$e['day'],'payload'=>$p]),'AI roster evidence');
+        foreach($p['careers'] as $id){
+            self::check(!isset($s['careers'][$id]),'AI roster already admitted');
+            foreach($s['careers'] as $c)self::check($c['character']!==$id,'AI identity collision');
+            $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>$e['day']===CareerScoreContract::START?'opening':'late_takeover','first_series'=>null,'controller'=>'ai'];
+        }
+    }
     /** Deterministic fictional election fixture, not calibrated opinion or real voter data.
      * At least two admitted eligible careers are required; no fabricated human accounts. */
     public static function automaticBallot(array $s,string $day):?array{
         self::check($s['country']==='FR'&&$s['mode']==='career','French career ballot only');
         $mid=$s['active']['president']??null;$old=$mid===null?null:$s['mandates'][$mid];
-        if($old===null||$old['interim']||$old['expires']!==$day)return null;
-        $dates=FrenchElectionCalendar::presidentialPoll($day);
+        if($old===null){
+            if($day!==CareerScoreContract::START)return null;
+            $dates=['first'=>$day,'second'=>$day,'candidacy_lock'=>$day];
+        }else{
+            if($old['interim']||$old['expires']!==$day)return null;
+            $dates=FrenchElectionCalendar::presidentialPoll($day);
+        }
         $occupied=[];foreach($s['active'] as $office=>$id)if($office!=='president')$occupied[$s['mandates'][$id]['career']]=true;
         $eligible=[];
         foreach($s['careers'] as $id=>$c){
             if($c['admitted_on']>$dates['candidacy_lock']||isset($occupied[$id]))continue;
-            if($id===$old['career']&&$s['constitution_rules']['term_limit']!==null&&$old['terms']>=$s['constitution_rules']['term_limit'])continue;
+            if($old!==null&&$id===$old['career']&&$s['constitution_rules']['term_limit']!==null&&$old['terms']>=$s['constitution_rules']['term_limit'])continue;
             $eligible[$id]=1000+hexdec(substr(hash('sha256','wp119-synthetic-ballot-v1|'.$s['world'].'|'.$day.'|'.$id),0,4));
         }
         self::check(count($eligible)>=2&&count($eligible)<=30,'automatic ballot needs 2–30 eligible unencumbered careers');
@@ -210,6 +233,8 @@ final class CareerInstitutionLedger
             self::fields($p,['regime_label','assembly_status','legality']);
             self::check(in_array($p['regime_label'],['republic','monarchy','other','contested'],true)&&in_array($p['assembly_status'],['active','disrupted','suspended','restored'],true)&&in_array($p['legality'],['disputed','unverified','recognized'],true),'research categories');
             $s['research_observation']=['day'=>$day,...$p,'runtime_authority'=>false,'rankable'=>false];
+        }elseif($op==='admit_ai_roster'){
+            self::admitAutonomousRoster($s,$e);
         }elseif($op==='admit'){
             self::fields($p,['career','account','character','mode']);foreach(['career','account','character'] as $k)self::id($p[$k]);
             self::check(!isset($s['careers'][$p['career']])&&in_array($p['mode'],['opening','late_takeover'],true)&&($p['mode']==='opening')===($day===CareerScoreContract::START),'admission mode');
