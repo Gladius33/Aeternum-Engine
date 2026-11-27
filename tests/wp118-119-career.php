@@ -341,3 +341,7 @@ $catalog=array_fill_keys($sourceEdition['measure_ids'],true);
 $proposal=$planClass::next($auto,'2027-05-14',[],$catalog);
 ck($proposal!==null&&$proposal['policy_id']==='hist2022-fabien-roussel-1','historical pinned AI produces actual proposal');
 ck($planClass::next($auto,'2027-05-14',[],$catalog,['real-fabien-roussel'=>true])===null,'human action suppresses pinned AI proposal');
+
+$faure=\Aeternum\WorldPolitics\CampaignCandidate::editionEvidence('campaign2027-olivier-faure-v3-public');
+ck($planClass::objectives(['person_reference'=>$faure['base'],'controller'=>'ai','programme_edition'=>$faure['id'],'programme_sha'=>$faure['document_sha256']],true)===$faure['measure_ids'],'pinned new quantitative programme');
+ck($planClass::permitted('prime-minister','frv1-equinoxe-adaptation')&&!$planClass::permitted('president','frv1-equinoxe-adaptation'),'new proxy remains proposal-only');

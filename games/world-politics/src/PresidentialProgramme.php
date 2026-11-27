@@ -61,7 +61,7 @@ final class PresidentialProgramme
      * objectives. No unchecked free text is interpreted as an order. */
     public static function compileProfile(array $ids):string
     {
-        if(!array_is_list($ids)||count($ids)>153)throw new \InvalidArgumentException('Invalid measure list');
+        if(!array_is_list($ids)||count($ids)>185)throw new \InvalidArgumentException('Invalid measure list');
         $general=[];$social=[];
         foreach($ids as $id){
             if(!is_string($id))throw new \InvalidArgumentException('Invalid measure ID');
@@ -76,7 +76,7 @@ final class PresidentialProgramme
     }
     public static function socialIds(string $p):?array
     {
-        if(preg_match('/^mix-([01]{2}[nmri][nri][nmris][ncsli][neitdqf][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$m)){
+        if(preg_match('/^mix-([01]{2}[nmri][nri][nmris][ncsli][neitdqf][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32}|[a-f0-9]{40})$/D',$p,$m)){
             if(self::agenda($p)===null)return null;
             return SocialProgramme::decode('social-'.$m[2]);
         }
@@ -87,6 +87,7 @@ final class PresidentialProgramme
         $catalog=self::measureCatalog();
         if(isset(self::primaryRevisionCatalog()[$id]))return ['status'=>'primary_constitutional_route','mapping'=>self::primaryRevisionCatalog()[$id]];
         if(isset($catalog[$id]))return ['status'=>'reviewed_objective','mapping'=>$catalog[$id]];
+        if(FrenchV1Policy::isPolicy(SocialProgramme::objectiveId($id)))return ['status'=>'public_source_v1_cohort_proxy','mapping'=>SocialProgramme::definition($id)];
         if(isset(SocialProgramme::target2027()[SocialProgramme::objectiveId($id)]))return ['status'=>'target_2027_cohort_proxy','mapping'=>SocialProgramme::definition($id)];
         if(SocialProgramme::isPolicy($id))return ['status'=>SocialProgramme::isRepeal($id)?'reviewed_social_repeal':(PrimaryManifestoPolicy::isPolicy(SocialProgramme::objectiveId($id))?'primary_quantitative_proxy':'historical_social_proxy'),'mapping'=>SocialProgramme::definition($id)];
         if(preg_match('/^(?:budget-(20[0-9]{2})-defense-(maintain|reduce|increase)|corrective-(20[0-9]{2})-health-(reduce|increase))$/D',$id,$m)){
@@ -122,7 +123,7 @@ final class PresidentialProgramme
     }
     public static function agenda(string $p):?array
     {
-        if(preg_match('/^mix-([01]{2})([nmri])([nri])([nmris])([ncsli][neitdqf][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$x)){
+        if(preg_match('/^mix-([01]{2})([nmri])([nri])([nmris])([ncsli][neitdqf][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32}|[a-f0-9]{40})$/D',$p,$x)){
             if(SocialProgramme::decode('social-'.$x[6])===null)return null;
             $p='custom-'.$x[1].'-'.$x[2].'-'.$x[3].'-'.$x[4].'-'.$x[5];
         }

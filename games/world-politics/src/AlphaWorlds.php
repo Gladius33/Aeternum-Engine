@@ -208,7 +208,7 @@ final class AlphaWorlds
             $this->insert('INSERT INTO wp_economic_states(world_id,state_json,state_sha,reference_sha,actor_registry_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($econ->snapshot()),$econ->hash(),$this->scenario->references->hash(),$this->scenario->actors->hash()]);
             $c=$this->scenario->domestic();
-            if($managed){$c['catalog']+=SocialProgramme::policies($c['macro_baseline']);$c['social_economy_from']=$day;}
+            if($managed){$c['catalog']+=SocialProgramme::policies($c['macro_baseline'],true);$c['social_economy_from']=$day;}
             $dom=new DomesticPolicySimulation($world,$day,$c['currency'],$c['opening_balance'],$c['baseline_revenue'],$c['baseline_expense'],$c['cohorts'],$c['catalog'],$c['macro_baseline']??null,$c['debt_model']??null,$c['population_model']??null,$c['services_model']??null,$c['corporations_enabled']??false,$c['wage_feedback_enabled']??false,$c['trade_feedback_enabled']??false,$c['firm_model']??null,$c['public_equity_enabled']??false,$c['industrial_enabled']??false,$c['daily_legal_enabled']??false,$c['eu_trade_enabled']??false,$c['eu_trade_v2']??false,$c['eu_trade_v3']??false,$c['eu_trade_v4']??false,$c['finance_autonomy']??false,$c['social_economy_from']??null);
             $this->insert('INSERT INTO wp_domestic_states(world_id,assumptions_json,assumptions_sha,state_json,state_sha,revision) VALUES(?,?,?,?,?,0)',
                 [$world,self::json($c),$dom->assumptionsHash(),self::json($dom->snapshot()),$dom->hash()]);

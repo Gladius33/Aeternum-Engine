@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/PrimaryManifestoPolicy.php';
+require_once __DIR__.'/FrenchV1Policy.php';
 
 /** WP114e: immutable historic-text-to-fictional-policy mapping. Rates,
  * coverage shares and cost coefficients below are scenario assumptions,
@@ -113,7 +114,7 @@ final class SocialProgramme
             $d[$id]=['bit'=>24+$n,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
                 'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         }
-        $d+=PrimaryManifestoPolicy::definitions()+self::target2027();
+        $d+=PrimaryManifestoPolicy::definitions()+self::target2027()+FrenchV1Policy::definitions();
         // Separate reserved range for family repeals; never move earlier IDs.
         $newFamilies=['hospital-beds','childcare','social-housing','home-care','teacher-hiring','wealth-tax','health-hiring','pension-floor','eldercare-hiring','renovation','justice-hiring','disability-benefit','production-tax','training-benefit','youth-benefit','public-hiring','public-pay','agriculture-fund','culture-budget','fuel-refund','reinvestment-tax','fuel-vat','business-property-tax','rsa-activity','free-transit','pension-levy','overtime-relief','fuel-cap','wage-indexation','work-sharing','sme-procurement'];
         foreach($newFamilies as $n=>$family)$d['social-repeal-'.$family]=[
@@ -122,6 +123,7 @@ final class SocialProgramme
         foreach(['local-supply'=>127,'renewable-transition'=>95,'collective-ownership'=>94,'contribution-cut'=>85,'industrial-grants'=>86,'eldercare-capacity'=>92] as $family=>$bit)$d['social-repeal-'.$family]=[
             'bit'=>$bit,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
             'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
+        $d['social-repeal-adaptation-fund']=['bit'=>139,'domain'=>'social_repeal','family'=>'adaptation-fund','target'=>['repeal_family'=>'adaptation-fund'],'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         return $cached=$d;
     }
     public static function objectiveId(string $id):string
@@ -141,7 +143,7 @@ final class SocialProgramme
         if(isset($catalog[$base]))return $catalog[$base];
         if(!self::isRepeal($id))return null;
         $family=self::definition($id)['family'];
-        foreach(self::definitions()+PrimaryManifestoPolicy::definitions()+self::target2027() as $key=>$d){
+        foreach(self::definitions()+PrimaryManifestoPolicy::definitions()+self::target2027()+FrenchV1Policy::definitions() as $key=>$d){
             if($d['family']!==$family||!isset($catalog[$key]))continue;
             $v=$catalog[$key];
             foreach(['revenue_delta','expense_delta','concession_daily_cost','production_delta_bps','employment_delta_bps'] as $k)if(isset($v[$k]))$v[$k]=0;
@@ -175,19 +177,19 @@ final class SocialProgramme
     }
     public static function encode(array $ids):string
     {
-        if(!array_is_list($ids)||$ids===[]||count($ids)>128)throw new \InvalidArgumentException('Invalid social objectives');
-        $d=self::objectives();$families=[];$digits=array_fill(0,32,0);$max=0;
+        if(!array_is_list($ids)||$ids===[]||count($ids)>160)throw new \InvalidArgumentException('Invalid social objectives');
+        $d=self::objectives();$families=[];$digits=array_fill(0,40,0);$max=0;
         foreach($ids as $id){
             if(!is_string($id)||!isset($d[$id])||isset($families[$d[$id]['family']]))throw new \InvalidArgumentException('Unknown or conflicting social objective');
             $families[$d[$id]['family']]=true;$bit=$d[$id]['bit'];$max=max($max,$bit);
             $digits[intdiv($bit,4)]|=1<<($bit%4);
         }
-        $length=$max<24?6:($max<36?9:($max<63?16:($max<96?24:32)));
+        $length=$max<24?6:($max<36?9:($max<63?16:($max<96?24:($max<128?32:40))));
         return 'social-'.implode('',array_map('dechex',array_reverse(array_slice($digits,0,$length))));
     }
     public static function decode(string $profile):?array
     {
-        if(!preg_match('/^social-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$profile,$m))return null;
+        if(!preg_match('/^social-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32}|[a-f0-9]{40})$/D',$profile,$m))return null;
         $digits=strrev($m[1]);$ids=[];
         foreach(self::objectives() as $id=>$d){$bit=$d['bit'];$digit=hexdec($digits[intdiv($bit,4)]??'0');
             if(($digit&(1<<($bit%4)))!==0)$ids[]=$id;}
@@ -213,10 +215,10 @@ final class SocialProgramme
         $text=json_encode(['version'=>self::VERSION,'id'=>$id,'target'=>$d['target']],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
         return ['standard'=>$text,'amended'=>$text.'; implementation subject to a separate reviewed instrument'];
     }
-    public static function policies(array $baseline):array
+    public static function policies(array $baseline,bool $extended=false):array
     {
         $out=[];
-        foreach(self::definitions()+PrimaryManifestoPolicy::definitions()+self::target2027() as $id=>$d){
+        foreach(self::definitions()+PrimaryManifestoPolicy::definitions()+self::target2027()+($extended?FrenchV1Policy::definitions():[]) as $id=>$d){
             $a=$d['assumptions'];
             // Ratio to existing daily aggregates, not added observed spending.
             $scale=static fn(int $v,int $bp):int=>intdiv($v*$bp,10000);

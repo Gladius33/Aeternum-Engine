@@ -9,6 +9,7 @@ require_once __DIR__.'/FrenchPoliticalDirectory.php';
 require_once __DIR__.'/ProvisionalFrenchProgramme.php';
 require_once __DIR__.'/FrenchPublicSourceEditions.php';
 require_once __DIR__.'/FrenchExpandedProgramme.php';
+require_once __DIR__.'/FrenchV1QuantitativeEditions.php';
 
 /** Choose the player-controlled identity at creation, not an electoral claim.
  * The immutable simulation character ID and all score rules are unchanged.
@@ -170,7 +171,8 @@ final class CampaignCandidate
         static $all=null;if($all!==null)return $all;
         $reviewed=self::programme2027Reference()['reviewed_measures'];
         $base=FrenchPublicSourceEditions::choices($reviewed);
-        return $all=[...self::provisionalChoices(),...$base,...FrenchExpandedProgramme::choices($base,$reviewed)];
+        $expanded=FrenchExpandedProgramme::choices($base,$reviewed);
+        return $all=[...self::provisionalChoices(),...$base,...$expanded,...FrenchV1QuantitativeEditions::choices([...$base,...$expanded])];
     }
     public static function v1Choices():array{
         // Most recent edition per identity; previous IDs remain selectable.

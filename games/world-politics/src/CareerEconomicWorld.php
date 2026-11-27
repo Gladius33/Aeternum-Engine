@@ -83,7 +83,7 @@ final class CareerEconomicWorld
             // The full cohort model is required for quantitative primary
             // policy effects and the bounded 256-policy catalogue. The Macron
             // reference is a model prerequisite, not an assigned programme.
-            $c['catalog']+=array_intersect_key(SocialProgramme::policies($c['macro_baseline']),array_fill_keys([...FrenchExpandedProgramme::policyIds(),'hist2022-emmanuel-macron-1'],true));
+            $c['catalog']+=array_intersect_key(SocialProgramme::policies($c['macro_baseline'],true),array_fill_keys([...FrenchExpandedProgramme::policyIds(),...FrenchV1Policy::ids(),'hist2022-emmanuel-macron-1'],true));
             $c['social_economy_from']=$day;
         }
         foreach(['finance_autonomy','daily_legal_enabled','trade_feedback_enabled','eu_trade_enabled','eu_trade_v2','eu_trade_v3','eu_trade_v4'] as $flag)$c[$flag]=false;

@@ -1,0 +1,154 @@
+{
+  "schema": "fr-public-policy-evidence-v3",
+  "observed_on": "2026-11-28",
+  "records": [
+    {
+      "person": "raphael-glucksmann",
+      "period": "2026-10-09",
+      "attribution": "reported_primary_debate",
+      "sources": [
+        "https://www.lemonde.fr/les-decodeurs/article/2026/10/09/primaire-a-gauche-comparez-les-propositions-des-cinq-candidats_6790548_4355770.html"
+      ],
+      "measures": [
+        {
+          "id": "frv1-glucksmann-smic",
+          "summary": "SMIC net mensuel de 1 600 € ; proposition du débat de primaire."
+        }
+      ]
+    },
+    {
+      "person": "juan-branco",
+      "period": "2026-11-08",
+      "attribution": "published_movement_project",
+      "sources": [
+        "https://ruches.org/",
+        "https://lafrancede2027.fr/programmes/branco-ruches/"
+      ],
+      "measures": [
+        {
+          "id": "frv1-branco-smic",
+          "summary": "Seuil minimal national de 1 500 € nets ; la déconcentration territoriale n'est pas modélisée."
+        }
+      ]
+    },
+    {
+      "person": "francois-hollande",
+      "period": "2026-08",
+      "attribution": "reported_personal_statement",
+      "sources": [
+        "https://lcp.fr/actualites/presidentielle-francois-hollande-propose-la-retraite-a-63-ans-et-dira-en-decembre-s-il"
+      ],
+      "measures": [
+        {
+          "id": "frv1-hollande-pension",
+          "summary": "Age légal de 63 ans ; allongement progressif des cotisations non chiffré donc non simulé."
+        }
+      ]
+    },
+    {
+      "person": "dominique-de-villepin",
+      "period": "2026-11",
+      "attribution": "published_campaign_project",
+      "sources": [
+        "https://lafrancehumaniste.fr/programme/reussir-a-nouveau/chapitre-15.html"
+      ],
+      "measures": [
+        {
+          "id": "frv1-villepin-eldercare",
+          "summary": "100 000 places d'EHPAD et logements intermédiaires sur dix ans. Le coût par place est une hypothèse de scénario, non le chiffrage du candidat."
+        }
+      ]
+    },
+    {
+      "person": "anasse-kazib",
+      "period": "2026-11",
+      "attribution": "published_campaign_statement",
+      "sources": [
+        "https://www.revolutionpermanente.fr/Anasse-2027-28-heures-sans-baisse-de-salaire-travailler-moins-et-travailler-tous"
+      ],
+      "measures": [
+        {
+          "id": "frv1-kazib-workweek",
+          "summary": "Semaine de 28 heures sans diminution du salaire ; effets d'emploi et production issus du modèle de partage du travail."
+        }
+      ]
+    },
+    {
+      "person": "antoine-mikolajczak",
+      "period": "2026-11-18",
+      "attribution": "published_party_budget",
+      "sources": [
+        "https://parti-equinoxe.fr/contre-budget-2027/"
+      ],
+      "measures": [
+        {
+          "id": "frv1-equinoxe-adaptation",
+          "summary": "Enveloppe d'adaptation climatique de 9,5 milliards pour 2027 uniquement, sans effets climatiques fictivement attribués."
+        }
+      ]
+    },
+    {
+      "person": "david-lisnard",
+      "period": "2026",
+      "attribution": "published_party_conditional_project",
+      "sources": [
+        "https://www.unenouvelleenergie.fr/questions/que-ferait-david-lisnard-des-200-milliards-d-economies/"
+      ],
+      "measures": [
+        {
+          "id": "frv1-lisnard-production-tax",
+          "summary": "Hypothèse conditionnelle de baisse de 40 milliards des impôts de production, dans le plan de 200 milliards d'économies. Le financement n'est pas réputé acquis."
+        }
+      ]
+    },
+    {
+      "person": "olivier-becht",
+      "period": "2026-11",
+      "attribution": "reported_campaign_project",
+      "sources": [
+        "https://becht2027.fr/projet-france/",
+        "https://www.lesprogrammes.org/candidats/olivier-becht/"
+      ],
+      "measures": [
+        {
+          "id": "frv1-becht-pension-floor",
+          "summary": "Pension minimale de 1 200 € ; couverture représentative, pas la réforme complète par points."
+        }
+      ]
+    },
+    {
+      "person": "francois-ruffin",
+      "period": "2026-04-13",
+      "attribution": "reported_campaign_not_future_ballot",
+      "sources": [
+        "https://www.lesprogrammes.org/candidats/francois-ruffin/",
+        "https://nouspresident.fr/"
+      ],
+      "measures": [
+        {
+          "id": "frv1-ruffin-smic",
+          "summary": "SMIC à 1 600 € dans le cahier de campagne d'avril 2026 ; référence historique, sans assertion de candidature actuelle."
+        }
+      ]
+    },
+    {
+      "person": "olivier-faure",
+      "period": "2026-09-16",
+      "attribution": "reported_personal_statement",
+      "sources": [
+        "https://www.boursorama.com/actualite-economique/actualites/smic-a-1-700-euros-regularisation-des-travailleurs-sans-papiers-retraites-faure-developpe-ses-propositions-e0f504871547edbc6960940d9c6e1fd9",
+        "https://www.leparisien.fr/politique/primaire-du-ps-smic-a-1-700-euros-retraite-a-62-ans-faire-cotiser-lia-olivier-faure-developpe-ses-propositions-16-09-2026-LG23OMNFL5DAZFUOADKBWDSBMY.php"
+      ],
+      "measures": [
+        {
+          "id": "frv1-faure-smic",
+          "summary": "SMIC net mensuel de 1 700 €."
+        },
+        {
+          "id": "frv1-faure-pension",
+          "summary": "Age légal de départ de 62 ans."
+        }
+      ]
+    }
+  ]
+}

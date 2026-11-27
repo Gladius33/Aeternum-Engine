@@ -32,11 +32,11 @@ final class CareerProgrammeAutonomy
     public static function portfolio(string $id):?string{
         if($id==='education-reform')return 'education';
         if($id==='administration-report')return null;
-        $definition=SocialProgramme::target2027()[$id]??(in_array($id,FrenchExpandedProgramme::policyIds(),true)?SocialProgramme::definition($id):null);
+        $definition=SocialProgramme::target2027()[$id]??((in_array($id,FrenchExpandedProgramme::policyIds(),true)||FrenchV1Policy::isPolicy($id))?SocialProgramme::definition($id):null);
         if($definition===null)throw new \DomainException('Policy not mapped to career powers');
         return match($definition['domain']){
             'education'=>'education','eldercare'=>'health','tax','industry'=>'economy',
-            'wages','retirement','housing','employment','social','public_services','agriculture','culture','transport'=>null,
+            'wages','retirement','housing','employment','social','public_services','agriculture','culture','transport','environment'=>null,
             default=>throw new \DomainException('Policy portfolio not reviewed')
         };
     }
@@ -71,7 +71,7 @@ final class CareerProgrammeAutonomy
             if($m['end']!==null||$m['interim']||$m['start']>$day||$m['expires']<=$day||!in_array($ability,$m['powers'],true)||isset($humanActed[$m['career']]))continue;
             foreach(self::objectives($career,isset($catalog['hist2022-fabien-roussel-1'])) as $id){
                 if(!isset($catalog[$id])||isset($policies[$id]))continue;
-                if(!in_array($id,['education-reform','administration-report'],true)&&!isset(SocialProgramme::target2027()[$id])&&!in_array($id,FrenchExpandedProgramme::policyIds(),true))continue;
+                if(!in_array($id,['education-reform','administration-report'],true)&&!isset(SocialProgramme::target2027()[$id])&&!in_array($id,FrenchExpandedProgramme::policyIds(),true)&&!FrenchV1Policy::isPolicy($id))continue;
                 if(!self::permitted($office,$id))continue;
                 $effective=SocialProgramme::definition($id)!==null?SocialProgramme::effectiveDay($id,$day):
                     (new \DateTimeImmutable($day))->modify($id==='education-reform'?'+120 days':'+14 days')->format('Y-m-d');

@@ -124,6 +124,12 @@ final class PrimaryManifestoPolicy
             $net=intdiv($a['reference_monthly_net_eur']*$increase,10000);
             $r['affected_persons_proxy']=$a['workers'];$r['annual_expense_delta_eur']=intdiv($net*$a['employer_cost_bps'],10000)*$a['workers']*12;
             $r['wage_premium_bps']=intdiv($increase*min($a['workers'],$employed),max(1,$employed));
+        }elseif($f==='adaptation-fund'){
+            // The stated envelope is restricted to its budget year. No invented
+            // climate resilience or guaranteed implementation effect.
+            $r['annual_expense_delta_eur']=(int)substr($day,0,4)===$t['budget_year']?$t['annual_eur']:0;
+            $r['budget_year']=$t['budget_year'];
+            $r['climate_outcome_modelled']=false;
         }elseif($f==='agriculture-fund'){
             $r['annual_expense_delta_eur']=$t['annual_eur'];
         }elseif($f==='culture-budget'){
