@@ -488,3 +488,18 @@ foreach([0,500] as $approval82){
         &&$negativeCivic['reports']===[],'WP114 unsuccessful citizen initiative never creates obligations');
     ck82(CV::restore($negativeCivic)===$negativeCivic,'WP114 unsuccessful civic history replay');
 }
+
+
+// WP114: 2027 is the target election, not the historical test corpus.
+$target2027=\Aeternum\WorldPolitics\CampaignCandidate::options();
+$reference2027=$target2027['programme_2027_reference'];
+ck82($target2027['target_election_year']===2027&&$target2027['historical_reference_election_year']===2022
+    &&!$target2027['historical_choices_are_2027_candidates'],'WP114 target election and archive are distinct');
+ck82($reference2027['scenario_start']==='2027-05-14'&&$reference2027['observed_on']==='2026-11-27'
+    &&!$reference2027['final_candidate_list_verified']&&!$reference2027['complete_programmes_verified']
+    &&!$reference2027['historical_2022_is_2027_programme']&&!$reference2027['historical_2022_automatic_import'],
+    'WP114 provisional sources cannot certify future programmes');
+ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_count']===0
+    &&count(array_unique(array_column($reference2027['sources'],'id')))===count($reference2027['sources']),
+    'WP114 discovery references are not executable objectives');
+foreach($reference2027['sources'] as $source2027)ck82(str_starts_with($source2027['url'],'https://'),'WP114 dated programme discovery link');
