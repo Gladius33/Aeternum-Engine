@@ -19,6 +19,49 @@ final class PresidentialProgramme
         'industry'=>['none'=>'n','active'=>'a','paused'=>'p'],
         'commitments'=>['none'=>'n','request_deferral'=>'d','request_termination'=>'t'],
     ];
+    /** Explicit stable measure IDs, never inferred from a person's name or
+     * political text. Import is a deliberate player configuration command. */
+    public static function measureCatalog():array
+    {
+        $m=['education-reform'=>['field'=>'education','value'=>true,'route'=>'ordinary_legislation'],
+            'administration-report'=>['field'=>'administration','value'=>true,'route'=>'regulatory_act']];
+        foreach(['maintain','reduce','increase'] as $v)$m['annual-defense-'.$v]=['field'=>'defense','value'=>$v,'route'=>'annual_finance'];
+        foreach(['reduce','increase'] as $v)$m['corrective-health-'.$v]=['field'=>'health','value'=>$v,'route'=>'corrective_finance'];
+        foreach(['maintain','reduce','increase','stop'] as $v)$m['ukraine-aid-'.$v]=['field'=>'ukraine_aid','value'=>$v,'route'=>'discretionary_aid'];
+        foreach(['civic','social','liberal','independent'] as $v)$m['cabinet-'.$v]=['field'=>'cabinet','value'=>$v,'route'=>'vacancy_appointment'];
+        foreach(['environment-report','institutional-report','remove-presidential-term-limit'] as $v)
+            foreach(['congress','referendum'] as $route)$m['revision-'.$v.'-'.$route]=['field'=>'revision','value'=>$v,'ratification'=>$route,'route'=>'article89'];
+        foreach(['active','paused'] as $v)$m['industry-'.$v]=['field'=>'industry','value'=>$v,'route'=>'industrial_pilot'];
+        foreach(['request_deferral','request_termination'] as $v)$m['commitment-'.str_replace('_','-',$v)]=['field'=>'commitments','value'=>$v,'route'=>'bilateral_negotiation'];
+        return $m;
+    }
+    public static function compileMeasures(array $ids):array
+    {
+        if(!array_is_list($ids)||count($ids)>count(self::measureCatalog()))throw new \InvalidArgumentException('Invalid measure list');
+        $a=['education'=>false,'administration'=>false,'defense'=>'none','health'=>'none','ukraine_aid'=>'none',
+            'cabinet'=>'none','revision'=>'none','ratification'=>'congress','industry'=>'none','commitments'=>'none'];
+        $catalog=self::measureCatalog();$used=[];
+        foreach($ids as $id){
+            if(!is_string($id)||!isset($catalog[$id]))throw new \InvalidArgumentException('Measure has no reviewed execution mapping');
+            $m=$catalog[$id];$key=$m['field'];
+            if(isset($used[$key]))throw new \InvalidArgumentException('Duplicate or conflicting programme objective');
+            $used[$key]=true;$a[$key]=$m['value'];
+            if(isset($m['ratification']))$a['ratification']=$m['ratification'];
+        }
+        return $a;
+    }
+    public static function measureSupport(string $id):array
+    {
+        $catalog=self::measureCatalog();
+        if(isset($catalog[$id]))return ['status'=>'reviewed_objective','mapping'=>$catalog[$id]];
+        if(preg_match('/^(?:budget-(20[0-9]{2})-defense-(maintain|reduce|increase)|corrective-(20[0-9]{2})-health-(reduce|increase))$/D',$id,$m)){
+            $annual=$m[1]!=='';
+            $year=(int)($annual?$m[1]:$m[3]);
+            if($year>=($annual?2028:2027)&&$year<=FinanceBudget::LAST_YEAR)
+                return ['status'=>'dated_policy_requires_explicit_timing','mapping'=>null];
+        }
+        return ['status'=>'no_reviewed_mapping','mapping'=>null];
+    }
     public static function encodeAgenda(array $a):string
     {
         $required=['administration','defense','education','health','ukraine_aid'];

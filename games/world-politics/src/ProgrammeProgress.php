@@ -39,11 +39,8 @@ final class ProgrammeProgress
             $rows[]=['measure_id'=>$id,'domain'=>$measure['domain'],'proposal'=>$measure['proposal'],'status'=>$status,
                 'matching_policy_id'=>$p===null?null:$id,'policy_record'=>$p,'observed_activity'=>$o,
                 'semantic_fulfilment_verified'=>false,
-                'automatic_execution_support'=>match(true){
-                    in_array($id,['education-reform','administration-report'],true)=>'exact_reviewed_policy_id',
-                    PresidentialProgramme::permits('governance',$id)||PresidentialProgramme::permits('governance-reduce',$id)||PresidentialProgramme::permits('governance-increase',$id)=>'exact_reviewed_policy_id',
-                    default=>'no_reviewed_mapping'
-                }];
+                'automatic_execution_support'=>PresidentialProgramme::measureSupport($id)['status'],
+                'execution_mapping'=>PresidentialProgramme::measureSupport($id)['mapping']];
         }
         $hashes=[];
         foreach(['roster'=>$roster,'domestic'=>$domestic] as $k=>$snapshot){

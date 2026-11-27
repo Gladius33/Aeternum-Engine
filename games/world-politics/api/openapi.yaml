@@ -100,9 +100,15 @@ paths:
               properties:
                 diplomacy: { type: string, enum: [cooperative, balanced, cautious] }
                 domestic: { type: string, enum: [manual, education, administration, education-law, administration-law, governance, governance-reduce, governance-increase], description: France-only profile; mutually exclusive with agenda }
+                measure_ids:
+                  type: array
+                  maxItems: 25
+                  uniqueItems: true
+                  description: France-only explicit reviewed objective IDs from executable_measure_catalog; mutually exclusive with domestic and agenda. Conflicting fields or unsupported IDs are rejected.
+                  items: { type: string }
                 agenda:
                   type: object
-                  description: France-only structured fictional programme; mutually exclusive with domestic
+                  description: France-only structured fictional programme; mutually exclusive with domestic and measure_ids
                   additionalProperties: false
                   required: [education, administration, defense, health, ukraine_aid]
                   properties:

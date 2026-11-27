@@ -105,3 +105,8 @@ Apply migration 034 before deploying this increment, following the established s
 ### WP114c
 
 Apply additive migration 035 after 034, using the documented stopped-worker backup procedure. Optional extended fields preserve legacy programme encoding; the fictional cabinet, revision, industrial and commitment objectives are explicit opt-ins. A request is not an appointment, enacted revision or accepted treaty amendment. GET programme exposes the relevant existing domain records and direct receipts. Historical measures without reviewed mappings are not automatically executed.
+
+
+### WP114d
+
+No new migration after 035. POST programme accepts measure_ids as an alternative to agenda or domestic. The executable_measure_catalog returned by the lobby and programme report is the authoritative list of reviewed objective IDs, not a claim that any historical manifesto can be executed. Unsupported IDs and conflicting objectives return 422. Exact historical candidate progress does not infer a measure from political affiliation or free text.

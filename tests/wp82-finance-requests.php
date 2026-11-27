@@ -98,3 +98,35 @@ $s114c=$x114c->snapshot();
 ck82($s114c['revision']['constitution_version']===0&&count($s114c['cabinet_requests'])===0,'WP114c no fabricated cabinet vacancy and no direct constitutional effect');
 ck82(PP::institutionalObjective($x114c,$extCode114,'2027-05-14')===null,'WP114c no duplicated constitutional requests');
 ck82(I::restore($s114c)->hash()===$x114c->hash(),'WP114c institutional request replay');
+
+
+// WP114d: exact reviewed IDs, conflict rejection, and actual cabinet succession.
+$catalog114=PP::measureCatalog();
+ck82(count($catalog114)===25,'WP114d complete reviewed objective catalogue');
+$ids114=['education-reform','annual-defense-increase','corrective-health-reduce','ukraine-aid-stop','cabinet-social','revision-environment-report-referendum','industry-active','commitment-request-deferral'];
+$compiled114=PP::compileMeasures($ids114);
+ck82($compiled114['education']&&$compiled114['defense']==='increase'&&$compiled114['health']==='reduce'&&$compiled114['ratification']==='referendum','WP114d exact ID compilation');
+ck82(PP::encodeAgenda($compiled114)===PP::encodeAgenda(PP::compileMeasures(array_reverse($ids114))),'WP114d order independent compilation');
+no82(fn()=>PP::compileMeasures(['annual-defense-increase','annual-defense-reduce']));
+no82(fn()=>PP::compileMeasures(['education-reform','education-reform']));
+no82(fn()=>PP::compileMeasures(['hist2022-emmanuel-macron-1']));
+ck82(PP::measureSupport('hist2022-emmanuel-macron-1')['status']==='no_reviewed_mapping','WP114d unsupported historical promise explicitly reported');
+ck82(PP::measureSupport('budget-2028-defense-increase')['status']==='dated_policy_requires_explicit_timing','WP114d dated policy cannot silently become recurring policy');
+ck82(PP::measureSupport('corrective-2027-health-reduce')['status']==='dated_policy_requires_explicit_timing','WP114d dated corrective policy preserved');
+$x114d=new I('world-test','FR','2027-05-14');$x114d->enableElectoral(P::publishedElectionConfig('2027-05-14'));$x114d->enablePoliticalAI();$x114d->enableRevision();$x114d->enableLegislation(true,true,true,true,true,true,true,2028,true,true);$x114d->enableContinuityLot();$x114d->enableCabinetSenateLot();$x114d->enableFinanceRequests();
+$profile114d=PP::encodeAgenda(PP::compileMeasures(['cabinet-social']));
+ck82(PP::institutionalObjective($x114d,$profile114d,'2027-05-14')===null,'WP114d no removal of current government');
+$ev114d=['world_id'=>'world-test','country'=>'FR','day'=>'2027-05-14','evidence_id'=>'certified-resignation','bill_id'=>null,'kind'=>'assembly_cabinet_resign','procedure_certified'=>true,
+    'data'=>['at'=>'2027-05-14T12:00:00Z','prime_minister'=>'pm-initial','resignation_id'=>'resignation-wp114d','resignation_presented'=>true]];
+$x114d->legislation('legislation_clerk','legislation_evidence',$ev114d,'record-resignation');
+$req114d=PP::institutionalObjective($x114d,$profile114d,'2027-05-14');
+ck82($req114d!==null&&$req114d['stage']==='cabinet_requested','WP114d real vacancy triggers nomination');
+$x114d->advanceTo('2027-05-15');
+ck82($x114d->snapshot()['legislation']['responsibility']['cabinet']['prime_minister']==='pm-social','WP114d certified nomination becomes appointment');
+for($n=1;$n<=8;$n++){
+    $day=(new DateTimeImmutable('2027-05-14'))->modify('+'.$n.' days')->format('Y-m-d');
+    $x114d->advanceTo($day);PP::institutionalObjective($x114d,$profile114d,'2027-05-14');
+}
+$cab114d=$x114d->snapshot()['legislation']['responsibility']['cabinet'];
+ck82(count(array_filter($cab114d['ministers']))===7&&$cab114d['ministers']['education']==='social-education','WP114d all vacant portfolios filled through joint appointment');
+ck82(I::restore($x114d->snapshot())->hash()===$x114d->hash(),'WP114d government succession deterministic replay');

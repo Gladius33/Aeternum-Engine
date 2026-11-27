@@ -208,3 +208,12 @@ $q114->execute([$spare]);$d114=json_decode($q114->fetchColumn(),true,64,JSON_THR
 ck102($d114['days'][array_key_last($d114['days'])]['industrial']['mode']==='active','WP114c industrial ledger reflects programme');
 $aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo);
 ck102($aud['integrity']==='passed','WP114c extended programme audited');
+
+
+// WP114d: same REST programme can be configured using exact objective IDs.
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['annual-defense-reduce','annual-defense-increase']],8)['status']===422,'WP114d conflicting objective IDs rejected');
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['hist2022-emmanuel-macron-1']],8)['status']===422,'WP114d unsupported historical ID rejected');
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['industry-active'],'agenda'=>$ext114],8)['status']===422,'WP114d exclusive programme configuration');
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['industry-active','cabinet-civic']],8)['status']===200,'WP114d reviewed objective IDs accepted');
+$r114d=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($r114d['agenda']['industry']==='active'&&$r114d['agenda']['cabinet']==='civic'&&count($r114d['executable_measure_catalog'])===25,'WP114d compiled agenda and discoverable catalogue');

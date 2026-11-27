@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/HistoricalCandidateReference.php';
 require_once __DIR__.'/CampaignLifecycle.php';
+require_once __DIR__.'/PresidentialProgramme.php';
 
 /** Choose the player-controlled identity at creation, not an electoral claim.
  * The immutable simulation character ID and all score rules are unchanged.
@@ -18,7 +19,9 @@ final class CampaignCandidate
             'fictional_template'=>PoliticalProfileTemplate::definition(),
             'historical_choices'=>array_map(fn($p)=>['id'=>$p['id'],'name'=>$p['name'],'as_of'=>$p['as_of'],'sources'=>$p['sources']],$ref['roster_compatible_profiles']),
             'historical_reference_sha'=>$ref['reference_sha'],'historical_programme_scope'=>$ref['programme_partial_scope'],'historical_measure_count'=>$ref['curated_measure_count'],'historical_selection_is_alternate_history'=>true,
-            'future_eligibility_certified'=>false,'programme_mechanics_enabled'=>false,'changes_score_rules'=>false];
+            'future_eligibility_certified'=>false,'programme_mechanics_enabled'=>false,
+            'managed_universe_explicit_programme_catalog'=>PresidentialProgramme::measureCatalog(),
+            'historical_measures_automatically_imported'=>false,'changes_score_rules'=>false];
     }
     public static function normalize(mixed $input):array
     {
