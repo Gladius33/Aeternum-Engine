@@ -58,7 +58,7 @@ final class ResearchBilling
         $tenant=$r['tenant_id'];$cost=$override??self::cost($operation);
         if($operation==='global_export'&&$r['plan']!=='pro')throw new ResearchBillingError(403,'research_pro_required');
         $admin=(int)$r['admin_exempt']===1;
-        if((!$admin&&(int)$r['paid_until']<=time())||(int)$r['enabled']!==1)throw new ResearchBillingError(401,'research_entitlement_expired');
+        if((!$admin&&$r['billing_mode']!=='payg'&&(int)$r['paid_until']<=time())||(int)$r['enabled']!==1)throw new ResearchBillingError(401,'research_entitlement_expired');
         $included=!$admin&&$r['billing_mode']==='monthly'?min($cost,(int)$r['included_units']):0;
         $prepaid=$admin?0:$cost-$included;
         if($prepaid>0&&($r['billing_mode']==='monthly'&&!(bool)$r['allow_overage']||$prepaid>(int)$r['prepaid_units']))

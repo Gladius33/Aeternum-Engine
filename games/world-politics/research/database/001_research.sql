@@ -164,6 +164,7 @@ CREATE TABLE wp_stripe_research_orders (
  subscription_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NULL UNIQUE,
  period_end BIGINT UNSIGNED NOT NULL DEFAULT 0,
  settled_at BIGINT UNSIGNED NULL,
+ ended_at BIGINT UNSIGNED NULL,
  created_at BIGINT UNSIGNED NOT NULL,
  UNIQUE KEY tenant_checkout(tenant_id,request_sha),
  FOREIGN KEY(tenant_id) REFERENCES wp_research_tenants(tenant_id)

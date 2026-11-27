@@ -134,7 +134,15 @@ ckResearch($stripe->handle($invoice)['status']==='settled'&&$stripe->handle($inv
 $balance=$q->usage($st['token']);
 ckResearch($balance['included_remaining']===1000&&$balance['prepaid_remaining']===250&&$balance['paid_until']===$end,'subscription period and wallet retained');
 $objects['/v1/subscriptions/'.$sub]['status']='canceled';
-ckResearch($stripe->handle(['type'=>'customer.subscription.deleted','data'=>['object'=>['id'=>$sub]]])['status']==='subscription_ended','subscription cancellation revokes monthly rights');
+$cancel=['type'=>'customer.subscription.deleted','data'=>['object'=>['id'=>$sub]]];
+ckResearch($stripe->handle($cancel)['status']==='subscription_ended','subscription cancellation revokes monthly rights');
+ckResearch($stripe->handle($cancel)['status']==='already_ended','duplicate cancellation is harmless');
+$co3=$stripe->checkout($st['tenant_id'],'standard-monthly','stripe-test-checkout-03');
+ckResearch($co3['order_id']!==$co2['order_id'],'replacement after cancellation preserves old order');
+$objects['/v1/checkout/sessions/'.$co3['checkout_id']]=['id'=>$co3['checkout_id'],'livemode'=>false,'status'=>'expired','metadata'=>['wp_order'=>$co3['order_id']]];
+ckResearch($stripe->handle(['type'=>'checkout.session.expired','data'=>['object'=>['id'=>$co3['checkout_id']]]])['status']==='checkout_expired','expired checkout releases replacement slot');
+$co4=$stripe->checkout($st['tenant_id'],'standard-monthly','stripe-test-checkout-04');
+ckResearch($co4['order_id']!==$co3['order_id'],'checkout can be retried after confirmed expiry');
 $objects['/v1/charges/ch_fixture001']['amount_refunded']=100;
 ckResearch($stripe->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_fixture001']]])['status']==='frozen_for_reconciliation','partial refund freezes tenant');
 ckResearch((int)$db->query("SELECT enabled FROM wp_research_tenants WHERE tenant_id='".$st['tenant_id']."'")->fetchColumn()===0,'refunded tenant disabled');
@@ -161,7 +169,8 @@ ckResearch($g->handle('GET','/research/v1/models','',$head($at))['status']===401
 echo "PASS dedicated operator profiles, zero billing, preserved scope and capacity\n";
 
 $unpaid=$q->createTenant('standard',0,false,'payg');
-ckResearch($q->authenticate($unpaid['token'])===null&&$q->billingIdentity($unpaid['token'])===$unpaid['tenant_id'],'expired plan can access billing only');
+ckResearch($q->authenticate($unpaid['token'])===$unpaid['tenant_id']&&$q->billingIdentity($unpaid['token'])===$unpaid['tenant_id'],'PAYG identity has no artificial subscription expiry');
+ckResearch($g->handle('GET','/research/v1/models','',$head($unpaid['token']))['status']===402,'unfunded PAYG cannot consume paid operations');
 for($i=0;$i<4;$i++)$q->billingIdentity($unpaid['token']);
 try{$q->billingIdentity($unpaid['token']);throw new RuntimeException('Billing rate bypass');}catch(\Aeternum\WorldPolitics\ResearchBillingError $e){ckResearch($e->status===429,'billing rate bound');}
 try{$q->billingIdentity($at);throw new RuntimeException('Admin billable');}catch(\Aeternum\WorldPolitics\ResearchBillingError $e){ckResearch($e->status===401,'admin excluded from billing');}

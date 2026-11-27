@@ -116,8 +116,8 @@ final class ResearchStripe
             $a=$this->q('SELECT plan,enabled,billing_mode,admin_exempt FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
             if($a===false||(int)$a['enabled']!==1||(int)$a['admin_exempt']===1||($p['mode']==='payment'&&$a['plan']!==$p['plan']))throw new \DomainException('Ineligible tenant');
             $old=$this->q('SELECT * FROM wp_stripe_research_orders WHERE tenant_id=? AND request_sha=?',[$tenant,$key])->fetch(\PDO::FETCH_ASSOC);
-            if($old!==false){if($old['offer']!==$offer)throw new \DomainException('Checkout conflict');return $old;}
-            if($p['mode']==='subscription'&&$this->q("SELECT 1 FROM wp_stripe_research_orders WHERE tenant_id=? AND mode='subscription' LIMIT 1",[$tenant])->fetchColumn()!==false)
+            if($old!==false){if($old['offer']!==$offer||$old['ended_at']!==null)throw new \DomainException('Checkout conflict or closed order');return $old;}
+            if($p['mode']==='subscription'&&$this->q("SELECT 1 FROM wp_stripe_research_orders WHERE tenant_id=? AND mode='subscription' AND ended_at IS NULL LIMIT 1",[$tenant])->fetchColumn()!==false)
                 throw new \DomainException('Subscription already provisioned; operator review required');
             $id=bin2hex(random_bytes(16));
             $this->q('INSERT INTO wp_stripe_research_orders(order_id,tenant_id,request_sha,offer,plan,mode,price_id,units,amount_minor,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
@@ -143,7 +143,7 @@ final class ResearchStripe
     public function portal(string $tenant):array{
         if(!preg_match('/^[a-f0-9]{32}$/D',$tenant))throw new \DomainException('Invalid tenant');
         $r=$this->q("SELECT o.customer_id FROM wp_stripe_research_orders o JOIN wp_research_tenants t USING(tenant_id)
-            WHERE o.tenant_id=? AND o.mode='subscription' AND o.customer_id IS NOT NULL AND t.admin_exempt=0 AND t.enabled=1",[$tenant])->fetchColumn();
+            WHERE o.tenant_id=? AND o.mode='subscription' AND o.ended_at IS NULL AND o.customer_id IS NOT NULL AND t.admin_exempt=0 AND t.enabled=1",[$tenant])->fetchColumn();
         $customer=self::id($r,'cus_');
         return StripeConfiguration::portal($this->api,$customer);
     }
@@ -193,8 +193,25 @@ final class ResearchStripe
                 $a=$this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$o['tenant_id']])->fetchColumn();
                 $r=$this->order($o['order_id'],true);
                 if($a===false||$r['subscription_id']!==$sid||$r['customer_id']!==($sub['customer']??null))return ['status'=>'unallocated_subscription'];
+                if($r['ended_at']!==null)return ['status'=>'already_ended'];
+                // "unpaid" may recover: suspend paid entitlement, keep the
+                // existing subscription binding until terminal cancellation.
+                if(in_array($sub['status'],['canceled','incomplete_expired'],true))
+                    $this->q('UPDATE wp_stripe_research_orders SET ended_at=? WHERE order_id=?',[time(),$r['order_id']]);
                 $this->q('UPDATE wp_research_tenants SET paid_until=LEAST(paid_until,?),included_units=0 WHERE tenant_id=? AND admin_exempt=0',[time(),$a]);
                 return ['status'=>'subscription_ended'];
+            });
+        }
+        if($type==='checkout.session.expired'){
+            $sid=self::id($obj['id']??null,'cs_test_');$session=$this->get('checkout/sessions',$sid);self::testObject($session,$sid);
+            if(($session['status']??null)!=='expired'||!isset($session['metadata']['wp_order']))return ['status'=>'unchanged'];
+            $o=$this->order($session['metadata']['wp_order']);
+            return $this->tx(function()use($o,$sid){
+                $this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$o['tenant_id']]);
+                $r=$this->order($o['order_id'],true);
+                if($r['checkout_id']!==$sid||$r['settled_at']!==null||$r['subscription_id']!==null)return ['status'=>'unchanged'];
+                $this->q('UPDATE wp_stripe_research_orders SET ended_at=COALESCE(ended_at,?) WHERE order_id=?',[time(),$r['order_id']]);
+                return ['status'=>'checkout_expired'];
             });
         }
         // Do not grant money for a redirect, subscription checkout completion,
@@ -240,7 +257,7 @@ final class ResearchStripe
             $tenant=$o['tenant_id'];
             $a=$this->q('SELECT * FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
             $r=$this->order($o['order_id'],true);
-            if($a===false||(int)$a['enabled']!==1||($r['customer_id']!==null&&$r['customer_id']!==$customer)||($r['subscription_id']!==null&&$r['subscription_id']!==$sub))
+            if($a===false||(int)$a['enabled']!==1||$r['ended_at']!==null||($r['customer_id']!==null&&$r['customer_id']!==$customer)||($r['subscription_id']!==null&&$r['subscription_id']!==$sub))
                 throw new \DomainException('Settlement account binding');
             $old=$this->q('SELECT order_id FROM wp_stripe_research_receipts WHERE payment_id=?',[$payment])->fetchColumn();
             if($old!==false){if($old!==$r['order_id'])throw new \DomainException('Payment already allocated');return ['status'=>'duplicate'];}
@@ -248,7 +265,7 @@ final class ResearchStripe
                 if($r['settled_at']!==null||$a['plan']!==$r['plan'])throw new \DomainException('Credit pack tier changed or already settled');
                 ResearchBilling::fund($this->db,$tenant,'stripe-'.$payment,'topup',(int)$r['units'],null,null,null,false);
             }else{
-                if($end===null||$end<=time()||$end<=(int)$r['period_end']||$end<=(int)$a['paid_until'])return ['status'=>'stale_period'];
+                if($end===null||$end<=time()||$end<=(int)$r['period_end']||($r['period_end']>0&&$end<=(int)$a['paid_until']))return ['status'=>'stale_period'];
                 ResearchBilling::fund($this->db,$tenant,'stripe-'.$payment,'renewal',(int)$r['units'],$end,$r['plan'],'monthly',false);
             }
             $this->q('INSERT INTO wp_stripe_research_receipts(payment_id,order_id,created_at) VALUES(?,?,?)',[$payment,$r['order_id'],time()]);

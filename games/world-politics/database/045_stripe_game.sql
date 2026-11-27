@@ -5,7 +5,7 @@ CREATE TABLE wp_stripe_environment (
 ) ENGINE=InnoDB;
 CREATE TABLE wp_stripe_game_orders (
  order_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
- account_id VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+ account_id VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  request_sha CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  price_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  amount_minor BIGINT UNSIGNED NOT NULL,
@@ -15,7 +15,10 @@ CREATE TABLE wp_stripe_game_orders (
  subscription_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NULL UNIQUE,
  period_end BIGINT UNSIGNED NOT NULL DEFAULT 0,
  held TINYINT UNSIGNED NOT NULL DEFAULT 0,
+ ended_at BIGINT UNSIGNED NULL,
  created_at BIGINT UNSIGNED NOT NULL,
+ UNIQUE KEY account_checkout(account_id,request_sha),
+ INDEX active_order(account_id,ended_at),
  FOREIGN KEY(account_id) REFERENCES wp_accounts(account_id)
 ) ENGINE=InnoDB;
 CREATE TABLE wp_stripe_game_receipts (

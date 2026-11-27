@@ -26,8 +26,9 @@ final class GameStripe
         $key=hash('sha256',$key);
         $o=$this->tx(function()use($account,$key,$pid,$amount){
             if((int)$this->q('SELECT enabled FROM wp_accounts WHERE account_id=? FOR UPDATE',[$account])->fetchColumn()!==1)throw new \DomainException('Inactive game account');
-            $old=$this->q('SELECT * FROM wp_stripe_game_orders WHERE account_id=?',[$account])->fetch(\PDO::FETCH_ASSOC);
-            if($old!==false){if($old['request_sha']!==$key)throw new \DomainException('Existing subscription order');return $old;}
+            $old=$this->q('SELECT * FROM wp_stripe_game_orders WHERE account_id=? AND request_sha=?',[$account,$key])->fetch(\PDO::FETCH_ASSOC);
+            if($old!==false){if($old['ended_at']!==null)throw new \DomainException('Closed order');return $old;}
+            if($this->q('SELECT 1 FROM wp_stripe_game_orders WHERE account_id=? AND (ended_at IS NULL OR held=1) LIMIT 1',[$account])->fetchColumn()!==false)throw new \DomainException('Existing subscription or unresolved hold');
             $id=bin2hex(random_bytes(16));$this->q('INSERT INTO wp_stripe_game_orders(order_id,account_id,request_sha,price_id,amount_minor,created_at) VALUES(?,?,?,?,?,?)',[$id,$account,$key,$pid,$amount,time()]);
             return $this->order($id);
         });
@@ -46,7 +47,7 @@ final class GameStripe
     }
     public function portal(string $account):array{
         if(OperatorAccess::game($account))throw new \DomainException('Operator is not billable');
-        $r=$this->q('SELECT o.customer_id FROM wp_stripe_game_orders o JOIN wp_accounts a USING(account_id) WHERE o.account_id=? AND a.enabled=1',[$account])->fetchColumn();
+        $r=$this->q('SELECT o.customer_id FROM wp_stripe_game_orders o JOIN wp_accounts a USING(account_id) WHERE o.account_id=? AND o.ended_at IS NULL AND a.enabled=1',[$account])->fetchColumn();
         return StripeConfiguration::portal($this->api,ResearchStripe::id($r,'cus_'));
     }
     private function revoke(string $account):void{
@@ -76,7 +77,21 @@ final class GameStripe
             $o=$this->order($s['metadata']['wp_game_order']);
             return $this->tx(function()use($o,$s,$sid){$this->q('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE',[$o['account_id']]);$r=$this->order($o['order_id'],true);
                 if($r['subscription_id']!==$sid||$r['customer_id']!==($s['customer']??null))return ['status'=>'unallocated_subscription'];
+                if($r['ended_at']!==null)return ['status'=>'already_ended'];
+                if(in_array($s['status'],['canceled','incomplete_expired'],true))$this->q('UPDATE wp_stripe_game_orders SET ended_at=? WHERE order_id=?',[time(),$r['order_id']]);
                 $this->revoke($r['account_id']);return ['status'=>'subscription_ended'];});
+        }
+        if($type==='checkout.session.expired'){
+            $sid=ResearchStripe::id($obj['id']??null,'cs_test_');$session=$this->get('checkout/sessions',$sid);ResearchStripe::testObject($session,$sid);
+            if(($session['status']??null)!=='expired'||!isset($session['metadata']['wp_game_order']))return ['status'=>'unchanged'];
+            $o=$this->order($session['metadata']['wp_game_order']);
+            return $this->tx(function()use($o,$sid){
+                $this->q('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE',[$o['account_id']]);
+                $r=$this->order($o['order_id'],true);
+                if($r['checkout_id']!==$sid||$r['subscription_id']!==null||$r['held'])return ['status'=>'unchanged'];
+                $this->q('UPDATE wp_stripe_game_orders SET ended_at=COALESCE(ended_at,?) WHERE order_id=?',[time(),$r['order_id']]);
+                return ['status'=>'checkout_expired'];
+            });
         }
         if($type!=='invoice.paid')return ['status'=>'ignored'];
         $iid=ResearchStripe::id($obj['id']??null,'in_');$i=$this->get('invoices',$iid);ResearchStripe::testObject($i,$iid);
@@ -94,7 +109,7 @@ final class GameStripe
         return $this->tx(function()use($o,$customer,$sid,$pi,$end){
             if((int)$this->q('SELECT enabled FROM wp_accounts WHERE account_id=? FOR UPDATE',[$o['account_id']])->fetchColumn()!==1)throw new \DomainException('Inactive game account');
             $r=$this->order($o['order_id'],true);
-            if((int)$r['held']===1||($r['customer_id']!==null&&$r['customer_id']!==$customer)||($r['subscription_id']!==null&&$r['subscription_id']!==$sid))throw new \DomainException('Game settlement binding');
+            if((int)$r['held']===1||$r['ended_at']!==null||($r['customer_id']!==null&&$r['customer_id']!==$customer)||($r['subscription_id']!==null&&$r['subscription_id']!==$sid))throw new \DomainException('Game settlement binding');
             $old=$this->q('SELECT order_id FROM wp_stripe_game_receipts WHERE payment_id=?',[$pi])->fetchColumn();
             if($old!==false){if($old!==$r['order_id'])throw new \DomainException('Payment allocated');return ['status'=>'duplicate'];}
             if($end<=time()||$end<=(int)$r['period_end'])return ['status'=>'stale_period'];
