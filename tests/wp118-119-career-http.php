@@ -156,3 +156,45 @@ ck($frd['status']===200&&count($frd['body']['characters'])===22,'French director
 
 ck(req('POST','/career-worlds',['label'=>'Unknown','country'=>'CH'],$etoken,'career-ch-creation-001')['status']===409,'unimplemented rules fail closed');
 echo "PASS WP118 HTTP career sandbox, invitations, admission, replay, principal and legacy isolation\n";
+
+// WP119 public career pool: a single state/clock, multiple human careers,
+// no owner-derived mandate, immediate spare, late admission without reset.
+require_once __DIR__.'/../games/world-politics/src/CareerUniverseScheduler.php';
+$public=req('POST','/career-worlds/join',['fictional'=>['name'=>'Public career one']],$etoken,'public-career-join-01');
+ck($public['status']===201&&!$public['body']['office_granted_by_join']&&!$public['body']['state_reset'],'public career admission');
+$pw=$public['body']['world_id'];$pp='/career-worlds/'.$pw;
+ck(req('POST','/career-worlds/join',['fictional'=>['name'=>'Public career one']],$etoken,'public-career-join-01')===$public,'public join receipt replay');
+ck(req('POST','/career-worlds/join',['fictional'=>['name'=>'Different name']],$etoken,'public-career-join-01')['status']===409,'public receipt conflict');
+ck(req('POST','/career-worlds/join',['world_id'=>$ew],$etoken,'private-world-public-01')['status']===409,'private career not publicly joinable');
+$dir=req('GET','/career-worlds/public',null,$etoken)['body'];
+ck(count($dir['universes'])===1&&$dir['universes'][0]['vacant']===7&&$dir['universes'][0]['is_member'],'public directory omits private worlds');
+ck(req('POST',$pp.'/members',['account_id'=>$eid],$etoken)['status']===409,'public membership never grants owner role');
+ck(req('GET',$pp.'/career',null,$etoken)['body']['mandates']===[],'joining confers no office');
+$exec('UPDATE wp_career_public_worlds SET next_tick_epoch=UNIX_TIMESTAMP()-1 WHERE world_id=?',[$pw]);
+$sch=new \Aeternum\WorldPolitics\CareerUniverseScheduler($connect);
+ck($sch->tick($pw)['day']==='2027-05-15','one human public world ticks autonomously');
+ck($sch->tick($pw)['status']==='not_due','public clock cannot double tick');
+$shared=req('GET',$pp.'/economy',null,$etoken);
+$public2=req('POST','/career-worlds/join',['world_id'=>$pw],$t2,'public-career-join-02');
+ck($public2['status']===201&&$public2['body']['world_id']===$pw&&$public2['body']['career_id']!==$public['body']['career_id']
+    &&$public2['body']['handover_day']==='2027-05-15','second human enters same committed world');
+ck(req('GET',$pp.'/economy',null,$t2)===$shared,'late career admission does not reset economy');
+ck(req('GET',$pp.'/career',null,$t2)['body']['mandates']===[],'late join cannot acquire occupied presidency');
+ck(req('GET',$pp.'/career',null,$t2)['body']['score_progress']['admission_mode']==='late_takeover','late career league distinguished');
+for($n=3;$n<=8;$n++){
+    $id='acct-'.bin2hex(random_bytes(10));$tok=bin2hex(random_bytes(32));
+    $exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$id,$id,'fixture']);
+    $exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$tok),$id,time()+3600]);
+    $receipt=$cs->joinPublic($tok,'public-career-fill-'.$n,$secret,$pw);
+    ck($receipt['world_id']===$pw&&($n===8?is_array($receipt['new_universe']):$receipt['new_universe']===null),'capacity and immediate reserve '.$n);
+}
+$dir=req('GET','/career-worlds/public',null,$etoken)['body'];
+ck(count($dir['universes'])===2&&$dir['universes'][0]['vacant']===0&&!$dir['universes'][0]['joinable']
+    &&$dir['universes'][1]['vacant']===8&&$dir['universes'][1]['next_tick_epoch']===null,'full public universe creates dormant reserve');
+$id='acct-'.bin2hex(random_bytes(10));$tok=bin2hex(random_bytes(32));
+$exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$id,$id,'fixture']);
+$exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$tok),$id,time()+3600]);
+try{$cs->joinPublic($tok,'public-career-full-09',$secret,$pw);throw new RuntimeException('Full world accepted');}catch(DomainException $expected){}
+$next=$cs->joinPublic($tok,'public-career-auto-09',$secret);
+ck($next['world_id']===$dir['universes'][1]['world_id']&&!$next['state_reset'],'next newcomer selects fresh reserve');
+echo "PASS WP119 public shared career pool, reserve, late admission and autonomous clock\n";

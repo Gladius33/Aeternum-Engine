@@ -78,6 +78,15 @@ final class AlphaGateway
                 $token=substr($h['authorization'],7);
                 $cs=new PdoCareerInstitutionStore($this->db(),new CareerInstitutionEvidence($secret));
                 try{
+                    if($method==='GET'&&preg_match('~^/api/v1/career-worlds/public(?:/([1-9][0-9]{0,5}))?$~D',$path,$pg))
+                        return self::ok(200,$cs->publicDirectory($token,isset($pg[1])?(int)$pg[1]:1));
+                    if($path==='/api/v1/career-worlds/join'&&$method==='POST'){
+                        AlphaAccounts::fields($body,[...(array_key_exists('world_id',$body)?['world_id']:[]),...(array_key_exists('reference_id',$body)?['reference_id']:[]),...(array_key_exists('fictional',$body)?['fictional']:[])]);
+                        foreach(['world_id','reference_id'] as $k)if(array_key_exists($k,$body)&&!is_string($body[$k]))throw new AlphaHttpError(422,'invalid_public_career_join');
+                        if(array_key_exists('fictional',$body)&&!is_array($body['fictional']))throw new AlphaHttpError(422,'invalid_fictional');
+                        if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
+                        return self::ok(201,$cs->joinPublic($token,$h['idempotency-key'],$secret,$body['world_id']??null,$body['reference_id']??null,$body['fictional']??null));
+                    }
                     if($path==='/api/v1/career-worlds'&&$method==='POST'){
                         AlphaAccounts::fields($body,['label',...(array_key_exists('profile',$body)?['profile']:[]),...(array_key_exists('country',$body)?['country']:[]),...(array_key_exists('reference_id',$body)?['reference_id']:[]),...(array_key_exists('fictional',$body)?['fictional']:[])]);if(array_key_exists('fictional',$body)&&!is_array($body['fictional']))throw new AlphaHttpError(422,'invalid_fictional');if(array_key_exists('reference_id',$body)&&!is_string($body['reference_id']))throw new AlphaHttpError(422,'invalid_reference');if(array_key_exists('country',$body)&&!is_string($body['country']))throw new AlphaHttpError(422,'invalid_country');if(isset($body['profile'])&&!is_string($body['profile']))throw new AlphaHttpError(422,'invalid_profile');if(array_key_exists('profile',$body)&&$body['profile']===null)throw new AlphaHttpError(422,'invalid_profile');if(!is_string($body['label']))throw new AlphaHttpError(422,'invalid_label');
                         if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');

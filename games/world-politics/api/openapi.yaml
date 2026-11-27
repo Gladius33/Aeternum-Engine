@@ -31,6 +31,52 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /career-worlds/public:
+    get:
+      summary: List public French economic multi-office career universes
+      responses:
+        '200': {description: Public capacity and membership; no competitive score}
+        '404': {description: Feature disabled}
+  /career-worlds/public/{page}:
+    get:
+      summary: Paginated public career universe directory
+      parameters:
+        - in: path
+          name: page
+          required: true
+          schema: {type: integer, minimum: 1, maximum: 100000}
+      responses:
+        '200': {description: Public career directory page}
+  /career-worlds/join:
+    post:
+      summary: Join an existing shared career universe or allocate a reserve atomically; no office grant
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                world_id: {type: string, description: Optional selected public universe; otherwise oldest available or existing membership}
+                reference_id: {type: string, description: Approved programme edition only}
+                fictional:
+                  type: object
+                  additionalProperties: false
+                  required: [name]
+                  properties:
+                    name: {type: string, minLength: 1, maxLength: 160}
+                    biography: {type: string, maxLength: 2000}
+                    measure_ids: {type: array, maxItems: 15, uniqueItems: true, items: {type: string}}
+      responses:
+        '201': {description: Idempotent membership and career receipt; no mandate conferred}
+        '409': {description: World full, unavailable, identity or idempotency conflict}
+        '428': {description: Idempotency key required}
   /career-worlds:
     post:
       summary: Create isolated career sandbox with fictional or approved real identity (opt-in)

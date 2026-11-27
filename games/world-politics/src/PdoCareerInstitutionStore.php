@@ -386,6 +386,104 @@ final class PdoCareerInstitutionStore
             return ['world_id'=>$world,'account_id'=>$target,'membership'=>'viewer','office_granted'=>false];
         });
     }
+
+    private const PUBLIC_CAPACITY=8; // 22 documentary AI + at most 8 additional human careers; existing ballot cap is 30.
+    private const SERVICE_OWNER='acct-00000000000000000000000000000000';
+
+    private function lockPublicPool():void{
+        CareerInstitutionLedger::check($this->db->inTransaction()&&(int)$this->query('SELECT pool_id FROM wp_universe_pool WHERE pool_id=1 FOR UPDATE')->fetchColumn()===1,'public career allocation lock');
+    }
+    private function createPublicLocked(string $secret):array{
+        $world='world-'.bin2hex(random_bytes(16));$day=CareerScoreContract::START;
+        $key=hash('sha256','public-career-v1|'.$world);
+        $this->query('INSERT INTO wp_alpha_worlds(world_id,owner_id,create_key,request_sha,label,scenario) VALUES(?,?,?,?,?,?)',
+            [$world,self::SERVICE_OWNER,$key,$key,'Univers carrière '.substr($world,6,10),'wp-career-v1']);
+        $this->query('INSERT INTO wp_world_clock(world_id,committed_day,revision) VALUES(?,?,0)',[$world,$day]);
+        WorldMutationFence::seed($this->db,$world);
+        $s=CareerInstitutionLedger::initial($world,'FR','career',$day);$j=CareerInstitutionLedger::json($s);
+        $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
+        require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);
+        $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
+        $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>0,'command'=>'participation-opening-v1','actor'=>'career-participation-clerk','operation'=>'participation_enable','payload'=>['version'=>CareerParticipation::VERSION]];
+        $e['evidence_sha']=CareerParticipation::digest($e);$this->applyLocked($e,$this->evidence->sign($e));
+        $this->query('INSERT INTO wp_career_public_worlds(world_id) VALUES(?)',[$world]);
+        return ['world_id'=>$world,'universe_no'=>(int)$this->db->lastInsertId()];
+    }
+    private static function seasonEnd():string{
+        return (new \DateTimeImmutable(CareerScoreContract::START))->modify('+'.CareerScoreContract::HORIZON.' days')->format('Y-m-d');
+    }
+    /** A pending clock or temporary lock is not an excuse to create worlds.
+     * Keep one immediately allocated reserve only when no capacity remains. */
+    private function ensurePublicSpare(string $secret):?array{
+        $exists=$this->query('SELECT 1 FROM wp_career_public_worlds p JOIN wp_world_clock c USING(world_id)
+            WHERE c.game_over=0 AND c.committed_day<? AND (SELECT COUNT(*) FROM wp_alpha_members m WHERE m.world_id=p.world_id)<p.capacity LIMIT 1',[self::seasonEnd()])->fetchColumn();
+        return $exists===false?$this->createPublicLocked($secret):null;
+    }
+    public function publicDirectory(string $token,int $page=1):array{
+        CareerInstitutionLedger::check($page>=1&&$page<=100000,'invalid directory page');
+        return $this->tx(function()use($token,$page){
+            $account=$this->sessionAccount($token);$offset=($page-1)*50;
+            $rows=$this->query('SELECT p.universe_no,p.world_id,p.capacity,p.tick_seconds,p.next_tick_epoch,c.committed_day,c.pending_day,c.game_over,
+                (SELECT COUNT(*) FROM wp_alpha_members m WHERE m.world_id=p.world_id) member_count,
+                EXISTS(SELECT 1 FROM wp_career_memberships m WHERE m.world_id=p.world_id AND m.account_id=?) is_member
+                FROM wp_career_public_worlds p JOIN wp_world_clock c USING(world_id) ORDER BY p.universe_no LIMIT 50 OFFSET '.$offset,[$account])->fetchAll(\PDO::FETCH_ASSOC);
+            foreach($rows as &$r){
+                $r['universe_no']=(int)$r['universe_no'];$r['capacity']=(int)$r['capacity'];$r['member_count']=(int)$r['member_count'];
+                $r['vacant']=$r['capacity']-$r['member_count'];$r['tick_seconds']=(int)$r['tick_seconds'];$r['is_member']=(bool)$r['is_member'];
+                $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['committed_day']<self::seasonEnd()&&$r['vacant']>0;
+                unset($r['pending_day'],$r['game_over']);
+            }unset($r);
+            return ['universes'=>$rows,'page'=>$page,'country'=>'FR','profile'=>'public-economic-career-v1','international_career_pool'=>false,'rankable'=>false];
+        });
+    }
+    /** Join a shared economic career universe, never acquire a particular
+     * office by joining. An explicit world ID may select a different universe.
+     * Pool allocation, admission, receipt and immediate reserve creation are atomic. */
+    public function joinPublic(string $token,string $key,string $secret,?string $world=null,?string $reference=null,?array $fictional=null):array{
+        CareerInstitutionLedger::check(preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)===1&&($world===null||preg_match('/^world-[a-f0-9]{32}$/D',$world)===1),'invalid public join');
+        require_once __DIR__.'/CareerProgrammeAutonomy.php';
+        CareerInstitutionLedger::check($reference===null||$fictional===null,'identity choices are exclusive');
+        if($fictional!==null)$fictional=CareerProgrammeAutonomy::normalizeFictional($fictional,'FR');
+        $key=hash('sha256',$key);$fingerprint=CareerInstitutionLedger::digest(['world'=>$world,'reference'=>$reference,'fictional'=>$fictional]);
+        return $this->tx(function()use($token,$key,$secret,$world,$reference,$fictional,$fingerprint){
+            $this->lockPublicPool();$account=$this->sessionAccount($token);
+            $prior=$this->query('SELECT request_sha,response_json FROM wp_career_public_receipts WHERE account_id=? AND receipt_key=?',[$account,$key])->fetch(\PDO::FETCH_ASSOC);
+            if($prior!==false){
+                CareerInstitutionLedger::check(hash_equals($prior['request_sha'],$fingerprint),'public join receipt conflict');
+                $receipt=self::decode($prior['response_json']);$this->activeAccount($receipt['world_id'],$account);
+                CareerInstitutionLedger::check($this->query('SELECT career_id FROM wp_career_memberships WHERE world_id=? AND account_id=?',[$receipt['world_id'],$account])->fetchColumn()===$receipt['career_id'],'stale public admission receipt');
+                return $receipt;
+            }
+            if($world===null){
+                // Prefer the caller's existing universe, otherwise the oldest available place.
+                $world=$this->query('SELECT p.world_id FROM wp_career_public_worlds p JOIN wp_career_memberships m USING(world_id)
+                    JOIN wp_world_clock c USING(world_id) WHERE m.account_id=? AND c.game_over=0 AND c.committed_day<? ORDER BY p.universe_no LIMIT 1',[$account,self::seasonEnd()])->fetchColumn();
+                if($world===false){
+                    $this->ensurePublicSpare($secret);
+                    $world=$this->query('SELECT p.world_id FROM wp_career_public_worlds p JOIN wp_world_clock c USING(world_id)
+                        WHERE c.game_over=0 AND c.committed_day<? AND c.pending_day IS NULL
+                        AND (SELECT COUNT(*) FROM wp_alpha_members m WHERE m.world_id=p.world_id)<p.capacity ORDER BY p.universe_no LIMIT 1',[self::seasonEnd()])->fetchColumn();
+                }
+            }
+            CareerInstitutionLedger::check(is_string($world),'no available public career world');
+            $clock=$this->clock($world);
+            $p=$this->query('SELECT p.universe_no,p.capacity,c.game_over FROM wp_career_public_worlds p JOIN wp_world_clock c USING(world_id) WHERE p.world_id=? FOR UPDATE',[$world])->fetch(\PDO::FETCH_ASSOC);
+            CareerInstitutionLedger::check($p!==false&&(int)$p['capacity']===self::PUBLIC_CAPACITY&&(int)$p['game_over']===0&&$clock['committed_day']<self::seasonEnd(),'public career world unavailable');
+            $member=$this->query('SELECT role FROM wp_alpha_members WHERE world_id=? AND account_id=? FOR UPDATE',[$world,$account])->fetchColumn();
+            if($member===false){
+                CareerInstitutionLedger::check((int)$this->query('SELECT COUNT(*) FROM wp_alpha_members WHERE world_id=?',[$world])->fetchColumn()<self::PUBLIC_CAPACITY,'public career world full');
+                $this->query("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'viewer')",[$world,$account]);
+            }else CareerInstitutionLedger::check($member==='viewer','public owner privilege forbidden');
+            $view=$this->admitLocked($world,$account,$clock,$secret,$reference,$fictional);
+            $this->query('UPDATE wp_career_public_worlds SET next_game_day=DATE_ADD(?,INTERVAL 1 DAY),next_tick_epoch=UNIX_TIMESTAMP()+tick_seconds WHERE world_id=? AND next_tick_epoch IS NULL',[$clock['committed_day'],$world]);
+            $spare=$this->ensurePublicSpare($secret);
+            $receipt=['world_id'=>$world,'universe_no'=>(int)$p['universe_no'],'career_id'=>$view['career']['id'],'country'=>'FR',
+                'handover_day'=>$clock['committed_day'],'new_universe'=>$spare,'state_reset'=>false,'office_granted_by_join'=>false,'rankable'=>false];
+            $this->query('INSERT INTO wp_career_public_receipts(account_id,receipt_key,request_sha,response_json) VALUES(?,?,?,?)',[$account,$key,$fingerprint,CareerInstitutionLedger::json($receipt)]);
+            return self::decode(CareerInstitutionLedger::json($receipt));
+        });
+    }
+
     /** Private institution-only sandbox; never grants legacy ownership powers. */
     public function createForSession(string $token,string $label,string $key,string $secret,string $profile='institutional',string $country='FR',?string $reference=null,?array $fictional=null):array{
         CareerInstitutionLedger::check(in_array($profile,['institutional','economic'],true)&&InstitutionalRulebook::hasRules($country)&&($country==='FR'||$profile==='institutional'),'unknown or unsupported career profile');
