@@ -134,3 +134,6 @@ Migration 037 widens programme storage to 40 characters for extended canonical m
 
 
 Apply migration 038 after 037. Extended canonical masks retain old profile encodings; primary-family repeals require the corresponding pinned base catalogue entries. The wider catalogue bound is restricted to cohort-model scenarios. The quantitative routes remain uncalibrated scenario models.
+
+
+The WP114 civic routes require actual constitutional publication and independent simulation transitions. No migration is necessary for these optional aggregate fields. The RIC is limited to the initial reviewed reporting question and synthetic signatures; the franchise model uses fictional registration shares, not actual individual rights or demographics.

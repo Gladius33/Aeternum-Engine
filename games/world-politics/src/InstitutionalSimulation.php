@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/CivicReform.php';
 
 require_once __DIR__.'/InstitutionalRulebook.php';
 require_once __DIR__.'/ComparativeGovernment.php';
@@ -67,6 +68,7 @@ final class InstitutionalSimulation
         if(array_key_exists('formation_protocol',$state))$expected[]='formation_protocol';
         if(array_key_exists('autonomous_formation',$state))$expected[]='autonomous_formation';
         if(array_key_exists('revision_requests',$state))$expected[]='revision_requests';
+        if(array_key_exists('civic_initiative',$state))$expected[]='civic_initiative';
         if(array_key_exists('senate',$state))$expected[]='senate';
         if(array_key_exists('cabinet_requests',$state))$expected[]='cabinet_requests';
         if(array_key_exists('finance_requests',$state))$expected[]='finance_requests';
@@ -137,6 +139,11 @@ final class InstitutionalSimulation
                     $history=array_values(array_filter($l['history'],fn($h)=>$h['kind']==='election_install'));
                     if(count($history)!==$rec['completed'])throw new \DomainException('Recurring election archive mismatch');
                     $installed=$history===[]?null:$history[array_key_last($history)]['election'];
+                    $franchiseOn=$state['revision']['effective_clauses']['3-franchise']['effective_on']??null;
+                    foreach([...array_column($history,'election'),$state['electoral']] as $cycle){
+                        if(FrenchRecurringElections::matches($cycle,true)&&!FrenchRecurringElections::matches($cycle,false)
+                            &&($franchiseOn===null||$franchiseOn>$cycle['start_day']))throw new \DomainException('Expanded electorate lacks effective franchise authority');
+                    }
                     if($installed!==null&&$state['last_election']!==($installed['config']['runoff_day']??$installed['config']['poll_day']))throw new \DomainException('Last election mismatch');
                 }
                 if(!isset($state['electoral'])||$state['electoral']['seats_total']!==577||
@@ -145,6 +152,11 @@ final class InstitutionalSimulation
             }
         }
         if(isset($state['revision_requests']))RevisionAutonomy::validate($state);
+        if(isset($state['civic_initiative'])){
+            $v=CivicReform::restore($state['civic_initiative']);
+            if($v['day']!==$state['day']||$v['world_id']!==$state['world_id']||$state['country_code']!=='FR'
+                ||$v['proof']!==CivicReform::proof($state['revision'],$state['world_id'],$state['day'],'initiative'))throw new \DomainException('Civic initiative legal source mismatch');
+        }
         if(isset($state['senate'])&&($state['country_code']!=='FR'||$state['senate']!==FrenchSenateCycle::project($state['world_id'],$state['day'])))throw new \DomainException('Senate projection mismatch');
         if(isset($state['cabinet_requests']))CabinetRequests::validate($state);
         if(isset($state['finance_requests']))FinanceRequests::validate($state);
@@ -236,7 +248,7 @@ final class InstitutionalSimulation
                 if(($this->state['electoral']['status']??null)!=='scheduled'||!ParliamentaryLifecycle::quiet($this->state['legislation']['responsibility'])
                     ||($this->state['revision']['context']['presidential_vacancy']??false)||($this->state['revision']['context']['definitive_incapacity']??false))
                     throw new \DomainException('Dissolution unavailable during unresolved proceedings');
-                $this->state['electoral']=(new ElectoralCycle($this->state['world_id'],'FR',$day,FrenchRecurringElections::early($day)))->snapshot();
+                $this->state['electoral']=(new ElectoralCycle($this->state['world_id'],'FR',$day,FrenchRecurringElections::early($day,isset($this->state['revision']['effective_clauses']['3-franchise']))))->snapshot();
                 $this->state['political_ai']=PoliticalNegotiator::evaluate($this->state['electoral']);
             }
             $earliest=self::plus($day,$rules['dissolution']['election_min_days']);
@@ -399,7 +411,7 @@ final class InstitutionalSimulation
             self::keys($payload,['template',...($auto?['ratification_route']:[])]);
             if($auto&&(!isset($this->state['revision_requests'])||!in_array($payload['ratification_route'],['congress','referendum'],true)||$this->state['legislature']!=='sitting'))throw new \DomainException('Autonomous revision unavailable');
             if(!is_string($payload['template']))throw new \InvalidArgumentException('Invalid template');
-            if($auto&&$payload['template']==='presidential-seven-year-referendum'&&$payload['ratification_route']!=='referendum')throw new \DomainException('Duration reform requires referendum');
+            if($auto&&in_array($payload['template'],['presidential-seven-year-referendum','citizen-initiative-500k','resident-worker-franchise'],true)&&$payload['ratification_route']!=='referendum')throw new \DomainException('Duration reform requires referendum');
             $result=['procedure'=>$r->draft($commandId,$payload['template']),'legal_effect'=>false];
             if($auto){$this->state['revision_requests'][$commandId]=RevisionAutonomy::request($this->state,$commandId,$payload['ratification_route']);$result['request']=$this->state['revision_requests'][$commandId];}
         }elseif($action==='revision_evidence'&&$role==='revision_clerk'){
@@ -491,7 +503,7 @@ final class InstitutionalSimulation
             if(isset($this->state['recurring_elections'])){
                 $e=$el->snapshot();$lc=$this->state['legislation']['responsibility']['lifecycle'];
                 if($e['status']==='results'&&$lc['election_digest']===ParliamentaryLifecycle::digest($e)){
-                    $el=new ElectoralCycle($e['world_id'],'FR',$targetDay,FrenchRecurringElections::ordinary($targetDay,(int)substr($this->state['last_election'],0,4)));
+                    $el=new ElectoralCycle($e['world_id'],'FR',$targetDay,FrenchRecurringElections::ordinary($targetDay,(int)substr($this->state['last_election'],0,4),isset($this->state['revision']['effective_clauses']['3-franchise'])));
                 }
             }
             // Pin automatic negotiation to the actual result day, including
@@ -546,6 +558,11 @@ final class InstitutionalSimulation
         if(isset($this->state['finance_requests'])&&$this->state['finance_requests']!==[])$this->state=FinanceRequests::advance($this->state);
         if(isset($this->state['legislation']['national_service']))$this->state=NationalServiceLaw::advance($this->state);
         if(isset($this->state['revision_requests'])&&$this->state['revision_requests']!==[])$this->state=RevisionAutonomy::advance($this->state,$opinion);
+        if(isset($this->state['revision']['effective_clauses']['fictional-citizen-initiative'])){
+            $proof=CivicReform::proof($this->state['revision'],$this->state['world_id'],$targetDay,'initiative');
+            if(!isset($this->state['civic_initiative']))$this->state['civic_initiative']=CivicReform::initial($this->state['world_id'],$proof);
+            if($this->state['civic_initiative']['day']<$targetDay)$this->state['civic_initiative']=CivicReform::advance($this->state['civic_initiative'],$targetDay,$opinion);
+        }
         $this->state['agenda']=$remain;
         if(isset($this->state['recurring_elections']['requests']))$this->advanceDissolutionRequests($targetDay);
         return ['day'=>$targetDay,'processed'=>$applied,

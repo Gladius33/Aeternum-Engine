@@ -354,3 +354,10 @@ $q114e->execute([$spare]);$ci=json_decode($q114e->fetchColumn(),true,64,JSON_THR
 ck102(count(array_filter($ci['legislation']['bills'],fn($b)=>$b['policy_id']===$coId))===1,'WP114 collective property has its own legal instrument');
 $q114->execute([$spare]);$cd=json_decode($q114->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
 ck102(!isset($cd['days'][array_key_last($cd['days'])]['public_equity']['collective']),'WP114 mere draft conveys no title');
+
+
+foreach(['pf2022-nicolas-dupont-aignan-4'=>'citizen-initiative-500k','pf2022-nathalie-arthaud-4'=>'resident-worker-franchise'] as $id=>$template){
+    ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>[$id]],8)['status']===200,'WP114 civic programme accepted '.$id);
+    $cs=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+    ck102($cs['agenda']['revision']===$template&&$cs['agenda']['ratification']==='referendum','WP114 durable civic programme '.$id);
+}

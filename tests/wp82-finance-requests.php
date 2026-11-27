@@ -243,7 +243,7 @@ no82(fn()=>SE::calculate([],[],'2027-09-11',$pop,$services,$base,null,['job_guar
 
 require_once __DIR__.'/../games/world-politics/src/HistoricalProgrammeCoverage.php';
 $historicalCoverage=\Aeternum\WorldPolitics\HistoricalProgrammeCoverage::report();
-ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===2&&$historicalCoverage['additional_executable_count']===45,'WP114i separate all twelve source inventories from executable historical measures');
+ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===0&&$historicalCoverage['additional_executable_count']===47,'WP114i separate all twelve source inventories from executable historical measures');
 ck82(!$historicalCoverage['wp114_closure_qualified'],'WP114i no false exhaustive coverage');
 ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['employment_bps'][2]===[2017,2900,8060,6230,6540],'WP114j exact verified INSEE training anchors');
 
@@ -389,3 +389,46 @@ ck82($eqCo['collective']['governance']['fixture-large']['worker_board_bps']===50
 $eqCo=PE::advance($eqCo,'2027-10-13',null,$cfgCo,100000000000,true);
 $eqCo=CO::apply($eqCo,$cfgCo,[],[$co=>$coLaw],'2027-10-13',100000000000,true);
 ck82($eqCo['paid_today_minor']===0&&$eqCo['positions']['fixture-large']['stake_bps']===10000,'WP114 abrogation does not confiscate previous acquired title');
+
+
+// WP114 civic reforms: legal publication, independent signature threshold,
+// separate binding referendum and prospective registration only.
+use Aeternum\WorldPolitics\{CivicReform as CV,FrenchRecurringElections as FRE,ElectoralCycle as EC};
+require_once __DIR__.'/../games/world-politics/src/CivicReform.php';
+$ricId='pf2022-nicolas-dupont-aignan-4';$franchiseId='pf2022-nathalie-arthaud-4';
+ck82(PP::agenda(PP::compileProfile([$ricId]))['revision']==='citizen-initiative-500k','WP114 citizen initiative objective');
+ck82(PP::agenda(PP::compileProfile([$franchiseId]))['revision']==='resident-worker-franchise','WP114 franchise objective');
+no82(fn()=>PP::compileProfile([$ricId,$franchiseId]));
+function civicProof82(string $template,string $type):array{
+    $r=new CR('world-test','2027-05-14');$d=$r->draft('civic-reform',$template);$sha=$d['text_sha'];$n=0;
+    $e=function(string $kind,array $data)use($r,&$n){return $r->certify(['world_id'=>'world-test','country'=>'FR','day'=>'2027-05-14','evidence_id'=>'civic-e-'.(++$n),'revision_id'=>'civic-reform','kind'=>$kind,'procedure_certified'=>true,'data'=>$data]);};
+    ck82(CV::proof($r->snapshot(),'world-test','2027-05-14',$type)===null,'WP114 draft alone grants no civic rights');
+    $e('file',['initiative'=>'government_project','sponsor'=>'president','prime_minister_proposal'=>true,'republican_form_preserved'=>true]);
+    foreach(['assembly','senate'] as $ch)$e('chamber_vote',['chamber'=>$ch,'text_sha'=>$sha,'yes'=>200,'no'=>100,'abstain'=>0,'blank_invalid'=>0]);
+    no82(fn()=>$e('route',['route'=>'congress','presidential_decision'=>true]));
+    $e('route',['route'=>'referendum','presidential_decision'=>true]);$e('ratify',['route'=>'referendum','text_sha'=>$sha,'yes'=>60000,'no'=>40000,'abstain'=>0,'blank_invalid'=>0]);
+    ck82(CV::proof($r->snapshot(),'world-test','2027-05-14',$type)===null,'WP114 adopted but unpublished reform ineffective');
+    $e('promulgate',['text_sha'=>$sha,'published_on'=>'2027-05-14']);
+    return CV::proof($r->snapshot(),'world-test','2027-05-14',$type);
+}
+$ricProof=civicProof82('citizen-initiative-500k','initiative');
+$civic=CV::initial('world-test',$ricProof);$firstPoll=null;
+for($n=1;$n<=650;$n++){
+    $day=(new DateTimeImmutable('2027-05-14'))->modify('+'.$n.' days')->format('Y-m-d');
+    $o=['world_id'=>'world-test','day'=>$civic['day'],'approval'=>900,'sha'=>str_repeat('a',64)];
+    $civic=CV::advance($civic,$day,$o);
+    if($civic['poll_day']!==null&&$firstPoll===null){$firstPoll=$civic['poll_day'];ck82($civic['signatures']===500000&&$firstPoll>$day,'WP114 only threshold schedules vote');}
+}
+ck82($civic['status']==='effective'&&$civic['ballot']['yes']>$civic['ballot']['no']&&count($civic['reports'])===1,'WP114 independent binding vote creates annual reporting obligation');
+ck82(CV::restore($civic)===$civic,'WP114 complete civic history replay');
+$badCivic=$civic;$badCivic['signatures']++;no82(fn()=>CV::restore($badCivic));
+$frProof=civicProof82('resident-worker-franchise','franchise');
+$frPres=PRES::initial('world-test','2027-05-14',PRES::investitureFixture());
+$pollFr=$frPres['first_round_day'];
+for($day='2027-05-15';$day<=$pollFr;$day=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d'))
+    $frPres=PRES::advance($frPres,$day,800,null,null,$frProof);
+ck82($frPres['first_result']['registered']===105000&&$frPres['franchise_for_cycle'],'WP114 presidential electorate expanded by fictional 5 percent');
+$normalFr=FRE::early('2028-01-01');$newFr=FRE::early('2028-01-01',true);
+$eFr=new EC('world-test','FR','2028-01-01',$newFr);
+ck82(FRE::matches($eFr->snapshot(),true)&&!FRE::matches($eFr->snapshot(),false),'WP114 prospective assembly electorate canonical');
+ck82(array_sum(array_column($newFr['districts'],'registered'))>array_sum(array_column($normalFr['districts'],'registered')),'WP114 actual expanded assembly registers');

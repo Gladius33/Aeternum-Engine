@@ -17,7 +17,9 @@ final class ConstitutionalRevision
             'environment-report'=>['article'=>'fictional-89-a','text'=>'An annual public report describes the state of the environment and the implementation of environmental commitments.'],
             'institutional-report'=>['article'=>'fictional-89-b','text'=>'An annual public report describes the functioning of parliamentary institutions and access to their public records.'],
             'remove-presidential-term-limit'=>['article'=>'6','text'=>'In this fictional constitutional revision, the second paragraph of Article 6 is repealed. The five-year presidential term, popular election and republican form remain unchanged.'],
-            'presidential-seven-year-referendum'=>['article'=>'6-duration','text'=>'In this fictional constitutional revision, the President is elected for seven years from the next investiture. The incumbent term and existing consecutive-term limit are not modified. Ratification by referendum is required.']
+            'presidential-seven-year-referendum'=>['article'=>'6-duration','text'=>'In this fictional constitutional revision, the President is elected for seven years from the next investiture. The incumbent term and existing consecutive-term limit are not modified. Ratification by referendum is required.'],
+            'citizen-initiative-500k'=>['article'=>'fictional-citizen-initiative','text'=>'In this fictional revision, 500,000 verified citizen signatures trigger a binding national vote on an eligible reviewed ordinary-law proposal. Ratification by referendum is required.'],
+            'resident-worker-franchise'=>['article'=>'3-franchise','text'=>'In this fictional revision, adult resident non-citizen workers are eligible for national elections from the next electoral registration cycle. Ratification by referendum is required.']
         ];
     }
     public function __construct(string $world,string $day)
@@ -41,6 +43,7 @@ final class ConstitutionalRevision
         if(isset($this->s['procedures'][$id])||count($this->s['procedures'])>=100||count($this->s['history'])>=2000)
             throw new \DomainException('Duplicate or excessive revision draft');
         if($template==='remove-presidential-term-limit'&&isset($this->s['effective_clauses']['6']))throw new \DomainException('Article 6 already revised');
+        if(in_array($template,['citizen-initiative-500k','resident-worker-franchise','presidential-seven-year-referendum'],true)&&isset($this->s['effective_clauses'][$item['article']]))throw new \DomainException('Civic clause already effective');
         $p=['id'=>$id,'template'=>$template,'text'=>$item['text'],'article'=>$item['article'],
             'text_sha'=>hash('sha256',$item['text']),'base_version'=>$this->s['constitution_version'],
             'status'=>'draft','initiative'=>null,'sponsor'=>null,'votes'=>[],'route'=>null,'final_vote'=>null,
@@ -98,7 +101,7 @@ final class ConstitutionalRevision
                 case 'route':
                     self::fields($d,['route','presidential_decision']);
                     if($p['status']!=='chambers_approved'||!in_array($d['route'],['referendum','congress'],true)
-                        ||$d['presidential_decision']!==true||($d['route']==='congress'&&($p['initiative']!=='government_project'||$p['template']==='presidential-seven-year-referendum')))
+                        ||$d['presidential_decision']!==true||($d['route']==='congress'&&($p['initiative']!=='government_project'||in_array($p['template'],['presidential-seven-year-referendum','citizen-initiative-500k','resident-worker-franchise'],true))))
                         throw new \DomainException('Invalid ratification route');
                     $p['route']=$d['route'];$p['status']='ratification_pending';break;
                 case 'ratify':

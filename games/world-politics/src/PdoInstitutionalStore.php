@@ -216,7 +216,7 @@ final class PdoInstitutionalStore
                 $result=$simulation->accountability($role,$action,$e,$commandId);
             } else {
                 $opinion=null;
-                if($clock&&($simulation->snapshot()['revision_requests']??[])!==[]){
+                if($clock&&(($simulation->snapshot()['revision_requests']??[])!==[]||isset($simulation->snapshot()['revision']['effective_clauses']['fictional-citizen-initiative']))){
                     require_once __DIR__.'/PublicOpinion.php';
                     $q=$this->pdo->prepare('SELECT state_json,state_sha FROM wp_opinion_states WHERE world_id=?');$q->execute([$world]);$o=$q->fetch(\PDO::FETCH_ASSOC);
                     if($o===false)throw new \DomainException('Missing committed opinion for revision');

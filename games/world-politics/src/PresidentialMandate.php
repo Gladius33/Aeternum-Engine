@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CampaignLifecycle.php';
 require_once __DIR__.'/FrenchElectionCalendar.php';
 require_once __DIR__.'/ConstitutionalRevision.php';
+require_once __DIR__.'/CivicReform.php';
 
 /** WP38: presidential term and fictional national ballots, independent of
  * parliamentary seats. No real candidates, predictive electoral data or
@@ -52,7 +53,7 @@ final class PresidentialMandate
             ...($published?['calendar_version'=>FrenchElectionCalendar::VERSION,'calendar_status'=>$dates['status'],'candidacy_lock_day'=>$dates['candidacy_lock'],'term_limit'=>2,'term_limit_revision'=>null,'candidacy_locked'=>false]:[]),
             'officeholder'=>CampaignLifecycle::PLAYER,'successor'=>null,'handover_on'=>null,'reason'=>null,'elections'=>[]];
     }
-    public static function advance(array $s,string $day,?int $priorApproval=null,?array $termLimitRevision=null,?array $termLengthRevision=null):array
+    public static function advance(array $s,string $day,?int $priorApproval=null,?array $termLimitRevision=null,?array $termLengthRevision=null,?array $franchiseRevision=null):array
     {
         self::day($day);
         if($s['version']!==self::VERSION||$s['status']==='ended'||$day!==self::shift($s['day'],1))
@@ -67,14 +68,19 @@ final class PresidentialMandate
             if($termLengthRevision!==null)ConstitutionalRevision::validateTermLengthProof($termLengthRevision,$day);
             if(isset($s['term_length_revision'])&&$s['term_length_revision']!==$termLengthRevision)throw new \DomainException('Effective duration proof cannot disappear');
             if($termLengthRevision!==null){$s['term_length_revision']=$termLengthRevision;$s['next_term_years']=$termLengthRevision['next_term_years'];}
+            if($franchiseRevision!==null)CivicReform::validateProof($franchiseRevision,$day,'franchise');
+            if(isset($s['franchise_revision'])&&$s['franchise_revision']!==$franchiseRevision)throw new \DomainException('Effective franchise proof cannot disappear');
+            if($franchiseRevision!==null)$s['franchise_revision']=$franchiseRevision;
             if(!$s['candidacy_locked']){
+                if($franchiseRevision!==null)$s['franchise_for_cycle']=true;
                 $s['eligible_for_re_election']=$s['term_limit']===null||$s['consecutive_terms']<$s['term_limit'];
                 if($day>=$s['candidacy_lock_day'])$s['candidacy_locked']=true;
             }
-        }elseif($termLimitRevision!==null||$termLengthRevision!==null)throw new \DomainException('Legacy electoral rules pinned');
+        }elseif($termLimitRevision!==null||$termLengthRevision!==null||$franchiseRevision!==null)throw new \DomainException('Legacy electoral rules pinned');
         $s['day']=$day;
         if($day===$s['first_round_day']||$day===$s['second_round_day']){
             $cycle=$s['config']['cycles'][$published?($s['eligible_for_re_election']?0:1):$s['cycle_index']];
+            if($s['franchise_for_cycle']??false)$cycle=CivicReform::expandDistrict($cycle);
             $counts=self::countElection($cycle,$s['eligible_for_re_election']);
             if($priorApproval!==null&&$s['eligible_for_re_election']){
                 $registered=$cycle['registered'];
@@ -161,7 +167,9 @@ final class PresidentialMandate
         self::day($day);$start=$campaign['ended_on'];
         if($day<$start)throw new \DomainException('Vacancy day before termination');
         $first=self::shift($start,21);$second=self::shift($start,35);$handover=self::shift($start,36);
-        $counts=self::countElection($s['config']['cycles'][1],false);
+        $cycle=$s['config']['cycles'][1];
+        if(isset($s['franchise_revision'])&&$s['franchise_revision']['effective_on']<=$start)$cycle=CivicReform::expandDistrict($cycle);
+        $counts=self::countElection($cycle,false);
         $winner=$counts['first']['winner']??$counts['second']['winner']??null;
         $result=$day<$first?null:($counts['first']['winner']!==null?$counts['first']:($day>=$second?$counts['second']:null));
         return ['version'=>'wp112-fictional-vacancy-v1','vacancy_since'=>$start,'day'=>$day,

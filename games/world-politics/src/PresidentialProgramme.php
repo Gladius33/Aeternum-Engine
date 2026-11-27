@@ -14,7 +14,7 @@ final class PresidentialProgramme
      * Immutable action rows retain the exact configuration that produced them. */
     private const EXT=[
         'cabinet'=>['none'=>'n','civic'=>'c','social'=>'s','liberal'=>'l','independent'=>'i'],
-        'revision'=>['none'=>'n','environment-report'=>'e','institutional-report'=>'i','remove-presidential-term-limit'=>'t','presidential-seven-year-referendum'=>'d'],
+        'revision'=>['none'=>'n','environment-report'=>'e','institutional-report'=>'i','remove-presidential-term-limit'=>'t','presidential-seven-year-referendum'=>'d','citizen-initiative-500k'=>'q','resident-worker-franchise'=>'f'],
         'ratification'=>['congress'=>'c','referendum'=>'r'],
         'industry'=>['none'=>'n','active'=>'a','paused'=>'p'],
         'commitments'=>['none'=>'n','request_deferral'=>'d','request_termination'=>'t'],
@@ -38,7 +38,9 @@ final class PresidentialProgramme
     public static function primaryRevisionCatalog():array
     {
         return ['pf2022-jean-lassalle-4'=>['field'=>'revision','value'=>'presidential-seven-year-referendum','ratification'=>'referendum',
-            'route'=>'article89','target'=>['options_years'=>[5,7]],'scope'=>'prospective_seven_year_term_if_approved']];
+            'route'=>'article89','target'=>['options_years'=>[5,7]],'scope'=>'prospective_seven_year_term_if_approved'],
+            'pf2022-nicolas-dupont-aignan-4'=>['field'=>'revision','value'=>'citizen-initiative-500k','ratification'=>'referendum','route'=>'article89','target'=>['signatures'=>500000],'scope'=>'independent_reviewed_citizen_initiative'],
+            'pf2022-nathalie-arthaud-4'=>['field'=>'revision','value'=>'resident-worker-franchise','ratification'=>'referendum','route'=>'article89','target'=>[],'scope'=>'fictional_resident_worker_national_franchise']];
     }
     public static function compileMeasures(array $ids):array
     {
@@ -74,7 +76,7 @@ final class PresidentialProgramme
     }
     public static function socialIds(string $p):?array
     {
-        if(preg_match('/^mix-([01]{2}[nmri][nri][nmris][ncsli][neitd][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$m)){
+        if(preg_match('/^mix-([01]{2}[nmri][nri][nmris][ncsli][neitdqf][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$m)){
             if(self::agenda($p)===null)return null;
             return SocialProgramme::decode('social-'.$m[2]);
         }
@@ -113,18 +115,18 @@ final class PresidentialProgramme
             if(!is_string($v)||!isset($options[$v]))throw new \InvalidArgumentException('Unknown extended objective');
             $suffix.=$options[$v];
         }
-        if(($a['revision']??'none')==='presidential-seven-year-referendum'&&($a['ratification']??'congress')!=='referendum')throw new \InvalidArgumentException('Duration requires referendum');
+        if(in_array($a['revision']??'none',['presidential-seven-year-referendum','citizen-initiative-500k','resident-worker-franchise'],true)&&($a['ratification']??'congress')!=='referendum')throw new \InvalidArgumentException('Duration requires referendum');
         if(($a['revision']??'none')==='none'&&($a['ratification']??'congress')!=='congress')throw new \InvalidArgumentException('Ratification without revision');
         return $base.'-'.$suffix;
     }
     public static function agenda(string $p):?array
     {
-        if(preg_match('/^mix-([01]{2})([nmri])([nri])([nmris])([ncsli][neitd][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$x)){
+        if(preg_match('/^mix-([01]{2})([nmri])([nri])([nmris])([ncsli][neitdqf][cr][nap][ndt])-([a-f0-9]{6}|[a-f0-9]{9}|[0-7][a-f0-9]{15}|[a-f0-9]{24}|[a-f0-9]{32})$/D',$p,$x)){
             if(SocialProgramme::decode('social-'.$x[6])===null)return null;
             $p='custom-'.$x[1].'-'.$x[2].'-'.$x[3].'-'.$x[4].'-'.$x[5];
         }
-        if(!preg_match('/^custom-([01])([01])-([nmri])-([nri])-([nmris])(?:-([ncsli])([neitd])([cr])([nap])([ndt]))?$/D',$p,$m))return null;
-        if(isset($m[6])&&(($m[7]==='n'&&$m[8]!=='c')||($m[7]==='d'&&$m[8]!=='r')))return null;
+        if(!preg_match('/^custom-([01])([01])-([nmri])-([nri])-([nmris])(?:-([ncsli])([neitdqf])([cr])([nap])([ndt]))?$/D',$p,$m))return null;
+        if(isset($m[6])&&(($m[7]==='n'&&$m[8]!=='c')||(in_array($m[7],['d','q','f'],true)&&$m[8]!=='r')))return null;
         $values=['n'=>'none','m'=>'maintain','r'=>'reduce','i'=>'increase','s'=>'stop'];
         $a=['education'=>$m[1]==='1','administration'=>$m[2]==='1','defense'=>$values[$m[3]],'health'=>$values[$m[4]],'ukraine_aid'=>$values[$m[5]]];
         if(isset($m[6])){$i=6;foreach(self::EXT as $k=>$options)$a[$k]=array_flip($options)[$m[$i++]];}
