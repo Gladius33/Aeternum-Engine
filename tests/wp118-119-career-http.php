@@ -208,6 +208,7 @@ ck($afterForeign['body']['occupied_offices'][0]['identity']['person_reference']=
 
 $frd=req('GET',$ep.'/characters',null,$etoken);
 ck($frd['status']===200&&count($frd['body']['characters'])===22,'French directory');
+ck(count($frd['body']['additional_political_references'])===14&&array_filter($frd['body']['additional_political_references'],fn($r)=>$r['playable']||$r['runtime_roster'])===[],'additional political references not silently seeded or unlocked');
 
 ck(req('POST','/career-worlds',['label'=>'Unknown','country'=>'CH'],$etoken,'career-ch-creation-001')['status']===409,'unimplemented rules fail closed');
 echo "PASS WP118 HTTP career sandbox, invitations, admission, replay, principal and legacy isolation\n";

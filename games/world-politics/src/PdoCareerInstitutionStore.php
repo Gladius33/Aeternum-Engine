@@ -178,7 +178,7 @@ final class PdoCareerInstitutionStore
                     'claim_reference'=>$available,'playable'=>$available!==null&&$c['account']===null,
                     'availability_code'=>$available===null?'programme_incomplete':($c['account']===null?'available':'occupied')];
             }
-            return ['world_id'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'characters'=>$out,'fictional_creation_available'=>true,'final_ballot_verified'=>false];
+            return ['world_id'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'characters'=>$out,'additional_political_references'=>$state['country']==='FR'?FrenchPoliticalDirectory::supplementary():[],'fictional_creation_available'=>true,'final_ballot_verified'=>false];
         });
     }
     private function admitLocked(string $world,string $account,array $clock,string $secret,?string $reference=null,?array $fictional=null):array{

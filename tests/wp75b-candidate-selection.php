@@ -27,3 +27,12 @@ $dd['state']['policies']['education']['authorized_on']='2027-05-15';
 $dd['state']['day']='2027-05-16';$dd['state']['days']=[['day'=>'2027-05-15','active_policies'=>[]],['day'=>'2027-05-16','active_policies'=>['education']]];
 $report=\Aeternum\WorldPolitics\ProgrammeProgress::report($rr,$dd);
 ck75b($report['counts']['active_latest_day']===1&&$report['measures'][0]['observed_activity']['active_days']===1&&!$report['score_rules_changed'],'WP92 independently observed policy activation');
+
+$directory=\Aeternum\WorldPolitics\CampaignCandidate::politicalDirectory();
+ck75b($directory['campaign_reference_count']===22&&$directory['supplementary_reference_count']===14&&count($directory['people'])===36,'French political directory expanded without changing ballot');
+$additional=array_column(\Aeternum\WorldPolitics\FrenchPoliticalDirectory::supplementary(),null,'id');
+foreach(['yvan-benedetti','jordan-bardella','francois-ruffin','philippe-poutou','francois-hollande','olivier-faure','sandrine-rousseau','marion-marechal','sarah-knafo','fabien-gay','manuel-bompard','mathilde-panot','eric-ciotti','laurent-wauquiez'] as $id){
+    $r=$additional['real-'.$id];ck75b(!$r['playable']&&!$r['runtime_roster']&&!$r['certified_2027_candidate']&&$r['reviewed_measure_count']===0,'identity observation does not grant programme or authority');
+    ck75b(!\Aeternum\WorldPolitics\CampaignCandidate::mayStart(['type'=>'campaign2027','reference_id'=>'campaign2027-'.$id]),'supplement cannot bypass programme approval');
+}
+ck75b($directory['playable_count']===0,'no unapproved real campaign enabled');

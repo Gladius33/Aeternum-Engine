@@ -1,0 +1,162 @@
+{
+  "schema": "wp-fr-political-person-supplement-v1",
+  "country": "FR",
+  "checked_on": "2026-11-27",
+  "exhaustive": false,
+  "people": [
+    {
+      "id": "real-yvan-benedetti",
+      "name": "Yvan Benedetti",
+      "source_kind": "political_movement_observation",
+      "source_url": "https://www.assemblee-nationale.fr/dyn/15/organes/cnpe/commission-d-enquete-sur-la-lutte-contre-les-groupuscules-d-extreme-droite/documents",
+      "source_period": "2019",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-jordan-bardella",
+      "name": "Jordan Bardella",
+      "source_kind": "european_parliament_reference",
+      "source_url": "https://www.europarl.europa.eu/meps/fr/131580/JORDAN_BARDELLA/home",
+      "source_period": "10th_term",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-francois-ruffin",
+      "name": "François Ruffin",
+      "source_kind": "national_assembly_reference",
+      "source_url": "https://www2.assemblee-nationale.fr/deputes/liste/alphabetique",
+      "source_period": "17th_legislature",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-philippe-poutou",
+      "name": "Philippe Poutou",
+      "source_kind": "historical_presidential_reference",
+      "source_url": "https://npa-lanticapitaliste.org/communique/philippe-poutou-officiellement-candidat-et-convoque-par-la-police",
+      "source_period": "2022",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-francois-hollande",
+      "name": "François Hollande",
+      "source_kind": "national_assembly_reference",
+      "source_url": "https://www2.assemblee-nationale.fr/deputes/liste/tableau",
+      "source_period": "17th_legislature",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-olivier-faure",
+      "name": "Olivier Faure",
+      "source_kind": "national_assembly_reference",
+      "source_url": "https://www2.assemblee-nationale.fr/deputes/liste/groupe-politique",
+      "source_period": "17th_legislature",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-sandrine-rousseau",
+      "name": "Sandrine Rousseau",
+      "source_kind": "national_assembly_reference",
+      "source_url": "https://www2.assemblee-nationale.fr/deputes/liste/alphabetique",
+      "source_period": "17th_legislature",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-marion-marechal",
+      "name": "Marion Maréchal",
+      "source_kind": "european_parliament_reference",
+      "source_url": "https://www.europarl.europa.eu/meps/fr/256922/MARION_MARECHAL/home",
+      "source_period": "10th_term",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-sarah-knafo",
+      "name": "Sarah Knafo",
+      "source_kind": "european_parliament_reference",
+      "source_url": "https://www.europarl.europa.eu/meps/fr/256924/name/cv",
+      "source_period": "10th_term",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-fabien-gay",
+      "name": "Fabien Gay",
+      "source_kind": "senate_reference",
+      "source_url": "https://www.senat.fr/senateur/gay_fabien19695n.html",
+      "source_period": "observed_2026",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-manuel-bompard",
+      "name": "Manuel Bompard",
+      "source_kind": "national_assembly_reference",
+      "source_url": "https://www2.assemblee-nationale.fr/deputes/liste/alphabetique",
+      "source_period": "17th_legislature",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-mathilde-panot",
+      "name": "Mathilde Panot",
+      "source_kind": "national_assembly_reference",
+      "source_url": "https://www2.assemblee-nationale.fr/deputes/liste/alphabetique",
+      "source_period": "17th_legislature",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-eric-ciotti",
+      "name": "Éric Ciotti",
+      "source_kind": "national_assembly_reference",
+      "source_url": "https://www.assemblee-nationale.fr/dyn/deputes/PA330240",
+      "source_period": "17th_legislature",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "id": "real-laurent-wauquiez",
+      "name": "Laurent Wauquiez",
+      "source_kind": "national_assembly_reference",
+      "source_url": "https://www.assemblee-nationale.fr/dyn/deputes/PA267285?departementNumero=01",
+      "source_period": "17th_legislature",
+      "programme_document_sha256": null,
+      "programme_complete": false,
+      "implementation_complete": false,
+      "certified_2027_candidate": false
+    }
+  ]
+}
