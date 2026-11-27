@@ -90,7 +90,7 @@ final class SocialEconomy
         // Offline cost sensitivity is separate from runtime assumptions.
         // It cannot alter proposal targets, statutory rights or deadlines.
         foreach($primarySensitivity as $id=>$params){
-            $d=PrimaryManifestoPolicy::definitions()[$id]??null;
+            $d=(PrimaryManifestoPolicy::definitions()+SocialProgramme::target2027())[$id]??null;
             if($d===null||!in_array($id,$active,true)||!is_array($params))throw new \InvalidArgumentException('Invalid primary sensitivity objective');
             foreach($params as $k=>$v){
                 $b=$d['parameters'][$k]??null;
@@ -181,7 +181,7 @@ final class SocialEconomy
                 $r['daily_expense_delta_minor']=intdiv($n*$a['annual_claim_minor'],365);
             }elseif($family==='representation'){
                 $r['affected_persons_proxy']=$employed;$r['worker_representation_bps']=$t['worker_representation_bps'];
-            }elseif(PrimaryManifestoPolicy::isPolicy(SocialProgramme::objectiveId($id))){
+            }elseif(PrimaryManifestoPolicy::isPolicy(SocialProgramme::objectiveId($id))||isset(SocialProgramme::target2027()[SocialProgramme::objectiveId($id)]['parameters'])){
                 if(isset($primarySensitivity[$id]))$d['parameters']=array_replace($d['parameters'],$primarySensitivity[$id]);
                 $v=PrimaryManifestoPolicy::calculate($d,$policies[$id],$day,$macro,$netFloor,$recipients,$labour,$employed,$prior);
                 $r=array_replace($r,$v);$production+=$v['production_delta_bps']??0;$employment+=$v['employment_delta_bps'];$wage+=$v['wage_premium_bps'];$pensionTransfer+=$v['pension_transfer_delta_minor'];
