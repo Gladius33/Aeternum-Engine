@@ -31,6 +31,60 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /universes:
+    get:
+      operationId: listManagedUniverses
+      summary: List managed alpha universes and national slot availability
+      responses:
+        '200': { description: Paginated pilot universe directory }
+  /universes/join:
+    post:
+      operationId: joinManagedUniverse
+      summary: Claim a vacant national slot without resetting the world
+      parameters:
+        - $ref: '#/components/parameters/idempotency'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [country]
+              properties:
+                country: { type: string, enum: [DE, ES, FR, GB, IT, JP, US] }
+                universe_no: { type: integer, minimum: 1 }
+      responses:
+        '201': { description: Recorded handover and optional new spare universe }
+        '409': { description: Slot unavailable or world advancing }
+  /universes/{universe_no}/membership:
+    delete:
+      operationId: leaveManagedUniverse
+      summary: Release only your own national slot without changing the national state
+      parameters:
+        - name: universe_no
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: Slot returned to automatic control }
+  /universes/{universe_no}/rankings:
+    get:
+      operationId: readUniverseStandings
+      summary: Provisional national control-duration standings for one universe
+      parameters:
+        - name: universe_no
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: One best recorded control period per account; composite score unavailable }
+  /universe-rankings/global:
+    get:
+      operationId: readGlobalUniverseStandings
+      summary: Provisional global standings across managed universes
+      responses:
+        '200': { description: One best recorded control period per account across universes }
   /me/recovery-code:
     post:
       operationId: replaceRecoveryCode

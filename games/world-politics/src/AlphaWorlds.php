@@ -103,7 +103,18 @@ final class AlphaWorlds
     }
 
     public function create(AlphaSession $session,array $body,string $key):array
+    {return $this->provision($session,$body,$key,false);}
+
+    /** Server-only; the universe pool owns the outer transaction. */
+    public function provisionUniverse():array
     {
+        if(!$this->db->inTransaction()||$this->scenario->id!==AlphaScenario::INVESTITURE)
+            throw new \LogicException('Universe allocation transaction required');
+        return $this->provision(null,['label'=>'Univers '.bin2hex(random_bytes(5)),'scenario'=>$this->scenario->id],bin2hex(random_bytes(16)),true);
+    }
+    private function provision(?AlphaSession $session,array $body,string $key,bool $managed):array
+    {
+        $owner=$managed?'acct-00000000000000000000000000000000':$session->id;
         $fields=in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario'];
         if($this->scenario->id===AlphaScenario::INVESTITURE&&array_key_exists('candidate',$body))$fields[]='candidate';
         AlphaAccounts::fields($body,$fields);
@@ -121,24 +132,24 @@ final class AlphaWorlds
         if($candidate!==null)$request[]=$candidate;
         $fingerprint=hash('sha256',self::json($request));
         $key=hash('sha256',$key);
-        $this->db->beginTransaction();
+        if(!$managed)$this->db->beginTransaction();
         try {
             $q=$this->db->prepare('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE');
-            $q->execute([$session->id]);
-            if ($q->fetchColumn()===false || !$session->active()) throw new AlphaHttpError(401,'authentication_required');
+            $q->execute([$owner]);
+            if ($q->fetchColumn()===false || (!$managed&&!$session->active())) throw new AlphaHttpError(401,'authentication_required');
             $q=$this->db->prepare('SELECT world_id,request_sha FROM wp_alpha_worlds WHERE owner_id=? AND create_key=?');
-            $q->execute([$session->id,$key]);$prior=$q->fetch(\PDO::FETCH_ASSOC);
+            $q->execute([$owner,$key]);$prior=$q->fetch(\PDO::FETCH_ASSOC);
             if ($prior!==false) {
                 if (!hash_equals($prior['request_sha'],$fingerprint)) throw new AlphaHttpError(409,'idempotency_conflict');
-                $this->db->commit();return ['world_id'=>$prior['world_id'],'scenario'=>$this->scenario->id,'label'=>$label,'role'=>'owner'];
+                if(!$managed)$this->db->commit();return ['world_id'=>$prior['world_id'],'scenario'=>$this->scenario->id,'label'=>$label,'role'=>'owner'];
             }
             $q=$this->db->prepare('SELECT COUNT(*) FROM wp_alpha_worlds WHERE owner_id=?');
-            $q->execute([$session->id]);
-            if ((int)$q->fetchColumn()>=10) throw new AlphaHttpError(409,'world_limit');
+            $q->execute([$owner]);
+            if ((int)$q->fetchColumn()>=10&&!$managed) throw new AlphaHttpError(409,'world_limit');
             $world='world-'.bin2hex(random_bytes(16));$day=$this->scenario->day;
             $this->insert('INSERT INTO wp_alpha_worlds(world_id,owner_id,create_key,request_sha,label,scenario,reference_bundle_sha) VALUES(?,?,?,?,?,?,?)',
-                [$world,$session->id,$key,$fingerprint,$label,$this->scenario->id,$this->scenario->bundleSha]);
-            $this->insert("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'owner')",[$world,$session->id]);
+                [$world,$owner,$key,$fingerprint,$label,$this->scenario->id,$this->scenario->bundleSha]);
+            if(!$managed)$this->insert("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'owner')",[$world,$owner]);
 
             // One transaction for the entire initial world. The domain classes
             // generate and validate snapshots; individual store seed methods
@@ -202,7 +213,7 @@ final class AlphaWorlds
                     [$world,PublicOpinion::json($op->snapshot()),$op->hash()]);
                 $this->insert('UPDATE wp_world_clock SET opinion_enabled=1 WHERE world_id=?',[$world]);
                 if($this->scenario->campaign())$this->insert('UPDATE wp_world_clock SET campaign_enabled=1 WHERE world_id=?',[$world]);
-                if($this->scenario->id===AlphaScenario::INVESTITURE){
+                if($this->scenario->id===AlphaScenario::INVESTITURE&&!$managed){
                     (new PdoCampaignScores($this->db))->seed($world,$this->scenario->bundleSha??throw new \DomainException('Ranked world needs pinned bundle'),$c,
                         ['state'=>$dom->snapshot(),'etag'=>'"'.$dom->hash().'"'],['state'=>$dip->snapshot(),'etag'=>'"'.$dip->hash().'"'],['state'=>$op->snapshot(),'etag'=>'"'.$op->hash().'"']);
                     $this->insert('UPDATE wp_world_clock SET score_enabled=1 WHERE world_id=?',[$world]);
@@ -218,10 +229,10 @@ final class AlphaWorlds
             }
             WorldMutationFence::seed($this->db,$world);
             foreach ($this->scenario->countries as $country) $this->insert('INSERT INTO wp_world_clock_countries(world_id,country_code) VALUES(?,?)',[$world,$country]);
-            $this->db->commit();
+            if(!$managed)$this->db->commit();
             return ['world_id'=>$world,'scenario'=>$this->scenario->id,'label'=>$label,'role'=>'owner'];
         } catch (\Throwable $e) {
-            if ($this->db->inTransaction()) $this->db->rollBack();
+            if (!$managed&&$this->db->inTransaction()) $this->db->rollBack();
             throw $e;
         }
     }

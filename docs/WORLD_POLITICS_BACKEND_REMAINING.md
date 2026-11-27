@@ -873,3 +873,5 @@ WP99 : projet de loi de finances rectificative distinct, variante crédits sant�
 WP100 : qualification de concurrence sur deux processus HTTP et une MariaDB commune, avec création idempotente, 48 lectures cohérentes et concurrence sur le code de récupération. Contrat OpenAPI de finance actualisé. Ne constitue pas une mesure de capacité de production.
 
 WP101 : 24 mesures historiques (deux pour chacun des douze candidats de 2022) issues d'une synthèse datée de Public Sénat, version épinglée, anciennes sauvegardes compatibles, aucune prédiction de candidature ou mise en œuvre automatique. Les programmes complets restent à enrichir.
+
+WP102 : univers persistants provisionnés à partir du scénario canonique, propriétaire technique non jouable, sept places pilotes, occupation unique par pays et compte/univers, reprise sans remise à zéro, création d'un univers de réserve atomique, deux classements provisoires séparés (durée de contrôle, pas encore score politique). Anciennes campagnes préservées. Horloge serveur, IA par programme et succession restent à intégrer.

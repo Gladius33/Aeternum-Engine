@@ -19,6 +19,12 @@ final class AlphaPrincipal implements InstitutionalActorAuthorizer,EconomicPolic
             return in_array($ability,['world.clock.read','organizations.read','diplomacy.read','economy.read'],true)
                 || ($role==='owner' && in_array($ability,['world.clock.advance','organizations.clock','diplomacy.clock','economy.clock'],true));
         }
+        if($role==='viewer'){
+            $country=$this->session->country($world);
+            if($country==='FR')$role='owner';
+            elseif($country!==null&&$actor==='state_'.strtolower($country))
+                return in_array($ability,['diplomacy.propose','diplomacy.respond'],true);
+        }
         if ($actor!=='FR' && in_array($actor,$this->countries,true)) return $ability==='read_institutions';
         if ($actor==='FR') {
             if($this->legislation&&$role==='owner'&&$ability==='legislation_draft')return true;
@@ -47,6 +53,7 @@ final class AlphaDomesticPrincipal implements PersistentDomesticPolicyAuthority
     public function actorId():string{return $this->scheduler?'alpha-clock-'.$this->world:$this->session->id;}
     public function allows(string $world,string $ability):bool {
         if ($world!==$this->world || ($role=$this->session->role($world))===null) return false;
+        if(!$this->scheduler&&$role==='viewer'&&$this->session->country($world)==='FR')$role='owner';
         return $ability==='domestic.read' || ($role==='owner' && in_array($ability,$this->scheduler?['domestic.clock']:['domestic.propose','domestic.crisis','domestic.corporation'],true));
     }
     public function enactedInstrument(string $world,string $policy):?string{return null;}

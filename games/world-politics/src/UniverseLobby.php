@@ -1,0 +1,147 @@
+<?php
+declare(strict_types=1);
+namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/AlphaWorlds.php';
+
+/** Managed alpha universe pool. A claimed slot is control, not a new president. */
+final class UniverseLobby
+{
+    public const COUNTRIES=['DE','ES','FR','GB','IT','JP','US'];
+    public function __construct(private readonly \PDO $db){}
+    private function query(string $sql,array $args=[]):\PDOStatement
+    {$q=$this->db->prepare($sql);$q->execute($args);return $q;}
+    private function transaction(callable $fn):array
+    {
+        $this->db->beginTransaction();
+        try{
+            if((int)$this->query('SELECT pool_id FROM wp_universe_pool WHERE pool_id=1 FOR UPDATE')->fetchColumn()!==1)
+                throw new \LogicException('Missing universe allocation lock');
+            $r=$fn();$this->db->commit();return $r;
+        }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
+    }
+    public function list(AlphaSession $s,int $page=1):array
+    {
+        if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+        if($page<1||$page>100000)throw new AlphaHttpError(422,'invalid_page');
+        $offset=($page-1)*50;
+        $rows=$this->query("SELECT u.universe_no,u.world_id,c.committed_day,c.pending_day,c.game_over
+            FROM wp_universes u JOIN wp_world_clock c ON c.world_id=u.world_id ORDER BY u.universe_no LIMIT 50 OFFSET ".$offset)->fetchAll(\PDO::FETCH_ASSOC);
+        foreach($rows as &$r){
+            $r['universe_no']=(int)$r['universe_no'];
+            $slots=$this->query('SELECT country_code,account_id FROM wp_universe_slots WHERE world_id=? ORDER BY country_code',[$r['world_id']])->fetchAll(\PDO::FETCH_ASSOC);
+            $r['slots']=array_map(fn($v)=>['country'=>$v['country_code'],'controller'=>$v['account_id']===null?'ai':'human','is_you'=>$v['account_id']===$s->id],$slots);
+            $r['vacant']=count(array_filter($r['slots'],fn($v)=>$v['controller']==='ai'));
+            $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
+            unset($r['pending_day'],$r['game_over']);
+        }unset($r);
+        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::COUNTRIES,'complete_multiplayer_model'=>false];
+    }
+    private function create():array
+    {
+        $bundle=GlobalReferenceBundle::published();$sha=(new PdoGlobalReferenceBundles($this->db))->install($bundle);
+        $scenario=new AlphaScenario(AlphaScenario::INVESTITURE,$bundle,$sha);
+        $r=(new AlphaWorlds($this->db,$scenario))->provisionUniverse();$world=$r['world_id'];
+        $this->query('INSERT INTO wp_universes(world_id) VALUES(?)',[$world]);$no=(int)$this->db->lastInsertId();
+        foreach(self::COUNTRIES as $country){
+            if(!in_array($country,$scenario->countries,true)||!$scenario->actors->isHumanPlayable('state_'.strtolower($country)))
+                throw new \LogicException('Unreviewed playable slot');
+            $this->query('INSERT INTO wp_universe_slots(world_id,country_code) VALUES(?,?)',[$world,$country]);
+        }
+        return ['universe_no'=>$no,'world_id'=>$world];
+    }
+    private function ensureSpare():?array
+    {
+        // Create immediately if every non-terminal universe is full; a pending
+        // day is not a reason to allocate unbounded replacement universes.
+        $q=$this->query('SELECT 1 FROM wp_universe_slots s JOIN wp_world_clock c ON c.world_id=s.world_id WHERE s.account_id IS NULL AND c.game_over=0 LIMIT 1');
+        return $q->fetchColumn()===false?$this->create():null;
+    }
+    private function lockWorld(string $world):array
+    {
+        $f=WorldMutationFence::lockCoordinator($this->db,$world);
+        $c=$this->query('SELECT committed_day,pending_day,game_over FROM wp_world_clock WHERE world_id=? FOR UPDATE',[$world])->fetch(\PDO::FETCH_ASSOC);
+        if($c===false||$f['state']!=='idle'||$c['pending_day']!==null)throw new AlphaHttpError(409,'world_advancing');
+        return $c;
+    }
+    public function join(AlphaSession $s,array $body,string $key):array
+    {
+        AlphaAccounts::fields($body,['country',...(array_key_exists('universe_no',$body)?['universe_no']:[])]);
+        $country=$body['country'];$no=$body['universe_no']??null;
+        if(!is_string($country)||!in_array($country,self::COUNTRIES,true)||($no!==null&&(!is_int($no)||$no<1))
+            ||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key))throw new AlphaHttpError(422,'invalid_universe_join');
+        $key=hash('sha256',$key);$fingerprint=hash('sha256',json_encode([$country,$no],JSON_THROW_ON_ERROR));
+        return $this->transaction(function()use($s,$country,$no,$key,$fingerprint){
+            if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+            $prior=$this->query('SELECT request_sha,response_json FROM wp_universe_join_receipts WHERE account_id=? AND receipt_key=?',[$s->id,$key])->fetch(\PDO::FETCH_ASSOC);
+            if($prior!==false){
+                if(!hash_equals($prior['request_sha'],$fingerprint))throw new AlphaHttpError(409,'idempotency_conflict');
+                return json_decode($prior['response_json'],true,32,JSON_THROW_ON_ERROR);
+            }
+            if($no===null)$this->ensureSpare();
+            $args=[$country,$s->id];
+            $sql="SELECT u.universe_no,u.world_id FROM wp_universes u JOIN wp_universe_slots s ON s.world_id=u.world_id
+                JOIN wp_world_clock c ON c.world_id=u.world_id WHERE s.country_code=? AND (s.account_id IS NULL OR s.account_id=?)
+                AND c.game_over=0";
+            if($no!==null){$sql.=' AND u.universe_no=?';$args[]=$no;}
+            $sql.=" AND NOT EXISTS(SELECT 1 FROM wp_universe_slots x WHERE x.world_id=u.world_id AND x.account_id=? AND x.country_code<>?) ORDER BY u.universe_no LIMIT 1";
+            $args[]=$s->id;$args[]=$country;
+            $u=$this->query($sql,$args)->fetch(\PDO::FETCH_ASSOC);
+            if($u===false)throw new AlphaHttpError(409,'country_unavailable');
+            $world=$u['world_id'];$c=$this->lockWorld($world);
+            if((int)$c['game_over']===1)throw new AlphaHttpError(409,'game_over');
+            $slot=$this->query('SELECT account_id,generation FROM wp_universe_slots WHERE world_id=? AND country_code=? FOR UPDATE',[$world,$country])->fetch(\PDO::FETCH_ASSOC);
+            if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+            if($slot['account_id']!==null&&$slot['account_id']!==$s->id)throw new AlphaHttpError(409,'country_unavailable');
+            $gen=(int)$slot['generation'];$spare=null;
+            if($slot['account_id']===null){
+                ++$gen;
+                $this->query('UPDATE wp_universe_slots SET account_id=?,generation=? WHERE world_id=? AND country_code=?',[$s->id,$gen,$world,$country]);
+                $this->query('INSERT INTO wp_universe_control_periods(world_id,country_code,generation,account_id,joined_on) VALUES(?,?,?,?,?)',[$world,$country,$gen,$s->id,$c['committed_day']]);
+                $this->query("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'viewer')",[$world,$s->id]);
+                $spare=$this->ensureSpare();
+            }
+            $r=['universe_no'=>(int)$u['universe_no'],'world_id'=>$world,'country'=>$country,'generation'=>$gen,
+                'handover_day'=>$c['committed_day'],'new_universe'=>$spare,'state_reset'=>false];
+            $this->query('INSERT INTO wp_universe_join_receipts(account_id,receipt_key,request_sha,response_json) VALUES(?,?,?,?)',
+                [$s->id,$key,$fingerprint,json_encode($r,JSON_THROW_ON_ERROR)]);
+            return $r;
+        });
+    }
+    public function leave(AlphaSession $s,int $no):array
+    {
+        return $this->transaction(function()use($s,$no){
+            if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+            $world=$this->query('SELECT world_id FROM wp_universes WHERE universe_no=?',[$no])->fetchColumn();
+            if(!is_string($world))throw new AlphaHttpError(404,'not_found');
+            $c=$this->lockWorld($world);
+            $slot=$this->query('SELECT country_code,generation FROM wp_universe_slots WHERE world_id=? AND account_id=? FOR UPDATE',[$world,$s->id])->fetch(\PDO::FETCH_ASSOC);
+            if($slot===false)throw new AlphaHttpError(404,'not_found');
+            $this->query('UPDATE wp_universe_control_periods SET left_on=? WHERE world_id=? AND country_code=? AND generation=? AND left_on IS NULL',[$c['committed_day'],$world,$slot['country_code'],$slot['generation']]);
+            $this->query('UPDATE wp_universe_slots SET account_id=NULL WHERE world_id=? AND country_code=?',[$world,$slot['country_code']]);
+            $this->query('DELETE FROM wp_alpha_members WHERE world_id=? AND account_id=?',[$world,$s->id]);
+            return ['universe_no'=>$no,'country'=>$slot['country_code'],'controller'=>'ai','day'=>$c['committed_day'],'state_reset'=>false];
+        });
+    }
+    /** Interim standings: control periods, NOT certified national tenure or
+     * purchasing power. Do not invent missing foreign economic metrics. */
+    public function rankings(AlphaSession $s,?int $no,int $page=1):array
+    {
+        if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+        if($page<1||$page>100000)throw new AlphaHttpError(422,'invalid_page');
+        if($no!==null&&$this->query('SELECT 1 FROM wp_universes WHERE universe_no=?',[$no])->fetchColumn()===false)throw new AlphaHttpError(404,'not_found');
+        $where=$no===null?'':' AND u.universe_no=?';$offset=($page-1)*50;
+        $rows=$this->query("WITH periods AS (
+          SELECT p.account_id,p.world_id,u.universe_no,p.country_code,p.generation,
+             DATEDIFF(COALESCE(p.left_on,c.committed_day),p.joined_on) AS control_days
+          FROM wp_universe_control_periods p JOIN wp_universes u ON u.world_id=p.world_id
+          JOIN wp_world_clock c ON c.world_id=p.world_id JOIN wp_accounts a ON a.account_id=p.account_id
+          WHERE a.enabled=1".$where."),
+          choices AS (SELECT periods.*,ROW_NUMBER() OVER(PARTITION BY account_id ORDER BY control_days DESC,universe_no,country_code,generation) AS choice_no FROM periods),
+          ranked AS (SELECT choices.*,ROW_NUMBER() OVER(ORDER BY control_days DESC,account_id) AS player_rank FROM choices WHERE choice_no=1)
+          SELECT * FROM ranked ORDER BY player_rank LIMIT 50 OFFSET ".$offset,$no===null?[]:[$no])->fetchAll(\PDO::FETCH_ASSOC);
+        $out=[];foreach($rows as $r)$out[]=['rank'=>(int)$r['player_rank'],'player'=>'joueur-'.substr(hash('sha256','wp102-universe/'.$r['account_id']),0,20),
+            'is_you'=>$r['account_id']===$s->id,'universe_no'=>(int)$r['universe_no'],'country'=>$r['country_code'],'control_days'=>(int)$r['control_days'],'score'=>null];
+        return ['scope'=>$no===null?'global':'universe','universe_no'=>$no,'page'=>$page,'rows'=>$out,
+            'ranking_basis'=>'best_single_control_period_days','official_ranking_eligible'=>false,'composite_score_available'=>false];
+    }
+}

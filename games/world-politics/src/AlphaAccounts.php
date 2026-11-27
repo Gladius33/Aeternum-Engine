@@ -213,6 +213,12 @@ final class AlphaSession
             WHERE m.world_id=? AND m.account_id=? AND s.token_sha=? AND s.expires_at>? AND a.enabled=1');
         $q->execute([$world,$this->id,$this->sha,time()]);$r=$q->fetchColumn();return $r===false?null:$r;
     }
+    public function country(string $world):?string
+    {
+        $q=$this->db->prepare('SELECT s.country_code FROM wp_universe_slots s JOIN wp_accounts a ON a.account_id=s.account_id
+            JOIN wp_sessions t ON t.account_id=a.account_id WHERE s.world_id=? AND s.account_id=? AND t.token_sha=? AND t.expires_at>? AND a.enabled=1');
+        $q->execute([$world,$this->id,$this->sha,time()]);$r=$q->fetchColumn();return $r===false?null:$r;
+    }
     public function revoke():void
     {
         $q=$this->db->prepare('DELETE FROM wp_sessions WHERE token_sha=? AND account_id=?');$q->execute([$this->sha,$this->id]);

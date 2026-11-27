@@ -24,6 +24,7 @@ require_once __DIR__.'/HouseholdHistoricalBacktest.php';
 require_once __DIR__.'/HouseholdAccount.php';
 require_once __DIR__.'/ProgrammeProgress.php';
 require_once __DIR__.'/PdoCampaignScores.php';
+require_once __DIR__.'/UniverseLobby.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
 final class AlphaGateway
@@ -70,6 +71,19 @@ final class AlphaGateway
             if ($path==='/api/v1/me/recovery-code' && $method==='POST') return self::ok(201,$accounts->createRecovery($session,$body));
             if ($path==='/api/v1/me/password' && $method==='POST') return self::ok(200,$accounts->changePassword($session,$body));
             if ($path==='/api/v1/me' && $method==='GET') return self::ok(200,['account_id'=>$session->id,'username'=>$session->username]);
+            if($path==='/api/v1/universes'&&$method==='GET')return self::ok(200,(new UniverseLobby($this->db()))->list($session));
+            if($path==='/api/v1/universes/join'&&$method==='POST'){
+                if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
+                return self::ok(201,(new UniverseLobby($this->db()))->join($session,$body,$h['idempotency-key']));
+            }
+            if($path==='/api/v1/universe-rankings/global'&&$method==='GET')
+                return self::ok(200,(new UniverseLobby($this->db()))->rankings($session,null));
+            if(preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/(rankings|membership)$~D',$path,$um)){
+                $lobby=new UniverseLobby($this->db());
+                if($um[2]==='rankings'&&$method==='GET')return self::ok(200,$lobby->rankings($session,(int)$um[1]));
+                if($um[2]==='membership'&&$method==='DELETE')return self::ok(200,$lobby->leave($session,(int)$um[1]));
+                throw new AlphaHttpError(405,'method_not_allowed');
+            }
             if ($path==='/api/v1/national-renewal-calendar' && $method==='GET') return self::ok(200,NationalRenewalCalendar::report());
             if($path==='/api/v1/leaderboards'||str_starts_with($path,'/api/v1/leaderboards/')){
                 if($method!=='GET')throw new AlphaHttpError(405,'method_not_allowed');
@@ -164,7 +178,14 @@ final class AlphaGateway
             if (!preg_match('~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})(/.*)$~D',$path,$m)) throw new AlphaHttpError(404,'not_found');
             $world=$m[1];$suffix=$m[2];$role=$session->role($world);
             if ($role===null) throw new AlphaHttpError(404,'not_found');
-            if ($method!=='GET' && $role!=='owner') throw new AlphaHttpError(403,'forbidden');
+            if($method!=='GET'&&$role!=='owner'){
+                $country=$session->country($world);
+                // Only existing country-scoped command APIs; never grant
+                // clock, sharing or generic ownership to a national slot.
+                if($country===null||in_array($suffix,['/members','/clock/advances'],true)||
+                    ($country!=='FR'&&!in_array($suffix,['/diplomacy/proposals','/diplomacy/responses'],true)))
+                    throw new AlphaHttpError(403,'forbidden');
+            }
             if ($suffix==='/members' && $method==='POST') return self::ok(200,$worlds->share($session,$world,$body));
             $q=$this->db()->prepare('SELECT scenario,reference_bundle_sha FROM wp_alpha_worlds WHERE world_id=?');
             $q->execute([$world]);$definition=$q->fetch(\PDO::FETCH_ASSOC);
