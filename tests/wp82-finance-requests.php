@@ -447,3 +447,8 @@ $managedCandidate=\Aeternum\WorldPolitics\CampaignCandidate::normalizeManaged(['
 ck82(count($managedCandidate['programme'])===6&&$managedCandidate['kind']==='real','WP114 managed identity contains separate selected primary and secondary programmes');
 $fictionalCandidate=\Aeternum\WorldPolitics\CampaignCandidate::normalizeManaged(['type'=>'fictional','name'=>'Personnage de test','mode'=>'quick']);
 ck82($fictionalCandidate['kind']==='fictional'&&$fictionalCandidate['programme']===[],'WP114 custom opening identity');
+
+
+ck82($historicalCoverage['selected_inventory_complete']&&$historicalCoverage['additional_unmapped_count']===0&&!$historicalCoverage['exhaustive'],'WP114 bounded inventory completion does not certify all archives');
+foreach($historicalCoverage['candidates'] as $c)foreach($c['additional_executable'] as $m)
+    ck82(in_array($m['execution_status'],['primary_quantitative_proxy','primary_constitutional_route'],true),'WP114 report current execution classification');

@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/AlphaWorlds.php';
 require_once __DIR__.'/PresidentialProgramme.php';
+require_once __DIR__.'/ProgrammeProgress.php';
 
 /** Managed alpha universe pool. A claimed slot is control, not a new president. */
 final class UniverseLobby
@@ -244,13 +245,14 @@ final class UniverseLobby
             }unset($a);
             $i=$this->query("SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code='FR'",[$world])->fetch(\PDO::FETCH_ASSOC);
             $dipl=$this->query('SELECT state_json,state_sha FROM wp_diplomatic_states WHERE world_id=?',[$world])->fetch(\PDO::FETCH_ASSOC);
-            $objectives=[];
+            $objectives=[];$inst=null;
             if($i===false||$dipl===false)throw new \DomainException('Missing institutional programme source');
             foreach(['institutional'=>$i,'diplomatic'=>$dipl] as $domain=>$raw){
                 if(!hash_equals($raw['state_sha'],hash('sha256',$raw['state_json'])))throw new \DomainException('Invalid programme source digest');
                 $v=json_decode($raw['state_json'],true,64,JSON_THROW_ON_ERROR);
                 if($v['world_id']!==$world||$v['day']!==$c['committed_day'])throw new \DomainException('Incoherent programme report');
                 if($domain==='institutional'){
+                    $inst=$v;
                     foreach(['cabinet_requests','revision_requests'] as $family)foreach($v[$family]??[] as $id=>$req)
                         if(str_starts_with($id,'pres-objective-'))$objectives[]=['family'=>$family,'id'=>$id,'request'=>$req];
                     foreach($v['events'] as $e)if(str_starts_with($e['id'],'pres-objective-')&&$e['kind']==='legislation_evidence'&&isset($e['result']['portfolio']))
@@ -263,7 +265,13 @@ final class UniverseLobby
             if($org===false||!hash_equals($org['state_sha'],hash('sha256',$org['state_json'])))throw new \DomainException('Invalid treaty programme source');
             $os=json_decode($org['state_json'],true,64,JSON_THROW_ON_ERROR);
             if($os['world_id']!==$world||$os['day']!==$c['committed_day'])throw new \DomainException('Incoherent treaty programme source');
-            return $report+['nato_withdrawal'=>$os['nato_withdrawal']??null,'institutional_and_commitment_objectives'=>$objectives,'version'=>PresidentialProgramme::VERSION,'domestic'=>$slot['domestic_programme'],'agenda'=>PresidentialProgramme::agenda($slot['domestic_programme']),
+            $rr=$this->query("SELECT state_json,state_sha FROM wp_world_rosters WHERE world_id=? AND country_code='FR'",[$world])->fetch(\PDO::FETCH_ASSOC);
+            if($rr===false)throw new \DomainException('Missing candidate programme roster');
+            $rs=json_decode($rr['state_json'],true,64,JSON_THROW_ON_ERROR);
+            if(!hash_equals($rr['state_sha'],PoliticalRoster::fromSnapshot($rs)->snapshotHash()))throw new \DomainException('Invalid candidate programme roster');
+            $cfg=json_decode($this->query('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?',[$world])->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+            return $report+['candidate_programme'=>ProgrammeProgress::managed($rs,$dom,$inst,$os,$cfg['catalog'],$slot['domestic_programme']),
+                'civic_initiative'=>$inst['civic_initiative']??null,'nato_withdrawal'=>$os['nato_withdrawal']??null,'institutional_and_commitment_objectives'=>$objectives,'version'=>PresidentialProgramme::VERSION,'domestic'=>$slot['domestic_programme'],'agenda'=>PresidentialProgramme::agenda($slot['domestic_programme']),
                 'direct_actions'=>$this->query('SELECT mandate_start,programme,decision_day,action_id,outcome FROM wp_universe_programme_direct WHERE world_id=? ORDER BY decision_day,programme LIMIT 10000',[$world])->fetchAll(\PDO::FETCH_ASSOC),
                 'automatic_legal_route'=>PresidentialProgramme::executable($slot['domestic_programme']),
                 'human_action_this_day'=>$slot['last_human_domestic_day']===$c['committed_day'],

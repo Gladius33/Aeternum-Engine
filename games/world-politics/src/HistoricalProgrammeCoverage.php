@@ -28,11 +28,11 @@ final class HistoricalProgrammeCoverage
             $seen[$m['id']]=true;$support=PresidentialProgramme::measureSupport($m['id']);
             if(in_array($support['status'],['primary_quantitative_proxy','primary_constitutional_route'],true)){
                 if($support['mapping']['target']!==$m['target'])throw new \DomainException('Primary target drift');
-                $report[$id]['additional_executable'][]=$m+['mapping'=>$support['mapping']];++$mapped;
+                $report[$id]['additional_executable'][]=array_replace($m,['execution_status'=>$support['status'],'mapping'=>$support['mapping']]);++$mapped;
             }else $report[$id]['additional_unmapped'][]=$m;
         }
         foreach($report as $c)if($c['additional_unmapped']===[]&&$c['additional_executable']===[])throw new \DomainException('Missing candidate review');
         if(array_keys($seen)!==$sources['additional_inventory']['measure_ids']||count($seen)!==$sources['additional_inventory']['count'])throw new \DomainException('Inventory mismatch');
-        return ['classification'=>'historical_coverage_not_future_manifesto','candidates'=>$report,'executable_archived_count'=>24,'additional_executable_count'=>$mapped,'additional_unmapped_count'=>count($seen)-$mapped,'exhaustive'=>false,'wp114_closure_qualified'=>false];
+        return ['classification'=>'historical_coverage_not_future_manifesto','candidates'=>$report,'executable_archived_count'=>24,'additional_executable_count'=>$mapped,'additional_unmapped_count'=>count($seen)-$mapped,'selected_inventory_complete'=>$mapped===count($seen),'exhaustive'=>false,'wp114_closure_qualified'=>false];
     }
 }

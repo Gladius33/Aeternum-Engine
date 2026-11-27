@@ -9,6 +9,55 @@ require_once __DIR__.'/PresidentialProgramme.php';
 final class ProgrammeProgress
 {
     public const VERSION='wp92-programme-progress-v1';
+    /** Member-visible selection and execution evidence from a coherent
+     * committed managed universe. A legal instrument is not target delivery. */
+    public static function managed(array $roster,array $d,array $i,array $org,array $catalog,string $profile):array
+    {
+        $r=PoliticalRoster::fromSnapshot($roster)->snapshot();
+        if($r['world_id']!==$d['world_id']||$r['country_code']!=='FR'||$i['world_id']!==$d['world_id']||$i['country_code']!=='FR'
+            ||$org['world_id']!==$d['world_id']||$i['day']!==$d['day']||$org['day']!==$d['day'])throw new \DomainException('Incoherent managed programme evidence');
+        $person=$r['people'][CampaignLifecycle::PLAYER]??throw new \DomainException('Missing managed officeholder');
+        $agenda=PresidentialProgramme::agenda($profile);$social=PresidentialProgramme::socialIds($profile)??[];
+        $last=$d['days']===[]?[]:$d['days'][array_key_last($d['days'])];$active=$last['active_policies']??[];
+        $measures=[];$groups=[];
+        foreach($person['programme'] as $m){
+            $id=$m['id'];$support=PresidentialProgramme::measureSupport($id);$map=$support['mapping'];$family=$map['family']??$map['field']??null;
+            $available=false;$selected=false;$records=[];$state='no_matching_record';$outcome=null;
+            if(SocialProgramme::isPolicy($id)){
+                $available=SocialProgramme::assumption($id,$catalog,isset($d['social_economy_from']))!==null;
+                $selected=in_array($id,$social,true);
+                foreach($d['policies'] as $policy=>$v)if(SocialProgramme::objectiveId($policy)===$id){
+                    $records[]=['policy_id'=>$policy,'record'=>$v,'active'=>in_array($policy,$active,true)];
+                }
+                if($records!==[]){
+                    $states=array_column($records,'active');
+                    if(in_array(true,$states,true))$state='active_latest_day';
+                    else{
+                        $v=$records[array_key_last($records)]['record'];
+                        $state=$v['authorized_on']===null?($v['effective_on']<=$d['day']?'not_authorized_by_deadline':'proposed'):'legally_authorized_not_active';
+                    }
+                }
+                if($id==='pf2022-philippe-poutou-4')$outcome=$org['nato_withdrawal']??null;
+                if($id==='pf2022-nathalie-arthaud-3')$outcome=$last['public_equity']['collective']??null;
+            }elseif($support['status']==='primary_constitutional_route'||($support['status']==='reviewed_objective'&&($map['field']??null)==='revision')){
+                $available=isset($i['revision_requests'],$i['revision']);
+                $selected=($agenda['revision']??null)===$map['value']&&($agenda['ratification']??null)===$map['ratification'];
+                foreach($i['revision']['procedures']??[] as $key=>$v)if($v['template']===$map['value'])$records[]=['revision_id'=>$key,'record'=>$v,'request'=>$i['revision_requests'][$key]??null];
+                if($records!==[])$state=$records[array_key_last($records)]['record']['status'];
+                if($id==='pf2022-nicolas-dupont-aignan-4')$outcome=$i['civic_initiative']??null;
+            }elseif($support['status']==='reviewed_objective'){
+                $available=true;$selected=($agenda[$map['field']]??null)===$map['value'];
+                // General executive objectives are reported separately by
+                // the existing direct-action and institutional journals.
+                $state='see_programme_journals';
+            }
+            if($available&&$family!==null)$groups[$family][]=$id;
+            $measures[]=['measure_id'=>$id,'domain'=>$m['domain'],'proposal'=>$m['proposal'],'sources'=>$m['sources'],'support'=>$support['status'],
+                'available_in_world'=>$available,'selected'=>$selected,'evidence_status'=>$state,'records'=>$records,'specific_outcome'=>$outcome,'target_delivery_certified'=>false];
+        }
+        return ['version'=>'wp114-managed-candidate-progress-v1','name'=>$person['name'],'kind'=>$person['kind'],'measures'=>$measures,
+            'conflicting_selection_groups'=>array_filter($groups,fn($ids)=>count($ids)>1),'automatic_import'=>false,'exhaustive'=>false];
+    }
     public static function report(array $roster,array $domestic):array
     {
         $r=PoliticalRoster::fromSnapshot($roster['state'])->snapshot();
