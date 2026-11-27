@@ -207,7 +207,7 @@ $reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
 $resetProfile=PP::compileProfile([$reset114,'industry-active']);
 ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
 no82(fn()=>PP::compileProfile([$reset114,$pension114]));
-ck82(count(SP::objectives())===105&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
+ck82(count(SP::objectives())===109&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
 $pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
 ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
 $resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
@@ -243,7 +243,7 @@ no82(fn()=>SE::calculate([],[],'2027-09-11',$pop,$services,$base,null,['job_guar
 
 require_once __DIR__.'/../games/world-politics/src/HistoricalProgrammeCoverage.php';
 $historicalCoverage=\Aeternum\WorldPolitics\HistoricalProgrammeCoverage::report();
-ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===7&&$historicalCoverage['additional_executable_count']===40,'WP114i separate all twelve source inventories from executable historical measures');
+ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===5&&$historicalCoverage['additional_executable_count']===42,'WP114i separate all twelve source inventories from executable historical measures');
 ck82(!$historicalCoverage['wp114_closure_qualified'],'WP114i no false exhaustive coverage');
 ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['employment_bps'][2]===[2017,2900,8060,6230,6540],'WP114j exact verified INSEE training anchors');
 
@@ -251,7 +251,7 @@ ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['e
 // WP114 primary quantitative: exact source targets, extended masks,
 // separately costed routes and legal identity for each primary measure.
 use Aeternum\WorldPolitics\PrimaryManifestoPolicy as PM;
-ck82(count(PM::definitions())===40,'WP114 40 independently reviewed quantitative routes');
+ck82(count(PM::definitions())===42,'WP114 42 independently reviewed quantitative routes');
 $primaryMix=PP::compileProfile(['pf2022-eric-zemmour-3','pf2022-yannick-jadot-2','hist2022-emmanuel-macron-1','industry-active']);
 ck82(strlen($primaryMix)<=40&&count(PP::socialIds($primaryMix))===3&&PP::agenda($primaryMix)['industry']==='active','WP114 extended mixed canonical mask');
 no82(fn()=>PP::compileProfile(['pf2022-anne-hidalgo-4','pf2022-philippe-poutou-1']));
@@ -288,3 +288,17 @@ $cap='pf2022-eric-zemmour-4';$expired=SE::calculate([$cap],[$cap=>['effective_on
 ck82($primaryResults[$cap]['daily_expense_delta_minor']>0&&$expired['daily_expense_delta_minor']===0,'WP114 temporary fuel compensation expires');
 ck82($primaryResults['pf2022-philippe-poutou-3']['daily_expense_delta_minor']>0,'WP114 transport fare compensation');
 ck82($primaryResults['pf2022-marine-le-pen-1']['daily_expense_delta_minor']===intdiv(5000000000,365),'WP114 procurement redirected not double spent');
+
+
+// WP114 structural economic measures: target dates, phased flows and
+// reference-reset identities are distinct from guaranteed attainment.
+$energy='pf2022-jean-luc-melenchon-4';$local='pf2022-marine-le-pen-3';
+$startEnergy=SP::effectiveDay($energy,'2027-05-14');
+ck82($startEnergy==='2027-09-11','WP114 renewable target date is not commencement date');
+$lastEnergy=SE::calculate([$energy],[$energy=>['effective_on'=>$startEnergy]],'2050-12-31',$pop,$services,$base,null);
+ck82($lastEnergy['measures'][0]['planned_renewable_share_bps']===10000&&!$lastEnergy['measures'][0]['target_achievement_certified'],'WP114 dated renewable trajectory not certified physical achievement');
+ck82($primaryResults[$energy]['daily_expense_delta_minor']>0&&$primaryResults[$energy]['measures'][0]['planned_renewable_share_bps']<10000,'WP114 upfront transition spending before 2050');
+$endLocal=SE::calculate([$local],[$local=>['effective_on'=>'2027-09-11']],'2032-09-11',$pop,$services,$base,null);
+ck82($endLocal['measures'][0]['annual_supply_chain_shift_eur']===4000000000&&$endLocal['production_delta_bps']>0&&!$endLocal['measures'][0]['tariff_or_origin_restriction_implemented'],'WP114 short chain real output and fiscal support');
+$repealLocal=PP::compileProfile(['social-repeal-local-supply','industry-active']);
+ck82(PP::socialIds($repealLocal)===['social-repeal-local-supply']&&SP::assumption('social-repeal-local-supply',$pc,true)['expense_delta']===0,'WP114 bit 127 repeal and zero proxy');

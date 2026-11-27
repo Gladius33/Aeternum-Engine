@@ -53,6 +53,8 @@ final class PrimaryManifestoPolicy
             ['nathalie-arthaud-1','wages','wage-indexation',[],[]],
             ['nathalie-arthaud-2','employment','work-sharing',[],['assumed_hours_reduction_bps'=>1000,'coverage_bps'=>5000,'replacement_hiring_bps'=>5000]],
             ['marine-le-pen-1','industry','sme-procurement',[],['annual_procurement_eur'=>100000000000,'reference_sme_share_bps'=>3000,'scenario_target_share_bps'=>4000,'administration_cost_bps'=>50]],
+            ['marine-le-pen-3','trade','local-supply',[],['annual_eligible_turnover_eur'=>40000000000,'target_shift_bps'=>1000,'support_rate_bps'=>2000,'ramp_years'=>5,'domestic_value_added_bps'=>4500,'annual_output_per_job_eur'=>90000]],
+            ['jean-luc-melenchon-4','energy','renewable-transition',['target_bps'=>10000,'target_year'=>2050],['reference_renewable_share_bps'=>2300,'annual_final_energy_gwh'=>1500000,'investment_eur_per_annual_gwh'=>900000,'public_finance_share_bps'=>4000,'annual_maintenance_bps'=>100,'imported_equipment_bps'=>3000,'annual_output_per_job_eur'=>90000]],
         ];
         $out=[];
         foreach($rows as $n=>$row){
@@ -166,6 +168,42 @@ final class PrimaryManifestoPolicy
             $r['annual_contract_value_redirected_eur']=intdiv($a['annual_procurement_eur']*($a['scenario_target_share_bps']-$a['reference_sme_share_bps']),10000);
             $r['annual_expense_delta_eur']=intdiv($r['annual_contract_value_redirected_eur']*$a['administration_cost_bps'],10000);
             $r['procurement_legal_compliance_qualified']=false;
+        }elseif($f==='local-supply'){
+            // Support domestic production and short supply chains rather
+            // than falsely claim a unilateral tariff or mandatory origin
+            // discrimination is compatible with EU single-market law.
+            $phase=min(10000,intdiv(($elapsed+1)*10000,365*$a['ramp_years']));
+            $shift=intdiv(intdiv($a['annual_eligible_turnover_eur']*$a['target_shift_bps'],10000)*$phase,10000);
+            $valueAdded=intdiv($shift*$a['domestic_value_added_bps'],10000);
+            $r['annual_supply_chain_shift_eur']=$shift;$r['annual_domestic_value_added_proxy_eur']=$valueAdded;
+            $r['annual_expense_delta_eur']=intdiv($shift*$a['support_rate_bps'],10000);
+            $r['production_delta_bps']=intdiv($valueAdded*10000,max(1,intdiv($macro['daily_real_gdp']*365,100)));
+            $r['employment_delta_bps']=intdiv(intdiv($valueAdded,$a['annual_output_per_job_eur'])*10000,max(1,$labour));
+            $r['implementation_scope']='domestic_capacity_and_short_chain_support';
+            $r['tariff_or_origin_restriction_implemented']=false;
+        }elseif($f==='renewable-transition'){
+            // A dated end target does not delay legislative commencement
+            // until that year. The planned stock and flow are separate.
+            $end=$t['target_year'].'-12-31';
+            $start=$p['effective_on'];
+            $days=$start<$end?(int)(new \DateTimeImmutable($start))->diff(new \DateTimeImmutable($end))->days+1:1;
+            $phase=min(10000,intdiv(($elapsed+1)*10000,$days));
+            $gap=max(0,$t['target_bps']-$a['reference_renewable_share_bps']);
+            $additional=intdiv($a['annual_final_energy_gwh']*$gap,10000);
+            $capital=$additional*$a['investment_eur_per_annual_gwh'];
+            $dailyBuild=$elapsed<$days?intdiv($capital*100,$days):0;
+            $publicDaily=intdiv($dailyBuild*$a['public_finance_share_bps'],10000);
+            $built=intdiv($capital*$phase,10000);
+            $maintenance=intdiv(intdiv($built*$a['annual_maintenance_bps'],10000)*$a['public_finance_share_bps'],10000);
+            $r['planned_renewable_share_bps']=$a['reference_renewable_share_bps']+intdiv($gap*$phase,10000);
+            $r['planned_additional_annual_gwh']=intdiv($additional*$phase,10000);
+            $r['planned_total_capital_eur']=$capital;$r['daily_total_investment_minor']=$dailyBuild;
+            $r['daily_public_investment_minor']=$publicDaily;
+            $r['daily_imported_equipment_minor']=intdiv($dailyBuild*$a['imported_equipment_bps'],10000);
+            $r['annual_expense_delta_eur']=intdiv($publicDaily*365,100)+$maintenance;
+            $r['employment_delta_bps']=intdiv(intdiv(intdiv(($dailyBuild-$r['daily_imported_equipment_minor'])*365,100),$a['annual_output_per_job_eur'])*10000,max(1,$labour));
+            $r['target_achievement_certified']=false;
+            $r['physical_grid_and_storage_qualified']=false;
         }else throw new \DomainException('No quantitative route for primary commitment');
         $r['daily_revenue_delta_minor']=intdiv($r['annual_revenue_delta_eur']*100,365);
         $r['daily_expense_delta_minor']=intdiv($r['annual_expense_delta_eur']*100,365);

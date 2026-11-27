@@ -72,6 +72,9 @@ final class SocialProgramme
         foreach($newFamilies as $n=>$family)$d['social-repeal-'.$family]=[
             'bit'=>96+$n,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
             'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
+        foreach(['local-supply'=>127,'renewable-transition'=>95] as $family=>$bit)$d['social-repeal-'.$family]=[
+            'bit'=>$bit,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
+            'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         return $cached=$d;
     }
     public static function objectiveId(string $id):string
@@ -150,7 +153,7 @@ final class SocialProgramme
         // Allow ordinary readings and review; dated promises retain their
         // target-year start, not a fabricated instantaneous policy.
         $min=(new \DateTimeImmutable($day))->modify('+120 days')->format('Y-m-d');
-        return isset($d['target']['target_year'])?max($min,$d['target']['target_year'].'-01-01'):$min;
+        return isset($d['target']['target_year'])&&$d['family']!=='renewable-transition'?max($min,$d['target']['target_year'].'-01-01'):$min;
     }
     public static function legalCatalog():array
     {

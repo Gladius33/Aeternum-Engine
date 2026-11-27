@@ -318,3 +318,10 @@ $largeIds=['pf2022-marine-le-pen-1','social-repeal-hospital-beds','industry-acti
 ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>$largeIds],8)['status']===200,'WP114 32 digit profile accepted');
 $largeState=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
 ck102(strlen($largeState['domestic'])>40&&$largeState['social_measure_ids']===array_slice($largeIds,0,2),'WP114 widened profile retains exact objectives');
+
+
+$energyProfile=['pf2022-jean-luc-melenchon-4','pf2022-marine-le-pen-3','industry-active'];
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>$energyProfile],8)['status']===200,'WP114 economic transition objectives accepted');
+for($n=0;$n<4;$n++){$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114 structural economic programme tick');}
+$eState=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102(count($eState['social_measure_ids'])===2,'WP114 economic transition programme persisted');
