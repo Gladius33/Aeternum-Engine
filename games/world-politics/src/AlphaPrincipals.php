@@ -22,7 +22,7 @@ final class AlphaPrincipal implements InstitutionalActorAuthorizer,EconomicPolic
         if ($actor!=='FR' && in_array($actor,$this->countries,true)) return $ability==='read_institutions';
         if ($actor==='FR') {
             if($this->legislation&&$role==='owner'&&$ability==='legislation_draft')return true;
-            if($this->revision&&$role==='owner'&&in_array($ability,['revision_draft','request_dissolution','request_cabinet_appointment','request_annual_budget'],true))return true;
+            if($this->revision&&$role==='owner'&&in_array($ability,['revision_draft','request_dissolution','request_cabinet_appointment','request_annual_budget','request_corrective_budget'],true))return true;
             if($this->electoral&&$role==='owner'&&$ability==='electoral_coalition')return true;
             return in_array($ability,['read','read_institutions'],true)
                 || ($role==='owner' && in_array($ability,['create_fictional_person','initialize_scenario'],true));
@@ -33,7 +33,7 @@ final class AlphaPrincipal implements InstitutionalActorAuthorizer,EconomicPolic
     public function roleFor(string $world,string $country,string $action):string {
         if($this->legislation&&!$this->scheduler&&$country==='FR'&&$action==='legislation_draft'&&$this->allows($world,$country,$action))return 'scenario_bill_author';
         if($this->revision&&!$this->scheduler&&$country==='FR'&&$action==='revision_draft'&&$this->allows($world,$country,$action))return 'scenario_revision_author';
-        if($this->revision&&!$this->scheduler&&$country==='FR'&&in_array($action,['request_dissolution','request_cabinet_appointment','request_annual_budget'],true)&&$this->allows($world,$country,$action))return 'scenario_president_requester';
+        if($this->revision&&!$this->scheduler&&$country==='FR'&&in_array($action,['request_dissolution','request_cabinet_appointment','request_annual_budget','request_corrective_budget'],true)&&$this->allows($world,$country,$action))return 'scenario_president_requester';
         if($this->electoral&&!$this->scheduler&&$country==='FR'&&$action==='electoral_coalition'&&$this->allows($world,$country,$action))return 'scenario_negotiator';
         throw new \DomainException('No legal office delegated');
     }

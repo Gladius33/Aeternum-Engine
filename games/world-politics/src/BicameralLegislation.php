@@ -68,11 +68,11 @@ final class BicameralLegislation
             throw new \DomainException('Executive pilot must be pinned at bootstrap');
         $this->s['executive']=ExecutiveActs::initial();
     }
-    public function enableFinance(int $year=2027,bool $series=false):void
+    public function enableFinance(int $year=2027,bool $series=false,bool $corrective=false):void
     {
         if(!isset($this->s['executive'])||isset($this->s['finance'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
             throw new \DomainException('Finance pilot must be pinned at bootstrap');
-        $this->s['finance']=FinanceBudget::initial($year,$series);
+        $this->s['finance']=FinanceBudget::initial($year,$series,$corrective);
     }
     public function enableCalendarReplay():void
     {
@@ -335,7 +335,7 @@ final class BicameralLegislation
         if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();
         if(isset($s['responsibility']['cabinet']))$x->enableCabinet();
         if(isset($s['executive']))$x->enableExecutive();
-        if(isset($s['finance']))$x->enableFinance($s['finance']['year'],$s['finance']['version']===FinanceBudget::SERIES);
+        if(isset($s['finance']))$x->enableFinance($s['finance']['year'],$s['finance']['version']===FinanceBudget::SERIES,$s['finance']['corrective_enabled']??false);
         if(isset($s['calendar_replay']))$x->enableCalendarReplay();
         if(isset($s['national_service']))$x->enableNationalService();
         foreach($s['history'] as $h){

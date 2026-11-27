@@ -1085,3 +1085,9 @@ $third98=req30('POST','/me/recovery-code',['current_password'=>'recovered-passwo
 ck30($third98['status']===201,'WP98 can enroll a new code');
 ck30(req30('POST','/me/password',['current_password'=>'recovered-password-456','new_password'=>'final-password-456'],$login98['body']['access_token'])['status']===200,'WP98 ordinary password rotation');
 $q98->execute([$id96]);ck30($q98->fetchColumn()===false,'WP98 password rotation clears recovery credential');
+
+$f99=req30('GET',$root82.'/countries/FR/finance',null,$t27);
+ck30($f99['status']===200&&$f99['body']['corrective_eligible']&&isset($f99['body']['corrective_catalog']['corrective-2027-health-increase']),'WP99 corrective catalog separate from annual');
+$i99=req30('GET',$root82.'/countries/FR/institutions',null,$t27);
+$req99=req30('POST',$root82.'/countries/FR/institutions/decisions',['action'=>'request_corrective_budget','payload'=>['policy_id'=>'corrective-2027-health-increase']],$t27,['If-Match'=>$i99['etag'],'Idempotency-Key'=>'wp99-corrective-request']);
+ck30($req99['status']===202&&$req99['body']['status']==='requested','WP99 authenticated corrective request independent from annual');

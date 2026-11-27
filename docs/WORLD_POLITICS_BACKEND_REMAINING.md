@@ -867,3 +867,5 @@ WP96 complément : véritable sauvegarde logique et restauration dans une second
 
 
 WP98 : récupération de compte opt-in, code aléatoire à usage unique stocké sous empreinte, expiration, rotation et révocation transactionnelles. Migration 026 et tests HTTP. MFA et récupération sans code pré-enregistré non disponibles.
+
+WP99 : projet de loi de finances rectificative distinct, variante crédits santé de l'État fictive, dates fixes de scénario et effets bornés au quatrième trimestre, navette et contrôle par la procédure existante, cohorte séparée pour les nouveaux mondes. Ne couvre pas toutes les catégories de LFR, amendements, fiscalité ou lois de financement de la sécurité sociale.

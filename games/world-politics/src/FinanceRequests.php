@@ -14,14 +14,17 @@ final class FinanceRequests
     private const DELAY=['requested'=>7,'filed'=>1,'assembly'=>7,'transferred'=>3,'senate'=>3,'adopted'=>1,'reviewed'=>0];
     private static function plus(string $day,int $n):string{return (new \DateTimeImmutable($day))->modify('+'.$n.' days')->format('Y-m-d');}
     private static function terminal(string $s):bool{return in_array($s,['published','rejected','expired','blocked'],true);}
-    public static function request(array $s,string $id,mixed $policy):array
+    public static function request(array $s,string $id,mixed $policy,bool $corrective=false):array
     {
-        $f=$s['legislation']['finance'];$day=$s['day'];$y=FinanceBudget::filingYear($f,$day);
-        if($f['version']!==FinanceBudget::SERIES||$s['legislature']!=='sitting'||!is_string($policy)||!isset(FinanceBudget::catalog($y)[$policy])
-            ||$day<($y-1).'-01-01'||self::plus($day,30)>=$y.'-01-01'||count($s['finance_requests'])>=100||isset($s['finance_requests'][$id]))
+        $f=$s['legislation']['finance'];$day=$s['day'];$y=$corrective?(int)substr($day,0,4):FinanceBudget::filingYear($f,$day);
+        $cutoff=$y.($corrective?'-10-01':'-01-01');
+        $catalog=$corrective?FinanceBudget::correctiveCatalog($y):FinanceBudget::catalog($y);
+        if($corrective&&!FinanceBudget::eligibleCorrective($f,$y))throw new \DomainException('Corrective route not enabled');
+        if($f['version']!==FinanceBudget::SERIES||$s['legislature']!=='sitting'||!is_string($policy)||!isset($catalog[$policy])
+            ||$day<($corrective?$y:$y-1).'-01-01'||self::plus($day,30)>=$cutoff||count($s['finance_requests'])>=100||isset($s['finance_requests'][$id]))
             throw new \DomainException('No eligible annual budget request');
-        foreach($s['finance_requests'] as $r)if($r['year']===$y&&!self::terminal($r['status']))throw new \DomainException('Annual budget request pending');
-        foreach($f['bills'] as $b)if(str_starts_with($b['policy_id'],'budget-'.$y.'-')&&$b['status']!=='rejected')throw new \DomainException('Annual bill already exists');
+        foreach($s['finance_requests'] as $r)if($r['year']===$y&&FinanceBudget::isCorrective($r['policy_id'])===$corrective&&!self::terminal($r['status']))throw new \DomainException('Annual budget request pending');
+        foreach($f['bills'] as $b)if(str_starts_with($b['policy_id'],($corrective?'corrective-':'budget-').$y.'-')&&$b['status']!=='rejected')throw new \DomainException('Annual bill already exists');
         return ['version'=>self::VERSION,'id'=>$id,'policy_id'=>$policy,'year'=>$y,'requested_on'=>$day,'due_on'=>self::plus($day,1),
             'status'=>'requested','steps'=>[],'reason'=>null];
     }
@@ -50,7 +53,7 @@ final class FinanceRequests
             $stage=$r['status'];$year=$r['year'];$l=BicameralLegislation::restore($s['legislation']);
             $billId=self::evidenceId($s['world_id'],$id,'requested');
             $b=$s['legislation']['finance']['bills'][$billId]??null;
-            if($day>=$year.'-01-01'||($b!==null&&in_array($stage,['filed','assembly','transferred','senate'],true)&&$day>$b['parliament_deadline'])){
+            if($day>=$year.(FinanceBudget::isCorrective($r['policy_id'])?'-10-01':'-01-01')||($b!==null&&in_array($stage,['filed','assembly','transferred','senate'],true)&&$day>$b['parliament_deadline'])){
                 $r['status']='expired';$r['reason']='deadline';$s['finance_requests'][$id]=$r;continue;
             }
             if($s['legislature']!=='sitting')continue;
@@ -84,7 +87,7 @@ final class FinanceRequests
         $evidence=[];foreach($s['legislation']['history'] as $h)if(isset($h['evidence']))$evidence[$h['evidence']['evidence_id']]=$h['evidence'];
         $used=[];
         foreach($s['finance_requests'] as $id=>$r){
-            if($r['id']!==$id||$r['version']!==self::VERSION||!isset(FinanceBudget::catalog($r['year'])[$r['policy_id']])||$r['requested_on']>$s['day']||count($r['steps'])>7)
+            if($r['id']!==$id||$r['version']!==self::VERSION||!isset((FinanceBudget::isCorrective($r['policy_id'])?FinanceBudget::correctiveCatalog($r['year']):FinanceBudget::catalog($r['year']))[$r['policy_id']])||(FinanceBudget::isCorrective($r['policy_id'])&&!FinanceBudget::eligibleCorrective($s['legislation']['finance'],$r['year']))||$r['requested_on']>$s['day']||count($r['steps'])>7)
                 throw new \DomainException('Invalid budget request');
             $expected='requested';$due=self::plus($r['requested_on'],1);
             foreach($r['steps'] as $step){

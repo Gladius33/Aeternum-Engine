@@ -191,10 +191,10 @@ final class InstitutionalSimulation
             // SEVEN DAYS IS A CONFIGURABLE GAMEPLAY DEFAULT, NOT A LEGAL DEADLINE.
             $this->enqueue($commandId.'-debate','bill_debate_open',self::plus($day,7));
             $result=['bill_id'=>$commandId,'status'=>'filed','earliest_debate'=>self::plus($day,7)];
-        } elseif ($action==='request_annual_budget') {
+        } elseif (in_array($action,['request_annual_budget','request_corrective_budget'],true)) {
             self::keys($input,['policy_id']);
             if($role!=='scenario_president_requester'||!isset($this->state['finance_requests']))throw new \DomainException('Budget request forbidden');
-            $result=FinanceRequests::request($this->state,$commandId,$input['policy_id']);$this->state['finance_requests'][$commandId]=$result;
+            $result=FinanceRequests::request($this->state,$commandId,$input['policy_id'],$action==='request_corrective_budget');$this->state['finance_requests'][$commandId]=$result;
         } elseif ($action==='request_cabinet_appointment') {
             self::keys($input,['candidate']);
             if($role!=='scenario_president_requester'||!isset($this->state['cabinet_requests']))throw new \DomainException('Cabinet request forbidden');
@@ -405,7 +405,7 @@ final class InstitutionalSimulation
         return $result;
     }
 
-    public function enableLegislation(bool $responsibility=false,bool $assembly=false,bool $lifecycle=false,bool $cabinet=false,bool $executive=false,bool $finance=false,bool $minorUnits=false,int $financeYear=2027,bool $financeSeries=false):void
+    public function enableLegislation(bool $responsibility=false,bool $assembly=false,bool $lifecycle=false,bool $cabinet=false,bool $executive=false,bool $finance=false,bool $minorUnits=false,int $financeYear=2027,bool $financeSeries=false,bool $correctiveFinance=false):void
     {
         if($this->state['country_code']!=='FR'||isset($this->state['legislation'])||$this->state['events']!==[])throw new \DomainException('Legislation must be pinned at bootstrap');
         $l=new BicameralLegislation($this->state['world_id'],$this->state['day']);
@@ -415,7 +415,7 @@ final class InstitutionalSimulation
         if($lifecycle)$l->enableLifecycle();
         if($cabinet)$l->enableCabinet();
         if($executive)$l->enableExecutive();
-        if($finance)$l->enableFinance($financeYear,$financeSeries);
+        if($finance)$l->enableFinance($financeYear,$financeSeries,$correctiveFinance);
         $this->state['legislation']=$l->snapshot();
     }
     public function legislation(string $role,string $action,array $payload,string $commandId):array

@@ -26,3 +26,18 @@ $p=F::seriesPolicies();ck81(count($p)===60&&$p['budget-2028-defense-increase']['
 $d=['day'=>'2029-01-01','balance'=>0,'days'=>[],'policies'=>['budget-2028-defense-increase'=>['authorized_on'=>'2027-12-01']]];
 $r=F::project($f,$d);ck81($r['continuity_review_required']&&$r['annual_continuity'][0]['published_and_authorized']&&!$r['annual_continuity'][1]['published_and_authorized'],'prior budget never satisfies new year');
 ck81(F::filingYear($f,'2047-05-01')===2047,'horizon bounded');
+
+$old=$l;no81(fn()=>ev81($old,'finance_file',['policy_id'=>'corrective-2029-health-increase','prime_minister'=>'pm-initial','finance_minister'=>'civic-economy','government_project_certified'=>true],'old-corrective'));
+$c=new B('world-test','2027-05-14');$c->enableResponsibility();$c->enableAssembly();$c->enableLifecycle();$c->enableCabinet();$c->enableExecutive();$c->enableFinance(2028,true,true);
+$policy='corrective-2027-health-increase';$sha=F::digest($policy,2027);$id='corr-2027';
+$fields=['policy_id'=>$policy,'prime_minister'=>'pm-initial','finance_minister'=>'civic-economy','government_project_certified'=>true];
+ev81($c,'finance_file',$fields,$id);no81(fn()=>ev81($c,'finance_file',$fields,'duplicate-corrective'));
+$v=['bill_id'=>$id,'text_sha'=>$sha,'yes'=>180,'no'=>140,'abstain'=>20,'blank_invalid'=>0];
+ev81($c,'finance_assembly',$v,$id.'-a');ev81($c,'finance_transfer',['bill_id'=>$id,'prime_minister'=>'pm-initial','transmission_certified'=>true],$id.'-t');
+ev81($c,'finance_senate',$v,$id.'-s');ev81($c,'finance_final',['bill_id'=>$id,'text_sha'=>$sha,'route'=>'identical','navette_certified'=>true,'yes'=>0,'no'=>0,'abstain'=>0,'blank_invalid'=>0],$id.'-f');
+ev81($c,'finance_review',['bill_id'=>$id,'text_sha'=>$sha,'constitutional'=>true,'decision_certified'=>true],$id.'-r');
+ev81($c,'finance_publish',['bill_id'=>$id,'text_sha'=>$sha,'president'=>'campaign-president','promulgation_certified'=>true,'publication_certified'=>true],$id.'-p');
+$f=$c->snapshot()['finance'];
+ck81(F::proof($f,$policy,$sha,'2027-10-01')!==null&&F::proof($f,$policy,$sha,'2028-01-01')===null,'WP99 exact corrective effective date');
+ck81(B::restore($c->snapshot())->snapshot()===$c->snapshot(),'WP99 replay');
+ck81(count(F::correctivePolicies())===42&&F::correctivePolicies()[$policy]['duration_days']===92,'WP99 no carry into next year');

@@ -50,3 +50,7 @@ Rolling tax sensitivities and scenario extrema are diagnostics only; future comm
 ## WP98 account recovery
 
 An authenticated account can replace its optional recovery code after current-password verification. The 256-bit random secret is displayed once, only its SHA-256 digest is persisted, it expires after 365 days and is consumed atomically with password reset and session revocation. Ordinary password rotation deletes it. No email-based recovery, operator impersonation, or MFA. Apply migration 026 before starting this revision. HTTP tests cover replacement, account binding, replay, digest storage and session invalidation.
+
+## WP99 limited corrective finance route
+
+New canonical campaigns pin a separate in-year corrective catalogue (state health credits, fictional ±920 million EUR over the fourth quarter). The player requests a distinct bill; both chambers, final adoption, review and publication precede the fixed 1 October scenario effective date. It does not replace the annual budget. For 2028 onwards an annual published law must exist. Domestic authorization still requires the exact legal instrument and proposal. Old saves do not acquire the new catalogue or score cohort. This is a bounded finance-law pilot, not a full LOLF model. Reference: https://questions.assemblee-nationale.fr/synthese/fonctionnement-assemblee-nationale/travail-legislatif/l-examen-parlementaire-des-lois-de-finances .

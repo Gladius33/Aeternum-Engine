@@ -11,7 +11,32 @@ final class FinanceBudget
     public const VERSION='wp46-finance-v1';
     public const VERSION_2028='wp71-finance-2028-v1';
     public const SERIES='wp81-finance-series-v1';
+    public const CORRECTIVE='wp99-corrective-budget-v1';
     public const LAST_YEAR=2047;
+    public static function isCorrective(string $id):bool{return preg_match('/^corrective-20[0-9]{2}-health-(increase|reduce)$/D',$id)===1;}
+    public static function correctiveCatalog(int $year):array
+    {
+        if($year<2027||$year>self::LAST_YEAR)throw new \DomainException('Unsupported corrective year');
+        // Fictional October-to-December state health appropriation, not social insurance.
+        // Exactly 920 million EUR over 92 days, independently of the annual law.
+        return [
+            'corrective-'.$year.'-health-increase'=>['revenue_delta'=>0,'expense_delta'=>1000000000,'ministries'=>['health'=>1000000000]],
+            'corrective-'.$year.'-health-reduce'=>['revenue_delta'=>0,'expense_delta'=>-1000000000,'ministries'=>['health'=>-1000000000]]
+        ];
+    }
+    public static function correctivePolicies():array
+    {
+        $p=[];for($y=2027;$y<=self::LAST_YEAR;$y++)foreach(self::correctiveCatalog($y) as $id=>$a)
+            $p[$id]=['revenue_delta'=>0,'expense_delta'=>$a['expense_delta'],'pressure_delta'=>['workers'=>0,'retired'=>0],'duration_days'=>92];
+        return $p;
+    }
+    public static function eligibleCorrective(array $s,int $year):bool
+    {
+        if(($s['corrective_enabled']??false)!==true)return false;
+        if($year===2027)return true; // inherited scenario baseline, not a certified annual act
+        foreach($s['bills'] as $b)if(str_starts_with($b['policy_id'],'budget-'.$year.'-')&&$b['status']==='published')return true;
+        return false;
+    }
     public const SOURCE='https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000019241054/';
     public static function catalog(int $year=2027):array
     {
@@ -43,29 +68,30 @@ final class FinanceBudget
     {
         $p=[];for($y=2028;$y<=self::LAST_YEAR;$y++)$p+=self::policies($y);return $p;
     }
-    public static function initial(int $year=2027,bool $series=false):array
+    public static function initial(int $year=2027,bool $series=false,bool $corrective=false):array
     {
         self::catalog($year);
-        if($series&&$year!==2028)throw new \DomainException('Invalid budget series origin');
-        return ['version'=>$series?self::SERIES:($year===2028?self::VERSION_2028:self::VERSION),'classification'=>'fictional_scenario','source'=>self::SOURCE,'year'=>$year,'bills'=>[],...($series?['last_year'=>self::LAST_YEAR]:[])];
+        if(($series&&$year!==2028)||($corrective&&!$series))throw new \DomainException('Invalid budget series origin');
+        return ['version'=>$series?self::SERIES:($year===2028?self::VERSION_2028:self::VERSION),'classification'=>'fictional_scenario','source'=>self::SOURCE,'year'=>$year,'bills'=>[],...($series?['last_year'=>self::LAST_YEAR]:[]),...($corrective?['corrective_enabled'=>true]:[])];
     }
     public static function digest(string $policy,int $year=2027):string
     {
-        $a=self::catalog($year)[$policy]??throw new \DomainException('Unknown annual policy');
+        $a=(self::isCorrective($policy)?self::correctiveCatalog($year):self::catalog($year))[$policy]??throw new \DomainException('Unknown finance policy');
         return hash('sha256',json_encode(['year'=>$year,'policy'=>$policy,'appropriations'=>$a],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES));
     }
     public static function apply(array $s,array $cab,array $e):array
     {
         $d=$e['data'];$day=$e['day'];$id=$e['evidence_id'];$kind=$e['kind'];
         if(($s['version']??null)===self::SERIES)return self::applySeries($s,$cab,$e);
-        $year=$s['year'];$cutoff=sprintf('%04d-01-01',$year);
-        if($s['version']!==self::initial($year)['version'])throw new \DomainException('Invalid finance year pin');
+        $year=$s['year'];$corrective=$s['version']===self::CORRECTIVE;
+        $cutoff=sprintf($corrective?'%04d-10-01':'%04d-01-01',$year);
+        if(!$corrective&&$s['version']!==self::initial($year)['version'])throw new \DomainException('Invalid finance year pin');
         if(!is_array($d))throw new \InvalidArgumentException('Invalid finance evidence');
         if($kind==='finance_file'){
             self::fields($d,['policy_id','prime_minister','finance_minister','government_project_certified']);
             FrenchCabinet::requirePrimeMinister($cab,$d['prime_minister']);
-            if(!isset(self::catalog($year)[$d['policy_id']])||$d['finance_minister']===null||$d['finance_minister']!==$cab['ministers']['economy']
-                ||$d['government_project_certified']!==true||$day>=$cutoff||($year>=2028&&$day<sprintf('%04d-01-01',$year-1))||count($s['bills'])>=20)
+            if(!isset((($corrective?self::correctiveCatalog($year):self::catalog($year)))[$d['policy_id']])||$d['finance_minister']===null||$d['finance_minister']!==$cab['ministers']['economy']
+                ||$d['government_project_certified']!==true||$day>=$cutoff||($corrective?$day<$year.'-01-01':($year>=2028&&$day<sprintf('%04d-01-01',$year-1)))||count($s['bills'])>=20)
                 throw new \DomainException('Invalid finance initiative');
             foreach($s['bills'] as $b)if(!in_array($b['status'],['rejected'],true))throw new \DomainException('One active annual finance bill');
             $b=['id'=>$id,'policy_id'=>$d['policy_id'],'text_sha'=>self::digest($d['policy_id'],$year),'filed_on'=>$day,
@@ -141,8 +167,14 @@ final class FinanceBudget
         if($file&&isset($s['bills'][$e['evidence_id']]))throw new \DomainException('Duplicate budget identifier');
         $policy=$file?($d['policy_id']??null):($s['bills'][$d['bill_id']??'']['policy_id']??null);
         if(!is_string($policy))throw new \DomainException('Unknown budget series bill');
-        $y=self::policyYear($policy);
-        $single=self::initial($y);$single['bills']=array_filter($s['bills'],fn($b)=>self::policyYear($b['policy_id'])===$y);
+        if(self::isCorrective($policy)){
+            $y=(int)substr($policy,11,4);
+            if(!isset(self::correctiveCatalog($y)[$policy])||!self::eligibleCorrective($s,$y))throw new \DomainException('Corrective budget not enabled or annual law missing');
+            $single=['version'=>self::CORRECTIVE,'year'=>$y,'bills'=>array_filter($s['bills'],fn($b)=>str_starts_with($b['policy_id'],'corrective-'.$y.'-'))];
+        }else{
+            $y=self::policyYear($policy);
+            $single=self::initial($y);$single['bills']=array_filter($s['bills'],fn($b)=>!self::isCorrective($b['policy_id'])&&self::policyYear($b['policy_id'])===$y);
+        }
         [$next,$result]=self::apply($single,$cab,$e);
         foreach($next['bills'] as $id=>$bill)$s['bills'][$id]=$bill;
         return [$s,$result];
@@ -154,7 +186,7 @@ final class FinanceBudget
         if($s['version']!==self::SERIES)return [];
         $out=[];
         for($y=2028;$y<=min(self::LAST_YEAR,(int)substr($dom['day'],0,4));$y++){
-            $matching=array_filter($bills,fn($b)=>self::policyYear($b['policy_id'])===$y&&$b['status']==='published'&&$b['implementation_authorized']);
+            $matching=array_filter($bills,fn($b)=>!self::isCorrective($b['policy_id'])&&self::policyYear($b['policy_id'])===$y&&$b['status']==='published'&&$b['implementation_authorized']);
             $out[$y]=['year'=>$y,'published_and_authorized'=>count($matching)===1,'continuity_review_required'=>count($matching)!==1];
         }
         return $out;

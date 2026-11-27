@@ -20,3 +20,10 @@ $bad=$s;$bad['finance_requests']['budget-request']['steps'][0]['evidence_id']='f
 
 $bad=$s;unset($bad['finance_requests']['budget-request']);no82(fn()=>I::restore($bad));
 $bad=$s;$bad['finance_requests']['budget-request']['reason']='invented';no82(fn()=>I::restore($bad));
+
+$y=new I('world-test','FR','2027-05-14');$y->enableElectoral(P::publishedElectionConfig('2027-05-14'));$y->enablePoliticalAI();$y->enableRevision();$y->enableLegislation(true,true,true,true,true,true,true,2028,true,true);$y->enableContinuityLot();$y->enableCabinetSenateLot();$y->enableFinanceRequests();
+$cp=['policy_id'=>'corrective-2027-health-increase'];
+no82(fn()=> $y->decide('scenario_president_requester','request_annual_budget',$cp,'wrong-kind'));
+$y->decide('scenario_president_requester','request_corrective_budget',$cp,'correction-request');
+for($n=1;$n<=32;$n++){$day=(new DateTimeImmutable('2027-05-14'))->modify('+'.$n.' days')->format('Y-m-d');$y->advanceTo($day);ck82(I::restore($y->snapshot())->hash()===$y->hash(),'WP99 daily replay '.$n);}
+ck82(in_array($y->snapshot()['finance_requests']['correction-request']['status'],['published','rejected'],true),'WP99 ordinary corrective budget route');
