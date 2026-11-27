@@ -125,3 +125,6 @@ Migration 036 adds the model_upgrade journal operation. With workers stopped and
 ### WP114 social law lifecycle
 
 The social_lifecycle_catalog adds ten explicit repeal objectives to the 24 historical objectives. The same measure_ids contract accepts these IDs. Repeals use ordinary legislation and repeated instruments are uniquely identified, preserving original receipts and past rows. Old worlds without the social economy pin reject the new objectives. The existing institutional bill count limit still applies.
+
+
+The social migration dry-run also reports the old and new ranking cohort hashes. Applied migrations reclassify the current French control period without changing its accumulated score, and retain all closed periods. No official cross-model comparison is claimed.

@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/PdoDomesticPolicyStore.php';
 require_once __DIR__.'/InstitutionalSimulation.php';
 require_once __DIR__.'/WorldMutationFence.php';
+require_once __DIR__.'/UniverseScore.php';
 
 /** Explicit offline maintenance: preserve all past days and legal histories,
  * retain prior hashes in journals, switch only on the next simulated day.
@@ -64,12 +65,30 @@ final class SocialUniverseUpgrade
             foreach($q->fetchAll(\PDO::FETCH_COLUMN) as $id)if(($dom['policies'][$id]['authorized_on']??null)===null)throw new \DomainException('Pending legal proof must be resolved first');
             $report+=['effective_on'=>$r['effective_on'],'old_assumptions_sha'=>$d['assumptions_sha'],'new_assumptions_sha'=>$r['assumptions_sha'],
                 'old_domestic_sha'=>$d['state_sha'],'new_domestic_sha'=>$r['domestic_sha'],'old_institutional_sha'=>$i['state_sha'],'new_institutional_sha'=>$r['institutional_sha']];
+            // Preserve closed rankings. Active control keeps its tenure,
+            // score and opening baseline, but is reclassified into a
+            // transition-specific cohort (old rules + new config + switch day).
+            $q=$db->prepare("SELECT cohort_sha,day FROM wp_universe_income_checkpoints WHERE world_id=? AND country_code='FR' FOR UPDATE");
+            $q->execute([$w]);$checkpoint=$q->fetch(\PDO::FETCH_ASSOC);
+            if($checkpoint!==false){
+                if($checkpoint['day']!==$r['day'])throw new \DomainException('Stale score checkpoint');
+                $new=CampaignScore::digest(['version'=>self::VERSION,'prior_cohort'=>$checkpoint['cohort_sha'],
+                    'new_config'=>CampaignScore::digest($r['config']),'effective_on'=>$r['effective_on']]);
+                $report['old_score_cohort']=$checkpoint['cohort_sha'];$report['new_score_cohort']=$new;
+            }
             if(!$apply){$db->rollBack();return $report;}
             $dr=(int)$d['revision']+1;$ir=(int)$i['revision']+1;
             $q=$db->prepare('UPDATE wp_domestic_states SET assumptions_json=?,assumptions_sha=?,state_json=?,state_sha=?,revision=? WHERE world_id=?');
             $q->execute([self::json($r['config']),$r['assumptions_sha'],self::json($r['domestic']),$r['domestic_sha'],$dr,$w]);
             $q=$db->prepare("UPDATE wp_institutional_states SET state_json=?,state_sha=?,revision=? WHERE world_id=? AND country_code='FR'");
             $q->execute([self::json($r['institutional']),$r['institutional_sha'],$ir,$w]);
+            if($checkpoint!==false){
+                $q=$db->prepare("UPDATE wp_universe_period_scores s JOIN wp_universe_control_periods p USING(world_id,country_code,generation)
+                    SET s.cohort_sha=? WHERE s.world_id=? AND s.country_code='FR' AND p.left_on IS NULL AND s.cohort_sha=?");
+                $q->execute([$report['new_score_cohort'],$w,$report['old_score_cohort']]);
+                $q=$db->prepare("UPDATE wp_universe_income_checkpoints SET cohort_sha=? WHERE world_id=? AND country_code='FR'");
+                $q->execute([$report['new_score_cohort'],$w]);
+            }
             $report['applied']=true;$json=self::json($report);$request=self::json(['operation'=>self::VERSION,'day'=>$r['day'],'world_id'=>$w]);$sha=hash('sha256',$request);
             $q=$db->prepare("INSERT INTO wp_domestic_journal(world_id,revision,principal_id,operation,request_sha,request_json,before_sha,after_sha,result_json) VALUES(?,?,'social-maintenance','model_upgrade',?,?,?,?,?)");
             $q->execute([$w,$dr,$sha,$request,$d['state_sha'],$r['domestic_sha'],$json]);

@@ -258,3 +258,44 @@ ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced
 ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['social-repeal-pension','industry-active']],8)['status']===200,'WP114j mixed repeal configuration accepted');
 $rj=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
 ck102($rj['social_measure_ids']===['social-repeal-pension'],'WP114j persisted repeal objective');
+
+
+// WP114k: create a genuinely legacy-configured fixture before any game
+// transition or control period, advance it, then exercise actual SQL apply.
+// The fixture construction is isolated to the disposable CI database.
+$bundleK=\Aeternum\WorldPolitics\GlobalReferenceBundle::published();
+$db->beginTransaction();
+$shaK=(new \Aeternum\WorldPolitics\PdoGlobalReferenceBundles($db))->install($bundleK);
+$scK=new \Aeternum\WorldPolitics\AlphaScenario(\Aeternum\WorldPolitics\AlphaScenario::INVESTITURE,$bundleK,$shaK);
+$wk=(new \Aeternum\WorldPolitics\AlphaWorlds($db,$scK))->provisionUniverse()['world_id'];
+$q=$db->prepare('INSERT INTO wp_universes(world_id,roster_version) VALUES(?,?)');$q->execute([$wk,UniverseLobby::ROSTER_VERSION]);$nk=(int)$db->lastInsertId();
+$q=$db->prepare("INSERT INTO wp_universe_slots(world_id,country_code,domestic_programme) VALUES(?,?,'manual')");
+foreach(UniverseLobby::DIPLOMATIC_COUNTRIES as $cc)$q->execute([$wk,$cc]);
+$legacyK=$scK->domestic();$dk=\Aeternum\WorldPolitics\PdoDomesticPolicyStore::build($wk,$legacyK);
+$jsonK=fn(array $v)=>json_encode($v,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+$q=$db->prepare('UPDATE wp_domestic_states SET assumptions_json=?,assumptions_sha=?,state_json=?,state_sha=? WHERE world_id=? AND revision=0');
+$q->execute([$jsonK($legacyK),$dk->assumptionsHash(),$jsonK($dk->snapshot()),$dk->hash(),$wk]);
+$q114e->execute([$wk]);$ik=json_decode($q114e->fetchColumn(),true,64,JSON_THROW_ON_ERROR);unset($ik['legislation']['social_programme']);
+$ik=\Aeternum\WorldPolitics\InstitutionalSimulation::restore($ik);
+$q=$db->prepare("UPDATE wp_institutional_states SET state_json=?,state_sha=? WHERE world_id=? AND country_code='FR' AND revision=0");$q->execute([$jsonK($ik->snapshot()),$ik->hash(),$wk]);
+$q=$db->prepare('SELECT state_json,state_sha FROM wp_diplomatic_states WHERE world_id=?');$q->execute([$wk]);$dipK=$q->fetch(PDO::FETCH_ASSOC);
+$q=$db->prepare('DELETE FROM wp_universe_income_checkpoints WHERE world_id=?');$q->execute([$wk]);
+\Aeternum\WorldPolitics\UniverseScore::seed($db,$wk,$shaK,$legacyK,['state'=>$dk->snapshot(),'etag'=>'"'.$dk->hash().'"'],['state'=>json_decode($dipK['state_json'],true,64,JSON_THROW_ON_ERROR),'etag'=>'"'.$dipK['state_sha'].'"'],true,true);
+$db->commit();
+ck102(join102(8,'FR',$nk,'wp114k-legacy-fixture')['status']===201,'WP114k legacy fixture human control');
+for($n=0;$n<2;$n++){$due->execute([$wk]);ck102($scheduler->tick($wk)['status']==='committed','WP114k legacy fixture progresses');}
+$qu->execute([$wk]);$oldK=$qu->fetch(PDO::FETCH_ASSOC);$oldDaysK=json_decode($oldK['state_json'],true,64,JSON_THROW_ON_ERROR)['days'];
+$dryK=\Aeternum\WorldPolitics\SocialUniverseUpgrade::run($db,$nk);
+ck102($dryK['changed']&&!$dryK['applied']&&$dryK['old_score_cohort']!==$dryK['new_score_cohort'],'WP114k real dry-run with distinct ranking cohort');
+$qu->execute([$wk]);ck102($qu->fetch(PDO::FETCH_ASSOC)===$oldK,'WP114k no dry-run writes');
+$appliedK=\Aeternum\WorldPolitics\SocialUniverseUpgrade::run($db,$nk,true);
+ck102($appliedK['applied']&&$appliedK['new_domestic_sha']===$dryK['new_domestic_sha'],'WP114k actual committed SQL migration');
+$qu->execute([$wk]);$newK=$qu->fetch(PDO::FETCH_ASSOC);$stateK=json_decode($newK['state_json'],true,64,JSON_THROW_ON_ERROR);
+ck102($stateK['days']===$oldDaysK&&$newK['state_sha']===$appliedK['new_domestic_sha'],'WP114k all prior days remain byte-equivalent');
+$q=$db->prepare("SELECT before_sha,after_sha FROM wp_domestic_journal WHERE world_id=? AND operation='model_upgrade'");$q->execute([$wk]);$jK=$q->fetch(PDO::FETCH_ASSOC);
+ck102($jK['before_sha']===$oldK['state_sha']&&$jK['after_sha']===$newK['state_sha'],'WP114k durable digest bridge');
+ck102(!\Aeternum\WorldPolitics\SocialUniverseUpgrade::run($db,$nk,true)['changed'],'WP114k repeated apply inert');
+$due->execute([$wk]);ck102($scheduler->tick($wk)['status']==='committed','WP114k new model advances after migration');
+$qu->execute([$wk]);$afterK=json_decode($qu->fetch(PDO::FETCH_ASSOC)['state_json'],true,64,JSON_THROW_ON_ERROR);
+ck102(array_slice($afterK['days'],0,count($oldDaysK))===$oldDaysK&&isset($afterK['days'][array_key_last($afterK['days'])]['social_economy']),'WP114k new model starts on exact next day');
+ck102(\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$nk)['integrity']==='passed','WP114k post-migration score and control audit');
