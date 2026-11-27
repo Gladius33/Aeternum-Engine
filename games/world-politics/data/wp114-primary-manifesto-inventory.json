@@ -1,0 +1,559 @@
+{
+  "schema": "wp114-primary-manifesto-inventory-v1",
+  "election_day": "2022-04-10",
+  "classification": "selected_primary_source_commitments_not_exhaustive",
+  "measures": [
+    {
+      "id": "pf2022-nathalie-arthaud-1",
+      "candidate": "nathalie-arthaud",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-01-Nathalie-Arthaud-Declaration.pdf",
+      "page": 2,
+      "domain": "wages",
+      "summary": "Indexation salariale sur l'inflation",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-nathalie-arthaud-2",
+      "candidate": "nathalie-arthaud",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-01-Nathalie-Arthaud-Declaration.pdf",
+      "page": 2,
+      "domain": "employment",
+      "summary": "Répartition de l'emploi sans réduction de salaire",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-nathalie-arthaud-3",
+      "candidate": "nathalie-arthaud",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-01-Nathalie-Arthaud-Declaration.pdf",
+      "page": 3,
+      "domain": "ownership",
+      "summary": "Expropriation et contrôle collectif des grandes entreprises",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-nathalie-arthaud-4",
+      "candidate": "nathalie-arthaud",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-01-Nathalie-Arthaud-Declaration.pdf",
+      "page": 3,
+      "domain": "institutions",
+      "summary": "Droit de vote des travailleurs immigrés",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-nicolas-dupont-aignan-1",
+      "candidate": "nicolas-dupont-aignan",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-02-Nicolas-Dupont-Aignan-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "tax",
+      "summary": "Réduction de moitié de l'impôt sur les bénéfices réinvestis en France",
+      "target": {
+        "reduction_bps": 5000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-nicolas-dupont-aignan-2",
+      "candidate": "nicolas-dupont-aignan",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-02-Nicolas-Dupont-Aignan-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "health",
+      "summary": "Création de 20 000 lits hospitaliers",
+      "target": {
+        "beds": 20000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-nicolas-dupont-aignan-3",
+      "candidate": "nicolas-dupont-aignan",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-02-Nicolas-Dupont-Aignan-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "family",
+      "summary": "Création de 250 000 places de crèche sur cinq ans",
+      "target": {
+        "places": 250000,
+        "years": 5
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-nicolas-dupont-aignan-4",
+      "candidate": "nicolas-dupont-aignan",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-02-Nicolas-Dupont-Aignan-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "institutions",
+      "summary": "Référendum citoyen à partir de 500 000 signatures",
+      "target": {
+        "signatures": 500000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-anne-hidalgo-1",
+      "candidate": "anne-hidalgo",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-03-Anne-Hidalgo-Declaration.pdf",
+      "page": 3,
+      "domain": "retirement",
+      "summary": "Maintien du départ légal à 62 ans",
+      "target": {
+        "age": 62
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-anne-hidalgo-2",
+      "candidate": "anne-hidalgo",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-03-Anne-Hidalgo-Declaration.pdf",
+      "page": 3,
+      "domain": "housing",
+      "summary": "150 000 logements sociaux annuels",
+      "target": {
+        "annual_units": 150000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-anne-hidalgo-3",
+      "candidate": "anne-hidalgo",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-03-Anne-Hidalgo-Declaration.pdf",
+      "page": 3,
+      "domain": "eldercare",
+      "summary": "Hausse de 50 % de l'aide au maintien à domicile",
+      "target": {
+        "increase_bps": 5000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-anne-hidalgo-4",
+      "candidate": "anne-hidalgo",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-03-Anne-Hidalgo-Declaration.pdf",
+      "page": 3,
+      "domain": "wages",
+      "summary": "Hausse mensuelle du SMIC net de 200 euros",
+      "target": {
+        "monthly_increase_eur": 200
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-yannick-jadot-1",
+      "candidate": "yannick-jadot",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-04-Yannick-Jadot-Declaration-accessible.pdf",
+      "page": 3,
+      "domain": "wages",
+      "summary": "SMIC mensuel net à 1 500 euros",
+      "target": {
+        "monthly_net_eur": 1500
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-yannick-jadot-2",
+      "candidate": "yannick-jadot",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-04-Yannick-Jadot-Declaration-accessible.pdf",
+      "page": 3,
+      "domain": "education",
+      "summary": "65 000 enseignants supplémentaires",
+      "target": {
+        "hires": 65000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-yannick-jadot-3",
+      "candidate": "yannick-jadot",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-04-Yannick-Jadot-Declaration-accessible.pdf",
+      "page": 3,
+      "domain": "housing",
+      "summary": "700 000 logements sociaux sur cinq ans",
+      "target": {
+        "units": 700000,
+        "years": 5
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-yannick-jadot-4",
+      "candidate": "yannick-jadot",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-04-Yannick-Jadot-Declaration-accessible.pdf",
+      "page": 3,
+      "domain": "tax",
+      "summary": "Impôt climatique sur la fortune visant 15 milliards annuels",
+      "target": {
+        "annual_revenue_eur": 15000000000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-jean-lassalle-1",
+      "candidate": "jean-lassalle",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-05-Jean-Lassalle-Declaration.pdf",
+      "page": 2,
+      "domain": "tax",
+      "summary": "TVA des hydrocarbures ramenée à 5,5 %",
+      "target": {
+        "rate_bps": 550
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-jean-lassalle-2",
+      "candidate": "jean-lassalle",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-05-Jean-Lassalle-Declaration.pdf",
+      "page": 2,
+      "domain": "health",
+      "summary": "Ouverture de 20 000 lits",
+      "target": {
+        "beds": 20000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-jean-lassalle-3",
+      "candidate": "jean-lassalle",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-05-Jean-Lassalle-Declaration.pdf",
+      "page": 2,
+      "domain": "health",
+      "summary": "100 000 recrutements infirmiers et aides-soignants",
+      "target": {
+        "hires": 100000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-jean-lassalle-4",
+      "candidate": "jean-lassalle",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-05-Jean-Lassalle-Declaration.pdf",
+      "page": 2,
+      "domain": "institutions",
+      "summary": "Consultation sur la durée du mandat présidentiel",
+      "target": {
+        "options_years": [
+          5,
+          7
+        ]
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-marine-le-pen-1",
+      "candidate": "marine-le-pen",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-06-Marine-Le-Pen-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "industry",
+      "summary": "Soutien aux PME par les marchés publics",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-marine-le-pen-2",
+      "candidate": "marine-le-pen",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-06-Marine-Le-Pen-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "tax",
+      "summary": "Suppression de la cotisation foncière des entreprises",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-marine-le-pen-3",
+      "candidate": "marine-le-pen",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-06-Marine-Le-Pen-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "trade",
+      "summary": "Protection économique des producteurs français et circuits courts",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-emmanuel-macron-1",
+      "candidate": "emmanuel-macron",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-07-Emmanuel-Macron-Declaration.pdf",
+      "page": 3,
+      "domain": "retirement",
+      "summary": "Pension minimale mensuelle à taux plein de 1 100 euros",
+      "target": {
+        "monthly_eur": 1100
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-emmanuel-macron-2",
+      "candidate": "emmanuel-macron",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-07-Emmanuel-Macron-Declaration.pdf",
+      "page": 3,
+      "domain": "eldercare",
+      "summary": "50 000 recrutements soignants en maison de retraite",
+      "target": {
+        "hires": 50000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-emmanuel-macron-3",
+      "candidate": "emmanuel-macron",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-07-Emmanuel-Macron-Declaration.pdf",
+      "page": 3,
+      "domain": "housing",
+      "summary": "Rénovation annuelle de 700 000 logements",
+      "target": {
+        "annual_units": 700000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-emmanuel-macron-4",
+      "candidate": "emmanuel-macron",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-07-Emmanuel-Macron-Declaration.pdf",
+      "page": 3,
+      "domain": "justice",
+      "summary": "8 500 emplois judiciaires supplémentaires d'ici 2027",
+      "target": {
+        "hires": 8500,
+        "target_year": 2027
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-jean-luc-melenchon-1",
+      "candidate": "jean-luc-melenchon",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-08-Jean-Luc-Melenchon-Declaration-accessible.pdf",
+      "page": 4,
+      "domain": "wages",
+      "summary": "SMIC mensuel net à 1 400 euros",
+      "target": {
+        "monthly_net_eur": 1400
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-jean-luc-melenchon-2",
+      "candidate": "jean-luc-melenchon",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-08-Jean-Luc-Melenchon-Declaration-accessible.pdf",
+      "page": 4,
+      "domain": "retirement",
+      "summary": "Minimum vieillesse mensuel à 1 063 euros",
+      "target": {
+        "monthly_eur": 1063
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-jean-luc-melenchon-3",
+      "candidate": "jean-luc-melenchon",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-08-Jean-Luc-Melenchon-Declaration-accessible.pdf",
+      "page": 4,
+      "domain": "social",
+      "summary": "Allocation handicap à 1 400 euros et indépendante du conjoint",
+      "target": {
+        "monthly_eur": 1400
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-jean-luc-melenchon-4",
+      "candidate": "jean-luc-melenchon",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-08-Jean-Luc-Melenchon-Declaration-accessible.pdf",
+      "page": 3,
+      "domain": "energy",
+      "summary": "100 % d'énergies renouvelables à l'horizon 2050",
+      "target": {
+        "target_bps": 10000,
+        "target_year": 2050
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-valerie-pecresse-1",
+      "candidate": "valerie-pecresse",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-09-Valerie-Pecresse-Declaration-accessible.pdf",
+      "page": 4,
+      "domain": "justice",
+      "summary": "16 000 recrutements judiciaires",
+      "target": {
+        "hires": 16000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-valerie-pecresse-2",
+      "candidate": "valerie-pecresse",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-09-Valerie-Pecresse-Declaration-accessible.pdf",
+      "page": 4,
+      "domain": "social",
+      "summary": "Activité hebdomadaire de 15 heures pour les bénéficiaires du RSA",
+      "target": {
+        "hours": 15
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-valerie-pecresse-3",
+      "candidate": "valerie-pecresse",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-09-Valerie-Pecresse-Declaration-accessible.pdf",
+      "page": 4,
+      "domain": "tax",
+      "summary": "Réduction d'au moins dix milliards d'impôts de production",
+      "target": {
+        "annual_reduction_eur": 10000000000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-valerie-pecresse-4",
+      "candidate": "valerie-pecresse",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-09-Valerie-Pecresse-Declaration-accessible.pdf",
+      "page": 4,
+      "domain": "social",
+      "summary": "Revenu formation de 670 euros pour les jeunes concernés",
+      "target": {
+        "monthly_eur": 670
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-philippe-poutou-1",
+      "candidate": "philippe-poutou",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-10-Philippe-Poutou-Declaration.pdf",
+      "page": 3,
+      "domain": "wages",
+      "summary": "SMIC mensuel net de 1 800 euros",
+      "target": {
+        "monthly_net_eur": 1800
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-philippe-poutou-2",
+      "candidate": "philippe-poutou",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-10-Philippe-Poutou-Declaration.pdf",
+      "page": 3,
+      "domain": "social",
+      "summary": "Revenu d'autonomie des 18–25 ans à 75 % du SMIC",
+      "target": {
+        "smic_share_bps": 7500
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-philippe-poutou-3",
+      "candidate": "philippe-poutou",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-10-Philippe-Poutou-Declaration.pdf",
+      "page": 3,
+      "domain": "transport",
+      "summary": "Gratuité des transports collectifs",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-philippe-poutou-4",
+      "candidate": "philippe-poutou",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-10-Philippe-Poutou-Declaration.pdf",
+      "page": 3,
+      "domain": "diplomacy",
+      "summary": "Retrait de l'OTAN",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-fabien-roussel-1",
+      "candidate": "fabien-roussel",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-11-Fabien-Roussel-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "public_services",
+      "summary": "500 000 postes publics supplémentaires",
+      "target": {
+        "hires": 500000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-fabien-roussel-2",
+      "candidate": "fabien-roussel",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-11-Fabien-Roussel-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "wages",
+      "summary": "Hausse de 30 % des traitements publics",
+      "target": {
+        "increase_bps": 3000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-fabien-roussel-3",
+      "candidate": "fabien-roussel",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-11-Fabien-Roussel-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "agriculture",
+      "summary": "Fonds annuel agricole et alimentaire de dix milliards",
+      "target": {
+        "annual_eur": 10000000000
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-fabien-roussel-4",
+      "candidate": "fabien-roussel",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-11-Fabien-Roussel-Declaration-accessible.pdf",
+      "page": 2,
+      "domain": "culture",
+      "summary": "Budget culturel égal à 1 % du PIB",
+      "target": {
+        "gdp_share_bps": 100
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-eric-zemmour-1",
+      "candidate": "eric-zemmour",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-12-Eric-Zemmour-Declaration.pdf",
+      "page": 4,
+      "domain": "tax",
+      "summary": "Exonération CSG-CRDS des pensions inférieures à 1 300 euros",
+      "target": {
+        "monthly_threshold_eur": 1300
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-eric-zemmour-2",
+      "candidate": "eric-zemmour",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-12-Eric-Zemmour-Declaration.pdf",
+      "page": 4,
+      "domain": "wages",
+      "summary": "Exonération fiscale et sociale des heures supplémentaires",
+      "target": {},
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-eric-zemmour-3",
+      "candidate": "eric-zemmour",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-12-Eric-Zemmour-Declaration.pdf",
+      "page": 4,
+      "domain": "transport",
+      "summary": "Remboursement de 50 % des trajets carburant plafonné à 40 euros mensuels",
+      "target": {
+        "share_bps": 5000,
+        "monthly_cap_eur": 40
+      },
+      "execution_status": "unmapped_requires_review"
+    },
+    {
+      "id": "pf2022-eric-zemmour-4",
+      "candidate": "eric-zemmour",
+      "source": "https://www.cnccep.fr/pdfs/Candidat-12-Eric-Zemmour-Declaration.pdf",
+      "page": 4,
+      "domain": "energy",
+      "summary": "Plafonnement temporaire du carburant à 1,80 euro par litre",
+      "target": {
+        "minor_eur_per_litre": 180
+      },
+      "execution_status": "unmapped_requires_review"
+    }
+  ]
+}

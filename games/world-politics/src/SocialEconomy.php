@@ -65,9 +65,16 @@ final class SocialEconomy
     }
     /** Prior-day anchors; no dependence on today's not-yet-calculated GDP.
      * Multiple active laws may affect distinct families only. */
-    public static function calculate(array $active,array $policies,string $day,array $population,array $services,array $macro,?array $prior):array
+    public static function calculate(array $active,array $policies,string $day,array $population,array $services,array $macro,?array $prior,array $sensitivity=[]):array
     {
+        // Sensitivity is an offline analytical tool. The authoritative
+        // daily clock never passes this parameter, preserving replay.
         $a=self::ASSUMPTIONS;
+        foreach($sensitivity as $key=>$value){
+            if(!in_array($key,['employment_participation_bps','job_guarantee_takeup_bps','retirement_takeup_bps','long_career_share_bps','arduous_share_bps','wage_floor_share_bps','incentive_takeup_bps','apprentice_share_bps','sme_hiring_share_bps','annual_hiring_rate_bps','targeted_job_share_bps','job_service_placement_bps','sector_bargaining_takeup_bps'],true)
+                ||!is_int($value)||$value<0||$value>10000)throw new \InvalidArgumentException('Unreviewed sensitivity parameter');
+            $a[$key]=$value;
+        }
         $cohorts=$prior['population']['cohorts']??$population['opening_cohorts'];
         $ind=$prior['population']['indicators']??$population['opening_indicators'];
         $u=self::limit($prior['macro']['unemployment_bps']??$macro['initial_unemployment_bps'],0,3000);

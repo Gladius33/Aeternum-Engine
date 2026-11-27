@@ -225,3 +225,24 @@ ck82(SP::assumption($reset114,$catalogLifecycle,false)===null&&SP::assumption($r
 ck82(SP::assumption($pension114.'-r2',$catalogLifecycle,true)===$catalogLifecycle[$pension114],'WP114j repeat uses pinned assumptions');
 $cycle[$pension114.'-r2']=['proposed_on'=>'2028-02-01','effective_on'=>$reintroduced['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
 ck82(SP::nextInstance($pension114,'2028-02-02',$cycle)===null,'WP114j pending instance is not duplicated');
+
+
+// WP114j: independently dated age-band employment observations and holdout,
+// plus every historical measure's bounded parameter scenario.
+require_once __DIR__.'/../games/world-politics/src/SocialCalibration.php';
+use Aeternum\WorldPolitics\SocialCalibration as SC;
+$cal114=SC::benchmark(SC::load());
+ck82($cal114['observed_2025_employment_bps']['age_15_64']===6930&&$cal114['observed_2025_activity_bps']['age_15_64']===7510,'WP114j exact observed age scope');
+ck82($cal114['train']===[2015,2021]&&$cal114['holdout']===[2022,2025]&&!$cal114['policy_causal_calibration_qualified'],'WP114j no holdout leakage or causal claim');
+foreach($cal114['age_band_backtest'] as $series)ck82(count($series['holdout'])===4&&$series['trend_mae_bps']>=0,'WP114j four held-out years');
+$sr114=SC::sensitivity($pop,$services,$base);
+ck82(count($sr114['measures'])===24,'WP114j all historical objectives have scenario envelopes');
+foreach($sr114['measures'] as $metrics)foreach($metrics as $v)ck82($v['min']<=$v['central']&&$v['central']<=$v['max'],'WP114j sensitivity contains central scenario');
+no82(fn()=>SE::calculate([],[],'2027-09-11',$pop,$services,$base,null,['job_guarantee_takeup_bps'=>10001]));
+
+
+require_once __DIR__.'/../games/world-politics/src/HistoricalProgrammeCoverage.php';
+$historicalCoverage=\Aeternum\WorldPolitics\HistoricalProgrammeCoverage::report();
+ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===47,'WP114i separate all twelve source inventories from executable historical measures');
+ck82(!$historicalCoverage['wp114_closure_qualified'],'WP114i no false exhaustive coverage');
+ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['employment_bps'][2]===[2017,2900,8060,6230,6540],'WP114j exact verified INSEE training anchors');

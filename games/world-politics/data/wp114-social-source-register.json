@@ -21,7 +21,153 @@
         "fabien-roussel",
         "eric-zemmour"
       ],
-      "extraction": "not_exhaustive"
+      "extraction": "not_exhaustive",
+      "documents": [
+        {
+          "candidate": "nathalie-arthaud",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-01-Nathalie-Arthaud-Declaration.pdf",
+          "pages": 4,
+          "archived_measure_ids": [
+            "hist2022-nathalie-arthaud-1",
+            "hist2022-nathalie-arthaud-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "nicolas-dupont-aignan",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-02-Nicolas-Dupont-Aignan-Declaration-accessible.pdf",
+          "pages": 2,
+          "archived_measure_ids": [
+            "hist2022-nicolas-dupont-aignan-1",
+            "hist2022-nicolas-dupont-aignan-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "anne-hidalgo",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-03-Anne-Hidalgo-Declaration.pdf",
+          "pages": 4,
+          "archived_measure_ids": [
+            "hist2022-anne-hidalgo-1",
+            "hist2022-anne-hidalgo-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "yannick-jadot",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-04-Yannick-Jadot-Declaration-accessible.pdf",
+          "pages": 4,
+          "archived_measure_ids": [
+            "hist2022-yannick-jadot-1",
+            "hist2022-yannick-jadot-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "jean-lassalle",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-05-Jean-Lassalle-Declaration.pdf",
+          "pages": 2,
+          "archived_measure_ids": [
+            "hist2022-jean-lassalle-1",
+            "hist2022-jean-lassalle-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "marine-le-pen",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-06-Marine-Le-Pen-Declaration-accessible.pdf",
+          "pages": 3,
+          "archived_measure_ids": [
+            "hist2022-marine-le-pen-1",
+            "hist2022-marine-le-pen-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "emmanuel-macron",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-07-Emmanuel-Macron-Declaration.pdf",
+          "pages": 3,
+          "archived_measure_ids": [
+            "hist2022-emmanuel-macron-1",
+            "hist2022-emmanuel-macron-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "jean-luc-melenchon",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-08-Jean-Luc-Melenchon-Declaration-accessible.pdf",
+          "pages": 4,
+          "archived_measure_ids": [
+            "hist2022-jean-luc-melenchon-1",
+            "hist2022-jean-luc-melenchon-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "valerie-pecresse",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-09-Valerie-Pecresse-Declaration-accessible.pdf",
+          "pages": 4,
+          "archived_measure_ids": [
+            "hist2022-valerie-pecresse-1",
+            "hist2022-valerie-pecresse-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "philippe-poutou",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-10-Philippe-Poutou-Declaration.pdf",
+          "pages": 4,
+          "archived_measure_ids": [
+            "hist2022-philippe-poutou-1",
+            "hist2022-philippe-poutou-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "fabien-roussel",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-11-Fabien-Roussel-Declaration-accessible.pdf",
+          "pages": 3,
+          "archived_measure_ids": [
+            "hist2022-fabien-roussel-1",
+            "hist2022-fabien-roussel-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        },
+        {
+          "candidate": "eric-zemmour",
+          "url": "https://www.cnccep.fr/pdfs/Candidat-12-Eric-Zemmour-Declaration.pdf",
+          "pages": 4,
+          "archived_measure_ids": [
+            "hist2022-eric-zemmour-1",
+            "hist2022-eric-zemmour-2"
+          ],
+          "complete_manifesto_extracted": false,
+          "document_access_verified": true,
+          "archived_measure_provenance": "separate_secondary_source_not_individually_verified_against_pdf"
+        }
+      ]
     },
     {
       "id": "insee-smic-net-2025",
@@ -36,7 +182,70 @@
       "id": "insee-net-smic-series",
       "url": "https://www.insee.fr/fr/statistiques/serie/000879878",
       "use": "future calibration reference"
+    },
+    {
+      "id": "insee-employment-2025",
+      "url": "https://www.insee.fr/fr/statistiques/8901327",
+      "published_on": "2026-03-25",
+      "figures": [
+        1,
+        2
+      ],
+      "use": "historical employment trend holdout and age-band participation anchor; not a causal policy estimate"
     }
   ],
-  "behavioral_calibration_completed": false
+  "behavioral_calibration_completed": false,
+  "additional_inventory": {
+    "classification": "selected_primary_source_commitments_not_exhaustive",
+    "count": 47,
+    "measure_ids": [
+      "pf2022-nathalie-arthaud-1",
+      "pf2022-nathalie-arthaud-2",
+      "pf2022-nathalie-arthaud-3",
+      "pf2022-nathalie-arthaud-4",
+      "pf2022-nicolas-dupont-aignan-1",
+      "pf2022-nicolas-dupont-aignan-2",
+      "pf2022-nicolas-dupont-aignan-3",
+      "pf2022-nicolas-dupont-aignan-4",
+      "pf2022-anne-hidalgo-1",
+      "pf2022-anne-hidalgo-2",
+      "pf2022-anne-hidalgo-3",
+      "pf2022-anne-hidalgo-4",
+      "pf2022-yannick-jadot-1",
+      "pf2022-yannick-jadot-2",
+      "pf2022-yannick-jadot-3",
+      "pf2022-yannick-jadot-4",
+      "pf2022-jean-lassalle-1",
+      "pf2022-jean-lassalle-2",
+      "pf2022-jean-lassalle-3",
+      "pf2022-jean-lassalle-4",
+      "pf2022-marine-le-pen-1",
+      "pf2022-marine-le-pen-2",
+      "pf2022-marine-le-pen-3",
+      "pf2022-emmanuel-macron-1",
+      "pf2022-emmanuel-macron-2",
+      "pf2022-emmanuel-macron-3",
+      "pf2022-emmanuel-macron-4",
+      "pf2022-jean-luc-melenchon-1",
+      "pf2022-jean-luc-melenchon-2",
+      "pf2022-jean-luc-melenchon-3",
+      "pf2022-jean-luc-melenchon-4",
+      "pf2022-valerie-pecresse-1",
+      "pf2022-valerie-pecresse-2",
+      "pf2022-valerie-pecresse-3",
+      "pf2022-valerie-pecresse-4",
+      "pf2022-philippe-poutou-1",
+      "pf2022-philippe-poutou-2",
+      "pf2022-philippe-poutou-3",
+      "pf2022-philippe-poutou-4",
+      "pf2022-fabien-roussel-1",
+      "pf2022-fabien-roussel-2",
+      "pf2022-fabien-roussel-3",
+      "pf2022-fabien-roussel-4",
+      "pf2022-eric-zemmour-1",
+      "pf2022-eric-zemmour-2",
+      "pf2022-eric-zemmour-3",
+      "pf2022-eric-zemmour-4"
+    ]
+  }
 }
