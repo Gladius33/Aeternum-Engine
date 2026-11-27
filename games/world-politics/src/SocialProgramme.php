@@ -55,6 +55,20 @@ final class SocialProgramme
         }
         return $cached=$out;
     }
+    /** Independently sourced 2027 commitments. Reserved bits 78–93 are
+     * not used by the immutable 2022 catalog or any family reset. */
+    public static function target2027():array
+    {
+        $historical=self::definitions();$zero=array_fill_keys(array_keys(reset($historical)['assumptions']),0);
+        return [
+            'pf2027-jean-luc-melenchon-smic'=>['bit'=>78,'domain'=>'wages','family'=>'wage-floor',
+                'target'=>['monthly_net_eur'=>1700],'assumptions'=>$zero,
+                'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-jean-luc-melenchon-pension'=>['bit'=>79,'domain'=>'retirement','family'=>'pension',
+                'target'=>['age'=>60,'contribution_years'=>40],'assumptions'=>$zero,
+                'classification'=>'fictional_2027_cohort_proxy'],
+        ];
+    }
     // Stable allocation beyond the original 24 historical bits.
     private const RESET_FAMILIES=['pension','job-service','wage-incentive','job-guarantee','apprenticeship','work-time','wage-floor','representation','hiring-relief','occupational-health'];
     public static function objectives():array
@@ -66,7 +80,7 @@ final class SocialProgramme
             $d[$id]=['bit'=>24+$n,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
                 'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         }
-        $d+=PrimaryManifestoPolicy::definitions();
+        $d+=PrimaryManifestoPolicy::definitions()+self::target2027();
         // Separate reserved range for family repeals; never move earlier IDs.
         $newFamilies=['hospital-beds','childcare','social-housing','home-care','teacher-hiring','wealth-tax','health-hiring','pension-floor','eldercare-hiring','renovation','justice-hiring','disability-benefit','production-tax','training-benefit','youth-benefit','public-hiring','public-pay','agriculture-fund','culture-budget','fuel-refund','reinvestment-tax','fuel-vat','business-property-tax','rsa-activity','free-transit','pension-levy','overtime-relief','fuel-cap','wage-indexation','work-sharing','sme-procurement'];
         foreach($newFamilies as $n=>$family)$d['social-repeal-'.$family]=[
@@ -94,7 +108,7 @@ final class SocialProgramme
         if(isset($catalog[$base]))return $catalog[$base];
         if(!self::isRepeal($id))return null;
         $family=self::definition($id)['family'];
-        foreach(self::definitions()+PrimaryManifestoPolicy::definitions() as $key=>$d){
+        foreach(self::definitions()+PrimaryManifestoPolicy::definitions()+self::target2027() as $key=>$d){
             if($d['family']!==$family||!isset($catalog[$key]))continue;
             $v=$catalog[$key];
             foreach(['revenue_delta','expense_delta','concession_daily_cost','production_delta_bps','employment_delta_bps'] as $k)if(isset($v[$k]))$v[$k]=0;
@@ -169,7 +183,7 @@ final class SocialProgramme
     public static function policies(array $baseline):array
     {
         $out=[];
-        foreach(self::definitions()+PrimaryManifestoPolicy::definitions() as $id=>$d){
+        foreach(self::definitions()+PrimaryManifestoPolicy::definitions()+self::target2027() as $id=>$d){
             $a=$d['assumptions'];
             // Ratio to existing daily aggregates, not added observed spending.
             $scale=static fn(int $v,int $bp):int=>intdiv($v*$bp,10000);
