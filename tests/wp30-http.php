@@ -924,6 +924,10 @@ $w78=req30('POST','/worlds',['label'=>'Independent alpha campaign','scenario'=>'
 $person75c=req30('GET','/worlds/'.$w78['body']['world_id'].'/countries/FR/politics/people/campaign-president',null,$t78);
 ck30($person75c['status']===200&&$person75c['body']['person']['name']==='Présidente test'&&$person75c['body']['person']['programme'][0]['id']==='education-test','WP75B custom programme persistent');
 ck30($w78['status']===201,'WP78 independent canonical campaign');
+$pp92='/worlds/'.$w78['body']['world_id'].'/countries/FR/programme-progress';
+$pr92=req30('GET',$pp92,null,$t78);
+ck30($pr92['status']===200&&$pr92['body']['counts']['no_matching_record']===1&&!$pr92['body']['semantic_fulfilment_verified'],'WP92 custom programme exact linkage only');
+ck30(req30('GET',$pp92,null,$t27)['status']===404,'WP92 programme world isolation');
 $list78=req30('GET',$board78,null,$t78);$entries78=$list78['body']['entries'];
 ck30($list78['status']===200&&$list78['body']['total_players']===2&&count($entries78)===2&&count(array_filter($entries78,fn($x)=>$x['is_you']))===1,'WP78 cross-player ranking');
 ck30($entries78[0]['score']>=$entries78[1]['score']&&$entries78[0]['rank']<=$entries78[1]['rank'],'WP78 rank ordering');

@@ -232,6 +232,18 @@ jobs:
         run: php tests/wp29e-economic.php
       - name: Sectoral social and economic reaction WP20
         run: php tests/wp20-france-social.php
+      - name: WP97 deterministic source handoff and extracted tests
+        run: |
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          bash games/world-politics/bin/package-alpha.sh "$GITHUB_SHA" "$tmp/first.tar.gz"
+          bash games/world-politics/bin/package-alpha.sh "$GITHUB_SHA" "$tmp/second.tar.gz"
+          cmp "$tmp/first.tar.gz" "$tmp/second.tar.gz"
+          tar -xzf "$tmp/first.tar.gz" -C "$tmp"
+          test ! -e "$tmp/world-politics/packages"
+          cd "$tmp/world-politics"
+          php tests/wp75b-candidate-selection.php
+          php tests/wp85-household-account.php
 
   mariadb-rosters:
     runs-on: ubuntu-24.04

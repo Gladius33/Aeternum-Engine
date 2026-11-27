@@ -137,6 +137,22 @@ final class AutonomousForeignFormation
             if($r['status']==='certified'){
                 if($r['proof']===null||$r['reason']!==null||($certificates[$id]??null)!==$r['proof'])
                     throw new \DomainException('Autonomous certificate missing');
+                // Bind every certified lower/upper-chamber tally to the
+                // independently replayed seat model, not just a majority.
+                $proofVotes=[];$upperVotes=[];
+                foreach($r['proof']['procedure']['steps'] as $step){
+                    if(!str_ends_with($step['kind'],'_vote'))continue;
+                    $votes=array_intersect_key($step,array_fill_keys(['yes','no','abstain'],true));
+                    if($step['chamber']===$chambers[$s['country_code']])$proofVotes[]=$votes;
+                    elseif($s['country_code']==='IT'&&$step['chamber']==='senate')$upperVotes[]=$votes;
+                    else throw new \DomainException('Unexpected autonomous ballot chamber');
+                }
+                if($s['country_code']!=='GB'&&$proofVotes!==$r['ballots'])
+                    throw new \DomainException('Autonomous certificate lower tally mismatch');
+                if($s['country_code']==='GB'&&($proofVotes!==[]||count($r['ballots'])!==1||$r['ballots'][0]['yes']<=intdiv($cycle['seats_total'],2)))
+                    throw new \DomainException('Unverified Commons confidence assessment');
+                if($s['country_code']==='IT'&&$upperVotes!==[$r['upper_chamber']['votes']])
+                    throw new \DomainException('Autonomous certificate upper tally mismatch');
             }elseif($r['status']!=='blocked'||$r['proof']!==null||!in_array($r['reason'],['unresolved_constitutional_procedure','no_supported_majority_coalition','support_insufficient'],true))
                 throw new \DomainException('Invalid blocked attempt');
             $attempts[$id]=$r;

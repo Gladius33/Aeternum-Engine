@@ -82,6 +82,7 @@ final class FinanceRequests
     {
         if($s['country_code']!=='FR'||!isset($s['senate'])||$s['legislation']['finance']['version']!==FinanceBudget::SERIES||count($s['finance_requests'])>100)throw new \DomainException('Invalid finance autonomy scope');
         $evidence=[];foreach($s['legislation']['history'] as $h)if(isset($h['evidence']))$evidence[$h['evidence']['evidence_id']]=$h['evidence'];
+        $used=[];
         foreach($s['finance_requests'] as $id=>$r){
             if($r['id']!==$id||$r['version']!==self::VERSION||!isset(FinanceBudget::catalog($r['year'])[$r['policy_id']])||$r['requested_on']>$s['day']||count($r['steps'])>7)
                 throw new \DomainException('Invalid budget request');
@@ -91,11 +92,18 @@ final class FinanceRequests
                 if($step['stage']!==$expected||$step['evidence_id']!==$eid||$step['day']<$due||$step['day']>$s['day']||$e===null||$e['kind']!==self::KIND[$expected]||$e['day']!==$step['day']
                     ||($expected==='requested'?$e['data']['policy_id']!==$r['policy_id']:$e['data']['bill_id']!==self::evidenceId($s['world_id'],$id,'requested')))
                     throw new \DomainException('Budget request evidence mismatch');
+                if(isset($used[$eid]))throw new \DomainException('Duplicated autonomous budget evidence');
+                $used[$eid]=true;
                 $due=self::plus($step['day'],self::DELAY[$expected]);$expected=self::NEXT[$expected];
             }
             if($r['due_on']!==$due||(!in_array($r['status'],['rejected','expired','blocked'],true)&&$r['status']!==$expected))throw new \DomainException('Budget request stage mismatch');
             $b=$s['legislation']['finance']['bills'][self::evidenceId($s['world_id'],$id,'requested')]??null;
             if($r['status']==='published'&&($b['status']??null)!=='published'||$r['status']==='rejected'&&($b['status']??null)!=='rejected')throw new \DomainException('Budget terminal evidence mismatch');
+            $reason=match($r['status']){'expired'=>'deadline','blocked'=>'procedure_not_available',default=>null};
+            if($r['reason']!==$reason||($r['status']==='expired'&&$s['day']<$r['due_on']))throw new \DomainException('Invalid budget termination reason');
         }
+        foreach($evidence as $eid=>$record)
+            if(str_starts_with($eid,'budget-auto-')&&!isset($used[$eid]))
+                throw new \DomainException('Orphaned autonomous budget evidence');
     }
 }

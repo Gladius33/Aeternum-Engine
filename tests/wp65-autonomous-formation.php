@@ -53,3 +53,18 @@ for($d=new DateTimeImmutable('2027-05-15');$d->format('Y-m-d')<=$due;$d=$d->modi
 $s=$it->snapshot();ck65(I::restore($s)->snapshot()===$s,'Italian autonomous attempt durable replay');
 $bad=$s;$bad['events']=array_values(array_filter($bad['events'],fn($e)=>$e['kind']!=='foreign_formation_attempt'));
 try{I::restore($bad);throw new RuntimeException('Missing Italian attempt accepted');}catch(DomainException $expected){}
+
+/* WP91: test both copies of a certificate are tampered identically.
+ * Independent seat replay must still reject it. */
+$es=make65('world-test','ES',true);
+$poll=$es->snapshot()['electoral']['config']['poll_day'];$due=(new DateTimeImmutable($poll))->modify('+5 days')->format('Y-m-d');
+for($d=new DateTimeImmutable('2027-05-15');$d->format('Y-m-d')<=$due;$d=$d->modify('+1 day'))$es->advanceTo($d->format('Y-m-d'));
+$bad=$es->snapshot();
+foreach($bad['events'] as &$e){
+    if($e['kind']==='foreign_formation_attempt')$proof=&$e['result']['proof'];
+    elseif($e['kind']==='electoral_certify')$proof=&$e['result']['national_proof'];
+    else continue;
+    foreach($proof['procedure']['steps'] as &$step)if($step['kind']==='investiture_vote'){$step['yes']--;$step['no']++;break;}
+    unset($step,$proof);
+}unset($e);
+try{A::validateHistory($bad);throw new RuntimeException('WP91 altered certified tally accepted');}catch(DomainException $expected){}

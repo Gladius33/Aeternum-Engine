@@ -23,6 +23,10 @@ requires a conservative cutoff; this is not a storage capacity guarantee.
 Never run with generic engine credentials. This does not prune world journals
 or replace a restore drill.
 
+## Source handoff (WP97 partial)
+
+From a Git checkout, run `bash games/world-politics/bin/package-alpha.sh FULL_COMMIT_SHA /tmp/world-politics.tar.gz`. The archive contains only the tracked game, WP tests, WP documentation and existing attribution/license files. Its embedded Git commit and deterministic gzip output are checked; CI runs selected tests against the extracted tree. This is not a dedicated repository, a versioned engine integration or a production installer. No release tag or official ranking is authorized by this script.
+
 ## Existing databases
 
 Backup and restore-test first, stop writers and recover pending ticks; apply migration 025 using a dedicated migration account. Do not use fresh installer against a populated schema. DDL is not globally atomic. Old saves retain score_enabled=0; no silent leaderboard backfill. Verify schema, reopen only after smoke tests; restore backup if migration fails. No database migration has been applied to any user system.

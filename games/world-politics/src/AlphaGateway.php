@@ -22,6 +22,7 @@ require_once __DIR__.'/HistoricalCandidateReference.php';
 require_once __DIR__.'/HouseholdPurchasingPowerProxy.php';
 require_once __DIR__.'/HouseholdHistoricalBacktest.php';
 require_once __DIR__.'/HouseholdAccount.php';
+require_once __DIR__.'/ProgrammeProgress.php';
 require_once __DIR__.'/PdoCampaignScores.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
@@ -345,6 +346,17 @@ final class AlphaGateway
                 if($report===null)throw new AlphaHttpError(404,'not_found');
                 if($report['world_advancing'])throw new AlphaHttpError(409,'world_advancing');
                 $response=self::ok(200,$report);$response['headers']['ETag']='"'.CampaignScore::digest($report).'"';return $response;
+            }
+            if($method==='GET'&&$suffix==='/countries/FR/programme-progress'&&$scenario->id===AlphaScenario::INVESTITURE){
+                $db=$this->db();$db->beginTransaction();
+                try{
+                    $q=$db->prepare('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=? FOR UPDATE');$q->execute([$world]);$clock=$q->fetch(\PDO::FETCH_ASSOC);
+                    if($clock===false||$clock['pending_day']!==null)throw new AlphaHttpError(409,'world_advancing');
+                    $roster=(new PdoPoliticalStore($db,$principal))->read($world,'FR');
+                    $dom=(new PdoDomesticPolicyStore($db,new AlphaDomesticPrincipal($session,$world,$db)))->read($world);
+                    if($dom['state']['day']!==$clock['committed_day'])throw new AlphaHttpError(409,'world_advancing');
+                    $report=ProgrammeProgress::report($roster,$dom);$response=self::ok(200,$report);$response['headers']['ETag']='"'.CampaignScore::digest($report).'"';$db->commit();return $response;
+                }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
             }
             if($method==='GET'&&in_array($suffix,['/countries/FR/purchasing-power-proxy','/countries/FR/household-account'],true)&&$scenario->id===AlphaScenario::INVESTITURE){
                 $db=$this->db();$db->beginTransaction();

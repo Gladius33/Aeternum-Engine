@@ -17,3 +17,6 @@ for($n=1;$n<=32;$n++){
 $s=$x->snapshot();$r=$s['finance_requests']['budget-request'];ck82(in_array($r['status'],['published','rejected'],true),'ordinary process reaches parliamentary outcome');
 if($r['status']==='published')ck82(count($r['steps'])===7&&count($s['legislation']['finance']['bills'])===1,'seven distinct certified steps');
 $bad=$s;$bad['finance_requests']['budget-request']['steps'][0]['evidence_id']='fake';no82(fn()=>I::restore($bad));
+
+$bad=$s;unset($bad['finance_requests']['budget-request']);no82(fn()=>I::restore($bad));
+$bad=$s;$bad['finance_requests']['budget-request']['reason']='invented';no82(fn()=>I::restore($bad));

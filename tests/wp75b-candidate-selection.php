@@ -13,3 +13,17 @@ reject75b(fn()=>C::normalize(['type'=>'historical','reference_id'=>'nonexistent'
 reject75b(fn()=>C::normalize(['type'=>'historical','reference_id'=>$opts['historical_choices'][0]['id'],'name'=>'Spoof']));
 reject75b(fn()=>C::normalize(['type'=>'fictional','name'=>'Invalid','id'=>'another-actor']));
 reject75b(fn()=>C::normalize(['type'=>'fictional','name'=>'Invalid','sources'=>['https://example.org']]));
+
+require_once __DIR__.'/../games/world-politics/src/ProgrammeProgress.php';
+$roster=new \Aeternum\WorldPolitics\PoliticalRoster('test-programme','FR',['prime_minister']);
+$roster->addPerson($f);$roster->setHeadOfState(L::PLAYER);
+$rr=['state'=>$roster->snapshot(),'etag'=>$roster->snapshotHash()];
+$dd=['state'=>['world_id'=>'test-programme','day'=>'2027-05-14','policies'=>[],'days'=>[]],'etag'=>str_repeat('a',64)];
+$report=\Aeternum\WorldPolitics\ProgrammeProgress::report($rr,$dd);
+ck75b($report['counts']['no_matching_record']===1&&!$report['semantic_fulfilment_verified'],'WP92 free text not inferred as policy');
+$dd['state']['policies']['education']=['proposed_on'=>'2027-05-14','effective_on'=>'2027-05-16','authorized_on'=>null,'instrument_sha'=>null];
+ck75b(\Aeternum\WorldPolitics\ProgrammeProgress::report($rr,$dd)['counts']['proposed']===1,'WP92 proposal not enactment');
+$dd['state']['policies']['education']['authorized_on']='2027-05-15';
+$dd['state']['day']='2027-05-16';$dd['state']['days']=[['day'=>'2027-05-15','active_policies'=>[]],['day'=>'2027-05-16','active_policies'=>['education']]];
+$report=\Aeternum\WorldPolitics\ProgrammeProgress::report($rr,$dd);
+ck75b($report['counts']['active_latest_day']===1&&$report['measures'][0]['observed_activity']['active_days']===1&&!$report['score_rules_changed'],'WP92 independently observed policy activation');
