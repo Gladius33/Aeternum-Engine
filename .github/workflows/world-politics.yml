@@ -488,6 +488,14 @@ jobs:
             sleep 1
           done
           php tests/wp123-research-http.php
+          php -S 127.0.0.1:18732 games/world-politics/research/public/index.php > /tmp/research-http-b.log 2>&1 &
+          second=$!
+          trap 'kill "$pid" "$second" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://127.0.0.1:18732/research/v1/models; then break; fi
+            sleep 1
+          done
+          python3 tests/wp123-research-multinode.py
 
   wp125-source-handoff:
     needs: [headless-contract, mariadb-rosters, private-alpha-http, research-isolated-http]

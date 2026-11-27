@@ -61,7 +61,7 @@ class ResearchClient:
         return self._request("GET", "/entitlements")
 
     def dataset(self, scope="own", after=None, through=None):
-        if scope not in ("own", "global"):
+        if scope not in ("own", "global", "game-worlds", "transitions"):
             raise ValueError("Invalid dataset scope")
         path = "/datasets/" + scope
         if after is not None or through is not None:
