@@ -14,11 +14,29 @@ final class HistoricalProgrammeCoverage
         $p=json_decode(file_get_contents($dir.'wp114-primary-manifesto-inventory.json'),true,64,JSON_THROW_ON_ERROR);
         $old=HistoricalCandidateReference::pin()['pack'];
         if($p['schema']!=='wp114-primary-manifesto-inventory-v1'||$p['election_day']!==$old['poll_day'])throw new \DomainException('Invalid primary source inventory');
-        $docs=array_column($sources['sources'][0]['documents'],null,'candidate');$report=[];$seen=[];$mapped=0;
+        $register=$sources['sources'][0];
+        if($sources['schema']!=='wp114-social-source-register-v1'||$register['id']!=='cnccep-first-round'
+            ||count($register['documents'])!==count($old['candidates']))throw new \DomainException('Invalid historical source register');
+        $docs=[];$urls=[];
+        foreach($register['documents'] as $doc){
+            $candidate=$doc['candidate'];$url=$doc['url'];
+            if(isset($docs[$candidate])||isset($urls[$url])||!is_int($doc['pages'])||$doc['pages']<1
+                ||!str_starts_with($url,'https://www.cnccep.fr/pdfs/')||($doc['document_access_verified']??false)!==true
+                ||($doc['complete_manifesto_extracted']??null)!==false)throw new \DomainException('Invalid or duplicate primary source document');
+            $docs[$candidate]=$doc;$urls[$url]=true;
+        }
+        $expected=array_column($old['candidates'],'id');$listed=$register['candidates'];$documentIds=array_keys($docs);
+        sort($expected);sort($listed);sort($documentIds);
+        if($expected!==$listed||$expected!==$documentIds)throw new \DomainException('Historical candidate source mismatch');
+        $report=[];$seen=[];$mapped=0;$archivedCount=0;
         foreach($old['candidates'] as $c){
             $id=$c['id'];$doc=$docs[$id]??throw new \DomainException('Missing candidate primary source');
             $report[$id]=['source'=>$doc['url'],'pages'=>$doc['pages'],'archived_executable_ids'=>array_column($c['programme'],'id'),'additional_unmapped'=>[],'additional_executable'=>[],'exhaustive'=>false];
-            foreach($c['programme'] as $m)if(PresidentialProgramme::measureSupport($m['id'])['status']!=='historical_social_proxy')throw new \DomainException('Lost existing mapping');
+            if($doc['archived_measure_ids']!==array_column($c['programme'],'id'))throw new \DomainException('Archived measure provenance mismatch');
+            foreach($c['programme'] as $m){
+                if(PresidentialProgramme::measureSupport($m['id'])['status']!=='historical_social_proxy')throw new \DomainException('Lost existing mapping');
+                ++$archivedCount;
+            }
         }
         foreach($p['measures'] as $m){
             $id=$m['candidate'];$doc=$docs[$id]??null;
@@ -33,6 +51,6 @@ final class HistoricalProgrammeCoverage
         }
         foreach($report as $c)if($c['additional_unmapped']===[]&&$c['additional_executable']===[])throw new \DomainException('Missing candidate review');
         if(array_keys($seen)!==$sources['additional_inventory']['measure_ids']||count($seen)!==$sources['additional_inventory']['count'])throw new \DomainException('Inventory mismatch');
-        return ['classification'=>'historical_coverage_not_future_manifesto','candidates'=>$report,'executable_archived_count'=>24,'additional_executable_count'=>$mapped,'additional_unmapped_count'=>count($seen)-$mapped,'selected_inventory_complete'=>$mapped===count($seen),'exhaustive'=>false,'wp114_closure_qualified'=>false];
+        return ['classification'=>'historical_coverage_not_future_manifesto','candidates'=>$report,'executable_archived_count'=>$archivedCount,'additional_executable_count'=>$mapped,'additional_unmapped_count'=>count($seen)-$mapped,'selected_inventory_complete'=>$mapped===count($seen),'exhaustive'=>false,'wp114_closure_qualified'=>false];
     }
 }
