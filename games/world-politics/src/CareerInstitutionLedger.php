@@ -1,0 +1,143 @@
+<?php
+declare(strict_types=1);
+namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/CareerScoreContract.php';
+
+/** WP118–119 opt-in institutional ledger. Documentary identities never authorize acts. */
+final class CareerInstitutionLedger
+{
+    public const VERSION='wp118-119-career-ledger-v1';
+    public const SOURCE='https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000571356/';
+    private const MINISTRIES=['economy','education','health','justice','interior','defence','foreign_affairs'];
+    public static function check(bool $ok,string $why):void{if(!$ok)throw new \DomainException('Career: '.$why);}
+    public static function id(string $s):void{self::check(preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/D',$s)===1,'invalid identifier');}
+    public static function fields(array $r,array $keys):void{$k=array_keys($r);sort($k);sort($keys);self::check($k===$keys,'invalid fields');}
+    public static function canonical(mixed $x):mixed{
+        if(is_array($x)){if(!array_is_list($x))ksort($x,SORT_STRING);foreach($x as &$v)$v=self::canonical($v);unset($v);}
+        else self::check(is_string($x)||is_int($x)||is_bool($x)||$x===null,'noncanonical scalar');
+        return $x;
+    }
+    public static function json(mixed $x):string{return json_encode(self::canonical($x),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
+    public static function digest(mixed $x):string{return hash('sha256',self::json($x));}
+    public static function day(string $s):void{CareerScoreContract::elapsed(CareerScoreContract::START,$s);}
+    public static function initial(string $world,string $country,string $mode,string $day):array{
+        self::id($world);self::day($day);self::check($country==='FR'&&in_array($mode,['career','research'],true),'only French reviewed fixture');
+        return ['version'=>self::VERSION,'world'=>$world,'country'=>$country,'mode'=>$mode,'state_id'=>'FR','regime'=>'fr-fifth-republic','constitution_revision'=>1,
+            'constitution_sha'=>self::digest(['source'=>self::SOURCE,'rules'=>'fr-career-v1']),'day'=>$day,'sequence'=>0,'last_event_sha'=>str_repeat('0',64),
+            'careers'=>[],'mandates'=>[],'active'=>[],'generations'=>[],'series'=>[],'assembly'=>'active','senate'=>'active','assembly_changed_on'=>$day,
+            'government'=>'vacant','research_observation'=>null];
+    }
+    private static function office(string $office):array{
+        if($office==='president')return ['kind'=>'president','powers'=>['president.request_appointment','president.request_dissolution','president.request_revision','president.represent']];
+        if($office==='prime-minister')return ['kind'=>'pm','powers'=>['government.propose_ministers','government.coordinate','government.request_confidence','government.present_resignation']];
+        if(str_starts_with($office,'minister-')&&in_array(substr($office,9),self::MINISTRIES,true))return ['kind'=>'minister','powers'=>['ministry.'.substr($office,9).'.propose']];
+        if(preg_match('/^deputy-([1-9][0-9]{0,2})$/D',$office,$m)&&((int)$m[1])<=577)return ['kind'=>'deputy','powers'=>['assembly.vote','assembly.propose']];
+        if(preg_match('/^senator-([1-9][0-9]{0,2})$/D',$office,$m)&&((int)$m[1])<=348)return ['kind'=>'senator','powers'=>['senate.vote','senate.propose']];
+        throw new \DomainException('Unknown office');
+    }
+    private static function compatible(string $a,string $b):bool{return $a==='minister'&&$b==='minister';}
+    private static function close(array &$s,string $office,string $day,string $reason):array{
+        self::check(isset($s['active'][$office]),'vacant office');$id=$s['active'][$office];$m=$s['mandates'][$id];
+        self::check($m['start']<=$day&&$day<=$m['expires'],'invalid closure day');
+        $s['mandates'][$id]['end']=$day;$s['mandates'][$id]['end_reason']=$reason;unset($s['active'][$office]);
+        if($m['series']!==null){$s['series'][$m['series']]['end']=$day;$s['series'][$m['series']]['end_reason']=$reason;}
+        return $m;
+    }
+    private static function grant(array &$s,array $g,string $day,string $reason,?array $previous,string $command):void{
+        self::fields($g,['office','career','expires','interim']);self::id($g['career']);$office=$g['office'];$rule=self::office($office);self::day($g['expires']);
+        self::check(isset($s['careers'][$g['career']])&&!isset($s['active'][$office])&&$g['expires']>$day&&is_bool($g['interim']),'grant scope');
+        self::check(!$g['interim']||$office==='president','interim scope');
+        if($rule['kind']==='deputy')self::check($s['assembly']==='active','assembly not active');
+        if($rule['kind']==='minister')self::check(isset($s['active']['prime-minister']),'government not formed');
+        foreach($s['active'] as $other=>$mid)if($s['mandates'][$mid]['career']===$g['career'])self::check(self::compatible($rule['kind'],self::office($other)['kind']),'incompatible offices');
+        $generation=($s['generations'][$office]??0)+1;$s['generations'][$office]=$generation;
+        $id='mandate-'.hash('sha256',self::json([$s['world'],$office,$generation,$command]));
+        $series=null;$terms=0;
+        if($office==='president'&&!$g['interim']){
+            self::check(in_array($reason,['election','renewal','succession'],true),'presidential certification required');
+            if($reason==='renewal'){
+                self::check($previous!==null&&!$previous['interim']&&$previous['career']===$g['career']&&$previous['expires']===$day&&$previous['series']!==null&&$previous['terms']<2,'invalid presidential renewal');
+                $series=$previous['series'];$terms=$previous['terms']+1;$s['series'][$series]['end']=null;$s['series'][$series]['end_reason']=null;
+            }else{
+                self::check($previous===null||$previous['career']!==$g['career']||$previous['interim'],'continuous term requires renewal');
+                // Track consecutive terms even after an explicitly closed same-day vacancy.
+                $latest=null;foreach($s['mandates'] as $old)if($old['office']==='president'&&!$old['interim']&&($latest===null||$old['generation']>$latest['generation']))$latest=$old;
+                self::check($latest===null||$latest['career']!==$g['career']||$latest['end']!==$day,'same-day renewal cannot reset terms');
+                $series='series-'.hash('sha256',$id);$terms=1;$first=$s['careers'][$g['career']]['first_series']===null;
+                $s['series'][$series]=['career'=>$g['career'],'start'=>$day,'end'=>null,'end_reason'=>null,'credit_days'=>null,'credit_verified'=>false,'first'=>$first,'rankable'=>false];
+                if($first)$s['careers'][$g['career']]['first_series']=$series;
+            }
+            $limit=(new \DateTimeImmutable($day))->modify('+5 years')->format('Y-m-d');
+            self::check($g['expires']<=$limit,'presidential term exceeds five years');
+        }
+        if($g['interim'])self::check($reason==='succession','interim requires succession evidence');
+        $powers=$g['interim']?['president.represent']:$rule['powers'];
+        $s['mandates'][$id]=['id'=>$id,'office'=>$office,'career'=>$g['career'],'generation'=>$generation,'start'=>$day,'expires'=>$g['expires'],'end'=>null,'end_reason'=>null,'interim'=>$g['interim'],'constitution_revision'=>$s['constitution_revision'],'powers'=>$powers,'series'=>$series,'terms'=>$terms];
+        $s['active'][$office]=$id;
+    }
+    /** Applies only institution-certified commands, never raw player inputs. */
+    public static function apply(array $s,array $e):array{
+        self::fields($e,['world','country','day','world_revision','command','actor','operation','payload','evidence_sha']);
+        self::id($e['command']);self::id($e['actor']);self::day($e['day']);
+        self::check($e['world']===$s['world']&&$e['country']===$s['country']&&$e['day']>=$s['day']&&is_int($e['world_revision'])&&$e['world_revision']>=0&&preg_match('/^[a-f0-9]{64}$/D',$e['evidence_sha'])===1,'event scope');
+        $p=$e['payload'];$day=$e['day'];$op=$e['operation'];
+        if($s['mode']==='research'){
+            self::check($op==='research_observe','research cannot grant mandates');
+            self::fields($p,['regime_label','assembly_status','legality']);
+            self::check(in_array($p['regime_label'],['republic','monarchy','other','contested'],true)&&in_array($p['assembly_status'],['active','disrupted','suspended','restored'],true)&&in_array($p['legality'],['disputed','unverified','recognized'],true),'research categories');
+            $s['research_observation']=['day'=>$day,...$p,'runtime_authority'=>false,'rankable'=>false];
+        }elseif($op==='admit'){
+            self::fields($p,['career','account','character','mode']);foreach(['career','account','character'] as $k)self::id($p[$k]);
+            self::check(!isset($s['careers'][$p['career']])&&in_array($p['mode'],['opening','late_takeover'],true)&&($p['mode']==='opening')===($day===CareerScoreContract::START),'admission mode');
+            foreach($s['careers'] as $c)self::check($c['account']!==$p['account']&&$c['character']!==$p['character'],'duplicate career');
+            $s['careers'][$p['career']]=['account'=>$p['account'],'character'=>$p['character'],'admitted_on'=>$day,'mode'=>$p['mode'],'first_series'=>null];
+        }elseif($op==='transition'){
+            self::fields($p,['reason','close','grants']);
+            self::check(in_array($p['reason'],['election','renewal','succession','appointment','reshuffle','resignation','censure','expiry'],true)&&array_is_list($p['close'])&&array_is_list($p['grants'])&&count($p['close'])<=1000&&count($p['grants'])<=1000&&count($p['close'])+count($p['grants'])>0,'transition shape');
+            self::check(count(array_unique($p['close']))===count($p['close']),'duplicate closure');
+            $previous=[];foreach($p['close'] as $office){self::office($office);$previous[$office]=self::close($s,$office,$day,$p['reason']);}
+            if(isset($previous['prime-minister']))foreach($s['active'] as $office=>$mid)self::check(self::office($office)['kind']!=='minister','cabinet closure incomplete');
+            $grants=$p['grants'];usort($grants,fn($a,$b)=>(($a['office']==='prime-minister'?0:1)<=>($b['office']==='prime-minister'?0:1))?:strcmp($a['office'],$b['office']));
+            if(in_array($p['reason'],['resignation','censure','expiry'],true))self::check($grants===[],'closure only');
+            foreach($grants as $g){
+                $kind=self::office($g['office'])['kind'];
+                if(in_array($kind,['pm','minister'],true))self::check(in_array($p['reason'],['appointment','reshuffle'],true),'cabinet appointment evidence required');
+                if(in_array($kind,['deputy','senator'],true))self::check(in_array($p['reason'],['election','renewal','succession'],true),'legislative election evidence required');
+                self::grant($s,$g,$day,$p['reason'],$previous[$g['office']]??null,$e['command']);
+            }
+            if($p['reason']==='censure')self::check(isset($previous['prime-minister'])&&count(array_filter(array_keys($previous),fn($o)=>!in_array(self::office($o)['kind'],['pm','minister'],true)))===0,'censure scope');
+            if($p['reason']==='renewal')self::check(count($previous)===1&&isset($previous['president'])&&count($grants)===1&&$grants[0]['office']==='president','renewal scope');
+            $s['government']=isset($s['active']['prime-minister'])?'in_office':'vacant';
+        }elseif($op==='dissolve_assembly'){
+            self::fields($p,['presidential_mandate']);$mid=$s['active']['president']??null;
+            self::check($s['assembly']==='active'&&$mid!==null&&$mid===$p['presidential_mandate']&&!$s['mandates'][$mid]['interim']&&$day<$s['mandates'][$mid]['expires'],'only incumbent president, not interim');
+            if(isset($s['last_dissolution']))self::check($day>=(new \DateTimeImmutable($s['last_dissolution']))->modify('+1 year')->format('Y-m-d'),'dissolution interval');
+            foreach(array_keys($s['active']) as $office)if(self::office($office)['kind']==='deputy')self::close($s,$office,$day,'dissolution');
+            $s['assembly']='dissolved';$s['assembly_changed_on']=$day;$s['last_dissolution']=$day;
+        }elseif($op==='restore_assembly'){
+            self::fields($p,[]);self::check($s['assembly']==='dissolved','assembly not dissolved');
+            $elapsed=CareerScoreContract::elapsed($s['assembly_changed_on'],$day);self::check($elapsed>=20&&$elapsed<=40,'constitutional election window');$s['assembly']='active';$s['assembly_changed_on']=$day;
+        }elseif($op==='constitution_revision'){
+            self::fields($p,['previous_sha','next_sha','procedure']);
+            self::check($p['procedure']==='article89'&&$p['previous_sha']===$s['constitution_sha']&&is_string($p['next_sha'])&&preg_match('/^[a-f0-9]{64}$/D',$p['next_sha'])===1&&$p['next_sha']!==$p['previous_sha'],'revision evidence');
+            self::check($s['active']===[],'changed authority rules require separate certified migration');
+            $s['constitution_revision']++;$s['constitution_sha']=$p['next_sha'];
+        }else throw new \DomainException('Unsupported career event');
+        // No unresolved expired grant may survive a committed transition day.
+        foreach($s['active'] as $mid)self::check($s['mandates'][$mid]['expires']>$day,'expired office requires certified closure');
+        $s['day']=$day;$s['sequence']++;$s['last_event_sha']=self::digest(['previous'=>$s['last_event_sha'],'event'=>$e]);return $s;
+    }
+    public static function allows(array $s,string $account,string $mandate,int $generation,string $ability,string $day):bool{
+        $m=$s['mandates'][$mandate]??null;if($s['mode']!=='career'||$m===null)return false;
+        return $day>=$s['day']&&$day>=$m['start']&&$day<$m['expires']&&$m['end']===null&&($s['active'][$m['office']]??null)===$mandate&&$m['generation']===$generation&&$s['careers'][$m['career']]['account']===$account&&in_array($ability,$m['powers'],true);
+    }
+}
+/** Signature verifies the trusted adapter's attestation, not the underlying law.
+ * The secret is process-side, never passed to HTTP callers or persisted. */
+final class CareerInstitutionEvidence
+{
+    public function __construct(private readonly string $secret){CareerInstitutionLedger::check(strlen($secret)>=32,'weak evidence key');}
+    public function verify(array $event,string $signature):void{
+        CareerInstitutionLedger::check(hash_equals(hash_hmac('sha256',CareerInstitutionLedger::json($event),$this->secret),$signature),'unverified institutional evidence');
+    }
+}

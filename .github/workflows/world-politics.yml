@@ -223,6 +223,8 @@ jobs:
         run: php tests/wp77-campaign-score.php
       - name: WP116 career and score v2 executable design contract
         run: php tests/wp116-career-score-contract.php
+      - name: WP118–119 career and institutional lifecycle
+        run: php tests/wp118-119-career.php
       - name: WP80 twenty-year score horizon and deterministic replay
         run: php tests/wp80-score-horizon.php
       - name: WP33 election, seat allocation and coalition regression
@@ -311,6 +313,7 @@ jobs:
           php tests/wp26-fr-sitting-calendar-db.php
           php tests/wp28-french-parliament-db.php
           php tests/wp29-final-db.php
+          php tests/wp118-119-career-db.php
         env:
           WP_TEST_ISOLATED: 'YES'
           WP_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_test;charset=utf8mb4
