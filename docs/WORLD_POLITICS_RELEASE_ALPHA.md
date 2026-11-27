@@ -100,3 +100,8 @@ The expanded French programme catalogue requires no additional schema migration 
 ### WP114b
 
 Apply migration 034 before deploying this increment, following the established stopped-worker and backup process. POST /universes/{universe_no}/programme accepts an exclusive France-only agenda object; GET returns its decoded fields and direct action receipts. The aid choice is a one-time discretionary scenario objective, not cancellation of existing obligations. Custom programmes remain deliberately bounded and do not infer real politicians' decisions.
+
+
+### WP114c
+
+Apply additive migration 035 after 034, using the documented stopped-worker backup procedure. Optional extended fields preserve legacy programme encoding; the fictional cabinet, revision, industrial and commitment objectives are explicit opt-ins. A request is not an appointment, enacted revision or accepted treaty amendment. GET programme exposes the relevant existing domain records and direct receipts. Historical measures without reviewed mappings are not automatically executed.

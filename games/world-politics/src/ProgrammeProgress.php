@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/PoliticalRoster.php';
 require_once __DIR__.'/CampaignLifecycle.php';
+require_once __DIR__.'/PresidentialProgramme.php';
 
 /** Exact identifier matching only, not semantic fulfilment or a prediction. */
 final class ProgrammeProgress
@@ -37,7 +38,12 @@ final class ProgrammeProgress
             $counts[$status]++;
             $rows[]=['measure_id'=>$id,'domain'=>$measure['domain'],'proposal'=>$measure['proposal'],'status'=>$status,
                 'matching_policy_id'=>$p===null?null:$id,'policy_record'=>$p,'observed_activity'=>$o,
-                'semantic_fulfilment_verified'=>false];
+                'semantic_fulfilment_verified'=>false,
+                'automatic_execution_support'=>match(true){
+                    in_array($id,['education-reform','administration-report'],true)=>'exact_reviewed_policy_id',
+                    PresidentialProgramme::permits('governance',$id)||PresidentialProgramme::permits('governance-reduce',$id)||PresidentialProgramme::permits('governance-increase',$id)=>'exact_reviewed_policy_id',
+                    default=>'no_reviewed_mapping'
+                }];
         }
         $hashes=[];
         foreach(['roster'=>$roster,'domestic'=>$domestic] as $k=>$snapshot){

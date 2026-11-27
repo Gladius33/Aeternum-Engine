@@ -193,3 +193,18 @@ $d114=json_decode($q114->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
 ck102(count($d114['ukraine_aid_decisions'])===2&&$d114['ukraine_aid_decisions'][1]['action']==='ukraine-aid-resume','WP114b no automatic reversal of human choice');
 $aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo);
 ck102($aud['integrity']==='passed','WP114b audited custom direct programme');
+
+
+// WP114c: live extended agenda through real coordinated domain clocks.
+$ext114=['education'=>false,'administration'=>false,'defense'=>'none','health'=>'none','ukraine_aid'=>'none',
+    'cabinet'=>'civic','revision'=>'environment-report','ratification'=>'congress','industry'=>'active','commitments'=>'request_deferral'];
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','agenda'=>$ext114],8)['status']===200,'WP114c extended agenda accepted');
+$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114c coordinated extended objectives');
+$e114=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($e114['agenda']===$ext114&&count(array_filter($e114['direct_actions'],fn($a)=>$a['action_id']==='start-industrial-pilot'&&$a['outcome']==='applied'))===1,'WP114c industrial choice applied with durable receipt');
+$families114=array_column($e114['institutional_and_commitment_objectives'],'family');
+ck102(in_array('revision_requests',$families114,true)&&in_array('commitment',$families114,true)&&!in_array('cabinet_requests',$families114,true),'WP114c actual requests, no forced cabinet vacancy');
+$q114->execute([$spare]);$d114=json_decode($q114->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck102($d114['days'][array_key_last($d114['days'])]['industrial']['mode']==='active','WP114c industrial ledger reflects programme');
+$aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo);
+ck102($aud['integrity']==='passed','WP114c extended programme audited');

@@ -198,7 +198,24 @@ final class UniverseLobby
                 $a['authorized_on']=$p['authorized_on'];
                 $a['state']=$p['authorized_on']!==null?(in_array($a['policy_id'],$active,true)?'active':'legally_authorized'):($a['effective_day']<=$c['committed_day']?'not_authorized_by_deadline':'proposed');
             }unset($a);
-            return $report+['version'=>PresidentialProgramme::VERSION,'domestic'=>$slot['domestic_programme'],'agenda'=>PresidentialProgramme::agenda($slot['domestic_programme']),
+            $i=$this->query("SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code='FR'",[$world])->fetch(\PDO::FETCH_ASSOC);
+            $dipl=$this->query('SELECT state_json,state_sha FROM wp_diplomatic_states WHERE world_id=?',[$world])->fetch(\PDO::FETCH_ASSOC);
+            $objectives=[];
+            if($i===false||$dipl===false)throw new \DomainException('Missing institutional programme source');
+            foreach(['institutional'=>$i,'diplomatic'=>$dipl] as $domain=>$raw){
+                if(!hash_equals($raw['state_sha'],hash('sha256',$raw['state_json'])))throw new \DomainException('Invalid programme source digest');
+                $v=json_decode($raw['state_json'],true,64,JSON_THROW_ON_ERROR);
+                if($v['world_id']!==$world||$v['day']!==$c['committed_day'])throw new \DomainException('Incoherent programme report');
+                if($domain==='institutional'){
+                    foreach(['cabinet_requests','revision_requests'] as $family)foreach($v[$family]??[] as $id=>$req)
+                        if(str_starts_with($id,'pres-objective-'))$objectives[]=['family'=>$family,'id'=>$id,'request'=>$req];
+                    foreach($v['events'] as $e)if(str_starts_with($e['id'],'pres-objective-')&&$e['kind']==='legislation_evidence'&&isset($e['result']['portfolio']))
+                        $objectives[]=['family'=>'portfolio','id'=>$e['id'],'day'=>$e['on'],'result'=>$e['result']];
+                }else foreach($v['commitments']['commands']??[] as $id=>$cmd)
+                    if(str_starts_with($id,'pres-objective-'))$objectives[]=['family'=>'commitment','id'=>$id,'request'=>$cmd,
+                        'current_record'=>$v['commitments']['records'][$cmd['id']]];
+            }
+            return $report+['institutional_and_commitment_objectives'=>$objectives,'version'=>PresidentialProgramme::VERSION,'domestic'=>$slot['domestic_programme'],'agenda'=>PresidentialProgramme::agenda($slot['domestic_programme']),
                 'direct_actions'=>$this->query('SELECT mandate_start,programme,decision_day,action_id,outcome FROM wp_universe_programme_direct WHERE world_id=? ORDER BY decision_day,programme LIMIT 10000',[$world])->fetchAll(\PDO::FETCH_ASSOC),
                 'automatic_legal_route'=>PresidentialProgramme::executable($slot['domestic_programme']),
                 'human_action_this_day'=>$slot['last_human_domestic_day']===$c['committed_day'],

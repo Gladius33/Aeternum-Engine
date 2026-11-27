@@ -37,7 +37,7 @@ final class UniverseAutonomy
         $q->execute([$world]);$slot=$q->fetch(\PDO::FETCH_ASSOC);
         if($slot===false)throw new \DomainException('Missing domestic slot');
         if($slot['closed_on']!==null||$slot['last_human_domestic_day']===$day)return;
-        if(self::directAid($db,$sim,$world,$day,$slot))return;
+        if(self::directAid($db,$sim,$world,$day,$slot)||self::directIndustry($db,$sim,$world,$day,$slot))return;
         $next=PresidentialProgramme::nextProposal($slot['domestic_programme'],$day,$s['policies']);
         if($next===null)return;
         $policy=$next['policy_id'];$effective=$next['effective_day'];
@@ -66,8 +66,8 @@ final class UniverseAutonomy
         if(!hash_equals($r['state_sha'],$o->hash())||$os['day']!==$day||$os['world_id']!==$world||$os['campaign']['status']!=='active')
             throw new \DomainException('Direct programme mandate mismatch');
         $mandate=$os['campaign']['start_day'];
-        $q=$db->prepare('SELECT 1 FROM wp_universe_programme_direct WHERE world_id=? AND mandate_start=? AND programme=?');
-        $q->execute([$world,$mandate,$slot['domestic_programme']]);
+        $q=$db->prepare('SELECT 1 FROM wp_universe_programme_direct WHERE world_id=? AND mandate_start=? AND programme=? AND action_id=?');
+        $q->execute([$world,$mandate,$slot['domestic_programme'],$action]);
         if($q->fetchColumn()!==false)return false;
         $events=$s['ukraine_aid_decisions']??[];
         $last=$events===[]?null:$events[array_key_last($events)];
@@ -91,6 +91,70 @@ final class UniverseAutonomy
         $q->execute([$world,$mandate,$slot['domestic_programme'],$day,$slot['generation'],$action,$result]);
         return true;
     }
+    private static function mandate(\PDO $db,string $world,string $day):string
+    {
+        require_once __DIR__.'/PublicOpinion.php';
+        $q=$db->prepare('SELECT state_json,state_sha FROM wp_opinion_states WHERE world_id=?');$q->execute([$world]);$r=$q->fetch(\PDO::FETCH_ASSOC);
+        if($r===false)throw new \DomainException('Missing objective mandate');
+        $o=PublicOpinion::restore(json_decode($r['state_json'],true,64,JSON_THROW_ON_ERROR));$s=$o->snapshot();
+        if(!hash_equals($r['state_sha'],$o->hash())||$s['day']!==$day||$s['world_id']!==$world||$s['campaign']['status']!=='active')
+            throw new \DomainException('Invalid objective mandate');
+        return $s['campaign']['start_day'];
+    }
+    private static function directIndustry(\PDO $db,DomesticPolicySimulation $sim,string $world,string $day,array $slot):bool
+    {
+        $a=PresidentialProgramme::agenda($slot['domestic_programme']);
+        if(($a['industry']??'none')==='none')return false;
+        $mandate=self::mandate($db,$world,$day);$s=$sim->snapshot();
+        $q=$db->prepare("SELECT 1 FROM wp_universe_programme_direct WHERE world_id=? AND mandate_start=? AND programme=? AND action_id IN ('start-industrial-pilot','pause-industrial-pilot','resume-industrial-pilot','industry-no-change')");
+        $q->execute([$world,$mandate,$slot['domestic_programme']]);if($q->fetchColumn()!==false)return false;
+        $mode=$s['days']===[]?'not_started':$s['days'][array_key_last($s['days'])]['industrial']['mode'];
+        $action=PresidentialProgramme::industryAction($slot['domestic_programme'],$mode);
+        $result='already_matching';
+        $events=array_values(array_filter($s['corporation_decisions'],fn($e)=>IndustrialCapital::isAction($e['action'])));
+        $last=$events===[]?null:$events[array_key_last($events)];
+        if($action!==null){
+            if($last!==null&&$last['day']>=($slot['programme_set_on']??$mandate))$result='human_override';
+            else{
+                $principal=new class($world) implements DomesticPolicyAuthority{
+                    public function __construct(private readonly string $w){}
+                    public function allows(string $world,string $ability):bool{return $world===$this->w&&$ability==='domestic.corporation';}
+                    public function enactedInstrument(string $world,string $policy):?string{return null;}
+                    public function clockDay(string $world):string{throw new \DomainException('No clock delegation');}
+                };
+                $sim->corporationDecision($principal,$action);$result='applied';
+            }
+        }
+        $q=$db->prepare('INSERT INTO wp_universe_programme_direct(world_id,mandate_start,programme,decision_day,generation,action_id,outcome) VALUES(?,?,?,?,?,?,?)');
+        $q->execute([$world,$mandate,$slot['domestic_programme'],$day,$slot['generation'],$action??'industry-no-change',$result]);
+        return true;
+    }
+    /** A single negotiated amendment request for the explicitly fictional
+     * bilateral civil commitment; no unilateral debt erasure. */
+    public static function commitmentObjective(\PDO $db,DiplomaticSimulation $sim,string $world,string $actor,string $target):?array
+    {
+        if(!self::managed($db,$world))return null;
+        if(!$db->inTransaction()||$actor!=='alpha-clock-'.$world)throw new \LogicException('Managed diplomatic clock required');
+        $s=$sim->snapshot();$day=$s['day'];
+        if($s['world_id']!==$world||$target!==(new \DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d'))throw new \DomainException('Commitment scope');
+        $q=$db->prepare("SELECT domestic_programme,closed_on,last_human_diplomacy_day,programme_set_on FROM wp_universe_slots WHERE world_id=? AND country_code='FR' FOR UPDATE");
+        $q->execute([$world]);$slot=$q->fetch(\PDO::FETCH_ASSOC);
+        if($slot===false||$slot['closed_on']!==null||$slot['last_human_diplomacy_day']===$day)return null;
+        $action=PresidentialProgramme::commitmentAction($slot['domestic_programme']);if($action===null)return null;
+        $mandate=self::mandate($db,$world,$day);$id='ua-civil-fixture';$ledger=$s['commitments'];
+        $command=PresidentialProgramme::objectiveId($world,$mandate,'commitment',$id);
+        if(isset($ledger['commands'][$command]))return null;
+        // Do not supersede a more recent explicit human decision.
+        foreach($ledger['commands'] as $c)if($c['id']===$id&&$c['day']>=($slot['programme_set_on']??$mandate))return null;
+        $r=$ledger['records'][$id];
+        if($r['pending']!==null||!in_array('future',array_column($r['installments'],'status'),true))return null;
+        $principal=new class($world) implements DiplomaticPrincipal{
+            public function __construct(private readonly string $w){}
+            public function actorId():string{return 'fictional-programme-commitment';}
+            public function allows(string $world,string $actor,string $ability):bool{return $world===$this->w&&$actor==='state_fr'&&$ability==='diplomacy.commitment';}
+        };
+        return ['id'=>$command,'result'=>$sim->commitmentDecision($principal,$id,$action,$command)];
+    }
     /** Use only durable, matching proposals from the current mandate and
      * current selected executable profile. Called by the fenced national
      * clock before the ordinary independent institutional progression. */
@@ -109,6 +173,8 @@ final class UniverseAutonomy
         $o=json_decode($op['state_json'],true,64,JSON_THROW_ON_ERROR);
         if(!hash_equals($op['state_sha'],hash('sha256',json_encode($o,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE)))
             ||$o['world_id']!==$world||$o['day']!==$day||$o['campaign']['status']!=='active')throw new \DomainException('Programme mandate mismatch');
+        $objective=PresidentialProgramme::institutionalObjective($sim,$slot['domestic_programme'],$o['campaign']['start_day']);
+        if($objective!==null)return $objective;
         $q=$db->prepare('SELECT state_json,state_sha FROM wp_domestic_states WHERE world_id=?');$q->execute([$world]);$dom=$q->fetch(\PDO::FETCH_ASSOC);
         if($dom===false)throw new \DomainException('Missing proposal source');
         $d=json_decode($dom['state_json'],true,64,JSON_THROW_ON_ERROR);

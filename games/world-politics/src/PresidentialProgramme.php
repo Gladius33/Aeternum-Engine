@@ -12,23 +12,43 @@ final class PresidentialProgramme
     public const PROFILES=['manual','education','administration','education-law','administration-law','governance','governance-reduce','governance-increase'];
     /** Compact canonical agenda code fits the existing 24-byte profile column.
      * Immutable action rows retain the exact configuration that produced them. */
+    private const EXT=[
+        'cabinet'=>['none'=>'n','civic'=>'c','social'=>'s','liberal'=>'l','independent'=>'i'],
+        'revision'=>['none'=>'n','environment-report'=>'e','institutional-report'=>'i','remove-presidential-term-limit'=>'t'],
+        'ratification'=>['congress'=>'c','referendum'=>'r'],
+        'industry'=>['none'=>'n','active'=>'a','paused'=>'p'],
+        'commitments'=>['none'=>'n','request_deferral'=>'d','request_termination'=>'t'],
+    ];
     public static function encodeAgenda(array $a):string
     {
-        $keys=array_keys($a);sort($keys);
-        if($keys!==['administration','defense','education','health','ukraine_aid']||!is_bool($a['education'])||!is_bool($a['administration']))
+        $required=['administration','defense','education','health','ukraine_aid'];
+        $keys=array_keys($a);
+        if(array_diff($required,$keys)!==[]||array_diff($keys,[...$required,...array_keys(self::EXT)])!==[]||!is_bool($a['education'])||!is_bool($a['administration']))
             throw new \InvalidArgumentException('Invalid agenda fields');
         $budget=['none'=>'n','maintain'=>'m','reduce'=>'r','increase'=>'i'];
         $health=['none'=>'n','reduce'=>'r','increase'=>'i'];
         $aid=['none'=>'n','maintain'=>'m','reduce'=>'r','increase'=>'i','stop'=>'s'];
         foreach(['defense'=>$budget,'health'=>$health,'ukraine_aid'=>$aid] as $k=>$options)
             if(!is_string($a[$k])||!isset($options[$a[$k]]))throw new \InvalidArgumentException('Unknown agenda objective');
-        return 'custom-'.(int)$a['education'].(int)$a['administration'].'-'.$budget[$a['defense']].'-'.$health[$a['health']].'-'.$aid[$a['ukraine_aid']];
+        $base='custom-'.(int)$a['education'].(int)$a['administration'].'-'.$budget[$a['defense']].'-'.$health[$a['health']].'-'.$aid[$a['ukraine_aid']];
+        if(array_intersect($keys,array_keys(self::EXT))===[])return $base;
+        $suffix='';
+        foreach(self::EXT as $k=>$options){
+            $v=$a[$k]??array_key_first($options);
+            if(!is_string($v)||!isset($options[$v]))throw new \InvalidArgumentException('Unknown extended objective');
+            $suffix.=$options[$v];
+        }
+        if(($a['revision']??'none')==='none'&&($a['ratification']??'congress')!=='congress')throw new \InvalidArgumentException('Ratification without revision');
+        return $base.'-'.$suffix;
     }
     public static function agenda(string $p):?array
     {
-        if(!preg_match('/^custom-([01])([01])-([nmri])-([nri])-([nmris])$/D',$p,$m))return null;
+        if(!preg_match('/^custom-([01])([01])-([nmri])-([nri])-([nmris])(?:-([ncsli])([neit])([cr])([nap])([ndt]))?$/D',$p,$m))return null;
+        if(isset($m[6])&&$m[7]==='n'&&$m[8]!=='c')return null;
         $values=['n'=>'none','m'=>'maintain','r'=>'reduce','i'=>'increase','s'=>'stop'];
-        return ['education'=>$m[1]==='1','administration'=>$m[2]==='1','defense'=>$values[$m[3]],'health'=>$values[$m[4]],'ukraine_aid'=>$values[$m[5]]];
+        $a=['education'=>$m[1]==='1','administration'=>$m[2]==='1','defense'=>$values[$m[3]],'health'=>$values[$m[4]],'ukraine_aid'=>$values[$m[5]]];
+        if(isset($m[6])){$i=6;foreach(self::EXT as $k=>$options)$a[$k]=array_flip($options)[$m[$i++]];}
+        return $a;
     }
     public static function executable(string $p):bool
     {return self::agenda($p)!==null||in_array($p,['education-law','administration-law','governance','governance-reduce','governance-increase'],true);}
@@ -46,6 +66,66 @@ final class PresidentialProgramme
     {
         $a=self::agenda($profile);
         return $a===null||$a['ukraine_aid']==='none'?null:'ukraine-aid-'.$a['ukraine_aid'];
+    }
+    public static function industryAction(string $profile,string $mode):?string
+    {
+        $v=self::agenda($profile)['industry']??'none';
+        return match($v.'|'.$mode){
+            'active|not_started'=>'start-industrial-pilot','active|paused'=>'resume-industrial-pilot',
+            'paused|active'=>'pause-industrial-pilot',default=>null};
+    }
+    public static function commitmentAction(string $profile):?string
+    {
+        $v=self::agenda($profile)['commitments']??'none';return $v==='none'?null:$v;
+    }
+    public static function objectiveId(string $world,string $mandate,string $objective,string $key):string
+    {return 'pres-objective-'.substr(hash('sha256',$world.'|'.$mandate.'|'.$objective.'|'.$key),0,32);}
+    /** Only explicit fictional appointments and reviewed Article 89 templates.
+     * The request is distinct from the appointment or constitutional result. */
+    public static function institutionalObjective(InstitutionalSimulation $sim,string $profile,string $mandate):?array
+    {
+        $a=self::agenda($profile);$s=$sim->snapshot();$world=$s['world_id'];$day=$s['day'];
+        if($a===null||$s['country_code']!=='FR'||$s['legislature']!=='sitting'||$mandate>$day)return null;
+        $cab=$s['legislation']['responsibility']['cabinet'];
+        $aff=$a['cabinet']??'none';
+        if($aff!=='none'&&in_array($cab['status'],['caretaker','resignation_required'],true)){
+            $id=self::objectiveId($world,$mandate,'cabinet',(string)$cab['generation']);
+            if(!isset($s['cabinet_requests'][$id])){
+                try{$r=$sim->decide('scenario_president_requester','request_cabinet_appointment',['candidate'=>'pm-'.$aff],$id);
+                    return ['stage'=>'cabinet_requested','id'=>$id,'result'=>$r];}
+                catch(\DomainException|\InvalidArgumentException $e){/* pending or unavailable */}
+            }
+        }
+        // Fill vacancies only in a cabinet actually appointed by this
+        // programme. Never remove an incumbent minister or create a vacancy.
+        if($aff!=='none'&&$cab['status']==='in_office'&&$cab['prime_minister']==='pm-'.$aff){
+            $prior=self::objectiveId($world,$mandate,'cabinet',(string)($cab['generation']-1));
+            if(($s['cabinet_requests'][$prior]['status']??null)==='appointed'){
+                foreach($cab['ministers'] as $office=>$person){
+                    if($person!==null)continue;
+                    $id=self::objectiveId($world,$mandate,'portfolio',$cab['generation'].'-'.$office);
+                    foreach($s['events'] as $event)if($event['id']===$id)continue 2;
+                    $e=['world_id'=>$world,'country'=>'FR','day'=>$day,'evidence_id'=>$id,'bill_id'=>null,
+                        'kind'=>'assembly_cabinet_portfolio','procedure_certified'=>true,'data'=>[
+                            'at'=>$day.'T23:59:00Z','prime_minister'=>$cab['prime_minister'],'president'=>$cab['president'],
+                            'portfolio'=>$office,'person'=>$aff.'-'.$office,'pm_proposal_certified'=>true,
+                            'presidential_act_certified'=>true,'incompatibilities_cleared'=>true]];
+                    try{$r=$sim->legislation('legislation_clerk','legislation_evidence',$e,$id);
+                        return ['stage'=>'portfolio_appointed','id'=>$id,'result'=>$r];}
+                    catch(\DomainException|\InvalidArgumentException $err){return null;}
+                }
+            }
+        }
+        $template=$a['revision']??'none';
+        if($template!=='none'&&$cab['status']==='in_office'){
+            $id=self::objectiveId($world,$mandate,'revision',$template);
+            foreach($s['revision']['procedures'] as $proc)if($proc['template']===$template)return null;
+            foreach($s['revision_requests'] as $r)if(!in_array($r['status'],['effective','rejected','declined','superseded'],true))return null;
+            try{$r=$sim->revision('scenario_revision_author','revision_draft',['template'=>$template,'ratification_route'=>$a['ratification']],$id);
+                return ['stage'=>'revision_requested','id'=>$id,'result'=>$r];}
+            catch(\DomainException|\InvalidArgumentException $e){return null;}
+        }
+        return null;
     }
     public static function permits(string $profile,string $id):bool
     {

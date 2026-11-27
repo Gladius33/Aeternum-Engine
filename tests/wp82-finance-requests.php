@@ -80,3 +80,21 @@ ck82($step114!==null&&$step114['stage']==='budget_requested','WP114b submits act
 for($n=2;$n<=34;$n++)$z114->advanceTo((new DateTimeImmutable('2027-05-14'))->modify('+'.$n.' days')->format('Y-m-d'));
 $req114=array_values($z114->snapshot()['finance_requests'])[0];
 ck82(in_array($req114['status'],['published','rejected'],true)&&I::restore($z114->snapshot())->hash()===$z114->hash(),'WP114b independent corrective process and replay');
+
+
+// WP114c: extended objective grammar, legacy decoding and Article 89 request.
+$ext114=$agenda114+['cabinet'=>'social','revision'=>'environment-report','ratification'=>'referendum','industry'=>'active','commitments'=>'request_deferral'];
+$extCode114=PP::encodeAgenda($ext114);
+ck82(PP::agenda($extCode114)===$ext114&&strlen($extCode114)<=24,'WP114c canonical extended agenda');
+ck82(PP::agenda($code114)===$agenda114,'WP114c original agenda remains replayable');
+ck82(PP::industryAction($extCode114,'not_started')==='start-industrial-pilot'&&PP::industryAction($extCode114,'active')===null,'WP114c industrial transition matches current state');
+ck82(PP::commitmentAction($extCode114)==='request_deferral','WP114c negotiated commitment objective');
+no82(fn()=>PP::encodeAgenda(array_replace($ext114,['cabinet'=>'unknown'])));
+no82(fn()=>PP::encodeAgenda(array_replace($ext114,['revision'=>'none'])));
+$x114c=new I('world-test','FR','2027-05-14');$x114c->enableElectoral(P::publishedElectionConfig('2027-05-14'));$x114c->enablePoliticalAI();$x114c->enableRevision();$x114c->enableLegislation(true,true,true,true,true,true,true,2028,true,true);$x114c->enableContinuityLot();$x114c->enableCabinetSenateLot();$x114c->enableFinanceRequests();
+$st114c=PP::institutionalObjective($x114c,$extCode114,'2027-05-14');
+ck82($st114c!==null&&$st114c['stage']==='revision_requested','WP114c opens real revision request, not an instant constitutional change');
+$s114c=$x114c->snapshot();
+ck82($s114c['revision']['constitution_version']===0&&count($s114c['cabinet_requests'])===0,'WP114c no fabricated cabinet vacancy and no direct constitutional effect');
+ck82(PP::institutionalObjective($x114c,$extCode114,'2027-05-14')===null,'WP114c no duplicated constitutional requests');
+ck82(I::restore($s114c)->hash()===$x114c->hash(),'WP114c institutional request replay');

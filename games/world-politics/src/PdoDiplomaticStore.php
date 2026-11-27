@@ -293,7 +293,10 @@ final class PdoDiplomaticStore
                     throw new \InvalidArgumentException('Invalid game date');
                 }
                 $s=$sim->snapshot();
-                return $sim->advanceTo($payload['target_day'],$this->principal,$payload['aid_observation']??null,UniverseAutonomy::policies($this->pdo,$s['world_id'],$s['day']));
+                $objective=UniverseAutonomy::commitmentObjective($this->pdo,$sim,$s['world_id'],$this->principal->actorId(),$payload['target_day']);
+                $result=$sim->advanceTo($payload['target_day'],$this->principal,$payload['aid_observation']??null,UniverseAutonomy::policies($this->pdo,$s['world_id'],$s['day']));
+                if($objective!==null)$result['presidential_commitment_objective']=$objective;
+                return $result;
         }
         throw new \InvalidArgumentException('Unknown operation');
     }
