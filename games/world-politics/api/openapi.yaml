@@ -54,6 +54,49 @@ paths:
         '201': {description: World created or receipt replayed}
         '404': {description: Feature disabled}
         '409': {description: Admission or idempotency conflict}
+  /career-worlds/{world}/institutions:
+    get:
+      summary: Read the committed French institution aggregate
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Institutional snapshot and ETag}
+        '409': {description: Profile unavailable}
+  /career-worlds/{world}/bills:
+    post:
+      summary: File a bill under a verified PM or parliamentary mandate
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string}
+        - in: header
+          name: If-Match
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [mandate, generation, title]
+              properties:
+                mandate: {type: string}
+                generation: {type: integer, minimum: 1}
+                title: {type: string, minLength: 1, maxLength: 200}
+      responses:
+        '202': {description: Bill filed; no legal enactment}
+        '409': {description: Mandate or institutional precondition rejected}
+        '428': {description: Required precondition missing}
   /career-worlds/{world}/economy:
     get:
       summary: Read coherent domestic and international economy in opt-in economic profile

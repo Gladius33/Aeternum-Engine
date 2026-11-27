@@ -147,6 +147,17 @@ final class PdoCareerInstitutionStore
             return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
         });
     }
+    /** Called by the operator scheduler on a committed day. The tally is
+     * generated inside the same fence transaction as its certification. */
+    public function settleDuePresidency(string $world,string $secret):?array{
+        return $this->tx(function()use($world,$secret){
+            $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));$day=$clock['committed_day'];
+            $p=CareerInstitutionLedger::automaticBallot($state,$day);if($p===null)return null;
+            $event=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'auto-election-'.$day,'actor'=>'career-election-clerk','operation'=>'presidential_ballot','payload'=>$p,
+                'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
+            return $this->applyLocked($event,hash_hmac('sha256',CareerInstitutionLedger::json($event),$secret));
+        });
+    }
     /** A private career-world owner may invite an account as a member, not confer an office. */
     public function inviteForSession(string $world,string $token,string $target):array{
         CareerInstitutionLedger::id($target);
@@ -203,6 +214,28 @@ final class PdoCareerInstitutionStore
             $principal=new CareerEconomicProposalPrincipal($this->db,$world,$p['mandate']);
             $dom=new PdoDomesticPolicyStore($this->db,$principal);
             return $dom->proposeInCareerTransaction($world,['policy_id'=>$p['policy_id'],'effective_day'=>$p['effective_day']],$key,$etag);
+        });
+    }
+    public function institutionsForSession(string $world,string $token):array{
+        return $this->tx(function()use($world,$token){
+            $clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);$this->replay($world,$this->row($world));
+            require_once __DIR__.'/CareerEconomicWorld.php';
+            $r=(new PdoInstitutionalStore($this->db,new CareerEconomicClockPrincipal($this->db,$world)))->read($world,'FR');
+            CareerInstitutionLedger::check($r['state']['day']===$clock['committed_day'],'institution publication mismatch');return $r;
+        });
+    }
+    public function submitBillForSession(string $world,string $token,array $p,string $key,string $etag):array{
+        CareerInstitutionLedger::fields($p,['mandate','generation','title']);
+        CareerInstitutionLedger::check(is_string($p['mandate'])&&is_int($p['generation'])&&$p['generation']>=1&&is_string($p['title']),'invalid bill fields');
+        return $this->tx(function()use($world,$token,$p,$key,$etag){
+            $clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);$state=$this->replay($world,$this->row($world));
+            $day=$clock['committed_day'];$role=null;
+            if(CareerInstitutionLedger::allows($state,$account,$p['mandate'],$p['generation'],'government.coordinate',$day))$role='prime_minister';
+            foreach(['assembly.propose','senate.propose'] as $ability)if(CareerInstitutionLedger::allows($state,$account,$p['mandate'],$p['generation'],$ability,$day))$role='member_of_parliament';
+            CareerInstitutionLedger::check($role!==null&&$state['assembly']==='active','legislative mandate required');
+            $sha=$this->query("SELECT reference_bundle_sha FROM wp_alpha_worlds WHERE world_id=? AND scenario='wp-career-v1'",[$world])->fetchColumn();CareerInstitutionLedger::check(is_string($sha),'economic profile required');
+            require_once __DIR__.'/CareerEconomicWorld.php';
+            return (new PdoInstitutionalStore($this->db,new CareerLegislativePrincipal($this->db,$world,$p['mandate'],$role)))->submitInCareerTransaction($world,['title'=>$p['title']],$key,$etag);
         });
     }
     public function economicForSession(string $world,string $token):array{

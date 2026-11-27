@@ -72,4 +72,13 @@ no(fn()=>L::apply($b,$act($b,'acct-b',$pm)));
 $b=L::apply($b,$act($b,'acct-a',$pm));ck($b['mandates'][$b['active']['prime-minister']]['career']==='b','verified president appoints PM');
 $pmid=$b['active']['prime-minister'];$resign=['kind'=>'resign_pm','mandate'=>$pmid,'generation'=>1,'target'=>null,'portfolio'=>null,'proposal'=>null];$b=L::apply($b,$act($b,'acct-b',$resign));
 ck($b['government']==='vacant'&&isset($b['careers']['b']),'PM resignation preserves career');
+// Synthetic ordinary election is deterministic and enforces term eligibility.
+$auto=add(add(add(L::initial('automatic-world','FR','career','2027-05-14'),'a'),'b'),'c');
+$auto=change($auto,'election',[],[grant('president','a')]);
+$payload=L::automaticBallot($auto,'2032-05-14');
+ck($payload===L::automaticBallot($auto,'2032-05-14')&&L::automaticBallot($auto,'2032-05-13')===null,'deterministic due ballot');
+$ev=evt($auto,'presidential_ballot',$payload,'2032-05-14');$ev['actor']='career-election-clerk';$ev['evidence_sha']=L::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$auto['world'],'day'=>$ev['day'],'payload'=>$payload]);
+$next=L::apply($auto,$ev);ck($next['active']['president']!==$auto['active']['president'],'automatic handover advances generation');
+$auto=change($auto,'renewal',['president'],[grant('president','a','2037-05-14')],'2032-05-14');
+$payload=L::automaticBallot($auto,'2037-05-14');ck(!isset($payload['ballot']['first']['votes']['a']),'third consecutive term excluded');
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";

@@ -77,6 +77,34 @@ final class CareerInstitutionLedger
         $s['mandates'][$id]=['id'=>$id,'office'=>$office,'career'=>$g['career'],'generation'=>$generation,'start'=>$day,'expires'=>$g['expires'],'end'=>null,'end_reason'=>null,'interim'=>$g['interim'],'constitution_revision'=>$s['constitution_revision'],'powers'=>$powers,'series'=>$series,'terms'=>$terms];
         $s['active'][$office]=$id;
     }
+    /** Deterministic fictional election fixture, not calibrated opinion or real voter data.
+     * At least two admitted eligible careers are required; no fabricated human accounts. */
+    public static function automaticBallot(array $s,string $day):?array{
+        self::check($s['country']==='FR'&&$s['mode']==='career','French career ballot only');
+        $mid=$s['active']['president']??null;$old=$mid===null?null:$s['mandates'][$mid];
+        if($old===null||$old['interim']||$old['expires']!==$day)return null;
+        $dates=FrenchElectionCalendar::presidentialPoll($day);
+        $occupied=[];foreach($s['active'] as $office=>$id)if($office!=='president')$occupied[$s['mandates'][$id]['career']]=true;
+        $eligible=[];
+        foreach($s['careers'] as $id=>$c){
+            if($c['admitted_on']>$dates['candidacy_lock']||isset($occupied[$id]))continue;
+            if($id===$old['career']&&$s['constitution_rules']['term_limit']!==null&&$old['terms']>=$s['constitution_rules']['term_limit'])continue;
+            $eligible[$id]=1000+hexdec(substr(hash('sha256','wp119-synthetic-ballot-v1|'.$s['world'].'|'.$day.'|'.$id),0,4));
+        }
+        self::check(count($eligible)>=2&&count($eligible)<=30,'automatic ballot needs 2–30 eligible unencumbered careers');
+        ksort($eligible,SORT_STRING);$total=array_sum($eligible);$votes=[];
+        foreach($eligible as $id=>$weight)$votes[$id]=intdiv(900000*$weight,$total);
+        $rank=array_keys($votes);usort($rank,fn($a,$b)=>$votes[$b]<=>$votes[$a]?:strcmp($a,$b));
+        // Do not arbitrarily decide exact ties: require independent adjudication.
+        $valid=array_sum($votes);$first=['votes'=>$votes,'blank_invalid'=>10000];$second=null;
+        if($votes[$rank[0]]*2<=$valid){
+            self::check(!isset($rank[2])||$votes[$rank[1]]!==$votes[$rank[2]],'qualification tie');
+            [$a,$b]=$rank;$n=intdiv(900000*$eligible[$a],$eligible[$a]+$eligible[$b]);
+            self::check($n!==450000,'runoff tie');
+            $second=['votes'=>[$a=>$n,$b=>900000-$n],'blank_invalid'=>10000];
+        }
+        return ['ballot'=>['registered'=>1000000,'first'=>$first,'second'=>$second],'first_round_day'=>$dates['first'],'second_round_day'=>$dates['second']];
+    }
     /** Recompute the national fictional ballot using the existing two-round count.
      * Only a server-side simulation evidence service can sign this operation.
      * It is not a prediction, nor a population-calibrated vote generator. */

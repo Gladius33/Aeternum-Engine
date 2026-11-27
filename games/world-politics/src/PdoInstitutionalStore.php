@@ -46,6 +46,7 @@ interface LegislativeInstitutionalAuthorizer extends InstitutionalActorAuthorize
  */
 final class PdoInstitutionalStore
 {
+    private bool $careerTransaction=false;
     public function __construct(
         private readonly \PDO $pdo,
         private readonly InstitutionalActorAuthorizer $auth
@@ -112,6 +113,14 @@ final class PdoInstitutionalStore
         return $this->write($world,$country,$action,$payload,$idempotencyKey,$ifMatch,false);
     }
 
+    /** Only a mandate-bound career principal may join the fenced transaction.
+     * No clock, certification or executive act can use this adapter. */
+    public function submitInCareerTransaction(string $world,array $payload,string $key,string $etag):array{
+        if(!$this->pdo->inTransaction()||!($this->auth instanceof CareerLegislativePrincipal)||$this->careerTransaction)
+            throw new \LogicException('Verified career legislative transaction required');
+        $this->careerTransaction=true;
+        try{return $this->decide($world,'FR','submit_bill',$payload,$key,$etag);}finally{$this->careerTransaction=false;}
+    }
     /**
      * Clock advances require separate trusted, operator-level admission.
      * @return array{status:int,result:array<string,mixed>,etag:string,revision:int}
@@ -146,7 +155,7 @@ final class PdoInstitutionalStore
         $receiptKey=hash('sha256',$action."\n".$key);
         // Internal IDs always come from server-supplied principal/command key.
         $commandId='a'.substr(hash('sha256',$world."\n".$country."\n".$actor."\n".$key),0,32);
-        $this->pdo->beginTransaction();
+        if(!$this->careerTransaction)$this->pdo->beginTransaction();
         try {
             WorldMutationFence::admit(
                 $this->pdo,$world,$actor,$action==='advance_clock' ? 'clock' : $action,$clock ? ($payload['target_day']??null) : null
@@ -171,7 +180,7 @@ final class PdoInstitutionalStore
                 if (!hash_equals($prior['request_sha'],$fingerprint)) {
                     throw new \DomainException('Conflicting idempotency key');
                 }
-                $this->pdo->commit();
+                if(!$this->careerTransaction)$this->pdo->commit();
                 return json_decode($prior['response_json'],true,64,JSON_THROW_ON_ERROR);
             }
             $simulation=self::restore($row,$world,$country);
@@ -245,10 +254,10 @@ final class PdoInstitutionalStore
             $this->pdo->prepare(
                 'INSERT INTO wp_institutional_receipts(world_id,country_code,actor_id,receipt_key,request_sha,response_json) VALUES(?,?,?,?,?,?)'
             )->execute([$world,$country,$actor,$receiptKey,$fingerprint,self::encode($response)]);
-            $this->pdo->commit();
+            if(!$this->careerTransaction)$this->pdo->commit();
             return $response;
         } catch(\Throwable $e) {
-            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            if (!$this->careerTransaction&&$this->pdo->inTransaction()) $this->pdo->rollBack();
             throw $e;
         }
     }

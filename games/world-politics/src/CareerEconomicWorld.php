@@ -41,6 +41,18 @@ final class CareerEconomicProposalPrincipal implements PersistentDomesticPolicyA
     public function enactedInstrument(string $world,string $policy):?string{return null;}
     public function clockDay(string $world):string{throw new \DomainException('No clock delegation');}
 }
+/** Server-side role obtained only from a verified active career mandate. */
+final class CareerLegislativePrincipal implements InstitutionalActorAuthorizer{
+    public function __construct(private readonly \PDO $db,private readonly string $world,private readonly string $mandate,private readonly string $role){}
+    public function actorId():string{return 'career-'.$this->mandate;}
+    public function allows(string $world,string $actor,string $ability):bool{
+        return $this->db->inTransaction()&&$world===$this->world&&$actor==='FR'&&in_array($ability,['read_institutions','submit_bill'],true);
+    }
+    public function roleFor(string $world,string $country,string $action):string{
+        if(!$this->allows($world,$country,$action)||$action!=='submit_bill')throw new \DomainException('No legislative authority');
+        return $this->role;
+    }
+}
 final class CareerEconomicWorld
 {
     private static function json(array $x):string{return json_encode($x,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
@@ -97,6 +109,15 @@ final class CareerEconomicWorld
         if($r['pending_day']!==null){CareerInstitutionLedger::check($r['pending_day']===$target,'another day pending');return $clock->resumePending($world)??throw new \DomainException('pending day disappeared');}
         if($r['committed_day']===$target)return $clock->read($world);
         CareerInstitutionLedger::check((new \DateTimeImmutable($r['committed_day']))->modify('+1 day')->format('Y-m-d')===$target,'daily tick required');
+        // Expiry settlement is separate from the recoverable multi-store clock.
+        // If the eligible roster is insufficient, refuse to progress rather than invent a winner.
+        $guard=$db->prepare('SELECT state_json FROM wp_career_ledgers WHERE world_id=?');$guard->execute([$world]);
+        $state=json_decode($guard->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+        $mid=$state['active']['president']??null;
+        if($mid!==null&&$state['mandates'][$mid]['expires']===$r['committed_day']){
+            $secret=getenv('WP_CAREER_EVIDENCE_KEY');CareerInstitutionLedger::check(is_string($secret)&&strlen($secret)>=32,'election signing key required');
+            (new PdoCareerInstitutionStore($db,new CareerInstitutionEvidence($secret)))->settleDuePresidency($world,$secret);
+        }
         $current=$clock->read($world);return $clock->advance($world,$target,'career-day-'.$target,$current['etag']);
     }
 }
