@@ -98,6 +98,7 @@ final class UniverseLobby
                 $this->query('UPDATE wp_universe_slots SET account_id=?,generation=?,last_human_diplomacy_day=NULL WHERE world_id=? AND country_code=?',[$s->id,$gen,$world,$country]);
                 $this->query('INSERT INTO wp_universe_control_periods(world_id,country_code,generation,account_id,joined_on) VALUES(?,?,?,?,?)',[$world,$country,$gen,$s->id,$c['committed_day']]);
                 $this->query("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'viewer')",[$world,$s->id]);
+                UniverseScore::claim($this->db,$world,$country,$gen,$c['committed_day']);
                 $this->query('UPDATE wp_universes SET next_game_day=DATE_ADD(?,INTERVAL 1 DAY),next_tick_epoch=UNIX_TIMESTAMP()+tick_seconds WHERE world_id=? AND next_tick_epoch IS NULL',[$c['committed_day'],$world]);
                 $spare=$this->ensureSpare();
             }
@@ -162,6 +163,7 @@ final class UniverseLobby
         $out=[];foreach($rows as $r)$out[]=['rank'=>(int)$r['player_rank'],'player'=>'joueur-'.substr(hash('sha256','wp102-universe/'.$r['account_id']),0,20),
             'is_you'=>$r['account_id']===$s->id,'universe_no'=>(int)$r['universe_no'],'country'=>$r['country_code'],'control_days'=>(int)$r['control_days'],'score'=>null];
         return ['scope'=>$no===null?'global':'universe','universe_no'=>$no,'page'=>$page,'rows'=>$out,
-            'ranking_basis'=>'best_single_control_period_days','official_ranking_eligible'=>false,'composite_score_available'=>false];
+            'ranking_basis'=>'best_single_control_period_days','official_ranking_eligible'=>false,'composite_score_available'=>false,
+            'pilot_score_cohorts'=>UniverseScore::cohorts($this->db,$no)];
     }
 }

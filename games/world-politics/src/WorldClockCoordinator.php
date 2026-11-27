@@ -12,6 +12,7 @@ require_once __DIR__.'/WorldMutationFence.php';
 require_once __DIR__.'/PdoDomesticPolicyStore.php';
 require_once __DIR__.'/PdoPublicOpinionStore.php';
 require_once __DIR__.'/PdoCampaignScores.php';
+require_once __DIR__.'/UniverseScore.php';
 
 /**
  * WP17/WP18: recoverable WORLD clock for diplomacy, organizations,
@@ -322,6 +323,8 @@ final class WorldClockCoordinator
                 if($this->domestic===null||$opinionRecord===null)throw new \DomainException('Ranked world missing required domain');
                 (new PdoCampaignScores($this->pdo))->publish($world,$row,$targetDay,$verified['domestic'],$verified['diplomacy'],$opinionRecord);
             }
+            if(isset($verified['domestic'],$verified['diplomacy'])&&$opinionRecord!==null&&(int)($row['score_enabled']??0)===0)
+                UniverseScore::publish($this->pdo,$world,$targetDay,$verified['domestic'],$verified['diplomacy']);
             $result=[
                 'status'=>200,
                 'result'=>[

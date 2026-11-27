@@ -69,3 +69,19 @@ for($n=0;$n<5&&$offer['status']==='pending_response';$n++){
 ck102($offer['status']!=='pending_response'&&$offer['responded_on']!==null,'WP103 idle French player gets automatic diplomatic response');
 $global=call102('GET','/universe-rankings/global',null,8)['body'];
 ck102($global['rows'][0]['control_days']>0&&count($global['rows'])===8,'WP103 standings reflect committed control time');
+
+$cohorts=$global['pilot_score_cohorts'];ck102(count($cohorts)===1&&$cohorts[0]['country']==='FR','WP104 comparable France cohort');
+$sha104=$cohorts[0]['cohort_sha'];
+$rank104=call102('GET','/universe-rankings/global/score/'.$sha104,null,8);
+ck102($rank104['status']===200&&count($rank104['body']['rows'])===2,'WP104 global composite deduplicates same player across worlds');
+$rank104=call102('GET','/universes/'.$no.'/rankings/score/'.$sha104,null,8);
+ck102($rank104['status']===200&&count($rank104['body']['rows'])===2,'WP104 universe composite includes former player');
+foreach($rank104['body']['rows'] as $row104){
+    if($row104['is_you'])ck102($row104['control_days']>0&&$row104['opening_income_index_bps']===10000,'WP104 inherited control period evolves');
+    else ck102($row104['control_days']===0&&$row104['score']===0,'WP104 former player score frozen');
+}
+ck102(call102('DELETE','/universes/'.$no.'/membership',null,8)['status']===200,'WP104 leave freezes current score');
+ck102(join102(1,'FR',$no,'wp104-late-claim')['status']===201,'WP104 late claim');
+$q104=$db->prepare("SELECT s.opening_index_bps,s.latest_index_bps,s.score,s.elapsed_control_days,c.index_bps FROM wp_universe_period_scores s JOIN wp_universe_income_checkpoints c USING(world_id,country_code) WHERE s.world_id=? AND s.country_code='FR' AND s.generation=3");
+$q104->execute([$world]);$r104=$q104->fetch(PDO::FETCH_ASSOC);
+ck102($r104!==false&&(int)$r104['opening_index_bps']===(int)$r104['index_bps']&&(int)$r104['latest_index_bps']===(int)$r104['index_bps']&&(int)$r104['score']===0&&(int)$r104['elapsed_control_days']===0,'WP104 late entrant starts at current income and zero score');

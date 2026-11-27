@@ -9,6 +9,7 @@ require_once __DIR__.'/GlobalReferenceBundle.php';
 require_once __DIR__.'/ComparativeElectionCalendar.php';
 require_once __DIR__.'/PdoCampaignScores.php';
 require_once __DIR__.'/CampaignCandidate.php';
+require_once __DIR__.'/UniverseScore.php';
 
 /** Immutable private alpha scenario. No real economic data is invented. */
 final class AlphaScenario
@@ -213,6 +214,8 @@ final class AlphaWorlds
                     [$world,PublicOpinion::json($op->snapshot()),$op->hash()]);
                 $this->insert('UPDATE wp_world_clock SET opinion_enabled=1 WHERE world_id=?',[$world]);
                 if($this->scenario->campaign())$this->insert('UPDATE wp_world_clock SET campaign_enabled=1 WHERE world_id=?',[$world]);
+                if($managed)UniverseScore::seed($this->db,$world,$this->scenario->bundleSha,$c,
+                    ['state'=>$dom->snapshot(),'etag'=>'"'.$dom->hash().'"'],['state'=>$dip->snapshot(),'etag'=>'"'.$dip->hash().'"']);
                 if($this->scenario->id===AlphaScenario::INVESTITURE&&!$managed){
                     (new PdoCampaignScores($this->db))->seed($world,$this->scenario->bundleSha??throw new \DomainException('Ranked world needs pinned bundle'),$c,
                         ['state'=>$dom->snapshot(),'etag'=>'"'.$dom->hash().'"'],['state'=>$dip->snapshot(),'etag'=>'"'.$dip->hash().'"'],['state'=>$op->snapshot(),'etag'=>'"'.$op->hash().'"']);

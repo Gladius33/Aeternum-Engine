@@ -100,6 +100,32 @@ paths:
           schema: { type: integer, minimum: 1 }
       responses:
         '200': { description: One best recorded control period per account; composite score unavailable }
+  /universe-rankings/global/score/{cohort}:
+    get:
+      operationId: readGlobalUniverseCompositePilot
+      summary: Experimental composite score by comparable France cohort across universes
+      parameters:
+        - name: cohort
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{64}$' }
+      responses:
+        '200': { description: Best player control period with relative household income proxy gain }
+  /universes/{universe_no}/rankings/score/{cohort}:
+    get:
+      operationId: readUniverseCompositePilot
+      summary: Experimental composite score in one universe for a comparable France cohort
+      parameters:
+        - name: universe_no
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - name: cohort
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{64}$' }
+      responses:
+        '200': { description: Comparable player control periods in this universe }
   /universe-rankings/global:
     get:
       operationId: readGlobalUniverseStandings

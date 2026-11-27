@@ -76,6 +76,16 @@ final class AlphaGateway
                 if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
                 return self::ok(201,(new UniverseLobby($this->db()))->join($session,$body,$h['idempotency-key']));
             }
+            if($method==='GET'&&preg_match('~^/api/v1/universe-rankings/global/score/([a-f0-9]{64})(?:/([1-9][0-9]{0,5}))?$~D',$path,$sr))
+                return self::ok(200,UniverseScore::rankings($this->db(),$session,null,$sr[1],isset($sr[2])?(int)$sr[2]:1));
+            if($method==='GET'&&preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/rankings/score/([a-f0-9]{64})(?:/([1-9][0-9]{0,5}))?$~D',$path,$sr))
+                return self::ok(200,UniverseScore::rankings($this->db(),$session,(int)$sr[1],$sr[2],isset($sr[3])?(int)$sr[3]:1));
+            if($method==='GET'&&preg_match('~^/api/v1/universe-rankings/global/([1-9][0-9]{0,5})$~D',$path,$pg))
+                return self::ok(200,(new UniverseLobby($this->db()))->rankings($session,null,(int)$pg[1]));
+            if($method==='GET'&&preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/rankings/([1-9][0-9]{0,5})$~D',$path,$pg))
+                return self::ok(200,(new UniverseLobby($this->db()))->rankings($session,(int)$pg[1],(int)$pg[2]));
+            if($method==='GET'&&preg_match('~^/api/v1/universes/page/([1-9][0-9]{0,5})$~D',$path,$pg))
+                return self::ok(200,(new UniverseLobby($this->db()))->list($session,(int)$pg[1]));
             if($path==='/api/v1/universe-rankings/global'&&$method==='GET')
                 return self::ok(200,(new UniverseLobby($this->db()))->rankings($session,null));
             if(preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/(rankings|membership|programme)$~D',$path,$um)){
