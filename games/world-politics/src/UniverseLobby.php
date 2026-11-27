@@ -43,7 +43,7 @@ final class UniverseLobby
             $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
             unset($r['pending_day'],$r['game_over']);
         }unset($r);
-        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),'historical_social_catalog'=>SocialProgramme::definitions(),'social_lifecycle_catalog'=>SocialProgramme::objectives(),'primary_quantitative_catalog'=>PrimaryManifestoPolicy::definitions(),'primary_constitutional_catalog'=>PresidentialProgramme::primaryRevisionCatalog(),'opening_candidate_selection'=>['country'=>'FR','day'=>FrenchElectionCalendar::PRESIDENTIAL_HANDOVER,'first_control_only'=>true,'options'=>CampaignCandidate::options()],'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
+        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),'historical_social_catalog'=>SocialProgramme::definitions(),'social_lifecycle_catalog'=>SocialProgramme::objectives(),'primary_quantitative_catalog'=>PrimaryManifestoPolicy::definitions(),'target_2027_catalog'=>SocialProgramme::target2027(),'primary_constitutional_catalog'=>PresidentialProgramme::primaryRevisionCatalog(),'opening_candidate_selection'=>['country'=>'FR','day'=>FrenchElectionCalendar::PRESIDENTIAL_HANDOVER,'first_control_only'=>true,'options'=>CampaignCandidate::options()],'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
     }
     private function create():array
     {
@@ -277,7 +277,7 @@ final class UniverseLobby
                 'human_action_this_day'=>$slot['last_human_domestic_day']===$c['committed_day'],
                 'actions'=>$rows,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),
                 'social_measure_ids'=>PresidentialProgramme::socialIds($slot['domestic_programme']), 'social_programme'=>SocialProgramme::report($dom),'social_economy'=>$dom['days']===[]?null:($dom['days'][array_key_last($dom['days'])]['social_economy']??null),
-                'historical_real_programmes_fully_executable'=>false];
+                'historical_real_programmes_fully_executable'=>false,'target_2027_catalog'=>SocialProgramme::target2027(),'target_2027_programmes_fully_executable'=>false];
         });
     }
     /** Interim standings: control periods, NOT certified national tenure or
