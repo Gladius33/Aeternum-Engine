@@ -120,3 +120,25 @@ $bad=$usState;foreach($bad['events'] as &$event)if($event['kind']==='us_presiden
 try{I::restore($bad);throw new RuntimeException('US forged count accepted');}catch(DomainException $expected){}
 $bad=$usState;$bad['events']=array_values(array_filter($bad['events'],fn($e)=>$e['kind']!=='us_presidential_electors'));
 try{I::restore($bad);throw new RuntimeException('Missing US elector stage accepted');}catch(DomainException $expected){}
+
+// Article 67 alternative designation and ten non-recess days, opt-in only.
+$found=null;
+for($n=0;$n<100;$n++){
+    $fixture=make65('jp-extended-'.$n,'JP',false);
+    $p=$fixture->snapshot()['electoral']['config']['poll_day'];
+    $d=(new DateTimeImmutable($p))->modify('+13 days')->format('Y-m-d');
+    $fixture->advanceTo($d);$snap=$fixture->snapshot();$snap['autonomous_formation']=A::VERSION_V4;
+    $attempt=A::plan($snap);
+    if(($attempt['status']??null)==='certified'&&count($attempt['proof']['procedure']['steps'])===4){$found=[$n,$d,$attempt];break;}
+}
+ck65($found!==null,'Japanese extended fixture exercises Article 67');
+[$n,$d,$attempt]=$found;
+$extended=make65('jp-extended-'.$n,'JP',false);$extended->enableAutonomousFormation(true,true);
+for($t=new DateTimeImmutable('2027-05-15');$t->format('Y-m-d')<=$d;$t=$t->modify('+1 day'))$extended->advanceTo($t->format('Y-m-d'));
+$s=$extended->snapshot();ck65(I::restore($s)->snapshot()===$s&&$s['accountability']['incumbent']===$attempt['candidate'],'Japanese extended succession replays');
+$protocol=\Aeternum\WorldPolitics\FormationProtocol::class;
+$proof=$attempt['proof'];$cycle=$s['electoral'];$seats=A::formationSeats($s);
+try{$protocol::certificate($proof,$cycle,$seats);throw new RuntimeException('Old pin accepted extended route');}catch(DomainException $expected){}
+$proof['procedure']['steps'][2]['kind']='councillors_deadline_elapsed';
+$proof['procedure']['steps'][2]['at']=$proof['procedure']['steps'][1]['at']; // premature, duplicate instant
+try{$protocol::certificate($proof,$cycle,$seats,true);throw new RuntimeException('Premature deadline accepted');}catch(DomainException $expected){}

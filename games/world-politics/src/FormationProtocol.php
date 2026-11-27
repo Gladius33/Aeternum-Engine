@@ -45,7 +45,32 @@ final class FormationProtocol
     /** Validates the independent procedural record, returning the legacy
      * certificate only after all supported national conditions are met.
      * Partial/minority and exceptional routes deliberately fail closed. */
-    public static function certificate(array $e,array $cycle,array $seats):array
+    /** Binary synthetic designation: the other nominee is a represented
+     * noncoalition leader, not an asserted actual candidate. */
+    public static function japaneseAlternative(array $cycle):?string
+    {
+        $c=$cycle['coalition'];$ids=[];
+        foreach($cycle['result']['seats'] as $party=>$n)
+            if($n>0&&!in_array($party,$c['accepted'],true)&&$cycle['config']['parties'][$party]['leader']!==$c['candidate'])
+                $ids[]=$cycle['config']['parties'][$party]['leader'];
+        sort($ids,SORT_STRING);return $ids[0]??null;
+    }
+    private static function japaneseExtended(array $steps,array $k,array $cycle,array $seats):bool
+    {
+        if(!isset($seats['councillors'])||!in_array($k,[
+            ['designation_vote','designation_vote','joint_committee_no_agreement','imperial_appointment'],
+            ['designation_vote','designation_vote','councillors_deadline_elapsed','imperial_appointment']],true))return false;
+        [$lower,$upper,$resolution]=$steps;
+        if($lower['chamber']!=='representatives'||$upper['chamber']!=='councillors'
+            ||$lower['yes']<=intdiv($seats['representatives'],2)
+            ||$upper['yes']>intdiv($seats['councillors'],2)
+            ||array_sum([$upper['yes'],$upper['no'],$upper['abstain']])!==$seats['councillors'])return false;
+        if($resolution['kind']==='joint_committee_no_agreement')
+            return $upper['no']>intdiv($seats['councillors'],2)&&self::japaneseAlternative($cycle)!==null;
+        return $upper['no']<=intdiv($seats['councillors'],2)
+            &&self::instant($resolution['at'])->getTimestamp()-self::instant($lower['at'])->getTimestamp()>=864000;
+    }
+    public static function certificate(array $e,array $cycle,array $seats,bool $jpExtended=false):array
     {
         self::keys($e,['world_id','country','evidence_id','coalition_id','candidate','day','procedure_certified','procedure']);
         $p=$e['procedure'];$cc=$e['country'];$c=$cycle['coalition']??null;
@@ -87,10 +112,10 @@ final class FormationProtocol
             'IT'=>$k===['presidential_appointment','confidence_vote','confidence_vote']
                 &&(($simple($steps[1],'chamber')&&$simple($steps[2],'senate'))||($simple($steps[1],'senate')&&$simple($steps[2],'chamber')))
                 &&self::instant($steps[2]['at'])->getTimestamp()-self::instant($steps[0]['at'])->getTimestamp()<=864000,
-            'JP'=>isset($seats['councillors'])&&$k===['designation_vote','designation_vote','imperial_appointment']
+            'JP'=>($jpExtended&&self::japaneseExtended($steps,$k,$cycle,$seats))||(isset($seats['councillors'])&&$k===['designation_vote','designation_vote','imperial_appointment']
                 &&$steps[1]['chamber']==='councillors'&&$steps[0]['chamber']==='representatives'
                 &&$steps[0]['yes']>intdiv($steps[0]['yes']+$steps[0]['no']+$steps[0]['abstain'],2)
-                &&$steps[1]['yes']>intdiv($steps[1]['yes']+$steps[1]['no']+$steps[1]['abstain'],2),
+                &&$steps[1]['yes']>intdiv($steps[1]['yes']+$steps[1]['no']+$steps[1]['abstain'],2)),
             default=>false
         };
         if(!$ok)throw new \DomainException('National formation procedure not satisfied or not implemented');
@@ -118,7 +143,7 @@ final class FormationProtocol
             $id=$proof['evidence_id']??'';
             if(isset($proofs[$id])||!isset($cycles[$id])||$event['on']!==$proof['day']||$event['actor_role']!=='constitutional_clerk')
                 throw new \DomainException('Unmatched formation proof');
-            $base=self::certificate($proof,$cycles[$id],AutonomousForeignFormation::formationSeats($s));
+            $base=self::certificate($proof,$cycles[$id],AutonomousForeignFormation::formationSeats($s),AutonomousForeignFormation::extended($s));
             $result=$event['result'];unset($result['national_proof']);
             if($result!==$cycles[$id]['government'])throw new \DomainException('Formation event differs from electoral result');
             $proofs[$id]=['evidence'=>$base,'formation'=>$result];
