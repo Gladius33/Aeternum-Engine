@@ -24,7 +24,7 @@ final class UniverseContinuity
                 ||$campaign['start_day']!==$invested||$campaign['day']!==$day
                 ||$day!==(new \DateTimeImmutable($invested))->modify('+1 day')->format('Y-m-d'))
                 throw new \DomainException('Uncertified reopening');
-            $q=$db->prepare("UPDATE wp_universe_slots SET closed_on=NULL,diplomacy_programme='balanced',domestic_programme='manual',last_human_domestic_day=NULL,last_human_diplomacy_day=NULL WHERE world_id=? AND country_code='FR'");
+            $q=$db->prepare("UPDATE wp_universe_slots SET closed_on=NULL,diplomacy_programme='balanced',domestic_programme='governance',last_human_domestic_day=NULL,last_human_diplomacy_day=NULL WHERE world_id=? AND country_code='FR'");
             $q->execute([$world]);return;
         }
         $end=$campaign['ended_on'];

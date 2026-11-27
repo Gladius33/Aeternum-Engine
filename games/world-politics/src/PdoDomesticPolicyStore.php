@@ -112,7 +112,7 @@ final class PdoDomesticPolicyStore
             };
             $this->sameActor($world,$ability,$actor);
             $this->sameActor($world,'domestic.read',$actor);
-            if(in_array($operation,['propose','crisis','corporation'],true))UniverseAutonomy::markDomestic($this->pdo,$world,$actor,$sim->snapshot()['day']);
+            if(in_array($operation,['propose','enact','crisis','corporation'],true))UniverseAutonomy::markDomestic($this->pdo,$world,$actor,$sim->snapshot()['day']);
             $after = $sim->hash();
             $revision = (int)$row['revision']+1;
             $response = ['status'=>$operation==='propose'?202:200,'result'=>$result,

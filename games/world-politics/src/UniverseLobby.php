@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/AlphaWorlds.php';
+require_once __DIR__.'/PresidentialProgramme.php';
 
 /** Managed alpha universe pool. A claimed slot is control, not a new president. */
 final class UniverseLobby
@@ -41,7 +42,7 @@ final class UniverseLobby
             $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
             unset($r['pending_day'],$r['game_over']);
         }unset($r);
-        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
+        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
     }
     private function create():array
     {
@@ -52,7 +53,7 @@ final class UniverseLobby
         foreach(self::DIPLOMATIC_COUNTRIES as $country){
             if(!$scenario->actors->isHumanPlayable('state_'.strtolower($country)))
                 throw new \LogicException('Unreviewed playable slot');
-            $this->query('INSERT INTO wp_universe_slots(world_id,country_code) VALUES(?,?)',[$world,$country]);
+            $this->query('INSERT INTO wp_universe_slots(world_id,country_code,domestic_programme) VALUES(?,?,?)',[$world,$country,$country==='FR'?'governance':'manual']);
         }
         return ['universe_no'=>$no,'world_id'=>$world];
     }
@@ -147,7 +148,7 @@ final class UniverseLobby
     public function programme(AlphaSession $s,int $no,array $body):array
     {
         AlphaAccounts::fields($body,['diplomacy',...(array_key_exists('domestic',$body)?['domestic']:[])]);
-        if(!in_array($body['diplomacy'],['cooperative','balanced','cautious'],true)||(array_key_exists('domestic',$body)&&!in_array($body['domestic'],['manual','education','administration'],true)))
+        if(!in_array($body['diplomacy'],['cooperative','balanced','cautious'],true)||(array_key_exists('domestic',$body)&&!in_array($body['domestic'],PresidentialProgramme::PROFILES,true)))
             throw new AlphaHttpError(422,'invalid_programme');
         return $this->transaction(function()use($s,$no,$body){
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
@@ -164,6 +165,37 @@ final class UniverseLobby
             $this->query('UPDATE wp_universe_slots SET diplomacy_programme=? WHERE world_id=? AND country_code=?',[$body['diplomacy'],$world,$slot]);
             return ['country'=>$slot,'diplomacy'=>$body['diplomacy'],'effective_day'=>$c['committed_day'],'inherited'=>true,
                 ...(array_key_exists('domestic',$body)?['domestic'=>$body['domestic']]:[])];
+        });
+    }
+    /** Member-only coherent report; a proposal is not a law or spending. */
+    public function programmeStatus(AlphaSession $s,int $no):array
+    {
+        return $this->transaction(function()use($s,$no){
+            if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+            $world=$this->query('SELECT world_id FROM wp_universes WHERE universe_no=?',[$no])->fetchColumn();
+            if(!is_string($world))throw new AlphaHttpError(404,'not_found');
+            $c=$this->lockWorld($world);
+            $slot=$this->query('SELECT country_code,diplomacy_programme,domestic_programme,last_human_domestic_day FROM wp_universe_slots WHERE world_id=? AND account_id=?',[$world,$s->id])->fetch(\PDO::FETCH_ASSOC);
+            if($slot===false||!$s->active())throw new AlphaHttpError(404,'not_found');
+            $report=['day'=>$c['committed_day'],'country'=>$slot['country_code'],'diplomacy'=>$slot['diplomacy_programme'],'inherited'=>true];
+            if($slot['country_code']!=='FR')return $report;
+            $d=$this->query('SELECT state_json,state_sha FROM wp_domestic_states WHERE world_id=?',[$world])->fetch(\PDO::FETCH_ASSOC);
+            if($d===false)throw new \DomainException('Missing programme domestic state');
+            $dom=json_decode($d['state_json'],true,64,JSON_THROW_ON_ERROR);
+            if($dom['day']!==$c['committed_day']||$dom['world_id']!==$world||!hash_equals($d['state_sha'],hash('sha256',json_encode($dom,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES))))throw new \DomainException('Invalid programme source');
+            $rows=$this->query('SELECT decision_day,programme,policy_id,effective_day FROM wp_universe_programme_actions WHERE world_id=? ORDER BY decision_day LIMIT 10001',[$world])->fetchAll(\PDO::FETCH_ASSOC);
+            if(count($rows)>10000)throw new \DomainException('Programme report limit');
+            $active=$dom['days']===[]?[]:($dom['days'][array_key_last($dom['days'])]['active_policies']??[]);
+            foreach($rows as &$a){
+                $p=$dom['policies'][$a['policy_id']]??null;
+                if($p===null||!PresidentialProgramme::validAction($a)||$p['proposed_on']!==$a['decision_day']||$p['effective_on']!==$a['effective_day'])throw new \DomainException('Invalid programme journal');
+                $a['authorized_on']=$p['authorized_on'];
+                $a['state']=$p['authorized_on']!==null?(in_array($a['policy_id'],$active,true)?'active':'legally_authorized'):($a['effective_day']<=$c['committed_day']?'not_authorized_by_deadline':'proposed');
+            }unset($a);
+            return $report+['version'=>PresidentialProgramme::VERSION,'domestic'=>$slot['domestic_programme'],
+                'automatic_legal_route'=>PresidentialProgramme::executable($slot['domestic_programme']),
+                'human_action_this_day'=>$slot['last_human_domestic_day']===$c['committed_day'],
+                'actions'=>$rows,'historical_real_programmes_fully_executable'=>false];
         });
     }
     /** Interim standings: control periods, NOT certified national tenure or

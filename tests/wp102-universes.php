@@ -57,7 +57,7 @@ ck102(count($global['rows'])===44&&!$global['composite_score_available']&&$globa
 require_once __DIR__.'/../games/world-politics/src/UniverseScheduler.php';
 $scheduler=new \Aeternum\WorldPolitics\UniverseScheduler($connect);
 $spare=$directory[1]['world_id'];$spareNo=$directory[1]['universe_no'];
-ck102(call102('POST','/universes/'.$no.'/programme',['diplomacy'=>'cooperative'],8)['status']===200,'WP103 inherited diplomatic programme');
+ck102(call102('POST','/universes/'.$no.'/programme',['diplomacy'=>'cooperative','domestic'=>'manual'],8)['status']===200,'WP103 inherited diplomatic programme');
 ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','domestic'=>'education'],8)['status']===200,'WP107 opt-in domestic programme');
 ck102(call102('POST','/universes/'.$no.'/programme',['diplomacy'=>'balanced','domestic'=>'education'],2)['status']===403,'WP108 foreign pilot cannot set French domestic programme');
 ck102(call102('DELETE','/universes/'.$spareNo.'/membership',null,8)['status']===200,'WP103 activated second world empty');
@@ -142,3 +142,29 @@ $aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$no);
 ck102($aud['integrity']==='passed'&&$aud['human_slots']===43&&$aud['recomputed_scores']===4,'WP112 audit of reopened country');
 $check->execute([$world]);$p113=json_decode($check->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['proposals'];
 ck102(count(array_filter($p113,fn($x)=>str_starts_with($x['id'],'daily-initiative-')))>0,'WP113 idle governments initiate diplomacy');
+
+
+// WP114: human precedence, idle programme, lawful publication and application.
+ck102(join102(8,'FR',$spareNo,'wp114-rejoin-spare')['status']===201,'WP114 human resumes earlier AI state');
+$root114='/worlds/'.$spare;
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','domestic'=>'administration-law'],8)['status']===200,'WP114 executable profile selected');
+$dr114=call102('GET',$root114.'/domestic',null,8);
+ck102($dr114['status']===200,'WP114 domestic read');
+ck102(call102('POST',$root114.'/domestic/proposals',['policy_id'=>'budget-2029-defense-maintain','effective_day'=>'2029-01-01'],8,['if-match'=>$dr114['headers']['ETag'],'idempotency-key'=>'wp114-human-proposal'])['status']===202,'WP114 human command');
+$report114=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($report114['human_action_this_day']===true,'WP114 human priority visible');
+$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114 priority tick');
+$report114=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102(count($report114['actions'])===1,'WP114 human command suppresses new fallback proposal');
+$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114 idle tick');
+$report114=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102(count($report114['actions'])===2&&$report114['actions'][1]['policy_id']==='administration-report'&&$report114['actions'][1]['state']==='proposed','WP114 idle programme proposes independently');
+$effective114=$report114['actions'][1]['effective_day'];
+for($n114=0;$n114<20&&$report114['day']<$effective114;$n114++){
+    $due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114 lawful progression tick');
+    $report114=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+}
+ck102($report114['day']===$effective114&&$report114['actions'][1]['state']==='active','WP114 administrative policy takes effect after verified publication');
+ck102($report114['actions'][1]['authorized_on']!==null,'WP114 no effect without legal authorization');
+$aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo);
+ck102($aud['integrity']==='passed','WP114 executable programme passes independent audit');

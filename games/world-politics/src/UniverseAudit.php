@@ -50,8 +50,10 @@ final class UniverseAudit
                 unset($members[$slot['account_id']]);++$humans;
             }
             if($members!==[])throw new \DomainException('Orphan universe member');
-            $q=$db->prepare('SELECT COUNT(*) FROM wp_universe_programme_actions WHERE world_id=? AND (decision_day>=? OR effective_day<=decision_day OR programme NOT IN (\'education\',\'administration\') OR (programme=\'education\' AND policy_id<>\'education-reform\') OR (programme=\'administration\' AND policy_id<>\'administration-report\'))');
-            $q->execute([$world,$day]);if((int)$q->fetchColumn()!==0)throw new \DomainException('Invalid programme journal');
+            $q=$db->prepare('SELECT decision_day,programme,policy_id,effective_day FROM wp_universe_programme_actions WHERE world_id=? ORDER BY decision_day LIMIT 10001');
+            $q->execute([$world]);$actions=$q->fetchAll(\PDO::FETCH_ASSOC);
+            if(count($actions)>10000)throw new \DomainException('Programme audit page limit exceeded');
+            foreach($actions as $a)if($a['decision_day']>=$day||!PresidentialProgramme::validAction($a))throw new \DomainException('Invalid programme journal');
             $db->commit();
             return ['universe_no'=>$no,'committed_day'=>$day,'slots'=>count($slots),'human_slots'=>$humans,
                 'control_periods'=>count($periods),'recomputed_scores'=>$countScores,'integrity'=>'passed',

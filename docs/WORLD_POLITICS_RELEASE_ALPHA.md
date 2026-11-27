@@ -90,3 +90,8 @@ Apply additive migration 031 before deploying this managed-world service; stop t
 ## WP111–WP113
 
 Apply additive migrations 032 and 033 after 031 with workers stopped and a tested backup. Newly allocated universes pin 43 diplomatic slots and continuity v3; historical rosters and election rules are unchanged. France can reopen after an undisputed fictional vacancy election (the scenario's +21/+35/+36 dates, not actual official dates). Former rights and scores remain closed. New narrative events are tied to the incumbent mandate. Weekly fictional diplomatic initiatives are bounded and non-binding. National policy and economic scoring remain qualified only for France; foreign slots provide diplomatic control, with national institutional clocks for the original seven countries. See the backend remaining document for residual release gates.
+
+
+## WP114
+
+The expanded French programme catalogue requires no additional schema migration after 033. New universes and newly invested successors use the fictional governance profile; existing selected presets are unchanged. Executable profiles use the normal legal aggregates and domestic authorization ledger, never a client-supplied proof. GET /universes/{universe_no}/programme is membership-scoped and returns a coherent committed programme report. Manual and the older two proposal-only profiles remain available. Full semantic political programme execution is not qualified.

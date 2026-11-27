@@ -69,6 +69,18 @@ paths:
       responses:
         '200': { description: Slot returned to automatic control }
   /universes/{universe_no}/programme:
+    get:
+      operationId: readUniverseProgramme
+      summary: Read your current programme and its committed proposal and legal implementation status
+      parameters:
+        - name: universe_no
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: Member-scoped programme status }
+        '404': { description: No current national slot }
+        '409': { description: Universe advancing }
     post:
       operationId: updateUniverseDiplomaticProgramme
       summary: Set the inherited fictional diplomatic fallback and optional French domestic proposal programme
@@ -87,7 +99,7 @@ paths:
               required: [diplomacy]
               properties:
                 diplomacy: { type: string, enum: [cooperative, balanced, cautious] }
-                domestic: { type: string, enum: [manual, education, administration], description: France-only proposal preset; does not enact measures }
+                domestic: { type: string, enum: [manual, education, administration, education-law, administration-law, governance, governance-reduce, governance-increase], description: France-only profile; executable profiles follow bounded fictional legal routes }
       responses:
         '200': { description: Programme persisted for the national slot }
         '403': { description: Foreign slot cannot change French domestic programme }

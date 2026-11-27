@@ -6,6 +6,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/InstitutionalSimulation.php';
 require_once __DIR__.'/WorldPoliticsApi.php';
 require_once __DIR__.'/WorldMutationFence.php';
+require_once __DIR__.'/UniverseAutonomy.php';
 
 /**
  * Session-derived institutional roles, NOT an HTTP header or JSON attribute.
@@ -223,9 +224,12 @@ final class PdoInstitutionalStore
                     $v=$x->snapshot();if(!hash_equals($o['state_sha'],$x->hash())||$v['world_id']!==$world||$v['day']!==$simulation->snapshot()['day'])throw new \DomainException('Invalid prior opinion state');
                     $opinion=['world_id'=>$world,'day'=>$v['day'],'approval'=>$v['approval'],'sha'=>$x->hash()];
                 }
+                $programmeStep=$clock&&$country==='FR'?UniverseAutonomy::advanceInstitutions($this->pdo,$simulation,$world,$actor,$payload['target_day']):null;
                 $result=$clock ? $simulation->advanceTo($payload['target_day'],$opinion)
                     :$simulation->decide($role,$action,$payload,$commandId);
+                if($programmeStep!==null)$result['presidential_programme_step']=$programmeStep;
             }
+            if(!$clock&&$country==='FR')UniverseAutonomy::markDomestic($this->pdo,$world,$actor,$simulation->snapshot()['day']);
             $after=$simulation->hash();
             $revision=(int)$row['revision']+1;
             $response=['status'=>$clock?200:202,'result'=>$result,

@@ -92,6 +92,7 @@ final class AlphaGateway
                 $lobby=new UniverseLobby($this->db());
                 if($um[2]==='rankings'&&$method==='GET')return self::ok(200,$lobby->rankings($session,(int)$um[1]));
                 if($um[2]==='membership'&&$method==='DELETE')return self::ok(200,$lobby->leave($session,(int)$um[1]));
+                if($um[2]==='programme'&&$method==='GET')return self::ok(200,$lobby->programmeStatus($session,(int)$um[1]));
                 if($um[2]==='programme'&&$method==='POST')return self::ok(200,$lobby->programme($session,(int)$um[1],$body));
                 throw new AlphaHttpError(405,'method_not_allowed');
             }
