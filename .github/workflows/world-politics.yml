@@ -351,3 +351,31 @@ jobs:
           done
           php tests/wp30-http.php
           php tests/wp71-finance-2028-db.php
+      - name: WP96 isolated logical backup restoration and read-only audit
+        env:
+          WP_CI_MARIADB_CONTAINER: ${{ job.services.mariadb.id }}
+        run: |
+          set -euo pipefail
+          test "$WP_TEST_ISOLATED" = YES
+          test -n "$WP_CI_MARIADB_CONTAINER"
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          root_sql() {
+            docker exec -i -e MYSQL_PWD=ci-only "$WP_CI_MARIADB_CONTAINER" mariadb -uroot --batch --skip-column-names "$@"
+          }
+          world=$(root_sql wp_test -e "SELECT world_id FROM wp_alpha_worlds WHERE label='Investiture 2027' LIMIT 1")
+          [[ "$world" =~ ^[a-z][a-z0-9_-]{0,63}$ ]]
+          root_sql -e "CREATE DATABASE wp_restore; CREATE USER 'wp_audit_ci'@'%' IDENTIFIED BY 'ci-audit-only'; GRANT SELECT ON wp_test.* TO 'wp_audit_ci'@'%'; GRANT SELECT ON wp_restore.* TO 'wp_audit_ci'@'%';"
+          export WP_RELEASE_AUDIT=YES WP_DB_USER=wp_audit_ci WP_DB_PASSWORD=ci-audit-only
+          php games/world-politics/bin/audit-campaign.php "$world" > "$tmp/before.json"
+          docker exec -e MYSQL_PWD=ci-only "$WP_CI_MARIADB_CONTAINER" mariadb-dump -uroot --single-transaction --skip-lock-tables wp_test > "$tmp/dump.sql"
+          test -s "$tmp/dump.sql"
+          root_sql wp_restore < "$tmp/dump.sql"
+          export WP_DB_DSN=mysql:host=127.0.0.1\;port=3306\;dbname=wp_restore\;charset=utf8mb4
+          php games/world-politics/bin/audit-campaign.php "$world" > "$tmp/after.json"
+          cmp "$tmp/before.json" "$tmp/after.json"
+          if docker exec -e MYSQL_PWD=ci-audit-only "$WP_CI_MARIADB_CONTAINER" mariadb -uwp_audit_ci wp_restore -e "UPDATE wp_accounts SET enabled=0 WHERE 1=0"; then
+            echo "Audit account unexpectedly has write access" >&2
+            exit 1
+          fi
+          echo "Restored campaign audit identical; read-only writer denied"

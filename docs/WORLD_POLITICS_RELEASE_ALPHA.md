@@ -20,8 +20,12 @@ With dedicated credentials limited to the session and HTTP quota tables, run
 At most 500 expired sessions and 500 conservatively obsolete rate-limit
 buckets are deleted per invocation. The legacy mixed-duration quota schema
 requires a conservative cutoff; this is not a storage capacity guarantee.
-Never run with generic engine credentials. This does not prune world journals
-or replace a restore drill.
+Never run with generic engine credentials. This does not prune world journals.
+The private-alpha HTTP CI additionally takes a logical dump of its disposable
+MariaDB database after tests, imports it into a distinct schema, and compares
+the offline campaign audit before and after using a SELECT-only credential.
+This is a CI restoration drill, not a disaster-recovery validation of the
+target environment or proof of recovery-time objectives.
 
 ## Source handoff (WP97 partial)
 
