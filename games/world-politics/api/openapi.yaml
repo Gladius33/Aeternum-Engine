@@ -2857,7 +2857,7 @@ components:
           schema: { $ref: '#/components/schemas/Problem' }
 }
       responses:
-        '200': {description: Coherent national slot and pinned documentary reference, not a current simulated officeholder assignment}
+        '200': {description: 'Coherent national slot and pinned documentary reference, not a current simulated officeholder assignment'}
         '404': {description: Unknown universe or national slot}
         '409': {description: World advancing}
   /universes/join:
