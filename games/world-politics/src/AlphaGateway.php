@@ -256,6 +256,7 @@ final class AlphaGateway
                     $body=$r['state']['presidency'];
                     // Internal immutable tally fixture is not a published result.
                     unset($body['config']);
+                    if(array_key_exists('managed_vacancy',$r['state']))$body['managed_vacancy']=$r['state']['managed_vacancy'];
                 }elseif($suffix==='/countries/FR/party-responses'){
                     if(!isset($r['state']['party_responses']))throw new AlphaHttpError(404,'not_found');
                     $body=['world_id'=>$world,'country'=>'FR','party_responses'=>$r['state']['party_responses']];

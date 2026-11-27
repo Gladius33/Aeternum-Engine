@@ -19,15 +19,15 @@ final class UniverseScore
         if($index<1||$index>1000000)throw new \DomainException('Invalid income index');
         return ['day'=>$h['day'],'index'=>$index,'source'=>CampaignScore::digest($h['source_hashes'])];
     }
-    private static function cohort(string $bundle,array $config,array $dip,bool $recurring=false):string
-    {return CampaignScore::digest(['rules'=>self::VERSION,'country'=>'FR','source_cohort'=>CampaignScore::cohort($bundle,$config,$dip),...($recurring?['continuity'=>'wp106-managed-continuity-v2']:[])]);}
-    public static function seed(\PDO $db,string $world,string $bundle,array $config,array $dom,array $dip,bool $recurring=false):void
+    private static function cohort(string $bundle,array $config,array $dip,bool $recurring=false,bool $vacancy=false):string
+    {return CampaignScore::digest(['rules'=>self::VERSION,'country'=>'FR','source_cohort'=>CampaignScore::cohort($bundle,$config,$dip),...($recurring?['continuity'=>$vacancy?'wp112-managed-continuity-v3':'wp106-managed-continuity-v2']:[])]);}
+    public static function seed(\PDO $db,string $world,string $bundle,array $config,array $dom,array $dip,bool $recurring=false,bool $vacancy=false):void
     {
         if(!$db->inTransaction())throw new \LogicException('Income checkpoint requires world transaction');
         $m=self::measured($dom,$dip);
         if($m['day']!==CampaignScore::START||$dom['state']['world_id']!==$world)throw new \DomainException('Invalid opening checkpoint');
         self::query($db,'INSERT INTO wp_universe_income_checkpoints(world_id,country_code,day,index_bps,cohort_sha,source_sha) VALUES(?,\'FR\',?,?,?,?)',
-            [$world,$m['day'],$m['index'],self::cohort($bundle,$config,$dip['state'],$recurring),$m['source']]);
+            [$world,$m['day'],$m['index'],self::cohort($bundle,$config,$dip['state'],$recurring,$vacancy),$m['source']]);
     }
     public static function claim(\PDO $db,string $world,string $country,int $generation,string $day):void
     {

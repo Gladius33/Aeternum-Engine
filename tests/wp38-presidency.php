@@ -109,3 +109,22 @@ ck38($ms['presidency']['consecutive_terms']===1&&$ms['presidency']['term_end']==
 ck38($ms['managed_mandates'][0]['campaign']['ended_on']==='2027-05-14'&&PublicOpinion::restore($ms)->hash()===$managed->hash(),'WP106 archives prior mandate and replays');
 $bad=$ms;$bad['managed_mandates'][0]['campaign']['ended_on']='2027-05-13';
 no38(fn()=>PublicOpinion::restore($bad),'WP106 rejects tampered mandate archive');
+
+
+// WP112: interim and replayed vacancy succession for new v3 worlds.
+foreach(['presidential_resignation','presidential_death','presidential_removal'] as $reason112){
+    $v112=new PublicOpinion('world-test','2026-11-25',PublicOpinion::fixture());
+    $v112->enableDialogue();$v112->enableCampaign();$v112->enablePresidentialMandate(PresidentialMandate::publishedFixture(),true);
+    $v112->enableManagedContinuity(true,true);
+    $start112='2026-11-26';$end112=(new DateTimeImmutable($start112))->modify('+37 days')->format('Y-m-d');
+    for($day=$start112;$day<=$end112;$day=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d')){
+        $e=observation38($day);$e['term_limit_revision']=null;
+        $v112->advance($e,$day===$start112?CampaignLifecycle::event('world-test',$day,'vacancy-'.$reason112,$reason112):null);
+        $state112=$v112->snapshot();
+        if($day!==$end112)ck38($state112['campaign']['status']==='game_over'&&$state112['managed_vacancy']!==null,'WP112 interim has no playable president');
+    }
+    $state112=$v112->snapshot();
+    ck38($state112['campaign']['status']==='active'&&$state112['managed_vacancy']===null&&count($state112['managed_mandates'])===1,'WP112 vacancy succeeded by new mandate');
+    ck38($state112['presidency']['consecutive_terms']===1&&$state112['presidency']['managed_successor']['vacancy_since']===$start112,'WP112 successor gets independent term');
+    ck38(PublicOpinion::restore($state112)->hash()===$v112->hash(),'WP112 vacancy election replay');
+}

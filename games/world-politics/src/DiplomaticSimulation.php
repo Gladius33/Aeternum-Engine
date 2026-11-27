@@ -231,7 +231,11 @@ final class DiplomaticSimulation
         $result=['day'=>$targetDay,'expired'=>$expired];
         if(isset($this->state['commitment_risk']))$result['commitment_risk']=CommitmentRisk::report($this->state['commitments']);
         if(isset($this->state['daily_ai']))$result['autonomous_replies']=$this->dailyReplies($universePolicy);
-        if($universePolicy!==null)$result['universe_diplomacy_policy']=$universePolicy;
+        if($universePolicy!==null){
+            $result['universe_diplomacy_policy']=$universePolicy;
+            if(isset($this->state['daily_ai'])&&in_array(true,array_column($universePolicy,'initiative_enabled'),true))
+                $result['autonomous_initiative']=$this->dailyInitiative($universePolicy);
+        }
         return $result;
     }
 
@@ -273,6 +277,35 @@ final class DiplomaticSimulation
             $replies[]=$this->respond($bot,$to,$offer['id'],$score>=$threshold,$cmd);
         }
         return $replies;
+    }
+    /** Bounded fictional diplomacy: one rotating, non-binding initiative per
+     * week. Human commands in the preceding committed day take priority. */
+    private function dailyInitiative(array $policy):?array
+    {
+        $day=$this->state['day'];$world=$this->state['world_id'];
+        $elapsed=(int)(new \DateTimeImmutable('2027-05-14'))->diff(new \DateTimeImmutable($day))->format('%r%a');
+        if($elapsed<7||$elapsed%7!==0)return null;
+        $ids=array_keys($policy);sort($ids,SORT_STRING);
+        if(count($ids)<2)return null;
+        $i=(intdiv($elapsed,7)-1)%count($ids);$from=$ids[$i];$src=$policy[$from];
+        if(!($src['initiative_enabled']??false)||$src['human_action_this_day']||($src['succession_pending']??false))return null;
+        if($src['programme']==='cautious')return null;
+        foreach($this->state['proposals'] as $prior)
+            if($prior['from']===$from&&$prior['status']==='pending_response')return null;
+        $to=null;
+        for($j=1;$j<count($ids);$j++){
+            $candidate=$ids[($i+$j)%count($ids)];
+            if(!($policy[$candidate]['succession_pending']??false)){$to=$candidate;break;}
+        }
+        if($to===null)return null;
+        $action=match($src['programme']){'cooperative'=>'trade_cooperation','balanced'=>'dialogue',default=>throw new \DomainException('Invalid initiative programme')};
+        $bot=new class($world,$from) implements DiplomaticPrincipal{
+            public function __construct(private readonly string $w,private readonly string $a){}
+            public function actorId():string{return 'fictional-diplomatic-initiative';}
+            public function allows(string $world,string $actor,string $ability):bool{return $world===$this->w&&$actor===$this->a&&$ability==='diplomacy.propose';}
+        };
+        $id='daily-initiative-'.substr(hash('sha256',$world.'|'.$day.'|'.$from),0,32);
+        return $this->propose($bot,$from,$to,$action,$id);
     }
     /** @return list<array<string,mixed>> */
     public function pendingFor(string $actorId):array

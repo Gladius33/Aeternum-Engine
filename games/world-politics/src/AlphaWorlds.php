@@ -210,13 +210,13 @@ final class AlphaWorlds
                 if($this->scenario->id===AlphaScenario::INVESTITURE)$op->enableOrderReview();
                 if(in_array($this->scenario->id,[AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true))$op->enablePresidentialMandate(in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true)?($this->scenario->id===AlphaScenario::INVESTITURE?PresidentialMandate::investitureFixture():PresidentialMandate::publishedFixture()):PresidentialMandate::fixture(),in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true));
                 if(in_array($this->scenario->id,[AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true))$op->enablePartyResponses();
-                if($managed)$op->enableManagedContinuity(true);
+                if($managed)$op->enableManagedContinuity(true,true);
                 $this->insert('INSERT INTO wp_opinion_states(world_id,state_json,state_sha,revision) VALUES(?,?,?,0)',
                     [$world,PublicOpinion::json($op->snapshot()),$op->hash()]);
                 $this->insert('UPDATE wp_world_clock SET opinion_enabled=1 WHERE world_id=?',[$world]);
                 if($this->scenario->campaign())$this->insert('UPDATE wp_world_clock SET campaign_enabled=1 WHERE world_id=?',[$world]);
                 if($managed)UniverseScore::seed($this->db,$world,$this->scenario->bundleSha,$c,
-                    ['state'=>$dom->snapshot(),'etag'=>'"'.$dom->hash().'"'],['state'=>$dip->snapshot(),'etag'=>'"'.$dip->hash().'"'],true);
+                    ['state'=>$dom->snapshot(),'etag'=>'"'.$dom->hash().'"'],['state'=>$dip->snapshot(),'etag'=>'"'.$dip->hash().'"'],true,true);
                 if($this->scenario->id===AlphaScenario::INVESTITURE&&!$managed){
                     (new PdoCampaignScores($this->db))->seed($world,$this->scenario->bundleSha??throw new \DomainException('Ranked world needs pinned bundle'),$c,
                         ['state'=>$dom->snapshot(),'etag'=>'"'.$dom->hash().'"'],['state'=>$dip->snapshot(),'etag'=>'"'.$dip->hash().'"'],['state'=>$op->snapshot(),'etag'=>'"'.$op->hash().'"']);

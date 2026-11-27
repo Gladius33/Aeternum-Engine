@@ -52,7 +52,7 @@ paths:
               additionalProperties: false
               required: [country]
               properties:
-                country: { type: string, enum: [DE, ES, FR, GB, IT, JP, US] }
+                country: { type: string, enum: [AT, AU, BE, BG, BR, CA, CH, CN, CY, CZ, DE, DK, EE, ES, FI, FR, GB, GR, HR, HU, ID, IE, IN, IT, JP, KR, LT, LU, LV, MT, MX, NL, PL, PT, RO, RU, SA, SE, SI, SK, TR, US, ZA] }
                 universe_no: { type: integer, minimum: 1 }
       responses:
         '201': { description: Recorded handover and optional new spare universe }

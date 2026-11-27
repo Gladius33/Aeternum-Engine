@@ -143,7 +143,42 @@ final class PresidentialMandate
             ||$winner!==$s['officeholder']||$s['handover_on']!==$s['day']||$s['term_end']!==$s['day']
             ||!in_array($s['reason'],['presidential_election_lost','presidential_mandate_ended'],true))
             throw new \DomainException('No resolved elected successor');
-        $day=$s['day'];$end=self::termEnd($day);$dates=FrenchElectionCalendar::presidentialPoll($end);
+        return self::restartIncumbent($s,$s['day'],$winner,$ordinal);
+    }
+    /** Fictional vacancy election, using the pre-pinned non-incumbent ballot.
+     * First round +21, runoff +35, handover +36 are scenario dates. */
+    public static function vacancy(array $s,array $campaign,string $day):?array
+    {
+        if(!isset($s['calendar_version'])||$s['status']!=='ended'||$s['officeholder']!==null
+            ||$s['day']!==$campaign['ended_on']||$s['reason']!==$campaign['reason']
+            ||!in_array($campaign['reason'],['presidential_resignation','presidential_death','presidential_removal'],true)
+            ||$campaign['constitutional_status']!=='continuity'
+            ||($campaign['continuity']['recognition_status']??'not_disputed')!=='not_disputed'
+            ||($campaign['order_review']['status']??'none')==='pending_independent_review')return null;
+        self::day($day);$start=$campaign['ended_on'];
+        if($day<$start)throw new \DomainException('Vacancy day before termination');
+        $first=self::shift($start,21);$second=self::shift($start,35);$handover=self::shift($start,36);
+        $counts=self::countElection($s['config']['cycles'][1],false);
+        $winner=$counts['first']['winner']??$counts['second']['winner']??null;
+        $result=$day<$first?null:($counts['first']['winner']!==null?$counts['first']:($day>=$second?$counts['second']:null));
+        return ['version'=>'wp112-fictional-vacancy-v1','vacancy_since'=>$start,'day'=>$day,
+            'interim'=>'senate_president_or_government_if_unavailable','restricted_articles'=>[11,12,49,50,89],
+            'first_round_day'=>$first,'second_round_day'=>$second,'handover_on'=>$handover,
+            'first_result'=>$day>=$first?$counts['first']:null,'result'=>$result,
+            'status'=>$day<$first?'interim':($day<$second&&$result===null?'runoff_pending':($day<$handover?'awaiting_handover':($winner===null?'unresolved':'handover_ready'))),
+            'classification'=>'fictional_scenario_not_official_calendar'];
+    }
+    public static function beginVacancySuccessor(array $s,array $campaign,array $v,int $ordinal):array
+    {
+        $expected=self::vacancy($s,$campaign,$v['day']);$winner=$v['result']['winner']??null;
+        if($expected!==$v||$v['status']!=='handover_ready'||$v['day']!==$v['handover_on']||!is_string($winner)||$ordinal<2)
+            throw new \DomainException('Unresolved vacancy election');
+        $s=self::restartIncumbent($s,$v['handover_on'],$winner,$ordinal);
+        $s['managed_successor']['vacancy_since']=$v['vacancy_since'];return $s;
+    }
+    private static function restartIncumbent(array $s,string $day,string $winner,int $ordinal):array
+    {
+        $s['day']=$day;$end=self::termEnd($day);$dates=FrenchElectionCalendar::presidentialPoll($end);
         $s['term_start']=$day;$s['term_end']=$end;$s['consecutive_terms']=1;
         $s['eligible_for_re_election']=true;$s['cycle_index']=0;$s['status']='scheduled';
         $s['first_round_day']=$dates['first'];$s['second_round_day']=$dates['second'];

@@ -55,12 +55,13 @@ final class UniverseAutonomy
     {
         if(!self::managed($db,$world))return null;
         if(!$db->inTransaction())throw new \LogicException('Clock policy requires fenced transaction');
-        $q=$db->prepare('SELECT country_code,account_id,diplomacy_programme,last_human_diplomacy_day,closed_on FROM wp_universe_slots WHERE world_id=? ORDER BY country_code');
+        $q=$db->prepare('SELECT s.country_code,s.account_id,s.diplomacy_programme,s.last_human_diplomacy_day,s.closed_on,u.roster_version FROM wp_universe_slots s JOIN wp_universes u USING(world_id) WHERE s.world_id=? ORDER BY s.country_code');
         $q->execute([$world]);$out=[];
         foreach($q->fetchAll(\PDO::FETCH_ASSOC) as $r){
             if(!in_array($r['diplomacy_programme'],['cooperative','balanced','cautious'],true))throw new \DomainException('Invalid programme');
             $out['state_'.strtolower($r['country_code'])]=['programme'=>$r['diplomacy_programme'],
-                'succession_pending'=>$r['closed_on']!==null,'human_action_this_day'=>$r['account_id']!==null&&$r['last_human_diplomacy_day']===$committedDay];
+                'succession_pending'=>$r['closed_on']!==null,'human_action_this_day'=>$r['account_id']!==null&&$r['last_human_diplomacy_day']===$committedDay,
+                ...($r['roster_version']==='wp111-diplomatic-roster-v2'?['initiative_enabled'=>true]:[])];
         }
         if($out===[])throw new \DomainException('Managed universe without slots');
         return $out;

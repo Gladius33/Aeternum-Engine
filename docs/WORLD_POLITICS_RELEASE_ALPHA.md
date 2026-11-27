@@ -85,3 +85,8 @@ New managed universes pin continuity of social observations after the original F
 ## WP106–WP110 grouped increment
 
 Apply additive migration 031 before deploying this managed-world service; stop the tick worker and use the reviewed backup procedure. New universes pin electoral succession v2; existing v1 histories remain unchanged. An ordinary resolved fictional election closes the outgoing office at handover and installs the successor alias as a new AI-controlled office on the next published day. Optional French domestic presets create proposals only; certified legal activation is still required. Use the read-only CLI audit-universe.php UNIVERSE_NO with a dedicated SELECT-only connection and a coherent committed day. Composite rankings remain experimental and France-only. See the remaining-backend document for residual gates.
+
+
+## WP111–WP113
+
+Apply additive migrations 032 and 033 after 031 with workers stopped and a tested backup. Newly allocated universes pin 43 diplomatic slots and continuity v3; historical rosters and election rules are unchanged. France can reopen after an undisputed fictional vacancy election (the scenario's +21/+35/+36 dates, not actual official dates). Former rights and scores remain closed. New narrative events are tied to the incumbent mandate. Weekly fictional diplomatic initiatives are bounded and non-binding. National policy and economic scoring remain qualified only for France; foreign slots provide diplomatic control, with national institutional clocks for the original seven countries. See the backend remaining document for residual release gates.

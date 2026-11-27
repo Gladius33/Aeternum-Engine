@@ -6,7 +6,7 @@ if(getenv('WP_TEST_ISOLATED')!=='YES'||!str_contains(getenv('WP_DB_DSN')?:'','db
 function ck102(bool $v,string $msg):void{if(!$v)throw new RuntimeException('WP102 '.$msg);echo "PASS WP102: $msg\n";}
 $connect=fn()=>new PDO(getenv('WP_DB_DSN'),getenv('WP_DB_USER'),getenv('WP_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
 $db=$connect();$accounts=new AlphaAccounts($db,getenv('WP_ALPHA_INVITE'));$gw=new AlphaGateway($connect,getenv('WP_ALPHA_INVITE'));
-$tokens=[];foreach(range(1,8) as $n){$user='universe-'.$n;$password='universe-test-password-'.$n;
+$tokens=[];foreach(range(1,count(UniverseLobby::DIPLOMATIC_COUNTRIES)+1) as $n){$user='universe-'.$n;$password='universe-test-password-'.$n;
     $accounts->register(['username'=>$user,'password'=>$password,'invite'=>getenv('WP_ALPHA_INVITE')]);$tokens[$n]=$accounts->login(['username'=>$user,'password'=>$password])['access_token'];}
 function call102(string $method,string $path,?array $body,int $n,array $headers=[]):array{
     global $gw,$tokens;
@@ -21,15 +21,21 @@ ck102(join102(1,'FR')===$first,'join receipt replay');
 ck102(join102(2,'FR',$no)['status']===409,'country exclusive');
 ck102(join102(1,'DE',$no,'wp102-double-claim')['status']===409,'one slot per account and universe');
 $directory=call102('GET','/universes',null,1)['body']['universes'];
-ck102(count($directory)===1&&$directory[0]['vacant']===6,'six automatic slots');
+ck102(count($directory)===1&&$directory[0]['vacant']===42,'42 automatic slots');
 $before=call102('GET',$root.'/countries/FR/institutions',null,1);
 ck102($before['status']===200&&call102('GET',$root.'/clock',null,2)['status']===404,'read membership isolation');
 ck102(call102('POST',$root.'/clock/advances',['target_day'=>'2027-05-15'],1)['status']===403,'no human world clock grant');
 foreach(['DE','ES','GB','IT','JP','US'] as $j=>$country){$last=join102($j+2,$country,$no,'wp102-fill-country-'.$country);ck102($last['status']===201,'claim '.$country);}
+$extra=array_values(array_diff(UniverseLobby::DIPLOMATIC_COUNTRIES,UniverseLobby::COUNTRIES));
+foreach($extra as $j=>$country){$last=join102($j+9,$country,$no,'wp111-fill-country-'.$country);ck102($last['status']===201,'expanded claim '.$country);}
+ck102(join102(8,'IL',$no,'wp111-restricted-il')['status']===422,'restricted state not claimable');
 ck102($last['body']['new_universe']!==null&&$last['body']['new_universe']['world_id']!==$world,'last slot creates fresh universe immediately');
 $directory=call102('GET','/universes',null,1)['body']['universes'];
-ck102(count($directory)===2&&$directory[0]['vacant']===0&&$directory[1]['vacant']===7,'fresh spare contains only automatic slots');
+ck102(count($directory)===2&&$directory[0]['vacant']===0&&$directory[1]['vacant']===43,'fresh spare contains only automatic slots');
 ck102(call102('POST',$root.'/domestic/proposals',['policy_id'=>'education-reform','effective_day'=>'2027-05-20'],2)['status']===403,'foreign player cannot command France');
+$extraPlayer=array_search('CH',$extra,true)+9;
+$dipExtra=call102('GET',$root.'/diplomacy',null,$extraPlayer);
+ck102(call102('POST',$root.'/diplomacy/proposals',['from'=>'state_ch','to'=>'state_at','action'=>'dialogue'],$extraPlayer,['if-match'=>$dipExtra['headers']['ETag'],'idempotency-key'=>'wp111-swiss-dialogue'])['status']===202,'expanded Swiss slot commands own diplomacy');
 $dip=call102('GET',$root.'/diplomacy',null,2);
 $payload=['from'=>'state_de','to'=>'state_fr','action'=>'dialogue'];
 $headers=['if-match'=>$dip['headers']['ETag'],'idempotency-key'=>'wp102-diplomacy-de'];
@@ -43,10 +49,10 @@ ck102(join102(1,'FR')['status']===409,'WP109 stale join receipt cannot resurrect
 $rejoin=join102(8,'FR',$no);
 ck102($rejoin['status']===201&&$rejoin['body']['world_id']===$world&&$rejoin['body']['generation']===2,'late claimant inherits same world');
 ck102(call102('GET',$root.'/countries/FR/institutions',null,8)===$before,'institutional state unchanged at handover');
-ck102(count(call102('GET','/universes/'.$no.'/rankings',null,8)['body']['rows'])===8,'universe standings preserve past player');
+ck102(count(call102('GET','/universes/'.$no.'/rankings',null,8)['body']['rows'])===44,'universe standings preserve past player');
 ck102(join102(8,'FR',$directory[1]['universe_no'],'wp102-other-universe')['status']===201,'account may join separate universe');
 $global=call102('GET','/universe-rankings/global',null,8)['body'];
-ck102(count($global['rows'])===8&&!$global['composite_score_available']&&$global['rows'][0]['score']===null,'global standings one row per player; no fabricated scores');
+ck102(count($global['rows'])===44&&!$global['composite_score_available']&&$global['rows'][0]['score']===null,'global standings one row per player; no fabricated scores');
 
 require_once __DIR__.'/../games/world-politics/src/UniverseScheduler.php';
 $scheduler=new \Aeternum\WorldPolitics\UniverseScheduler($connect);
@@ -70,14 +76,14 @@ ck102($scheduler->tick($world)['day']==='2027-05-15','WP103 server advances shar
 $dip103=call102('GET',$root.'/diplomacy',null,8);
 ck102($dip103['status']===200,'WP103 shared diplomacy after tick');
 $check=$db->prepare('SELECT state_json FROM wp_diplomatic_states WHERE world_id=?');$check->execute([$world]);
-$offer=array_values(json_decode($check->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['proposals'])[0];
+$offer=array_values(array_filter(json_decode($check->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['proposals'],fn($x)=>$x['from']==='state_de'))[0];
 for($n=0;$n<5&&$offer['status']==='pending_response';$n++){
     $due->execute([$world]);ck102($scheduler->tick($world)['status']==='committed','WP103 automatic tick');
-    $check->execute([$world]);$offer=array_values(json_decode($check->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['proposals'])[0];
+    $check->execute([$world]);$offer=array_values(array_filter(json_decode($check->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['proposals'],fn($x)=>$x['from']==='state_de'))[0];
 }
 ck102($offer['status']!=='pending_response'&&$offer['responded_on']!==null,'WP103 idle French player gets automatic diplomatic response');
 $global=call102('GET','/universe-rankings/global',null,8)['body'];
-ck102($global['rows'][0]['control_days']>0&&count($global['rows'])===8,'WP103 standings reflect committed control time');
+ck102($global['rows'][0]['control_days']>0&&count($global['rows'])===44,'WP103 standings reflect committed control time');
 
 $cohorts=$global['pilot_score_cohorts'];ck102(count($cohorts)===1&&$cohorts[0]['country']==='FR','WP104 comparable France cohort');
 $sha104=$cohorts[0]['cohort_sha'];
@@ -115,6 +121,24 @@ ck102((int)$r105['elapsed_control_days']===1,'WP105 former player score remains 
 
 require_once __DIR__.'/../games/world-politics/src/UniverseAudit.php';
 $aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$no);
-ck102($aud['integrity']==='passed'&&$aud['human_slots']===6&&$aud['recomputed_scores']===3,'WP110 independent committed universe audit');
+ck102($aud['integrity']==='passed'&&$aud['human_slots']===42&&$aud['recomputed_scores']===3,'WP110 independent committed universe audit');
 $aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo);
 ck102($aud['integrity']==='passed'&&$aud['human_slots']===0,'WP110 empty active universe audit');
+
+
+// WP112: real coordinated vacancy, interim, election and re-opening.
+$reopen112=(new DateTimeImmutable($end105))->modify('+37 days')->format('Y-m-d');
+$day112=$next105;
+while($day112<$reopen112){
+    $due->execute([$world]);$tick112=$scheduler->tick($world);
+    ck102($tick112['status']==='committed','WP112 daily vacancy tick');
+    $day112=$tick112['day'];
+}
+$q105->execute([$world]);$row112=$q105->fetch(PDO::FETCH_ASSOC);
+$o112=\Aeternum\WorldPolitics\PublicOpinion::restore(json_decode($row112['state_json'],true,64,JSON_THROW_ON_ERROR))->snapshot();
+ck102($o112['campaign']['status']==='active'&&$o112['managed_vacancy']===null&&count($o112['managed_mandates'])===1,'WP112 successor published and former mandate archived');
+ck102(join102(1,'FR',$no,'wp112-new-mandate-claim')['status']===201,'WP112 successor claim after interim');
+$aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$no);
+ck102($aud['integrity']==='passed'&&$aud['human_slots']===43&&$aud['recomputed_scores']===4,'WP112 audit of reopened country');
+$check->execute([$world]);$p113=json_decode($check->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['proposals'];
+ck102(count(array_filter($p113,fn($x)=>str_starts_with($x['id'],'daily-initiative-')))>0,'WP113 idle governments initiate diplomacy');

@@ -6,7 +6,14 @@ require_once __DIR__.'/AlphaWorlds.php';
 /** Managed alpha universe pool. A claimed slot is control, not a new president. */
 final class UniverseLobby
 {
+    // National institutional clocks keep their existing pinned seven-country roster.
     public const COUNTRIES=['DE','ES','FR','GB','IT','JP','US'];
+    public const DIPLOMATIC_COUNTRIES=['AT','AU','BE','BG','BR','CA','CH','CN','CY','CZ','DE','DK','EE','ES','FI','FR','GB','GR','HR','HU','ID','IE','IN','IT','JP','KR','LT','LU','LV','MT','MX','NL','PL','PT','RO','RU','SA','SE','SI','SK','TR','US','ZA'];
+    public const ROSTER_VERSION='wp111-diplomatic-roster-v2';
+    public static function roster(string $version):array
+    {
+        return match($version){'wp102-pilot-v1'=>self::COUNTRIES,self::ROSTER_VERSION=>self::DIPLOMATIC_COUNTRIES,default=>throw new \DomainException('Unknown universe roster')};
+    }
     public function __construct(private readonly \PDO $db){}
     private function query(string $sql,array $args=[]):\PDOStatement
     {$q=$this->db->prepare($sql);$q->execute($args);return $q;}
@@ -24,7 +31,7 @@ final class UniverseLobby
         if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
         if($page<1||$page>100000)throw new AlphaHttpError(422,'invalid_page');
         $offset=($page-1)*50;
-        $rows=$this->query("SELECT u.universe_no,u.world_id,u.tick_seconds,u.next_tick_epoch,c.committed_day,c.pending_day,c.game_over
+        $rows=$this->query("SELECT u.universe_no,u.world_id,u.tick_seconds,u.next_tick_epoch,u.roster_version,c.committed_day,c.pending_day,c.game_over
             FROM wp_universes u JOIN wp_world_clock c ON c.world_id=u.world_id ORDER BY u.universe_no LIMIT 50 OFFSET ".$offset)->fetchAll(\PDO::FETCH_ASSOC);
         foreach($rows as &$r){
             $r['universe_no']=(int)$r['universe_no'];
@@ -34,16 +41,16 @@ final class UniverseLobby
             $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
             unset($r['pending_day'],$r['game_over']);
         }unset($r);
-        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::COUNTRIES,'complete_multiplayer_model'=>false,'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','full_national_simulation'=>false],self::COUNTRIES)];
+        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
     }
     private function create():array
     {
         $bundle=GlobalReferenceBundle::published();$sha=(new PdoGlobalReferenceBundles($this->db))->install($bundle);
         $scenario=new AlphaScenario(AlphaScenario::INVESTITURE,$bundle,$sha);
         $r=(new AlphaWorlds($this->db,$scenario))->provisionUniverse();$world=$r['world_id'];
-        $this->query('INSERT INTO wp_universes(world_id) VALUES(?)',[$world]);$no=(int)$this->db->lastInsertId();
-        foreach(self::COUNTRIES as $country){
-            if(!in_array($country,$scenario->countries,true)||!$scenario->actors->isHumanPlayable('state_'.strtolower($country)))
+        $this->query('INSERT INTO wp_universes(world_id,roster_version) VALUES(?,?)',[$world,self::ROSTER_VERSION]);$no=(int)$this->db->lastInsertId();
+        foreach(self::DIPLOMATIC_COUNTRIES as $country){
+            if(!$scenario->actors->isHumanPlayable('state_'.strtolower($country)))
                 throw new \LogicException('Unreviewed playable slot');
             $this->query('INSERT INTO wp_universe_slots(world_id,country_code) VALUES(?,?)',[$world,$country]);
         }
@@ -67,7 +74,7 @@ final class UniverseLobby
     {
         AlphaAccounts::fields($body,['country',...(array_key_exists('universe_no',$body)?['universe_no']:[])]);
         $country=$body['country'];$no=$body['universe_no']??null;
-        if(!is_string($country)||!in_array($country,self::COUNTRIES,true)||($no!==null&&(!is_int($no)||$no<1))
+        if(!is_string($country)||!in_array($country,self::DIPLOMATIC_COUNTRIES,true)||($no!==null&&(!is_int($no)||$no<1))
             ||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key))throw new AlphaHttpError(422,'invalid_universe_join');
         $key=hash('sha256',$key);$fingerprint=hash('sha256',json_encode([$country,$no],JSON_THROW_ON_ERROR));
         return $this->transaction(function()use($s,$country,$no,$key,$fingerprint){
@@ -82,7 +89,12 @@ final class UniverseLobby
                     throw new AlphaHttpError(409,'stale_join_receipt');
                 return $receipt;
             }
-            if($no===null)$this->ensureSpare();
+            if($no===null){
+                $this->ensureSpare();
+                // Legacy spare worlds have no expanded slots. Allocate one
+                // expanded reserve if none exists, not on every failed claim.
+                if(!in_array($country,self::COUNTRIES,true)&&$this->query('SELECT 1 FROM wp_universes WHERE roster_version=? LIMIT 1',[self::ROSTER_VERSION])->fetchColumn()===false)$this->create();
+            }
             $args=[$country,$s->id];
             $sql="SELECT u.universe_no,u.world_id FROM wp_universes u JOIN wp_universe_slots s ON s.world_id=u.world_id
                 JOIN wp_world_clock c ON c.world_id=u.world_id WHERE s.country_code=? AND s.closed_on IS NULL AND (s.account_id IS NULL OR s.account_id=?)
@@ -101,7 +113,7 @@ final class UniverseLobby
             $gen=(int)$slot['generation'];$spare=null;
             if($slot['account_id']===null){
                 ++$gen;
-                $this->query('UPDATE wp_universe_slots SET account_id=?,generation=?,last_human_diplomacy_day=NULL WHERE world_id=? AND country_code=?',[$s->id,$gen,$world,$country]);
+                $this->query('UPDATE wp_universe_slots SET account_id=?,generation=?,last_human_diplomacy_day=NULL,last_human_domestic_day=NULL WHERE world_id=? AND country_code=?',[$s->id,$gen,$world,$country]);
                 $this->query('INSERT INTO wp_universe_control_periods(world_id,country_code,generation,account_id,joined_on) VALUES(?,?,?,?,?)',[$world,$country,$gen,$s->id,$c['committed_day']]);
                 $this->query("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'viewer')",[$world,$s->id]);
                 UniverseScore::claim($this->db,$world,$country,$gen,$c['committed_day']);
@@ -125,7 +137,7 @@ final class UniverseLobby
             $slot=$this->query('SELECT country_code,generation FROM wp_universe_slots WHERE world_id=? AND account_id=? FOR UPDATE',[$world,$s->id])->fetch(\PDO::FETCH_ASSOC);
             if($slot===false)throw new AlphaHttpError(404,'not_found');
             $this->query('UPDATE wp_universe_control_periods SET left_on=? WHERE world_id=? AND country_code=? AND generation=? AND left_on IS NULL',[$c['committed_day'],$world,$slot['country_code'],$slot['generation']]);
-            $this->query('UPDATE wp_universe_slots SET account_id=NULL,last_human_diplomacy_day=NULL WHERE world_id=? AND country_code=?',[$world,$slot['country_code']]);
+            $this->query('UPDATE wp_universe_slots SET account_id=NULL,last_human_diplomacy_day=NULL,last_human_domestic_day=NULL WHERE world_id=? AND country_code=?',[$world,$slot['country_code']]);
             $this->query('DELETE FROM wp_alpha_members WHERE world_id=? AND account_id=?',[$world,$s->id]);
             return ['universe_no'=>$no,'country'=>$slot['country_code'],'controller'=>'ai','day'=>$c['committed_day'],'state_reset'=>false];
         });

@@ -17,9 +17,12 @@ final class UniverseContinuity
             if($slot===false)throw new \DomainException('Missing French slot');
             if($slot['closed_on']===null)return;
             $successor=$campaign['managed_successor']??null;
-            if($slot['account_id']!==null||$successor===null||$successor['invested_on']!==$slot['closed_on']
-                ||$campaign['start_day']!==$slot['closed_on']||$campaign['day']!==$day
-                ||$day!==(new \DateTimeImmutable($slot['closed_on']))->modify('+1 day')->format('Y-m-d'))
+            $invested=$successor['invested_on']??null;$vacancy=$successor['vacancy_since']??null;
+            $validStart=$vacancy===null?$invested===$slot['closed_on']:($vacancy===$slot['closed_on']
+                &&$invested===(new \DateTimeImmutable($vacancy))->modify('+36 days')->format('Y-m-d'));
+            if($slot['account_id']!==null||$successor===null||!$validStart
+                ||$campaign['start_day']!==$invested||$campaign['day']!==$day
+                ||$day!==(new \DateTimeImmutable($invested))->modify('+1 day')->format('Y-m-d'))
                 throw new \DomainException('Uncertified reopening');
             $q=$db->prepare("UPDATE wp_universe_slots SET closed_on=NULL,diplomacy_programme='balanced',domestic_programme='manual',last_human_domestic_day=NULL,last_human_diplomacy_day=NULL WHERE world_id=? AND country_code='FR'");
             $q->execute([$world]);return;

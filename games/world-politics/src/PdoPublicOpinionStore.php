@@ -65,7 +65,9 @@ final class PdoPublicOpinionStore
             if($e['day']!==$day)throw new \DomainException('Opinion sources must reach pending day first');
             $campaign=isset($x->snapshot()['campaign']);
             if($campaign!==((int)($clock['campaign_enabled']??0)===1))throw new \DomainException('Campaign pin mismatch');
-            $event=$campaign?(new CampaignEventQueue($this->db))->readDay($world,$day):null;
+            $state=$x->snapshot();
+            $scoped=($state['managed_continuity']??null)==='wp112-managed-continuity-v3';
+            $event=$campaign&&(!$scoped||$state['campaign']['status']==='active')?(new CampaignEventQueue($this->db))->readDay($world,$day,$scoped?$state['campaign']['start_day']:null):null;
             $result=$x->advance($e,$event);$rev=(int)$r['revision']+1;
             $receipt=['status'=>200,'result'=>$result,'etag'=>'"'.$x->hash().'"','revision'=>$rev];
             $q=$this->db->prepare('UPDATE wp_opinion_states SET state_json=?,state_sha=?,revision=?,last_key_sha=?,last_receipt_json=? WHERE world_id=?');

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/UniverseScore.php';
+require_once __DIR__.'/UniverseLobby.php';
 
 /** Read-only integrity qualification for one managed universe; no secrets,
  * no automatic repair and no assertion of economic calibration. */
@@ -14,14 +15,14 @@ final class UniverseAudit
         $db->exec('SET TRANSACTION READ ONLY');
         $db->beginTransaction();
         try{
-            $q=$db->prepare('SELECT u.world_id,c.committed_day,c.pending_day FROM wp_universes u JOIN wp_world_clock c ON c.world_id=u.world_id WHERE u.universe_no=?');
+            $q=$db->prepare('SELECT u.world_id,u.roster_version,c.committed_day,c.pending_day FROM wp_universes u JOIN wp_world_clock c ON c.world_id=u.world_id WHERE u.universe_no=?');
             $q->execute([$no]);$w=$q->fetch(\PDO::FETCH_ASSOC);
             if($w===false)throw new \DomainException('Unknown universe');
             if($w['pending_day']!==null)throw new \DomainException('Audit requires coherent committed day');
             $world=$w['world_id'];$day=$w['committed_day'];
             $q=$db->prepare('SELECT country_code,account_id,generation,closed_on FROM wp_universe_slots WHERE world_id=? ORDER BY country_code');
             $q->execute([$world]);$slots=$q->fetchAll(\PDO::FETCH_ASSOC);
-            if(array_column($slots,'country_code')!==['DE','ES','FR','GB','IT','JP','US'])throw new \DomainException('Unexpected pilot roster');
+            if(array_column($slots,'country_code')!==UniverseLobby::roster($w['roster_version']))throw new \DomainException('Unexpected pilot roster');
             $q=$db->prepare('SELECT p.*,s.opening_index_bps,s.latest_index_bps,s.through_day,s.elapsed_control_days,s.gain_bps,s.score FROM wp_universe_control_periods p LEFT JOIN wp_universe_period_scores s USING(world_id,country_code,generation) WHERE p.world_id=? ORDER BY p.country_code,p.generation LIMIT 10001');
             $q->execute([$world]);$periods=$q->fetchAll(\PDO::FETCH_ASSOC);
             if(count($periods)>10000)throw new \DomainException('Audit page limit exceeded');

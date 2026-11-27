@@ -99,13 +99,15 @@ final class PublicOpinion
     }
     /** Managed worlds retain the former campaign record but keep ordinary
      * social observations moving. No successor is invented. */
-    public function enableManagedContinuity(bool $recurring=false):void
+    public function enableManagedContinuity(bool $recurring=false,bool $vacancy=false):void
     {
         if(!isset($this->s['campaign'],$this->s['presidency'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day']||isset($this->s['managed_continuity']))
             throw new \DomainException('Managed continuity must be pinned at bootstrap');
         if($recurring&&!isset($this->s['presidency']['calendar_version']))throw new \DomainException('Recurring succession requires the published calendar');
-        $this->s['managed_continuity']=$recurring?'wp106-managed-continuity-v2':'wp105-managed-continuity-v1';
+        if($vacancy&&!$recurring)throw new \DomainException('Vacancy needs recurring continuity');
+        $this->s['managed_continuity']=$vacancy?'wp112-managed-continuity-v3':($recurring?'wp106-managed-continuity-v2':'wp105-managed-continuity-v1');
         if($recurring)$this->s['managed_mandates']=[];
+        if($vacancy)$this->s['managed_vacancy']=null;
     }
     /** Trusted inputs from the committed domestic and national stores, never player JSON. */
     public static function observe(array $dom,array $inst,bool $partners=false,bool $civilCrisis=false,bool $partyResponses=false,bool $constitutionalElection=false):array
@@ -151,16 +153,24 @@ final class PublicOpinion
         $campaign=null;
         $frozen=isset($this->s['managed_continuity'])&&($this->s['campaign']['status']??null)==='game_over';
         $archive=null;$previousCampaign=$this->s['campaign']??null;$previousPresidency=$this->s['presidency']??null;
-        if($frozen&&($this->s['managed_continuity']??null)==='wp106-managed-continuity-v2'
+        $vacancyEnabled=($this->s['managed_continuity']??null)==='wp112-managed-continuity-v3';
+        $vacancy=$this->s['managed_vacancy']??null;
+        $vacancyReady=$frozen&&$vacancyEnabled&&($vacancy['status']??null)==='handover_ready'&&$vacancy['day']===$vacancy['handover_on'];
+        if($vacancyReady||($frozen&&in_array($this->s['managed_continuity']??null,['wp106-managed-continuity-v2','wp112-managed-continuity-v3'],true)
             &&in_array($previousCampaign['reason'],['presidential_election_lost','presidential_mandate_ended'],true)
             &&$previousCampaign['constitutional_status']==='continuity'
             &&($previousCampaign['continuity']['recognition_status']??'not_disputed')==='not_disputed'
             &&($previousCampaign['order_review']['status']??'none')!=='pending_independent_review'
-            &&is_string($previousPresidency['successor']??null)){
+            &&is_string($previousPresidency['successor']??null))){
             if($campaignEvent!==null)throw new \DomainException('Succession day cannot contain a queued narrative event');
             $archive=['campaign'=>$previousCampaign,'presidency'=>$previousPresidency];
-            $previousPresidency=PresidentialMandate::beginSuccessor($previousPresidency,count($this->s['managed_mandates'])+2);
-            $previousCampaign=CampaignLifecycle::initial($this->s['world_id'],$archive['campaign']['ended_on']);
+            $ordinal=count($this->s['managed_mandates'])+2;
+            if($vacancyReady){
+                $archive['vacancy']=$vacancy;
+                $previousPresidency=PresidentialMandate::beginVacancySuccessor($previousPresidency,$previousCampaign,$vacancy,$ordinal);
+                $vacancy=null;
+            }else $previousPresidency=PresidentialMandate::beginSuccessor($previousPresidency,$ordinal);
+            $previousCampaign=CampaignLifecycle::initial($this->s['world_id'],$previousPresidency['term_start']);
             $previousCampaign['cabinet_status']=$archive['campaign']['cabinet_status'];
             if(isset($archive['campaign']['continuity']))$previousCampaign['continuity']=['location_status'=>'domestic','recognition_status'=>'not_disputed','last_event_day'=>null];
             if(isset($archive['campaign']['order_review']))$previousCampaign['order_review']=['status'=>'none','opened_on'=>null,'closed_on'=>null,'existing_mandate_preserved'=>true,'alternate_authority_installed'=>false];
@@ -184,6 +194,8 @@ final class PublicOpinion
                 $campaign=CampaignLifecycle::applyPresidentialOutcome($campaign,$presidency);
             }
         }
+        if($vacancyEnabled&&($campaign['status']??null)==='game_over')
+            $vacancy=PresidentialMandate::vacancy($presidency,$campaign,$e['day']);
         $responsibilityPenalty=0;
         if(isset($e['responsibility'])){
             $g=$e['responsibility'];self::fields($g,['government','engagement_count','last_engagement_day','last_appointment']);
@@ -240,6 +252,7 @@ final class PublicOpinion
             $r['social_partners']=$partners;
         }
         if($archive!==null)$this->s['managed_mandates'][]=$archive;
+        if($vacancyEnabled){$this->s['managed_vacancy']=$vacancy;$r['managed_vacancy']=$vacancy;}
         if($presidency!==null){
             $this->s['presidency']=$presidency;
             $r['presidency']=['status'=>$presidency['status'],'term_end'=>$presidency['term_end'],
@@ -281,7 +294,7 @@ final class PublicOpinion
         if(isset($s['campaign']['order_review']))$x->enableOrderReview();
         if(array_key_exists('presidency',$s))$x->enablePresidentialMandate($s['presidency']['config'],isset($s['presidency']['ballot_model']));
         if(array_key_exists('party_responses',$s))$x->enablePartyResponses();
-        if(array_key_exists('managed_continuity',$s))$x->enableManagedContinuity($s['managed_continuity']==='wp106-managed-continuity-v2');
+        if(array_key_exists('managed_continuity',$s))$x->enableManagedContinuity(in_array($s['managed_continuity'],['wp106-managed-continuity-v2','wp112-managed-continuity-v3'],true),$s['managed_continuity']==='wp112-managed-continuity-v3');
         foreach($s['history'] as $r)$x->advance($r['source'],$r['campaign_event']??null);
         if($x->snapshot()!==$s)throw new \DomainException('Opinion replay mismatch');
         return $x;

@@ -8,10 +8,10 @@ require_once __DIR__.'/WorldMutationFence.php';
 final class CampaignEventQueue
 {
     public function __construct(private readonly \PDO $db) {}
-    public function readDay(string $world,string $day):?array
+    public function readDay(string $world,string $day,?string $mandateStart=null):?array
     {
-        $q=$this->db->prepare('SELECT event_json,event_sha FROM wp_campaign_events WHERE world_id=? AND event_day=?');
-        $q->execute([$world,$day]);$r=$q->fetch(\PDO::FETCH_ASSOC);
+        $q=$this->db->prepare('SELECT event_json,event_sha FROM wp_campaign_events WHERE world_id=? AND event_day=?'.($mandateStart===null?'':' AND mandate_start=?'));
+        $q->execute($mandateStart===null?[$world,$day]:[$world,$day,$mandateStart]);$r=$q->fetch(\PDO::FETCH_ASSOC);
         if($r===false)return null;
         $e=self::decode($r);
         if($e['world_id']!==$world||$e['day']!==$day)throw new \UnexpectedValueException('Campaign event scope mismatch');
@@ -42,21 +42,22 @@ final class CampaignEventQueue
                 throw new \UnexpectedValueException('Campaign snapshot mismatch');
             if(isset($s['presidency'])&&in_array($e['type'],['presidential_election_lost','presidential_mandate_ended'],true))
                 throw new \DomainException('Presidential calendar owns electoral outcomes');
-            $q=$this->db->prepare('SELECT event_json,event_sha FROM wp_campaign_events WHERE world_id=? AND event_day>? ORDER BY event_day');
-            $q->execute([$world,$clock['committed_day']]);$future=[];
+            $scope=($s['managed_continuity']??null)==='wp112-managed-continuity-v3'?$s['campaign']['start_day']:null;
+            $q=$this->db->prepare('SELECT event_json,event_sha FROM wp_campaign_events WHERE world_id=? AND event_day>?'.($scope===null?'':' AND mandate_start=?').' ORDER BY event_day');
+            $q->execute($scope===null?[$world,$clock['committed_day']]:[$world,$clock['committed_day'],$scope]);$future=[];
             foreach($q->fetchAll(\PDO::FETCH_ASSOC) as $row)$future[]=self::decode($row);
             if(count($future)>=3650)throw new \DomainException('Campaign event limit');
             CampaignLifecycle::validateQueue($s['campaign'],[...$future,$e]);
-            self::insert($this->db,$e);
+            self::insert($this->db,$e,$scope);
             $this->db->commit();
         }catch(\Throwable $ex){if($this->db->inTransaction())$this->db->rollBack();throw $ex;}
     }
     /** Bootstrap-only insertion into the same atomic creation transaction. */
-    public static function insert(\PDO $db,array $e):void
+    public static function insert(\PDO $db,array $e,?string $mandateStart=null):void
     {
         if(!$db->inTransaction())throw new \LogicException('Event insert requires transaction');
         CampaignLifecycle::validate($e);$json=PublicOpinion::json($e);
-        $q=$db->prepare('INSERT INTO wp_campaign_events(world_id,event_day,event_id,event_json,event_sha) VALUES(?,?,?,?,?)');
-        $q->execute([$e['world_id'],$e['day'],$e['id'],$json,hash('sha256',$json)]);
+        $q=$db->prepare($mandateStart===null?'INSERT INTO wp_campaign_events(world_id,event_day,event_id,event_json,event_sha) VALUES(?,?,?,?,?)':'INSERT INTO wp_campaign_events(world_id,event_day,event_id,event_json,event_sha,mandate_start) VALUES(?,?,?,?,?,?)');
+        $q->execute([$e['world_id'],$e['day'],$e['id'],$json,hash('sha256',$json),...($mandateStart===null?[]:[$mandateStart])]);
     }
 }
