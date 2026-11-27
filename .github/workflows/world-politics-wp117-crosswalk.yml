@@ -1,0 +1,30 @@
+name: WP117 frozen cross-source identifiers
+on:
+  push:
+    branches: ['data/wp117-crosswalk-2023']
+    paths:
+      - 'games/world-politics/bin/collect-wp117-crosswalk.py'
+      - '.github/workflows/world-politics-wp117-crosswalk.yml'
+permissions:
+  contents: read
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: python3 games/world-politics/bin/collect-wp117-crosswalk.py
+      - name: Commit validated identifiers on staging branch only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/data/wp117-crosswalk-2023
+          git add -- games/world-politics/data/wp117-partyfacts-2023-v1/external-crosswalks.json
+          git diff --cached --quiet && exit 0
+          git -c user.name='WP117 evidence collector' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'WP117: freeze published academic cross-source identifiers'
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push origin HEAD:refs/heads/data/wp117-crosswalk-2023
