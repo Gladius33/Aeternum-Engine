@@ -1018,3 +1018,14 @@ The France first-control join may explicitly select a historical or custom candi
 
 
 The managed programme read now reports each selected identity's exact archived measures, availability in the pinned world, conflicting family choices, selection status, actual law instances (including reintroduced IDs), constitutional procedure records and the treaty/collective/civic outcome where applicable. It never marks a target fulfilled simply from legal authorization. The bounded inventory report now explicitly distinguishes 47/47 mapped from exhaustive source coverage; old archival records remain immutable. General objectives keep their existing direct-action and institutional journals.
+
+
+### WP114 — target election correction (2027)
+
+The canonical investiture remains 14 May 2027, a simulation convention. The target programme corpus is the **2027 presidential election**, not the 2022 election. The 24 historical excerpts and 47 additional selected commitments from 2022 are regression and alternate-history data; their immutable identifiers and previous saves must not be renamed or represented as 2027 commitments. Their successful compilation is not evidence of coverage of 2027.
+
+Candidate options now separately expose a dated 27 November 2026 discovery register of public campaign/party projects and independent discovery indexes. The latter are not official election authorities or validated primary-source commitments. No final candidate list, definitive professions of faith, exhaustive extraction or executable 2027 measures are asserted by that register. The next corpus must be versioned independently, updated from dated primary documents and distinguish party projects, individual candidate commitments, earlier historical material, and fictional assumptions. Every executable 2027 objective requires exact scope, target, cost and authority review and tests. No automatic import of a 2022 programme into a 2027 programme.
+
+The common programme compiler, legal proof gate, runtime and replay remain in WP114; the new career roadmap's global movement registry and broader cross-doctrine coverage belong to the proposed WP117 and WP121 respectively, with the institutional career/transition work in WP116–120. This is not a waiver of WP114's own remaining source, calibration or integration gates. The new movement material is documentary, not executable by default. Never couple gameplay authorization to ideological affiliation or silently reuse an unrelated historical objective.
+
+Additional regression tests exercise the target-year distinction and the civic clause through the actual institutional daily clock. Exact-head CI results are still required; no claim of completed qualification or 2027 programme coverage.
