@@ -172,6 +172,7 @@ else ck82($bill114e['effect_on']===null,'WP114e blocked policy not enacted');
 require_once __DIR__.'/../games/world-politics/src/SocialEconomy.php';
 require_once __DIR__.'/../games/world-politics/src/FrenchPublicServices.php';
 require_once __DIR__.'/../games/world-politics/src/FrenchDemography.php';
+require_once __DIR__.'/../games/world-politics/src/FrenchMacroBaseline.php';
 use Aeternum\WorldPolitics\{SocialEconomy as SE,FrenchMacroBaseline as MB,FrenchDemography as FD,FrenchPublicServices as FS};
 $career=['age_months'=>720,'entry_age_months'=>216,'contributed_months'=>504,'reference_monthly_gross_minor'=>250000,'arduous'=>false];
 ck82(!SE::pension($career,['age'=>65])['eligible']&&SE::pension($career,['age'=>60,'contribution_years'=>40,'entry_age_before'=>20])['eligible'],'WP114f pension age and long career qualification');
