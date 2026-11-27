@@ -199,3 +199,14 @@ ckResearch($g->handle('GET','/research/v1/datasets/global','',$head($choose['tok
 $q->fund($choose['tenant_id'],'payg-tier-fixture-01','topup',10);
 ckResearch($g->handle('POST',$paygRoute,'{"plan":"standard"}',$head($choose['token']))['status']===409,'cannot transfer prepaid credits across tiers');
 echo "PASS PAYG self-service and tier balance isolation\n";
+
+putenv('WP_STRIPE_PRICE_GAME_PREMIUM_MONTHLY=price_gamepreflight');
+putenv('WP_APP_ENV=development');putenv('WP_STRIPE_MODE=test');
+$preflightApi=static function($method,$path,$args,$key){
+    ckResearch($method==='GET','preflight never creates provider objects');
+    if(str_contains($path,'billing_portal/configurations/'))return ['id'=>'bpc_fixture123','livemode'=>false,'active'=>true,'features'=>['subscription_update'=>['enabled'=>false],'subscription_cancel'=>['enabled'=>true,'mode'=>'at_period_end']]];
+    return ['id'=>'price_gamepreflight','livemode'=>false,'active'=>true,'currency'=>'eur','unit_amount'=>990,'type'=>'recurring','recurring'=>['interval'=>'month','interval_count'=>1,'usage_type'=>'licensed']];
+};
+$pf=SC::preflight($db,$preflightApi,'game');
+ckResearch($pf['read_only']&&$pf['production_ready']===false&&$pf['offers']['premium-monthly']['amount_minor']===990,'read-only Stripe preflight reports verified configuration');
+echo "PASS Stripe configuration preflight (fixtures only)\n";

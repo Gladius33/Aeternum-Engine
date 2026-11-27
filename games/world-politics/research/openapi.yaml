@@ -8,6 +8,77 @@ servers:
 security:
   - researchBearer: []
 paths:
+  /billing/payg:
+    post:
+      summary: Select an eligible prepaid tier without granting credits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [plan]
+              properties:
+                plan: {enum: [standard, pro]}
+      responses:
+        '200': {description: Selected tier and wallet balance}
+        '401': {description: Invalid or held billing identity}
+        '409': {description: Active subscription or incompatible prepaid balance}
+        '429': {description: Billing admission limit}
+  /billing/checkout:
+    post:
+      summary: Create Stripe test Checkout for an existing ordinary billing identity
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [offer]
+              properties:
+                offer: {enum: [standard-monthly, pro-monthly, standard-credits, pro-credits]}
+      responses:
+        '201': {description: Hosted test Checkout URL and order ID}
+        '409': {description: Order, plan or balance conflict}
+        '429': {description: Billing admission limit}
+        '503': {description: Stripe disabled or unavailable}
+  /billing/portal:
+    post:
+      summary: Open restricted hosted test customer portal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      responses:
+        '200': {description: Hosted portal URL}
+        '409': {description: No bound subscription or unsafe portal configuration}
+        '503': {description: Stripe disabled or unavailable}
+  /stripe/webhook:
+    post:
+      security: []
+      summary: Signed Stripe test webhook; not a client API
+      parameters:
+        - in: header
+          name: Stripe-Signature
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object}
+      responses:
+        '200': {description: Verified event processed or ignored}
+        '400': {description: Invalid signature or event edition}
+        '503': {description: Disabled or retryable processing failure}
   /usage:
     get:
       responses:

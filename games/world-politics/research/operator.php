@@ -9,6 +9,12 @@ try{
         require_once __DIR__.'/../src/DeploymentMode.php';
         echo json_encode(\Aeternum\WorldPolitics\DeploymentMode::bind($db),JSON_THROW_ON_ERROR).PHP_EOL;exit(0);
     }
+    if($cmd==='stripe-preflight'){
+        require_once __DIR__.'/../src/ResearchStripe.php';
+        \Aeternum\WorldPolitics\StripeConfiguration::ready();
+        $stripe=new \Aeternum\WorldPolitics\StripeTestClient();
+        echo json_encode(\Aeternum\WorldPolitics\StripeConfiguration::preflight($db,$stripe->request(...),'research'),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES).PHP_EOL;exit(0);
+    }
     if($cmd==='stripe-resolve-hold'){
         require_once __DIR__.'/../src/ResearchStripe.php';
         if($argc!==7||!ctype_digit($argv[4])||!ctype_digit($argv[5])||!in_array($argv[6],['end-monthly','keep-monthly'],true))throw new RuntimeException('Expected payment, resolution ref, included debit, prepaid debit, monthly decision');

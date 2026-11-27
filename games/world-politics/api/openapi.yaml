@@ -31,6 +31,54 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /me/billing/checkout:
+    post:
+      summary: Create authenticated game Premium Stripe test Checkout
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      responses:
+        '201': {description: Hosted test Checkout URL}
+        '401': {description: Session required}
+        '429': {description: Billing admission limit}
+        '503': {description: Stripe disabled or unavailable}
+  /me/billing/portal:
+    post:
+      summary: Open bound game Premium test customer portal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      responses:
+        '200': {description: Hosted portal URL}
+        '401': {description: Session required}
+        '503': {description: Stripe disabled or unavailable}
+  /stripe/webhook:
+    post:
+      security: []
+      summary: Signed Stripe test webhook; not a client API
+      parameters:
+        - in: header
+          name: Stripe-Signature
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object}
+      responses:
+        '200': {description: Verified event processed or ignored}
+        '400': {description: Invalid signature or event edition}
+        '503': {description: Disabled or retryable processing failure}
   /career-worlds/public:
     get:
       summary: List public French economic multi-office career universes

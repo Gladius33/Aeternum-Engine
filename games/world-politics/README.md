@@ -153,3 +153,7 @@ La version ne lance ni serveur HTTP public ni worker permanent. Les garanties co
 - `tests/wp28-french-parliament.php` et `tests/wp28-french-parliament-db.php` : tests de domaine, de sécurité, MariaDB et d'intégration constitutionnelle.
 
 Documentation exhaustive : `docs/WORLD_POLITICS_PARLIAMENT.md`. La composition réelle de l'Assemblée à une date donnée et les programmes réels des groupes n'ont **pas** été importés.
+
+## Commercial backend handoff
+
+See `../../docs/WORLD_POLITICS_ENV_STRIPE.md` for the isolated Stripe test-mode workflow, operator access, plan lifecycle and preflight commands; `../../docs/WORLD_POLITICS_DAILY_DATASET_SYNC.md` for daily Research ingestion. The current source is an engineering release candidate, not an authorization to process real payments. Stripe live is blocked in code. Use fresh dedicated development/staging databases or reviewed migrations. Keep `.env` and credentials outside the public web roots and out of Git. The game and Research API contracts are in `api/openapi.yaml` and `research/openapi.yaml`.

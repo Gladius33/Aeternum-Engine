@@ -84,3 +84,16 @@ class ResearchClient:
         if not isinstance(after, int) or not 0 <= after <= 64:
             raise ValueError("Invalid transition cursor")
         return self._request("GET", "/worlds/" + self._id(world_id) + "/simulation/dataset/" + str(after))
+
+    def select_payg(self, plan):
+        if plan not in ("standard", "pro"):
+            raise ValueError("Invalid prepaid tier")
+        return self._request("POST", "/billing/payg", {"plan": plan})
+
+    def checkout(self, offer, idempotency_key):
+        if offer not in ("standard-monthly", "pro-monthly", "standard-credits", "pro-credits"):
+            raise ValueError("Invalid billing offer")
+        return self._request("POST", "/billing/checkout", {"offer": offer}, idempotency_key)
+
+    def billing_portal(self):
+        return self._request("POST", "/billing/portal", {})

@@ -26,7 +26,16 @@ final class StripeConfiguration
             throw new \DomainException('Offer not configured');
         return ['plan'=>$plan,'mode'=>$mode,'price'=>$price,'units'=>(int)$units];
     }
-    public static function portal(\Closure $api,string $customer):array{
+    public static function validatePrice(\Closure $api,string $id,string $mode):array{
+        if(!in_array($mode,['subscription','payment'],true))throw new \DomainException('Invalid price mode');
+        ResearchStripe::id($id,'price_');$p=$api('GET','/v1/prices/'.$id,[],null);ResearchStripe::testObject($p,$id);
+        $amount=$p['unit_amount']??null;
+        if(($p['active']??null)!==true||($p['currency']??null)!=='eur'||!is_int($amount)||$amount<1||$amount>100000000
+            ||($mode==='subscription'?(($p['type']??null)!=='recurring'||($p['recurring']['interval']??null)!=='month'||($p['recurring']['interval_count']??null)!==1||($p['recurring']['usage_type']??null)!=='licensed'):(($p['type']??null)!=='one_time')))
+            throw new \DomainException('Unsupported Stripe price');
+        return ['price_id'=>$id,'amount_minor'=>$amount,'currency'=>'eur','mode'=>$mode];
+    }
+    public static function portalConfiguration(\Closure $api):string{
         $id=ResearchStripe::id(getenv('WP_STRIPE_PORTAL_CONFIGURATION')?:'','bpc_');
         $c=$api('GET','/v1/billing_portal/configurations/'.$id,[],null);
         ResearchStripe::testObject($c,$id);
@@ -35,11 +44,30 @@ final class StripeConfiguration
         if(($c['active']??null)!==true||($c['features']['subscription_update']['enabled']??null)!==false
             ||($c['features']['subscription_cancel']['enabled']??null)!==true||($c['features']['subscription_cancel']['mode']??null)!=='at_period_end')
             throw new \DomainException('Unsafe portal configuration');
+        return $id;
+    }
+    public static function portal(\Closure $api,string $customer):array{
+        $id=self::portalConfiguration($api);
         $p=$api('POST','/v1/billing_portal/sessions',['customer'=>$customer,'configuration'=>$id,'return_url'=>self::url('WP_STRIPE_PORTAL_RETURN_URL')],null);
         $url=$p['url']??null;
         if(!is_string($url)||parse_url($url,PHP_URL_SCHEME)!=='https'||parse_url($url,PHP_URL_HOST)!=='billing.stripe.com'||strlen($url)>2048)
             throw new \DomainException('Unexpected portal URL');
         return ['portal_url'=>$url,'test_mode'=>true];
+    }
+    /** Only GET requests. Does not create sessions, subscriptions or charges. */
+    public static function preflight(\PDO $db,\Closure $api,string $scope):array{
+        DeploymentMode::assertDatabase($db);
+        foreach(['WP_STRIPE_SUCCESS_URL','WP_STRIPE_CANCEL_URL','WP_STRIPE_PORTAL_RETURN_URL'] as $name)self::url($name);
+        $portal=self::portalConfiguration($api);$offers=[];
+        if($scope==='research'){
+            foreach(['standard-monthly','pro-monthly','standard-credits','pro-credits'] as $name){
+                $p=self::offer($name);$offers[$name]=self::validatePrice($api,$p['price'],$p['mode'])+['credits'=>$p['units']];
+            }
+            if(count(array_unique(array_column($offers,'price_id')))!==count($offers))throw new \DomainException('Research price IDs must be distinct');
+        }elseif($scope==='game'){
+            $offers['premium-monthly']=self::validatePrice($api,getenv('WP_STRIPE_PRICE_GAME_PREMIUM_MONTHLY')?:'','subscription');
+        }else throw new \DomainException('Invalid preflight scope');
+        return ['status'=>'configuration_valid','environment'=>DeploymentMode::name(),'stripe_mode'=>'test','scope'=>$scope,'portal_configuration'=>$portal,'offers'=>$offers,'read_only'=>true,'webhook_delivery_tested'=>false,'production_ready'=>false];
     }
     public static function url(string $name):string{
         $u=getenv($name)?:'';$p=parse_url($u);
@@ -107,11 +135,7 @@ final class ResearchStripe
     }
     public function checkout(string $tenant,string $offer,string $requestKey):array{
         if(!preg_match('/^[a-f0-9]{32}$/D',$tenant)||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$requestKey))throw new \DomainException('Invalid checkout');
-        $p=StripeConfiguration::offer($offer);$price=$this->get('prices',$p['price']);self::testObject($price,$p['price']);
-        $amount=$price['unit_amount']??null;
-        if(($price['active']??null)!==true||($price['currency']??null)!=='eur'||!is_int($amount)||$amount<1||$amount>100000000
-            ||($p['mode']==='subscription'?(($price['type']??null)!=='recurring'||($price['recurring']['interval']??null)!=='month'||($price['recurring']['interval_count']??null)!==1||($price['recurring']['usage_type']??null)!=='licensed'):(($price['type']??null)!=='one_time')))
-            throw new \DomainException('Unsupported Stripe price');
+        $p=StripeConfiguration::offer($offer);$amount=StripeConfiguration::validatePrice($this->api,$p['price'],$p['mode'])['amount_minor'];
         $key=hash('sha256',$requestKey);
         $order=$this->tx(function()use($tenant,$offer,$p,$amount,$key){
             $a=$this->q('SELECT plan,enabled,billing_mode,admin_exempt,billing_hold,prepaid_units FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
