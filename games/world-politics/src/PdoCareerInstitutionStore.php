@@ -19,12 +19,13 @@ final class PdoCareerInstitutionStore
         $r=$this->query('SELECT committed_day,revision,pending_day FROM wp_world_clock WHERE world_id=? FOR UPDATE',[$world])->fetch(\PDO::FETCH_ASSOC);
         CareerInstitutionLedger::check($r!==false&&$r['pending_day']===null,'uncommitted world');return $r;
     }
-    public function seed(string $world,string $mode):void{
-        $this->tx(function()use($world,$mode){$c=$this->clock($world);
+    public function seed(string $world,string $mode,string $country='FR'):void{
+        $this->tx(function()use($world,$mode,$country){$c=$this->clock($world);
             $scenario=$this->query('SELECT scenario FROM wp_alpha_worlds WHERE world_id=? FOR UPDATE',[$world])->fetchColumn();
             CareerInstitutionLedger::check($scenario==='wp-career-v1'||$scenario==='wp-career-research-v1','explicit opt-in scenario required');
             CareerInstitutionLedger::check(($scenario==='wp-career-research-v1')===($mode==='research'),'scenario mode mismatch');
-            $s=CareerInstitutionLedger::initial($world,'FR',$mode,$c['committed_day']);$j=CareerInstitutionLedger::json($s);
+            CareerInstitutionLedger::check($mode==='research'||$country==='FR','use career provisioning for foreign play');
+            $s=CareerInstitutionLedger::initial($world,$country,$mode,$c['committed_day']);$j=CareerInstitutionLedger::json($s);
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);});
     }
     private function row(string $world):array{

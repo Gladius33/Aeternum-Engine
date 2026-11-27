@@ -283,3 +283,28 @@ $pa=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($partA,'a','2027
 ck($pa['series'][0]['verified_credit_days']===2&&$pa['series'][0]['tenure_participation_verified']&&$pa['score']===null,'daily participation seals exact wait but no unsupported income score');
 $pb=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($partB,'b','2027-05-16');
 ck($pb['series'][0]['verified_credit_days']===null,'pre-accession gap cannot be laundered into opening credit');
+
+require_once __DIR__.'/../games/world-politics/src/UniverseIdentityReference.php';
+// Composable non-authoritative research observations preserve the legal
+// reference and state identity; documentary coverage never grants offices.
+$rt=\Aeternum\WorldPolitics\ResearchInstitutionTransition::class;
+foreach(\Aeternum\WorldPolitics\UniverseIdentityReference::catalogue() as $country=>$ref){
+    $s=L::initial('research-transition-'.strtolower($country),$country,'research','2027-05-14');
+    $original=$s;
+    $p=['version'=>$rt::VERSION,'previous_sha'=>L::digest(null),'constitutional_order'=>'parliamentary_republic',
+        'effective_order'=>'provisional_government','territorial_form'=>'unitary','assembly_status'=>'disrupted',
+        'senate_status'=>'unknown','legality'=>'disputed','recognition'=>'mixed','service_continuity_bps'=>8500,
+        'classification'=>'counterfactual_aggregate_observation'];
+    $e=evt($s,'research_transition',$p);$e['actor']='research-clerk';$e['evidence_sha']=$rt::digest($e);
+    $s=L::apply($s,$e);
+    ck($s['state_id']===$country&&$s['constitution_sha']===$original['constitution_sha']&&$s['regime']===$original['regime']
+        &&$s['active']===[]&&!$s['research_transition']['rankable']&&!$s['research_transition']['runtime_authority'],'research continuity '.$country);
+    no(fn()=>L::apply($s,$e));
+    $p['previous_sha']=L::digest($s['research_transition']);$p['effective_order']='parliamentary_republic';
+    $p['assembly_status']='restored';$p['legality']='recognized';$p['service_continuity_bps']=10000;
+    $e2=evt($s,'research_transition',$p,'2027-05-15');$e2['actor']='research-clerk';$e2['evidence_sha']=$rt::digest($e2);
+    $next=L::apply($s,$e2);
+    ck($next['research_transition']['ordinal']===2&&$next['research_transition']['state_id']===$country&&$next['research_transition']['assembly_status']==='restored','research restoration '.$country);
+    $tampered=$e2;$tampered['payload']['recognition']='unrecognized';no(fn()=>L::apply($s,$tampered));
+    if(!\Aeternum\WorldPolitics\InstitutionalRulebook::hasRules($country))no(fn()=>L::initial('unsupported-career',$country,'career','2027-05-14'));
+}

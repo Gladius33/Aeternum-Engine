@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CareerParticipation.php';
+require_once __DIR__.'/ResearchInstitutionTransition.php';
 require_once __DIR__.'/CareerScoreContract.php';
 require_once __DIR__.'/ConstitutionalRevision.php';
 require_once __DIR__.'/PresidentialMandate.php';
@@ -26,7 +27,15 @@ final class CareerInstitutionLedger
     public static function digest(mixed $x):string{return hash('sha256',self::json($x));}
     public static function day(string $s):void{CareerScoreContract::elapsed(CareerScoreContract::START,$s);}
     public static function initial(string $world,string $country,string $mode,string $day):array{
-        self::id($world);self::day($day);self::check(InstitutionalRulebook::hasRules($country)&&in_array($mode,['career','research'],true),'reviewed country required');
+        self::id($world);self::day($day);self::check(in_array($mode,['career','research'],true),'reviewed mode required');
+        if(!InstitutionalRulebook::hasRules($country)){
+            self::check($mode==='research','reviewed country required');
+            require_once __DIR__.'/UniverseIdentityReference.php';
+            $reference=UniverseIdentityReference::country($country);
+            return ['version'=>self::VERSION,'world'=>$world,'country'=>$country,'mode'=>$mode,'state_id'=>$country,'regime'=>'unclassified_documentary_only','constitution_revision'=>1,
+                'constitution_sha'=>self::digest($reference),'constitution_rules'=>['source_blob'=>$reference['source_blob'],'documentary_only'=>true],'day'=>$day,'sequence'=>0,'last_event_sha'=>str_repeat('0',64),
+                'careers'=>[],'mandates'=>[],'active'=>[],'generations'=>[],'series'=>[],'assembly'=>'unknown','senate'=>'unknown','assembly_changed_on'=>$day,'government'=>'vacant','research_observation'=>null,'foreign_evidence'=>[]];
+        }
         if($country!=='FR'){
             $rules=InstitutionalRulebook::forCountry($country);
             return ['version'=>self::VERSION,'world'=>$world,'country'=>$country,'mode'=>$mode,'state_id'=>$country,'regime'=>$rules['system'],'constitution_revision'=>1,
@@ -371,14 +380,17 @@ final class CareerInstitutionLedger
         self::id($e['command']);self::id($e['actor']);self::day($e['day']);
         self::check($e['world']===$s['world']&&$e['country']===$s['country']&&$e['day']>=$s['day']&&is_int($e['world_revision'])&&$e['world_revision']>=0&&preg_match('/^[a-f0-9]{64}$/D',$e['evidence_sha'])===1,'event scope');
         $p=$e['payload'];$day=$e['day'];$op=$e['operation'];
-        if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','admit_party_ai_roster','admit_us_presidential_roster','foreign_opening','foreign_government','research_observe'],true),'French powers unavailable outside France');
+        if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','admit_party_ai_roster','admit_us_presidential_roster','foreign_opening','foreign_government','research_observe','research_transition'],true),'French powers unavailable outside France');
         if($s['mode']==='career'&&$op==='presidential_ballot'){$p=self::ballotTransition($s,$e);$op='transition';}
         if($s['mode']==='career'&&in_array($op,['cabinet_act','automatic_cabinet'],true)){$p=self::cabinetTransition($s,$e);$op=$p===null?'cabinet_proposal_recorded':'transition';}
         if($s['mode']==='research'){
-            self::check($op==='research_observe','research cannot grant mandates');
+            self::check(in_array($op,['research_observe','research_transition'],true),'research cannot grant mandates');
+            if($op==='research_transition')ResearchInstitutionTransition::apply($s,$e);
+            else{
             self::fields($p,['regime_label','assembly_status','legality']);
             self::check(in_array($p['regime_label'],['republic','monarchy','other','contested'],true)&&in_array($p['assembly_status'],['active','disrupted','suspended','restored'],true)&&in_array($p['legality'],['disputed','unverified','recognized'],true),'research categories');
             $s['research_observation']=['day'=>$day,...$p,'runtime_authority'=>false,'rankable'=>false];
+            }
         }elseif(in_array($op,['participation_enable','participation_tick'],true)){
             CareerParticipation::apply($s,$e);
         }elseif($op==='admit_real_ai_roster'){
