@@ -207,7 +207,7 @@ $reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
 $resetProfile=PP::compileProfile([$reset114,'industry-active']);
 ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
 no82(fn()=>PP::compileProfile([$reset114,$pension114]));
-ck82(count(SP::objectives())===114&&count(SP::definitions())===24&&count(SP::target2027())===2,'WP114j ten explicit repeal families preserve historical archive');
+ck82(count(SP::objectives())===115&&count(SP::definitions())===24&&count(SP::target2027())===3,'WP114j ten explicit repeal families preserve historical archive');
 $pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
 ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
 $resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
@@ -499,7 +499,7 @@ ck82($reference2027['scenario_start']==='2027-05-14'&&$reference2027['observed_o
     &&!$reference2027['final_candidate_list_verified']&&!$reference2027['complete_programmes_verified']
     &&!$reference2027['historical_2022_is_2027_programme']&&!$reference2027['historical_2022_automatic_import'],
     'WP114 provisional sources cannot certify future programmes');
-ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_count']===2
+ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_count']===3
     &&count(array_unique(array_column($reference2027['sources'],'id')))===count($reference2027['sources']),
     'WP114 discovery register separates reviewed objectives from candidate selection');
 foreach($reference2027['sources'] as $source2027)ck82(str_starts_with($source2027['url'],'https://'),'WP114 dated programme discovery link');
@@ -554,3 +554,11 @@ $flow2027=SE::calculate($ids2027,[$smic2027=>['effective_on'=>$effect2027],$pens
 ck82($flow2027['monthly_net_floor_minor']===170000&&$flow2027['pension_transfer_delta_minor']>0,'WP114 2027 targets drive wage and pension scenario');
 $career2027=SE::pension(['age_months'=>720,'entry_age_months'=>240,'contributed_months'=>480,'reference_monthly_gross_minor'=>240000,'arduous'=>false],SP::definition($pension2027)['target']);
 ck82($career2027['eligible']&&$career2027['required_contribution_months']===480&&$career2027['accrual_bps']===10000,'WP114 representative 2027 forty-annuity career');
+
+
+$renovation2027='pf2027-ecologistes-renovation';
+ck82(PP::socialIds(PP::compileProfile([$renovation2027]))===[$renovation2027],'WP114 separate 2027 renovation identity');
+$renovationFlow=SE::calculate([$renovation2027],[$renovation2027=>['effective_on'=>$effect2027]],$effect2027,$pop,$services,$base,null);
+ck82($renovationFlow['measures'][0]['annual_incremental_units_proxy']===300000
+    &&$renovationFlow['daily_expense_delta_minor']===intdiv(300000*10000*100,365),'WP114 2027 renovation scenario cost reconciles');
+no82(fn()=>PP::compileProfile([$renovation2027,'pf2022-emmanuel-macron-3']));
