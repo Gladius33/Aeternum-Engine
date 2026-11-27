@@ -79,11 +79,11 @@ final class ResearchStripe
     public function __construct(private readonly \PDO $db,private readonly \Closure $api){DeploymentMode::assertDatabase($db);}
     private function q(string $sql,array $p=[]):\PDOStatement{$q=$this->db->prepare($sql);$q->execute($p);return $q;}
     private function tx(callable $f):mixed{$this->db->beginTransaction();try{$r=$f();$this->db->commit();return $r;}catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}}
-    private static function id(mixed $v,string $prefix):string{
+    public static function id(mixed $v,string $prefix):string{
         if(!is_string($v)||!preg_match('/^'.preg_quote($prefix,'/').'[A-Za-z0-9_]{5,100}$/D',$v))throw new \DomainException('Invalid Stripe object ID');return $v;
     }
     private function get(string $type,string $id,array $args=[]):array{return ($this->api)('GET','/v1/'.$type.'/'.$id,$args,null);}
-    private static function testObject(array $o,string $id):void{if(($o['id']??null)!==$id||($o['livemode']??null)!==false)throw new \DomainException('Stripe object identity');}
+    public static function testObject(array $o,string $id):void{if(($o['id']??null)!==$id||($o['livemode']??null)!==false)throw new \DomainException('Stripe object identity');}
     private function order(string $id,bool $lock=false):array{
         if(!preg_match('/^[a-f0-9]{32}$/D',$id))throw new \DomainException('Invalid order');
         $r=$this->q('SELECT * FROM wp_stripe_research_orders WHERE order_id=?'.($lock?' FOR UPDATE':''),[$id])->fetch(\PDO::FETCH_ASSOC);
@@ -147,18 +147,21 @@ final class ResearchStripe
             return ['status'=>'frozen_for_reconciliation'];
         });
     }
-    private static function line(array $line,array $o):void{
+    public static function line(array $line,array $o):void{
         if(($line['price']['id']??null)!==$o['price_id']||($line['quantity']??null)!==1||($line['currency']??null)!=='eur'
             ||($line['amount']??$line['amount_subtotal']??null)!==(int)$o['amount_minor']||($line['proration']??false)!==false)
             throw new \DomainException('Price or quantity mismatch');
     }
-    private function confirmedIntent(string $id,string $customer,int $amount):void{
-        $p=$this->get('payment_intents',$id);self::testObject($p,$id);
+    public static function confirmPayment(\Closure $get,string $id,string $customer,int $amount):void{
+        $p=$get('payment_intents',$id);self::testObject($p,$id);
         if(($p['status']??null)!=='succeeded'||($p['currency']??null)!=='eur'||($p['customer']??null)!==$customer||($p['amount_received']??null)!==$amount)
             throw new \DomainException('Unconfirmed payment intent');
-        $cid=self::id($p['latest_charge']??null,'ch_');$c=$this->get('charges',$cid);self::testObject($c,$cid);
+        $cid=self::id($p['latest_charge']??null,'ch_');$c=$get('charges',$cid);self::testObject($c,$cid);
         if(($c['paid']??null)!==true||($c['refunded']??null)!==false||($c['disputed']??null)!==false||($c['amount_refunded']??null)!==0||($c['payment_intent']??null)!==$id)
             throw new \DomainException('Payment reversed or disputed');
+    }
+    public function confirmedIntent(string $id,string $customer,int $amount):void{
+        self::confirmPayment($this->get(...),$id,$customer,$amount);
     }
     public function handle(array $e):array{
         $type=$e['type'];$obj=$e['data']['object'];

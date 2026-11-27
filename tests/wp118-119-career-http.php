@@ -97,6 +97,32 @@ ck(req('GET','/player-data/worlds',null,$pt)['status']===401,'premium downgrade 
 putenv('WP_ADMIN_GAME_ENABLED=YES');putenv('WP_ADMIN_GAME_ACCOUNT='.$eid);
 ck(\Aeternum\WorldPolitics\OperatorAccess::game($eid)&&!\Aeternum\WorldPolitics\OperatorAccess::game('acct-'.str_repeat('0',32)),'operator own-account mapping');
 putenv('WP_ADMIN_GAME_ENABLED=NO');ck(!\Aeternum\WorldPolitics\OperatorAccess::game($eid),'operator game disabled');
+require_once __DIR__.'/../games/world-politics/src/GameStripe.php';
+putenv('WP_APP_ENV=development');putenv('WP_STRIPE_MODE=test');
+putenv('WP_STRIPE_PRICE_GAME_PREMIUM_MONTHLY=price_gamefixture');putenv('WP_STRIPE_SUCCESS_URL=https://example.invalid/success');putenv('WP_STRIPE_CANCEL_URL=https://example.invalid/cancel');
+\Aeternum\WorldPolitics\DeploymentMode::bind($pdo);
+$fixtures=['/v1/prices/price_gamefixture'=>['id'=>'price_gamefixture','livemode'=>false,'active'=>true,'currency'=>'eur','unit_amount'=>990,'type'=>'recurring','recurring'=>['interval'=>'month','interval_count'=>1,'usage_type'=>'licensed']]];
+$ga=function($method,$path,$args,$key)use(&$fixtures){
+    if($method==='POST')return ['id'=>'cs_test_gamefixture','livemode'=>false,'url'=>'https://checkout.stripe.com/c/pay/fixture'];
+    if(!isset($fixtures[$path]))throw new RuntimeException('Unexpected game Stripe fixture');
+    return $fixtures[$path];
+};
+$gs=new \Aeternum\WorldPolitics\GameStripe($pdo,$ga);
+$go=$gs->checkout($eid,'game-checkout-fixture-001');ck($gs->checkout($eid,'game-checkout-fixture-001')===$go,'game checkout idempotent');
+$sub='sub_gamefixture';$cust='cus_gamefixture';$pi='pi_gamefixture';$end=time()+30*86400;
+$fixtures['/v1/checkout/sessions/'.$go['checkout_id']]=['id'=>$go['checkout_id'],'livemode'=>false,'mode'=>'subscription','customer'=>$cust,'subscription'=>$sub,'metadata'=>['wp_game_order'=>$go['order_id']]];
+$fixtures['/v1/subscriptions/'.$sub]=['id'=>$sub,'livemode'=>false,'status'=>'active','customer'=>$cust,'metadata'=>['wp_game_order'=>$go['order_id']]];
+$fixtures['/v1/invoices/in_gamefixture']=['id'=>'in_gamefixture','livemode'=>false,'subscription'=>$sub,'customer'=>$cust,'status'=>'paid','paid_out_of_band'=>false,'currency'=>'eur','collection_method'=>'charge_automatically','billing_reason'=>'subscription_create','amount_paid'=>990,'payment_intent'=>$pi,'lines'=>['has_more'=>false,'data'=>[['price'=>['id'=>'price_gamefixture'],'quantity'=>1,'currency'=>'eur','amount'=>990,'proration'=>false,'period'=>['start'=>$end-30*86400,'end'=>$end]]]]];
+$fixtures['/v1/payment_intents/'.$pi]=['id'=>$pi,'livemode'=>false,'status'=>'succeeded','currency'=>'eur','customer'=>$cust,'amount_received'=>990,'latest_charge'=>'ch_gamefixture'];
+$fixtures['/v1/charges/ch_gamefixture']=['id'=>'ch_gamefixture','livemode'=>false,'paid'=>true,'refunded'=>false,'disputed'=>false,'amount_refunded'=>0,'payment_intent'=>$pi];
+$ge=['type'=>'invoice.paid','data'=>['object'=>['id'=>'in_gamefixture']]];
+ck($gs->handle($ge)['status']==='settled'&&$gs->handle($ge)['status']==='duplicate','game premium invoice settled once');
+$gpk=req('POST','/me/data-token',(object)[],$etoken);ck($gpk['status']===201,'paid game entitlement issues real HTTP token');
+$fixtures['/v1/charges/ch_gamefixture']['amount_refunded']=100;
+ck($gs->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_gamefixture']]])['status']==='frozen_for_reconciliation','game refund revokes premium');
+ck(req('GET','/player-data/worlds',null,$gpk['body']['token'])['status']===401,'refunded game export token revoked');
+// Fixture cleanup, not a production billing deletion operation.
+$exec('DELETE FROM wp_stripe_game_holds WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_receipts WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_orders WHERE order_id=?',[$go['order_id']]);
 $fiction=['name'=>'Camille Simulation','measure_ids'=>['administration-report']];
 $ebc=req('POST',$ep.'/admission',['fictional'=>$fiction],$t2)['body']['career']['id'];
 ck(req('GET',$ep.'/career',null,$t2)['body']['career']['fictional_profile']['name']==='Camille Simulation','named fictional profile persisted');

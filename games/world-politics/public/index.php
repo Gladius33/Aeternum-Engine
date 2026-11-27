@@ -24,6 +24,23 @@ if (getenv('WP_ALPHA_ENABLED')!=='YES') {
                 PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC
             ]);
         };
+        if(($_SERVER['REQUEST_URI']??'')==='/api/v1/stripe/webhook'){
+            require_once __DIR__.'/../src/GameStripe.php';
+            $status=503;$body=['code'=>'stripe_disabled'];
+            if(getenv('WP_STRIPE_ENABLED')==='YES'){
+                \Aeternum\WorldPolitics\StripeConfiguration::ready();
+                $raw=file_get_contents('php://input',false,null,0,262145);
+                if(($_SERVER['REQUEST_METHOD']??'')!=='POST'){$status=405;$body=['code'=>'method_not_allowed'];}
+                elseif($raw===false||strlen($raw)>262144){$status=413;$body=['code'=>'request_bound'];}
+                else{
+                    try{$e=\Aeternum\WorldPolitics\StripeWebhook::verify($raw,$_SERVER['HTTP_STRIPE_SIGNATURE']??'',getenv('WP_STRIPE_WEBHOOK_SECRET'),time());}
+                    catch(\DomainException|\JsonException $ex){$e=null;}
+                    if($e===null){$status=400;$body=['code'=>'invalid_stripe_event'];}
+                    else{$client=new \Aeternum\WorldPolitics\StripeTestClient();$body=(new \Aeternum\WorldPolitics\GameStripe($connect(),$client->request(...)))->handle($e);$status=200;}
+                }
+            }
+            header('Content-Type: application/json');http_response_code($status);echo json_encode($body,JSON_THROW_ON_ERROR);exit;
+        }
         $invite=getenv('WP_ALPHA_INVITE')?:'';
         if (strlen($invite)<32) throw new RuntimeException('Private alpha invite missing');
         $h=[];
