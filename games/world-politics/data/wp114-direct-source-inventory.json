@@ -200,5 +200,6 @@
   "teacher_pay_reference": {
     "source": "https://www.education.gouv.fr/depp/panorama-statistique-des-personnels-de-l-enseignement-scolaire-2025-2026-504389",
     "scope": "DEPP teacher remuneration context; 3180 EUR reference net per month and 850000 covered teachers are model inputs, not a verified 2027 payroll count"
-  }
+  },
+  "approved_editions": {}
 }

@@ -77,7 +77,7 @@ final class CampaignCandidate
             ],
             'identified_unmapped'=>[],
             'direct_source_inventory'=>ProgrammeSourceInventory::report(),
-            'selection_enabled'=>false,'reviewed_profile_selection_enabled'=>true,'requires_primary_source_review'=>true];
+            'selection_enabled'=>false,'reviewed_profile_selection_enabled'=>false,'requires_primary_source_review'=>true];
         $ids=[];
         foreach($r['reviewed_measures'] as $m){
             $id=$m['id'];$d=SocialProgramme::target2027()[$id]??null;
@@ -114,8 +114,57 @@ final class CampaignCandidate
             $row['as_of']=$reference['observed_on'];
             $row['measure_ids']=$oldIds[$row['id']]??array_column(array_values(array_filter($reference['reviewed_measures'],fn($m)=>$m['publisher']===$row['publisher'])),'id');
             $row['final_ballot_verified']=false;
+            $row+=self::editionAvailability($row);
         }unset($row);
         return $rows;
+    }
+    /** Release requires a positively reviewed, versioned programme edition.
+     * Mere existence of a partial corpus or a campaign website never suffices. */
+    private static function editionAvailability(array $edition):array
+    {
+        $approval=ProgrammeSourceInventory::report()['approved_editions'][$edition['id']]??null;
+        $ok=$approval!==null&&$approval['programme_complete']===true&&$approval['implementation_complete']===true
+            &&$approval['measure_ids']===$edition['measure_ids']&&$edition['measure_ids']!==[];
+        if($ok){
+            try{PresidentialProgramme::compileProfile($edition['measure_ids']);}
+            catch(\InvalidArgumentException $e){$ok=false;}
+        }
+        return ['playable'=>$ok,'programme_complete'=>$ok,'availability_code'=>$ok?'available':'programme_incomplete',
+            'availability_label_fr'=>$ok?'Programme disponible':'Programme encore non disponible'];
+    }
+    public static function candidateDirectory2027():array
+    {
+        $editions=self::campaign2027Choices();$rows=[];
+        foreach(ProgrammeSourceInventory::report()['people'] as $id=>$person){
+            $matches=array_values(array_filter($editions,fn($e)=>$e['id']==='campaign2027-'.$id||str_starts_with($e['id'],'campaign2027-'.$id.'-v')));
+            $released=array_values(array_filter($matches,fn($e)=>$e['playable']));
+            $best=$released!==[]?$released[array_key_last($released)]:($matches[array_key_last($matches)]??null);
+            $playable=$best['playable']??false;
+            $rows[]=['reference_id'=>$best['id']??'campaign2027-'.$id,'name'=>$person['name'],'source'=>$person['url'],
+                'publication_state'=>$person['publication_state'],'as_of'=>$person['observed_on'],'playable'=>$playable,
+                'programme_complete'=>$playable,'availability_code'=>$playable?'available':'programme_incomplete',
+                'availability_label_fr'=>$playable?'Programme disponible':'Programme encore non disponible',
+                'reviewed_measure_count'=>count($best['measure_ids']??[])];
+        }
+        return $rows;
+    }
+    /** Known discovery-only candidates lack a roster edition, so reject
+     * them before normalization with the same stable API error. */
+    public static function discoveryOnly(mixed $input):bool
+    {
+        if(!is_array($input)||($input['type']??null)!=='campaign2027'||!is_string($input['reference_id']??null))return false;
+        $keys=array_keys($input);sort($keys);
+        if($keys!==['reference_id','type'])return false;
+        $id=$input['reference_id'];
+        return !isset(array_column(self::campaign2027Choices(),null,'id')[$id])
+            &&isset(array_column(self::candidateDirectory2027(),null,'reference_id')[$id]);
+    }
+    public static function mayStart(mixed $input):bool
+    {
+        if(!is_array($input))return false;
+        if(($input['type']??null)==='fictional')return true;
+        if(($input['type']??null)!=='campaign2027')return false;
+        return (array_column(self::campaign2027Choices(),null,'id')[$input['reference_id']??'']['playable']??false)===true;
     }
     private static function normalize2027(string $id):array
     {
@@ -136,10 +185,10 @@ final class CampaignCandidate
         $ref=HistoricalCandidateReference::report(HistoricalCandidateReference::pin());
         return ['version'=>self::VERSION,'scenario'=>'fr-investiture-2027-v1','selection_at_creation'=>true,
             'fictional_template'=>PoliticalProfileTemplate::definition(),
-            'historical_choices'=>array_map(fn($p)=>['id'=>$p['id'],'name'=>$p['name'],'as_of'=>$p['as_of'],'sources'=>$p['sources']],$ref['roster_compatible_profiles']),
+            'historical_choices'=>array_map(fn($p)=>['id'=>$p['id'],'name'=>$p['name'],'as_of'=>$p['as_of'],'sources'=>$p['sources'],'playable'=>false,'availability_code'=>'historical_archive_only','availability_label_fr'=>'Archive historique — non jouable en 2027'],$ref['roster_compatible_profiles']),
             'historical_reference_sha'=>$ref['reference_sha'],'historical_programme_scope'=>$ref['programme_partial_scope'],'historical_measure_count'=>$ref['curated_measure_count'],'historical_selection_is_alternate_history'=>true,
             'target_election_year'=>2027,'historical_reference_election_year'=>2022,'historical_choices_are_2027_candidates'=>false,
-            'programme_2027_reference'=>self::programme2027Reference(),'campaign_2027_choices'=>self::campaign2027Choices(),
+            'programme_2027_reference'=>self::programme2027Reference(),'campaign_2027_choices'=>self::campaign2027Choices(),'candidate_directory_2027'=>self::candidateDirectory2027(),'fictional_candidate_playable'=>true,'incomplete_candidate_selection_blocked'=>true,
             'future_eligibility_certified'=>false,'programme_mechanics_enabled'=>false,
             'managed_universe_explicit_programme_catalog'=>PresidentialProgramme::measureCatalog(),
             'historical_social_measure_catalog'=>SocialProgramme::definitions(),'historical_measures_automatically_imported'=>false,'changes_score_rules'=>false];

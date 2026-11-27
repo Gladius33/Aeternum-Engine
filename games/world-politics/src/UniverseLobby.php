@@ -78,15 +78,17 @@ final class UniverseLobby
         $country=$body['country'];$no=$body['universe_no']??null;
         if(!is_string($country)||!in_array($country,self::DIPLOMATIC_COUNTRIES,true)||($no!==null&&(!is_int($no)||$no<1))
             ||!preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key))throw new AlphaHttpError(422,'invalid_universe_join');
-        $candidate=null;$openingProgramme=null;
+        $candidate=null;$openingProgramme=null;$candidateMayStart=true;
         if(array_key_exists('candidate',$body)){
             if($country!=='FR')throw new AlphaHttpError(422,'candidate_selection_france_only');
+            if(CampaignCandidate::discoveryOnly($body['candidate']))throw new AlphaHttpError(409,'candidate_programme_unavailable');
             try{$candidate=CampaignCandidate::normalizeManaged($body['candidate']);
+                $candidateMayStart=CampaignCandidate::mayStart($body['candidate']);
                 if($body['candidate']['type']==='campaign2027')$openingProgramme=PresidentialProgramme::compileProfile(array_column($candidate['programme'],'id'));}
             catch(\InvalidArgumentException|\DomainException $e){throw new AlphaHttpError(422,'invalid_candidate');}
         }
         $key=hash('sha256',$key);$fingerprint=hash('sha256',json_encode([$country,$no,...($candidate===null?[]:[$candidate])],JSON_THROW_ON_ERROR));
-        return $this->transaction(function()use($s,$country,$no,$key,$fingerprint,$candidate,$openingProgramme){
+        return $this->transaction(function()use($s,$country,$no,$key,$fingerprint,$candidate,$openingProgramme,$candidateMayStart){
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
             $prior=$this->query('SELECT request_sha,response_json FROM wp_universe_join_receipts WHERE account_id=? AND receipt_key=?',[$s->id,$key])->fetch(\PDO::FETCH_ASSOC);
             if($prior!==false){
@@ -98,6 +100,7 @@ final class UniverseLobby
                     throw new AlphaHttpError(409,'stale_join_receipt');
                 return $receipt;
             }
+            if(!$candidateMayStart)throw new AlphaHttpError(409,'candidate_programme_unavailable');
             if($no===null){
                 $this->ensureSpare();
                 // Legacy spare worlds have no expanded slots. Allocate one

@@ -613,3 +613,13 @@ no82(fn()=>PP::compileProfile([$teacher27,'pf2027-lfi-public-index']));
 $inventory27=$reference2027['direct_source_inventory'];
 ck82(count($inventory27['people'])>=16&&!$inventory27['exhaustive']&&!$inventory27['final_ballot_verified'],'WP114 dated direct-site inventory is explicitly incomplete');
 ck82($inventory27['people']['francois-asselineau']['publication_state']==='announced_not_published','WP114 do not import 2022 as an unpublished 2027 programme');
+
+
+// Public selection metadata and admission share one fail-closed release gate.
+$dir27=$cc2027::candidateDirectory2027();
+ck82(count($dir27)===22&&count(array_filter($dir27,fn($r)=>$r['playable']))===0,'WP114 all unqualified real candidate profiles non-playable');
+foreach($cc2027::campaign2027Choices() as $choice)
+    ck82(!$choice['playable']&&!$cc2027::mayStart(['type'=>'campaign2027','reference_id'=>$choice['id']]),'WP114 partial edition not admissible');
+ck82(!$cc2027::mayStart(['type'=>'historical','reference_id'=>'real-emmanuel-macron'])
+    &&$cc2027::mayStart(['type'=>'fictional','name'=>'Fiction']),'WP114 historical archives read only; custom player allowed');
+ck82($cc2027::discoveryOnly(['type'=>'campaign2027','reference_id'=>'campaign2027-francois-asselineau']),'WP114 discovery-only profile known but disabled');

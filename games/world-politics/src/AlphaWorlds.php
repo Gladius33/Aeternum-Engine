@@ -119,9 +119,10 @@ final class AlphaWorlds
         $fields=in_array($this->scenario->id,[AlphaScenario::GLOBAL,AlphaScenario::COMPARATIVE,AlphaScenario::ELECTORAL,AlphaScenario::POLITICAL,AlphaScenario::OPINION,AlphaScenario::DIALOGUE,AlphaScenario::SURVIVAL,AlphaScenario::REVOLUTION_CASE,AlphaScenario::PRESIDENTIAL,AlphaScenario::REVISION,AlphaScenario::LEGISLATIVE,AlphaScenario::RESPONSIBILITY,AlphaScenario::ASSEMBLY,AlphaScenario::PARLIAMENT,AlphaScenario::CABINET,AlphaScenario::EXECUTIVE,AlphaScenario::FINANCE,AlphaScenario::MACRO,AlphaScenario::FISCAL_LOOP,AlphaScenario::DEBT,AlphaScenario::FINANCIAL_CRISIS,AlphaScenario::POPULATION,AlphaScenario::SERVICES,AlphaScenario::PARTNERS,AlphaScenario::CORPORATIONS,AlphaScenario::CIVIL_CRISIS,AlphaScenario::INVESTITURE],true) && array_key_exists('reference_bundle_sha',$body)?['label','scenario','reference_bundle_sha']:['label','scenario'];
         if($this->scenario->id===AlphaScenario::INVESTITURE&&array_key_exists('candidate',$body))$fields[]='candidate';
         AlphaAccounts::fields($body,$fields);
-        $candidate=null;
+        $candidate=null;$candidateMayStart=true;
         if(array_key_exists('candidate',$body)){
-            try{$candidate=CampaignCandidate::normalize($body['candidate']);}
+            if(CampaignCandidate::discoveryOnly($body['candidate']))throw new AlphaHttpError(409,'candidate_programme_unavailable');
+            try{$candidate=CampaignCandidate::normalize($body['candidate']);$candidateMayStart=CampaignCandidate::mayStart($body['candidate']);}
             catch(\InvalidArgumentException|\DomainException $e){throw new AlphaHttpError(422,'invalid_candidate');}
         }
         if (!is_string($body['label']) || trim($body['label'])==='' || mb_strlen($body['label'])>100
@@ -144,6 +145,7 @@ final class AlphaWorlds
                 if (!hash_equals($prior['request_sha'],$fingerprint)) throw new AlphaHttpError(409,'idempotency_conflict');
                 if(!$managed)$this->db->commit();return ['world_id'=>$prior['world_id'],'scenario'=>$this->scenario->id,'label'=>$label,'role'=>'owner'];
             }
+            if(!$candidateMayStart)throw new AlphaHttpError(409,'candidate_programme_unavailable');
             $q=$this->db->prepare('SELECT COUNT(*) FROM wp_alpha_worlds WHERE owner_id=?');
             $q->execute([$owner]);
             if ((int)$q->fetchColumn()>=10&&!$managed) throw new AlphaHttpError(409,'world_limit');

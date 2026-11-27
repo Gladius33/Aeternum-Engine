@@ -56,7 +56,7 @@ paths:
                 universe_no: { type: integer, minimum: 1 }
                 candidate:
                   type: object
-                  description: Optional historical, provisional 2027 campaign or fictional identity only for the first French control on the opening scenario day. A campaign2027 edition initializes the reviewed idle programme atomically, without enacting any law. An inherited mandate cannot be renamed.
+                  description: Optional historical, provisional 2027 campaign or fictional identity only for the first French control on the opening scenario day. Only a complete, implementation-reviewed campaign2027 edition can be selected; incomplete and historical archive references return 409 candidate_programme_unavailable. An admitted edition initializes the reviewed idle programme atomically, without enacting any law. An inherited mandate cannot be renamed.
                   required: [type]
                   properties:
                     type: { type: string, enum: [historical, campaign2027, fictional] }
