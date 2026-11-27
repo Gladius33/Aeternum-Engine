@@ -25,6 +25,7 @@ require_once __DIR__.'/HouseholdAccount.php';
 require_once __DIR__.'/ProgrammeProgress.php';
 require_once __DIR__.'/PdoCampaignScores.php';
 require_once __DIR__.'/UniverseLobby.php';
+require_once __DIR__.'/PdoCareerInstitutionStore.php';
 
 /** Explicit HTTP allowlist. Only the private alpha subset is mounted. */
 final class AlphaGateway
@@ -71,6 +72,25 @@ final class AlphaGateway
             if ($path==='/api/v1/me/recovery-code' && $method==='POST') return self::ok(201,$accounts->createRecovery($session,$body));
             if ($path==='/api/v1/me/password' && $method==='POST') return self::ok(200,$accounts->changePassword($session,$body));
             if ($path==='/api/v1/me' && $method==='GET') return self::ok(200,['account_id'=>$session->id,'username'=>$session->username]);
+            if($path==='/api/v1/career-worlds'||str_starts_with($path,'/api/v1/career-worlds/')){
+                $secret=getenv('WP_CAREER_EVIDENCE_KEY');
+                if(!is_string($secret)||strlen($secret)<32)throw new AlphaHttpError(404,'not_found');
+                $token=substr($h['authorization'],7);
+                $cs=new PdoCareerInstitutionStore($this->db(),new CareerInstitutionEvidence($secret));
+                try{
+                    if($path==='/api/v1/career-worlds'&&$method==='POST'){
+                        AlphaAccounts::fields($body,['label']);if(!is_string($body['label']))throw new AlphaHttpError(422,'invalid_label');
+                        if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
+                        return self::ok(201,$cs->createForSession($token,$body['label'],$h['idempotency-key'],$secret));
+                    }
+                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|admission)$~D',$path,$cm)){
+                        if($session->role($cm[1])===null)throw new AlphaHttpError(404,'not_found');
+                        if($cm[2]==='career'&&$method==='GET')return self::ok(200,$cs->readForSession($cm[1],$token));
+                        if($cm[2]==='admission'&&$method==='POST'){AlphaAccounts::fields($body,[]);return self::ok(200,$cs->admitForSession($cm[1],$token,$secret));}
+                    }
+                }catch(\DomainException $e){throw new AlphaHttpError(409,'career_request_rejected');}
+                throw new AlphaHttpError(404,'not_found');
+            }
             if($path==='/api/v1/universes'&&$method==='GET')return self::ok(200,(new UniverseLobby($this->db()))->list($session));
             if($path==='/api/v1/universes/join'&&$method==='POST'){
                 if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
@@ -190,6 +210,9 @@ final class AlphaGateway
             if (!preg_match('~^/api/v1/worlds/([a-z][a-z0-9_-]{0,63})(/.*)$~D',$path,$m)) throw new AlphaHttpError(404,'not_found');
             $world=$m[1];$suffix=$m[2];$role=$session->role($world);
             if ($role===null) throw new AlphaHttpError(404,'not_found');
+            $careerMarker=$this->db()->prepare('SELECT scenario FROM wp_alpha_worlds WHERE world_id=?');
+            $careerMarker->execute([$world]);
+            if(in_array($careerMarker->fetchColumn(),['wp-career-v1','wp-career-research-v1'],true))throw new AlphaHttpError(404,'not_found');
             if($method!=='GET'&&$role!=='owner'){
                 $country=$session->country($world);
                 // Only existing country-scoped command APIs; never grant

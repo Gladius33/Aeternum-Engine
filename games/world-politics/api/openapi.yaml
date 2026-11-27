@@ -31,6 +31,57 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /career-worlds:
+    post:
+      summary: Create isolated French fictional career sandbox (opt-in)
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [label]
+              properties:
+                label: {type: string, minLength: 1, maxLength: 100}
+      responses:
+        '201': {description: World created or receipt replayed}
+        '404': {description: Feature disabled}
+        '409': {description: Admission or idempotency conflict}
+  /career-worlds/{world}/career:
+    get:
+      summary: Read own career and current office capabilities
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Own career and institutional projection}
+        '404': {description: Feature disabled or world inaccessible}
+        '409': {description: Verification failure}
+  /career-worlds/{world}/admission:
+    post:
+      summary: Admit existing member as fictional non-executive career
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false}
+      responses:
+        '200': {description: Own career projection}
+        '404': {description: Feature disabled or world inaccessible}
+        '409': {description: Admission rejected}
   /universes:
     get:
       operationId: listManagedUniverses

@@ -41,4 +41,18 @@ $q('UPDATE wp_career_active_offices SET generation=999 WHERE world_id=?',[$world
 dbck($store->audit($world)['sequence']===4,'tamper detected and restored');
 foreach(['wp_career_active_offices','wp_career_memberships','wp_career_events','wp_career_ledgers','wp_world_mutation_fences','wp_world_clock','wp_alpha_members','wp_alpha_worlds'] as $table)$q("DELETE FROM $table WHERE world_id=?",[$world]);
 $q('DELETE FROM wp_sessions WHERE account_id=?',[$a]);foreach([$a,$b] as $account)$q('DELETE FROM wp_accounts WHERE account_id=?',[$account]);
+// Isolated store admission uses session authentication and cannot grant an office.
+$apiAccount='acct-'.bin2hex(random_bytes(10));$apiToken=bin2hex(random_bytes(32));
+$q('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$apiAccount,$apiAccount,'fixture']);
+$q('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$apiToken),$apiAccount,time()+3600]);
+$new=$store->createForSession($apiToken,'Career test','career-create-test-001',$secret);
+$wid=$new['world_id'];
+dbck($store->createForSession($apiToken,'Career test','career-create-test-001',$secret)===$new,'creation replay');
+dbno(fn()=>$store->createForSession($apiToken,'Other label','career-create-test-001',$secret));
+$view=$store->readForSession($wid,$apiToken);
+dbck($view['career']!==null&&$view['mandates']===[]&&!$view['rankable'],'fictional admission no mandate');
+dbck($store->admitForSession($wid,$apiToken,$secret)===$view,'admission idempotence');
+dbno(fn()=>$store->readForSession($wid,str_repeat('0',64)));
+foreach(['wp_career_active_offices','wp_career_memberships','wp_career_events','wp_career_ledgers','wp_world_mutation_fences','wp_world_clock','wp_alpha_members','wp_alpha_worlds'] as $table)$q("DELETE FROM $table WHERE world_id=?",[$wid]);
+$q('DELETE FROM wp_sessions WHERE account_id=?',[$apiAccount]);$q('DELETE FROM wp_accounts WHERE account_id=?',[$apiAccount]);
 echo "PASS WP118–119 MariaDB: fence contention, rollback, replay, session grants, revocation and projection tamper detection\n";
