@@ -207,7 +207,7 @@ $reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
 $resetProfile=PP::compileProfile([$reset114,'industry-active']);
 ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
 no82(fn()=>PP::compileProfile([$reset114,$pension114]));
-ck82(count(SP::objectives())===109&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
+ck82(count(SP::objectives())===110&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
 $pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
 ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
 $resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
@@ -243,7 +243,7 @@ no82(fn()=>SE::calculate([],[],'2027-09-11',$pop,$services,$base,null,['job_guar
 
 require_once __DIR__.'/../games/world-politics/src/HistoricalProgrammeCoverage.php';
 $historicalCoverage=\Aeternum\WorldPolitics\HistoricalProgrammeCoverage::report();
-ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===5&&$historicalCoverage['additional_executable_count']===42,'WP114i separate all twelve source inventories from executable historical measures');
+ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===4&&$historicalCoverage['additional_executable_count']===43,'WP114i separate all twelve source inventories from executable historical measures');
 ck82(!$historicalCoverage['wp114_closure_qualified'],'WP114i no false exhaustive coverage');
 ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['employment_bps'][2]===[2017,2900,8060,6230,6540],'WP114j exact verified INSEE training anchors');
 
@@ -251,7 +251,7 @@ ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['e
 // WP114 primary quantitative: exact source targets, extended masks,
 // separately costed routes and legal identity for each primary measure.
 use Aeternum\WorldPolitics\PrimaryManifestoPolicy as PM;
-ck82(count(PM::definitions())===42,'WP114 42 independently reviewed quantitative routes');
+ck82(count(PM::definitions())===43,'WP114 43 independently reviewed primary routes');
 $primaryMix=PP::compileProfile(['pf2022-eric-zemmour-3','pf2022-yannick-jadot-2','hist2022-emmanuel-macron-1','industry-active']);
 ck82(strlen($primaryMix)<=40&&count(PP::socialIds($primaryMix))===3&&PP::agenda($primaryMix)['industry']==='active','WP114 extended mixed canonical mask');
 no82(fn()=>PP::compileProfile(['pf2022-anne-hidalgo-4','pf2022-philippe-poutou-1']));
@@ -302,3 +302,32 @@ $endLocal=SE::calculate([$local],[$local=>['effective_on'=>'2027-09-11']],'2032-
 ck82($endLocal['measures'][0]['annual_supply_chain_shift_eur']===4000000000&&$endLocal['production_delta_bps']>0&&!$endLocal['measures'][0]['tariff_or_origin_restriction_implemented'],'WP114 short chain real output and fiscal support');
 $repealLocal=PP::compileProfile(['social-repeal-local-supply','industry-active']);
 ck82(PP::socialIds($repealLocal)===['social-repeal-local-supply']&&SP::assumption('social-repeal-local-supply',$pc,true)['expense_delta']===0,'WP114 bit 127 repeal and zero proxy');
+
+
+// WP114 Article 13 treaty rule: notice is a separate durable action,
+// requires a trusted service and never immediately cancels Article 5.
+require_once __DIR__.'/../games/world-politics/src/OrganizationSimulation.php';
+use Aeternum\WorldPolitics\{NatoWithdrawal as NW,OrganizationSimulation as OS,DiplomaticPrincipal as DP,GlobalReferenceBundle as GRB};
+require_once __DIR__.'/../games/world-politics/src/GlobalReferenceBundle.php';
+$natoId=NW::POLICY;$nh=str_repeat('a',64);$dh=str_repeat('b',64);
+$nato=NW::notice('2027-09-12',$natoId,'2027-09-11',$nh,$dh);
+ck82($nato['effective_on']==='2028-09-12'&&$nato['article5_treaty_applies'],'WP114 Article 13 calendar year including leap day');
+ck82(NW::advance($nato,'2028-09-11')['status']==='notice_deposited'&&!NW::advance($nato,'2028-09-12')['article5_treaty_applies'],'WP114 no premature treaty termination');
+no82(fn()=>NW::notice('2027-09-10',$natoId,'2027-09-11',$nh,$dh));
+$badNato=$nato;$badNato['effective_on']='2027-09-13';no82(fn()=>NW::restore($badNato));
+$actorsNato=GRB::published()->actors;
+$orgNato=new OS('world-test','2027-09-12',$actorsNato,[]);
+$serviceNato=new class implements DP{
+    public function actorId():string{return 'clock-test';}
+    public function allows(string $world,string $actor,string $ability):bool{return $world==='world-test'&&$actor==='clock-test'&&$ability==='organizations.clock';}
+};
+$humanNato=new class implements DP{
+    public function actorId():string{return 'human-test';}
+    public function allows(string $world,string $actor,string $ability):bool{return false;}
+};
+no82(fn()=>$orgNato->natoNotice($humanNato,$natoId,'2027-09-11',$nh,$dh));
+ck82(!isset($orgNato->snapshot()['nato_withdrawal']),'WP114 unauthorized notice does not mutate state');
+$orgNato->natoNotice($serviceNato,$natoId,'2027-09-11',$nh,$dh);
+no82(fn()=>$orgNato->natoNotice($serviceNato,$natoId,'2027-09-11',$nh,$dh));
+$orgNato->advanceTo($serviceNato,'2028-09-11','nato-test-before');$orgNato->advanceTo($serviceNato,'2028-09-12','nato-test-effective');
+ck82($orgNato->snapshot()['nato_withdrawal']['status']==='withdrawn'&&OS::fromSnapshot($orgNato->snapshot(),$actorsNato,[])->hash()===$orgNato->hash(),'WP114 durable treaty receipt and restore');

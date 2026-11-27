@@ -5,6 +5,7 @@ namespace Aeternum\WorldPolitics;
 
 require_once __DIR__.'/DiplomaticSimulation.php';
 require_once __DIR__.'/EuropeanWithdrawal.php';
+require_once __DIR__.'/NatoWithdrawal.php';
 
 /**
  * WP09: charter-configured international organization memberships.
@@ -102,7 +103,7 @@ final class OrganizationSimulation
     ):self {
         self::keys($snapshot,[
             'world_id','day','actors_sha','version','charters_sha',
-            'organizations','applications','withdrawals','events','commands',...(array_key_exists('eu_withdrawal',$snapshot)?['eu_withdrawal']:[])
+            'organizations','applications','withdrawals','events','commands',...(array_key_exists('eu_withdrawal',$snapshot)?['eu_withdrawal']:[]),...(array_key_exists('nato_withdrawal',$snapshot)?['nato_withdrawal']:[])
         ]);
         if (!is_string($snapshot['world_id']) || !is_string($snapshot['day'])) {
             throw new \InvalidArgumentException('Invalid world identity in snapshot');
@@ -225,6 +226,14 @@ final class OrganizationSimulation
             $eu=EuropeanWithdrawal::restore($snapshot['eu_withdrawal']);
             if($eu['day']!==$snapshot['day'])throw new \DomainException('EU clock mismatch');
         }elseif(array_key_exists('eu_withdrawal',$snapshot))throw new \DomainException('Invalid EU state');
+        if(array_key_exists('nato_withdrawal',$snapshot)){
+            if(!is_array($snapshot['nato_withdrawal']))throw new \DomainException('Invalid NATO withdrawal');
+            $n=NatoWithdrawal::restore($snapshot['nato_withdrawal']);
+            if($n['day']!==$snapshot['day'])throw new \DomainException('NATO clock mismatch');
+            $id='nato-notice-'.substr(hash('sha256',$snapshot['world_id'].'|'.$n['policy_id']),0,32);
+            $notice=NatoWithdrawal::notice($n['notice_on'],$n['policy_id'],$n['authorization_effective_on'],$n['instrument_sha'],$n['domestic_source_sha']);
+            if(($snapshot['commands'][$id]['result']['nato_withdrawal']??null)!==$notice)throw new \DomainException('Missing recorded treaty notice');
+        }
         $self->state=$snapshot;
         return $self;
     }
@@ -387,6 +396,18 @@ final class OrganizationSimulation
         ]);
     }
 
+    /** Server-only simulated notice. The persistence boundary verifies the
+     * prior committed law and its publication proof before calling this. */
+    public function natoNotice(DiplomaticPrincipal $service,string $policy,string $effective,string $instrument,string $domesticSha):array
+    {
+        $this->authorizeService($service,'organizations.clock');
+        if(isset($this->state['nato_withdrawal']))throw new \DomainException('Treaty notice already recorded');
+        $v=NatoWithdrawal::notice($this->state['day'],$policy,$effective,$instrument,$domesticSha);
+        $id='nato-notice-'.substr(hash('sha256',$this->state['world_id'].'|'.$policy),0,32);
+        $this->state['nato_withdrawal']=$v;
+        return $this->record($id,'nato_notice',self::encode([$policy,$effective,$instrument,$domesticSha]),['nato_withdrawal'=>$v]);
+    }
+
     /** Simulation clock, server worker only; due withdrawals become effective. */
     public function advanceTo(DiplomaticPrincipal $service,string $day,string $commandId):array
     {
@@ -396,6 +417,7 @@ final class OrganizationSimulation
         if ($seen=$this->previous($commandId,'clock',$day)) return $seen;
         $this->state['day']=$day;
         if(isset($this->state['eu_withdrawal']))$this->state['eu_withdrawal']=EuropeanWithdrawal::advance($this->state['eu_withdrawal'],$day);
+        if(isset($this->state['nato_withdrawal']))$this->state['nato_withdrawal']=NatoWithdrawal::advance($this->state['nato_withdrawal'],$day);
         $processed=[];
         foreach ($this->state['withdrawals'] as $id=>&$withdrawal) {
             if ($withdrawal['status']==='pending' && $withdrawal['effective_on']<=$day) {

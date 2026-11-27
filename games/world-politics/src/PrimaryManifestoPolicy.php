@@ -55,6 +55,7 @@ final class PrimaryManifestoPolicy
             ['marine-le-pen-1','industry','sme-procurement',[],['annual_procurement_eur'=>100000000000,'reference_sme_share_bps'=>3000,'scenario_target_share_bps'=>4000,'administration_cost_bps'=>50]],
             ['marine-le-pen-3','trade','local-supply',[],['annual_eligible_turnover_eur'=>40000000000,'target_shift_bps'=>1000,'support_rate_bps'=>2000,'ramp_years'=>5,'domestic_value_added_bps'=>4500,'annual_output_per_job_eur'=>90000]],
             ['jean-luc-melenchon-4','energy','renewable-transition',['target_bps'=>10000,'target_year'=>2050],['reference_renewable_share_bps'=>2300,'annual_final_energy_gwh'=>1500000,'investment_eur_per_annual_gwh'=>900000,'public_finance_share_bps'=>4000,'annual_maintenance_bps'=>100,'imported_equipment_bps'=>3000,'annual_output_per_job_eur'=>90000]],
+            ['philippe-poutou-4','diplomacy','nato-withdrawal',[],[]],
         ];
         $out=[];
         foreach($rows as $n=>$row){
@@ -204,6 +205,11 @@ final class PrimaryManifestoPolicy
             $r['employment_delta_bps']=intdiv(intdiv(intdiv(($dailyBuild-$r['daily_imported_equipment_minor'])*365,100),$a['annual_output_per_job_eur'])*10000,max(1,$labour));
             $r['target_achievement_certified']=false;
             $r['physical_grid_and_storage_qualified']=false;
+        }elseif($f==='nato-withdrawal'){
+            // The ordinary law merely authorizes the executive notice.
+            // Actual treaty status is held by OrganizationSimulation.
+            $r['withdrawal_authorization_only']=true;
+            $r['treaty_status_domain']='organizations.nato_withdrawal';
         }else throw new \DomainException('No quantitative route for primary commitment');
         $r['daily_revenue_delta_minor']=intdiv($r['annual_revenue_delta_eur']*100,365);
         $r['daily_expense_delta_minor']=intdiv($r['annual_expense_delta_eur']*100,365);

@@ -233,7 +233,11 @@ final class UniverseLobby
                     if(str_starts_with($id,'pres-objective-'))$objectives[]=['family'=>'commitment','id'=>$id,'request'=>$cmd,
                         'current_record'=>$v['commitments']['records'][$cmd['id']]];
             }
-            return $report+['institutional_and_commitment_objectives'=>$objectives,'version'=>PresidentialProgramme::VERSION,'domestic'=>$slot['domestic_programme'],'agenda'=>PresidentialProgramme::agenda($slot['domestic_programme']),
+            $org=$this->query('SELECT state_json,state_sha FROM wp_organization_states WHERE world_id=?',[$world])->fetch(\PDO::FETCH_ASSOC);
+            if($org===false||!hash_equals($org['state_sha'],hash('sha256',$org['state_json'])))throw new \DomainException('Invalid treaty programme source');
+            $os=json_decode($org['state_json'],true,64,JSON_THROW_ON_ERROR);
+            if($os['world_id']!==$world||$os['day']!==$c['committed_day'])throw new \DomainException('Incoherent treaty programme source');
+            return $report+['nato_withdrawal'=>$os['nato_withdrawal']??null,'institutional_and_commitment_objectives'=>$objectives,'version'=>PresidentialProgramme::VERSION,'domestic'=>$slot['domestic_programme'],'agenda'=>PresidentialProgramme::agenda($slot['domestic_programme']),
                 'direct_actions'=>$this->query('SELECT mandate_start,programme,decision_day,action_id,outcome FROM wp_universe_programme_direct WHERE world_id=? ORDER BY decision_day,programme LIMIT 10000',[$world])->fetchAll(\PDO::FETCH_ASSOC),
                 'automatic_legal_route'=>PresidentialProgramme::executable($slot['domestic_programme']),
                 'human_action_this_day'=>$slot['last_human_domestic_day']===$c['committed_day'],

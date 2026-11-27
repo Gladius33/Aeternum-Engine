@@ -151,6 +151,7 @@ final class PdoOrganizationStore
             if (!hash_equals('"'.$before.'"',$ifMatch)) {
                 throw new \DomainException('Stale state precondition');
             }
+            if($operation==='clock')$this->natoProgrammeNotice($sim,$world,$actorId,$payload['target_day']);
             $result=$this->apply($sim,$operation,$payload,$commandId);
             $after=$sim->hash();
             $revision=(int)$row['revision']+1;
@@ -180,6 +181,30 @@ final class PdoOrganizationStore
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) $this->pdo->rollBack();
             throw $e;
+        }
+    }
+
+    private function natoProgrammeNotice(OrganizationSimulation $sim,string $world,string $actor,string $target):void
+    {
+        if($actor!=='alpha-clock-'.$world||isset($sim->snapshot()['nato_withdrawal']))return;
+        try{$q=$this->pdo->prepare('SELECT 1 FROM wp_universes WHERE world_id=?');$q->execute([$world]);if($q->fetchColumn()===false)return;}
+        catch(\PDOException $e){if($e->getCode()==='42S02'&&(int)($e->errorInfo[1]??0)===1146)return;throw $e;}
+        $day=$sim->snapshot()['day'];
+        if($target!==(new \DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d'))throw new \DomainException('NATO notice requires daily clock');
+        $q=$this->pdo->prepare('SELECT state_json,state_sha FROM wp_domestic_states WHERE world_id=?');$q->execute([$world]);$raw=$q->fetch(\PDO::FETCH_ASSOC);
+        if($raw===false)throw new \DomainException('Missing notice authorization source');
+        $d=json_decode($raw['state_json'],true,64,JSON_THROW_ON_ERROR);
+        if($d['world_id']!==$world||$d['day']!==$day||!hash_equals($raw['state_sha'],hash('sha256',$raw['state_json'])))throw new \DomainException('Invalid committed notice source');
+        $active=$d['days']===[]?[]:$d['days'][array_key_last($d['days'])]['active_policies'];
+        foreach($active as $id){
+            if(!preg_match('/^pf2022-philippe-poutou-4(?:-r(?:[2-9]|[1-9][0-9]{1,2}))?$/D',$id))continue;
+            $p=$d['policies'][$id]??null;
+            if($p===null||$p['authorized_on']===null||$p['authorized_on']>=$day||$p['effective_on']>$day)throw new \DomainException('Unapproved NATO notice');
+            $q=$this->pdo->prepare('SELECT record_json,record_sha FROM wp_domestic_enactments WHERE world_id=? AND policy_id=?');$q->execute([$world,$id]);$r=$q->fetch(\PDO::FETCH_ASSOC);
+            if($r===false||!hash_equals($r['record_sha'],$p['instrument_sha'])||!hash_equals($r['record_sha'],hash('sha256',$r['record_json'])))throw new \DomainException('Missing treaty authorization publication');
+            $v=json_decode($r['record_json'],true,64,JSON_THROW_ON_ERROR);
+            if($v['world_id']!==$world||$v['policy_id']!==$id||$v['effective_on']!==$p['effective_on']||$v['route']!=='fr_bicameral'||$v['classification']!=='simulated_final_act')throw new \DomainException('Invalid NATO authorization record');
+            $sim->natoNotice($this->principal,$id,$p['effective_on'],$p['instrument_sha'],$raw['state_sha']);return;
         }
     }
 

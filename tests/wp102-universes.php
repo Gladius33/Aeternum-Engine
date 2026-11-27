@@ -325,3 +325,15 @@ ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced
 for($n=0;$n<4;$n++){$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114 structural economic programme tick');}
 $eState=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
 ck102(count($eState['social_measure_ids'])===2,'WP114 economic transition programme persisted');
+
+
+// WP114 NATO selection and actual parliamentary draft do not themselves
+// constitute a notice. The independent organization clock waits for
+// a committed effective law and exact publication receipt.
+$natoId='pf2022-philippe-poutou-4';
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>[$natoId]],8)['status']===200,'WP114 treaty programme accepted');
+for($n=0;$n<4;$n++){$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114 treaty authorization pipeline');}
+$nr=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($nr['nato_withdrawal']===null&&$nr['social_measure_ids']===[$natoId],'WP114 no notice before effective law');
+$q114e->execute([$spare]);$ni=json_decode($q114e->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck102(count(array_filter($ni['legislation']['bills'],fn($b)=>$b['policy_id']===$natoId))===1,'WP114 separate treaty authorization bill');
