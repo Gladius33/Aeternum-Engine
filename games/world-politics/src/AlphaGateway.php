@@ -83,7 +83,7 @@ final class AlphaGateway
                         if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
                         return self::ok(201,$cs->createForSession($token,$body['label'],$h['idempotency-key'],$secret,$body['profile']??'institutional',$body['country']??'FR',$body['reference_id']??null));
                     }
-                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|admission|members|economy|cabinet|policy-proposals|institutions|bills)$~D',$path,$cm)){
+                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|characters|admission|members|economy|cabinet|policy-proposals|institutions|bills)$~D',$path,$cm)){
                         if($session->role($cm[1])===null)throw new AlphaHttpError(404,'not_found');
                         if($cm[2]==='institutions'&&$method==='GET')return self::ok(200,$cs->institutionsForSession($cm[1],$token));
                         if($cm[2]==='bills'&&$method==='POST'){
@@ -93,6 +93,7 @@ final class AlphaGateway
                         }
                         if($cm[2]==='economy'&&$method==='GET')return self::ok(200,$cs->economicForSession($cm[1],$token));
                         if($cm[2]==='career'&&$method==='GET')return self::ok(200,$cs->readForSession($cm[1],$token));
+                        if($cm[2]==='characters'&&$method==='GET')return self::ok(200,$cs->charactersForSession($cm[1],$token));
                         if($cm[2]==='policy-proposals'&&$method==='POST'){
                             if(!isset($h['idempotency-key'],$h['if-match']))throw new AlphaHttpError(428,'precondition_required');
                             $result=$cs->proposePolicyForSession($cm[1],$token,$body,$h['idempotency-key'],$h['if-match']);

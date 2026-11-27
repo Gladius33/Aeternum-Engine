@@ -95,8 +95,11 @@ final class PdoCareerInstitutionStore
                 $gov=self::decode($e['payload']['government_json']);
                 CareerInstitutionLedger::check($gov===$is['accountability'],'comparative source differs');
                 if($gov['status']==='in_office'){
-                    $account=$s['careers'][$gov['incumbent']]['account']??null;
-                    CareerInstitutionLedger::check(is_string($account),'unknown successor career');$this->activeAccount($world,$account);
+                    $career=$s['careers'][$gov['incumbent']]??null;
+                    CareerInstitutionLedger::check(is_array($career),'unknown successor career');
+                    if(($career['controller']??null)==='ai'){
+                        CareerInstitutionLedger::check($career['account']===null&&isset($career['person_reference']),'documented AI successor required');
+                    }else{$this->activeAccount($world,$career['account']);}
                 }
             }
             $next=CareerInstitutionLedger::apply($s,$e);$receipt=self::receipt($next);
@@ -124,6 +127,27 @@ final class PdoCareerInstitutionStore
     }
     public function readForSession(string $world,string $token):array{
         return $this->tx(function()use($world,$token){$clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);return $this->viewLocked($world,$account,$clock);});
+    }
+    /** Member-visible documentary directory, never a list of authenticated accounts. */
+    public function charactersForSession(string $world,string $token):array{
+        return $this->tx(function()use($world,$token){
+            $clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);
+            $state=$this->replay($world,$this->row($world));$out=[];$choices=[];
+            if($state['country']==='FR'){
+                require_once __DIR__.'/CampaignCandidate.php';
+                foreach(CampaignCandidate::candidateDirectory2027() as $choice)$choices[$choice['reference_id']]=$choice;
+            }
+            foreach($state['careers'] as $id=>$c){
+                if(!isset($c['person_reference']))continue;
+                $available=null;
+                foreach($choices as $reference=>$choice)if(($reference===$c['person_reference']||str_starts_with($reference,$c['person_reference'].'-v'))&&$choice['playable']){$available=$reference;break;}
+                $offices=[];foreach($state['active'] as $office=>$mid)if($state['mandates'][$mid]['career']===$id)$offices[]=$office;
+                $out[]=['career_id'=>$id,'identity'=>$c['identity'],'controller'=>$c['controller'],'offices'=>$offices,
+                    'claim_reference'=>$available,'playable'=>$available!==null&&$c['account']===null,
+                    'availability_code'=>$available===null?'programme_incomplete':($c['account']===null?'available':'occupied')];
+            }
+            return ['world_id'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'characters'=>$out,'fictional_creation_available'=>true,'final_ballot_verified'=>false];
+        });
     }
     private function admitLocked(string $world,string $account,array $clock,string $secret,?string $reference=null):array{
         $s=$this->replay($world,$this->row($world));
@@ -193,7 +217,7 @@ final class PdoCareerInstitutionStore
         if($present===count($ids))return null;
         CareerInstitutionLedger::check($present===0,'partial autonomous roster');
         $day=$clock['committed_day'];$p=['people'=>$people];
-        $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-real-ai-roster-v1','actor'=>'career-ai-clerk','operation'=>'admit_real_ai_roster','payload'=>$p,
+        $e=['world'=>$world,'country'=>$state['country'],'day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-real-ai-roster-v1','actor'=>'career-ai-clerk','operation'=>'admit_real_ai_roster','payload'=>$p,
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'real-ai-roster-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
         return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
     }
@@ -261,7 +285,7 @@ final class PdoCareerInstitutionStore
             $s=CareerInstitutionLedger::initial($world,$country,'career',$day);$j=CareerInstitutionLedger::json($s);
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
             if($profile==='economic'){require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);}
-            if($country==='FR')$this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
+            $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
             $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret,$reference);
             return ['world_id'=>$world,'scenario'=>'wp-career-v1','label'=>$label];
         });

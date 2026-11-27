@@ -115,6 +115,11 @@ no(fn()=>L::apply($vv,$ve));
 foreach(['DE','ES','GB','IT','JP','US'] as $cc){
     $f=add(L::initial('foreign-'.$cc,$cc,'career','2027-05-14'),'a');
     ck($f['country']===$cc&&$f['active']===[],'international opposition only');
+    $rp=['people'=>L::realAutonomousRoster($f)];
+    $re=evt($f,'admit_real_ai_roster',$rp);$re['actor']='career-ai-clerk';$re['evidence_sha']=L::digest(['kind'=>'real-ai-roster-v1','world'=>$f['world'],'day'=>$re['day'],'payload'=>$rp]);
+    $f=L::apply($f,$re);ck(count($f['careers'])>=3&&$f['active']===[],'documentary identities do not grant offices');
+    foreach($rp['people'] as $id=>$p)ck($f['careers'][$id]['account']===null&&$p['programme_complete']===false,'foreign identity without fabricated programme');
+    no(fn()=>L::apply($f,$re));
     no(fn()=>change($f,'election',[],[grant('president','a')]));
     $r=L::initial('research-'.$cc,$cc,'research','2027-05-14');
     $r=L::apply($r,evt($r,'research_observe',['regime_label'=>'contested','assembly_status'=>'disrupted','legality'=>'disputed']));

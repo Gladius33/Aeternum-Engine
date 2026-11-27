@@ -106,7 +106,14 @@ final class CareerInstitutionLedger
     /** Frozen documentary identities; simulated acts are not real statements,
      * a confirmed candidacy or a prediction. Never invent an AI person. */
     public static function realAutonomousRoster(array $s):array{
-        self::check($s['country']==='FR'&&$s['mode']==='career','French documented AI roster only');
+        self::check($s['mode']==='career'&&InstitutionalRulebook::hasRules($s['country']),'documented AI roster only');
+        if($s['country']!=='FR'){
+            $r=json_decode(file_get_contents(__DIR__.'/../data/wp119-real-comparative-roster-v1.json'),true,32,JSON_THROW_ON_ERROR);
+            self::check($r['version']==='wp119-real-comparative-roster-v1'&&$r['source_git_blob']==='3fab407ba4ac1bf8097baf03b93082ceb3336ab5','comparative roster edition');
+            $rows=$r['countries'][$s['country']]??[];$out=[];
+            foreach($rows as $p){self::id($p['id']);self::check(!isset($out[$p['id']])&&str_starts_with($p['source'],'https://')&&$p['name']!==''&&$p['programme_complete']===false,'comparative documentary identity');$out[$p['id']]=$p;}
+            self::check(count($out)>=2,'missing comparative identity roster');return $out;
+        }
         $r=json_decode(file_get_contents(__DIR__.'/../data/wp119-real-fr-roster-v1.json'),true,32,JSON_THROW_ON_ERROR);
         self::check($r['version']==='wp119-real-fr-roster-v1'&&$r['country']==='FR'&&$r['final_ballot_verified']===false,'roster edition');
         $out=[];foreach($r['people'] as $p){self::id($p['id']);self::check(!isset($out[$p['id']])&&str_starts_with($p['source'],'https://')&&$p['name']!=='','documentary identity');$out[$p['id']]=$p;}
@@ -279,7 +286,7 @@ final class CareerInstitutionLedger
         self::id($e['command']);self::id($e['actor']);self::day($e['day']);
         self::check($e['world']===$s['world']&&$e['country']===$s['country']&&$e['day']>=$s['day']&&is_int($e['world_revision'])&&$e['world_revision']>=0&&preg_match('/^[a-f0-9]{64}$/D',$e['evidence_sha'])===1,'event scope');
         $p=$e['payload'];$day=$e['day'];$op=$e['operation'];
-        if($s['country']!=='FR')self::check(in_array($op,['admit','foreign_government','research_observe'],true),'French powers unavailable outside France');
+        if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','foreign_government','research_observe'],true),'French powers unavailable outside France');
         if($s['mode']==='career'&&$op==='presidential_ballot'){$p=self::ballotTransition($s,$e);$op='transition';}
         if($s['mode']==='career'&&$op==='cabinet_act'){$p=self::cabinetTransition($s,$e);$op=$p===null?'cabinet_proposal_recorded':'transition';}
         if($s['mode']==='research'){

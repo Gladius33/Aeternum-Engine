@@ -108,5 +108,11 @@ $fn=req('POST','/career-worlds',['label'=>'German career','country'=>'DE'],$etok
 ck($fn['status']===201,'German opposition career creation');
 $fw=$fn['body']['world_id'];$fv=req('GET','/career-worlds/'.$fw.'/career',null,$etoken);
 ck($fv['status']===200&&$fv['body']['country']==='DE'&&$fv['body']['mandates']===[],'German country pinned, no French powers');
+$fd=req('GET','/career-worlds/'.$fw.'/characters',null,$etoken);
+ck($fd['status']===200&&count($fd['body']['characters'])===3,'German documentary roster');
+foreach($fd['body']['characters'] as $person)ck(!$person['playable']&&$person['controller']==='ai'&&$person['offices']===[],'no inferred office or programme');
+$frd=req('GET',$ep.'/characters',null,$etoken);
+ck($frd['status']===200&&count($frd['body']['characters'])===22,'French directory');
+
 ck(req('POST','/career-worlds',['label'=>'Unknown','country'=>'CH'],$etoken,'career-ch-creation-001')['status']===409,'unimplemented rules fail closed');
 echo "PASS WP118 HTTP career sandbox, invitations, admission, replay, principal and legacy isolation\n";

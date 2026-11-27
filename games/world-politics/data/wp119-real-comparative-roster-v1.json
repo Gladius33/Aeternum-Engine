@@ -1,0 +1,188 @@
+{
+  "version": "wp119-real-comparative-roster-v1",
+  "source_git_blob": "3fab407ba4ac1bf8097baf03b93082ceb3336ab5",
+  "observed_on": "2026-10-15",
+  "countries": {
+    "DE": [
+      {
+        "id": "real-de-friedrich-merz",
+        "person_reference": "person-de-friedrich-merz",
+        "name": "Friedrich Merz",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "head_of_government"
+        ],
+        "programme_complete": false
+      },
+      {
+        "id": "real-de-johann-wadephul",
+        "person_reference": "person-de-johann-wadephul",
+        "name": "Johann Wadephul",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "foreign_minister"
+        ],
+        "programme_complete": false
+      },
+      {
+        "id": "real-de-frank-walter-steinmeier",
+        "person_reference": "person-de-frank-walter-steinmeier",
+        "name": "Frank-Walter Steinmeier",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "head_of_state"
+        ],
+        "programme_complete": false
+      }
+    ],
+    "ES": [
+      {
+        "id": "real-es-pedro-sanchez-perez-castejon",
+        "person_reference": "person-es-pedro-sanchez-perez-castejon",
+        "name": "Pedro Sánchez Pérez-Castejón",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "head_of_government"
+        ],
+        "programme_complete": false
+      },
+      {
+        "id": "real-es-jose-manuel-albares-bueno",
+        "person_reference": "person-es-jose-manuel-albares-bueno",
+        "name": "José Manuel Albares Bueno",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "foreign_minister"
+        ],
+        "programme_complete": false
+      }
+    ],
+    "GB": [
+      {
+        "id": "real-gb-andrew-burnham",
+        "person_reference": "person-gb-andrew-burnham",
+        "name": "Andrew Burnham",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "head_of_government"
+        ],
+        "programme_complete": false
+      },
+      {
+        "id": "real-gb-ed-miliband",
+        "person_reference": "person-gb-ed-miliband",
+        "name": "Ed Miliband",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "foreign_minister"
+        ],
+        "programme_complete": false
+      }
+    ],
+    "IT": [
+      {
+        "id": "real-it-giorgia-meloni",
+        "person_reference": "person-it-giorgia-meloni",
+        "name": "Giorgia Meloni",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "head_of_government"
+        ],
+        "programme_complete": false
+      },
+      {
+        "id": "real-it-antonio-tajani",
+        "person_reference": "person-it-antonio-tajani",
+        "name": "Antonio Tajani",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "foreign_minister"
+        ],
+        "programme_complete": false
+      },
+      {
+        "id": "real-it-sergio-mattarella",
+        "person_reference": "person-it-sergio-mattarella",
+        "name": "Sergio Mattarella",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "head_of_state"
+        ],
+        "programme_complete": false
+      }
+    ],
+    "JP": [
+      {
+        "id": "real-jp-takaichi-sanae",
+        "person_reference": "person-jp-takaichi-sanae",
+        "name": "Takaichi Sanae",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "head_of_government"
+        ],
+        "programme_complete": false
+      },
+      {
+        "id": "real-jp-motegi-toshimitsu",
+        "person_reference": "person-jp-motegi-toshimitsu",
+        "name": "Motegi Toshimitsu",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "foreign_minister"
+        ],
+        "programme_complete": false
+      }
+    ],
+    "US": [
+      {
+        "id": "real-us-donald-j-trump",
+        "person_reference": "person-us-donald-j-trump",
+        "name": "Donald J. Trump",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "head_of_government",
+          "head_of_state"
+        ],
+        "programme_complete": false
+      },
+      {
+        "id": "real-us-marco-a-rubio",
+        "person_reference": "person-us-marco-a-rubio",
+        "name": "Marco A. Rubio",
+        "source": "https://stateintegrity.org.uk/power/world-leaders",
+        "observed_on": "2026-10-15",
+        "publication_state": "office_observation_only",
+        "observed_roles": [
+          "foreign_minister"
+        ],
+        "programme_complete": false
+      }
+    ]
+  }
+}

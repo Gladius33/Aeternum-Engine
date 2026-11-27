@@ -111,6 +111,17 @@ paths:
         '200': {description: Verified economy at committed day}
         '404': {description: Inaccessible world}
         '409': {description: Profile missing or transition in progress}
+  /career-worlds/{world}/characters:
+    get:
+      summary: List documentary political identities and claim availability without granting office
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: World-scoped identities, controllers, offices and programme availability}
+        '404': {description: Inaccessible world}
   /career-worlds/{world}/career:
     get:
       summary: Read own career and current office capabilities
