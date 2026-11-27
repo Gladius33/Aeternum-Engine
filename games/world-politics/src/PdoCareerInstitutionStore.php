@@ -296,7 +296,15 @@ final class PdoCareerInstitutionStore
         return $this->tx(function()use($world,$action,$proof,$secret){
             $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));
             [$sim,$prior]=$this->foreignInstitutionLocked($world,$state,$clock);
-            CareerInstitutionLedger::check(in_array($action,['accountability_file','accountability_vote','accountability_resolve'],true),'unsupported comparative evidence');
+            CareerInstitutionLedger::check(in_array($action,['accountability_file','accountability_vote','accountability_resolve'],true)&&is_string($proof['evidence_id']??null),'unsupported comparative evidence');
+            CareerInstitutionLedger::id($proof['evidence_id']);
+            $actor='career-comparative-clerk';$key=hash('sha256','career-foreign-evidence-v1|'.$proof['evidence_id']);
+            $fingerprint=CareerInstitutionLedger::digest(['action'=>$action,'proof'=>$proof]);
+            $receipt=$this->query('SELECT request_sha,response_json FROM wp_institutional_receipts WHERE world_id=? AND country_code=? AND actor_id=? AND receipt_key=? FOR UPDATE',[$world,$state['country'],$actor,$key])->fetch(\PDO::FETCH_ASSOC);
+            if($receipt!==false){
+                CareerInstitutionLedger::check(hash_equals($receipt['request_sha'],$fingerprint),'comparative evidence idempotency conflict');
+                return self::decode($receipt['response_json']);
+            }
             foreach(['candidate','successor'] as $k)if(isset($proof[$k])){
                 $career=$state['careers'][$proof[$k]]??null;
                 CareerInstitutionLedger::check(is_array($career)&&($career['account']!==null||isset($career['person_reference'])),'unknown or fictional AI successor');
@@ -314,6 +322,8 @@ final class PdoCareerInstitutionStore
                 $e=['world'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'foreign-'.substr($digest,0,48),'actor'=>'career-comparative-clerk','operation'=>'foreign_government','payload'=>$p,'evidence_sha'=>$digest];
                 $out['career_receipt']=$this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
             }
+            $this->query('INSERT INTO wp_institutional_receipts(world_id,country_code,actor_id,receipt_key,request_sha,response_json) VALUES(?,?,?,?,?,?)',
+                [$world,$state['country'],$actor,$key,$fingerprint,CareerForeignWorld::json($out)]);
             return $out;
         });
     }

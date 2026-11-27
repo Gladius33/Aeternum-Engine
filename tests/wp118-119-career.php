@@ -172,4 +172,19 @@ ck(count($refs)===43&&count($refs['FR']['people'])===22,'all managed country ref
 foreach($refs as $country=>$ref)ck(count($ref['people'])>=1&&$ref['country']===$country,'documentary coverage');
 ck($refs['CH']['government_mode']==='collective_executive_not_single_prime_minister','collective executive preserved');
 ck(!\Aeternum\WorldPolitics\UniverseIdentityReference::country('DE')['runtime_authority'],'documentary reference not a grant');
+require_once __DIR__.'/../games/world-politics/src/CareerForeignWorld.php';
+foreach(['DE','ES','GB','IT','JP','US'] as $cc){
+    $f=L::initial('opening-'.strtolower($cc),$cc,'career','2027-05-14');
+    $p=['people'=>L::realAutonomousRoster($f)];
+    $e=evt($f,'admit_real_ai_roster',$p);$e['actor']='career-ai-clerk';$e['evidence_sha']=L::digest(['kind'=>'real-ai-roster-v1','world'=>$f['world'],'day'=>$e['day'],'payload'=>$p]);
+    $f=L::apply($f,$e);
+    $inst=\Aeternum\WorldPolitics\CareerForeignWorld::opening($f);
+    $gov=$inst->snapshot()['accountability'];$id=$gov['incumbent'];
+    ck(isset($f['careers'][$id]['person_reference'])&&$f['careers'][$id]['account']===null,'documented opening government '.$cc);
+    $p=['government_json'=>\Aeternum\WorldPolitics\CareerForeignWorld::json($gov),'expires'=>\Aeternum\WorldPolitics\CareerForeignWorld::boundary($cc)];
+    $e=evt($f,'foreign_opening',$p);$e['actor']='career-comparative-clerk';$e['evidence_sha']=L::digest(['kind'=>'comparative-opening-scenario-v1','world'=>$f['world'],'country'=>$cc,'payload'=>$p]);
+    $next=L::apply($f,$e);
+    ck(count($next['active'])===1&&$next['mandates'][array_values($next['active'])[0]]['career']===$id,'opening mandate '.$cc);
+    no(fn()=>L::apply($next,$e));
+}
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";

@@ -128,7 +128,12 @@ $cs->applyForeignEvidence($fw,'accountability_file',$common+['evidence_id'=>'de-
 $cs->tickForeignInstitution($fw,'2027-05-15');
 $cs->tickForeignInstitution($fw,'2027-05-16');
 $cs->applyForeignEvidence($fw,'accountability_vote',$common+['evidence_id'=>'de-vote','at'=>'2027-05-16T00:00:00Z','chamber'=>'bundestag','present'=>100,'yes'=>60,'no'=>40,'abstain'=>0],$secret);
-$cs->applyForeignEvidence($fw,'accountability_resolve',$common+['evidence_id'=>'de-resolve','at'=>'2027-05-16T01:00:00Z','outcome'=>'appoint_successor','successor'=>'real-de-johann-wadephul'],$secret);
+$resolveProof=$common+['evidence_id'=>'de-resolve','at'=>'2027-05-16T01:00:00Z','outcome'=>'appoint_successor','successor'=>'real-de-johann-wadephul'];
+$receiptForeign=$cs->applyForeignEvidence($fw,'accountability_resolve',$resolveProof,$secret);
+ck($cs->applyForeignEvidence($fw,'accountability_resolve',$resolveProof,$secret)===$receiptForeign,'foreign evidence receipt replay');
+try{$badProof=$resolveProof;$badProof['successor']='real-de-friedrich-merz';$cs->applyForeignEvidence($fw,'accountability_resolve',$badProof,$secret);throw new RuntimeException('foreign evidence conflict accepted');}catch(DomainException $e){}
+$cs->tickForeignInstitution($fw,'2027-05-17');
+ck($cs->applyForeignEvidence($fw,'accountability_resolve',$resolveProof,$secret)===$receiptForeign,'foreign receipt survives next committed day');
 $afterForeign=req('GET','/career-worlds/'.$fw.'/career',null,$etoken);
 ck($afterForeign['body']['occupied_offices'][0]['identity']['person_reference']==='person-de-johann-wadephul'&&$afterForeign['body']['mandates']===[],'certified successor identity projected atomically');
 
