@@ -108,6 +108,26 @@ ck($plan!==null&&$plan['career']==='real-jean-luc-melenchon'&&$plan['policy_id']
 ck($planClass::next($planState,'2027-05-14',[],['pf2027-jean-luc-melenchon-smic'=>true],['real-jean-luc-melenchon'=>true])===null,'same-day activity suppresses fallback');
 ck($planClass::next($real,'2027-05-14',[],['pf2027-jean-luc-melenchon-smic'=>true])===null,'identity alone grants no action');
 no(fn()=>$planClass::normalizeFictional(['name'=>'Fixture','measure_ids'=>['unmapped']],'FR'));
+// Government formation for real AI officeholders, two separate authorities.
+$ac=change($real,'election',[],[grant('president','real-jean-luc-melenchon')]);
+$autoCabinet=function(array $state,string $day):array{
+    $payload=L::automaticCabinet($state,$day);
+    ck($payload!==null,'automatic cabinet step expected');
+    $e=evt($state,'automatic_cabinet',$payload,$day);$e['actor']='career-ai-clerk';
+    $e['evidence_sha']=L::digest(['kind'=>'automatic-cabinet-v1','world'=>$state['world'],'day'=>$day,'actor'=>$e['actor'],'payload'=>$payload]);return $e;
+};
+$ap=$autoCabinet($ac,'2027-05-14');
+ck($ap['payload']['kind']==='appoint_pm','vacant PM appointment');
+$bad=$ap;$bad['payload']['target']='real-jean-luc-melenchon';$bad['evidence_sha']=L::digest(['kind'=>'automatic-cabinet-v1','world'=>$ac['world'],'day'=>$bad['day'],'actor'=>$bad['actor'],'payload'=>$bad['payload']]);
+no(fn()=>L::apply($ac,$bad));
+$ac=L::apply($ac,$ap);ck(isset($ac['active']['prime-minister'])&&L::automaticCabinet($ac,'2027-05-14')===null,'one automatic cabinet action per day');
+$ap=$autoCabinet($ac,'2027-05-15');ck($ap['payload']['kind']==='propose_minister','PM proposes minister');
+$ac=L::apply($ac,$ap);ck(!isset($ac['active']['minister-economy']),'proposal does not appoint');
+$ap=$autoCabinet($ac,'2027-05-16');ck($ap['payload']['kind']==='confirm_minister','president confirms separate proposal');
+$ac=L::apply($ac,$ap);ck(isset($ac['active']['minister-economy']),'minister installed');
+$human=change(add($real,'human'),'election',[],[grant('president','human')]);ck(L::automaticCabinet($human,'2027-05-14')===null,'human presidency never silently appoints');
+$humanPm=change(change(add($real,'human'),'election',[],[grant('president','real-jean-luc-melenchon')]),'appointment',[],[grant('prime-minister','human')]);
+ck(L::automaticCabinet($humanPm,'2027-05-14')===null,'human PM right to nominate preserved');
 // WP112 vacancy calendar with an independently certified interim mandate.
 $vac=add(add(add(add(L::initial('vacancy-world','FR','career','2027-05-14'),'a'),'b'),'c'),'d');
 $vac=change($vac,'election',[],[grant('president','a')]);

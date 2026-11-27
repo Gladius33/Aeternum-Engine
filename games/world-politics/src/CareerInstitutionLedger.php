@@ -220,13 +220,57 @@ final class CareerInstitutionLedger
         $first=$date->setDate($year,$month,1);$expires=$first->setDate($year,$month,min((int)$date->format('d'),(int)$first->format('t')))->format('Y-m-d');
         return ['reason'=>$reason,'close'=>$old===null?[]:['president'],'grants'=>[['office'=>'president','career'=>$winner,'expires'=>$expires,'interim'=>false]]];
     }
+    /** Vacancy-only cabinet continuity. Selection is a deterministic scenario
+     * convention among documented, unencumbered AI careers; not evidence of
+     * ideological affinity, actual willingness or a forecast of appointments.
+     * Never choose a human-held career for an unsolicited nomination. */
+    public static function automaticCabinet(array $s,string $day):?array{
+        if($s['country']!=='FR'||$s['mode']!=='career'||($s['last_automatic_cabinet_day']??null)===$day)return null;
+        $pres=$s['active']['president']??null;
+        if($pres===null)return null;
+        $p=$s['mandates'][$pres];$pc=$s['careers'][$p['career']];
+        if($p['interim']||$p['expires']<=$day||$p['start']>$day||!in_array('president.request_appointment',$p['powers'],true)||$pc['account']!==null||!isset($pc['person_reference'])||($pc['controller']??null)!=='ai')return null;
+        $occupied=[];foreach($s['active'] as $mid)$occupied[$s['mandates'][$mid]['career']]=true;
+        $candidates=[];
+        foreach($s['careers'] as $id=>$career)if($career['account']===null&&isset($career['person_reference'])&&($career['controller']??null)==='ai'&&!isset($occupied[$id])&&$career['admitted_on']<=$day)$candidates[]=$id;
+        sort($candidates,SORT_STRING);
+        $pm=$s['active']['prime-minister']??null;
+        if($pm===null){
+            if($candidates===[])return null;
+            return ['kind'=>'appoint_pm','mandate'=>$pres,'generation'=>$p['generation'],'target'=>$candidates[0],'portfolio'=>null,'proposal'=>null];
+        }
+        $m=$s['mandates'][$pm];$mc=$s['careers'][$m['career']];
+        // Respect a human PM's exclusive right to propose ministers. Pending
+        // proposals by a human are never automatically accepted here.
+        if($m['expires']<=$day||$m['start']>$day||$mc['account']!==null||!isset($mc['person_reference'])||($mc['controller']??null)!=='ai'||!in_array('government.propose_ministers',$m['powers'],true))return null;
+        foreach($s['appointment_proposals']??[] as $id=>$proposal){
+            if($proposal['status']!=='pending'||$proposal['pm_mandate']!==$pm||!($proposal['automatic']??false))continue;
+            if(isset($s['active']['minister-'.$proposal['portfolio']])||!in_array($proposal['target'],$candidates,true))continue;
+            return ['kind'=>'confirm_minister','mandate'=>$pres,'generation'=>$p['generation'],'target'=>null,'portfolio'=>null,'proposal'=>$id];
+        }
+        if($candidates===[])return null;
+        foreach(self::MINISTRIES as $portfolio){
+            if(isset($s['active']['minister-'.$portfolio]))continue;
+            $pending=false;
+            foreach($s['appointment_proposals']??[] as $proposal)if($proposal['status']==='pending'&&$proposal['pm_mandate']===$pm&&$proposal['portfolio']===$portfolio){$pending=true;break;}
+            if(!$pending)return ['kind'=>'propose_minister','mandate'=>$pm,'generation'=>$m['generation'],'target'=>$candidates[0],'portfolio'=>$portfolio,'proposal'=>null];
+        }
+        return null;
+    }
     /** Institution-only cabinet decisions; the account and generation are derived from a verified session. */
     public static function cabinetTransition(array &$s,array $e):?array{
         $p=$e['payload'];self::fields($p,['kind','mandate','generation','target','portfolio','proposal']);
-        self::check(is_int($p['generation'])&&is_string($p['mandate'])&&is_string($p['kind'])&&$e['evidence_sha']===self::digest(['kind'=>'session-cabinet-act-v1','world'=>$s['world'],'day'=>$e['day'],'actor'=>$e['actor'],'payload'=>$p]),'cabinet evidence binding');
+        $automatic=$e['operation']==='automatic_cabinet';
+        $proofKind=$automatic?'automatic-cabinet-v1':'session-cabinet-act-v1';
+        self::check(is_int($p['generation'])&&is_string($p['mandate'])&&is_string($p['kind'])&&$e['evidence_sha']===self::digest(['kind'=>$proofKind,'world'=>$s['world'],'day'=>$e['day'],'actor'=>$e['actor'],'payload'=>$p]),'cabinet evidence binding');
+        if($automatic)self::check($e['actor']==='career-ai-clerk'&&self::json($p)===self::json(self::automaticCabinet($s,$e['day'])),'autonomous cabinet plan mismatch');
         $day=$e['day'];$kind=$p['kind'];$account=$e['actor'];$mandate=$p['mandate'];$generation=$p['generation'];
         $ability=match($kind){'appoint_pm'=>'president.request_appointment','propose_minister'=>'government.propose_ministers','confirm_minister'=>'president.request_appointment','resign_pm'=>'government.present_resignation',default=>throw new \DomainException('Unknown cabinet act')};
-        self::check(self::allows($s,$account,$mandate,$generation,$ability,$day),'cabinet authority denied');
+        if($automatic){
+            $m=$s['mandates'][$mandate]??null;
+            self::check($m!==null&&$m['generation']===$generation&&$m['end']===null&&($s['active'][$m['office']]??null)===$mandate&&$m['start']<=$day&&$day<$m['expires']&&in_array($ability,$m['powers'],true),'autonomous cabinet authority denied');
+            $s['last_automatic_cabinet_day']=$day;
+        }else self::check(self::allows($s,$account,$mandate,$generation,$ability,$day),'cabinet authority denied');
         $end=(new \DateTimeImmutable(CareerScoreContract::START))->modify('+'.CareerScoreContract::HORIZON.' days')->format('Y-m-d');
         if($kind==='appoint_pm'){
             self::check(is_string($p['target'])&&isset($s['careers'][$p['target']])&&$p['portfolio']===null&&$p['proposal']===null&&!isset($s['active']['prime-minister']),'PM appointment requires vacant office');
@@ -241,7 +285,7 @@ final class CareerInstitutionLedger
             self::check(is_string($p['target'])&&isset($s['careers'][$p['target']])&&is_string($p['portfolio'])&&in_array($p['portfolio'],self::MINISTRIES,true)&&$p['proposal']===null,'minister proposal shape');
             $id='proposal-'.hash('sha256',self::json([$s['world'],$e['actor'],$e['command']]));
             self::check(!isset($s['appointment_proposals'][$id]),'duplicate appointment proposal');
-            $s['appointment_proposals'][$id]=['id'=>$id,'target'=>$p['target'],'portfolio'=>$p['portfolio'],'pm_mandate'=>$mandate,'day'=>$day,'status'=>'pending'];return null;
+            $s['appointment_proposals'][$id]=['id'=>$id,'target'=>$p['target'],'portfolio'=>$p['portfolio'],'pm_mandate'=>$mandate,'day'=>$day,'status'=>'pending',...($automatic?['automatic'=>true]:[])];return null;
         }
         self::check($p['target']===null&&$p['portfolio']===null&&is_string($p['proposal']),'confirmation shape');
         $proposal=$s['appointment_proposals'][$p['proposal']]??null;
@@ -288,7 +332,7 @@ final class CareerInstitutionLedger
         $p=$e['payload'];$day=$e['day'];$op=$e['operation'];
         if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','foreign_government','research_observe'],true),'French powers unavailable outside France');
         if($s['mode']==='career'&&$op==='presidential_ballot'){$p=self::ballotTransition($s,$e);$op='transition';}
-        if($s['mode']==='career'&&$op==='cabinet_act'){$p=self::cabinetTransition($s,$e);$op=$p===null?'cabinet_proposal_recorded':'transition';}
+        if($s['mode']==='career'&&in_array($op,['cabinet_act','automatic_cabinet'],true)){$p=self::cabinetTransition($s,$e);$op=$p===null?'cabinet_proposal_recorded':'transition';}
         if($s['mode']==='research'){
             self::check($op==='research_observe','research cannot grant mandates');
             self::fields($p,['regime_label','assembly_status','legality']);
@@ -312,7 +356,7 @@ final class CareerInstitutionLedger
         }elseif($op==='foreign_government'){
             self::foreignGovernment($s,$e);
         }elseif($op==='cabinet_proposal_recorded'){
-            self::check($e['operation']==='cabinet_act','invalid proposal event');
+            self::check(in_array($e['operation'],['cabinet_act','automatic_cabinet'],true),'invalid proposal event');
         }elseif($op==='transition'){
             self::fields($p,['reason','close','grants']);
             self::check(in_array($p['reason'],['election','renewal','succession','appointment','reshuffle','resignation','censure','expiry'],true)&&array_is_list($p['close'])&&array_is_list($p['grants'])&&count($p['close'])<=1000&&count($p['grants'])<=1000&&count($p['close'])+count($p['grants'])>0,'transition shape');

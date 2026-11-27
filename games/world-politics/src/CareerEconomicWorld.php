@@ -127,7 +127,9 @@ final class CareerEconomicWorld
             if($opening||$due)$store->settleDuePresidency($world,$secret);
         }
         $secret=getenv('WP_CAREER_EVIDENCE_KEY');CareerInstitutionLedger::check(is_string($secret)&&strlen($secret)>=32,'career replay key required');
-        (new PdoCareerInstitutionStore($db,new CareerInstitutionEvidence($secret)))->settleProgrammeProposal($world);
+        $careerStore=new PdoCareerInstitutionStore($db,new CareerInstitutionEvidence($secret));
+        $careerStore->settleAutomaticCabinet($world,$secret);
+        $careerStore->settleProgrammeProposal($world);
         $current=$clock->read($world);return $clock->advance($world,$target,'career-day-'.$target,$current['etag']);
     }
 }

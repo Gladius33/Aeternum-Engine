@@ -84,7 +84,7 @@ final class PdoCareerInstitutionStore
             }
             $grants=$e['payload']['grants']??[];
             if($e['operation']==='presidential_ballot')$grants=CareerInstitutionLedger::ballotTransition($s,$e)['grants'];
-            if($e['operation']==='cabinet_act'){$tmp=$s;$grants=CareerInstitutionLedger::cabinetTransition($tmp,$e)['grants']??[];}
+            if(in_array($e['operation'],['cabinet_act','automatic_cabinet'],true)){$tmp=$s;$grants=CareerInstitutionLedger::cabinetTransition($tmp,$e)['grants']??[];}
             foreach($grants as $g){$career=$s['careers'][$g['career']]??null;CareerInstitutionLedger::check(is_array($career),'unknown career');if(($career['controller']??null)==='ai'){CareerInstitutionLedger::check($career['account']===null,'AI account forbidden');}else{$this->activeAccount($world,$career['account']);}}
             if($e['operation']==='foreign_government'){
                 require_once __DIR__.'/InstitutionalSimulation.php';
@@ -340,6 +340,16 @@ final class PdoCareerInstitutionStore
     /** One pre-tick proposal under the same world fence as player commands.
      * Durable command journals suppress same-day human replacement. An
      * autonomous proposal is not enactment and has a distinct service actor. */
+    /** Fenced scheduler, never exposed as a session action. */
+    public function settleAutomaticCabinet(string $world,string $secret):?array{
+        return $this->tx(function()use($world,$secret){
+            $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));$day=$clock['committed_day'];
+            $p=CareerInstitutionLedger::automaticCabinet($state,$day);if($p===null)return null;
+            $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'automatic-cabinet-'.$day,'actor'=>'career-ai-clerk','operation'=>'automatic_cabinet','payload'=>$p,
+                'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'automatic-cabinet-v1','world'=>$world,'day'=>$day,'actor'=>'career-ai-clerk','payload'=>$p])];
+            return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
+        });
+    }
     public function settleProgrammeProposal(string $world):?array{
         return $this->tx(function()use($world){
             $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));$day=$clock['committed_day'];
