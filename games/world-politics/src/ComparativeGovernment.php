@@ -170,7 +170,7 @@ final class ComparativeGovernment
     {
         $year=$proof['year']??null;
         if(!is_int($year)||$this->state['country']!=='US'||$this->state['status']!=='in_office'||$this->state['pending']!==null
-            ||$this->state['day']!==UsPresidentialElection::dates($year)['inauguration']||UsPresidentialElection::result($this->state,$year)!==$proof
+            ||$this->state['day']!==UsPresidentialElection::dates($year)['inauguration']||UsPresidentialElection::result($this->state,$year,$proof['version']??'')!==$proof
             ||$proof['winner']===null)throw new \DomainException('Unresolved US presidential accession');
         foreach($this->state['history'] as $h){
             if($h['action']==='us_presidential_inauguration'&&$h['evidence']['year']===$year)

@@ -256,7 +256,7 @@ final class PdoCareerInstitutionStore
         }
         $state=$this->replay($world,$this->row($world));
         $sim->enableElectoral(DocumentaryForeignBallot::config($cc,ComparativeElectionCalendar::config($cc,$day),true));
-        $sim->enablePoliticalAI();$sim->enableForeignRecurring();$sim->enableFormationProtocol();$sim->enableAutonomousFormation($cc==='JP',$cc==='JP');if($cc==='US')$sim->enableUsPresidential();
+        $sim->enablePoliticalAI();$sim->enableForeignRecurring();$sim->enableFormationProtocol();$sim->enableAutonomousFormation($cc==='JP',$cc==='JP');if($cc==='US')$sim->enableUsPresidential(true);
         require_once __DIR__.'/PoliticalRoster.php';
         $roster=new PoliticalRoster($world,$state['country'],['government']);
         foreach($state['careers'] as $career){

@@ -357,7 +357,7 @@ final class InstitutionalSimulation
         return $result;
     }
 
-    public function enableUsPresidential():void{$this->state=UsPresidentialElection::bootstrap($this->state);}
+    public function enableUsPresidential(bool $extended=false):void{$this->state=UsPresidentialElection::bootstrap($this->state,$extended);}
     public function enableAutonomousFormation(bool $japan=false,bool $extended=false):void
     {
         $this->state=AutonomousForeignFormation::bootstrap($this->state,$japan,$extended);

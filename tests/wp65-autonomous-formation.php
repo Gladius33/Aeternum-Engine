@@ -142,3 +142,31 @@ try{$protocol::certificate($proof,$cycle,$seats);throw new RuntimeException('Old
 $proof['procedure']['steps'][2]['kind']='councillors_deadline_elapsed';
 $proof['procedure']['steps'][2]['at']=$proof['procedure']['steps'][1]['at']; // premature, duplicate instant
 try{$protocol::certificate($proof,$cycle,$seats,true);throw new RuntimeException('Premature deadline accepted');}catch(DomainException $expected){}
+
+// A 269–269 result invokes one synthetic delegation vote per state, not
+// a congressional seat-majority shortcut. Old election pins remain intact.
+$tie=null;
+for($n=0;$n<1500;$n++){
+    $id='us-tie-'.$n;
+    $g=new \Aeternum\WorldPolitics\ComparativeGovernment($id,'US','2027-05-14',$u::initial(false),['house'=>100,'senate'=>50]);
+    $old=$u::result($g->snapshot(),2028);
+    if($old['winner']===null){$tie=[$id,$g->snapshot(),$old];break;}
+}
+ck65($tie!==null,'US deterministic tie fixture found');
+[$id,$g,$old]=$tie;$new=$u::result($g,2028,$u::VERSION_V2);
+ck65($new['electoral_votes']===$old['electoral_votes']&&$new['winner']!==null&&$new['contingent_house']['required_states']===26,'US contingent election preserves original tally');
+foreach($new['contingent_house']['rounds'] as $round)
+    ck65(count($round['delegations'])===50&&!isset($round['delegations']['DC'])&&array_sum($round['votes'])===50,'US state vote conservation and DC exclusion');
+$us=new I($id,'US','2027-05-14');$us->enableAccountability($u::initial(false),['house'=>100,'senate'=>50]);
+$us->enableElectoral(\Aeternum\WorldPolitics\DocumentaryForeignBallot::config('US',C::config('US','2027-05-14')));
+$us->enablePoliticalAI();$us->enableForeignRecurring();$us->enableFormationProtocol();$us->enableAutonomousFormation();$us->enableUsPresidential(true);
+for($t=new DateTimeImmutable('2027-05-15');$t->format('Y-m-d')<=$dates['inauguration'];$t=$t->modify('+1 day')){
+    $day=$t->format('Y-m-d');$us->advanceTo($day);
+    if($day===$dates['ballot']){
+        $events=$us->snapshot()['events'];$event=$events[array_key_last($events)];
+        ck65($event['result']['winner']===null&&$event['result']['contingent_house']['rounds']===[],'no future House ballot exposed before counting');
+    }
+}
+$s=$us->snapshot();ck65(I::restore($s)->snapshot()===$s&&$s['accountability']['incumbent']===$new['winner'],'US contingent elected mandate replays');
+$bad=$s;foreach($bad['events'] as &$ev)if($ev['kind']==='us_presidential_inauguration')$ev['result']['contingent_house']['rounds'][0]['represented_states']=51;unset($ev);
+try{I::restore($bad);throw new RuntimeException('Forged state delegation quorum accepted');}catch(DomainException $expected){}
