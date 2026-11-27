@@ -78,7 +78,9 @@ $exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)'
 $exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$t2),$e2,time()+3600]);
 ck(req('POST',$ep.'/members',['account_id'=>$e2],$etoken)['status']===200,'economic member invited');
 $eac=req('GET',$ep.'/career',null,$etoken)['body']['career']['id'];
-$ebc=req('POST',$ep.'/admission',(object)[],$t2)['body']['career']['id'];
+$fiction=['name'=>'Camille Simulation','measure_ids'=>['administration-report']];
+$ebc=req('POST',$ep.'/admission',['fictional'=>$fiction],$t2)['body']['career']['id'];
+ck(req('GET',$ep.'/career',null,$t2)['body']['career']['fictional_profile']['name']==='Camille Simulation','named fictional profile persisted');
 $ebp=['ballot'=>['registered'=>1000,'first'=>['votes'=>[$eac=>600,$ebc=>300],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'];
 $cs->certifyBallot($ew,$ebp,'economic-ballot-fixture-001',$secret);
 $em=req('GET',$ep.'/career',null,$etoken)['body']['mandates'][0];
@@ -102,6 +104,12 @@ ck($after['status']===200&&$after['body']['day']==='2027-05-15'&&$after['body'][
 ck($after['body']['domestic']['state']['days'][0]['active_policies']===[],'unlegislated policy remains inert');
 \Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-15');
 ck(req('GET',$ep.'/economy',null,$etoken)===$after,'no duplicate accrual');
+ck(!isset($after['body']['domestic']['state']['policies']['administration-report']),'human activity suppressed fallback');
+\Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-16');
+$auto=req('GET',$ep.'/economy',null,$etoken);
+ck(isset($auto['body']['domestic']['state']['policies']['administration-report'])&&$auto['body']['domestic']['state']['policies']['administration-report']['authorized_on']===null,'inactive PM programme creates inert proposal');
+\Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-16');
+ck(req('GET',$ep.'/economy',null,$etoken)===$auto,'fallback replay stable');
 ck(req('POST','/worlds/'.$ew.'/clock/advances',['target_day'=>'2027-05-16'],$etoken)['status']===404,'no player clock grant');
 echo "PASS WP118 economic profile, committed-day recovery, no duplicate economic accrual\n";
 $fn=req('POST','/career-worlds',['label'=>'German career','country'=>'DE'],$etoken,'career-de-creation-001');

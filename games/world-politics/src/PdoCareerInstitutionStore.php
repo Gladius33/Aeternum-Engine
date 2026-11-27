@@ -116,7 +116,7 @@ final class PdoCareerInstitutionStore
     }
     private function viewLocked(string $world,string $account,array $clock):array{
         $s=$this->replay($world,$this->row($world));$career=null;$mandates=[];$offices=[];
-        foreach($s['careers'] as $id=>$c)if($c['account']===$account)$career=['id'=>$id,'character'=>$c['character'],'admitted_on'=>$c['admitted_on'],'mode'=>$c['mode'],... (isset($c['person_reference'])?['identity'=>$c['identity'],'claimed_on'=>$c['claimed_on']??null]:[])];
+        foreach($s['careers'] as $id=>$c)if($c['account']===$account)$career=['id'=>$id,'character'=>$c['character'],'admitted_on'=>$c['admitted_on'],'mode'=>$c['mode'],... (isset($c['person_reference'])?['identity'=>$c['identity'],'claimed_on'=>$c['claimed_on']??null]:[]),...(isset($c['fictional_profile'])?['fictional_profile'=>$c['fictional_profile']]:[])];
         foreach($s['active'] as $office=>$id){
             $m=$s['mandates'][$id];$offices[]=['office'=>$office,'expires'=>$m['expires'],'interim'=>$m['interim'],... (isset($s['careers'][$m['career']]['person_reference'])?['identity'=>$s['careers'][$m['career']]['identity'],'controller'=>$s['careers'][$m['career']]['controller']]:[])];
             if($career!==null&&$m['career']===$career['id'])$mandates[]=['id'=>$id,'office'=>$office,'generation'=>$m['generation'],'expires'=>$m['expires'],'powers'=>$clock['committed_day']<$m['expires']?$m['powers']:[]];
@@ -149,10 +149,13 @@ final class PdoCareerInstitutionStore
             return ['world_id'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'characters'=>$out,'fictional_creation_available'=>true,'final_ballot_verified'=>false];
         });
     }
-    private function admitLocked(string $world,string $account,array $clock,string $secret,?string $reference=null):array{
+    private function admitLocked(string $world,string $account,array $clock,string $secret,?string $reference=null,?array $fictional=null):array{
         $s=$this->replay($world,$this->row($world));
+        require_once __DIR__.'/CareerProgrammeAutonomy.php';
+        CareerInstitutionLedger::check($reference===null||$fictional===null,'identity choices are exclusive');
+        if($fictional!==null)$fictional=CareerProgrammeAutonomy::normalizeFictional($fictional,$s['country']);
         foreach($s['careers'] as $c)if($c['account']===$account){
-            CareerInstitutionLedger::check($reference===null||($c['programme_edition']??null)===$reference,'account already controls another character');
+            CareerInstitutionLedger::check(($reference===null||($c['programme_edition']??null)===$reference)&&($fictional===null||CareerInstitutionLedger::json($fictional)===CareerInstitutionLedger::json($c['fictional_profile']??null)),'account already controls another character');
             return $this->viewLocked($world,$account,$clock);
         }
         if($reference!==null){
@@ -171,13 +174,13 @@ final class PdoCareerInstitutionStore
         CareerInstitutionLedger::check($s['mode']==='career','research admission forbidden');
         $hash=substr(hash('sha256',$world."\n".$account),0,40);
         $e=['world'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'admit-'.$hash,'actor'=>'career-admission','operation'=>'admit',
-            'payload'=>['career'=>'career-'.$hash,'account'=>$account,'character'=>'fiction-'.$hash,'mode'=>$clock['committed_day']===CareerScoreContract::START?'opening':'late_takeover'],
+            'payload'=>['career'=>'career-'.$hash,'account'=>$account,'character'=>'fiction-'.$hash,'mode'=>$clock['committed_day']===CareerScoreContract::START?'opening':'late_takeover',...($fictional!==null?['fictional_profile'=>$fictional]:[])],
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'authenticated-fictional-admission','world'=>$world,'account'=>$account,'day'=>$clock['committed_day']])];
         $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
         return $this->viewLocked($world,$account,$clock);
     }
-    public function admitForSession(string $world,string $token,string $secret,?string $reference=null):array{
-        return $this->tx(function()use($world,$token,$secret,$reference){$clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);return $this->admitLocked($world,$a,$clock,$secret,$reference);});
+    public function admitForSession(string $world,string $token,string $secret,?string $reference=null,?array $fictional=null):array{
+        return $this->tx(function()use($world,$token,$secret,$reference,$fictional){$clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);return $this->admitLocked($world,$a,$clock,$secret,$reference,$fictional);});
     }
     /** A verified president/PM may perform bounded cabinet acts. No client
      * can choose the actor, date, institutional signature or expiry. */
@@ -268,11 +271,14 @@ final class PdoCareerInstitutionStore
         });
     }
     /** Private institution-only sandbox; never grants legacy ownership powers. */
-    public function createForSession(string $token,string $label,string $key,string $secret,string $profile='institutional',string $country='FR',?string $reference=null):array{
+    public function createForSession(string $token,string $label,string $key,string $secret,string $profile='institutional',string $country='FR',?string $reference=null,?array $fictional=null):array{
         CareerInstitutionLedger::check(in_array($profile,['institutional','economic'],true)&&InstitutionalRulebook::hasRules($country)&&($country==='FR'||$profile==='institutional'),'unknown or unsupported career profile');
         CareerInstitutionLedger::check(trim($label)!==''&&strlen($label)<=100&&!preg_match('/[\x00-\x1f\x7f]/',$label)&&preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)===1,'invalid career world');
-        $label=trim($label);$key=hash('sha256',"career-world-v1\n".$key);$fingerprint=CareerInstitutionLedger::digest(['label'=>$label,'scenario'=>'wp-career-v1',...($profile==='economic'?['profile'=>$profile]:[]),...($country!=='FR'?['country'=>$country]:[]),...($reference!==null?['reference_id'=>$reference]:[])]);
-        return $this->tx(function()use($token,$label,$key,$fingerprint,$secret,$profile,$country,$reference){
+        require_once __DIR__.'/CareerProgrammeAutonomy.php';
+        CareerInstitutionLedger::check($reference===null||$fictional===null,'identity choices are exclusive');
+        if($fictional!==null)$fictional=CareerProgrammeAutonomy::normalizeFictional($fictional,$country);
+        $label=trim($label);$key=hash('sha256',"career-world-v1\n".$key);$fingerprint=CareerInstitutionLedger::digest(['label'=>$label,'scenario'=>'wp-career-v1',...($profile==='economic'?['profile'=>$profile]:[]),...($country!=='FR'?['country'=>$country]:[]),...($reference!==null?['reference_id'=>$reference]:[]),...($fictional!==null?['fictional_profile'=>$fictional]:[])]);
+        return $this->tx(function()use($token,$label,$key,$fingerprint,$secret,$profile,$country,$reference,$fictional){
             $a=$this->sessionAccount($token);
             $prior=$this->query('SELECT world_id,request_sha,scenario FROM wp_alpha_worlds WHERE owner_id=? AND create_key=?',[$a,$key])->fetch(\PDO::FETCH_ASSOC);
             if($prior!==false){CareerInstitutionLedger::check($prior['scenario']==='wp-career-v1'&&hash_equals($prior['request_sha'],$fingerprint),'idempotency conflict');return ['world_id'=>$prior['world_id'],'scenario'=>'wp-career-v1','label'=>$label];}
@@ -286,7 +292,7 @@ final class PdoCareerInstitutionStore
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
             if($profile==='economic'){require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);}
             $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
-            $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret,$reference);
+            $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret,$reference,$fictional);
             return ['world_id'=>$world,'scenario'=>'wp-career-v1','label'=>$label];
         });
     }
@@ -329,6 +335,52 @@ final class PdoCareerInstitutionStore
             $sha=$this->query("SELECT reference_bundle_sha FROM wp_alpha_worlds WHERE world_id=? AND scenario='wp-career-v1'",[$world])->fetchColumn();CareerInstitutionLedger::check(is_string($sha),'economic profile required');
             require_once __DIR__.'/CareerEconomicWorld.php';
             return (new PdoInstitutionalStore($this->db,new CareerLegislativePrincipal($this->db,$world,$p['mandate'],$role)))->submitInCareerTransaction($world,['title'=>$p['title']],$key,$etag);
+        });
+    }
+    /** One pre-tick proposal under the same world fence as player commands.
+     * Durable command journals suppress same-day human replacement. An
+     * autonomous proposal is not enactment and has a distinct service actor. */
+    public function settleProgrammeProposal(string $world):?array{
+        return $this->tx(function()use($world){
+            $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));$day=$clock['committed_day'];
+            if($state['country']!=='FR'||$state['mode']!=='career')return null;
+            $row=$this->query('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=? FOR UPDATE',[$world])->fetch(\PDO::FETCH_ASSOC);
+            if($row===false)return null;
+            require_once __DIR__.'/CareerEconomicWorld.php';
+            require_once __DIR__.'/CareerProgrammeAutonomy.php';
+            $acted=[];$accounts=[];
+            foreach($state['careers'] as $id=>$career)if($career['account']!==null)$accounts[$career['account']]=$id;
+            foreach($this->query('SELECT actor_id,event_json FROM wp_career_events WHERE world_id=?',[$world]) as $event){
+                if(!isset($accounts[$event['actor_id']]))continue;
+                $e=self::decode($event['event_json']);
+                if($e['day']===$day&&$e['operation']==='cabinet_act')$acted[$accounts[$event['actor_id']]]=true;
+            }
+            foreach($this->query("SELECT principal_id,result_json FROM wp_domestic_journal WHERE world_id=? AND operation='propose'",[$world]) as $entry){
+                $result=self::decode($entry['result_json']);
+                if(($result['policy']['proposed_on']??null)!==$day)continue;
+                $actor=$entry['principal_id'];
+                if(str_starts_with($actor,'career-auto-'))return null;
+                if(str_starts_with($actor,'career-')&&isset($state['mandates'][substr($actor,7)]))$acted[$state['mandates'][substr($actor,7)]['career']]=true;
+            }
+            $ir=$this->query("SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code='FR' FOR UPDATE",[$world])->fetch(\PDO::FETCH_ASSOC);
+            CareerInstitutionLedger::check($ir!==false,'institutional source required');
+            $inst=InstitutionalSimulation::restore(self::decode($ir['state_json']));
+            CareerInstitutionLedger::check(hash_equals($ir['state_sha'],$inst->hash())&&$inst->snapshot()['day']===$day,'institutional source mismatch');
+            $bills=$inst->snapshot()['bills'];
+            foreach($this->query("SELECT actor_id,result_json FROM wp_institutional_journal WHERE world_id=? AND country_code='FR' AND operation='submit_bill'",[$world]) as $entry){
+                $r=self::decode($entry['result_json']);$mid=substr($entry['actor_id'],7);
+                if(str_starts_with($entry['actor_id'],'career-')&&isset($state['mandates'][$mid])&&($bills[$r['bill_id']]['filed_on']??null)===$day)
+                    $acted[$state['mandates'][$mid]['career']]=true;
+            }
+            $reader=new CareerEconomicProposalPrincipal($this->db,$world,'reader',true);
+            $d=(new PdoDomesticPolicyStore($this->db,$reader))->read($world);
+            CareerInstitutionLedger::check($d['state']['day']===$day,'domestic source mismatch');
+            $proposal=CareerProgrammeAutonomy::next($state,$day,$d['state']['policies'],self::decode($row['assumptions_json'])['catalog'],$acted);
+            if($proposal===null)return null;
+            $principal=new CareerEconomicProposalPrincipal($this->db,$world,$proposal['mandate'],true);
+            $key='career-auto-'.substr(hash('sha256',$world.'|'.$day.'|'.$proposal['mandate'].'|'.$proposal['policy_id']),0,48);
+            return (new PdoDomesticPolicyStore($this->db,$principal))->proposeInCareerTransaction($world,
+                ['policy_id'=>$proposal['policy_id'],'effective_day'=>$proposal['effective_day']],$key,$d['etag']);
         });
     }
     public function economicForSession(string $world,string $token):array{

@@ -52,6 +52,14 @@ paths:
                 profile: {type: string, enum: [institutional, economic], default: institutional}
                 country: {type: string, enum: [FR, DE, ES, GB, IT, JP, US], default: FR}
                 reference_id: {type: string, description: Approved 2027 programme edition; omit for fictional identity}
+                fictional:
+                  type: object
+                  additionalProperties: false
+                  required: [name]
+                  properties:
+                    name: {type: string, minLength: 1, maxLength: 160}
+                    biography: {type: string, maxLength: 2000}
+                    measure_ids: {type: array, maxItems: 15, uniqueItems: true, items: {type: string}}
       responses:
         '201': {description: World created or receipt replayed}
         '404': {description: Feature disabled}
@@ -237,6 +245,14 @@ paths:
               additionalProperties: false
               properties:
                 reference_id: {type: string, description: Approved 2027 programme edition; omit for fictional identity}
+                fictional:
+                  type: object
+                  additionalProperties: false
+                  required: [name]
+                  properties:
+                    name: {type: string, minLength: 1, maxLength: 160}
+                    biography: {type: string, maxLength: 2000}
+                    measure_ids: {type: array, maxItems: 15, uniqueItems: true, items: {type: string}}
       responses:
         '200': {description: Own career projection}
         '404': {description: Feature disabled or world inaccessible}

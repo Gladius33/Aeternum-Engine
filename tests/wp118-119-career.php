@@ -99,6 +99,15 @@ ck(count($real['careers'])===22&&$real['careers']['real-jean-luc-melenchon']['ac
 foreach($real['careers'] as $person)ck(isset($person['identity']['source'],$person['person_reference'])&&$person['controller']==='ai','AI identity provenance');
 $rb=L::automaticBallot($real,'2027-05-14');ck(count($rb['ballot']['first']['votes'])===22,'documented identities in fictional ballot');
 no(fn()=>L::apply($real,$re));
+// Documentary autonomy is limited to current, compatible offices and mapped measures.
+require_once __DIR__.'/../games/world-politics/src/CareerProgrammeAutonomy.php';
+$planClass=\Aeternum\WorldPolitics\CareerProgrammeAutonomy::class;
+$planState=change($real,'appointment',[],[grant('prime-minister','real-jean-luc-melenchon')]);
+$plan=$planClass::next($planState,'2027-05-14',[],['pf2027-jean-luc-melenchon-smic'=>true]);
+ck($plan!==null&&$plan['career']==='real-jean-luc-melenchon'&&$plan['policy_id']==='pf2027-jean-luc-melenchon-smic','documented PM objective');
+ck($planClass::next($planState,'2027-05-14',[],['pf2027-jean-luc-melenchon-smic'=>true],['real-jean-luc-melenchon'=>true])===null,'same-day activity suppresses fallback');
+ck($planClass::next($real,'2027-05-14',[],['pf2027-jean-luc-melenchon-smic'=>true])===null,'identity alone grants no action');
+no(fn()=>$planClass::normalizeFictional(['name'=>'Fixture','measure_ids'=>['unmapped']],'FR'));
 // WP112 vacancy calendar with an independently certified interim mandate.
 $vac=add(add(add(add(L::initial('vacancy-world','FR','career','2027-05-14'),'a'),'b'),'c'),'d');
 $vac=change($vac,'election',[],[grant('president','a')]);

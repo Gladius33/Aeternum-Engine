@@ -33,8 +33,8 @@ final class CareerEconomicDomesticPrincipal implements PersistentDomesticPolicyA
 /** Created only inside the verified career capability transaction. */
 final class CareerEconomicProposalPrincipal implements PersistentDomesticPolicyAuthority
 {
-    public function __construct(private readonly \PDO $db,private readonly string $world,private readonly string $mandate){}
-    public function actorId():string{return 'career-'.$this->mandate;}
+    public function __construct(private readonly \PDO $db,private readonly string $world,private readonly string $mandate,private readonly bool $automatic=false){}
+    public function actorId():string{return ($this->automatic?'career-auto-':'career-').$this->mandate;}
     public function allows(string $world,string $ability):bool{
         return $this->db->inTransaction()&&$world===$this->world&&in_array($ability,['domestic.read','domestic.propose'],true);
     }
@@ -77,6 +77,7 @@ final class CareerEconomicWorld
         // Investiture. Legacy automatic finance and legislative/trade bridges
         // stay off until new mandates can legally authorize their actions.
         $c=$scenario->domestic();
+        $c['catalog']+=array_intersect_key(SocialProgramme::policies($c['macro_baseline']),SocialProgramme::target2027());
         foreach(['finance_autonomy','daily_legal_enabled','trade_feedback_enabled','eu_trade_enabled','eu_trade_v2','eu_trade_v3','eu_trade_v4'] as $flag)$c[$flag]=false;
         $dom=PdoDomesticPolicyStore::build($world,$c);
         $put('INSERT INTO wp_domestic_states(world_id,assumptions_json,assumptions_sha,state_json,state_sha,revision) VALUES(?,?,?,?,?,0)',[$world,self::json($c),$dom->assumptionsHash(),self::json($dom->snapshot()),$dom->hash()]);
@@ -125,6 +126,8 @@ final class CareerEconomicWorld
             if($missingAI&&!$due)$store->seedAutonomousCareers($world,$secret);
             if($opening||$due)$store->settleDuePresidency($world,$secret);
         }
+        $secret=getenv('WP_CAREER_EVIDENCE_KEY');CareerInstitutionLedger::check(is_string($secret)&&strlen($secret)>=32,'career replay key required');
+        (new PdoCareerInstitutionStore($db,new CareerInstitutionEvidence($secret)))->settleProgrammeProposal($world);
         $current=$clock->read($world);return $clock->advance($world,$target,'career-day-'.$target,$current['etag']);
     }
 }

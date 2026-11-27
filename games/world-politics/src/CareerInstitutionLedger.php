@@ -301,10 +301,14 @@ final class CareerInstitutionLedger
         }elseif($op==='admit_ai_roster'){
             self::admitAutonomousRoster($s,$e);
         }elseif($op==='admit'){
-            self::fields($p,['career','account','character','mode']);foreach(['career','account','character'] as $k)self::id($p[$k]);
+            self::fields($p,['career','account','character','mode',...(array_key_exists('fictional_profile',$p)?['fictional_profile']:[])]);foreach(['career','account','character'] as $k)self::id($p[$k]);
+            if(array_key_exists('fictional_profile',$p)){
+                require_once __DIR__.'/CareerProgrammeAutonomy.php';
+                self::check(is_array($p['fictional_profile'])&&self::json($p['fictional_profile'])===self::json(CareerProgrammeAutonomy::normalizeFictional($p['fictional_profile'],$s['country'])),'fictional profile not canonical');
+            }
             self::check(!isset($s['careers'][$p['career']])&&in_array($p['mode'],['opening','late_takeover'],true)&&($p['mode']==='opening')===($day===CareerScoreContract::START),'admission mode');
             foreach($s['careers'] as $c)self::check($c['account']!==$p['account']&&$c['character']!==$p['character'],'duplicate career');
-            $s['careers'][$p['career']]=['account'=>$p['account'],'character'=>$p['character'],'admitted_on'=>$day,'mode'=>$p['mode'],'first_series'=>null];
+            $s['careers'][$p['career']]=['account'=>$p['account'],'character'=>$p['character'],'admitted_on'=>$day,'mode'=>$p['mode'],'first_series'=>null,...(isset($p['fictional_profile'])?['fictional_profile'=>$p['fictional_profile']]:[])];
         }elseif($op==='foreign_government'){
             self::foreignGovernment($s,$e);
         }elseif($op==='cabinet_proposal_recorded'){
