@@ -174,3 +174,14 @@ CREATE TABLE wp_stripe_research_receipts (
  created_at BIGINT UNSIGNED NOT NULL,
  FOREIGN KEY(order_id) REFERENCES wp_stripe_research_orders(order_id)
 ) ENGINE=InnoDB;
+
+CREATE TABLE wp_stripe_environment (
+ singleton_id TINYINT UNSIGNED PRIMARY KEY,
+ deployment_env ENUM('development','staging','production') NOT NULL
+) ENGINE=InnoDB;
+CREATE TABLE wp_stripe_research_holds (
+ payment_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ reason VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ created_at BIGINT UNSIGNED NOT NULL,
+ FOREIGN KEY(payment_id) REFERENCES wp_stripe_research_receipts(payment_id)
+) ENGINE=InnoDB;

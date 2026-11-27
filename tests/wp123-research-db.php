@@ -91,6 +91,13 @@ $api=function($method,$path,$args,$key)use(&$objects,&$calls,&$checkoutArgs){
     if(!isset($objects[$path]))throw new RuntimeException('Unexpected Stripe fixture request '.$path);
     return $objects[$path];
 };
+putenv('WP_APP_ENV=development');putenv('WP_STRIPE_MODE=test');
+\Aeternum\WorldPolitics\DeploymentMode::bind($db);
+putenv('WP_APP_ENV=production');
+try{new Stripe($db,$api);throw new RuntimeException('Test payment in production accepted');}catch(DomainException $expected){}
+putenv('WP_APP_ENV=staging');
+try{new Stripe($db,$api);throw new RuntimeException('Wrong environment database accepted');}catch(DomainException $expected){}
+putenv('WP_APP_ENV=development');
 $stripe=new Stripe($db,$api);
 $co=$stripe->checkout($st['tenant_id'],'standard-credits','stripe-test-checkout-01');
 ckResearch($stripe->checkout($st['tenant_id'],'standard-credits','stripe-test-checkout-01')===$co&&$calls===1,'checkout idempotent');
@@ -126,7 +133,12 @@ $invoice=['type'=>'invoice.paid','data'=>['object'=>['id'=>'in_fixture001']]];
 ckResearch($stripe->handle($invoice)['status']==='settled'&&$stripe->handle($invoice)['status']==='duplicate','monthly settlement once');
 $balance=$q->usage($st['token']);
 ckResearch($balance['included_remaining']===1000&&$balance['prepaid_remaining']===250&&$balance['paid_until']===$end,'subscription period and wallet retained');
-echo "PASS Stripe test-mode signed events, server price validation, checkout/settlement idempotency\n";
+$objects['/v1/subscriptions/'.$sub]['status']='canceled';
+ckResearch($stripe->handle(['type'=>'customer.subscription.deleted','data'=>['object'=>['id'=>$sub]]])['status']==='subscription_ended','subscription cancellation revokes monthly rights');
+$objects['/v1/charges/ch_fixture001']['amount_refunded']=100;
+ckResearch($stripe->handle(['type'=>'charge.refunded','data'=>['object'=>['id'=>'ch_fixture001']]])['status']==='frozen_for_reconciliation','partial refund freezes tenant');
+ckResearch((int)$db->query("SELECT enabled FROM wp_research_tenants WHERE tenant_id='".$st['tenant_id']."'")->fetchColumn()===0,'refunded tenant disabled');
+echo "PASS Stripe test-mode signed events, server price validation, checkout/settlement idempotency, cancellation and refund hold\n";
 
 $adm=$q->createAdmin('pro','payg');$at=bin2hex(random_bytes(32));
 putenv('WP_ADMIN_RESEARCH_ENABLED=YES');

@@ -5,6 +5,16 @@ if(PHP_SAPI!=='cli'||getenv('WP_RESEARCH_OPERATOR')!=='YES'){exit(2);}
 try{
     $db=\Aeternum\WorldPolitics\researchDatabase();$q=new \Aeternum\WorldPolitics\ResearchQueue($db);
     $cmd=$argv[1]??'';
+    if($cmd==='stripe-bind-environment'){
+        require_once __DIR__.'/../src/DeploymentMode.php';
+        echo json_encode(\Aeternum\WorldPolitics\DeploymentMode::bind($db),JSON_THROW_ON_ERROR).PHP_EOL;exit(0);
+    }
+    if($cmd==='stripe-portal'){
+        require_once __DIR__.'/../src/ResearchStripe.php';
+        \Aeternum\WorldPolitics\StripeConfiguration::ready();
+        $stripe=new \Aeternum\WorldPolitics\StripeTestClient();
+        echo json_encode((new \Aeternum\WorldPolitics\ResearchStripe($db,$stripe->request(...)))->portal($argv[2]??''),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES).PHP_EOL;exit(0);
+    }
     if($cmd==='stripe-checkout'){
         require_once __DIR__.'/../src/ResearchStripe.php';
         \Aeternum\WorldPolitics\StripeConfiguration::ready();

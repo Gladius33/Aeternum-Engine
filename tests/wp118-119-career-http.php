@@ -65,8 +65,8 @@ foreach(['wp_career_active_offices','wp_career_memberships','wp_career_events','
 foreach($ids as $id){$exec('DELETE FROM wp_sessions WHERE account_id=?',[$id]);$exec('DELETE FROM wp_accounts WHERE account_id=?',[$id]);}
 // A second world uses the pinned 2027 economic models, with no v1 score.
 require_once __DIR__.'/../games/world-politics/src/CareerEconomicWorld.php';
-$eid='acct-'.bin2hex(random_bytes(10));$etoken=bin2hex(random_bytes(32));
-$exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$eid,$eid,'fixture']);
+$eid='acct-'.bin2hex(random_bytes(16));$etoken=bin2hex(random_bytes(32));
+$exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$eid,'ci-'.bin2hex(random_bytes(10)),'fixture']);
 $exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$etoken),$eid,time()+3600]);
 $en=req('POST','/career-worlds',['label'=>'Career economic regression','profile'=>'economic'],$etoken);
 ck($en['status']===201,'economic profile create');

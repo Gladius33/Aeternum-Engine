@@ -2,11 +2,13 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/ResearchBilling.php';
+require_once __DIR__.'/DeploymentMode.php';
 
 final class StripeConfiguration
 {
     public const VERSION='2024-10-28.acacia';
     public static function ready():void{
+        DeploymentMode::stripeTest();
         if(getenv('WP_STRIPE_ENABLED')!=='YES'||getenv('WP_STRIPE_MODE')!=='test'||getenv('WP_STRIPE_API_VERSION')!==self::VERSION
             ||getenv('WP_STRIPE_CURRENCY')!=='eur'||!preg_match('/^(sk|rk)_test_[A-Za-z0-9_]{8,}$/D',getenv('WP_STRIPE_SECRET_KEY')?:'')
             ||!preg_match('/^whsec_[A-Za-z0-9_]{16,}$/D',getenv('WP_STRIPE_WEBHOOK_SECRET')?:''))
@@ -34,7 +36,7 @@ final class StripeTestClient
 {
     public function request(string $method,string $path,array $args=[],?string $key=null):array{
         StripeConfiguration::ready();
-        if(!in_array($method,['GET','POST'],true)||!preg_match('~^/v1/(?:prices/[A-Za-z0-9_]+|checkout/sessions(?:/[A-Za-z0-9_]+(?:/line_items)?)?|invoices/[A-Za-z0-9_]+|subscriptions/[A-Za-z0-9_]+|payment_intents/[A-Za-z0-9_]+|charges/[A-Za-z0-9_]+)$~D',$path))
+        if(!in_array($method,['GET','POST'],true)||!preg_match('~^/v1/(?:prices/[A-Za-z0-9_]+|checkout/sessions(?:/[A-Za-z0-9_]+(?:/line_items)?)?|invoices/[A-Za-z0-9_]+|subscriptions/[A-Za-z0-9_]+|payment_intents/[A-Za-z0-9_]+|charges/[A-Za-z0-9_]+|billing_portal/sessions)$~D',$path))
             throw new \DomainException('Unsupported Stripe request');
         $url='https://api.stripe.com'.$path;
         if($method==='GET'&&$args!==[])$url.='?'.http_build_query($args,'','&',PHP_QUERY_RFC3986);
@@ -74,7 +76,7 @@ final class StripeWebhook
  * offline tests. No user-supplied price, credit quantity or payment state. */
 final class ResearchStripe
 {
-    public function __construct(private readonly \PDO $db,private readonly \Closure $api){}
+    public function __construct(private readonly \PDO $db,private readonly \Closure $api){DeploymentMode::assertDatabase($db);}
     private function q(string $sql,array $p=[]):\PDOStatement{$q=$this->db->prepare($sql);$q->execute($p);return $q;}
     private function tx(callable $f):mixed{$this->db->beginTransaction();try{$r=$f();$this->db->commit();return $r;}catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}}
     private static function id(mixed $v,string $prefix):string{
@@ -123,6 +125,28 @@ final class ResearchStripe
             return ['order_id'=>$id,'checkout_id'=>$sid,'checkout_url'=>$url,'test_mode'=>true];
         });
     }
+    public function portal(string $tenant):array{
+        if(!preg_match('/^[a-f0-9]{32}$/D',$tenant))throw new \DomainException('Invalid tenant');
+        $r=$this->q("SELECT o.customer_id FROM wp_stripe_research_orders o JOIN wp_research_tenants t USING(tenant_id)
+            WHERE o.tenant_id=? AND o.mode='subscription' AND o.customer_id IS NOT NULL AND t.admin_exempt=0 AND t.enabled=1",[$tenant])->fetchColumn();
+        $customer=self::id($r,'cus_');
+        $p=($this->api)('POST','/v1/billing_portal/sessions',['customer'=>$customer,'return_url'=>StripeConfiguration::url('WP_STRIPE_PORTAL_RETURN_URL')],null);
+        $url=$p['url']??null;
+        if(!is_string($url)||parse_url($url,PHP_URL_SCHEME)!=='https'||parse_url($url,PHP_URL_HOST)!=='billing.stripe.com'||strlen($url)>2048)throw new \DomainException('Unexpected portal URL');
+        return ['portal_url'=>$url,'test_mode'=>true];
+    }
+    /** Freeze rather than silently destroy credits on a confirmed reversal.
+     * Operator reconciliation required, including partial refunds and disputes. */
+    private function freezePayment(string $pi,string $reason):array{
+        return $this->tx(function()use($pi,$reason){
+            $r=$this->q('SELECT o.tenant_id FROM wp_stripe_research_receipts r JOIN wp_stripe_research_orders o USING(order_id) WHERE r.payment_id=?',[$pi])->fetchColumn();
+            if(!is_string($r))return ['status'=>'unallocated_payment'];
+            $this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$r]);
+            $this->q('INSERT IGNORE INTO wp_stripe_research_holds(payment_id,reason,created_at) VALUES(?,?,?)',[$pi,$reason,time()]);
+            $this->q('UPDATE wp_research_tenants SET enabled=0 WHERE tenant_id=? AND admin_exempt=0',[$r]);
+            return ['status'=>'frozen_for_reconciliation'];
+        });
+    }
     private static function line(array $line,array $o):void{
         if(($line['price']['id']??null)!==$o['price_id']||($line['quantity']??null)!==1||($line['currency']??null)!=='eur'
             ||($line['amount']??$line['amount_subtotal']??null)!==(int)$o['amount_minor']||($line['proration']??false)!==false)
@@ -138,6 +162,25 @@ final class ResearchStripe
     }
     public function handle(array $e):array{
         $type=$e['type'];$obj=$e['data']['object'];
+        if(in_array($type,['charge.refunded','charge.dispute.created','charge.dispute.funds_withdrawn'],true)){
+            $cid=self::id($type==='charge.refunded'?($obj['id']??null):($obj['charge']??null),'ch_');
+            $c=$this->get('charges',$cid);self::testObject($c,$cid);
+            if(($c['disputed']??false)!==true&&(!is_int($c['amount_refunded']??null)||$c['amount_refunded']<1))return ['status'=>'no_confirmed_reversal'];
+            return $this->freezePayment(self::id($c['payment_intent']??null,'pi_'),$type);
+        }
+        if(in_array($type,['customer.subscription.deleted','customer.subscription.updated'],true)){
+            $sid=self::id($obj['id']??null,'sub_');$sub=$this->get('subscriptions',$sid);self::testObject($sub,$sid);
+            $status=$sub['status']??null;
+            if(!in_array($status,['canceled','unpaid','incomplete_expired'],true))return ['status'=>'unchanged'];
+            $o=$this->order($sub['metadata']['wp_order']??'');
+            return $this->tx(function()use($o,$sub,$sid){
+                $a=$this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$o['tenant_id']])->fetchColumn();
+                $r=$this->order($o['order_id'],true);
+                if($a===false||$r['subscription_id']!==$sid||$r['customer_id']!==($sub['customer']??null))return ['status'=>'unallocated_subscription'];
+                $this->q('UPDATE wp_research_tenants SET paid_until=LEAST(paid_until,?),included_units=0 WHERE tenant_id=? AND admin_exempt=0',[time(),$a]);
+                return ['status'=>'subscription_ended'];
+            });
+        }
         // Do not grant money for a redirect, subscription checkout completion,
         // unpaid asynchronous events or unsupported event types.
         if(in_array($type,['checkout.session.completed','checkout.session.async_payment_succeeded'],true)){
