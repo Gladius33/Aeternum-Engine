@@ -108,11 +108,19 @@ final class HouseholdAccount
             $a['cash_benefits_tenth_billion_eur']!==self::ANCHOR['cash_benefits'])throw new \DomainException('Household account reference mismatch');
         $population=$d['population_model'];$start=new \DateTimeImmutable($population['start_day']);
         $rows=[];$prev=null;$sum=['fixed_household_structure'=>0,'fragmentation_sensitivity'=>0];
+        $taxSums=[];$ranges=[];
         foreach(array_slice($d['days'],-365) as $r){
             $day=new \DateTimeImmutable($r['day']);
             if($day<=$start||($prev!==null&&$r['day']!==$prev->modify('+1 day')->format('Y-m-d')))throw new \DomainException('Noncontiguous household account');
             $x=self::day($d['macro_baseline'],$population,$r,(int)$start->diff($day)->format('%a'));
-            foreach($x['cases'] as $key=>$v)$sum[$key]+=$v['real_rdb_per_uc_proxy_index_bps'];
+            foreach($x['cases'] as $key=>$v){
+                $value=$v['real_rdb_per_uc_proxy_index_bps'];$sum[$key]+=$value;
+                $ranges[$key]=isset($ranges[$key])?['min_bps'=>min($ranges[$key]['min_bps'],$value),'max_bps'=>max($ranges[$key]['max_bps'],$value)]:['min_bps'=>$value,'max_bps'=>$value];
+                foreach($v['direct_tax_sensitivity'] as $tax){
+                    $shift=$tax['direct_tax_rate_shift_bps'];
+                    $taxSums[$key][$shift]=($taxSums[$key][$shift]??0)+$tax['real_rdb_per_uc_proxy_index_bps'];
+                }
+            }
             $rows[]=$x;$prev=$day;
         }
         if($prev!==null&&$prev->format('Y-m-d')!==$d['day'])throw new \DomainException('Uncommitted household account');
@@ -126,12 +134,16 @@ final class HouseholdAccount
         foreach(['domestic'=>$domestic,'diplomatic'=>$diplomatic] as $key=>$v){
             $h=trim($v['etag'],'"');if(!preg_match('/^[a-f0-9]{64}$/D',$h))throw new \DomainException('Invalid household account digest');$hashes[$key]=$h;
         }
+        $taxMeans=[];
+        foreach($taxSums as $key=>$byShift)foreach($byShift as $shift=>$total)
+            $taxMeans[$key][]=['direct_tax_rate_shift_bps'=>$shift,'rolling_mean_index_bps'=>intdiv($total,$n)];
         $reference=self::reference();
         return ['version'=>self::VERSION,'world_id'=>$d['world_id'],'day'=>$d['day'],'reference'=>$reference,
             'account_reference_sha'=>hash('sha256',json_encode($reference,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
             'income_reference_sha'=>$ref['reference_sha'],'source_hashes'=>$hashes,'opening_index_bps'=>10000,
             'opening_is_observed_2027'=>false,'window_days'=>$n,'complete_365_day_window'=>$n===365,
             'latest'=>$n?$rows[$n-1]:null,'rolling_means_bps'=>$n?array_map(fn($v)=>intdiv($v,$n),$sum):null,
+            'rolling_direct_tax_means'=>$n?$taxMeans:null,'observed_simulation_ranges'=>$n?$ranges:null,'ranges_are_not_confidence_intervals'=>true,
             'score_eligible'=>false,'score_rules_changed'=>false,'actual_rdb_per_uc_index_bps'=>null,
             'additional_budget_delta_minor'=>null,'direct_tax_sensitivity_is_counterfactual'=>true,'component_unit'=>'2025_reference_tenth_billion_eur_times_index_bps',
             'classification'=>'experimental_household_accounting_not_calibrated',

@@ -51,4 +51,8 @@ ck85(HouseholdAccount::report($d,$di)===$long,'only committed trailing window af
 $d['state']['days']=array_slice($rows,2);
 $rejected=false;try{HouseholdAccount::report($d,$di);}catch(DomainException $e){$rejected=true;}
 ck85($rejected,'364-day history rejected after first year');
-echo "WP85/WP86/WP87 household accounting OK\n";
+$case='fixed_household_structure';
+ck85($long['rolling_direct_tax_means'][$case][1]['rolling_mean_index_bps']===$long['rolling_means_bps'][$case],'rolling central tax reconciliation');
+ck85($long['rolling_direct_tax_means'][$case][0]['rolling_mean_index_bps']>$long['rolling_direct_tax_means'][$case][2]['rolling_mean_index_bps'],'rolling tax sensitivity');
+ck85($long['observed_simulation_ranges'][$case]['min_bps']<=$long['rolling_means_bps'][$case]&&$long['observed_simulation_ranges'][$case]['max_bps']>=$long['rolling_means_bps'][$case]&&$long['ranges_are_not_confidence_intervals'],'range semantics');
+echo "WP88/WP89 household accounting OK\n";

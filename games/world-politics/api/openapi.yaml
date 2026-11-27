@@ -31,6 +31,26 @@ tags:
   - name: FrenchAssembly
     description: Authenticated deputy-by-deputy votes and fictional parliamentary coalitions
 paths:
+  /me/password:
+    post:
+      operationId: changeOwnPassword
+      summary: Verify current password and revoke every session after rotation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+                new_password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+      responses:
+        '200': { description: Password changed and all sessions revoked }
+        '401': { description: Invalid credentials or session }
+        '422': { description: Invalid fields or unchanged password }
+        '429': { description: Rate limited }
   /worlds/{world}/countries/FR/national-service:
     get:
       operationId: readNationalServiceLegalStatus

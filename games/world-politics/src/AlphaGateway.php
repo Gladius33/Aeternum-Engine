@@ -62,6 +62,7 @@ final class AlphaGateway
             if ($path==='/api/v1/session' && $method==='DELETE') {
                 $session->revoke();return self::ok(200,['revoked'=>true]);
             }
+            if ($path==='/api/v1/me/password' && $method==='POST') return self::ok(200,$accounts->changePassword($session,$body));
             if ($path==='/api/v1/me' && $method==='GET') return self::ok(200,['account_id'=>$session->id,'username'=>$session->username]);
             if ($path==='/api/v1/national-renewal-calendar' && $method==='GET') return self::ok(200,NationalRenewalCalendar::report());
             if($path==='/api/v1/leaderboards'||str_starts_with($path,'/api/v1/leaderboards/')){

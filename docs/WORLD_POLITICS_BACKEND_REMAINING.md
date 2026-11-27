@@ -853,3 +853,8 @@ Le rapport WP85 passe à `wp86-household-account-v2`. Trois sensibilités (−1,
 ## WP87 — qualification croisée du compte des ménages
 
 L'audit CLI en lecture seule recalcule le rapport ménage si le monde possède le pack historique correspondant, expose son empreinte et la longueur de la fenêtre, sans habiliter le classement officiel. Les anciens mondes sans pack ne sont pas rétroalimentés. Les tests couvrent la fenêtre glissante de 365 jours au-delà d'une année bissextile, la troncature, et la concordance exacte du rapport entre audit et HTTP authentifié après récupération du calendrier. L'audit ne certifie pas les coefficients économiques.
+
+
+## WP88–WP97 — livraison groupée, tranche vérifiable
+
+WP88–89 : moyennes glissantes des contre-factuels fiscaux, extrema effectivement simulés, sans les présenter comme des intervalles statistiques ni comme une calibration. WP90 : ventilation exclusive des engagements fictifs futurs à 30/90/365 jours et au-delà, rapprochement exact des montants non payés. WP95 : rotation authentifiée du mot de passe et révocation intégrale des sessions, contrôle de la version du hash sous verrou de compte lors d'une connexion. Tests réels HTTP. Ces ajouts ne changent ni score, ni calendrier, ni anciennes règles de simulation. Les inventaires réels, calibration, systèmes étrangers, programmes, budget rectificatif, diplomatie et qualification de capacité restent des critères de sortie ouverts.

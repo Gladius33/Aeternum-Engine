@@ -86,9 +86,11 @@ final class AlphaAccounts
         $token=bin2hex(random_bytes(32));$expires=time()+43200;
         $this->db->beginTransaction();
         try {
-            $q=$this->db->prepare('SELECT enabled FROM wp_accounts WHERE account_id=? FOR UPDATE');
+            $q=$this->db->prepare('SELECT enabled,password_hash FROM wp_accounts WHERE account_id=? FOR UPDATE');
             $q->execute([$row['account_id']]);
-            if ((int)$q->fetchColumn()!==1) throw new AlphaHttpError(401,'invalid_credentials');
+            $locked=$q->fetch(\PDO::FETCH_ASSOC);
+            if($locked===false||(int)$locked['enabled']!==1||!hash_equals($row['password_hash'],$locked['password_hash']))
+                throw new AlphaHttpError(401,'invalid_credentials');
             $q=$this->db->prepare('DELETE FROM wp_sessions WHERE account_id=? AND expires_at<=?');
             $q->execute([$row['account_id'],time()]);
             $q=$this->db->prepare('SELECT COUNT(*) FROM wp_sessions WHERE account_id=?');
@@ -106,6 +108,30 @@ final class AlphaAccounts
             throw $e;
         }
         return ['access_token'=>$token,'token_type'=>'Bearer','expires_in'=>43200];
+    }
+
+    /** Password change requires the live session AND current password.
+     * The account lock serializes with session issuance. All tokens revoked.
+     * No recovery, e-mail or MFA mechanism is implied. */
+    public function changePassword(AlphaSession $session,array $body):array
+    {
+        self::fields($body,['current_password','new_password']);
+        $old=self::password($body['current_password']);$new=self::password($body['new_password']);
+        $this->limit('password-change-account',$session->id,5,300);
+        if(hash_equals($old,$new))throw new AlphaHttpError(422,'password_unchanged');
+        $this->db->beginTransaction();
+        try{
+            $q=$this->db->prepare('SELECT enabled,password_hash FROM wp_accounts WHERE account_id=? FOR UPDATE');
+            $q->execute([$session->id]);$row=$q->fetch(\PDO::FETCH_ASSOC);
+            if($row===false||(int)$row['enabled']!==1||!$session->active()||!password_verify($old,$row['password_hash']))
+                throw new AlphaHttpError(401,'invalid_credentials');
+            $q=$this->db->prepare('UPDATE wp_accounts SET password_hash=? WHERE account_id=?');
+            $q->execute([password_hash($new,PASSWORD_ARGON2ID),$session->id]);
+            $q=$this->db->prepare('DELETE FROM wp_sessions WHERE account_id=?');
+            $q->execute([$session->id]);$count=$q->rowCount();
+            $this->db->commit();
+            return ['password_changed'=>true,'revoked_sessions'=>$count,'login_required'=>true];
+        }catch(\Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
     }
 
     public function authenticate(string $header):AlphaSession

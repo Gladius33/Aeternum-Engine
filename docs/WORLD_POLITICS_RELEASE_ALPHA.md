@@ -17,6 +17,10 @@ The read-only audit additionally recomputes the experimental household account o
 
 Backup and restore-test first, stop writers and recover pending ticks; apply migration 025 using a dedicated migration account. Do not use fresh installer against a populated schema. DDL is not globally atomic. Old saves retain score_enabled=0; no silent leaderboard backfill. Verify schema, reopen only after smoke tests; restore backup if migration fails. No database migration has been applied to any user system.
 
+## Grouped finalization — partial delivery WP88–WP97
+
+Rolling tax sensitivities and scenario extrema are diagnostics only; future commitment maturity buckets reconcile fictional outstanding amounts without booking them. Password rotation authenticates the current secret and revokes all existing sessions; this is not account recovery or MFA. No claim of full completion of the ten work packages.
+
 ## Outstanding release blockers beyond the private alpha
 
 - Real household disposable income per UC calibration, uncertainty and fair official competition; current ranking experimental.

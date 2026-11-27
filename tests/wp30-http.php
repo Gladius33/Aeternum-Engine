@@ -1027,3 +1027,15 @@ ck30(req30('POST',$root82.'/clock/advances',['target_day'=>'2027-05-16'],$t27,['
 $n84=req30('GET',$root82.'/countries/FR/national-service',null,$t27);
 ck30($n84['status']===200&&$n84['body']['legal_status']==='suspended'&&$n84['body']['open_bills'][0]['status']==='navette','WP84 draft does not change legal status');
 
+
+/* WP95: test on the second account after all existing world scenarios. */
+$bob2=req30('POST','/sessions',['username'=>'bob','password'=>'strong-password-456'])['body']['access_token'];
+ck30(req30('POST','/me/password',['current_password'=>'wrong-password-456','new_password'=>'changed-password-456'],null)['status']===401,'WP95 anonymous password change rejected');
+ck30(req30('POST','/me/password',['current_password'=>'wrong-password-456','new_password'=>'changed-password-456'],$bob2)['status']===401,'WP95 wrong current password rejected');
+ck30(req30('GET','/me',null,$bob2)['status']===200,'WP95 wrong password leaves session intact');
+$rotation=req30('POST','/me/password',['current_password'=>'strong-password-456','new_password'=>'changed-password-456'],$bob2);
+ck30($rotation['status']===200&&$rotation['body']['revoked_sessions']>=2&&$rotation['body']['login_required'],'WP95 rotation revokes every session');
+ck30(req30('GET','/me',null,$bob2)['status']===401&&req30('GET','/me',null,$tb)['status']===401,'WP95 both previous tokens rejected');
+ck30(req30('POST','/sessions',['username'=>'bob','password'=>'strong-password-456'])['status']===401,'WP95 old password rejected');
+$bob3=req30('POST','/sessions',['username'=>'bob','password'=>'changed-password-456']);
+ck30($bob3['status']===200&&req30('GET','/me',null,$bob3['body']['access_token'])['body']['username']==='bob','WP95 new credential works');

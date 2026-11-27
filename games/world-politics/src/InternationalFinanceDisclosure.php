@@ -34,6 +34,18 @@ final class InternationalFinanceDisclosure
             $observations[$id]=['kind'=>$kind,'reported_minor'=>$million*100000000,'source'=>$pack['sources'][$source],
                 'outstanding_at_investiture_minor'=>null,'future_payment_schedule'=>null,'additive_to_other_rows'=>false];
         }
+        // Only fictional outstanding obligations, never historical amounts.
+        // Maturity buckets are mutually exclusive, exact minor units.
+        $buckets=['due_1_30_days'=>0,'due_31_90_days'=>0,'due_91_365_days'=>0,'due_after_365_days'=>0];
+        $today=new \DateTimeImmutable($ledger['day']);
+        foreach($ledger['records'] as $record)foreach($record['installments'] as $item){
+            if($item['status']!=='future')continue;
+            $days=(int)$today->diff(new \DateTimeImmutable($item['due']))->format('%r%a');
+            if($days<1)throw new \DomainException('Future obligation overdue');
+            $key=match(true){$days<=30=>'due_1_30_days',$days<=90=>'due_31_90_days',$days<=365=>'due_91_365_days',default=>'due_after_365_days'};
+            $buckets[$key]+=$item['amount_minor'];
+        }
+        if(array_sum($buckets)!==$ledger['totals']['future_minor'])throw new \DomainException('Maturity reconciliation failed');
         $last=$d['days']===[]?null:$d['days'][array_key_last($d['days'])];
         $hashes=[];
         foreach(['domestic'=>$domestic,'diplomatic'=>$diplomatic] as $k=>$r){
@@ -44,7 +56,8 @@ final class InternationalFinanceDisclosure
             'reference_sha'=>$ref['source_sha'],'source_hashes'=>$hashes,'historical_observations'=>$observations,
             'actual_receivables_minor'=>null,'actual_contingent_liabilities_minor'=>null,'actual_future_payables_minor'=>null,
             'actual_inventory_complete'=>false,'historical_rows_additive'=>false,
-            'fictional_commitment_totals'=>$ledger['totals'],'fictional_risk'=>isset($p['commitment_risk'])?CommitmentRisk::report($ledger):null,
+            'fictional_commitment_totals'=>$ledger['totals'],'fictional_future_maturity_minor'=>$buckets,
+            'fictional_total_outstanding_minor'=>$ledger['totals']['future_minor']+$ledger['totals']['arrears_minor'],'fictional_risk'=>isset($p['commitment_risk'])?CommitmentRisk::report($ledger):null,
             'aid_daily_budget_proxy'=>$last['ukraine_aid']??null,'additional_budget_delta_minor'=>null,'additional_treasury_booking'=>false];
     }
 }
