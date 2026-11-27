@@ -24,7 +24,7 @@ final class SocialUniverseUpgrade
         $pinned=isset($cfg['social_economy_from']);
         if($pinned){
             if(!isset($inst['legislation']['social_programme']))throw new \DomainException('Inconsistent social model pin');
-            if(array_diff_key(PrimaryManifestoPolicy::definitions(),$cfg['catalog'])===[])return ['changed'=>false,'day'=>$day];
+            if(array_diff_key(PrimaryManifestoPolicy::definitions()+SocialProgramme::target2027(),$cfg['catalog'])===[])return ['changed'=>false,'day'=>$day];
         }
         if(!isset($cfg['finance_autonomy'],$cfg['population_model'],$cfg['services_model'],$cfg['macro_baseline'],$inst['legislation']['national_service']))throw new \DomainException('Unsupported legacy world');
         $cfg['catalog']+=SocialProgramme::policies($cfg['macro_baseline']);
