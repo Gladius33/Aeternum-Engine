@@ -63,6 +63,13 @@ final class PdoCareerInstitutionStore
             $prior=$this->query('SELECT event_json,receipt_json FROM wp_career_events WHERE world_id=? AND actor_id=? AND command_id=?',[$world,$e['actor'],$e['command']])->fetch(\PDO::FETCH_ASSOC);
             if($prior!==false){CareerInstitutionLedger::check($prior['event_json']===CareerInstitutionLedger::json($e),'idempotency conflict');return self::decode($prior['receipt_json']);}
             CareerInstitutionLedger::check($clock['committed_day']===$e['day']&&(int)$clock['revision']===$e['world_revision'],'stale institutional evidence');
+            if(in_array($e['operation'],['dissolve_assembly','restore_assembly','constitution_revision'],true)){
+                require_once __DIR__.'/FrenchCareerInstitutionBridge.php';
+                $source=$this->query("SELECT state_json,state_sha,revision FROM wp_institutional_states WHERE world_id=? AND country_code='FR' FOR UPDATE",[$world])->fetch(\PDO::FETCH_ASSOC);
+                CareerInstitutionLedger::check($source!==false,'missing committed institution proof');
+                $digest=FrenchCareerInstitutionBridge::evidence(self::decode($source['state_json']),(int)$source['revision'],$e,$source['state_sha']);
+                CareerInstitutionLedger::check(hash_equals($digest,$e['evidence_sha']),'institution evidence digest mismatch');
+            }
             if($e['operation']==='admit')$this->activeAccount($world,$e['payload']['account']);
             foreach($e['payload']['grants']??[] as $g){$account=$s['careers'][$g['career']]['account']??null;CareerInstitutionLedger::check(is_string($account),'unknown career');$this->activeAccount($world,$account);}
             $next=CareerInstitutionLedger::apply($s,$e);$receipt=self::receipt($next);

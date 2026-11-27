@@ -2,6 +2,8 @@
 declare(strict_types=1);
 require_once __DIR__.'/../games/world-politics/src/CareerInstitutionLedger.php';
 use Aeternum\WorldPolitics\CareerInstitutionLedger as L;
+use Aeternum\WorldPolitics\{ConstitutionalRevision,InstitutionalSimulation,FrenchCareerInstitutionBridge};
+require_once __DIR__.'/../games/world-politics/src/FrenchCareerInstitutionBridge.php';
 function ck(bool $x,string $m):void{if(!$x)throw new RuntimeException($m);}
 function no(callable $f):void{try{$f();}catch(DomainException $e){return;}throw new RuntimeException('expected rejection');}
 function evt(array $s,string $op,array $p,string $day='2027-05-14'):array{return ['world'=>$s['world'],'country'=>'FR','day'=>$day,'world_revision'=>0,'command'=>'cmd-'.($s['sequence']+1),'actor'=>'institution','operation'=>$op,'payload'=>$p,'evidence_sha'=>str_repeat('a',64)];}
@@ -32,4 +34,31 @@ $t=change($t,'renewal',['president'],[grant('president','a','2037-05-14')],'2032
 no(fn()=>change($t,'renewal',['president'],[grant('president','a','2042-05-14')],'2037-05-14'));
 $t=change($t,'resignation',['president'],[],'2033-05-14');
 no(fn()=>change($t,'election',[],[grant('president','a','2039-05-14')],'2034-05-14'));
+// Existing institutional simulation independently certifies the dissolution.
+$institution=new InstitutionalSimulation('test-world','FR','2027-06-01');
+$de=evt(L::initial('test-world','FR','career','2027-05-14'),'dissolve_assembly',['presidential_mandate'=>$p],'2027-06-01');
+no(fn()=>FrenchCareerInstitutionBridge::evidence($institution->snapshot(),0,$de,$institution->hash()));
+foreach(['prime_minister','assembly_speaker','senate_speaker'] as $role)$institution->decide($role,'record_consultation',[],'consult-'.$role);
+$institution->decide('president','dissolve_lower_house',[],'dissolve-proof');
+$proof=FrenchCareerInstitutionBridge::evidence($institution->snapshot(),4,$de,$institution->hash());
+ck(strlen($proof)===64,'committed dissolution bridge');
+no(fn()=>FrenchCareerInstitutionBridge::evidence($institution->snapshot(),4,$de,str_repeat('0',64)));
+// Exercise an actual replayable Article 89 process, not a supplied next hash.
+$v=add(L::initial('revision-world','FR','career','2027-05-14'),'a');
+$v=change($v,'election',[],[grant('president','a')]);
+$revision=new ConstitutionalRevision('revision-world','2027-05-14');
+$d=$revision->draft('rev-one','presidential-seven-year-referendum');$sha=$d['text_sha'];
+$re=fn($kind,$data,$id)=>['world_id'=>'revision-world','country'=>'FR','day'=>'2027-05-14','evidence_id'=>$id,'revision_id'=>'rev-one','kind'=>$kind,'procedure_certified'=>true,'data'=>$data];
+$makePayload=fn()=>['previous_sha'=>$v['constitution_sha'],'procedure'=>'article89','revision_state_json'=>json_encode($revision->snapshot(),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE)];
+no(fn()=>L::apply($v,evt($v,'constitution_revision',$makePayload())));
+$revision->certify($re('file',['initiative'=>'government_project','sponsor'=>'president','prime_minister_proposal'=>true,'republican_form_preserved'=>true],'rev-file'));
+foreach(['assembly','senate'] as $ch)$revision->certify($re('chamber_vote',['chamber'=>$ch,'text_sha'=>$sha,'yes'=>180,'no'=>140,'abstain'=>20,'blank_invalid'=>0],'vote-'.$ch));
+$revision->certify($re('route',['route'=>'referendum','presidential_decision'=>true],'rev-route'));
+$revision->certify($re('ratify',['route'=>'referendum','text_sha'=>$sha,'yes'=>600,'no'=>400,'abstain'=>20,'blank_invalid'=>0],'rev-ratify'));
+no(fn()=>L::apply($v,evt($v,'constitution_revision',$makePayload())));
+$revision->certify($re('promulgate',['text_sha'=>$sha,'published_on'=>'2027-05-14'],'rev-publish'));
+$oldMandate=$v['active']['president'];$v=L::apply($v,evt($v,'constitution_revision',$makePayload()));
+ck($v['constitution_rules']['next_term_years']===7&&$v['constitution_rules']['term_limit']===2&&$v['mandates'][$oldMandate]['expires']==='2032-05-14','prospective revision preserves incumbent mandate');
+$v=change($v,'renewal',['president'],[grant('president','a','2039-05-14')],'2032-05-14');
+ck($v['mandates'][$v['active']['president']]['expires']==='2039-05-14','effective seven-year term');
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";

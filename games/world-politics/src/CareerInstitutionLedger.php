@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CareerScoreContract.php';
+require_once __DIR__.'/ConstitutionalRevision.php';
 
 /** WP118–119 opt-in institutional ledger. Documentary identities never authorize acts. */
 final class CareerInstitutionLedger
@@ -23,7 +24,7 @@ final class CareerInstitutionLedger
     public static function initial(string $world,string $country,string $mode,string $day):array{
         self::id($world);self::day($day);self::check($country==='FR'&&in_array($mode,['career','research'],true),'only French reviewed fixture');
         return ['version'=>self::VERSION,'world'=>$world,'country'=>$country,'mode'=>$mode,'state_id'=>'FR','regime'=>'fr-fifth-republic','constitution_revision'=>1,
-            'constitution_sha'=>self::digest(['source'=>self::SOURCE,'rules'=>'fr-career-v1']),'day'=>$day,'sequence'=>0,'last_event_sha'=>str_repeat('0',64),
+            'constitution_sha'=>self::digest(['source'=>self::SOURCE,'rules'=>'fr-career-v1']),'constitution_rules'=>['term_limit'=>2,'next_term_years'=>5,'effective_clauses'=>[]],'day'=>$day,'sequence'=>0,'last_event_sha'=>str_repeat('0',64),
             'careers'=>[],'mandates'=>[],'active'=>[],'generations'=>[],'series'=>[],'assembly'=>'active','senate'=>'active','assembly_changed_on'=>$day,
             'government'=>'vacant','research_observation'=>null];
     }
@@ -56,19 +57,19 @@ final class CareerInstitutionLedger
         if($office==='president'&&!$g['interim']){
             self::check(in_array($reason,['election','renewal','succession'],true),'presidential certification required');
             if($reason==='renewal'){
-                self::check($previous!==null&&!$previous['interim']&&$previous['career']===$g['career']&&$previous['expires']===$day&&$previous['series']!==null&&$previous['terms']<2,'invalid presidential renewal');
+                self::check($previous!==null&&!$previous['interim']&&$previous['career']===$g['career']&&$previous['expires']===$day&&$previous['series']!==null&&($s['constitution_rules']['term_limit']===null||$previous['terms']<$s['constitution_rules']['term_limit']),'invalid presidential renewal');
                 $series=$previous['series'];$terms=$previous['terms']+1;$s['series'][$series]['end']=null;$s['series'][$series]['end_reason']=null;
             }else{
                 self::check($previous===null||$previous['career']!==$g['career']||$previous['interim'],'continuous term requires renewal');
                 // Track consecutive terms even after an explicitly closed same-day vacancy.
                 $latest=null;foreach($s['mandates'] as $old)if($old['office']==='president'&&!$old['interim']&&($latest===null||$old['generation']>$latest['generation']))$latest=$old;
                 self::check($latest===null||$latest['career']!==$g['career']||$latest['end']!==$day,'same-day renewal cannot reset terms');
-                $series='series-'.hash('sha256',$id);$terms=$latest!==null&&$latest['career']===$g['career']?$latest['terms']+1:1;self::check($terms<=2,'consecutive presidential term limit');$first=$s['careers'][$g['career']]['first_series']===null;
+                $series='series-'.hash('sha256',$id);$terms=$latest!==null&&$latest['career']===$g['career']?$latest['terms']+1:1;self::check($s['constitution_rules']['term_limit']===null||$terms<=$s['constitution_rules']['term_limit'],'consecutive presidential term limit');$first=$s['careers'][$g['career']]['first_series']===null;
                 $s['series'][$series]=['career'=>$g['career'],'start'=>$day,'end'=>null,'end_reason'=>null,'credit_days'=>null,'credit_verified'=>false,'first'=>$first,'rankable'=>false];
                 if($first)$s['careers'][$g['career']]['first_series']=$series;
             }
-            $limit=(new \DateTimeImmutable($day))->modify('+5 years')->format('Y-m-d');
-            self::check($g['expires']<=$limit,'presidential term exceeds five years');
+            $limit=(new \DateTimeImmutable($day))->modify('+'.$s['constitution_rules']['next_term_years'].' years')->format('Y-m-d');
+            self::check($g['expires']<=$limit,'presidential term exceeds effective duration');
         }
         if($g['interim'])self::check($reason==='succession','interim requires succession evidence');
         $powers=$g['interim']?['president.represent']:$rule['powers'];
@@ -118,10 +119,21 @@ final class CareerInstitutionLedger
             self::fields($p,[]);self::check($s['assembly']==='dissolved','assembly not dissolved');
             $elapsed=CareerScoreContract::elapsed($s['assembly_changed_on'],$day);self::check($elapsed>=20&&$elapsed<=40,'constitutional election window');$s['assembly']='active';$s['assembly_changed_on']=$day;$s['last_dissolution_election']=$day;
         }elseif($op==='constitution_revision'){
-            self::fields($p,['previous_sha','next_sha','procedure']);
-            self::check($p['procedure']==='article89'&&$p['previous_sha']===$s['constitution_sha']&&is_string($p['next_sha'])&&preg_match('/^[a-f0-9]{64}$/D',$p['next_sha'])===1&&$p['next_sha']!==$p['previous_sha'],'revision evidence');
-            self::check($s['active']===[],'changed authority rules require separate certified migration');
-            $s['constitution_revision']++;$s['constitution_sha']=$p['next_sha'];
+            self::fields($p,['previous_sha','revision_state_json','procedure']);
+            self::check($p['procedure']==='article89'&&$p['previous_sha']===$s['constitution_sha']&&is_string($p['revision_state_json'])&&strlen($p['revision_state_json'])<=1000000,'revision evidence');
+            // Preserve the original serialization for the existing strict revision replay.
+            $revision=ConstitutionalRevision::restore(json_decode($p['revision_state_json'],true,64,JSON_THROW_ON_ERROR))->snapshot();
+            self::check($revision['world_id']===$s['world']&&$revision['day']===$day&&$revision['constitution_version']+1>$s['constitution_revision'],'effective revision scope');
+            $clauses=$revision['effective_clauses'];
+            foreach($s['constitution_rules']['effective_clauses'] as $key=>$old)self::check(isset($clauses[$key])&&self::digest($clauses[$key])===self::digest($old),'effective clause cannot disappear or change silently');
+            // Only these two prospective rules are composed. Any other clause
+            // needs a separate reviewed mapping instead of guessed consequences.
+            foreach(array_keys($clauses) as $key)self::check(in_array((string)$key,['6','6-duration'],true),'unmapped constitutional clause');
+            $limit=ConstitutionalRevision::termLimitProof($revision,$s['world'],$day);
+            $duration=ConstitutionalRevision::termLengthProof($revision,$s['world'],$day);
+            $s['constitution_rules']=['term_limit'=>$limit===null?2:null,'next_term_years'=>$duration===null?5:7,'effective_clauses'=>$clauses];
+            $s['constitution_revision']=$revision['constitution_version']+1;
+            $s['constitution_sha']=self::digest(['source'=>self::SOURCE,'revision'=>$s['constitution_revision'],'rules'=>$s['constitution_rules']]);
         }else throw new \DomainException('Unsupported career event');
         // No unresolved expired grant may survive a committed transition day.
         foreach($s['active'] as $mid)self::check($s['mandates'][$mid]['expires']>$day,'expired office requires certified closure');
