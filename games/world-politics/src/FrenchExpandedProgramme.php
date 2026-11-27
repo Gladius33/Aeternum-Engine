@@ -21,7 +21,7 @@ final class FrenchExpandedProgramme
         'mathilde-panot'=>['pf2027-jean-luc-melenchon-smic','pf2027-jean-luc-melenchon-pension','pf2027-lfi-public-housing','pf2027-lfi-renovation','pf2027-lfi-public-index','pf2027-lfi-eldercare-capacity']
     ];
     public static function policyIds():array{
-        return array_values(array_unique(array_merge(...array_values(self::HISTORICAL),...array_values(self::COLLECTIVE),['pf2022-jean-lassalle-1'])));
+        return array_values(array_unique(array_merge(['pf2022-jean-lassalle-1'],...array_values(self::HISTORICAL),...array_values(self::COLLECTIVE))));
     }
     public static function choices(array $base,array $reviewed):array{
         $base=array_column($base,null,'base');$reviewed=array_column($reviewed,null,'id');
