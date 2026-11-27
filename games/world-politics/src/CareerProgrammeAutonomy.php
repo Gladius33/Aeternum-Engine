@@ -49,11 +49,9 @@ final class CareerProgrammeAutonomy
             require_once __DIR__.'/CampaignCandidate.php';
             if(isset($career['programme_edition'])){
                 $v=CampaignCandidate::editionEvidence($career['programme_edition']);
-                if(is_array($v)&&isset($v['document_sha256'],$career['programme_sha'])&&hash_equals($v['document_sha256'],$career['programme_sha']))
+                if(is_array($v)&&($v['base']??null)===$career['person_reference']&&isset($v['document_sha256'],$career['programme_sha'])&&hash_equals($v['document_sha256'],$career['programme_sha']))
                     return $v['measure_ids'];
-            }elseif(($career['controller']??null)==='ai'){
-                $v=array_column(CampaignCandidate::v1Choices(),null,'base')[$career['person_reference']]??null;
-                if($v!==null)return $v['measure_ids'];
+                return [];
             }
         }
         if(($career['person_reference']??null)==='campaign2027-marine-tondelier'&&($career['programme_edition']??null)==='campaign2027-marine-tondelier-v1-public')

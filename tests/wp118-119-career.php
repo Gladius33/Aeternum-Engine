@@ -322,9 +322,22 @@ $rb=L::automaticBallot($expanded,'2027-05-14');ck(count($rb['ballot']['first']['
 $be=evt($expanded,'presidential_ballot',$rb);$be['actor']='career-election-clerk';$be['evidence_sha']=L::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$expanded['world'],'day'=>$be['day'],'payload'=>$rb]);
 ck(isset(L::apply($expanded,$be)['active']['president']),'expanded election can be certified');
 
+require_once __DIR__.'/../games/world-politics/src/CampaignCandidate.php';
 $sourceEdition=\Aeternum\WorldPolitics\CampaignCandidate::editionEvidence('campaign2027-fabien-roussel-v2-public');
 $claimCareer=['person_reference'=>'campaign2027-fabien-roussel','controller'=>'human','account'=>'acct-fixture','programme_edition'=>$sourceEdition['id'],'programme_sha'=>$sourceEdition['document_sha256']];
 ck($planClass::objectives($claimCareer,true)===$sourceEdition['measure_ids'],'signed historical programme drives human fallback');
-ck($planClass::objectives(['person_reference'=>'campaign2027-fabien-roussel','controller'=>'ai'],true)===$sourceEdition['measure_ids'],'unclaimed AI uses preferred reviewed edition');
+ck($planClass::objectives(array_replace($claimCareer,['account'=>null,'controller'=>'ai']),true)===$sourceEdition['measure_ids'],'unclaimed AI uses pinned reviewed edition');
 ck($planClass::objectives(['person_reference'=>'campaign2027-fabien-roussel','controller'=>'ai'],false)===[],'legacy autonomy unchanged');
 ck($planClass::objectives(array_replace($claimCareer,['programme_sha'=>str_repeat('0',64)]),true)===[],'incorrect digest cannot unlock historical mapping');
+
+$editions=[];foreach(\Aeternum\WorldPolitics\CampaignCandidate::v1Choices() as $v)$editions['real-'.substr($v['base'],strlen('campaign2027-'))]=['edition'=>$v['id'],'sha'=>$v['document_sha256']];
+$payload=['editions'=>$editions];
+$pe=evt($expanded,'pin_fr_programmes',$payload);$pe['actor']='career-ai-clerk';$pe['evidence_sha']=L::digest(['kind'=>'fr-programme-pins-v1','world'=>$expanded['world'],'day'=>$pe['day'],'payload'=>$payload]);
+$pinned=L::apply($expanded,$pe);ck($pinned['careers']['real-fabien-roussel']['programme_edition']===$sourceEdition['id'],'all AI profiles pinned by signed opening event');
+$bad=$pe;$bad['payload']['editions']['real-fabien-roussel']['sha']=str_repeat('0',64);$bad['evidence_sha']=L::digest(['kind'=>'fr-programme-pins-v1','world'=>$expanded['world'],'day'=>$bad['day'],'payload'=>$bad['payload']]);no(fn()=>L::apply($expanded,$bad));
+$auto=change($pinned,'election',[],[grant('president','real-clara-egger')]);
+$auto=change($auto,'appointment',[],[grant('prime-minister','real-fabien-roussel')]);
+$catalog=array_fill_keys($sourceEdition['measure_ids'],true);
+$proposal=$planClass::next($auto,'2027-05-14',[],$catalog);
+ck($proposal!==null&&$proposal['policy_id']==='hist2022-fabien-roussel-1','historical pinned AI produces actual proposal');
+ck($planClass::next($auto,'2027-05-14',[],$catalog,['real-fabien-roussel'=>true])===null,'human action suppresses pinned AI proposal');

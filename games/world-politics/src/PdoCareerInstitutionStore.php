@@ -264,6 +264,16 @@ final class PdoCareerInstitutionStore
         $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-fr-supplement-roster-v1','actor'=>'career-ai-clerk','operation'=>'admit_fr_supplement_roster','payload'=>$payload,
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'fr-supplement-roster-v1','world'=>$world,'day'=>$day,'payload'=>$payload])];
         $this->applyLocked($e,$this->evidence->sign($e));
+        require_once __DIR__.'/CampaignCandidate.php';
+        $editions=[];
+        foreach(CampaignCandidate::v1Choices() as $v){
+            $id='real-'.substr($v['base'],strlen('campaign2027-'));
+            $editions[$id]=['edition'=>$v['id'],'sha'=>$v['document_sha256']];
+        }
+        $payload=['editions'=>$editions];
+        $pin=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-fr-programme-pins-v1','actor'=>'career-ai-clerk','operation'=>'pin_fr_programmes','payload'=>$payload,
+            'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'fr-programme-pins-v1','world'=>$world,'day'=>$day,'payload'=>$payload])];
+        $this->applyLocked($pin,$this->evidence->sign($pin));
     }
     public function seedAutonomousCareers(string $world,string $secret):?array{
         return $this->tx(fn()=>$this->seedAutonomousLocked($world,$this->clock($world),$secret));

@@ -153,6 +153,26 @@ final class CareerInstitutionLedger
         }
         $s['fr_supplementary_roster_version']='fr-supplement-roster-v1';
     }
+    private static function pinFrenchProgrammes(array &$s,array $e):void{
+        require_once __DIR__.'/CampaignCandidate.php';
+        $p=$e['payload'];self::fields($p,['editions']);
+        self::check($s['country']==='FR'&&$s['mode']==='career'&&$e['actor']==='career-ai-clerk'&&$e['day']===CareerScoreContract::START
+            &&isset($s['fr_supplementary_roster_version'])&&!isset($s['fr_programme_pin_version'])
+            &&$e['evidence_sha']===self::digest(['kind'=>'fr-programme-pins-v1','world'=>$s['world'],'day'=>$e['day'],'payload'=>$p]),'French programme pin evidence');
+        $real=array_filter($s['careers'],fn($c)=>isset($c['person_reference']));
+        self::check(is_array($p['editions'])&&count($real)===36&&count($p['editions'])===36,'programme pin coverage');
+        foreach($real as $id=>$career){
+            $r=$p['editions'][$id]??null;
+            self::check(is_array($r)&&$career['account']===null&&($career['controller']??null)==='ai','programme pin identity');
+            self::fields($r,['edition','sha']);
+            $v=CampaignCandidate::editionEvidence($r['edition']);
+            self::check($v!==null&&($v['base']??null)===$career['person_reference']&&($v['provisional']??false)===true
+                &&hash_equals($v['document_sha256'],$r['sha']),'programme pin edition mismatch');
+            $s['careers'][$id]['programme_edition']=$r['edition'];
+            $s['careers'][$id]['programme_sha']=$r['sha'];
+        }
+        $s['fr_programme_pin_version']='fr-programme-pins-v1';
+    }
     private static function ballotCapacity(array $s):int{return ($s['fr_supplementary_roster_version']??null)==='fr-supplement-roster-v1'?48:30;}
     private static function admitPartyAutonomousRoster(array &$s,array $e):void{
         require_once __DIR__.'/DocumentaryForeignBallot.php';
@@ -413,6 +433,8 @@ final class CareerInstitutionLedger
             self::admitRealAutonomousRoster($s,$e);
         }elseif($op==='admit_fr_supplement_roster'){
             self::admitFrenchSupplement($s,$e);
+        }elseif($op==='pin_fr_programmes'){
+            self::pinFrenchProgrammes($s,$e);
         }elseif($op==='admit_party_ai_roster'){
             self::admitPartyAutonomousRoster($s,$e);
         }elseif($op==='admit_us_presidential_roster'){
