@@ -45,6 +45,16 @@ final class CampaignCandidate
                     'source'=>'https://melenchon2027.fr/programme/livre/mettre-en-securite-sociale/chapitre1',
                     'target'=>SocialProgramme::target2027()['pf2027-jean-luc-melenchon-pension']['target'],
                     'scope'=>'representative_pension_career_and_age_cohort_proxy'],
+                ['id'=>'pf2027-ecologistes-renovation','publisher'=>'Les Écologistes',
+                    'source'=>'https://lesecologistes.fr/manifesto/1VEj8MDN3PHPwmprxozbqV/2-pouvoir-se-loger-decemment',
+                    'target'=>SocialProgramme::target2027()['pf2027-ecologistes-renovation']['target'],
+                    'scope'=>'incremental_annual_renovation_funding_proxy_not_energy_saving_certification'],
+            ],
+            'identified_unmapped'=>[
+                ['id'=>'fr2027-dlf-industrial-fund','source'=>'https://www.debout-la-france.fr/projet/produire-en-france/',
+                    'target'=>['annual_fund_eur'=>4000000000],'reason'=>'investment_asset_and_return_accounting_required'],
+                ['id'=>'fr2027-retailleau-overtime','source'=>'https://www.avecretailleau.fr/projet/mesure/rapprocher-le-brut-du-net-avec-le-seuil-zero-cotisation',
+                    'target'=>['annual_threshold_hours'=>1623],'reason'=>'annualized_payroll_and_residual_levies_required'],
             ],
             'selection_enabled'=>false,'requires_primary_source_review'=>true];
     }
