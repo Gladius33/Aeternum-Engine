@@ -26,4 +26,17 @@ ck85($report['window_days']===1&&!$report['score_eligible']&&$report['additional
 ck85(array_sum($report['latest']['cases']['fixed_household_structure']['components_reference_scaled'])===$report['latest']['cases']['fixed_household_structure']['rdb_reference_scaled'],'flow reconciliation');
 $d['state']['days']=[];$d['state']['day']='2027-05-14';$di['state']['day']='2027-05-14';
 ck85(HouseholdAccount::report($d,$di)['latest']===null,'no opening fiction');
-echo "WP85 household accounting OK\n";
+$tax=$report['latest']['cases']['fixed_household_structure']['direct_tax_sensitivity'];
+$baseline=$report['latest']['cases']['fixed_household_structure'];
+ck85(array_column($tax,'direct_tax_rate_shift_bps')===[-100,0,100],'tax scenarios ordered');
+ck85($tax[0]['rdb_reference_scaled']>$tax[1]['rdb_reference_scaled']&&$tax[1]['rdb_reference_scaled']>$tax[2]['rdb_reference_scaled'],'tax incidence direction');
+ck85($tax[1]['rdb_reference_scaled']===$baseline['rdb_reference_scaled']&&$tax[1]['real_rdb_per_uc_proxy_index_bps']===$baseline['real_rdb_per_uc_proxy_index_bps'],'zero shift reconciles baseline');
+ck85($tax[0]['rdb_reference_scaled']-$tax[1]['rdb_reference_scaled']===$tax[1]['rdb_reference_scaled']-$tax[2]['rdb_reference_scaled'],'symmetric tax counterfactual');
+ck85($report['direct_tax_sensitivity_is_counterfactual']&&!$report['score_eligible']&&$report['additional_budget_delta_minor']===null,'no fiscal or score mutation');
+$d['state']['day']='2027-05-15';$di['state']['day']='2027-05-15';
+$rejected=false;try{HouseholdAccount::report($d,$di);}catch(DomainException $e){$rejected=true;}
+ck85($rejected,'missing committed history rejected');
+$d['state']['day']='2027-05-16';$di['state']['day']='2027-05-16';$r['day']='2027-05-16';$d['state']['days']=[$r];
+$rejected=false;try{HouseholdAccount::report($d,$di);}catch(DomainException $e){$rejected=true;}
+ck85($rejected,'truncated short window rejected');
+echo "WP85/WP86 household accounting OK\n";

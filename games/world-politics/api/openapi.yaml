@@ -102,7 +102,7 @@ paths:
   /worlds/{world}/countries/FR/household-account:
     get:
       operationId: readHouseholdAccount
-      summary: Experimental reconciled disposable income and demographic consumption unit proxies
+      summary: Experimental reconciled disposable income, tax sensitivities and demographic consumption unit proxies
       parameters:
         - $ref: '#/components/parameters/world'
       responses:

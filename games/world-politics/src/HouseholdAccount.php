@@ -6,7 +6,7 @@ require_once __DIR__.'/HouseholdIncomeReference.php';
 /** Experimental distributional accounting bridge, no fiscal mutation or score. */
 final class HouseholdAccount
 {
-    public const VERSION='wp85-household-account-v1';
+    public const VERSION='wp86-household-account-v2';
     private const ANCHOR=['net_wages'=>10189,'other_net_activity'=>1081,'net_property_income'=>1403,
         'pure_household_surplus'=>2618,'cash_benefits'=>6470,'current_direct_taxes'=>-2919,
         'transfers_to_npish'=>-176,'other_net_transfers'=>103];
@@ -76,7 +76,21 @@ final class HouseholdAccount
             $nom=intdiv($total,array_sum(self::ANCHOR));
             $real=self::ratio($nom,$price);
             $uc=self::ratio($units['consumption_units_tenths'],$openingUnits['consumption_units_tenths']);
-            $cases[$key]=['structure'=>$units,'components_reference_scaled'=>$flows,
+            // Counterfactual direct-tax rate shifts in percentage points of
+            // the same pre-tax income proxy. No allocation of public revenue,
+            // behavioural response, budget write or change to campaign score.
+            $taxSensitivity=[];
+            foreach([-100,0,100] as $shift){
+                $delta=intdiv($preTax*$shift,10000);
+                $tax=$flows['current_direct_taxes']-$delta;
+                $counterfactual=$total-$delta;
+                if($tax>0||$counterfactual<=0)throw new \DomainException('Invalid tax sensitivity');
+                $nominal=self::ratio($counterfactual,array_sum(self::ANCHOR)*10000);
+                $taxSensitivity[]=['direct_tax_rate_shift_bps'=>$shift,
+                    'direct_tax_reference_scaled'=>$tax,'rdb_reference_scaled'=>$counterfactual,
+                    'real_rdb_per_uc_proxy_index_bps'=>self::ratio(self::ratio($nominal,$price),$uc)];
+            }
+            $cases[$key]=['structure'=>$units,'direct_tax_sensitivity'=>$taxSensitivity,'components_reference_scaled'=>$flows,
                 'rdb_reference_scaled'=>$total,'nominal_rdb_index_bps'=>$nom,'real_rdb_index_bps'=>$real,
                 'uc_index_bps'=>$uc,'real_rdb_per_uc_proxy_index_bps'=>self::ratio($real,$uc)];
         }
@@ -102,7 +116,13 @@ final class HouseholdAccount
             $rows[]=$x;$prev=$day;
         }
         if($prev!==null&&$prev->format('Y-m-d')!==$d['day'])throw new \DomainException('Uncommitted household account');
-        $n=count($rows);$hashes=[];
+        $committed=new \DateTimeImmutable($d['day']);
+        if($committed<$start||$committed->format('Y-m-d')!==$d['day'])
+            throw new \DomainException('Invalid household account committed date');
+        $n=count($rows);
+        if($n!==min(365,(int)$start->diff($committed)->format('%a')))
+            throw new \DomainException('Incomplete household account window');
+        $hashes=[];
         foreach(['domestic'=>$domestic,'diplomatic'=>$diplomatic] as $key=>$v){
             $h=trim($v['etag'],'"');if(!preg_match('/^[a-f0-9]{64}$/D',$h))throw new \DomainException('Invalid household account digest');$hashes[$key]=$h;
         }
@@ -113,12 +133,13 @@ final class HouseholdAccount
             'opening_is_observed_2027'=>false,'window_days'=>$n,'complete_365_day_window'=>$n===365,
             'latest'=>$n?$rows[$n-1]:null,'rolling_means_bps'=>$n?array_map(fn($v)=>intdiv($v,$n),$sum):null,
             'score_eligible'=>false,'score_rules_changed'=>false,'actual_rdb_per_uc_index_bps'=>null,
-            'additional_budget_delta_minor'=>null,'component_unit'=>'2025_reference_tenth_billion_eur_times_index_bps',
+            'additional_budget_delta_minor'=>null,'direct_tax_sensitivity_is_counterfactual'=>true,'component_unit'=>'2025_reference_tenth_billion_eur_times_index_bps',
             'classification'=>'experimental_household_accounting_not_calibrated',
             'assumptions'=>['constant working-age participation','under 14 approximated by fourteen fifteenths of 0–14 cohort',
                 'constant census household coverage and one first adult per household','0 or 50 bps annual linear household fragmentation sensitivity',
                 'other activity and net property income follow nominal GDP','pure surplus follows prices and households',
                 'cash benefits use macro public-benefit feedback as proxy','constant effective direct-tax share; no allocation of aggregate public tax feedback',
+                'direct tax sensitivity holds all other flows and macro variables fixed; rate shifts are not enacted policies',
                 'prices proxy household consumption deflator','reference amounts not a 2027 euro forecast']];
     }
 }

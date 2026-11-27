@@ -843,3 +843,8 @@ Référence article L112-2 du Code du service national (https://www.legifrance.g
 ## WP85 — compte des ménages réconcilié et UC
 
 Ancrage Insee 2025 provisoire (1 876,9 milliards EUR de RDB), huit composantes signées; revenus d’activité autres que salaires nets déduits par différence. Dénominateur UC issu du recensement 2023 hors Mayotte et des cohortes simulées; approximation des moins de 14 ans, premier adulte, structure fixe ou fragmentation hypothétique. Facteurs d’évolution explicites non calibrés. GET authentifié `/countries/FR/household-account`, fenêtre de 365 jours effectivement validés, sans effet sur les finances ou le score. Ni mesure réelle du RDB 2027 ni modèle fiscal causal; impôts spécifiques et répartition des ménages restent à développer. Tests domaine et HTTP.
+
+
+## WP86 — incidence fiscale des ménages et intégrité de fenêtre
+
+Le rapport WP85 passe à `wp86-household-account-v2`. Trois sensibilités (−1, 0, +1 point de taux effectif d'impôts directs sur le même revenu avant impôt) réconcilient le revenu disponible et l'indice réel par UC, à autres flux et prix constants. Il ne s'agit ni de mesures votées, ni de barèmes fiscaux réels, ni d'une estimation causale des réactions. Aucun effet sur les recettes publiques, les soldes ou le score. Le rapport refuse une fenêtre de jours validés incomplète, y compris un historique vide après l'ouverture. Les tests vérifient le sens de l'incidence, la réconciliation du scénario central, la symétrie et le rejet des historiques tronqués. Les règles de classement existantes ne changent pas. La calibration causale et les barèmes par ménage restent ouverts.
