@@ -43,6 +43,13 @@ $hints=[];$after=null;
 do{$p=$r->page('label_correspondences',null,$after,43);foreach($p['rows'] as $v){ck117(!isset($hints[$v['id']])&&count($v['reference_ids'])>=2&&!$v['legal_identity_verified']&&!$v['runtime_admission'],'label candidate only');$hints[$v['id']]=true;}$after=$p['next'];}while($after!==null);
 ck117(count($hints)===$s['unverified_label_correspondences'],'all label hints paginated');
 foreach($r->page('label_correspondences','FR')['rows'] as $v)ck117($v['country']==='FR','country filter');
+ck117($s['academic_crosswalk_references']===44888&&$s['academic_crosswalk_datasets']>=60&&array_sum($s['academic_crosswalk_status_counts'])===44888&&$s['academic_crosswalk_status_counts']['source_unlinked']===90,'frozen academic crosswalk');
+$ca=$r->page('academic_crosswalks','FR',null,97);
+ck117(count($ca['rows'])===97&&$ca['next']!==null&&$coverage['FR']['academic_crosswalk_observations']>=97,'country academic coverage');
+foreach($ca['rows'] as $v)ck117($v['country']==='FR'&&!$v['legal_identity_verified']&&!$v['runtime_admission'],'attributed academic link only');
+$cb=$r->page('academic_crosswalks','FR',$ca['next'],97);
+ck117(count(array_intersect(array_column($ca['rows'],'id'),array_column($cb['rows'],'id')))===0,'academic cursor disjoint');
+reject117(fn()=>$r->page('academic_crosswalks','FR','not-a-cursor'));
 $seen=[];$after=null;
 do{$p=$r->page('electoral_observations',null,$after,37);foreach($p['rows'] as $v){ck117(!isset($seen[$v['id']])&&$v['organization_id']===null&&!$v['current_membership_verified']&&!$v['runtime_admission'],'no label identity inference');$seen[$v['id']]=true;}$after=$p['next'];}while($after!==null);
 ck117(count($seen)===1095,'bounded pagination complete');
@@ -59,6 +66,8 @@ try{
     file_put_contents($file,$bytes);
     file_put_contents($root.'/wp117-national-register-supplement-v1.json',' ',FILE_APPEND);reject117(fn()=>new R($root));
     copy(__DIR__.'/../games/world-politics/data/wp117-national-register-supplement-v1.json',$root.'/wp117-national-register-supplement-v1.json');
+    file_put_contents($root.'/wp117-partyfacts-2023-v1/external-crosswalks.json',' ',FILE_APPEND);reject117(fn()=>new R($root));
+    copy(__DIR__.'/../games/world-politics/data/wp117-partyfacts-2023-v1/external-crosswalks.json',$root.'/wp117-partyfacts-2023-v1/external-crosswalks.json');
     file_put_contents($root.'/wp115-ipu-party-seats-2026-11-27-v2.json',' ',FILE_APPEND);reject117(fn()=>new R($root));
 }finally{$it=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root,FilesystemIterator::SKIP_DOTS),RecursiveIteratorIterator::CHILD_FIRST);foreach($it as $f){if($f->isDir())rmdir($f->getPathname());else unlink($f->getPathname());}rmdir($root);}
 echo "PASS WP117: immutable documentary movement registry, provenance, gaps, roles, cursor and tamper checks\n";
