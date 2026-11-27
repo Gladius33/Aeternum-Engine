@@ -28,3 +28,5 @@ jobs:
           git diff --cached --quiet && exit 0
           git -c user.name='WP117 evidence collector' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'WP117: freeze published academic cross-source identifiers'
           git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push origin HEAD:refs/heads/data/wp117-crosswalk-2023
+
+# Checkout pin verified against v4 on 2026-11-27.
