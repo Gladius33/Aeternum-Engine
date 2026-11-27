@@ -60,3 +60,7 @@ The isolated MariaDB suite also replays a certified corrective law, injects a re
 ## WP100 bounded multi-process qualification
 
 CI starts two HTTP PHP processes sharing an independent MariaDB schema. It races identical world creation, performs 48 concurrent-client committed clock reads, then races one-time recovery and verifies token revocation on both processes. This is a shared-database concurrency smoke test, not a production load or distributed network benchmark.
+
+## WP101 historical candidate programme subset
+
+New campaigns pin a versioned 2022 reference with two concise, sourced measures per candidate, limited to employment, wages and retirement. All twelve candidates receive equal coverage. Source: Public Sénat, 22 March 2022 (updated 4 April 2022), https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle. The official CNCCEP manifesto index remains linked. This is a partial secondary-source summary, not complete manifestos, not 2027 platforms and not automatic policy effects. Legacy reference packs remain replayable; new pinned hashes define a distinct leaderboard cohort.

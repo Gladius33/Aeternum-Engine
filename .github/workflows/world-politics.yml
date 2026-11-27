@@ -6,6 +6,7 @@ on:
     paths:
       - 'games/world-politics/**'
       - 'tests/wp*.php'
+      - 'tests/wp*.py'
       - 'docs/WORLD_POLITICS*.md'
       - '.github/workflows/world-politics.yml'
   workflow_dispatch:

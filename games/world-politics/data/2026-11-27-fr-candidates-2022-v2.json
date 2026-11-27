@@ -1,0 +1,346 @@
+{
+  "schema": "wp101-fr-historical-candidates-v2",
+  "retrieved_on": "2026-11-27",
+  "poll_day": "2022-04-10",
+  "country": "FR",
+  "sources": {
+    "results": "https://www.archives-resultats-elections.interieur.gouv.fr/resultats/presidentielle-2022/FE.php",
+    "manifestos": "https://www.cnccep.fr/candidats.html",
+    "employment_summary": "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+  },
+  "first_round": {
+    "registered": 48747876,
+    "abstentions": 12824169,
+    "voters": 35923707,
+    "blank": 543609,
+    "invalid": 247151,
+    "valid": 35132947
+  },
+  "candidates": [
+    {
+      "id": "emmanuel-macron",
+      "name": "Emmanuel Macron",
+      "votes": 9783058,
+      "share_bps": 2785,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-emmanuel-macron-1",
+          "domain": "retirement",
+          "proposal": "Relever progressivement l’âge de la retraite à 65 ans.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-emmanuel-macron-2",
+          "domain": "employment",
+          "proposal": "Créer France Travail.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "marine-le-pen",
+      "name": "Marine Le Pen",
+      "votes": 8133828,
+      "share_bps": 2315,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-marine-le-pen-1",
+          "domain": "wages",
+          "proposal": "Encourager des hausses salariales de 10 % par allégement de cotisations.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-marine-le-pen-2",
+          "domain": "retirement",
+          "proposal": "Départ à 60 ans après 40 annuités pour ceux ayant commencé avant 20 ans.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jean-luc-melenchon",
+      "name": "Jean-Luc Mélenchon",
+      "votes": 7712520,
+      "share_bps": 2195,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-jean-luc-melenchon-1",
+          "domain": "retirement",
+          "proposal": "Rétablir la retraite à 60 ans.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-jean-luc-melenchon-2",
+          "domain": "employment",
+          "proposal": "Proposer un emploi au SMIC aux chômeurs.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eric-zemmour",
+      "name": "Éric Zemmour",
+      "votes": 2485226,
+      "share_bps": 707,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-eric-zemmour-1",
+          "domain": "retirement",
+          "proposal": "Porter l’âge de départ à 64 ans en 2030.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-eric-zemmour-2",
+          "domain": "employment",
+          "proposal": "Aligner la rémunération des apprentis sur le SMIC.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "valerie-pecresse",
+      "name": "Valérie Pécresse",
+      "votes": 1679001,
+      "share_bps": 478,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-valerie-pecresse-1",
+          "domain": "retirement",
+          "proposal": "Porter l’âge de départ à 65 ans en 2030.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-valerie-pecresse-2",
+          "domain": "employment",
+          "proposal": "Négocier la durée du travail par branche.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "yannick-jadot",
+      "name": "Yannick Jadot",
+      "votes": 1627853,
+      "share_bps": 463,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-yannick-jadot-1",
+          "domain": "wages",
+          "proposal": "Augmenter immédiatement le SMIC de 10 %.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-yannick-jadot-2",
+          "domain": "employment",
+          "proposal": "Renforcer la représentation salariée dans les instances décisionnelles à 50 %.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jean-lassalle",
+      "name": "Jean Lassalle",
+      "votes": 1101387,
+      "share_bps": 313,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-jean-lassalle-1",
+          "domain": "wages",
+          "proposal": "Porter le SMIC à 1 400 euros nets.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-jean-lassalle-2",
+          "domain": "employment",
+          "proposal": "Exonérer de charges les deux premières embauches des PME.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fabien-roussel",
+      "name": "Fabien Roussel",
+      "votes": 802422,
+      "share_bps": 228,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-fabien-roussel-1",
+          "domain": "wages",
+          "proposal": "Fixer le SMIC à 1 500 euros nets.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-fabien-roussel-2",
+          "domain": "employment",
+          "proposal": "Adopter la semaine de 32 heures.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nicolas-dupont-aignan",
+      "name": "Nicolas Dupont-Aignan",
+      "votes": 725176,
+      "share_bps": 206,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-nicolas-dupont-aignan-1",
+          "domain": "wages",
+          "proposal": "Viser 8 % de hausse salariale jusqu’à trois SMIC via les cotisations.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-nicolas-dupont-aignan-2",
+          "domain": "employment",
+          "proposal": "Proposer un contrat à mi-temps aux chômeurs de longue durée et aux jeunes.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anne-hidalgo",
+      "name": "Anne Hidalgo",
+      "votes": 616478,
+      "share_bps": 175,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-anne-hidalgo-1",
+          "domain": "wages",
+          "proposal": "Revaloriser le SMIC de 15 %.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-anne-hidalgo-2",
+          "domain": "employment",
+          "proposal": "Reconnaître le burn-out comme maladie professionnelle.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "philippe-poutou",
+      "name": "Philippe Poutou",
+      "votes": 268904,
+      "share_bps": 77,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-philippe-poutou-1",
+          "domain": "employment",
+          "proposal": "Passer à quatre jours et 32 heures hebdomadaires.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-philippe-poutou-2",
+          "domain": "retirement",
+          "proposal": "Retraite à 60 ans, à 55 ans pour les métiers pénibles.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nathalie-arthaud",
+      "name": "Nathalie Arthaud",
+      "votes": 197094,
+      "share_bps": 56,
+      "programme_document_status": "official_archive_index_available",
+      "programme_extraction_status": "partial_secondary_source",
+      "candidacy_2027": "unknown",
+      "programme": [
+        {
+          "id": "hist2022-nathalie-arthaud-1",
+          "domain": "wages",
+          "proposal": "Plancher de 2 000 euros pour salaires, pensions et allocations.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        },
+        {
+          "id": "hist2022-nathalie-arthaud-2",
+          "domain": "retirement",
+          "proposal": "Rétablir la retraite à 60 ans.",
+          "sources": [
+            "https://www.publicsenat.fr/actualites/politique/emploi-retrouvez-les-principales-propositions-des-candidats-a-la-presidentielle"
+          ]
+        }
+      ]
+    }
+  ],
+  "classification": "historical_election_not_future_candidacy_or_intention"
+}

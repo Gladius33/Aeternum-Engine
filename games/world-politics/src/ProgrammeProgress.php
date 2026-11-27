@@ -48,6 +48,6 @@ final class ProgrammeProgress
         return ['version'=>self::VERSION,'world_id'=>$d['world_id'],'day'=>$d['day'],'candidate_id'=>CampaignLifecycle::PLAYER,
             'candidate_kind'=>$person['kind'],'source_hashes'=>$hashes,'measures'=>$rows,'counts'=>$counts,
             'matching_rule'=>'exact_measure_id_equals_recorded_domestic_policy_id',
-            'historical_programme_curated'=>false,'semantic_fulfilment_verified'=>false,'score_rules_changed'=>false];
+            'historical_programme_curated'=>false,'historical_programme_partial'=>$person['kind']==='real'&&$person['programme']!==[],'semantic_fulfilment_verified'=>false,'score_rules_changed'=>false];
     }
 }

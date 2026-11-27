@@ -17,7 +17,7 @@ final class CampaignCandidate
         return ['version'=>self::VERSION,'scenario'=>'fr-investiture-2027-v1','selection_at_creation'=>true,
             'fictional_template'=>PoliticalProfileTemplate::definition(),
             'historical_choices'=>array_map(fn($p)=>['id'=>$p['id'],'name'=>$p['name'],'as_of'=>$p['as_of'],'sources'=>$p['sources']],$ref['roster_compatible_profiles']),
-            'historical_reference_sha'=>$ref['reference_sha'],'historical_selection_is_alternate_history'=>true,
+            'historical_reference_sha'=>$ref['reference_sha'],'historical_programme_scope'=>$ref['programme_partial_scope'],'historical_measure_count'=>$ref['curated_measure_count'],'historical_selection_is_alternate_history'=>true,
             'future_eligibility_certified'=>false,'programme_mechanics_enabled'=>false,'changes_score_rules'=>false];
     }
     public static function normalize(mixed $input):array
