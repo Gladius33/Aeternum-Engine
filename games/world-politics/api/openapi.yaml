@@ -153,6 +153,53 @@ paths:
         '202': {description: Bill filed; no legal enactment}
         '409': {description: Mandate or institutional precondition rejected}
         '428': {description: Required precondition missing}
+  /career-worlds/rankings/{scope}/cohorts:
+    get:
+      summary: Discover compatible public experimental career score cohorts
+      parameters:
+        - in: path
+          name: scope
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Cohorts for global or numeric public universe scope}
+  /career-worlds/rankings/{scope}/{cohort}:
+    get:
+      summary: First experimental ranking page, best series per account
+      parameters:
+        - in: path
+          name: scope
+          required: true
+          schema: {type: string}
+        - in: path
+          name: cohort
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Ranking rows and snapshot token}
+  /career-worlds/rankings/{scope}/{cohort}/{page}/{snapshot}:
+    get:
+      summary: Subsequent page only if ranking snapshot remains identical
+      parameters:
+        - in: path
+          name: scope
+          required: true
+          schema: {type: string}
+        - in: path
+          name: cohort
+          required: true
+          schema: {type: string}
+        - in: path
+          name: page
+          required: true
+          schema: {type: integer, minimum: 1, maximum: 100}
+        - in: path
+          name: snapshot
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Stable ranking page}
+        '409': {description: Snapshot changed or capacity exceeded}
   /career-worlds/{world}/economy:
     get:
       summary: Read coherent domestic and international economy in opt-in economic profile

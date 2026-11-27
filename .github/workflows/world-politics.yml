@@ -225,6 +225,8 @@ jobs:
         run: php tests/wp116-career-score-contract.php
       - name: WP120 private post-accession score preview
         run: php tests/wp120-score-preview.php
+      - name: WP120 experimental ranking contract
+        run: php tests/wp120-ranking.php
       - name: WP118–119 career and institutional lifecycle
         run: php tests/wp118-119-career.php
       - name: WP80 twenty-year score horizon and deterministic replay

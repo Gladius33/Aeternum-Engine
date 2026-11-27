@@ -78,6 +78,14 @@ final class AlphaGateway
                 $token=substr($h['authorization'],7);
                 $cs=new PdoCareerInstitutionStore($this->db(),new CareerInstitutionEvidence($secret));
                 try{
+                    if($method==='GET'&&preg_match('~^/api/v1/career-worlds/rankings/(global|[1-9][0-9]{0,8})/cohorts$~D',$path,$rk)){
+                        require_once __DIR__.'/CareerScorePublication.php';
+                        return self::ok(200,CareerScorePublication::cohorts($this->db(),$rk[1]==='global'?null:(int)$rk[1]));
+                    }
+                    if($method==='GET'&&preg_match('~^/api/v1/career-worlds/rankings/(global|[1-9][0-9]{0,8})/([a-f0-9]{64})(?:/([1-9][0-9]{0,2})/([a-f0-9]{64}))?$~D',$path,$rk)){
+                        require_once __DIR__.'/CareerScorePublication.php';
+                        return self::ok(200,CareerScorePublication::rankings($this->db(),$session->id,$rk[1]==='global'?null:(int)$rk[1],$rk[2],isset($rk[3])?(int)$rk[3]:1,$rk[4]??null));
+                    }
                     if($method==='GET'&&preg_match('~^/api/v1/career-worlds/public(?:/([1-9][0-9]{0,5}))?$~D',$path,$pg))
                         return self::ok(200,$cs->publicDirectory($token,isset($pg[1])?(int)$pg[1]:1));
                     if($path==='/api/v1/career-worlds/join'&&$method==='POST'){

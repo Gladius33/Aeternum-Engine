@@ -105,6 +105,7 @@ final class PdoCareerInstitutionStore
                 }
             }
             $next=CareerInstitutionLedger::apply($s,$e);$receipt=self::receipt($next);
+            require_once __DIR__.'/CareerScorePublication.php';CareerScorePublication::close($this->db,$s,$next);
             $this->query('INSERT INTO wp_career_events(world_id,sequence_no,actor_id,command_id,event_json,signature_sha,previous_sha,event_sha,receipt_json) VALUES(?,?,?,?,?,?,?,?,?)',[$world,$next['sequence'],$e['actor'],$e['command'],CareerInstitutionLedger::json($e),$signature,$s['last_event_sha'],$next['last_event_sha'],CareerInstitutionLedger::json($receipt)]);
             if(in_array($e['operation'],['admit','claim_real_career'],true)){$p=$e['payload'];$this->query('INSERT INTO wp_career_memberships(world_id,account_id,career_id,character_id) VALUES(?,?,?,?)',[$world,$p['account'],$p['career'],$next['careers'][$p['career']]['character']]);}
             $this->query('DELETE FROM wp_career_active_offices WHERE world_id=?',[$world]);
@@ -407,7 +408,9 @@ final class PdoCareerInstitutionStore
         $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>0,'command'=>'participation-opening-v1','actor'=>'career-participation-clerk','operation'=>'participation_enable','payload'=>['version'=>CareerParticipation::VERSION]];
         $e['evidence_sha']=CareerParticipation::digest($e);$this->applyLocked($e,$this->evidence->sign($e));
         $this->query('INSERT INTO wp_career_public_worlds(world_id) VALUES(?)',[$world]);
-        return ['world_id'=>$world,'universe_no'=>(int)$this->db->lastInsertId()];
+        $no=(int)$this->db->lastInsertId();
+        require_once __DIR__.'/CareerScorePublication.php';CareerScorePublication::seed($this->db,$world);
+        return ['world_id'=>$world,'universe_no'=>$no];
     }
     private static function seasonEnd():string{
         return (new \DateTimeImmutable(CareerScoreContract::START))->modify('+'.CareerScoreContract::HORIZON.' days')->format('Y-m-d');
@@ -630,7 +633,7 @@ final class PdoCareerInstitutionStore
     }
     /** Called only inside the final recoverable clock publication, after
      * all domains are verified and before the committed date changes. */
-    public static function publishParticipation(\PDO $db,string $world,string $before,string $target,int $revision):void{
+    public static function publishParticipation(\PDO $db,string $world,string $before,string $target,int $revision,?array $domestic=null):void{
         CareerInstitutionLedger::check($db->inTransaction(),'participation requires clock transaction');
         $q=$db->prepare('SELECT w.scenario,w.reference_bundle_sha,c.committed_day,c.pending_day,c.revision,c.domestic_enabled,l.state_json FROM wp_alpha_worlds w JOIN wp_world_clock c ON c.world_id=w.world_id JOIN wp_career_ledgers l ON l.world_id=w.world_id WHERE w.world_id=? FOR UPDATE');
         $q->execute([$world]);$r=$q->fetch(\PDO::FETCH_ASSOC);
@@ -650,6 +653,7 @@ final class PdoCareerInstitutionStore
             [$world,$next['sequence'],$e['actor'],$e['command'],CareerInstitutionLedger::json($e),$sig,$s['last_event_sha'],$next['last_event_sha'],CareerInstitutionLedger::json($receipt)]);
         $store->query('UPDATE wp_career_ledgers SET state_json=?,state_sha=?,sequence_no=? WHERE world_id=?',
             [CareerInstitutionLedger::json($next),$receipt['state_sha'],$next['sequence'],$world]);
+        if($domestic!==null){require_once __DIR__.'/CareerScorePublication.php';CareerScorePublication::publish($db,$next,$target,$domestic);}
     }
     /** Called by the clock with its fence and clock row already locked.
      * Equal expiry may be reached, but no later day until a signed closure/renewal.

@@ -339,7 +339,7 @@ final class WorldClockCoordinator
                     UniverseContinuity::publishComparative($this->pdo,$world,$cc,$row['committed_day'],$targetDay);
             }
             if($this->principal->actorId()==='career-clock-'.$world)
-                PdoCareerInstitutionStore::publishParticipation($this->pdo,$world,$row['committed_day'],$targetDay,(int)$row['revision']);
+                PdoCareerInstitutionStore::publishParticipation($this->pdo,$world,$row['committed_day'],$targetDay,(int)$row['revision'],$verified['domestic']??null);
             $result=[
                 'status'=>200,
                 'result'=>[

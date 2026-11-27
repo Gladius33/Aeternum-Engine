@@ -177,11 +177,24 @@ $dir=req('GET','/career-worlds/public',null,$etoken)['body'];
 ck(count($dir['universes'])===1&&$dir['universes'][0]['vacant']===7&&$dir['universes'][0]['is_member'],'public directory omits private worlds');
 ck(req('POST',$pp.'/members',['account_id'=>$eid],$etoken)['status']===409,'public membership never grants owner role');
 ck(req('GET',$pp.'/career',null,$etoken)['body']['mandates']===[],'joining confers no office');
+$publicCareer=$public['body']['career_id'];
+$cs->certifyBallot($pw,['ballot'=>['registered'=>1000,'first'=>['votes'=>[$publicCareer=>600],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'],'public-score-ballot-01',$secret);
 $exec('UPDATE wp_career_public_worlds SET next_tick_epoch=UNIX_TIMESTAMP()-1 WHERE world_id=?',[$pw]);
 $sch=new \Aeternum\WorldPolitics\CareerUniverseScheduler($connect);
 ck($sch->tick($pw)['day']==='2027-05-15','one human public world ticks autonomously');
 ck($sch->tick($pw)['status']==='not_due','public clock cannot double tick');
 $shared=req('GET',$pp.'/economy',null,$etoken);
+$pin=req('GET','/career-worlds/rankings/global/cohorts',null,$etoken);
+ck($pin['status']===200&&count($pin['body']['cohorts'])>=2,'public score cohort discovery');
+$opening=array_values(array_filter($pin['body']['cohorts'],fn($c)=>$c['admission_mode']==='opening'))[0]['cohort_sha'];
+$rank=req('GET','/career-worlds/rankings/global/'.$opening,null,$etoken);
+ck($rank['status']===200&&$rank['body']['rows']===[]&&!$rank['body']['official_eligible'],'one day provisional not ranked');
+$rank2=req('GET','/career-worlds/rankings/global/'.$opening.'/2/'.$rank['body']['snapshot'],null,$etoken);
+ck($rank2['status']===200&&$rank2['body']['rows']===[],'snapshot pagination');
+ck(req('GET','/career-worlds/rankings/global/'.$opening.'/2/'.str_repeat('0',64),null,$etoken)['status']===409,'stale snapshot rejected');
+$pubq=$db->prepare('SELECT COUNT(*) FROM wp_career_score_latest WHERE world_id=? AND qualified=0');$pubq->execute([$pw]);
+ck((int)$pubq->fetchColumn()===1,'daily score committed atomically');
+
 $public2=req('POST','/career-worlds/join',['world_id'=>$pw],$t2,'public-career-join-02');
 ck($public2['status']===201&&$public2['body']['world_id']===$pw&&$public2['body']['career_id']!==$public['body']['career_id']
     &&$public2['body']['handover_day']==='2027-05-15','second human enters same committed world');
