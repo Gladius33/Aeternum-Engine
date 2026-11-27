@@ -12,6 +12,7 @@ final class ForeignRecurringElections
 {
     public const VERSION='wp62-foreign-recurring-v1';
     public const DOCUMENTARY='wp119-foreign-recurring-v2';
+    public const CAREER_DOCUMENTARY='wp119-career-foreign-recurring-v1';
     public const START='2027-05-14';
     private const TERMS=['DE'=>4,'ES'=>4,'GB'=>5,'IT'=>5,'JP'=>4,'US'=>2];
     public static function bootstrap(array $s):array
@@ -20,7 +21,7 @@ final class ForeignRecurringElections
         if(!isset(self::TERMS[$cc],$s['electoral'],$s['political_ai'],$s['accountability'])
             ||$s['day']!==self::START||$s['events']!==[]||isset($s['foreign_recurring']))
             throw new \DomainException('Foreign recurrence must be pinned at investiture bootstrap');
-        $s['foreign_recurring']=['version'=>isset($s['electoral']['config']['documentary_cast'])?self::DOCUMENTARY:self::VERSION,'archive'=>[]];
+        $s['foreign_recurring']=['version'=>match($s['electoral']['config']['documentary_cast']??null){DocumentaryForeignBallot::VERSION=>self::DOCUMENTARY,DocumentaryForeignBallot::CAREER_VERSION=>self::CAREER_DOCUMENTARY,default=>self::VERSION},'archive'=>[]];
         self::validate($s);
         return $s;
     }
@@ -48,13 +49,13 @@ final class ForeignRecurringElections
         $day=$index===0?self::START:self::prior(self::poll($cc,$index));
         $c=$index===0?ComparativeElectionCalendar::config($cc,$day):ElectoralScenario::config($cc,$day);
         $c['poll_day']=self::poll($cc,$index);
-        if($version===self::DOCUMENTARY)$c=DocumentaryForeignBallot::config($cc,$c);
+        if(in_array($version,[self::DOCUMENTARY,self::CAREER_DOCUMENTARY],true))$c=DocumentaryForeignBallot::config($cc,$c,$version===self::CAREER_DOCUMENTARY);
         return new ElectoralCycle($world,$cc,$day,$c);
     }
     public static function validate(array $s):void
     {
         $r=$s['foreign_recurring'];$cc=$s['country_code'];$world=$s['world_id'];
-        if(!is_array($r)||array_keys($r)!==['version','archive']||!in_array($r['version'],[self::VERSION,self::DOCUMENTARY],true)||!isset(self::TERMS[$cc],$s['electoral'],$s['political_ai'],$s['accountability'])
+        if(!is_array($r)||array_keys($r)!==['version','archive']||!in_array($r['version'],[self::VERSION,self::DOCUMENTARY,self::CAREER_DOCUMENTARY],true)||!isset(self::TERMS[$cc],$s['electoral'],$s['political_ai'],$s['accountability'])
             ||!is_array($r['archive'])||!array_is_list($r['archive'])||count($r['archive'])>=100)
             throw new \DomainException('Invalid foreign renewal archive');
         foreach([...$r['archive'],$s['electoral']] as $i=>$e){

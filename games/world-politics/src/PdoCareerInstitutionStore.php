@@ -241,10 +241,20 @@ final class PdoCareerInstitutionStore
     private function seedForeignOpening(string $world,string $secret):void{
         require_once __DIR__.'/CareerForeignWorld.php';
         $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));$sim=CareerForeignWorld::opening($state);
+        $cc=$state['country'];$day=$clock['committed_day'];
+        $p=['people'=>DocumentaryForeignBallot::extraCareers($cc)];
+        $admission=['world'=>$world,'country'=>$cc,'day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'documentary-party-careers-v1','actor'=>'career-ai-clerk','operation'=>'admit_party_ai_roster','payload'=>$p,
+            'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'documentary-party-careers-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
+        $this->applyLocked($admission,$this->evidence->sign($admission));
+        $state=$this->replay($world,$this->row($world));
+        $sim->enableElectoral(DocumentaryForeignBallot::config($cc,ComparativeElectionCalendar::config($cc,$day),true));
+        $sim->enablePoliticalAI();$sim->enableForeignRecurring();$sim->enableFormationProtocol();$sim->enableAutonomousFormation();
         require_once __DIR__.'/PoliticalRoster.php';
         $roster=new PoliticalRoster($world,$state['country'],['government']);
-        $person=$state['careers'][$sim->snapshot()['accountability']['incumbent']]['identity'];
-        $roster->addPerson(['id'=>$person['id'],'kind'=>'real','name'=>$person['name'],'country'=>$state['country'],'biography'=>'Documentary identity in alternate-history scenario','as_of'=>$person['observed_on'],'sources'=>[$person['source']],'programme'=>[]]);
+        foreach($state['careers'] as $career){
+            if(!isset($career['person_reference']))continue;$person=$career['identity'];
+            $roster->addPerson(['id'=>$person['id'],'kind'=>'real','name'=>$person['name'],'country'=>$state['country'],'biography'=>'Documentary identity in alternate-history scenario','as_of'=>$person['observed_on'],'sources'=>[$person['source']],'programme'=>[]]);
+        }
         $this->query('INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
             [$world,$state['country'],CareerForeignWorld::json($roster->snapshot()),$roster->snapshotHash()]);
         $this->query('INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
@@ -283,9 +293,15 @@ final class PdoCareerInstitutionStore
             if($target===$clock['committed_day'])return ['state'=>$sim->snapshot(),'etag'=>'"'.$prior['state_sha'].'"','revision'=>(int)$prior['revision']];
             CareerInstitutionLedger::check($target===(new \DateTimeImmutable($clock['committed_day']))->modify('+1 day')->format('Y-m-d'),'daily foreign tick required');
             self::assertClockAdvance($this->db,$world,$target);
-            $result=$sim->advanceTo($target);
+            $before=$sim->snapshot()['accountability'];$result=$sim->advanceTo($target);$after=$sim->snapshot()['accountability'];
             $out=$this->publishForeignInstitution($world,$state['country'],$sim,$prior,'advance_clock',['target_day'=>$target],$result);
             $this->query('UPDATE wp_world_clock SET committed_day=?,revision=revision+1 WHERE world_id=?',[$target,$world]);
+            if($after['status']==='in_office'&&$after['incumbent']!==$before['incumbent']){
+                $p=['government_json'=>CareerForeignWorld::json($after),'expires'=>CareerForeignWorld::boundary($state['country'])];
+                $digest=CareerInstitutionLedger::digest(['kind'=>'comparative-government-replay-v1','world'=>$world,'country'=>$state['country'],'payload'=>$p]);
+                $e=['world'=>$world,'country'=>$state['country'],'day'=>$target,'world_revision'=>(int)$clock['revision']+1,'command'=>'foreign-'.substr($digest,0,48),'actor'=>'career-comparative-clerk','operation'=>'foreign_government','payload'=>$p,'evidence_sha'=>$digest];
+                $this->applyLocked($e,$this->evidence->sign($e));
+            }
             return $out;
         });
     }

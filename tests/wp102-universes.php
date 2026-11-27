@@ -42,6 +42,27 @@ ck102(join102(8,'IL',$no,'wp111-restricted-il')['status']===422,'restricted stat
 ck102($last['body']['new_universe']!==null&&$last['body']['new_universe']['world_id']!==$world,'last slot creates fresh universe immediately');
 $directory=call102('GET','/universes',null,1)['body']['universes'];
 ck102(count($directory)===2&&$directory[0]['vacant']===0&&$directory[1]['vacant']===43,'fresh spare contains only automatic slots');
+// Exercise the comparative publication path against an isolated rollback
+// fixture; the real slot and other tests must remain unchanged.
+$db->beginTransaction();
+try{
+    $q=$db->prepare("SELECT state_json FROM wp_institutional_states WHERE world_id=? AND country_code='DE'");$q->execute([$world]);
+    $sim=\Aeternum\WorldPolitics\InstitutionalSimulation::restore(json_decode($q->fetchColumn(),true,64,JSON_THROW_ON_ERROR));
+    $candidate=$sim->snapshot()['electoral']['config']['parties']['spd']['leader'];
+    $common=['world_id'=>$world,'country'=>'DE','motion_id'=>'test-de-motion','procedure_certified'=>true];
+    $sim->accountability('parliament_clerk','accountability_file',$common+['evidence_id'=>'test-de-file','at'=>'2027-05-14T00:00:00Z','chamber'=>'bundestag','signatures'=>30,'candidate'=>$candidate,'kind'=>'no_confidence'],'test-de-file');
+    $sim->advanceTo('2027-05-15');$sim->advanceTo('2027-05-16');
+    $sim->accountability('parliament_clerk','accountability_vote',$common+['evidence_id'=>'test-de-vote','at'=>'2027-05-16T00:00:00Z','chamber'=>'bundestag','present'=>100,'yes'=>60,'no'=>40,'abstain'=>0],'test-de-vote');
+    $sim->accountability('constitutional_clerk','accountability_resolve',$common+['evidence_id'=>'test-de-resolve','at'=>'2027-05-16T01:00:00Z','outcome'=>'appoint_successor','successor'=>$candidate],'test-de-resolve');
+    $q=$db->prepare("UPDATE wp_institutional_states SET state_json=?,state_sha=? WHERE world_id=? AND country_code='DE'");
+    $q->execute([json_encode($sim->snapshot(),JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$sim->hash(),$world]);
+    \Aeternum\WorldPolitics\UniverseContinuity::publishComparative($db,$world,'DE','2027-05-15','2027-05-16');
+    $q=$db->prepare("SELECT account_id,closed_on FROM wp_universe_slots WHERE world_id=? AND country_code='DE'");$q->execute([$world]);
+    $slot=$q->fetch(PDO::FETCH_ASSOC);ck102($slot['account_id']===null&&$slot['closed_on']===null,'certified foreign successor releases old player without resetting country');
+    $q=$db->prepare("SELECT left_on FROM wp_universe_control_periods WHERE world_id=? AND country_code='DE' AND generation=1");$q->execute([$world]);
+    ck102($q->fetchColumn()==='2027-05-16','foreign control period closes at certified handover');
+}finally{$db->rollBack();}
+
 ck102(call102('POST',$root.'/domestic/proposals',['policy_id'=>'education-reform','effective_day'=>'2027-05-20'],2)['status']===403,'foreign player cannot command France');
 $extraPlayer=array_search('CH',$extra,true)+9;
 $dipExtra=call102('GET',$root.'/diplomacy',null,$extraPlayer);

@@ -205,4 +205,15 @@ foreach(['DE','ES','GB','IT','JP','US'] as $cc){
 }
 ck(\Aeternum\WorldPolitics\DocumentaryForeignBallot::compatible('DE',['spd','cdu-csu']),'observed coalition pattern');
 ck(!\Aeternum\WorldPolitics\DocumentaryForeignBallot::compatible('DE',['afd','spd']),'unreviewed coalition blocked');
+foreach(['DE','ES','GB','IT','JP','US'] as $cc){
+    $state=L::initial('party-'.strtolower($cc),$cc,'career','2027-05-14');
+    $p=['people'=>L::realAutonomousRoster($state)];$e=evt($state,'admit_real_ai_roster',$p);$e['actor']='career-ai-clerk';$e['evidence_sha']=L::digest(['kind'=>'real-ai-roster-v1','world'=>$state['world'],'day'=>$e['day'],'payload'=>$p]);$state=L::apply($state,$e);
+    $p=['people'=>\Aeternum\WorldPolitics\DocumentaryForeignBallot::extraCareers($cc)];$e=evt($state,'admit_party_ai_roster',$p);$e['actor']='career-ai-clerk';$e['evidence_sha']=L::digest(['kind'=>'documentary-party-careers-v1','world'=>$state['world'],'day'=>$e['day'],'payload'=>$p]);$state=L::apply($state,$e);
+    $base=\Aeternum\WorldPolitics\ComparativeElectionCalendar::config($cc,'2027-05-14');
+    $config=\Aeternum\WorldPolitics\DocumentaryForeignBallot::config($cc,$base,true);
+    foreach($config['parties'] as $party)ck(isset($state['careers'][$party['leader']]['person_reference']),'real candidate has canonical career '.$cc);
+    $inst=\Aeternum\WorldPolitics\CareerForeignWorld::opening($state);
+    $inst->enableElectoral($config);$inst->enablePoliticalAI();$inst->enableForeignRecurring();$inst->enableFormationProtocol();$inst->enableAutonomousFormation();
+    ck(\Aeternum\WorldPolitics\InstitutionalSimulation::restore($inst->snapshot())->snapshot()===$inst->snapshot(),'versioned career electoral bootstrap '.$cc);
+}
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";

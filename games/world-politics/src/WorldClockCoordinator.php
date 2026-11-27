@@ -333,7 +333,11 @@ final class WorldClockCoordinator
             }
             if(isset($verified['domestic'],$verified['diplomacy'])&&$opinionRecord!==null&&(int)($row['score_enabled']??0)===0)
                 UniverseScore::publish($this->pdo,$world,$targetDay,$verified['domestic'],$verified['diplomacy']);
-            if($managed)UniverseContinuity::publish($this->pdo,$world,$campaign,$targetDay);
+            if($managed){
+                UniverseContinuity::publish($this->pdo,$world,$campaign,$targetDay);
+                foreach($this->countries as $cc)if($cc!=='FR'&&in_array($cc,ComparativeGovernment::COUNTRIES,true))
+                    UniverseContinuity::publishComparative($this->pdo,$world,$cc,$row['committed_day'],$targetDay);
+            }
             $result=[
                 'status'=>200,
                 'result'=>[

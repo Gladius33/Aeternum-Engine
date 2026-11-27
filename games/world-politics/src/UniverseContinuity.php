@@ -8,6 +8,42 @@ require_once __DIR__.'/PoliticalRoster.php';
  * The next certified officeholder is not modelled by this slice. */
 final class UniverseContinuity
 {
+    /** New identity-roster worlds only: a national slot is the current
+     * executive control period, not lifetime ownership of a country. */
+    public static function publishComparative(\PDO $db,string $world,string $country,string $beforeDay,string $day):void{
+        if(!$db->inTransaction()||$country==='FR'||!in_array($country,ComparativeGovernment::COUNTRIES,true)||$day!==(new \DateTimeImmutable($beforeDay))->modify('+1 day')->format('Y-m-d'))throw new \DomainException('Invalid comparative publication scope');
+        $q=$db->prepare('SELECT roster_version FROM wp_universes WHERE world_id=?');$q->execute([$world]);
+        if($q->fetchColumn()!==UniverseIdentityReference::DOCUMENTARY_ROSTER)return;
+        $q=$db->prepare('SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code=? FOR UPDATE');$q->execute([$world,$country]);$r=$q->fetch(\PDO::FETCH_ASSOC);
+        if($r===false)throw new \DomainException('Missing comparative publication source');
+        $inst=InstitutionalSimulation::restore(json_decode($r['state_json'],true,64,JSON_THROW_ON_ERROR));$s=$inst->snapshot();$g=$s['accountability'];
+        if(!hash_equals($r['state_sha'],$inst->hash())||$s['world_id']!==$world||$s['country_code']!==$country||$s['day']!==$day)throw new \DomainException('Invalid comparative publication source');
+        $old=new ComparativeGovernment($world,$country,$g['start_day'],$g['initial_incumbent'],$g['seats']);
+        foreach($g['history'] as $event){
+            $proof=$event['evidence'];$on=substr($proof['at']??$proof['day'],0,10);
+            if($on>$beforeDay)break;
+            $old->advance($on);
+            if($event['action']==='certified_electoral_formation')$old->installCertifiedFormation($proof,$event['formation']);
+            else $old->apply($event['action'],$event['role'],$proof);
+        }
+        $old->advance($beforeDay);$prior=$old->snapshot();
+        $vacant=static fn(array $v):bool=>in_array($v['status'],['caretaker','election_pending','removed_successor_pending'],true);
+        $q=$db->prepare('SELECT account_id,generation,closed_on FROM wp_universe_slots WHERE world_id=? AND country_code=? FOR UPDATE');$q->execute([$world,$country]);$slot=$q->fetch(\PDO::FETCH_ASSOC);
+        if($slot===false)throw new \DomainException('Missing comparative slot');
+        $wasVacant=$vacant($prior);$nowVacant=$vacant($g);
+        $changed=$prior['incumbent']!==$g['incumbent']||$wasVacant!==$nowVacant;
+        // Handle a previously certified closure at the current committed day
+        // as well as ordinary election formation during the pending tick.
+        if(!$changed&&($slot['closed_on']!==null)===$nowVacant)return;
+        if($slot['account_id']!==null&&($changed||$nowVacant)){
+            $q=$db->prepare('UPDATE wp_universe_control_periods SET left_on=? WHERE world_id=? AND country_code=? AND generation=? AND left_on IS NULL');$q->execute([$day,$world,$country,$slot['generation']]);
+            if($q->rowCount()!==1)throw new \DomainException('Missing comparative control period');
+            $q=$db->prepare('DELETE FROM wp_alpha_members WHERE world_id=? AND account_id=?');$q->execute([$world,$slot['account_id']]);
+        }
+        $closed=$nowVacant?($slot['closed_on']??$day):null;
+        $q=$db->prepare("UPDATE wp_universe_slots SET account_id=NULL,closed_on=?,diplomacy_programme='balanced',last_human_diplomacy_day=NULL,last_human_domestic_day=NULL,programme_set_on=NULL WHERE world_id=? AND country_code=?");
+        $q->execute([$closed,$world,$country]);
+    }
     public static function publish(\PDO $db,string $world,?array $campaign,string $day):void
     {
         if(!$db->inTransaction()||$campaign===null||$campaign['world_id']!==$world)throw new \DomainException('Invalid managed campaign');

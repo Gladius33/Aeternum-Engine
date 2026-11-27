@@ -129,6 +129,18 @@ final class CareerInstitutionLedger
             $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>$e['day']===CareerScoreContract::START?'opening':'late_takeover','first_series'=>null,'controller'=>'ai','person_reference'=>$person['person_reference'],'identity'=>$person];
         }
     }
+    private static function admitPartyAutonomousRoster(array &$s,array $e):void{
+        require_once __DIR__.'/DocumentaryForeignBallot.php';
+        $p=$e['payload'];self::fields($p,['people']);
+        self::check($s['country']!=='FR'&&$s['mode']==='career'&&$e['actor']==='career-ai-clerk'&&$e['day']===CareerScoreContract::START&&
+            self::json($p['people'])===self::json(DocumentaryForeignBallot::extraCareers($s['country']))&&
+            $e['evidence_sha']===self::digest(['kind'=>'documentary-party-careers-v1','world'=>$s['world'],'day'=>$e['day'],'payload'=>$p]),'party identity evidence');
+        foreach($p['people'] as $id=>$person){
+            self::id($id);self::id($person['person_reference']);self::check(!isset($s['careers'][$id]),'party identity already admitted');
+            foreach($s['careers'] as $career)self::check($career['character']!==$id&&($career['identity']['name']??null)!==$person['name'],'duplicate documented person');
+            $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>'opening','first_series'=>null,'controller'=>'ai','person_reference'=>$person['person_reference'],'identity'=>$person];
+        }
+    }
     /** A human may take the existing documented character, never create a
      * duplicate. The trusted store verifies the approved programme edition. */
     private static function claimRealCareer(array &$s,array $e):void{
@@ -339,7 +351,7 @@ final class CareerInstitutionLedger
         self::id($e['command']);self::id($e['actor']);self::day($e['day']);
         self::check($e['world']===$s['world']&&$e['country']===$s['country']&&$e['day']>=$s['day']&&is_int($e['world_revision'])&&$e['world_revision']>=0&&preg_match('/^[a-f0-9]{64}$/D',$e['evidence_sha'])===1,'event scope');
         $p=$e['payload'];$day=$e['day'];$op=$e['operation'];
-        if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','foreign_opening','foreign_government','research_observe'],true),'French powers unavailable outside France');
+        if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','admit_party_ai_roster','foreign_opening','foreign_government','research_observe'],true),'French powers unavailable outside France');
         if($s['mode']==='career'&&$op==='presidential_ballot'){$p=self::ballotTransition($s,$e);$op='transition';}
         if($s['mode']==='career'&&in_array($op,['cabinet_act','automatic_cabinet'],true)){$p=self::cabinetTransition($s,$e);$op=$p===null?'cabinet_proposal_recorded':'transition';}
         if($s['mode']==='research'){
@@ -349,6 +361,8 @@ final class CareerInstitutionLedger
             $s['research_observation']=['day'=>$day,...$p,'runtime_authority'=>false,'rankable'=>false];
         }elseif($op==='admit_real_ai_roster'){
             self::admitRealAutonomousRoster($s,$e);
+        }elseif($op==='admit_party_ai_roster'){
+            self::admitPartyAutonomousRoster($s,$e);
         }elseif($op==='claim_real_career'){
             self::claimRealCareer($s,$e);
         }elseif($op==='admit_ai_roster'){
@@ -423,6 +437,7 @@ final class CareerInstitutionLedger
 final class CareerInstitutionEvidence
 {
     public function __construct(private readonly string $secret){CareerInstitutionLedger::check(strlen($secret)>=32,'weak evidence key');}
+    public function sign(array $event):string{return hash_hmac('sha256',CareerInstitutionLedger::json($event),$this->secret);}
     public function verify(array $event,string $signature):void{
         CareerInstitutionLedger::check(hash_equals(hash_hmac('sha256',CareerInstitutionLedger::json($event),$this->secret),$signature),'unverified institutional evidence');
     }
