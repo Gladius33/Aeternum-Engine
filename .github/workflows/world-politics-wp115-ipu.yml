@@ -16,11 +16,11 @@ jobs:
       - name: Collect public parliamentary result tables
         run: |
           set -euo pipefail
-          target=games/world-politics/data/wp115-ipu-party-seats-2026-11-27-v1.json
+          target=games/world-politics/data/wp115-ipu-party-seats-2026-11-27-v2.json
           test ! -e "$target"
           python3 games/world-politics/bin/collect-wp115-ipu.py --output "$target"
           git add -- "$target"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m "WP115: freeze IPU historical parliamentary seat references"
+          git commit -m "WP115: freeze deduplicated IPU historical parliamentary seat references"
           git push origin HEAD:refs/heads/feat/world-politics-wp01-identity-government

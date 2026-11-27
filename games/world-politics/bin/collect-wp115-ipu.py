@@ -97,23 +97,26 @@ def result_rows(raw):
 def collect(ref):
     b,url=get(ref["source_url"]);m=PATH_RE.fullmatch(urlparse(url).path)
     require(m is not None and m[1]==ref["iso2"],"wrong chamber")
-    ids=[]
-    # Older snapshots remain separate: never reinterpret a past result as the current legislature.
-    for link in Tables(b).links:
+    # Deduplicate by election ID, not links with language/query/fragment differences.
+    current=m[3]
+    ids={}
+    for link in Tables(b).links+[url]:
         u=urljoin(url,link);p=PATH_RE.fullmatch(urlparse(u).path)
         if p and p[1]==m[1] and p[2]==m[2] and re.fullmatch(r"[A-Z]{2}-[A-Z0-9]+-E[0-9]{8}",p[3]):
             d=p[3][-8:]
-            if d<=AS_OF.replace("-","") and u not in ids:ids.append(u)
-    if re.fullmatch(r"[A-Z]{2}-[A-Z0-9]+-E[0-9]{8}",m[3]):
-        require(m[3][-8:]<=AS_OF.replace("-",""),"future election")
-        ids=[url]+[u for u in ids if u!=url]
+            if d<=AS_OF.replace("-",""):
+                ids[p[3]]="https://data.ipu.org"+urlparse(u).path.rstrip("/")+"/"
+    order=sorted(ids,key=lambda i:i[-8:],reverse=True)
+    if current in ids:
+        order=[current]+[i for i in order if i!=current]
+    requested=[(i,ids[i]) for i in order[:3]] or [(current,url)]
     records=[]
     # Latest and up to two previous published result pages.
-    for u in ids[:3] or [url]:
+    for expected,u in requested:
         try:
-            raw,final=(b,url) if u==url else get(u)
+            raw,final=(b,url) if expected==current else get(u)
             p=PATH_RE.fullmatch(urlparse(final).path)
-            require(p and p[1]==ref["iso2"] and p[2]==m[2],"wrong historical chamber")
+            require(p and p[1]==ref["iso2"] and p[2]==m[2] and p[3]==expected,"wrong historical chamber or election redirect")
             date=None
             if re.fullmatch(r"[A-Z]{2}-[A-Z0-9]+-E[0-9]{8}",p[3]):
                 date=dt.datetime.strptime(p[3][-8:],"%Y%m%d").date().isoformat()
@@ -127,7 +130,7 @@ def collect(ref):
                 "status":"published_party_seat_reference" if rows else "no_party_table_available",
                 "certifies_current_legislature":False})
         except Exception as e:
-            records.append({"source_url":u,"status":"unavailable","error_type":type(e).__name__,"parties":[],"certifies_current_legislature":False})
+            records.append({"election_code":expected,"source_url":u,"status":"unavailable","error_type":type(e).__name__,"parties":[],"certifies_current_legislature":False})
     return dict(ref,results=records,runtime_admission=False)
 
 def main():
@@ -142,7 +145,7 @@ def main():
             except Exception as e:records[k]={"iso2":k,"source_url":refs[k]["source_url"],"status":"unavailable","error_type":type(e).__name__,"results":[],"runtime_admission":False}
             print(k,len(records[k]["results"]),flush=True)
     for k in CODES-set(records):records[k]={"iso2":k,"status":"not_in_source_index","results":[],"runtime_admission":False}
-    result={"schema":"wp115-ipu-party-seat-reference-v1","as_of":AS_OF,"retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat(),
+    result={"schema":"wp115-ipu-party-seat-reference-v2","as_of":AS_OF,"retrieved_at":dt.datetime.now(dt.timezone.utc).isoformat(),
         "source_index_url":url,"source_index_sha256":sha(b),"countries":[records[k] for k in sorted(CODES)],
         "runtime_admission":False}
     n=sum(len(r["parties"]) for c in records.values() for r in c["results"])
