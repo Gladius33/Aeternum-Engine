@@ -10,15 +10,53 @@ final class PresidentialProgramme
 {
     public const VERSION='wp114-presidential-programme-v1';
     public const PROFILES=['manual','education','administration','education-law','administration-law','governance','governance-reduce','governance-increase'];
+    /** Compact canonical agenda code fits the existing 24-byte profile column.
+     * Immutable action rows retain the exact configuration that produced them. */
+    public static function encodeAgenda(array $a):string
+    {
+        $keys=array_keys($a);sort($keys);
+        if($keys!==['administration','defense','education','health','ukraine_aid']||!is_bool($a['education'])||!is_bool($a['administration']))
+            throw new \InvalidArgumentException('Invalid agenda fields');
+        $budget=['none'=>'n','maintain'=>'m','reduce'=>'r','increase'=>'i'];
+        $health=['none'=>'n','reduce'=>'r','increase'=>'i'];
+        $aid=['none'=>'n','maintain'=>'m','reduce'=>'r','increase'=>'i','stop'=>'s'];
+        foreach(['defense'=>$budget,'health'=>$health,'ukraine_aid'=>$aid] as $k=>$options)
+            if(!is_string($a[$k])||!isset($options[$a[$k]]))throw new \InvalidArgumentException('Unknown agenda objective');
+        return 'custom-'.(int)$a['education'].(int)$a['administration'].'-'.$budget[$a['defense']].'-'.$health[$a['health']].'-'.$aid[$a['ukraine_aid']];
+    }
+    public static function agenda(string $p):?array
+    {
+        if(!preg_match('/^custom-([01])([01])-([nmri])-([nri])-([nmris])$/D',$p,$m))return null;
+        $values=['n'=>'none','m'=>'maintain','r'=>'reduce','i'=>'increase','s'=>'stop'];
+        return ['education'=>$m[1]==='1','administration'=>$m[2]==='1','defense'=>$values[$m[3]],'health'=>$values[$m[4]],'ukraine_aid'=>$values[$m[5]]];
+    }
     public static function executable(string $p):bool
-    {return in_array($p,['education-law','administration-law','governance','governance-reduce','governance-increase'],true);}
+    {return self::agenda($p)!==null||in_array($p,['education-law','administration-law','governance','governance-reduce','governance-increase'],true);}
+    public static function known(string $p):bool
+    {return in_array($p,self::PROFILES,true)||self::agenda($p)!==null;}
     private static function plus(string $d,int $n):string
     {return (new \DateTimeImmutable($d))->modify('+'.$n.' days')->format('Y-m-d');}
     private static function stance(string $profile):?string
-    {return match($profile){'governance'=>'maintain','governance-reduce'=>'reduce','governance-increase'=>'increase',default=>null};}
+    {
+        $a=self::agenda($profile);
+        if($a!==null)return $a['defense']==='none'?null:$a['defense'];
+        return match($profile){'governance'=>'maintain','governance-reduce'=>'reduce','governance-increase'=>'increase',default=>null};
+    }
+    public static function aidAction(string $profile):?string
+    {
+        $a=self::agenda($profile);
+        return $a===null||$a['ukraine_aid']==='none'?null:'ukraine-aid-'.$a['ukraine_aid'];
+    }
     public static function permits(string $profile,string $id):bool
     {
-        if(!in_array($profile,self::PROFILES,true))return false;
+        if(!self::known($profile))return false;
+        $a=self::agenda($profile);
+        if($a!==null){
+            if($id==='education-reform')return $a['education'];
+            if($id==='administration-report')return $a['administration'];
+            if(preg_match('/^corrective-(20[0-9]{2})-health-(reduce|increase)$/D',$id,$m))
+                return (int)$m[1]>=2027&&(int)$m[1]<=FinanceBudget::LAST_YEAR&&$m[2]===$a['health'];
+        }
         if($id==='education-reform')return in_array($profile,['education','education-law','governance','governance-reduce','governance-increase'],true);
         if($id==='administration-report')return in_array($profile,['administration','administration-law','governance','governance-reduce','governance-increase'],true);
         return self::stance($profile)!==null&&preg_match('/^budget-(20[0-9]{2})-defense-(maintain|reduce|increase)$/D',$id,$m)===1
@@ -29,14 +67,19 @@ final class PresidentialProgramme
      * any competing variant in the same year. */
     public static function nextProposal(string $profile,string $day,array $policies):?array
     {
-        if(!in_array($profile,self::PROFILES,true))throw new \DomainException('Unknown programme');
+        if(!self::known($profile))throw new \DomainException('Unknown programme');
         foreach(['education-reform','administration-report'] as $id){
             if(self::permits($profile,$id)&&!isset($policies[$id])){
                 $lead=!self::executable($profile)?90:($id==='education-reform'?120:14);
                 return ['policy_id'=>$id,'effective_day'=>self::plus($day,$lead)];
             }
         }
-        $stance=self::stance($profile);$year=(int)substr($day,0,4)+1;
+        $a=self::agenda($profile);$current=(int)substr($day,0,4);
+        if($a!==null&&$a['health']!=='none'&&$current>=2027&&$current<=FinanceBudget::LAST_YEAR&&self::plus($day,45)<$current.'-10-01'){
+            $conflict=false;foreach(array_keys($policies) as $id)if(str_starts_with($id,'corrective-'.$current.'-'))$conflict=true;
+            if(!$conflict)return ['policy_id'=>'corrective-'.$current.'-health-'.$a['health'],'effective_day'=>$current.'-10-01'];
+        }
+        $stance=self::stance($profile);$year=$current+1;
         if($stance===null||$year<2028||$year>FinanceBudget::LAST_YEAR||self::plus($day,45)>=$year.'-01-01')return null;
         foreach(array_keys($policies) as $id)if(str_starts_with($id,'budget-'.$year.'-'))return null;
         return ['policy_id'=>'budget-'.$year.'-defense-'.$stance,'effective_day'=>$year.'-01-01'];
@@ -44,6 +87,9 @@ final class PresidentialProgramme
     public static function validAction(array $a):bool
     {
         if(!self::permits($a['programme'],$a['policy_id'])||$a['effective_day']<=$a['decision_day'])return false;
+        if(FinanceBudget::isCorrective($a['policy_id']))return $a['effective_day']===substr($a['policy_id'],11,4).'-10-01'
+            &&substr($a['decision_day'],0,4)===substr($a['policy_id'],11,4)
+            &&self::plus($a['decision_day'],45)<$a['effective_day'];
         if(str_starts_with($a['policy_id'],'budget-'))return $a['effective_day']===substr($a['policy_id'],7,4).'-01-01'
             &&(int)substr($a['decision_day'],0,4)+1===(int)substr($a['policy_id'],7,4)
             &&self::plus($a['decision_day'],45)<$a['effective_day'];
@@ -83,13 +129,14 @@ final class PresidentialProgramme
         if($cab['status']!=='in_office')return null;
         $p=$a['policy_id'];$l=$s['legislation'];$effective=$a['effective_day'];
         $kind=null;$bill=null;$data=[];$stage=null;
-        if(str_starts_with($p,'budget-')){
-            $year=(int)substr($p,7,4);
-            foreach($s['finance_requests']??[] as $r)if($r['year']===$year&&!FinanceBudget::isCorrective($r['policy_id']))return null;
-            foreach($l['finance']['bills'] as $b)if(str_starts_with($b['policy_id'],'budget-'.$year.'-'))return null;
+        if(str_starts_with($p,'budget-')||FinanceBudget::isCorrective($p)){
+            $corrective=FinanceBudget::isCorrective($p);$year=(int)substr($p,$corrective?11:7,4);
+            if($corrective&&!FinanceBudget::eligibleCorrective($l['finance'],$year))return null;
+            foreach($s['finance_requests']??[] as $r)if($r['year']===$year&&FinanceBudget::isCorrective($r['policy_id'])===$corrective)return null;
+            foreach($l['finance']['bills'] as $b)if(str_starts_with($b['policy_id'],($corrective?'corrective-':'budget-').$year.'-'))return null;
             if(self::plus($day,30)>=$effective)return null;
             $id=self::id($world,$a,'budget-request');
-            try{$r=$sim->decide('scenario_president_requester','request_annual_budget',['policy_id'=>$p],$id);}
+            try{$r=$sim->decide('scenario_president_requester',$corrective?'request_corrective_budget':'request_annual_budget',['policy_id'=>$p],$id);}
             catch(\DomainException|\InvalidArgumentException $e){return null;}
             return ['policy_id'=>$p,'stage'=>'budget_requested','id'=>$id,'result'=>$r];
         }

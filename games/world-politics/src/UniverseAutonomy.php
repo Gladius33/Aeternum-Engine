@@ -33,10 +33,11 @@ final class UniverseAutonomy
         if(!$db->inTransaction()||$actor!=='alpha-clock-'.$world)throw new \LogicException('Managed clock required');
         $s=$sim->snapshot();$day=$s['day'];
         if($s['world_id']!==$world||$target!==(new \DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d'))throw new \DomainException('Domestic autonomy scope');
-        $q=$db->prepare("SELECT domestic_programme,last_human_domestic_day,closed_on,generation FROM wp_universe_slots WHERE world_id=? AND country_code='FR' FOR UPDATE");
+        $q=$db->prepare("SELECT domestic_programme,last_human_domestic_day,closed_on,generation,programme_set_on FROM wp_universe_slots WHERE world_id=? AND country_code='FR' FOR UPDATE");
         $q->execute([$world]);$slot=$q->fetch(\PDO::FETCH_ASSOC);
         if($slot===false)throw new \DomainException('Missing domestic slot');
         if($slot['closed_on']!==null||$slot['last_human_domestic_day']===$day)return;
+        if(self::directAid($db,$sim,$world,$day,$slot))return;
         $next=PresidentialProgramme::nextProposal($slot['domestic_programme'],$day,$s['policies']);
         if($next===null)return;
         $policy=$next['policy_id'];$effective=$next['effective_day'];
@@ -49,6 +50,46 @@ final class UniverseAutonomy
         $sim->propose($authority,$policy,$effective);
         $q=$db->prepare('INSERT INTO wp_universe_programme_actions(world_id,decision_day,generation,programme,policy_id,effective_day) VALUES(?,?,?,?,?,?)');
         $q->execute([$world,$day,$slot['generation'],$slot['domestic_programme'],$policy,$effective]);
+    }
+    /** Direct discretionary aid objective is a once-per-mandate/profile
+     * decision, not a standing order that overwrites later human choices.
+     * The existing aid model preserves prior legal obligations. */
+    private static function directAid(\PDO $db,DomesticPolicySimulation $sim,string $world,string $day,array $slot):bool
+    {
+        $action=PresidentialProgramme::aidAction($slot['domestic_programme']);
+        if($action===null)return false;
+        $s=$sim->snapshot();
+        $q=$db->prepare('SELECT state_json,state_sha FROM wp_opinion_states WHERE world_id=?');$q->execute([$world]);$r=$q->fetch(\PDO::FETCH_ASSOC);
+        if($r===false)throw new \DomainException('Missing mandate source');
+        require_once __DIR__.'/PublicOpinion.php';
+        $o=PublicOpinion::restore(json_decode($r['state_json'],true,64,JSON_THROW_ON_ERROR));$os=$o->snapshot();
+        if(!hash_equals($r['state_sha'],$o->hash())||$os['day']!==$day||$os['world_id']!==$world||$os['campaign']['status']!=='active')
+            throw new \DomainException('Direct programme mandate mismatch');
+        $mandate=$os['campaign']['start_day'];
+        $q=$db->prepare('SELECT 1 FROM wp_universe_programme_direct WHERE world_id=? AND mandate_start=? AND programme=?');
+        $q->execute([$world,$mandate,$slot['domestic_programme']]);
+        if($q->fetchColumn()!==false)return false;
+        $events=$s['ukraine_aid_decisions']??[];
+        $last=$events===[]?null:$events[array_key_last($events)];
+        $current=$last===null?10000:UkraineAidPolicy::ACTIONS[$last['action']];
+        $desired=UkraineAidPolicy::ACTIONS[$action];
+        $set=$slot['programme_set_on']??$mandate;
+        $result='already_matching';
+        if($current!==$desired){
+            if($last!==null&&$last['day']>=$set)$result='human_override';
+            else{
+                $principal=new class($world) implements DomesticPolicyAuthority{
+                    public function __construct(private readonly string $w){}
+                    public function allows(string $world,string $ability):bool{return $world===$this->w&&$ability==='domestic.corporation';}
+                    public function enactedInstrument(string $world,string $policy):?string{return null;}
+                    public function clockDay(string $world):string{throw new \DomainException('No clock delegation');}
+                };
+                $sim->corporationDecision($principal,$action);$result='applied';
+            }
+        }
+        $q=$db->prepare('INSERT INTO wp_universe_programme_direct(world_id,mandate_start,programme,decision_day,generation,action_id,outcome) VALUES(?,?,?,?,?,?,?)');
+        $q->execute([$world,$mandate,$slot['domestic_programme'],$day,$slot['generation'],$action,$result]);
+        return true;
     }
     /** Use only durable, matching proposals from the current mandate and
      * current selected executable profile. Called by the fenced national

@@ -168,3 +168,28 @@ ck102($report114['day']===$effective114&&$report114['actions'][1]['state']==='ac
 ck102($report114['actions'][1]['authorized_on']!==null,'WP114 no effect without legal authorization');
 $aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo);
 ck102($aud['integrity']==='passed','WP114 executable programme passes independent audit');
+
+
+// WP114b: custom agenda survives departure, then an explicit human override
+// is not undone by a once-completed automatic aid objective.
+$ag114=['education'=>false,'administration'=>false,'defense'=>'none','health'=>'none','ukraine_aid'=>'stop'];
+$bad114=$ag114;$bad114['extra']=true;
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','agenda'=>$bad114],8)['status']===422,'WP114b unknown objective rejected');
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','agenda'=>$ag114,'domestic'=>'manual'],8)['status']===422,'WP114b conflicting profiles rejected');
+ck102(call102('POST','/universes/'.$no.'/programme',['diplomacy'=>'balanced','agenda'=>$ag114],2)['status']===403,'WP114b foreign controller cannot set French agenda');
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','agenda'=>$ag114],8)['status']===200,'WP114b custom programme accepted');
+$re114=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($re114['agenda']===$ag114&&$re114['direct_actions']===[],'WP114b custom agenda committed');
+ck102(call102('DELETE','/universes/'.$spareNo.'/membership',null,8)['status']===200,'WP114b handover to AI');
+$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114b unoccupied world executes direct objective');
+ck102(join102(8,'FR',$spareNo,'wp114b-rejoin')['status']===201,'WP114b human takes over same agenda');
+$re114=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($re114['agenda']===$ag114&&count($re114['direct_actions'])===1&&$re114['direct_actions'][0]['outcome']==='applied','WP114b durable direct receipt');
+$dr114=call102('GET',$root114.'/domestic',null,8);
+ck102(call102('POST',$root114.'/domestic/ukraine-aid',['action'=>'ukraine-aid-resume'],8,['if-match'=>$dr114['headers']['ETag'],'idempotency-key'=>'wp114b-human-override'])['status']===200,'WP114b human changes aid decision');
+for($n114=0;$n114<2;$n114++){$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114b override survives idle days');}
+$q114=$db->prepare('SELECT state_json FROM wp_domestic_states WHERE world_id=?');$q114->execute([$spare]);
+$d114=json_decode($q114->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck102(count($d114['ukraine_aid_decisions'])===2&&$d114['ukraine_aid_decisions'][1]['action']==='ukraine-aid-resume','WP114b no automatic reversal of human choice');
+$aud=\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo);
+ck102($aud['integrity']==='passed','WP114b audited custom direct programme');

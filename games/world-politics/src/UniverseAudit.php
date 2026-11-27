@@ -54,6 +54,17 @@ final class UniverseAudit
             $q->execute([$world]);$actions=$q->fetchAll(\PDO::FETCH_ASSOC);
             if(count($actions)>10000)throw new \DomainException('Programme audit page limit exceeded');
             foreach($actions as $a)if($a['decision_day']>=$day||!PresidentialProgramme::validAction($a))throw new \DomainException('Invalid programme journal');
+            $q=$db->prepare('SELECT mandate_start,programme,decision_day,action_id,outcome FROM wp_universe_programme_direct WHERE world_id=? ORDER BY decision_day LIMIT 10001');
+            $q->execute([$world]);$direct=$q->fetchAll(\PDO::FETCH_ASSOC);
+            if(count($direct)>10000)throw new \DomainException('Direct programme audit page limit exceeded');
+            $q=$db->prepare('SELECT state_json,state_sha FROM wp_domestic_states WHERE world_id=?');$q->execute([$world]);$dom=$q->fetch(\PDO::FETCH_ASSOC);
+            if($dom===false||!hash_equals($dom['state_sha'],hash('sha256',$dom['state_json'])))throw new \DomainException('Missing domestic audit source');
+            $events=json_decode($dom['state_json'],true,64,JSON_THROW_ON_ERROR)['ukraine_aid_decisions']??[];
+            foreach($direct as $r){
+                if($r['decision_day']<$r['mandate_start']||$r['decision_day']>=$day||PresidentialProgramme::aidAction($r['programme'])!==$r['action_id']
+                    ||!in_array($r['outcome'],['applied','already_matching','human_override'],true))throw new \DomainException('Invalid direct programme decision');
+                if($r['outcome']==='applied'&&!in_array(['day'=>$r['decision_day'],'action'=>$r['action_id']],$events,true))throw new \DomainException('Missing direct decision evidence');
+            }
             $db->commit();
             return ['universe_no'=>$no,'committed_day'=>$day,'slots'=>count($slots),'human_slots'=>$humans,
                 'control_periods'=>count($periods),'recomputed_scores'=>$countScores,'integrity'=>'passed',

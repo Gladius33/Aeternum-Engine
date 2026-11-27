@@ -56,3 +56,27 @@ if($b114['status']==='published'){
 }else ck82($b114['effect_on']===null,'WP114 failed route grants no implementation date');
 $bad114=$p114;$bad114['effective_on']='2027-09-12';
 no82(fn()=>PP::advanceOne($x114,$a114,$bad114));
+
+
+// WP114b custom structured agenda and deterministic legal routing.
+$agenda114=['education'=>true,'administration'=>false,'defense'=>'reduce','health'=>'increase','ukraine_aid'=>'stop'];
+$code114=PP::encodeAgenda($agenda114);
+ck82(PP::agenda($code114)===$agenda114&&strlen($code114)<=24,'WP114b canonical custom agenda');
+ck82(PP::encodeAgenda(array_reverse($agenda114,true))===$code114,'WP114b order independent encoding');
+no82(fn()=>PP::encodeAgenda($agenda114+['unexpected'=>true]));
+no82(fn()=>PP::encodeAgenda(array_replace($agenda114,['education'=>'true'])));
+no82(fn()=>PP::encodeAgenda(array_replace($agenda114,['health'=>'arbitrary'])));
+ck82(PP::aidAction($code114)==='ukraine-aid-stop','WP114b exact aid route');
+ck82(PP::nextProposal($code114,'2027-05-14',[])['policy_id']==='education-reform','WP114b education selected');
+ck82(PP::nextProposal($code114,'2027-05-14',['education-reform'=>true])===['policy_id'=>'corrective-2027-health-increase','effective_day'=>'2027-10-01'],'WP114b corrective budget route');
+ck82(PP::nextProposal($code114,'2027-05-14',['education-reform'=>true,'corrective-2027-health-reduce'=>true])===['policy_id'=>'budget-2028-defense-reduce','effective_day'=>'2028-01-01'],'WP114b no competing corrective bill');
+ck82(!PP::permits($code114,'administration-report')&&!PP::permits($code114,'corrective-2027-health-reduce'),'WP114b excluded and contrary policy rejected');
+$ac114=['programme'=>$code114,'decision_day'=>'2027-05-14','policy_id'=>'corrective-2027-health-increase','effective_day'=>'2027-10-01'];
+ck82(PP::validAction($ac114)&&!PP::validAction(array_replace($ac114,['effective_day'=>'2027-10-02'])),'WP114b exact effective date');
+$z114=new I('world-test','FR','2027-05-14');$z114->enableElectoral(P::publishedElectionConfig('2027-05-14'));$z114->enablePoliticalAI();$z114->enableRevision();$z114->enableLegislation(true,true,true,true,true,true,true,2028,true,true);$z114->enableContinuityLot();$z114->enableCabinetSenateLot();$z114->enableFinanceRequests();
+$z114->advanceTo('2027-05-15');
+$step114=PP::advanceOne($z114,$ac114,['proposed_on'=>'2027-05-14','effective_on'=>'2027-10-01','authorized_on'=>null,'instrument_sha'=>null]);
+ck82($step114!==null&&$step114['stage']==='budget_requested','WP114b submits actual corrective request');
+for($n=2;$n<=34;$n++)$z114->advanceTo((new DateTimeImmutable('2027-05-14'))->modify('+'.$n.' days')->format('Y-m-d'));
+$req114=array_values($z114->snapshot()['finance_requests'])[0];
+ck82(in_array($req114['status'],['published','rejected'],true)&&I::restore($z114->snapshot())->hash()===$z114->hash(),'WP114b independent corrective process and replay');

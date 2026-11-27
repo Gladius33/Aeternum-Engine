@@ -147,8 +147,14 @@ final class UniverseLobby
      * or a claim about a real politician's preferences. */
     public function programme(AlphaSession $s,int $no,array $body):array
     {
-        AlphaAccounts::fields($body,['diplomacy',...(array_key_exists('domestic',$body)?['domestic']:[])]);
-        if(!in_array($body['diplomacy'],['cooperative','balanced','cautious'],true)||(array_key_exists('domestic',$body)&&!in_array($body['domestic'],PresidentialProgramme::PROFILES,true)))
+        AlphaAccounts::fields($body,['diplomacy',...(array_key_exists('domestic',$body)?['domestic']:[]),...(array_key_exists('agenda',$body)?['agenda']:[])]);
+        if(array_key_exists('agenda',$body)){
+            if(array_key_exists('domestic',$body)||!is_array($body['agenda']))throw new AlphaHttpError(422,'invalid_programme');
+            try{$body['domestic']=PresidentialProgramme::encodeAgenda($body['agenda']);}
+            catch(\InvalidArgumentException $e){throw new AlphaHttpError(422,'invalid_programme');}
+            unset($body['agenda']);
+        }elseif(array_key_exists('domestic',$body)&&(!is_string($body['domestic'])||!in_array($body['domestic'],PresidentialProgramme::PROFILES,true)))throw new AlphaHttpError(422,'invalid_programme');
+        if(!in_array($body['diplomacy'],['cooperative','balanced','cautious'],true)||(array_key_exists('domestic',$body)&&!PresidentialProgramme::known($body['domestic'])))
             throw new AlphaHttpError(422,'invalid_programme');
         return $this->transaction(function()use($s,$no,$body){
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
@@ -160,7 +166,7 @@ final class UniverseLobby
             if(!is_string($slot)||!$s->active())throw new AlphaHttpError(404,'not_found');
             if(array_key_exists('domestic',$body)){
                 if($slot!=='FR')throw new AlphaHttpError(403,'domestic_programme_not_available');
-                $this->query('UPDATE wp_universe_slots SET domestic_programme=? WHERE world_id=? AND country_code=?',[$body['domestic'],$world,$slot]);
+                $this->query('UPDATE wp_universe_slots SET programme_set_on=IF(domestic_programme<>?, ?, programme_set_on),domestic_programme=? WHERE world_id=? AND country_code=?',[$body['domestic'],$c['committed_day'],$body['domestic'],$world,$slot]);
             }
             $this->query('UPDATE wp_universe_slots SET diplomacy_programme=? WHERE world_id=? AND country_code=?',[$body['diplomacy'],$world,$slot]);
             return ['country'=>$slot,'diplomacy'=>$body['diplomacy'],'effective_day'=>$c['committed_day'],'inherited'=>true,
@@ -192,7 +198,8 @@ final class UniverseLobby
                 $a['authorized_on']=$p['authorized_on'];
                 $a['state']=$p['authorized_on']!==null?(in_array($a['policy_id'],$active,true)?'active':'legally_authorized'):($a['effective_day']<=$c['committed_day']?'not_authorized_by_deadline':'proposed');
             }unset($a);
-            return $report+['version'=>PresidentialProgramme::VERSION,'domestic'=>$slot['domestic_programme'],
+            return $report+['version'=>PresidentialProgramme::VERSION,'domestic'=>$slot['domestic_programme'],'agenda'=>PresidentialProgramme::agenda($slot['domestic_programme']),
+                'direct_actions'=>$this->query('SELECT mandate_start,programme,decision_day,action_id,outcome FROM wp_universe_programme_direct WHERE world_id=? ORDER BY decision_day,programme LIMIT 10000',[$world])->fetchAll(\PDO::FETCH_ASSOC),
                 'automatic_legal_route'=>PresidentialProgramme::executable($slot['domestic_programme']),
                 'human_action_this_day'=>$slot['last_human_domestic_day']===$c['committed_day'],
                 'actions'=>$rows,'historical_real_programmes_fully_executable'=>false];

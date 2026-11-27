@@ -99,7 +99,18 @@ paths:
               required: [diplomacy]
               properties:
                 diplomacy: { type: string, enum: [cooperative, balanced, cautious] }
-                domestic: { type: string, enum: [manual, education, administration, education-law, administration-law, governance, governance-reduce, governance-increase], description: France-only profile; executable profiles follow bounded fictional legal routes }
+                domestic: { type: string, enum: [manual, education, administration, education-law, administration-law, governance, governance-reduce, governance-increase], description: France-only profile; mutually exclusive with agenda }
+                agenda:
+                  type: object
+                  description: France-only structured fictional programme; mutually exclusive with domestic
+                  additionalProperties: false
+                  required: [education, administration, defense, health, ukraine_aid]
+                  properties:
+                    education: { type: boolean }
+                    administration: { type: boolean }
+                    defense: { type: string, enum: [none, maintain, reduce, increase] }
+                    health: { type: string, enum: [none, reduce, increase] }
+                    ukraine_aid: { type: string, enum: [none, maintain, reduce, increase, stop] }
       responses:
         '200': { description: Programme persisted for the national slot }
         '403': { description: Foreign slot cannot change French domestic programme }

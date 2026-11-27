@@ -95,3 +95,8 @@ Apply additive migrations 032 and 033 after 031 with workers stopped and a teste
 ## WP114
 
 The expanded French programme catalogue requires no additional schema migration after 033. New universes and newly invested successors use the fictional governance profile; existing selected presets are unchanged. Executable profiles use the normal legal aggregates and domestic authorization ledger, never a client-supplied proof. GET /universes/{universe_no}/programme is membership-scoped and returns a coherent committed programme report. Manual and the older two proposal-only profiles remain available. Full semantic political programme execution is not qualified.
+
+
+### WP114b
+
+Apply migration 034 before deploying this increment, following the established stopped-worker and backup process. POST /universes/{universe_no}/programme accepts an exclusive France-only agenda object; GET returns its decoded fields and direct action receipts. The aid choice is a one-time discretionary scenario objective, not cancellation of existing obligations. Custom programmes remain deliberately bounded and do not infer real politicians' decisions.
