@@ -36,3 +36,12 @@ foreach(['yvan-benedetti','jordan-bardella','francois-ruffin','philippe-poutou',
     ck75b(!\Aeternum\WorldPolitics\CampaignCandidate::mayStart(['type'=>'campaign2027','reference_id'=>'campaign2027-'.$id]),'supplement cannot bypass programme approval');
 }
 ck75b($directory['playable_count']===0,'no unapproved real campaign enabled');
+
+$provisional=\Aeternum\WorldPolitics\CampaignCandidate::provisionalChoices();
+ck75b(count($provisional)===4&&array_sum(array_column($provisional,'reviewed_measure_count'))===11,'four explicit partial playable editions');
+foreach($provisional as $r){
+    $sel=['type'=>'campaign2027','reference_id'=>$r['id']];
+    ck75b($r['playable']&&!$r['programme_complete']&&$r['provisional']&&\Aeternum\WorldPolitics\CampaignCandidate::mayStart($sel),'explicit provisional release only');
+    ck75b(count(\Aeternum\WorldPolitics\CampaignCandidate::normalizeManaged($sel)['programme'])===$r['reviewed_measure_count'],'source mapped measures preserved');
+}
+ck75b(count(\Aeternum\WorldPolitics\ProvisionalFrenchProgramme::evidence()['records'])===9,'documentary evidence separate from executable editions');

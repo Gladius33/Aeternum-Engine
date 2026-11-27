@@ -81,7 +81,7 @@ final class PdoCareerInstitutionStore
                 require_once __DIR__.'/CampaignCandidate.php';
                 $selection=['type'=>'campaign2027','reference_id'=>$e['payload']['edition']];
                 CareerInstitutionLedger::check(CampaignCandidate::mayStart($selection),'Programme encore non disponible');
-                $approved=ProgrammeSourceInventory::report()['approved_editions'][$e['payload']['edition']];
+                $approved=CampaignCandidate::editionEvidence($e['payload']['edition']);
                 CareerInstitutionLedger::check($approved['document_sha256']===$e['payload']['programme_sha'],'programme edition mismatch');
             }
             $grants=$e['payload']['grants']??[];
@@ -167,7 +167,7 @@ final class PdoCareerInstitutionStore
             $state=$this->replay($world,$this->row($world));$out=[];$choices=[];
             if($state['country']==='FR'){
                 require_once __DIR__.'/CampaignCandidate.php';
-                foreach(CampaignCandidate::candidateDirectory2027() as $choice)$choices[$choice['reference_id']]=$choice;
+                foreach([...CampaignCandidate::candidateDirectory2027(),...CampaignCandidate::provisionalChoices()] as $choice)$choices[$choice['reference_id']]=$choice;
             }
             foreach($state['careers'] as $id=>$c){
                 if(!isset($c['person_reference']))continue;
@@ -176,7 +176,7 @@ final class PdoCareerInstitutionStore
                 $offices=[];foreach($state['active'] as $office=>$mid)if($state['mandates'][$mid]['career']===$id)$offices[]=$office;
                 $out[]=['career_id'=>$id,'identity'=>$c['identity'],'controller'=>$c['controller'],'offices'=>$offices,
                     'claim_reference'=>$available,'playable'=>$available!==null&&$c['account']===null,
-                    'availability_code'=>$available===null?'programme_incomplete':($c['account']===null?'available':'occupied')];
+                    'programme_provisional'=>$available!==null&&($choices[$available]['provisional']??false),'availability_code'=>$available===null?'programme_incomplete':($c['account']===null?($choices[$available]['availability_code']??'available'):'occupied')];
             }
             return ['world_id'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'characters'=>$out,'additional_political_references'=>$state['country']==='FR'?FrenchPoliticalDirectory::supplementary():[],'fictional_creation_available'=>true,'final_ballot_verified'=>false];
         });
@@ -195,7 +195,7 @@ final class PdoCareerInstitutionStore
             CareerInstitutionLedger::check($s['country']==='FR'&&CampaignCandidate::mayStart(['type'=>'campaign2027','reference_id'=>$reference]),'Programme encore non disponible');
             $target=null;foreach($s['careers'] as $id=>$c)if(isset($c['person_reference'])&&($reference===$c['person_reference']||str_starts_with($reference,$c['person_reference'].'-v'))){$target=$id;break;}
             CareerInstitutionLedger::check($target!==null,'real identity not in world');
-            $approved=ProgrammeSourceInventory::report()['approved_editions'][$reference];
+            $approved=CampaignCandidate::editionEvidence($reference);
             $p=['career'=>$target,'account'=>$account,'edition'=>$reference,'programme_sha'=>$approved['document_sha256']];
             $day=$clock['committed_day'];
             $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'claim-'.substr(hash('sha256',$account.'|'.$reference),0,48),'actor'=>'career-admission','operation'=>'claim_real_career','payload'=>$p,

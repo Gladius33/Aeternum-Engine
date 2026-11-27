@@ -1,0 +1,112 @@
+{
+  "schema": "wp-fr-public-programme-evidence-v1",
+  "observed_on": "2026-11-27",
+  "exhaustive": false,
+  "records": [
+    {
+      "person": "jordan-bardella",
+      "kind": "party_manifesto",
+      "date": "2024",
+      "source": "https://rassemblementnational.fr/legislatives-2024",
+      "summary": "Baisse des prélèvements sur les produits énergétiques et les carburants.",
+      "domain": "energy_tax",
+      "implementation_status": "documentary_unmapped",
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "marine-le-pen",
+      "kind": "party_manifesto",
+      "date": "2024",
+      "source": "https://rassemblementnational.fr/legislatives-2024",
+      "summary": "Projet collectif de baisse de la fiscalité énergétique.",
+      "domain": "energy_tax",
+      "implementation_status": "documentary_unmapped",
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "philippe-poutou",
+      "kind": "personal_statement",
+      "date": "2022-02-06",
+      "source": "https://npa-lanticapitaliste.org/actualite/politique/si-jetais-president-les-mesures-phares-de-philippe-poutou",
+      "summary": "Revenu mensuel net minimal proposé de 1 800 euros.",
+      "domain": "wages",
+      "target": {
+        "monthly_net_eur": 1800
+      },
+      "implementation_status": "documentary_unmapped",
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "fabien-gay",
+      "kind": "parliamentary_proposal",
+      "date": "2024-09-02",
+      "source": "https://www.senat.fr/seances/s202410/s20241015010.html",
+      "summary": "Projet de service public de l'énergie réunissant EDF, Engie et TotalEnergies via nationalisations.",
+      "domain": "energy_ownership",
+      "implementation_status": "documentary_unmapped",
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "manuel-bompard",
+      "kind": "parliamentary_proposal",
+      "date": "2026-09-15",
+      "source": "https://www.assemblee-nationale.fr/dyn/17/textes/l17b3176_proposition-loi",
+      "summary": "Proposition collective de revalorisation des rémunérations et des pensions.",
+      "domain": "wages_pensions",
+      "implementation_status": "documentary_unmapped",
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "mathilde-panot",
+      "kind": "parliamentary_proposal",
+      "date": "2026-09-15",
+      "source": "https://www.assemblee-nationale.fr/dyn/17/textes/l17b3176_proposition-loi",
+      "summary": "Proposition collective de revalorisation des rémunérations et des pensions.",
+      "domain": "wages_pensions",
+      "implementation_status": "documentary_unmapped",
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "francois-ruffin",
+      "kind": "historical_cosigned_proposal",
+      "date": "2022-10-11",
+      "source": "https://www.assemblee-nationale.fr/dyn/opendata/PIONANR5L16B0328.html",
+      "summary": "Cosignature d'une proposition visant un SMIC mensuel net de 1 600 euros.",
+      "domain": "wages",
+      "target": {
+        "monthly_net_eur": 1600
+      },
+      "implementation_status": "documentary_unmapped",
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "olivier-faure",
+      "kind": "party_statement",
+      "date": "2026-11-09",
+      "source": "https://parti-socialiste.fr/communiques-de-presse/salaires-le-compte-ny-est-pas/",
+      "summary": "Proposition de conférence salariale, sans montant de hausse attribué ici.",
+      "domain": "wage_negotiation",
+      "implementation_status": "documentary_unmapped",
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    },
+    {
+      "person": "eric-ciotti",
+      "kind": "parliamentary_proposal",
+      "date": "2025-05-13",
+      "source": "https://www.assemblee-nationale.fr/dyn/opendata/PIONANR5L17B1411.html",
+      "summary": "Proposition de modification du régime fiscal des plus-values immobilières.",
+      "domain": "housing_tax",
+      "implementation_status": "documentary_unmapped",
+      "programme_complete": false,
+      "certified_2027_candidate": false
+    }
+  ]
+}
