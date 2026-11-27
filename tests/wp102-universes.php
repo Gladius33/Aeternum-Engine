@@ -345,3 +345,12 @@ ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced
 // selecting a different objective cannot force an instant new amendment.
 $durationState=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
 ck102($durationState['agenda']['revision']==='presidential-seven-year-referendum'&&$durationState['agenda']['ratification']==='referendum','WP114 duration referendum canonical and durable');
+
+
+$coId='pf2022-nathalie-arthaud-3';
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>[$coId]],8)['status']===200,'WP114 collective property authorization programme accepted');
+for($n=0;$n<4;$n++){$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114 collective property law pipeline');}
+$q114e->execute([$spare]);$ci=json_decode($q114e->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck102(count(array_filter($ci['legislation']['bills'],fn($b)=>$b['policy_id']===$coId))===1,'WP114 collective property has its own legal instrument');
+$q114->execute([$spare]);$cd=json_decode($q114->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck102(!isset($cd['days'][array_key_last($cd['days'])]['public_equity']['collective']),'WP114 mere draft conveys no title');

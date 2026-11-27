@@ -72,7 +72,7 @@ final class SocialProgramme
         foreach($newFamilies as $n=>$family)$d['social-repeal-'.$family]=[
             'bit'=>96+$n,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
             'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
-        foreach(['local-supply'=>127,'renewable-transition'=>95] as $family=>$bit)$d['social-repeal-'.$family]=[
+        foreach(['local-supply'=>127,'renewable-transition'=>95,'collective-ownership'=>94] as $family=>$bit)$d['social-repeal-'.$family]=[
             'bit'=>$bit,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
             'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         return $cached=$d;

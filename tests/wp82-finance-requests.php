@@ -207,7 +207,7 @@ $reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
 $resetProfile=PP::compileProfile([$reset114,'industry-active']);
 ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
 no82(fn()=>PP::compileProfile([$reset114,$pension114]));
-ck82(count(SP::objectives())===110&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
+ck82(count(SP::objectives())===112&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
 $pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
 ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
 $resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
@@ -243,7 +243,7 @@ no82(fn()=>SE::calculate([],[],'2027-09-11',$pop,$services,$base,null,['job_guar
 
 require_once __DIR__.'/../games/world-politics/src/HistoricalProgrammeCoverage.php';
 $historicalCoverage=\Aeternum\WorldPolitics\HistoricalProgrammeCoverage::report();
-ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===3&&$historicalCoverage['additional_executable_count']===44,'WP114i separate all twelve source inventories from executable historical measures');
+ck82(count($historicalCoverage['candidates'])===12&&$historicalCoverage['executable_archived_count']===24&&$historicalCoverage['additional_unmapped_count']===2&&$historicalCoverage['additional_executable_count']===45,'WP114i separate all twelve source inventories from executable historical measures');
 ck82(!$historicalCoverage['wp114_closure_qualified'],'WP114i no false exhaustive coverage');
 ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['employment_bps'][2]===[2017,2900,8060,6230,6540],'WP114j exact verified INSEE training anchors');
 
@@ -251,7 +251,7 @@ ck82(SC::load()['employment_bps'][0]===[2015,2830,7990,6060,6460]&&SC::load()['e
 // WP114 primary quantitative: exact source targets, extended masks,
 // separately costed routes and legal identity for each primary measure.
 use Aeternum\WorldPolitics\PrimaryManifestoPolicy as PM;
-ck82(count(PM::definitions())===43,'WP114 43 independently reviewed primary routes');
+ck82(count(PM::definitions())===44,'WP114 44 independently reviewed primary routes');
 $primaryMix=PP::compileProfile(['pf2022-eric-zemmour-3','pf2022-yannick-jadot-2','hist2022-emmanuel-macron-1','industry-active']);
 ck82(strlen($primaryMix)<=40&&count(PP::socialIds($primaryMix))===3&&PP::agenda($primaryMix)['industry']==='active','WP114 extended mixed canonical mask');
 no82(fn()=>PP::compileProfile(['pf2022-anne-hidalgo-4','pf2022-philippe-poutou-1']));
@@ -365,3 +365,27 @@ ck82($presDuration['term_end']==='2032-05-14'&&$presDuration['next_term_years']=
 for($day='2027-05-16';$day<='2032-05-14';$day=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d'))
     $presDuration=PRES::advance($presDuration,$day,900,null,$proofDuration);
 ck82($presDuration['term_start']==='2032-05-14'&&$presDuration['term_end']==='2039-05-14'&&$presDuration['consecutive_terms']===2&&!$presDuration['eligible_for_re_election'],'WP114 seven-year next mandate with unchanged consecutive term limit');
+
+
+// WP114 collective ownership is a separately authorized, cash-funded
+// financial settlement, not a voluntary purchase or expense duplicate.
+require_once __DIR__.'/../games/world-politics/src/CollectiveOwnership.php';
+use Aeternum\WorldPolitics\{CollectiveOwnership as CO,PublicEquityLedger as PE};
+$co=CO::POLICY;$cfgCo=['fixture-large'=>['weight'=>220,'resilience'=>150],'fixture-small'=>['weight'=>100,'resilience'=>150]];
+$coLaw=['authorized_on'=>'2027-09-10','effective_on'=>'2027-09-11','instrument_sha'=>str_repeat('c',64)];
+$eqCo=PE::initial('2027-09-11');
+no82(fn()=>CO::apply($eqCo,$cfgCo,[$co],[],'2027-09-11',100000000000,true));
+$eqCo=CO::apply($eqCo,$cfgCo,[$co],[$co=>$coLaw],'2027-09-11',100000000000,true);
+ck82(count($eqCo['collective']['orders'])===1&&$eqCo['positions']===[],'WP114 no transfer on authorization day');
+for($day='2027-09-12';$day<='2027-10-11';$day=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d')){
+    $eqCo=PE::advance($eqCo,$day,null,$cfgCo,0,false);
+    $eqCo=CO::apply($eqCo,$cfgCo,[$co],[$co=>$coLaw],$day,0,false);
+}
+ck82($eqCo['positions']===[]&&array_values($eqCo['collective']['orders'])[0]['waiting_for_funds'],'WP114 no transfer when ordinary payments in arrears');
+$eqCo=PE::advance($eqCo,'2027-10-12',null,$cfgCo,100000000000,true);
+$eqCo=CO::apply($eqCo,$cfgCo,[$co],[$co=>$coLaw],'2027-10-12',100000000000,true);
+ck82($eqCo['positions']['fixture-large']['stake_bps']===10000&&$eqCo['paid_today_minor']>0&&$eqCo['financial_assets_at_cost_minor']===$eqCo['paid_today_minor'],'WP114 compensated stock and cash reconcile');
+ck82($eqCo['collective']['governance']['fixture-large']['worker_board_bps']===5000&&!isset($eqCo['positions']['fixture-small']),'WP114 actual synthetic collective governance and scope');
+$eqCo=PE::advance($eqCo,'2027-10-13',null,$cfgCo,100000000000,true);
+$eqCo=CO::apply($eqCo,$cfgCo,[],[$co=>$coLaw],'2027-10-13',100000000000,true);
+ck82($eqCo['paid_today_minor']===0&&$eqCo['positions']['fixture-large']['stake_bps']===10000,'WP114 abrogation does not confiscate previous acquired title');

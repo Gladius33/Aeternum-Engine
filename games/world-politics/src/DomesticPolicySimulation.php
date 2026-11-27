@@ -15,6 +15,7 @@ require_once __DIR__.'/TradeMacroFeedback.php';
 require_once __DIR__.'/EuropeanTradeFeedback.php';
 require_once __DIR__.'/FirmEconomy.php';
 require_once __DIR__.'/PublicEquityLedger.php';
+require_once __DIR__.'/CollectiveOwnership.php';
 require_once __DIR__.'/IndustrialCapital.php';
 
 /**
@@ -324,6 +325,7 @@ final class DomesticPolicySimulation
             if($this->publicEquityEnabled){
                 $tr=$loop['treasury'];$current=$tr['primary_arrears']===0&&$tr['interest_arrears']===0&&$tr['principal_arrears']===0&&!($tr['crisis']['moratorium']??false);
                 $equity=PublicEquityLedger::advance($prior['public_equity']??PublicEquityLedger::initial($this->startDay),$target,$corporationAction,$this->firmModel,$nativeSectors?0:$tr['cash'],$current&&!$nativeSectors);
+                if(!$nativeSectors)$equity=CollectiveOwnership::apply($equity,$this->firmModel,$active,$this->policies,$target,$tr['cash'],$current);
                 $paid=$equity['paid_today_minor'];$loop['treasury']['cash_before_equity_minor']=$tr['cash'];
                 $loop['treasury']['equity_acquisition_minor']=$paid;$loop['treasury']['cash']=$tr['cash']-$paid;
                 $loop['treasury']['public_equity_at_cost_minor']=$equity['financial_assets_at_cost_minor'];$loop['balance']=$loop['treasury']['cash'];
@@ -379,6 +381,7 @@ final class DomesticPolicySimulation
                     $transfer=FrancPropertySettlement::apply($equity,$corporations,$eu['frf_committed_observation']['property_order'],$target,$cash-$industrialPaid-$equity['paid_today_minor'],$current);
                     $equity=$transfer['equity'];$corporations=$transfer['corporations'];$row['corporations']=$corporations;$property=$transfer['receipt'];
                 }
+                if($equity!==null)$equity=CollectiveOwnership::apply($equity,$this->firmModel,$active,$this->policies,$target,$cash-$industrialPaid,$current);
                 $row['frf_committed_budget']=FrancFinancialIntegration::capital($native,$ratio,$industrialPaid,$equity['paid_today_minor']??0,$prior['frf_committed_budget']??null);
                 if($property!==null)$row['frf_committed_budget']['property_settlement']=[...$property,'compensation_paid_frf_minor'=>$property['compensation_reference_minor']*$ratio];
             }

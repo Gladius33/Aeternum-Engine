@@ -56,6 +56,7 @@ final class PrimaryManifestoPolicy
             ['marine-le-pen-3','trade','local-supply',[],['annual_eligible_turnover_eur'=>40000000000,'target_shift_bps'=>1000,'support_rate_bps'=>2000,'ramp_years'=>5,'domestic_value_added_bps'=>4500,'annual_output_per_job_eur'=>90000]],
             ['jean-luc-melenchon-4','energy','renewable-transition',['target_bps'=>10000,'target_year'=>2050],['reference_renewable_share_bps'=>2300,'annual_final_energy_gwh'=>1500000,'investment_eur_per_annual_gwh'=>900000,'public_finance_share_bps'=>4000,'annual_maintenance_bps'=>100,'imported_equipment_bps'=>3000,'annual_output_per_job_eur'=>90000]],
             ['philippe-poutou-4','diplomacy','nato-withdrawal',[],[]],
+            ['nathalie-arthaud-3','ownership','collective-ownership',[],['large_firm_weight_min'=>200,'review_days'=>30,'worker_board_bps'=>5000,'target_stake_bps'=>10000]],
         ];
         $out=[];
         foreach($rows as $n=>$row){
@@ -210,6 +211,9 @@ final class PrimaryManifestoPolicy
             // Actual treaty status is held by OrganizationSimulation.
             $r['withdrawal_authorization_only']=true;
             $r['treaty_status_domain']='organizations.nato_withdrawal';
+        }elseif($f==='collective-ownership'){
+            $r['statutory_authorization_only']=true;$r['financial_settlement_domain']='public_equity.collective';
+            $r['compensation_is_financial_exchange']=true;
         }else throw new \DomainException('No quantitative route for primary commitment');
         $r['daily_revenue_delta_minor']=intdiv($r['annual_revenue_delta_eur']*100,365);
         $r['daily_expense_delta_minor']=intdiv($r['annual_expense_delta_eur']*100,365);
