@@ -69,10 +69,10 @@ $eid='acct-'.bin2hex(random_bytes(16));$etoken=bin2hex(random_bytes(32));
 $exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$eid,'ci-'.bin2hex(random_bytes(10)),'fixture']);
 $exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$etoken),$eid,time()+3600]);
 $en=req('POST','/career-worlds',['label'=>'Career economic regression','profile'=>'economic'],$etoken);
-ck($en['status']===201,'economic profile create');
+ck($en['status']===201,'economic profile create: '.$en['status'].' '.json_encode($en['body'],JSON_THROW_ON_ERROR));
 $ew=$en['body']['world_id'];$ep='/career-worlds/'.$ew;
 $before=req('GET',$ep.'/economy',null,$etoken);
-ck($before['status']===200&&$before['body']['day']==='2027-05-14'&&!$before['body']['rankable'],'economic opening date and no rank');
+ck($before['status']===200&&$before['body']['day']==='2027-05-14'&&$before['body']['domestic']['state']['social_economy_from']==='2027-05-14'&&!$before['body']['rankable'],'economic opening date and no rank');
 $connect=fn()=>new PDO(getenv('WP_DB_DSN'),getenv('WP_DB_USER'),getenv('WP_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
 // Admit two careers before the opening fictional election, appoint the
 // government, then exercise its actual domestic proposal capability.

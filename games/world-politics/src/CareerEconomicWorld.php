@@ -78,7 +78,14 @@ final class CareerEconomicWorld
         // stay off until new mandates can legally authorize their actions.
         $c=$scenario->domestic();
         $c['catalog']+=array_intersect_key(SocialProgramme::policies($c['macro_baseline']),SocialProgramme::target2027());
-        if($expandedProgramme){require_once __DIR__.'/FrenchExpandedProgramme.php';$c['catalog']+=array_intersect_key(SocialProgramme::policies($c['macro_baseline']),array_fill_keys(FrenchExpandedProgramme::policyIds(),true));}
+        if($expandedProgramme){
+            require_once __DIR__.'/FrenchExpandedProgramme.php';
+            // The full cohort model is required for quantitative primary
+            // policy effects and the bounded 256-policy catalogue. The Macron
+            // reference is a model prerequisite, not an assigned programme.
+            $c['catalog']+=array_intersect_key(SocialProgramme::policies($c['macro_baseline']),array_fill_keys([...FrenchExpandedProgramme::policyIds(),'hist2022-emmanuel-macron-1'],true));
+            $c['social_economy_from']=$day;
+        }
         foreach(['finance_autonomy','daily_legal_enabled','trade_feedback_enabled','eu_trade_enabled','eu_trade_v2','eu_trade_v3','eu_trade_v4'] as $flag)$c[$flag]=false;
         $dom=PdoDomesticPolicyStore::build($world,$c);
         $put('INSERT INTO wp_domestic_states(world_id,assumptions_json,assumptions_sha,state_json,state_sha,revision) VALUES(?,?,?,?,?,0)',[$world,self::json($c),$dom->assumptionsHash(),self::json($dom->snapshot()),$dom->hash()]);
