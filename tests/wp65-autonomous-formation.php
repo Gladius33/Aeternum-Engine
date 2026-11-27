@@ -170,3 +170,26 @@ for($t=new DateTimeImmutable('2027-05-15');$t->format('Y-m-d')<=$dates['inaugura
 $s=$us->snapshot();ck65(I::restore($s)->snapshot()===$s&&$s['accountability']['incumbent']===$new['winner'],'US contingent elected mandate replays');
 $bad=$s;foreach($bad['events'] as &$ev)if($ev['kind']==='us_presidential_inauguration')$ev['result']['contingent_house']['rounds'][0]['represented_states']=51;unset($ev);
 try{I::restore($bad);throw new RuntimeException('Forged state delegation quorum accepted');}catch(DomainException $expected){}
+
+// Fresh ordinary ballots can resolve certified caretaker status without
+// reopening the earlier censure or granting authority before formation.
+$recover=null;
+for($n=0;$n<100;$n++){
+    $fixture=make65('gb-recovery-'.$n,'GB',false);
+    $poll=$fixture->snapshot()['electoral']['config']['poll_day'];
+    $due=(new DateTimeImmutable($poll))->modify('+5 days')->format('Y-m-d');
+    $fixture->advanceTo($due);$snap=$fixture->snapshot();$snap['autonomous_formation']=A::VERSION_V5;
+    if((A::plan($snap)['status']??null)==='certified'){$recover=[$n,$poll,$due];break;}
+}
+ck65($recover!==null,'caretaker recovery fixture found');
+[$n,$poll,$due]=$recover;$gb=make65('gb-recovery-'.$n,'GB',false);
+$gb->enableAutonomousFormation(false,false,true);
+$common=['world_id'=>'gb-recovery-'.$n,'country'=>'GB','motion_id'=>'caretaker-motion','procedure_certified'=>true];
+$gb->accountability('parliament_clerk','accountability_file',$common+['evidence_id'=>'caretaker-file','at'=>'2027-05-14T09:00:00Z','chamber'=>'commons','signatures'=>10,'candidate'=>null,'kind'=>'no_confidence'],'caretaker-file');
+$gb->accountability('parliament_clerk','accountability_vote',$common+['evidence_id'=>'caretaker-vote','at'=>'2027-05-14T10:00:00Z','chamber'=>'commons','present'=>100,'yes'=>60,'no'=>40,'abstain'=>0],'caretaker-vote');
+$gb->accountability('constitutional_clerk','accountability_resolve',$common+['evidence_id'=>'caretaker-resign','at'=>'2027-05-14T11:00:00Z','outcome'=>'resign','successor'=>null],'caretaker-resign');
+$g=$gb->snapshot()['accountability'];$govClass=\Aeternum\WorldPolitics\ComparativeGovernment::class;
+ck65(!$govClass::formationAvailable($g,null)&&!$govClass::formationAvailable($g,'2027-05-14'),'no stale election or old pin recovery');
+for($t=new DateTimeImmutable('2027-05-15');$t->format('Y-m-d')<=$due;$t=$t->modify('+1 day'))$gb->advanceTo($t->format('Y-m-d'));
+$s=$gb->snapshot();ck65($s['accountability']['status']==='in_office'&&$s['accountability']['pending']===null&&I::restore($s)->snapshot()===$s,'fresh ordinary ballot ends caretaker and replays');
+$h=$s['accountability']['history'];ck65($h[array_key_last($h)]['formation_poll']===$poll,'recovery bound to fresh election date');

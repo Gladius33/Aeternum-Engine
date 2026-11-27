@@ -146,13 +146,14 @@ final class FormationProtocol
             $base=self::certificate($proof,$cycles[$id],AutonomousForeignFormation::formationSeats($s),AutonomousForeignFormation::extended($s));
             $result=$event['result'];unset($result['national_proof']);
             if($result!==$cycles[$id]['government'])throw new \DomainException('Formation event differs from electoral result');
-            $proofs[$id]=['evidence'=>$base,'formation'=>$result];
+            $proofs[$id]=['evidence'=>$base,'formation'=>$result,'poll'=>$proof['procedure']['poll_day']];
         }
         $seen=[];
         foreach($s['accountability']['history'] as $h){
             if($h['action']!=='certified_electoral_formation')continue;
             $id=$h['evidence']['evidence_id'];
-            if(isset($seen[$id])||!isset($proofs[$id])||$proofs[$id]!==['evidence'=>$h['evidence'],'formation'=>$h['formation']])
+            if(isset($seen[$id])||!isset($proofs[$id])||$proofs[$id]['evidence']!==$h['evidence']||$proofs[$id]['formation']!==$h['formation']
+                ||(isset($h['formation_poll'])&&(!AutonomousForeignFormation::recovery($s)||$h['formation_poll']!==$proofs[$id]['poll'])))
                 throw new \DomainException('Government journal lacks matching national proof');
             $seen[$id]=true;
         }

@@ -347,7 +347,7 @@ final class InstitutionalSimulation
         // incumbent. Never infer legal appointment from an AI recommendation.
         if($action==='electoral_certify'&&isset($this->state['political_ai'],$this->state['accountability'])){
             $g=ComparativeGovernment::restore($this->state['accountability']);
-            $g->installCertifiedFormation($payload,$result);
+            $g->installCertifiedFormation($payload,$result,AutonomousForeignFormation::recovery($this->state)?($nationalProof['procedure']['poll_day']??null):null);
             $this->state['accountability']=$g->snapshot();
         }
         $this->state['electoral']=$el->snapshot();
@@ -358,9 +358,9 @@ final class InstitutionalSimulation
     }
 
     public function enableUsPresidential(bool $extended=false):void{$this->state=UsPresidentialElection::bootstrap($this->state,$extended);}
-    public function enableAutonomousFormation(bool $japan=false,bool $extended=false):void
+    public function enableAutonomousFormation(bool $japan=false,bool $extended=false,bool $recovery=false):void
     {
-        $this->state=AutonomousForeignFormation::bootstrap($this->state,$japan,$extended);
+        $this->state=AutonomousForeignFormation::bootstrap($this->state,$japan,$extended,$recovery);
     }
     public function enableFormationProtocol():void
     {

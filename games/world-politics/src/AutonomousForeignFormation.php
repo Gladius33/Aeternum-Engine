@@ -12,17 +12,21 @@ final class AutonomousForeignFormation
     public const VERSION_V2='wp65-autonomous-formation-v2';
     public const VERSION_V3='wp119-autonomous-formation-jp-v1';
     public const VERSION_V4='wp119-autonomous-formation-jp-v2';
-    public static function extended(array $s):bool{return ($s['autonomous_formation']??null)===self::VERSION_V4;}
-    private static function due(string $version,string $poll):string{return self::day($poll,$version===self::VERSION_V4?13:5);}
+    public const VERSION_V5='wp119-autonomous-recovery-v1';
+    public const VERSION_V6='wp119-autonomous-jp-recovery-v1';
+    public static function extended(array $s):bool{return in_array($s['autonomous_formation']??null,[self::VERSION_V4,self::VERSION_V6],true);}
+    public static function recovery(array $s):bool{return in_array($s['autonomous_formation']??null,[self::VERSION_V5,self::VERSION_V6],true);}
+    private static function due(string $version,string $poll):string{return self::day($poll,in_array($version,[self::VERSION_V4,self::VERSION_V6],true)?13:5);}
     private const CHAMBERS=['DE'=>'bundestag','ES'=>'congress','GB'=>'commons'];
     private static function chambers(string $version):array
-    {return match($version){self::VERSION_V3,self::VERSION_V4=>self::CHAMBERS+['IT'=>'chamber','JP'=>'representatives'],self::VERSION_V2=>self::CHAMBERS+['IT'=>'chamber'],default=>self::CHAMBERS};}
-    public static function bootstrap(array $s,bool $japan=false,bool $extended=false):array
+    {return match($version){self::VERSION_V3,self::VERSION_V4,self::VERSION_V6=>self::CHAMBERS+['IT'=>'chamber','JP'=>'representatives'],self::VERSION_V2,self::VERSION_V5=>self::CHAMBERS+['IT'=>'chamber'],default=>self::CHAMBERS};}
+    public static function bootstrap(array $s,bool $japan=false,bool $extended=false,bool $recovery=false):array
     {
         if(($s['formation_protocol']??null)!==FormationProtocol::VERSION||$s['events']!==[]||isset($s['autonomous_formation']))
             throw new \DomainException('Autonomous formation must be pinned at bootstrap');
         if(($extended&&!$japan)||($japan&&$s['country_code']!=='JP'))throw new \DomainException('Japanese formation pin only');
-        $s['autonomous_formation']=$japan?($extended?self::VERSION_V4:self::VERSION_V3):self::VERSION_V2;return $s;
+        if($japan&&$recovery&&!$extended)throw new \DomainException('Japanese recovery requires extended designation');
+        $s['autonomous_formation']=$japan?($recovery?self::VERSION_V6:($extended?self::VERSION_V4:self::VERSION_V3)):($recovery?self::VERSION_V5:self::VERSION_V2);return $s;
     }
     private static function day(string $poll,int $delta):string
     {return (new \DateTimeImmutable($poll,new \DateTimeZone('UTC')))->modify('+'.$delta.' days')->format('Y-m-d');}
@@ -87,7 +91,7 @@ final class AutonomousForeignFormation
     public static function formationSeats(array $s):array
     {
         $seats=$s['accountability']['seats'];
-        if(in_array($s['autonomous_formation']??null,[self::VERSION_V3,self::VERSION_V4],true)){
+        if(in_array($s['autonomous_formation']??null,[self::VERSION_V3,self::VERSION_V4,self::VERSION_V6],true)){
             if($s['country_code']!=='JP'||isset($seats['councillors']))throw new \DomainException('Invalid Japanese formation pin');
             $seats['councillors']=50;
         }
@@ -104,8 +108,8 @@ final class AutonomousForeignFormation
         $c=$cycle['coalition'];$ch=$chambers[$cc];$n=$s['accountability']['seats'][$ch];
         $attempt=['version'=>$version,'classification'=>'fictional_uncalibrated_seat_votes','poll_day'=>$poll,
             'candidate'=>$c['candidate']??null,'ballots'=>[],'status'=>'blocked','reason'=>null,'proof'=>null];
-        if(($version===self::VERSION_V2&&$cc==='IT')||(in_array($version,[self::VERSION_V3,self::VERSION_V4],true)&&$cc==='JP'))$attempt['upper_chamber']=null;
-        if($s['accountability']['status']!=='in_office'||$s['accountability']['pending']!==null){
+        if((in_array($version,[self::VERSION_V2,self::VERSION_V5],true)&&$cc==='IT')||(in_array($version,[self::VERSION_V3,self::VERSION_V4,self::VERSION_V6],true)&&$cc==='JP'))$attempt['upper_chamber']=null;
+        if(!ComparativeGovernment::formationAvailable($s['accountability'],self::recovery($s)?$poll:null)){
             $attempt['reason']='unresolved_constitutional_procedure';return $attempt;
         }
         if(($c['status']??null)!=='majority_agreement'||$cycle['seats_total']!==$n){
@@ -124,7 +128,7 @@ final class AutonomousForeignFormation
             $upper=self::italianSenate($cycle,$s['accountability']['seats']['senate']);$attempt['upper_chamber']=$upper;
             $b=$upper['votes'];
             if($first['yes']>$first['no']&&$b['yes']>$b['no'])$steps=[self::step($poll,'presidential_appointment',1),$vote('confidence_vote',3,$first),self::step($poll,'confidence_vote',5)+['chamber'=>'senate']+$b];
-        }elseif($cc==='JP'&&$version===self::VERSION_V4){
+        }elseif($cc==='JP'&&self::extended($s)){
             $upper=self::japaneseCouncillors($cycle);$attempt['upper_chamber']=$upper;$b=$upper['votes'];
             if($absolute){
                 $steps=[$vote('designation_vote',2,$first),self::step($poll,'designation_vote',3)+['chamber'=>'councillors']+$b];
@@ -161,7 +165,7 @@ final class AutonomousForeignFormation
     public static function validateHistory(array $s):void
     {
         $version=$s['autonomous_formation'];$chambers=self::chambers($version);
-        if(!in_array($version,[self::VERSION,self::VERSION_V2,self::VERSION_V3,self::VERSION_V4],true)||(in_array($version,[self::VERSION_V3,self::VERSION_V4],true)&&$s['country_code']!=='JP')||($s['formation_protocol']??null)!==FormationProtocol::VERSION)
+        if(!in_array($version,[self::VERSION,self::VERSION_V2,self::VERSION_V3,self::VERSION_V4,self::VERSION_V5,self::VERSION_V6],true)||(in_array($version,[self::VERSION_V3,self::VERSION_V4,self::VERSION_V6],true)&&$s['country_code']!=='JP')||($s['formation_protocol']??null)!==FormationProtocol::VERSION)
             throw new \DomainException('Invalid autonomous formation pin');
         $cycles=[];foreach([...$s['foreign_recurring']['archive'],$s['electoral']] as $c)$cycles[$c['config']['poll_day']]=$c;
         $attempts=[];$certificates=[];
@@ -182,11 +186,11 @@ final class AutonomousForeignFormation
                 throw new \DomainException('Autonomous attempt coalition changed');
             foreach($r['ballots'] as $i=>$b)if($b!==self::ballot($cycle,$i+1))
                 throw new \DomainException('Autonomous formation ballot differs from pinned model');
-            if($version===self::VERSION_V2&&$s['country_code']==='IT'){
+            if(in_array($version,[self::VERSION_V2,self::VERSION_V5],true)&&$s['country_code']==='IT'){
                 if(!array_key_exists('upper_chamber',$r)||$r['upper_chamber']!==($r['ballots']===[]?null:self::italianSenate($cycle,$s['accountability']['seats']['senate'])))throw new \DomainException('Italian Senate evidence mismatch');
                 if($r['status']==='certified'&&($r['proof']['procedure']['steps'][2]['yes']??null)!==$r['upper_chamber']['votes']['yes'])throw new \DomainException('Italian Senate certificate mismatch');
             }
-            if(in_array($version,[self::VERSION_V3,self::VERSION_V4],true)&&$s['country_code']==='JP'){
+            if(in_array($version,[self::VERSION_V3,self::VERSION_V4,self::VERSION_V6],true)&&$s['country_code']==='JP'){
                 if(!array_key_exists('upper_chamber',$r)||$r['upper_chamber']!==($r['ballots']===[]?null:self::japaneseCouncillors($cycle)))
                     throw new \DomainException('Japanese upper-house designation evidence mismatch');
             }
@@ -200,7 +204,7 @@ final class AutonomousForeignFormation
                     if(!str_ends_with($step['kind'],'_vote'))continue;
                     $votes=array_intersect_key($step,array_fill_keys(['yes','no','abstain'],true));
                     if($step['chamber']===$chambers[$s['country_code']])$proofVotes[]=$votes;
-                    elseif(($s['country_code']==='IT'&&$step['chamber']==='senate')||($s['country_code']==='JP'&&in_array($version,[self::VERSION_V3,self::VERSION_V4],true)&&$step['chamber']==='councillors'))$upperVotes[]=$votes;
+                    elseif(($s['country_code']==='IT'&&$step['chamber']==='senate')||($s['country_code']==='JP'&&in_array($version,[self::VERSION_V3,self::VERSION_V4,self::VERSION_V6],true)&&$step['chamber']==='councillors'))$upperVotes[]=$votes;
                     else throw new \DomainException('Unexpected autonomous ballot chamber');
                 }
                 if($s['country_code']!=='GB'&&$proofVotes!==$r['ballots'])
@@ -213,7 +217,7 @@ final class AutonomousForeignFormation
                 throw new \DomainException('Invalid blocked attempt');
             $attempts[$id]=$r;
         }
-        if(in_array($version,[self::VERSION_V2,self::VERSION_V3,self::VERSION_V4],true))foreach($cycles as $poll=>$cycle){
+        if(in_array($version,[self::VERSION_V2,self::VERSION_V3,self::VERSION_V4,self::VERSION_V5,self::VERSION_V6],true))foreach($cycles as $poll=>$cycle){
             if(!isset($chambers[$s['country_code']])||$s['day']<self::due($version,$poll))continue;
             $priorCertificate=$cycle['government']!==null&&$cycle['government']['on']<self::due($version,$poll);
             if(!$priorCertificate&&!isset($attempts['auto-formation-'.$poll]))throw new \DomainException('Missing due autonomous formation attempt');

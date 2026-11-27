@@ -256,7 +256,7 @@ final class PdoCareerInstitutionStore
         }
         $state=$this->replay($world,$this->row($world));
         $sim->enableElectoral(DocumentaryForeignBallot::config($cc,ComparativeElectionCalendar::config($cc,$day),true));
-        $sim->enablePoliticalAI();$sim->enableForeignRecurring();$sim->enableFormationProtocol();$sim->enableAutonomousFormation($cc==='JP',$cc==='JP');if($cc==='US')$sim->enableUsPresidential(true);
+        $sim->enablePoliticalAI();$sim->enableForeignRecurring();$sim->enableFormationProtocol();$sim->enableAutonomousFormation($cc==='JP',$cc==='JP',true);if($cc==='US')$sim->enableUsPresidential(true);
         require_once __DIR__.'/PoliticalRoster.php';
         $roster=new PoliticalRoster($world,$state['country'],['government']);
         foreach($state['careers'] as $career){
@@ -306,7 +306,7 @@ final class PdoCareerInstitutionStore
             $this->query('UPDATE wp_world_clock SET committed_day=?,revision=revision+1 WHERE world_id=?',[$target,$world]);
             $last=$after['history'][array_key_last($after['history'])]??null;
             $usElection=($last['action']??null)==='us_presidential_inauguration'&&count($after['history'])>count($before['history']);
-            if($after['status']==='in_office'&&($after['incumbent']!==$before['incumbent']||$usElection)){
+            if($after['status']==='in_office'&&($after['incumbent']!==$before['incumbent']||$before['status']!=='in_office'||$usElection)){
                 $expires=$usElection?(new \DateTimeImmutable($target))->modify('+4 years')->format('Y-m-d'):CareerForeignWorld::boundary($state['country']);
                 $p=['government_json'=>CareerForeignWorld::json($after),'expires'=>$expires];
                 $digest=CareerInstitutionLedger::digest(['kind'=>'comparative-government-replay-v1','world'=>$world,'country'=>$state['country'],'payload'=>$p]);

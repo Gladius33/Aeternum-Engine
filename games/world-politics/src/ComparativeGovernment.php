@@ -146,11 +146,24 @@ final class ComparativeGovernment
     /** Verified formation evidence originates in the institutional store;
      * this route is not available to a player or ordinary confidence clerk.
      */
-    public function installCertifiedFormation(array $e,array $formation):void
+    /** A fresh ordinary ballot can replace a constitutionally recorded
+     * caretaker. It must postdate the resignation/dissolution. This does
+     * not bypass a motion, trial, deadline or unresolved appointment. */
+    public static function formationAvailable(array $g,?string $poll=null):bool
+    {
+        if($g['country']==='US')return false;
+        if($g['status']==='in_office')return $g['pending']===null;
+        if($poll===null||!in_array($g['status'],['caretaker','election_pending'],true))return false;
+        $last=$g['history'][array_key_last($g['history'])]??null;
+        return $last!==null&&$last['action']==='accountability_resolve'
+            &&$last['evidence']['outcome']===($g['status']==='caretaker'?'resign':'dissolve')
+            &&substr($last['evidence']['at'],0,10)<$poll&&$poll<$g['day'];
+    }
+    public function installCertifiedFormation(array $e,array $formation,?string $poll=null):void
     {
         self::fields($e,['world_id','country','evidence_id','coalition_id','candidate','day','procedure_certified']);
         self::fields($formation,['candidate','parties','support_seats','programme','on','status','evidence_id']);
-        if($this->state['country']==='US'||$this->state['status']!=='in_office'||$this->state['pending']!==null
+        if(!self::formationAvailable($this->state,$poll)
             ||$e['world_id']!==$this->state['world_id']||$e['country']!==$this->state['country']||$e['day']!==$this->state['day']
             ||$e['procedure_certified']!==true||$formation['candidate']!==$e['candidate']||$formation['evidence_id']!==$e['evidence_id']
             ||$formation['on']!==$e['day']||$formation['status']!=='certified_scenario_formation')
@@ -163,8 +176,10 @@ final class ComparativeGovernment
             if($h['evidence']['evidence_id']===$e['evidence_id']||substr($h['evidence']['at']??$h['evidence']['day'],0,10)>$e['day'])
                 throw new \DomainException('Replayed or backdated formation');
         }
-        $this->state['incumbent']=$e['candidate'];
-        $this->state['history'][]=['action'=>'certified_electoral_formation','role'=>'constitutional_clerk','evidence'=>$e,'formation'=>$formation];
+        $recovery=$this->state['status']!=='in_office';
+        if($recovery)self::day($poll);
+        $this->state['incumbent']=$e['candidate'];$this->state['status']='in_office';$this->state['pending']=null;
+        $this->state['history'][]=['action'=>'certified_electoral_formation','role'=>'constitutional_clerk','evidence'=>$e,'formation'=>$formation,...($recovery?['formation_poll'=>$poll]:[])];
     }
     public function installUsPresidential(array $proof):void
     {
@@ -186,7 +201,7 @@ final class ComparativeGovernment
         if (!is_array($s['history'])||!array_is_list($s['history'])||count($s['history'])>10000)throw new \DomainException('Invalid government journal');
         foreach($s['history'] as $h) {
             if($h['action']==='certified_electoral_formation'){
-                $x->advance($h['evidence']['day']);$x->installCertifiedFormation($h['evidence'],$h['formation']);
+                $x->advance($h['evidence']['day']);$x->installCertifiedFormation($h['evidence'],$h['formation'],$h['formation_poll']??null);
             }elseif($h['action']==='us_presidential_inauguration'){
                 $x->advance($h['evidence']['dates']['inauguration']);$x->installUsPresidential($h['evidence']);
             }else{

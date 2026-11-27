@@ -23,7 +23,7 @@ final class UniverseContinuity
             $proof=$event['evidence'];$on=substr($proof['at']??$proof['day'],0,10);
             if($on>$beforeDay)break;
             $old->advance($on);
-            if($event['action']==='certified_electoral_formation')$old->installCertifiedFormation($proof,$event['formation']);
+            if($event['action']==='certified_electoral_formation')$old->installCertifiedFormation($proof,$event['formation'],$event['formation_poll']??null);
             elseif($event['action']==='us_presidential_inauguration')$old->installUsPresidential($proof);
             else $old->apply($event['action'],$event['role'],$proof);
         }
