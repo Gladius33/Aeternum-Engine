@@ -499,9 +499,9 @@ ck82($reference2027['scenario_start']==='2027-05-14'&&$reference2027['observed_o
     &&!$reference2027['final_candidate_list_verified']&&!$reference2027['complete_programmes_verified']
     &&!$reference2027['historical_2022_is_2027_programme']&&!$reference2027['historical_2022_automatic_import'],
     'WP114 provisional sources cannot certify future programmes');
-ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_count']===0
+ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_count']===2
     &&count(array_unique(array_column($reference2027['sources'],'id')))===count($reference2027['sources']),
-    'WP114 discovery references are not executable objectives');
+    'WP114 discovery register separates reviewed objectives from candidate selection');
 foreach($reference2027['sources'] as $source2027)ck82(str_starts_with($source2027['url'],'https://'),'WP114 dated programme discovery link');
 
 
@@ -533,3 +533,24 @@ ck82($clockResult['status']==='effective'&&$clockResult['proof']['revision_id']=
     &&$clockResult['ballot']['yes']>$clockResult['ballot']['no'],'WP114 published clause drives the actual daily institutional clock');
 $badClock=$civicClock->snapshot();$badClock['civic_initiative']['proof']['revision_id']='unrelated';
 no82(fn()=>I::restore($badClock));
+
+
+// Independently dated 2027 targets must not reuse an old nominal amount
+// or silently displace an immutable 2022 bit allocation.
+$smic2027='pf2027-jean-luc-melenchon-smic';$pension2027='pf2027-jean-luc-melenchon-pension';
+$ids2027=[$smic2027,$pension2027];$encoded2027=PP::compileProfile($ids2027);
+ck82(PP::socialIds($encoded2027)===$ids2027,'WP114 exact 2027 mixed social objectives round trip');
+ck82(PP::measureSupport($smic2027)['status']==='target_2027_cohort_proxy'
+    &&PP::measureSupport($pension2027)['mapping']['target']['contribution_years']===40,'WP114 independent 2027 provenance classification');
+$bits2027=array_column(SP::objectives(),'bit');
+ck82(count($bits2027)===count(array_unique($bits2027)),'WP114 unique policy bit allocation');
+no82(fn()=>PP::compileProfile([$smic2027,'pf2022-jean-luc-melenchon-1']));
+no82(fn()=>PP::compileProfile([$pension2027,'hist2022-jean-luc-melenchon-1']));
+$catalog2027=SP::policies($base);
+ck82(isset($catalog2027[$smic2027],$catalog2027[$pension2027])
+    &&SP::assumption($smic2027,array_diff_key($catalog2027,[$smic2027=>true]),true)===null,'WP114 new catalog explicitly pinned');
+$effect2027='2027-09-11';
+$flow2027=SE::calculate($ids2027,[$smic2027=>['effective_on'=>$effect2027],$pension2027=>['effective_on'=>$effect2027]],$effect2027,$pop,$services,$base,null);
+ck82($flow2027['monthly_net_floor_minor']===170000&&$flow2027['pension_transfer_delta_minor']>0,'WP114 2027 targets drive wage and pension scenario');
+$career2027=SE::pension(['age_months'=>720,'entry_age_months'=>240,'contributed_months'=>480,'reference_monthly_gross_minor'=>240000,'arduous'=>false],SP::definition($pension2027)['target']);
+ck82($career2027['eligible']&&$career2027['required_contribution_months']===480&&$career2027['accrual_bps']===10000,'WP114 representative 2027 forty-annuity career');
