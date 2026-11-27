@@ -76,3 +76,54 @@ ckResearch($g->handle('GET','/research/v1/models','',$head($pro['token']))['stat
 $q->configureCapacity('pro',3600,3000,30000);
 ckResearch($g->handle('GET','/research/v1/models','',$head($pro['token']))['status']===200,'live operator limit restored');
 echo "PASS WP123 isolated tenant queue, worker, CSV, cancellation, rotation and evidence pin\n";
+
+require_once __DIR__.'/../games/world-politics/src/ResearchStripe.php';
+use Aeternum\WorldPolitics\{ResearchStripe as Stripe,StripeWebhook as Hook,StripeConfiguration as SC};
+foreach(['WP_STRIPE_PRICE_RESEARCH_STANDARD_CREDITS=price_testcredits','WP_STRIPE_STANDARD_PACK_CREDITS=250','WP_STRIPE_PRICE_RESEARCH_STANDARD_MONTHLY=price_testmonthly','WP_STRIPE_STANDARD_INCLUDED_CREDITS=1000','WP_STRIPE_SUCCESS_URL=https://example.invalid/success','WP_STRIPE_CANCEL_URL=https://example.invalid/cancel'] as $v)putenv($v);
+$st=$q->createTenant('standard',0,false,'payg');$objects=[];$calls=0;$checkoutArgs=[];
+$objects['/v1/prices/price_testcredits']=['id'=>'price_testcredits','livemode'=>false,'active'=>true,'currency'=>'eur','unit_amount'=>500,'type'=>'one_time'];
+$objects['/v1/prices/price_testmonthly']=['id'=>'price_testmonthly','livemode'=>false,'active'=>true,'currency'=>'eur','unit_amount'=>2000,'type'=>'recurring','recurring'=>['interval'=>'month','interval_count'=>1,'usage_type'=>'licensed']];
+$api=function($method,$path,$args,$key)use(&$objects,&$calls,&$checkoutArgs){
+    if($method==='POST'){
+        $calls++;$checkoutArgs=$args;$sid='cs_test_fixture'.$calls;
+        return ['id'=>$sid,'livemode'=>false,'url'=>'https://checkout.stripe.com/c/pay/'.$sid];
+    }
+    if(!isset($objects[$path]))throw new RuntimeException('Unexpected Stripe fixture request '.$path);
+    return $objects[$path];
+};
+$stripe=new Stripe($db,$api);
+$co=$stripe->checkout($st['tenant_id'],'standard-credits','stripe-test-checkout-01');
+ckResearch($stripe->checkout($st['tenant_id'],'standard-credits','stripe-test-checkout-01')===$co&&$calls===1,'checkout idempotent');
+$sid=$co['checkout_id'];$customer='cus_fixture001';$pi='pi_fixture001';
+$objects['/v1/checkout/sessions/'.$sid]=['id'=>$sid,'livemode'=>false,'mode'=>'payment','status'=>'complete','payment_status'=>'paid','customer'=>$customer,
+    'metadata'=>['wp_order'=>$co['order_id']],'client_reference_id'=>$co['order_id'],'currency'=>'eur','amount_subtotal'=>500,'amount_total'=>500,'payment_intent'=>$pi];
+$objects['/v1/checkout/sessions/'.$sid.'/line_items']=['has_more'=>false,'data'=>[['price'=>['id'=>'price_testcredits'],'quantity'=>1,'currency'=>'eur','amount_subtotal'=>500]]];
+$objects['/v1/payment_intents/'.$pi]=['id'=>$pi,'livemode'=>false,'status'=>'succeeded','currency'=>'eur','customer'=>$customer,'amount_received'=>500,'latest_charge'=>'ch_fixture001'];
+$objects['/v1/charges/ch_fixture001']=['id'=>'ch_fixture001','livemode'=>false,'paid'=>true,'refunded'=>false,'disputed'=>false,'amount_refunded'=>0,'payment_intent'=>$pi];
+$e=['id'=>'evt_fixture001','object'=>'event','livemode'=>false,'api_version'=>SC::VERSION,'type'=>'checkout.session.completed','data'=>['object'=>['id'=>$sid]]];
+$raw=json_encode($e,JSON_THROW_ON_ERROR);$now=time();$wh='whsec_fixture_secret_0123456789';
+$sig='t='.$now.',v1='.hash_hmac('sha256',$now.'.'.$raw,$wh);
+$verified=Hook::verify($raw,$sig,$wh,$now);
+try{Hook::verify($raw.' ',$sig,$wh,$now);throw new RuntimeException('Tampered event accepted');}catch(DomainException $expected){}
+try{Hook::verify($raw,$sig,$wh,$now+301);throw new RuntimeException('Stale event accepted');}catch(DomainException $expected){}
+$objects['/v1/checkout/sessions/'.$sid]['payment_status']='unpaid';
+ckResearch($stripe->handle($verified)['status']==='await_payment','unpaid checkout grants nothing');
+$objects['/v1/checkout/sessions/'.$sid]['payment_status']='paid';
+$objects['/v1/checkout/sessions/'.$sid.'/line_items']['data'][0]['quantity']=2;
+try{$stripe->handle($verified);throw new RuntimeException('Wrong quantity accepted');}catch(DomainException $expected){}
+$objects['/v1/checkout/sessions/'.$sid.'/line_items']['data'][0]['quantity']=1;
+ckResearch($stripe->handle($verified)['status']==='settled'&&$stripe->handle($verified)['status']==='duplicate','confirmed pack once');
+ckResearch((int)$db->query("SELECT prepaid_units FROM wp_research_tenants WHERE tenant_id='".$st['tenant_id']."'")->fetchColumn()===250,'exact pack credit');
+$co2=$stripe->checkout($st['tenant_id'],'standard-monthly','stripe-test-checkout-02');
+$sid2=$co2['checkout_id'];$sub='sub_fixture001';$pi2='pi_fixture002';$end=time()+30*86400;
+$objects['/v1/checkout/sessions/'.$sid2]=['id'=>$sid2,'livemode'=>false,'mode'=>'subscription','customer'=>$customer,'subscription'=>$sub,'metadata'=>['wp_order'=>$co2['order_id']]];
+$objects['/v1/subscriptions/'.$sub]=['id'=>$sub,'livemode'=>false,'status'=>'active','customer'=>$customer,'metadata'=>['wp_order'=>$co2['order_id']]];
+$objects['/v1/invoices/in_fixture001']=['id'=>'in_fixture001','livemode'=>false,'subscription'=>$sub,'customer'=>$customer,'status'=>'paid','paid_out_of_band'=>false,'currency'=>'eur','collection_method'=>'charge_automatically','billing_reason'=>'subscription_create','amount_paid'=>2000,'payment_intent'=>$pi2,
+    'lines'=>['has_more'=>false,'data'=>[['price'=>['id'=>'price_testmonthly'],'quantity'=>1,'currency'=>'eur','amount'=>2000,'proration'=>false,'period'=>['start'=>$end-30*86400,'end'=>$end]]]]];
+$objects['/v1/payment_intents/'.$pi2]=['id'=>$pi2,'livemode'=>false,'status'=>'succeeded','currency'=>'eur','customer'=>$customer,'amount_received'=>2000,'latest_charge'=>'ch_fixture002'];
+$objects['/v1/charges/ch_fixture002']=['id'=>'ch_fixture002','livemode'=>false,'paid'=>true,'refunded'=>false,'disputed'=>false,'amount_refunded'=>0,'payment_intent'=>$pi2];
+$invoice=['type'=>'invoice.paid','data'=>['object'=>['id'=>'in_fixture001']]];
+ckResearch($stripe->handle($invoice)['status']==='settled'&&$stripe->handle($invoice)['status']==='duplicate','monthly settlement once');
+$balance=$q->usage($st['token']);
+ckResearch($balance['included_remaining']===1000&&$balance['prepaid_remaining']===250&&$balance['paid_until']===$end,'subscription period and wallet retained');
+echo "PASS Stripe test-mode signed events, server price validation, checkout/settlement idempotency\n";

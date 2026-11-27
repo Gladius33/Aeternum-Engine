@@ -51,3 +51,5 @@ The canonical `.env.example` is now tracked within the game source and tested bo
 
 ## Daily ingestion — updated release policy
 See [daily Game → Research sync](WORLD_POLITICS_DAILY_DATASET_SYNC.md). All supported worlds can automatically contribute regardless of free/Premium participant status when the operator activates the approved data-use policy. Migration 044 serializes committed outbox sequence allocation, and the daily CLI imports with a durable cursor and bounded batches, skips withdrawn aliases and resumes idempotently. This supersedes the earlier per-world opt-in-only capture behavior without overriding explicit exclusions. Coverage remains French EUR aggregate simulation data, not complete game records.
+
+Stripe Research test-mode Checkout and settlement: see [environment and Stripe integration](WORLD_POLITICS_ENV_STRIPE.md). Actual Stripe test-account acceptance and production lifecycle remain open.

@@ -5,6 +5,13 @@ if(PHP_SAPI!=='cli'||getenv('WP_RESEARCH_OPERATOR')!=='YES'){exit(2);}
 try{
     $db=\Aeternum\WorldPolitics\researchDatabase();$q=new \Aeternum\WorldPolitics\ResearchQueue($db);
     $cmd=$argv[1]??'';
+    if($cmd==='stripe-checkout'){
+        require_once __DIR__.'/../src/ResearchStripe.php';
+        \Aeternum\WorldPolitics\StripeConfiguration::ready();
+        $stripe=new \Aeternum\WorldPolitics\StripeTestClient();
+        $r=(new \Aeternum\WorldPolitics\ResearchStripe($db,$stripe->request(...)))->checkout($argv[2]??'', $argv[3]??'', $argv[4]??'');
+        echo json_encode($r,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES).PHP_EOL;exit(0);
+    }
     $r=match($cmd){
         'install'=>(function()use($db){if((int)$db->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE()')->fetchColumn()!==0)throw new RuntimeException('Empty database required');$db->exec(file_get_contents(__DIR__.'/database/001_research.sql'));return ['installed'=>true];})(),
         'create-tenant'=>$q->createTenant($argv[2]??'standard',(int)($argv[3]??30),($argv[4]??'private')==='share',$argv[5]??'monthly'),
