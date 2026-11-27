@@ -16,3 +16,11 @@ $bad=$p;$bad['state']['day']='2027-05-15';
 try{D::report($d,$bad);throw new RuntimeException('Mixed dates accepted');}catch(DomainException $expected){}
 $bad=$d;$bad['state']['macro_baseline']['aid_reference_v2']['source_pack']['observed']['civil_guide']['concessional_treasury_loans']++;
 try{D::report($bad,$p);throw new RuntimeException('Tampered historical reference accepted');}catch(DomainException $expected){}
+
+ck69b(array_sum($x['fictional_future_maturity_minor'])===$x['fictional_commitment_totals']['future_minor']&&$x['fictional_total_outstanding_minor']===24000000000,'WP90 opening future maturity reconciliation');
+ck69b($x['fictional_future_maturity_minor']['due_1_30_days']===8000000000&&$x['fictional_future_maturity_minor']['due_31_90_days']===8000000000&&$x['fictional_future_maturity_minor']['due_91_365_days']===8000000000,'WP90 inclusive maturity boundaries');
+$c->decide('ua-civil-fixture','withhold','wp90-withhold');$c->advance('2027-06-13');
+$d['state']['day']='2027-06-13';$p['state']['day']='2027-06-13';$p['state']['commitments']=$c->snapshot();
+$x=D::report($d,$p);
+ck69b($x['fictional_commitment_totals']['arrears_minor']>0&&$x['fictional_total_outstanding_minor']===$x['fictional_commitment_totals']['arrears_minor']+array_sum($x['fictional_future_maturity_minor']),'WP90 separate overdue and future exposures');
+ck69b($x['additional_budget_delta_minor']===null&&!$x['additional_treasury_booking'],'WP90 no booking from maturity schedule');

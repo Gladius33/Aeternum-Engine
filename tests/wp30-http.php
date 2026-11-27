@@ -995,6 +995,8 @@ ck30(count($audit80['domains_checked'])===6,'WP80 audit covers all canonical clo
 $house87=req30('GET',$r27.'/countries/FR/household-account',null,$t27);
 ck30($house87['status']===200&&$audit80['household_account']['window_days']===5&&!$audit80['household_account']['score_eligible'],'WP87 audit qualifies committed household window');
 ck30($audit80['household_account']['reference_sha']===$house87['body']['account_reference_sha']&&$audit80['household_account']['report_sha']===hash('sha256',json_encode($house87['body'],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),'WP87 audit and authenticated HTTP account agree');
+$finance94=req30('GET',$r27.'/countries/FR/international-finance',null,$t27);
+ck30($finance94['status']===200&&!$audit80['international_finance']['actual_inventory_complete']&&$audit80['international_finance']['report_sha']===hash('sha256',json_encode($finance94['body'],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),'WP94 audit reconciles international finance without inventing exposures');
 $world80=$g27['body']['world_id'];
 $q80=$pdo->prepare('SELECT state_sha FROM wp_economic_states WHERE world_id=?');$q80->execute([$world80]);$prior80=$q80->fetchColumn();
 $q80=$pdo->prepare('UPDATE wp_economic_states SET state_sha=? WHERE world_id=?');$q80->execute([str_repeat('0',64),$world80]);
@@ -1039,3 +1041,19 @@ ck30(req30('GET','/me',null,$bob2)['status']===401&&req30('GET','/me',null,$tb)[
 ck30(req30('POST','/sessions',['username'=>'bob','password'=>'strong-password-456'])['status']===401,'WP95 old password rejected');
 $bob3=req30('POST','/sessions',['username'=>'bob','password'=>'changed-password-456']);
 ck30($bob3['status']===200&&req30('GET','/me',null,$bob3['body']['access_token'])['body']['username']==='bob','WP95 new credential works');
+
+require_once __DIR__.'/../games/world-politics/src/AlphaMaintenance.php';
+$now96=time();$id96=$b['body']['account_id'];
+$q96=$pdo->prepare('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)');
+$q96->execute([str_repeat('e',64),$id96,$now96-5]);
+$q96->execute([str_repeat('f',64),$id96,$now96-10]);
+$limit96=$pdo->prepare('INSERT INTO wp_http_limits(bucket_sha,window_id,hits) VALUES(?,?,?)');
+$limit96->execute([str_repeat('a',64),intdiv($now96,300)-3,1]);
+$limit96->execute([str_repeat('b',64),intdiv($now96,300),1]);
+$m96=\Aeternum\WorldPolitics\AlphaMaintenance::prune($pdo,$now96,1);
+ck30($m96['expired_sessions_deleted']===1&&$m96['old_quota_buckets_deleted']===1&&$m96['more_may_remain'],'WP96 bounded maintenance');
+$m96=\Aeternum\WorldPolitics\AlphaMaintenance::prune($pdo,$now96,1000);
+ck30($m96['expired_sessions_deleted']>=1&&req30('GET','/me',null,$bob3['body']['access_token'])['status']===200,'WP96 live session survives maintenance');
+$select96=$pdo->prepare('SELECT hits FROM wp_http_limits WHERE bucket_sha=? AND window_id=?');
+$select96->execute([str_repeat('b',64),intdiv($now96,300)]);
+ck30((int)$select96->fetchColumn()===1,'WP96 current quota bucket preserved');

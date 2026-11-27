@@ -328,6 +328,7 @@ jobs:
       - name: Install isolated game schema and test real HTTP
         run: |
           php -l games/world-politics/public/index.php
+          php -l games/world-politics/bin/prune-alpha.php
           php games/world-politics/bin/install-alpha.php
           php -S 127.0.0.1:18730 -t games/world-politics/public games/world-politics/public/index.php > /tmp/wp30-http.log 2>&1 &
           server=$!

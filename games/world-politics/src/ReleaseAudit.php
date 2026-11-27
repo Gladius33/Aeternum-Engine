@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/AlphaWorlds.php';
 require_once __DIR__.'/HouseholdAccount.php';
+require_once __DIR__.'/InternationalFinanceDisclosure.php';
 
 /** Offline audit authority, never mounted in HTTP. Read grants only. */
 final class ReleaseAuditPrincipal implements InstitutionalActorAuthorizer,EconomicPolicyPrincipal
@@ -82,9 +83,18 @@ final class ReleaseAudit
                     'report_sha'=>hash('sha256',json_encode($h,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
                     'score_eligible'=>false];
             }
+            $commitments=null;
+            if(isset($dom['state']['macro_baseline']['aid_reference_v2'],$dip['state']['commitments'])){
+                $f=InternationalFinanceDisclosure::report($dom,$dip);
+                if($f['additional_treasury_booking']||$f['additional_budget_delta_minor']!==null||
+                    $f['fictional_total_outstanding_minor']!==$f['fictional_commitment_totals']['arrears_minor']+array_sum($f['fictional_future_maturity_minor']))
+                    throw new \DomainException('International finance audit scope mismatch');
+                $commitments=['reference_sha'=>$f['reference_sha'],'report_sha'=>hash('sha256',json_encode($f,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)),
+                    'actual_inventory_complete'=>$f['actual_inventory_complete']];
+            }
             $report=['world_id'=>$world,'day'=>$date,'score'=>$saved['score'],'revision'=>$saved['clock_revision'],
                 'countries_checked'=>count($scenario->countries),'domains_checked'=>['domestic','diplomacy','opinion','organizations','economy','institutions'],'cohort_sha'=>$cohort,'status'=>'verified_ranked_alpha_score',
-                'household_account'=>$household,'official_ranking_eligible'=>false,'scope'=>'six_clock_domains_and_score_not_full_security_audit'];
+                'household_account'=>$household,'international_finance'=>$commitments,'official_ranking_eligible'=>false,'scope'=>'six_clock_domains_and_score_not_full_security_audit'];
             $db->commit();return $report;
         }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
     }
