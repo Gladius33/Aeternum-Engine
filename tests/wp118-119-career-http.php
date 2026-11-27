@@ -118,7 +118,20 @@ $fw=$fn['body']['world_id'];$fv=req('GET','/career-worlds/'.$fw.'/career',null,$
 ck($fv['status']===200&&$fv['body']['country']==='DE'&&$fv['body']['mandates']===[],'German country pinned, no French powers');
 $fd=req('GET','/career-worlds/'.$fw.'/characters',null,$etoken);
 ck($fd['status']===200&&count($fd['body']['characters'])===3,'German documentary roster');
-foreach($fd['body']['characters'] as $person)ck(!$person['playable']&&$person['controller']==='ai'&&$person['offices']===[],'no inferred office or programme');
+foreach($fd['body']['characters'] as $person)ck(!$person['playable']&&$person['controller']==='ai','programme unavailable despite scenario identity');
+$fi=req('GET','/career-worlds/'.$fw.'/institutions',null,$etoken);
+ck($fi['status']===200&&$fi['body']['state']['accountability']['incumbent']==='real-de-friedrich-merz','documentary alternate-history opening');
+$openingOffice=$fv['body']['occupied_offices'][0];
+ck($openingOffice['office']==='federal-chancellor'&&$openingOffice['controller']==='ai','opening AI mandate, not player authority');
+$common=['world_id'=>$fw,'country'=>'DE','motion_id'=>'motion-career-de','procedure_certified'=>true];
+$cs->applyForeignEvidence($fw,'accountability_file',$common+['evidence_id'=>'de-file','at'=>'2027-05-14T00:00:00Z','chamber'=>'bundestag','signatures'=>30,'candidate'=>'real-de-johann-wadephul','kind'=>'no_confidence'],$secret);
+$cs->tickForeignInstitution($fw,'2027-05-15');
+$cs->tickForeignInstitution($fw,'2027-05-16');
+$cs->applyForeignEvidence($fw,'accountability_vote',$common+['evidence_id'=>'de-vote','at'=>'2027-05-16T00:00:00Z','chamber'=>'bundestag','present'=>100,'yes'=>60,'no'=>40,'abstain'=>0],$secret);
+$cs->applyForeignEvidence($fw,'accountability_resolve',$common+['evidence_id'=>'de-resolve','at'=>'2027-05-16T01:00:00Z','outcome'=>'appoint_successor','successor'=>'real-de-johann-wadephul'],$secret);
+$afterForeign=req('GET','/career-worlds/'.$fw.'/career',null,$etoken);
+ck($afterForeign['body']['occupied_offices'][0]['identity']['person_reference']==='person-de-johann-wadephul'&&$afterForeign['body']['mandates']===[],'certified successor identity projected atomically');
+
 $frd=req('GET',$ep.'/characters',null,$etoken);
 ck($frd['status']===200&&count($frd['body']['characters'])===22,'French directory');
 

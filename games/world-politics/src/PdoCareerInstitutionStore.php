@@ -86,7 +86,7 @@ final class PdoCareerInstitutionStore
             if($e['operation']==='presidential_ballot')$grants=CareerInstitutionLedger::ballotTransition($s,$e)['grants'];
             if(in_array($e['operation'],['cabinet_act','automatic_cabinet'],true)){$tmp=$s;$grants=CareerInstitutionLedger::cabinetTransition($tmp,$e)['grants']??[];}
             foreach($grants as $g){$career=$s['careers'][$g['career']]??null;CareerInstitutionLedger::check(is_array($career),'unknown career');if(($career['controller']??null)==='ai'){CareerInstitutionLedger::check($career['account']===null,'AI account forbidden');}else{$this->activeAccount($world,$career['account']);}}
-            if($e['operation']==='foreign_government'){
+            if(in_array($e['operation'],['foreign_opening','foreign_government'],true)){
                 require_once __DIR__.'/InstitutionalSimulation.php';
                 $source=$this->query('SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code=? FOR UPDATE',[$world,$s['country']])->fetch(\PDO::FETCH_ASSOC);
                 CareerInstitutionLedger::check($source!==false,'missing committed comparative institution');
@@ -238,6 +238,79 @@ final class PdoCareerInstitutionStore
             return $this->applyLocked($event,hash_hmac('sha256',CareerInstitutionLedger::json($event),$secret));
         });
     }
+    private function seedForeignOpening(string $world,string $secret):void{
+        require_once __DIR__.'/CareerForeignWorld.php';
+        $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));$sim=CareerForeignWorld::opening($state);
+        $this->query('INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',
+            [$world,$state['country'],CareerForeignWorld::json($sim->snapshot()),$sim->hash()]);
+        $p=['government_json'=>CareerForeignWorld::json($sim->snapshot()['accountability']),'expires'=>CareerForeignWorld::boundary($state['country'])];
+        $e=['world'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'opening-scenario-v1','actor'=>'career-comparative-clerk','operation'=>'foreign_opening','payload'=>$p,
+            'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'comparative-opening-scenario-v1','world'=>$world,'country'=>$state['country'],'payload'=>$p])];
+        $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
+    }
+    private function foreignInstitutionLocked(string $world,array $state,array $clock):array{
+        require_once __DIR__.'/CareerForeignWorld.php';
+        CareerInstitutionLedger::check($state['country']!=='FR'&&$state['mode']==='career','foreign career only');
+        $profile=$this->query("SELECT scenario,reference_bundle_sha FROM wp_alpha_worlds WHERE world_id=? FOR UPDATE",[$world])->fetch(\PDO::FETCH_ASSOC);
+        CareerInstitutionLedger::check($profile!==false&&$profile['scenario']==='wp-career-v1'&&$profile['reference_bundle_sha']===null,'isolated institutional profile only');
+        $r=$this->query('SELECT state_json,state_sha,revision FROM wp_institutional_states WHERE world_id=? AND country_code=? FOR UPDATE',[$world,$state['country']])->fetch(\PDO::FETCH_ASSOC);
+        CareerInstitutionLedger::check($r!==false,'no comparative institution');
+        $sim=InstitutionalSimulation::restore(self::decode($r['state_json']));$snap=$sim->snapshot();
+        CareerInstitutionLedger::check(hash_equals($r['state_sha'],$sim->hash())&&$snap['world_id']===$world&&$snap['country_code']===$state['country']&&$snap['day']===$clock['committed_day']&&isset($snap['accountability']),'foreign institutional source mismatch');
+        return [$sim,$r];
+    }
+    private function publishForeignInstitution(string $world,string $country,InstitutionalSimulation $sim,array $prior,string $op,array $payload,array $result):array{
+        $revision=(int)$prior['revision']+1;$sha=$sim->hash();
+        $this->query('UPDATE wp_institutional_states SET state_json=?,state_sha=?,revision=? WHERE world_id=? AND country_code=?',
+            [CareerForeignWorld::json($sim->snapshot()),$sha,$revision,$world,$country]);
+        $this->query('INSERT INTO wp_institutional_journal(world_id,country_code,revision,actor_id,actor_role,operation,request_sha,before_sha,after_sha,result_json) VALUES(?,?,?,?,?,?,?,?,?,?)',
+            [$world,$country,$revision,'career-comparative-clerk','simulation_clock',$op,CareerInstitutionLedger::digest($payload),$prior['state_sha'],$sha,CareerForeignWorld::json($result)]);
+        return ['state'=>$sim->snapshot(),'etag'=>'"'.$sha.'"','revision'=>$revision];
+    }
+    /** No other subsystem runs in this isolated foreign profile. Atomically
+     * commit the single institutional aggregate and the authoritative date. */
+    public function tickForeignInstitution(string $world,string $target):array{
+        CareerInstitutionLedger::day($target);
+        return $this->tx(function()use($world,$target){
+            $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));
+            [$sim,$prior]=$this->foreignInstitutionLocked($world,$state,$clock);
+            if($target===$clock['committed_day'])return ['state'=>$sim->snapshot(),'etag'=>'"'.$prior['state_sha'].'"','revision'=>(int)$prior['revision']];
+            CareerInstitutionLedger::check($target===(new \DateTimeImmutable($clock['committed_day']))->modify('+1 day')->format('Y-m-d'),'daily foreign tick required');
+            self::assertClockAdvance($this->db,$world,$target);
+            $result=$sim->advanceTo($target);
+            $out=$this->publishForeignInstitution($world,$state['country'],$sim,$prior,'advance_clock',['target_day'=>$target],$result);
+            $this->query('UPDATE wp_world_clock SET committed_day=?,revision=revision+1 WHERE world_id=?',[$target,$world]);
+            return $out;
+        });
+    }
+    /** Operator-only evidence; a raw session cannot certify votes. The
+     * comparative rulebook verifies timing, chamber and succession before
+     * the career projection is updated in the same transaction. */
+    public function applyForeignEvidence(string $world,string $action,array $proof,string $secret):array{
+        return $this->tx(function()use($world,$action,$proof,$secret){
+            $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));
+            [$sim,$prior]=$this->foreignInstitutionLocked($world,$state,$clock);
+            CareerInstitutionLedger::check(in_array($action,['accountability_file','accountability_vote','accountability_resolve'],true),'unsupported comparative evidence');
+            foreach(['candidate','successor'] as $k)if(isset($proof[$k])){
+                $career=$state['careers'][$proof[$k]]??null;
+                CareerInstitutionLedger::check(is_array($career)&&($career['account']!==null||isset($career['person_reference'])),'unknown or fictional AI successor');
+                if($career['account']!==null)$this->activeAccount($world,$career['account']);
+            }
+            $before=$sim->snapshot()['accountability'];$role=$action==='accountability_resolve'?'constitutional_clerk':'parliament_clerk';
+            $result=$sim->accountability($role,$action,$proof,$proof['evidence_id']);
+            $after=$sim->snapshot()['accountability'];
+            $out=$this->publishForeignInstitution($world,$state['country'],$sim,$prior,$action,$proof,$result);
+            $transition=($after['status']==='in_office'&&$after['incumbent']!==$before['incumbent'])
+                ||(in_array($after['status'],['caretaker','election_pending','removed_successor_pending'],true)&&$after['status']!==$before['status']);
+            if($transition){
+                $p=['government_json'=>CareerForeignWorld::json($after),'expires'=>$after['status']==='in_office'?CareerForeignWorld::boundary($state['country']):null];
+                $digest=CareerInstitutionLedger::digest(['kind'=>'comparative-government-replay-v1','world'=>$world,'country'=>$state['country'],'payload'=>$p]);
+                $e=['world'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'foreign-'.substr($digest,0,48),'actor'=>'career-comparative-clerk','operation'=>'foreign_government','payload'=>$p,'evidence_sha'=>$digest];
+                $out['career_receipt']=$this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
+            }
+            return $out;
+        });
+    }
     /** Trusted service imports the exact committed comparative government
      * state. No foreign power is inferred from party labels or ownership. */
     public function synchronizeForeignGovernment(string $world,?string $expires,string $secret):array{
@@ -292,6 +365,7 @@ final class PdoCareerInstitutionStore
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
             if($profile==='economic'){require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);}
             $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
+            if($country!=='FR')$this->seedForeignOpening($world,$secret);
             $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret,$reference,$fictional);
             return ['world_id'=>$world,'scenario'=>'wp-career-v1','label'=>$label];
         });
@@ -317,7 +391,11 @@ final class PdoCareerInstitutionStore
     }
     public function institutionsForSession(string $world,string $token):array{
         return $this->tx(function()use($world,$token){
-            $clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);$this->replay($world,$this->row($world));
+            $clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);$state=$this->replay($world,$this->row($world));
+            if($state['country']!=='FR'){
+                [$sim,$prior]=$this->foreignInstitutionLocked($world,$state,$clock);
+                return ['state'=>$sim->snapshot(),'etag'=>'"'.$prior['state_sha'].'"','revision'=>(int)$prior['revision']];
+            }
             require_once __DIR__.'/CareerEconomicWorld.php';
             $r=(new PdoInstitutionalStore($this->db,new CareerEconomicClockPrincipal($this->db,$world)))->read($world,'FR');
             CareerInstitutionLedger::check($r['state']['day']===$clock['committed_day'],'institution publication mismatch');return $r;

@@ -300,14 +300,23 @@ final class CareerInstitutionLedger
         self::check($s['country']!=='FR'&&$e['actor']==='career-comparative-clerk'&&is_string($p['government_json'])&&strlen($p['government_json'])<=1000000,'foreign government scope');
         $gov=ComparativeGovernment::restore(json_decode($p['government_json'],true,64,JSON_THROW_ON_ERROR))->snapshot();
         $day=$e['day'];$last=$gov['history'][array_key_last($gov['history'])]??null;
-        self::check($gov['world_id']===$s['world']&&$gov['country']===$s['country']&&$gov['day']===$day&&$last!==null,'government source scope');
-        $proof=$last['evidence'];$id=$proof['evidence_id'];
-        self::check(substr($proof['at']??$proof['day'],0,10)===$day&&!isset($s['foreign_evidence'][$id]),'stale or reused foreign evidence');
-        self::check($e['evidence_sha']===self::digest(['kind'=>'comparative-government-replay-v1','world'=>$s['world'],'country'=>$s['country'],'payload'=>$p]),'foreign evidence binding');
+        $opening=$e['operation']==='foreign_opening';
+        self::check($gov['world_id']===$s['world']&&$gov['country']===$s['country']&&$gov['day']===$day,'government source scope');
+        if($opening){
+            require_once __DIR__.'/CareerForeignWorld.php';
+            $expected=CareerForeignWorld::opening($s)->snapshot()['accountability'];
+            self::check($day===CareerScoreContract::START&&$s['active']===[]&&$s['foreign_evidence']===[]&&$last===null&&$gov===$expected&&$p['expires']===CareerForeignWorld::boundary($s['country']),'opening scenario evidence mismatch');
+            $id='opening-scenario-v1';
+        }else{
+            self::check($last!==null,'government evidence required');
+            $proof=$last['evidence'];$id=$proof['evidence_id'];
+            self::check(substr($proof['at']??$proof['day'],0,10)===$day&&!isset($s['foreign_evidence'][$id]),'stale or reused foreign evidence');
+        }
+        self::check($e['evidence_sha']===self::digest(['kind'=>$opening?'comparative-opening-scenario-v1':'comparative-government-replay-v1','world'=>$s['world'],'country'=>$s['country'],'payload'=>$p]),'foreign evidence binding');
         $office=str_replace('_','-',InstitutionalRulebook::forCountry($s['country'])['head_of_government']);
         $previous=$s['active'][$office]??null;
         if($gov['status']==='in_office'){
-            self::check(in_array($last['action'],['accountability_resolve','certified_electoral_formation'],true)&&isset($s['careers'][$gov['incumbent']])&&is_string($p['expires']),'certified foreign successor required');
+            self::check(($opening||in_array($last['action'],['accountability_resolve','certified_electoral_formation'],true))&&isset($s['careers'][$gov['incumbent']])&&is_string($p['expires']),'certified foreign successor required');
             self::day($p['expires']);self::check($p['expires']>$day,'foreign expiry');
             if($s['country']==='US')self::check($p['expires']<=(new \DateTimeImmutable($day))->modify('+4 years')->format('Y-m-d'),'US maximum modeled term');
             if($previous!==null){
@@ -330,7 +339,7 @@ final class CareerInstitutionLedger
         self::id($e['command']);self::id($e['actor']);self::day($e['day']);
         self::check($e['world']===$s['world']&&$e['country']===$s['country']&&$e['day']>=$s['day']&&is_int($e['world_revision'])&&$e['world_revision']>=0&&preg_match('/^[a-f0-9]{64}$/D',$e['evidence_sha'])===1,'event scope');
         $p=$e['payload'];$day=$e['day'];$op=$e['operation'];
-        if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','foreign_government','research_observe'],true),'French powers unavailable outside France');
+        if($s['country']!=='FR')self::check(in_array($op,['admit','admit_real_ai_roster','foreign_opening','foreign_government','research_observe'],true),'French powers unavailable outside France');
         if($s['mode']==='career'&&$op==='presidential_ballot'){$p=self::ballotTransition($s,$e);$op='transition';}
         if($s['mode']==='career'&&in_array($op,['cabinet_act','automatic_cabinet'],true)){$p=self::cabinetTransition($s,$e);$op=$p===null?'cabinet_proposal_recorded':'transition';}
         if($s['mode']==='research'){
@@ -353,7 +362,7 @@ final class CareerInstitutionLedger
             self::check(!isset($s['careers'][$p['career']])&&in_array($p['mode'],['opening','late_takeover'],true)&&($p['mode']==='opening')===($day===CareerScoreContract::START),'admission mode');
             foreach($s['careers'] as $c)self::check($c['account']!==$p['account']&&$c['character']!==$p['character'],'duplicate career');
             $s['careers'][$p['career']]=['account'=>$p['account'],'character'=>$p['character'],'admitted_on'=>$day,'mode'=>$p['mode'],'first_series'=>null,...(isset($p['fictional_profile'])?['fictional_profile'=>$p['fictional_profile']]:[])];
-        }elseif($op==='foreign_government'){
+        }elseif(in_array($op,['foreign_opening','foreign_government'],true)){
             self::foreignGovernment($s,$e);
         }elseif($op==='cabinet_proposal_recorded'){
             self::check(in_array($e['operation'],['cabinet_act','automatic_cabinet'],true),'invalid proposal event');
