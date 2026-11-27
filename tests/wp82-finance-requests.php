@@ -453,3 +453,38 @@ ck82($fictionalCandidate['kind']==='fictional'&&$fictionalCandidate['programme']
 ck82($historicalCoverage['selected_inventory_complete']&&$historicalCoverage['additional_unmapped_count']===0&&!$historicalCoverage['exhaustive'],'WP114 bounded inventory completion does not certify all archives');
 foreach($historicalCoverage['candidates'] as $c)foreach($c['additional_executable'] as $m)
     ck82(in_array($m['execution_status'],['primary_quantitative_proxy','primary_constitutional_route'],true),'WP114 report current execution classification');
+
+
+// WP114: a refused prime-minister initiative must not produce a filing or
+// a malformed certificate, and terminal requests must remain inert.
+require_once __DIR__.'/../games/world-politics/src/RevisionAutonomy.php';
+$declinedRevision=new CR('world-test','2027-05-14');
+$declinedRevision->draft('declined-civic','citizen-initiative-500k');
+$declinedState=['world_id'=>'world-test','country_code'=>'FR','day'=>'2027-05-14',
+    'recurring_elections'=>[],'revision'=>$declinedRevision->snapshot(),'revision_requests'=>[],
+    'legislature'=>'sitting','legislation'=>['responsibility'=>['assembly'=>[],'cabinet'=>['status'=>'resigned']]]];
+$declinedState['revision_requests']['declined-civic']=\Aeternum\WorldPolitics\RevisionAutonomy::request($declinedState,'declined-civic','referendum');
+$declinedRevision->advance('2027-05-21');
+$declinedState['day']='2027-05-21';$declinedState['revision']=$declinedRevision->snapshot();
+$declinedState=\Aeternum\WorldPolitics\RevisionAutonomy::advance($declinedState,
+    ['world_id'=>'world-test','day'=>'2027-05-20','approval'=>900,'sha'=>str_repeat('a',64)]);
+ck82($declinedState['revision_requests']['declined-civic']['status']==='declined'
+    &&$declinedState['revision_requests']['declined-civic']['observations']===[]
+    &&$declinedState['revision']['procedures']['declined-civic']['status']==='draft','WP114 declined civic initiative produces no certificate');
+\Aeternum\WorldPolitics\RevisionAutonomy::validate($declinedState);
+ck82(\Aeternum\WorldPolitics\RevisionAutonomy::advance($declinedState,null)===$declinedState,'WP114 declined initiative remains inert');
+
+// Independent adverse civic scenarios: failure to reach the signature
+// threshold, or a lost referendum, can never create a reporting obligation.
+foreach([0,500] as $approval82){
+    $negativeCivic=CV::initial('world-test',$ricProof);
+    for($n=1;$n<=650;$n++){
+        $day=(new DateTimeImmutable('2027-05-14'))->modify('+'.$n.' days')->format('Y-m-d');
+        $o=['world_id'=>'world-test','day'=>$negativeCivic['day'],'approval'=>$approval82,'sha'=>str_repeat('b',64)];
+        $negativeCivic=CV::advance($negativeCivic,$day,$o);
+    }
+    ck82(in_array($negativeCivic['status'],['threshold_not_met','rejected'],true)
+        &&$negativeCivic['effective_on']===null&&$negativeCivic['next_report_due']===null
+        &&$negativeCivic['reports']===[],'WP114 unsuccessful citizen initiative never creates obligations');
+    ck82(CV::restore($negativeCivic)===$negativeCivic,'WP114 unsuccessful civic history replay');
+}
