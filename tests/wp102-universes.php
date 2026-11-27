@@ -27,6 +27,9 @@ ck102($refs102['status']===200&&$refs102['body']['controller']==='ai'&&!$refs102
 $refs102=call102('GET','/universes/'.$no.'/characters/FR',null,1);
 ck102($refs102['status']===200&&$refs102['body']['is_you']&&count($refs102['body']['reference']['people'])===22,'French directory alongside actual slot');
 ck102($refs102['body']['opening_identity']['kind']==='real'&&$refs102['body']['runtime_identity_bound']&&count($refs102['body']['scenario_challengers'])===3,'French real scenario casting');
+$refClass=\Aeternum\WorldPolitics\UniverseIdentityReference::class;
+$frSlot=array_values(array_filter($directory[0]['slots'],fn($v)=>$v['country']==='FR'))[0];
+ck102($directory[0]['roster_version']===$refClass::PROGRAMME_ROSTER&&$frSlot['domestic_programme']===$refClass::documentedProgramme($refClass::openingPerson($world,'FR')),'new shared world pins documented partial programme');
 $refsDE=call102('GET','/universes/'.$no.'/characters/DE',null,1);
 ck102($refsDE['status']===200&&$refsDE['body']['runtime_identity_bound']&&$refsDE['body']['opening_identity']['name']==='Friedrich Merz','German initial simulated government identity');
 ck102(count($refsDE['body']['documentary_parties']['parties'])===4,'documented comparative parties exposed');
@@ -91,6 +94,8 @@ $openingHeaders=['idempotency-key'=>'wp102-other-universe'];
 $opening=call102('POST','/universes/join',$openingPayload,8,$openingHeaders);
 ck102($opening['status']===201&&$opening['body']['opening_candidate']['programme_count']===2,'account may choose a fictional opening identity in a separate universe');
 ck102(call102('POST','/universes/join',$openingPayload,8,$openingHeaders)===$opening,'candidate join receipt stable');
+$q=$db->prepare("SELECT domestic_programme FROM wp_universe_slots WHERE world_id=? AND country_code='FR'");$q->execute([$directory[1]['world_id']]);
+ck102($q->fetchColumn()==='manual','fictional opening never inherits unrelated real programme');
 $openingProgress=call102('GET','/universes/'.$directory[1]['universe_no'].'/programme',null,8)['body']['candidate_programme'];
 ck102(count($openingProgress['measures'])===2&&$openingProgress['kind']==='fictional'&&$openingProgress['automatic_import']===false,'WP114 opening programme source choices visible');
 ck102(count(array_filter($openingProgress['measures'],fn($m)=>$m['available_in_world']))===2,'WP114 reviewed programme IDs executable in new world');

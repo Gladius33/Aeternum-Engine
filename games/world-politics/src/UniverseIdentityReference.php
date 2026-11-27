@@ -45,7 +45,20 @@ final class UniverseIdentityReference
     }
     public const BOUND_ROSTER='wp119-identity-roster-v1';
     public const DOCUMENTARY_ROSTER='wp119-identity-roster-v2';
-    public static function isBound(string $version):bool{return in_array($version,[self::BOUND_ROSTER,self::DOCUMENTARY_ROSTER],true);}
+    public const PROGRAMME_ROSTER='wp119-identity-roster-v3';
+    public static function isDocumentary(string $version):bool{return in_array($version,[self::DOCUMENTARY_ROSTER,self::PROGRAMME_ROSTER],true);}
+    public static function isBound(string $version):bool{return $version===self::BOUND_ROSTER||self::isDocumentary($version);}
+    /** Only exact pinned scenario identities inherit the reviewed partial agenda. */
+    public static function documentedProgramme(array $person):string{
+        require_once __DIR__.'/CareerProgrammeAutonomy.php';
+        require_once __DIR__.'/PresidentialProgramme.php';
+        foreach(self::country('FR')['people'] as $p){
+            if($person!==self::record($p,'FR','campaign-president'))continue;
+            $ids=CareerProgrammeAutonomy::objectives(['person_reference'=>$p['person_reference']]);
+            return $ids===[]?'manual':PresidentialProgramme::compileProfile($ids);
+        }
+        return 'manual';
+    }
     /** Deterministic scenario casting, not a forecast, endorsement, or
      * a claimed affiliation. Only the documented name is imported. */
     public static function openingPerson(string $world,string $country):?array{

@@ -15,7 +15,7 @@ final class UniverseLobby
     public const ROSTER_VERSION='wp111-diplomatic-roster-v2';
     public static function roster(string $version):array
     {
-        return match($version){'wp102-pilot-v1'=>self::COUNTRIES,self::ROSTER_VERSION,UniverseIdentityReference::BOUND_ROSTER,UniverseIdentityReference::DOCUMENTARY_ROSTER=>self::DIPLOMATIC_COUNTRIES,default=>throw new \DomainException('Unknown universe roster')};
+        return match($version){'wp102-pilot-v1'=>self::COUNTRIES,self::ROSTER_VERSION,UniverseIdentityReference::BOUND_ROSTER,UniverseIdentityReference::DOCUMENTARY_ROSTER,UniverseIdentityReference::PROGRAMME_ROSTER=>self::DIPLOMATIC_COUNTRIES,default=>throw new \DomainException('Unknown universe roster')};
     }
     public function __construct(private readonly \PDO $db){}
     private function query(string $sql,array $args=[]):\PDOStatement
@@ -92,7 +92,7 @@ final class UniverseLobby
                             if(!hash_equals($r['state_sha'],$sim->hash()))throw new \DomainException('Invalid national institution source');
                             $gov=$sim->snapshot()['accountability'];
                             $runtime=$gov['incumbent']===$p['id']&&$gov['status']==='in_office';
-                            if($version===UniverseIdentityReference::DOCUMENTARY_ROSTER&&$gov['status']==='in_office'){
+                            if(UniverseIdentityReference::isDocumentary($version)&&$gov['status']==='in_office'){
                                 $person=(($country==='US'?UsPresidentialElection::people():[])+DocumentaryForeignBallot::people($country))[$gov['incumbent']]??null;
                                 if($person!==null){
                                     $opening=['name'=>$person['name'],'kind'=>'real','as_of'=>$person['as_of'],'sources'=>$person['sources']];$runtime=true;
@@ -107,7 +107,7 @@ final class UniverseLobby
                 'controller'=>$slot['closed_on']!==null?'succession_pending':($slot['account_id']===null?'ai':'human'),
                 'generation'=>(int)$slot['generation'],'is_you'=>$slot['account_id']===$s->id,
                 'opening_identity'=>$opening,'runtime_identity_bound'=>$runtime,'identity_scope'=>$scope,'scenario_challengers'=>$challengers,
-                'reference'=>UniverseIdentityReference::country($country),...($country!=='FR'&&in_array($country,self::COUNTRIES,true)&&$version===UniverseIdentityReference::DOCUMENTARY_ROSTER?['documentary_parties'=>DocumentaryForeignBallot::reference($country)]:[])];
+                'reference'=>UniverseIdentityReference::country($country),...($country!=='FR'&&in_array($country,self::COUNTRIES,true)&&UniverseIdentityReference::isDocumentary($version)?['documentary_parties'=>DocumentaryForeignBallot::reference($country)]:[])];
         });
     }
     private function create():array
@@ -115,11 +115,11 @@ final class UniverseLobby
         $bundle=GlobalReferenceBundle::published();$sha=(new PdoGlobalReferenceBundles($this->db))->install($bundle);
         $scenario=new AlphaScenario(AlphaScenario::INVESTITURE,$bundle,$sha);
         $r=(new AlphaWorlds($this->db,$scenario))->provisionUniverse(true);$world=$r['world_id'];
-        $this->query('INSERT INTO wp_universes(world_id,roster_version) VALUES(?,?)',[$world,UniverseIdentityReference::DOCUMENTARY_ROSTER]);$no=(int)$this->db->lastInsertId();
+        $this->query('INSERT INTO wp_universes(world_id,roster_version) VALUES(?,?)',[$world,UniverseIdentityReference::PROGRAMME_ROSTER]);$no=(int)$this->db->lastInsertId();
         foreach(self::DIPLOMATIC_COUNTRIES as $country){
             if(!$scenario->actors->isHumanPlayable('state_'.strtolower($country)))
                 throw new \LogicException('Unreviewed playable slot');
-            $this->query('INSERT INTO wp_universe_slots(world_id,country_code,domestic_programme) VALUES(?,?,?)',[$world,$country,$country==='FR'?'governance':'manual']);
+            $this->query('INSERT INTO wp_universe_slots(world_id,country_code,domestic_programme) VALUES(?,?,?)',[$world,$country,$country==='FR'?UniverseIdentityReference::documentedProgramme(UniverseIdentityReference::openingPerson($world,'FR')):'manual']);
             if(!in_array($country,self::COUNTRIES,true)){
                 $p=UniverseIdentityReference::openingPerson($world,$country);
                 $roster=new PoliticalRoster($world,$country,['government']);if($p!==null)$roster->addPerson($p);
@@ -176,7 +176,7 @@ final class UniverseLobby
                 $this->ensureSpare();
                 // Legacy spare worlds have no expanded slots. Allocate one
                 // expanded reserve if none exists, not on every failed claim.
-                if(!in_array($country,self::COUNTRIES,true)&&$this->query('SELECT 1 FROM wp_universes WHERE roster_version IN (?,?,?) LIMIT 1',[self::ROSTER_VERSION,UniverseIdentityReference::BOUND_ROSTER,UniverseIdentityReference::DOCUMENTARY_ROSTER])->fetchColumn()===false)$this->create();
+                if(!in_array($country,self::COUNTRIES,true)&&$this->query('SELECT 1 FROM wp_universes WHERE roster_version IN (?,?,?,?) LIMIT 1',[self::ROSTER_VERSION,UniverseIdentityReference::BOUND_ROSTER,UniverseIdentityReference::DOCUMENTARY_ROSTER,UniverseIdentityReference::PROGRAMME_ROSTER])->fetchColumn()===false)$this->create();
             }
             $args=[$country,$s->id];
             $sql="SELECT u.universe_no,u.world_id FROM wp_universes u JOIN wp_universe_slots s ON s.world_id=u.world_id
@@ -205,7 +205,8 @@ final class UniverseLobby
                             throw new AlphaHttpError(409,'social_programme_requires_new_universe');
                 }
                 $this->openingCandidate($world,$s->id,$candidate,$fingerprint);
-                if($openingProgramme!==null)$this->query("UPDATE wp_universe_slots SET domestic_programme=?,programme_set_on=? WHERE world_id=? AND country_code='FR'",[$openingProgramme,$c['committed_day'],$world]);
+                $rosterVersion=$this->query('SELECT roster_version FROM wp_universes WHERE world_id=?',[$world])->fetchColumn();
+                if($openingProgramme!==null||$rosterVersion===UniverseIdentityReference::PROGRAMME_ROSTER)$this->query("UPDATE wp_universe_slots SET domestic_programme=?,programme_set_on=? WHERE world_id=? AND country_code='FR'",[$openingProgramme??'manual',$c['committed_day'],$world]);
             }
             if($slot['account_id']===null){
                 ++$gen;
