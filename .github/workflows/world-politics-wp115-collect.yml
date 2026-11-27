@@ -1,0 +1,29 @@
+name: WP115 WDI evidence collection
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'feat/world-politics-*'
+    paths:
+      - 'games/world-politics/bin/collect-wp115-wdi.py'
+      - '.github/workflows/world-politics-wp115-collect.yml'
+permissions:
+  contents: read
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Collect bounded WDI historical evidence
+        run: python3 games/world-politics/bin/collect-wp115-wdi.py --output wp115-wdi-evidence
+      - name: Retain exact raw responses for review, not production
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wp115-wdi-evidence
+          path: wp115-wdi-evidence/
+          if-no-files-found: error
+          retention-days: 14
