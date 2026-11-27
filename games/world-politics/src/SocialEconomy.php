@@ -52,6 +52,11 @@ final class SocialEconomy
         return ['net_minor'=>$net,'gross_minor'=>$gross,'employee_contribution_minor'=>$gross-$net,
             'employer_contribution_minor'=>$employer,'employer_cost_minor'=>$gross+$employer];
     }
+    private static function wageFloor(array $target,int $smic,int $employeeRate):int
+    {
+        if(isset($target['monthly_gross_eur']))return max($smic,self::scale($target['monthly_gross_eur']*100,10000-$employeeRate));
+        return max($smic,isset($target['increase_bps'])?self::scale($smic,10000+$target['increase_bps']):(isset($target['monthly_increase_eur'])?$smic+$target['monthly_increase_eur']*100:($target['monthly_net_eur']??$target['monthly_floor_eur'])*100));
+    }
     public static function primarySensitivityKey(string $key):bool
     {
         return in_array($key,['annual_cost_per_bed_eur','annual_cost_per_place_eur','public_cost_per_unit_eur','annual_reference_eur',
@@ -107,7 +112,7 @@ final class SocialEconomy
         $referencePension=intdiv($pensionDaily*365,max(1,$recipients)*12);
         $smic=$a['reference_net_smic_minor'];$hours=$a['reference_workweek_hours'];
         $netFloor=$smic;
-        foreach($active as $id){$d=SocialProgramme::definition($id);if(($d['family']??null)==='wage-floor'&&!SocialProgramme::isRepeal($id)){$t=$d['target'];$netFloor=max($smic,isset($t['increase_bps'])?self::scale($smic,10000+$t['increase_bps']):(isset($t['monthly_increase_eur'])?$smic+$t['monthly_increase_eur']*100:($t['monthly_net_eur']??$t['monthly_floor_eur'])*100));}}
+        foreach($active as $id){$d=SocialProgramme::definition($id);if(($d['family']??null)==='wage-floor'&&!SocialProgramme::isRepeal($id)){$t=$d['target'];$netFloor=self::wageFloor($t,$smic,$a['employee_rate_bps']);}}
         $tax=0;$benefits=0;$pensionTransfer=0;$production=0;$employment=0;$wage=0;$details=[];
         foreach($active as $id){
             $d=SocialProgramme::definition($id);if($d===null)continue;
@@ -128,7 +133,7 @@ final class SocialEconomy
                 $employment-=intdiv($people*10000,max(1,$employed));
                 $r['reference_monthly_pension_minor']=$referencePension;$r['phase_bps']=$phase;
             }elseif($family==='wage-floor'){
-                $netFloor=max($smic,isset($t['increase_bps'])?self::scale($smic,10000+$t['increase_bps']):(isset($t['monthly_increase_eur'])?$smic+$t['monthly_increase_eur']*100:($t['monthly_net_eur']??$t['monthly_floor_eur'])*100));
+                $netFloor=self::wageFloor($t,$smic,$a['employee_rate_bps']);
                 $covered=self::scale($employed,$a['wage_floor_share_bps']);$old=self::payroll($smic);$new=self::payroll($netFloor);
                 $monthly=$netFloor-$smic;$r['affected_persons_proxy']=$covered;
                 $r['monthly_net_floor_minor']=$netFloor;$r['monthly_payroll']=$new;

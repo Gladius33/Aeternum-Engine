@@ -95,6 +95,15 @@ final class PrimaryManifestoPolicy
             $r['annual_expense_delta_eur']=intdiv($a['annual_reference_eur']*$t['increase_bps'],10000);
         }elseif($f==='wealth-tax'){
             $r['annual_revenue_delta_eur']=intdiv($t['annual_revenue_eur']*$a['collection_bps'],10000);
+        }elseif($f==='contribution-cut'){
+            $employee=$t['annual_employee_relief_eur'];$employer=$t['annual_employer_relief_eur'];
+            $r['annual_revenue_delta_eur']=-($employee+$employer);
+            $r['annual_employee_relief_eur']=$employee;$r['annual_employer_relief_eur']=$employer;
+            $r['wage_premium_bps']=intdiv($employee*10000,max(1,$employed*$a['reference_annual_net_pay_eur']));
+            $r['offsetting_savings_automatically_booked']=false;
+        }elseif($f==='industrial-grants'){
+            $r['annual_expense_delta_eur']=$t['annual_eur'];
+            $r['grant_appropriation_proxy']=true;$r['investment_returns_certified']=false;
         }elseif($f==='production-tax'){
             $r['annual_revenue_delta_eur']=-$t['annual_reduction_eur'];
         }elseif($f==='pension-floor'){

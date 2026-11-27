@@ -71,6 +71,15 @@ final class SocialProgramme
                 'target'=>['annual_units'=>500000],'assumptions'=>$zero,
                 'parameters'=>['reference_annual_units'=>200000,'public_cost_per_unit_eur'=>10000],
                 'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-ecologistes-smic'=>['bit'=>81,'domain'=>'wages','family'=>'wage-floor',
+                'target'=>['monthly_gross_eur'=>2000],'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-retailleau-contributions'=>['bit'=>82,'domain'=>'tax','family'=>'contribution-cut',
+                'target'=>['annual_employee_relief_eur'=>15000000000,'annual_employer_relief_eur'=>15000000000],
+                'parameters'=>['reference_annual_net_pay_eur'=>30000],'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-dlf-production-tax'=>['bit'=>83,'domain'=>'tax','family'=>'production-tax',
+                'target'=>['annual_reduction_eur'=>5000000000],'parameters'=>[],'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-dlf-industrial-grants'=>['bit'=>84,'domain'=>'industry','family'=>'industrial-grants',
+                'target'=>['annual_eur'=>4000000000],'parameters'=>[],'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
         ];
     }
     // Stable allocation beyond the original 24 historical bits.
@@ -90,7 +99,7 @@ final class SocialProgramme
         foreach($newFamilies as $n=>$family)$d['social-repeal-'.$family]=[
             'bit'=>96+$n,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
             'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
-        foreach(['local-supply'=>127,'renewable-transition'=>95,'collective-ownership'=>94] as $family=>$bit)$d['social-repeal-'.$family]=[
+        foreach(['local-supply'=>127,'renewable-transition'=>95,'collective-ownership'=>94,'contribution-cut'=>85,'industrial-grants'=>86] as $family=>$bit)$d['social-repeal-'.$family]=[
             'bit'=>$bit,'domain'=>'social_repeal','family'=>$family,'target'=>['repeal_family'=>$family],
             'assumptions'=>array_fill_keys(array_keys(reset($d)['assumptions']),0),'classification'=>'fictional_repeal_to_scenario_reference'];
         return $cached=$d;
