@@ -188,7 +188,7 @@ final class PdoCareerInstitutionStore
     private function seedAutonomousLocked(string $world,array $clock,string $secret):?array{
         $state=$this->replay($world,$this->row($world));$people=CareerInstitutionLedger::realAutonomousRoster($state);$ids=array_keys($people);
         $present=0;foreach($ids as $id)if(isset($state['careers'][$id])){
-            CareerInstitutionLedger::check(isset($state['careers'][$id]['person_reference'])&&$state['careers'][$id]['identity']===$people[$id],'reserved real identity collision');$present++;
+            CareerInstitutionLedger::check(isset($state['careers'][$id]['person_reference'])&&CareerInstitutionLedger::json($state['careers'][$id]['identity'])===CareerInstitutionLedger::json($people[$id]),'reserved real identity collision');$present++;
         }
         if($present===count($ids))return null;
         CareerInstitutionLedger::check($present===0,'partial autonomous roster');
