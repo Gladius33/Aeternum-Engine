@@ -503,3 +503,33 @@ ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_co
     &&count(array_unique(array_column($reference2027['sources'],'id')))===count($reference2027['sources']),
     'WP114 discovery references are not executable objectives');
 foreach($reference2027['sources'] as $source2027)ck82(str_starts_with($source2027['url'],'https://'),'WP114 dated programme discovery link');
+
+
+// WP114: actual institutional clock consumes a published civic clause,
+// not merely a standalone CivicReform fixture.
+$civicClock=new I('world-test','FR','2027-05-14');$civicClock->enableRevision();
+$cd=$civicClock->revision('scenario_revision_author','revision_draft',['template'=>'citizen-initiative-500k'],'clock-civic');
+$clockSha=$cd['procedure']['text_sha'];$clockSeq=0;
+$clockCert=function(string $kind,array $data)use($civicClock,&$clockSeq){
+    $id='clock-civic-e-'.(++$clockSeq);
+    return $civicClock->revision('revision_clerk','revision_evidence',[
+        'world_id'=>'world-test','country'=>'FR','day'=>'2027-05-14','evidence_id'=>$id,
+        'revision_id'=>'clock-civic','kind'=>$kind,'procedure_certified'=>true,'data'=>$data],$id);
+};
+$clockCert('file',['initiative'=>'government_project','sponsor'=>'president','prime_minister_proposal'=>true,'republican_form_preserved'=>true]);
+foreach(['assembly','senate'] as $ch)$clockCert('chamber_vote',['chamber'=>$ch,'text_sha'=>$clockSha,'yes'=>200,'no'=>100,'abstain'=>0,'blank_invalid'=>0]);
+$clockCert('route',['route'=>'referendum','presidential_decision'=>true]);
+$clockCert('ratify',['route'=>'referendum','text_sha'=>$clockSha,'yes'=>60000,'no'=>40000,'abstain'=>0,'blank_invalid'=>0]);
+ck82(!isset($civicClock->snapshot()['civic_initiative']),'WP114 unpublished constitutional clause does not start civic clock');
+$clockCert('promulgate',['text_sha'=>$clockSha,'published_on'=>'2027-05-14']);
+for($n=1;$n<=250;$n++){
+    $d=(new DateTimeImmutable('2027-05-14'))->modify('+'.$n.' days')->format('Y-m-d');
+    $prior=$civicClock->snapshot()['day'];
+    $civicClock->advanceTo($d,['world_id'=>'world-test','day'=>$prior,'approval'=>900,'sha'=>str_repeat('a',64)]);
+    if($n===1||$n%50===0)ck82(I::restore($civicClock->snapshot())->hash()===$civicClock->hash(),'WP114 institutional civic clock exact restore '.$n);
+}
+$clockResult=$civicClock->snapshot()['civic_initiative'];
+ck82($clockResult['status']==='effective'&&$clockResult['proof']['revision_id']==='clock-civic'
+    &&$clockResult['ballot']['yes']>$clockResult['ballot']['no'],'WP114 published clause drives the actual daily institutional clock');
+$badClock=$civicClock->snapshot();$badClock['civic_initiative']['proof']['revision_id']='unrelated';
+no82(fn()=>I::restore($badClock));
