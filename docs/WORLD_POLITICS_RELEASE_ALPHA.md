@@ -110,3 +110,8 @@ Apply additive migration 035 after 034, using the documented stopped-worker back
 ### WP114d
 
 No new migration after 035. POST programme accepts measure_ids as an alternative to agenda or domestic. The executable_measure_catalog returned by the lobby and programme report is the authoritative list of reviewed objective IDs, not a claim that any historical manifesto can be executed. Unsupported IDs and conflicting objectives return 422. Exact historical candidate progress does not infer a measure from political affiliation or free text.
+
+
+### WP114e
+
+New managed universes provision 24 exact historical social policy entries and an independently pinned legal catalogue. No SQL migration is required. Existing universes without that pin reject social programme configuration with 409 rather than silently alter assumptions or historical hashes. The mixed objective IDs use the existing programme field. Historical measures remain fictional aggregate proxies; actual statutory entitlements and full manifestos are not qualified. WP114 remains open.

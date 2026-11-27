@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/SocialProgramme.php';
 require_once __DIR__.'/UkraineAidPolicy.php';
 require_once __DIR__.'/FrenchMacroBaseline.php';
 require_once __DIR__.'/SovereignDebtLedger.php';
@@ -104,7 +105,7 @@ final class DomesticPolicySimulation
                 }
             }
             self::amount($p['revenue_delta'], true); self::amount($p['expense_delta'], true);
-            if (!is_int($p['duration_days']) || $p['duration_days'] < 1 || $p['duration_days'] > 3650
+            if (!is_int($p['duration_days']) || $p['duration_days'] < 1 || $p['duration_days'] > (SocialProgramme::isPolicy($id)?7305:3650)
                 || !is_array($p['pressure_delta'])) throw new \InvalidArgumentException('Invalid duration or cohort assumptions');
             self::fields($p['pressure_delta'], array_keys($cohorts));
             foreach ($p['pressure_delta'] as $v) {
@@ -145,7 +146,7 @@ final class DomesticPolicySimulation
     {
         $this->require($principal, 'domestic.propose');
         self::id($id); self::date($effectiveDay);
-        if (!isset($this->catalog[$id]) || $effectiveDay <= $this->day || isset($this->policies[$id])) {
+        if (!isset($this->catalog[$id]) || $effectiveDay <= $this->day || isset($this->policies[$id]) || SocialProgramme::conflicts($id,$this->policies)) {
             throw new \DomainException('Unknown, duplicate or retroactive proposal');
         }
         $this->policies[$id] = ['proposed_on'=>$this->day,'effective_on'=>$effectiveDay,'authorized_on'=>null,'instrument_sha'=>null];
@@ -237,6 +238,7 @@ final class DomesticPolicySimulation
                 ->diff(new \DateTimeImmutable($target, new \DateTimeZone('UTC')))->days;
             $a = $this->catalog[$id];
             if ($elapsed >= $a['duration_days']) continue;
+            if(SocialProgramme::isPolicy($id))$a=SocialProgramme::phasedPolicy($a,SocialProgramme::phaseBps($id,$elapsed));
             $active[] = $id;
             $revenue += $a['revenue_delta']; $expense += $a['expense_delta'];
             foreach ($a['pressure_delta'] as $sector => $delta) $deltas[$sector] += $delta-($a['concessions'][$sector]??0);
@@ -278,7 +280,7 @@ final class DomesticPolicySimulation
                 if($expense<=0)throw new \DomainException('Service adjustment exceeds fiscal flow');
                 foreach($prior['services']['next_day_pressure_delta']??[] as $k=>$v)if(isset($deltas[$k]))$deltas[$k]+=$v;
             }
-            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,0,$eu);
+            $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?min(3000,CorporationWageFeedback::premium($corporations)+SocialProgramme::wagePremium($active)):null,$trade['exposure_bps']??null,0,$eu);
             $nativeSectors=isset($eu['frf_committed_observation']['sector_version']);
             if($this->industrialEnabled){
                 $ordinaryTreasury=$loop['treasury'];$ordinaryExpense=$loop['expense'];$tr=$ordinaryTreasury;
@@ -286,7 +288,7 @@ final class DomesticPolicySimulation
                 $industrial=IndustrialCapital::advance($installed,$target,$corporationAction,$nativeSectors?0:$tr['cash'],$current&&!$nativeSectors,$prior);
                 $paid=$industrial['paid_today_minor'];
                 if($paid>0){
-                    $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense+$paid,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?CorporationWageFeedback::premium($corporations):null,$trade['exposure_bps']??null,$paid,$eu);
+                    $loop=MacroFiscalLoop::step($this->macroBaseline,$prior,$balance,$revenue,$expense+$paid,$production,$employment,$this->debtModel,$target,FinancialCrisis::actionFor($this->crisisDecisions,$target),($servicePlan['pension_transfer_delta_minor']??0)+($aid['external_transfer_delta_proxy_minor']??0),$this->wageFeedbackEnabled?min(3000,CorporationWageFeedback::premium($corporations)+SocialProgramme::wagePremium($active)):null,$trade['exposure_bps']??null,$paid,$eu);
                     if($loop['treasury']['cash']!==$tr['cash']-$paid||$loop['treasury']['new_borrowing']!==$tr['new_borrowing']||$loop['expense']!==$ordinaryExpense+$paid)throw new \DomainException('Industrial fiscal settlement mismatch');
                 }
                 $loop['treasury']['industrial_capex_minor']=$paid;

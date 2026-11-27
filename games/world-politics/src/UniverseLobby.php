@@ -42,7 +42,7 @@ final class UniverseLobby
             $r['joinable']=$r['pending_day']===null&&(int)$r['game_over']===0&&$r['vacant']>0;
             unset($r['pending_day'],$r['game_over']);
         }unset($r);
-        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
+        return ['universes'=>$rows,'page'=>$page,'playable_country_pilot'=>self::DIPLOMATIC_COUNTRIES,'complete_multiplayer_model'=>false,'domestic_programme_profiles'=>PresidentialProgramme::PROFILES,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),'historical_social_catalog'=>SocialProgramme::definitions(),'country_capabilities'=>array_map(fn($c)=>['country'=>$c,'diplomacy'=>true,'domestic_policy'=>$c==='FR','experimental_income_score'=>$c==='FR','national_institution_clock'=>in_array($c,self::COUNTRIES,true),'full_national_simulation'=>false],self::DIPLOMATIC_COUNTRIES)];
     }
     private function create():array
     {
@@ -147,10 +147,16 @@ final class UniverseLobby
      * or a claim about a real politician's preferences. */
     public function programme(AlphaSession $s,int $no,array $body):array
     {
-        AlphaAccounts::fields($body,['diplomacy',...(array_key_exists('domestic',$body)?['domestic']:[]),...(array_key_exists('agenda',$body)?['agenda']:[]),...(array_key_exists('measure_ids',$body)?['measure_ids']:[])]);
+        AlphaAccounts::fields($body,['diplomacy',...(array_key_exists('domestic',$body)?['domestic']:[]),...(array_key_exists('agenda',$body)?['agenda']:[]),...(array_key_exists('measure_ids',$body)?['measure_ids']:[]),...(array_key_exists('social_measure_ids',$body)?['social_measure_ids']:[])]);
+        $social=null;
+        if(array_key_exists('social_measure_ids',$body)){
+            if(array_intersect(['domestic','agenda','measure_ids'],array_keys($body))!==[]||!is_array($body['social_measure_ids']))throw new AlphaHttpError(422,'invalid_programme');
+            try{$social=SocialProgramme::encode($body['social_measure_ids']);}catch(\InvalidArgumentException $e){throw new AlphaHttpError(422,'invalid_programme');}
+            unset($body['social_measure_ids']);
+        }
         if(array_key_exists('measure_ids',$body)){
             if(array_key_exists('domestic',$body)||array_key_exists('agenda',$body)||!is_array($body['measure_ids']))throw new AlphaHttpError(422,'invalid_programme');
-            try{$body['agenda']=PresidentialProgramme::compileMeasures($body['measure_ids']);}
+            try{$social=PresidentialProgramme::compileProfile($body['measure_ids']);}
             catch(\InvalidArgumentException $e){throw new AlphaHttpError(422,'invalid_programme');}
             unset($body['measure_ids']);
         }
@@ -162,6 +168,7 @@ final class UniverseLobby
         }elseif(array_key_exists('domestic',$body)&&(!is_string($body['domestic'])||!in_array($body['domestic'],PresidentialProgramme::PROFILES,true)))throw new AlphaHttpError(422,'invalid_programme');
         if(!in_array($body['diplomacy'],['cooperative','balanced','cautious'],true)||(array_key_exists('domestic',$body)&&!PresidentialProgramme::known($body['domestic'])))
             throw new AlphaHttpError(422,'invalid_programme');
+        if($social!==null)$body['domestic']=$social;
         return $this->transaction(function()use($s,$no,$body){
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
             $world=$this->query('SELECT world_id FROM wp_universes WHERE universe_no=?',[$no])->fetchColumn();
@@ -172,6 +179,11 @@ final class UniverseLobby
             if(!is_string($slot)||!$s->active())throw new AlphaHttpError(404,'not_found');
             if(array_key_exists('domestic',$body)){
                 if($slot!=='FR')throw new AlphaHttpError(403,'domestic_programme_not_available');
+                if(PresidentialProgramme::socialIds($body['domestic'])!==null){
+                    $raw=$this->query('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?',[$world])->fetchColumn();
+                    $cfg=json_decode($raw,true,64,JSON_THROW_ON_ERROR);
+                    foreach(PresidentialProgramme::socialIds($body['domestic']) as $id)if(!isset($cfg['catalog'][$id]))throw new AlphaHttpError(409,'social_programme_requires_new_universe');
+                }
                 $this->query('UPDATE wp_universe_slots SET programme_set_on=IF(domestic_programme<>?, ?, programme_set_on),domestic_programme=? WHERE world_id=? AND country_code=?',[$body['domestic'],$c['committed_day'],$body['domestic'],$world,$slot]);
             }
             $this->query('UPDATE wp_universe_slots SET diplomacy_programme=? WHERE world_id=? AND country_code=?',[$body['diplomacy'],$world,$slot]);
@@ -226,6 +238,7 @@ final class UniverseLobby
                 'automatic_legal_route'=>PresidentialProgramme::executable($slot['domestic_programme']),
                 'human_action_this_day'=>$slot['last_human_domestic_day']===$c['committed_day'],
                 'actions'=>$rows,'executable_measure_catalog'=>PresidentialProgramme::measureCatalog(),
+                'social_measure_ids'=>PresidentialProgramme::socialIds($slot['domestic_programme']), 'social_programme'=>SocialProgramme::report($dom),
                 'historical_real_programmes_fully_executable'=>false];
         });
     }

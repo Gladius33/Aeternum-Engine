@@ -212,8 +212,21 @@ ck102($aud['integrity']==='passed','WP114c extended programme audited');
 
 // WP114d: same REST programme can be configured using exact objective IDs.
 ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['annual-defense-reduce','annual-defense-increase']],8)['status']===422,'WP114d conflicting objective IDs rejected');
-ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['hist2022-emmanuel-macron-1']],8)['status']===422,'WP114d unsupported historical ID rejected');
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['hist2022-unknown-1']],8)['status']===422,'WP114d unknown historical ID rejected');
 ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['industry-active'],'agenda'=>$ext114],8)['status']===422,'WP114d exclusive programme configuration');
 ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>['industry-active','cabinet-civic']],8)['status']===200,'WP114d reviewed objective IDs accepted');
 $r114d=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
 ck102($r114d['agenda']['industry']==='active'&&$r114d['agenda']['cabinet']==='civic'&&count($r114d['executable_measure_catalog'])===25,'WP114d compiled agenda and discoverable catalogue');
+
+
+// WP114e: programme choice, human precedence, persisted domestic proposal,
+// and matching legislative draft in the coordinated real-HTTP world.
+$ids114e=['hist2022-jean-luc-melenchon-1','hist2022-jean-luc-melenchon-2','industry-active'];
+ck102(call102('POST','/universes/'.$spareNo.'/programme',['diplomacy'=>'balanced','measure_ids'=>$ids114e],8)['status']===200,'WP114e mixed historical programme accepted');
+for($n114=0;$n114<5;$n114++){$due->execute([$spare]);ck102($scheduler->tick($spare)['status']==='committed','WP114e historical programme daily tick');}
+$r114e=call102('GET','/universes/'.$spareNo.'/programme',null,8)['body'];
+ck102($r114e['social_measure_ids']===array_slice($ids114e,0,2)&&count($r114e['social_programme']['measures'])===2,'WP114e both historic objectives persisted');
+$q114e=$db->prepare("SELECT state_json FROM wp_institutional_states WHERE world_id=? AND country_code='FR'");$q114e->execute([$spare]);
+$i114e=json_decode($q114e->fetchColumn(),true,64,JSON_THROW_ON_ERROR);
+ck102(count(array_filter($i114e['legislation']['bills'],fn($b)=>$b['policy_id']===$ids114e[0]))===1,'WP114e actual legislative record for historic pension proposal');
+ck102(\Aeternum\WorldPolitics\UniverseAudit::inspect($db,$spareNo)['integrity']==='passed','WP114e historical programme audit');

@@ -368,6 +368,11 @@ final class InstitutionalSimulation
         $this->state['senate']=FrenchSenateCycle::project($this->state['world_id'],$this->state['day']);
         $this->state['cabinet_requests']=[];
     }
+    public function enableSocialProgramme():void
+    {
+        if(!isset($this->state['legislation']['national_service'])||$this->state['events']!==[])throw new \DomainException('Social programme requires canonical bootstrap');
+        $l=BicameralLegislation::restore($this->state['legislation']);$l->enableSocialProgramme();$this->state['legislation']=$l->snapshot();
+    }
     public function enableNationalService():void
     {
         if(!isset($this->state['senate'],$this->state['finance_requests'])||$this->state['events']!==[])throw new \DomainException('National service requires canonical bootstrap');

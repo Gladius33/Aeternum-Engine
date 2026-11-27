@@ -50,10 +50,36 @@ final class PresidentialProgramme
         }
         return $a;
     }
+    /** One compact profile can combine generic and historical social
+     * objectives. No unchecked free text is interpreted as an order. */
+    public static function compileProfile(array $ids):string
+    {
+        if(!array_is_list($ids)||count($ids)>49)throw new \InvalidArgumentException('Invalid measure list');
+        $general=[];$social=[];
+        foreach($ids as $id){
+            if(!is_string($id))throw new \InvalidArgumentException('Invalid measure ID');
+            if(SocialProgramme::isPolicy($id))$social[]=$id;else $general[]=$id;
+        }
+        if($social===[])return self::encodeAgenda(self::compileMeasures($general));
+        $s=SocialProgramme::encode($social);
+        if($general===[])return $s;
+        $g=self::encodeAgenda(self::compileMeasures($general));
+        // Drop the separators from the existing canonical custom code.
+        return 'mix-'.str_replace('-','',substr($g,7)).'-'.substr($s,7);
+    }
+    public static function socialIds(string $p):?array
+    {
+        if(preg_match('/^mix-([01]{2}[nmri][nri][nmris][ncsli][neit][cr][nap][ndt])-([a-f0-9]{6})$/D',$p,$m)){
+            if(self::agenda($p)===null)return null;
+            return SocialProgramme::decode('social-'.$m[2]);
+        }
+        return SocialProgramme::decode($p);
+    }
     public static function measureSupport(string $id):array
     {
         $catalog=self::measureCatalog();
         if(isset($catalog[$id]))return ['status'=>'reviewed_objective','mapping'=>$catalog[$id]];
+        if(SocialProgramme::isPolicy($id))return ['status'=>'historical_social_proxy','mapping'=>SocialProgramme::definitions()[$id]];
         if(preg_match('/^(?:budget-(20[0-9]{2})-defense-(maintain|reduce|increase)|corrective-(20[0-9]{2})-health-(reduce|increase))$/D',$id,$m)){
             $annual=$m[1]!=='';
             $year=(int)($annual?$m[1]:$m[3]);
@@ -86,6 +112,10 @@ final class PresidentialProgramme
     }
     public static function agenda(string $p):?array
     {
+        if(preg_match('/^mix-([01]{2})([nmri])([nri])([nmris])([ncsli][neit][cr][nap][ndt])-([a-f0-9]{6})$/D',$p,$x)){
+            if(SocialProgramme::decode('social-'.$x[6])===null)return null;
+            $p='custom-'.$x[1].'-'.$x[2].'-'.$x[3].'-'.$x[4].'-'.$x[5];
+        }
         if(!preg_match('/^custom-([01])([01])-([nmri])-([nri])-([nmris])(?:-([ncsli])([neit])([cr])([nap])([ndt]))?$/D',$p,$m))return null;
         if(isset($m[6])&&$m[7]==='n'&&$m[8]!=='c')return null;
         $values=['n'=>'none','m'=>'maintain','r'=>'reduce','i'=>'increase','s'=>'stop'];
@@ -94,9 +124,9 @@ final class PresidentialProgramme
         return $a;
     }
     public static function executable(string $p):bool
-    {return self::agenda($p)!==null||in_array($p,['education-law','administration-law','governance','governance-reduce','governance-increase'],true);}
+    {return self::socialIds($p)!==null||self::agenda($p)!==null||in_array($p,['education-law','administration-law','governance','governance-reduce','governance-increase'],true);}
     public static function known(string $p):bool
-    {return in_array($p,self::PROFILES,true)||self::agenda($p)!==null;}
+    {return in_array($p,self::PROFILES,true)||self::agenda($p)!==null||self::socialIds($p)!==null;}
     private static function plus(string $d,int $n):string
     {return (new \DateTimeImmutable($d))->modify('+'.$n.' days')->format('Y-m-d');}
     private static function stance(string $profile):?string
@@ -173,6 +203,7 @@ final class PresidentialProgramme
     public static function permits(string $profile,string $id):bool
     {
         if(!self::known($profile))return false;
+        if(SocialProgramme::isPolicy($id))return in_array($id,self::socialIds($profile)??[],true);
         $a=self::agenda($profile);
         if($a!==null){
             if($id==='education-reform')return $a['education'];
@@ -191,6 +222,11 @@ final class PresidentialProgramme
     public static function nextProposal(string $profile,string $day,array $policies):?array
     {
         if(!self::known($profile))throw new \DomainException('Unknown programme');
+        if(($ids=self::socialIds($profile))!==null){
+            foreach($ids as $id)if(!isset($policies[$id])&&!SocialProgramme::conflicts($id,$policies))
+                return ['policy_id'=>$id,'effective_day'=>SocialProgramme::effectiveDay($id,$day)];
+            if(self::agenda($profile)===null)return null;
+        }
         foreach(['education-reform','administration-report'] as $id){
             if(self::permits($profile,$id)&&!isset($policies[$id])){
                 $lead=!self::executable($profile)?90:($id==='education-reform'?120:14);
@@ -210,6 +246,7 @@ final class PresidentialProgramme
     public static function validAction(array $a):bool
     {
         if(!self::permits($a['programme'],$a['policy_id'])||$a['effective_day']<=$a['decision_day'])return false;
+        if(SocialProgramme::isPolicy($a['policy_id']))return $a['effective_day']===SocialProgramme::effectiveDay($a['policy_id'],$a['decision_day']);
         if(FinanceBudget::isCorrective($a['policy_id']))return $a['effective_day']===substr($a['policy_id'],11,4).'-10-01'
             &&substr($a['decision_day'],0,4)===substr($a['policy_id'],11,4)
             &&self::plus($a['decision_day'],45)<$a['effective_day'];
@@ -275,7 +312,8 @@ final class PresidentialProgramme
                 $kind='executive_publish';$stage='publish';
                 $data=['act_id'=>$id,'text_sha'=>$act['text_sha'],'publication_certified'=>true,'effective_on'=>$effective];
             }
-        }elseif($p==='education-reform'){
+        }elseif($p==='education-reform'||SocialProgramme::isPolicy($p)){
+            if(SocialProgramme::isPolicy($p)&&!isset($l['social_programme']))return null;
             $bill=self::id($world,$a,'draft');$b=$l['bills'][$bill]??null;
             foreach($l['bills'] as $other)if($other['policy_id']===$p&&$other['id']!==$bill)return null;
             if($b===null){

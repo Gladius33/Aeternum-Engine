@@ -21,7 +21,7 @@ final class CampaignCandidate
             'historical_reference_sha'=>$ref['reference_sha'],'historical_programme_scope'=>$ref['programme_partial_scope'],'historical_measure_count'=>$ref['curated_measure_count'],'historical_selection_is_alternate_history'=>true,
             'future_eligibility_certified'=>false,'programme_mechanics_enabled'=>false,
             'managed_universe_explicit_programme_catalog'=>PresidentialProgramme::measureCatalog(),
-            'historical_measures_automatically_imported'=>false,'changes_score_rules'=>false];
+            'historical_social_measure_catalog'=>SocialProgramme::definitions(),'historical_measures_automatically_imported'=>false,'changes_score_rules'=>false];
     }
     public static function normalize(mixed $input):array
     {

@@ -180,9 +180,10 @@ final class UniverseAutonomy
         $d=json_decode($dom['state_json'],true,64,JSON_THROW_ON_ERROR);
         if(!hash_equals($dom['state_sha'],hash('sha256',json_encode($d,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES)))||$d['world_id']!==$world||$d['day']!==$day)
             throw new \DomainException('Programme proposal source mismatch');
-        $q=$db->prepare('SELECT decision_day,programme,policy_id,effective_day FROM wp_universe_programme_actions WHERE world_id=? AND programme=? AND decision_day>=? AND decision_day<? AND effective_day>? ORDER BY decision_day LIMIT 100');
-        $q->execute([$world,$slot['domestic_programme'],$o['campaign']['start_day'],$day,$day]);
+        $q=$db->prepare('SELECT decision_day,programme,policy_id,effective_day FROM wp_universe_programme_actions WHERE world_id=? AND decision_day>=? AND decision_day<? AND effective_day>? ORDER BY decision_day LIMIT 128');
+        $q->execute([$world,$o['campaign']['start_day'],$day,$day]);
         foreach($q->fetchAll(\PDO::FETCH_ASSOC) as $a){
+            if(!PresidentialProgramme::executable($a['programme'])||!PresidentialProgramme::permits($slot['domestic_programme'],$a['policy_id']))continue;
             $proposal=$d['policies'][$a['policy_id']]??null;
             if($proposal===null)throw new \DomainException('Missing programme proposal');
             $result=PresidentialProgramme::advanceOne($sim,$a,$proposal);

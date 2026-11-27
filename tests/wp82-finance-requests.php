@@ -110,7 +110,7 @@ ck82(PP::encodeAgenda($compiled114)===PP::encodeAgenda(PP::compileMeasures(array
 no82(fn()=>PP::compileMeasures(['annual-defense-increase','annual-defense-reduce']));
 no82(fn()=>PP::compileMeasures(['education-reform','education-reform']));
 no82(fn()=>PP::compileMeasures(['hist2022-emmanuel-macron-1']));
-ck82(PP::measureSupport('hist2022-emmanuel-macron-1')['status']==='no_reviewed_mapping','WP114d unsupported historical promise explicitly reported');
+ck82(PP::measureSupport('hist2022-unknown-1')['status']==='no_reviewed_mapping','WP114d unknown historical promise explicitly reported');
 ck82(PP::measureSupport('budget-2028-defense-increase')['status']==='dated_policy_requires_explicit_timing','WP114d dated policy cannot silently become recurring policy');
 ck82(PP::measureSupport('corrective-2027-health-reduce')['status']==='dated_policy_requires_explicit_timing','WP114d dated corrective policy preserved');
 $x114d=new I('world-test','FR','2027-05-14');$x114d->enableElectoral(P::publishedElectionConfig('2027-05-14'));$x114d->enablePoliticalAI();$x114d->enableRevision();$x114d->enableLegislation(true,true,true,true,true,true,true,2028,true,true);$x114d->enableContinuityLot();$x114d->enableCabinetSenateLot();$x114d->enableFinanceRequests();
@@ -125,8 +125,44 @@ $x114d->advanceTo('2027-05-15');
 ck82($x114d->snapshot()['legislation']['responsibility']['cabinet']['prime_minister']==='pm-social','WP114d certified nomination becomes appointment');
 for($n=1;$n<=8;$n++){
     $day=(new DateTimeImmutable('2027-05-14'))->modify('+'.$n.' days')->format('Y-m-d');
-    $x114d->advanceTo($day);PP::institutionalObjective($x114d,$profile114d,'2027-05-14');
+    if($n>1)$x114d->advanceTo($day);PP::institutionalObjective($x114d,$profile114d,'2027-05-14');
 }
 $cab114d=$x114d->snapshot()['legislation']['responsibility']['cabinet'];
 ck82(count(array_filter($cab114d['ministers']))===7&&$cab114d['ministers']['education']==='social-education','WP114d all vacant portfolios filled through joint appointment');
 ck82(I::restore($x114d->snapshot())->hash()===$x114d->hash(),'WP114d government succession deterministic replay');
+
+
+// WP114e: all 24 archived proposals have exact, independently typed mappings.
+use Aeternum\WorldPolitics\SocialProgramme as SP;
+$historical114=json_decode(file_get_contents(__DIR__.'/../games/world-politics/data/2026-11-27-fr-candidates-2022-v2.json'),true,64,JSON_THROW_ON_ERROR);
+$all114=[];
+foreach($historical114['candidates'] as $candidate114){
+    $ids=array_column($candidate114['programme'],'id');$all114=[...$all114,...$ids];
+    $profile=PP::compileProfile($ids);
+    ck82(PP::socialIds($profile)===$ids,'WP114e historical programme compiled '.$candidate114['id']);
+    foreach($candidate114['programme'] as $m)ck82(SP::definitions()[$m['id']]['domain']===$m['domain']&&PP::measureSupport($m['id'])['status']==='historical_social_proxy','WP114e exact source mapping '.$m['id']);
+}
+ck82(count($all114)===24&&array_keys(SP::definitions())===$all114,'WP114e complete immutable archived measure set');
+$mixed114=PP::compileProfile(['hist2022-marine-le-pen-1','hist2022-marine-le-pen-2','industry-active','ukraine-aid-stop']);
+ck82(strlen($mixed114)<=24&&PP::agenda($mixed114)['industry']==='active'&&PP::aidAction($mixed114)==='ukraine-aid-stop'&&count(PP::socialIds($mixed114))===2,'WP114e mixed agenda roundtrip');
+no82(fn()=>PP::compileProfile(['hist2022-emmanuel-macron-1','hist2022-jean-luc-melenchon-1']));
+ck82(SP::effectiveDay('hist2022-valerie-pecresse-1','2027-05-14')==='2030-01-01','WP114e no premature dated retirement target');
+ck82(SP::phaseBps('hist2022-emmanuel-macron-1',0)===2000&&SP::phaseBps('hist2022-emmanuel-macron-1',1460)===10000,'WP114e progressive target fiscal phase');
+$defs114=SP::policies(['daily_tax_base'=>100000000,'daily_social_benefits'=>100000000]);
+ck82($defs114['hist2022-jean-luc-melenchon-1']['expense_delta']>0&&$defs114['hist2022-emmanuel-macron-1']['expense_delta']<0,'WP114e distinct pension fiscal scenario directions');
+ck82(SP::wagePremium(['hist2022-anne-hidalgo-1'])>SP::wagePremium(['hist2022-yannick-jadot-1']),'WP114e different wage targets feed macro proxy');
+$x114e=new I('world-test','FR','2027-05-14');$x114e->enableElectoral(P::publishedElectionConfig('2027-05-14'));$x114e->enablePoliticalAI();$x114e->enableRevision();$x114e->enableLegislation(true,true,true,true,true,true,true,2028,true,true);$x114e->enableContinuityLot();$x114e->enableCabinetSenateLot();$x114e->enableFinanceRequests();$x114e->enableNationalService();$x114e->enableSocialProgramme();
+$histid114='hist2022-anne-hidalgo-1';$prof114=PP::compileProfile([$histid114]);$next114=PP::nextProposal($prof114,'2027-05-14',[]);
+$aa114=['programme'=>$prof114,'decision_day'=>'2027-05-14',...$next114];$pp114=['proposed_on'=>'2027-05-14','effective_on'=>$next114['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
+$x114e->advanceTo('2027-05-15');$s114e=PP::advanceOne($x114e,$aa114,$pp114);
+ck82($s114e!==null&&$s114e['stage']==='bill_drafted','WP114e actual independent historical social bill');
+$x114e->advanceTo('2027-05-16');$s114e=PP::advanceOne($x114e,$aa114,$pp114);
+ck82($s114e!==null&&$s114e['stage']==='file','WP114e competent government filing');
+for($n=3;$n<=120;$n++){
+    $day=(new DateTimeImmutable('2027-05-14'))->modify('+'.$n.' days')->format('Y-m-d');$x114e->advanceTo($day);PP::advanceOne($x114e,$aa114,$pp114);
+}
+$bill114e=array_values($x114e->snapshot()['legislation']['bills'])[0];
+ck82($bill114e['policy_id']===$histid114&&$bill114e['readings']['assembly']===1,'WP114e ordinary parliamentary vote on exact historical policy');
+ck82(I::restore($x114e->snapshot())->hash()===$x114e->hash(),'WP114e deterministic legal replay');
+if($bill114e['status']==='published')ck82($bill114e['review']==='cleared'&&$bill114e['effect_on']===$next114['effective_day'],'WP114e exact legal activation date');
+else ck82($bill114e['effect_on']===null,'WP114e blocked policy not enacted');

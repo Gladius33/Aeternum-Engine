@@ -5,6 +5,7 @@ require_once __DIR__.'/LegislativeResponsibility.php';
 require_once __DIR__.'/ExecutiveActs.php';
 require_once __DIR__.'/FinanceBudget.php';
 require_once __DIR__.'/NationalServiceLaw.php';
+require_once __DIR__.'/SocialProgramme.php';
 
 /** Ordinary government bill procedural pilot; not finance, organic, Art 49(3),
  * or constitutional legislation. Certified fictional procedural facts only.
@@ -15,18 +16,23 @@ final class BicameralLegislation
     public const VERSION='wp40-fr-ordinary-v1';
     public const SOURCE='https://qpc360.conseil-constitutionnel.fr/constitution-4-octobre-1958';
     private array $s;
-    public static function catalog(bool $minorUnits=false,bool $nationalService=false):array
+    public static function catalog(bool $minorUnits=false,bool $nationalService=false,bool $social=false):array
     {
         return ['education-reform'=>[
             'standard'=>$minorUnits?'The fictional education programme receives an additional daily allocation of 2000 EUR (200000 minor units) for thirty days.':'The fictional education programme receives an additional daily allocation of 200000 EUR for thirty days.',
             'amended'=>'The fictional education programme receives a revised allocation subject to a subsequent implementing measure.'
-        ],...($nationalService?NationalServiceLaw::catalog():[])];
+        ],...($nationalService?NationalServiceLaw::catalog():[]),...($social?SocialProgramme::legalCatalog():[])];
     }
     public function __construct(string $world,string $day)
     {
         self::id($world);self::day($day);
         $this->s=['version'=>self::VERSION,'source'=>self::SOURCE,'classification'=>'fictional_scenario',
             'world_id'=>$world,'country'=>'FR','start_day'=>$day,'day'=>$day,'bills'=>[],'history'=>[]];
+    }
+    public function enableSocialProgramme():void
+    {
+        if(!isset($this->s['minor_units'],$this->s['national_service'])||isset($this->s['social_programme'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])throw new \DomainException('Social programme must be pinned at bootstrap');
+        $this->s['social_programme']=SocialProgramme::VERSION;
     }
     public function enablePreciseUnits():void
     {
@@ -144,7 +150,7 @@ final class BicameralLegislation
     }
     public function draft(string $id,string $policy):array
     {
-        self::id($id);$catalog=self::catalog(isset($this->s['minor_units']),isset($this->s['national_service']));
+        self::id($id);$catalog=self::catalog(isset($this->s['minor_units']),isset($this->s['national_service']),isset($this->s['social_programme']));
         if(!isset($catalog[$policy])||isset($this->s['bills'][$id])||count($this->s['bills'])>=100)
             throw new \DomainException('Unknown or duplicate bill');
         if(NationalServiceLaw::isPolicy($policy))NationalServiceLaw::validateDraft($this->s,$policy);
@@ -338,6 +344,7 @@ final class BicameralLegislation
         if(isset($s['finance']))$x->enableFinance($s['finance']['year'],$s['finance']['version']===FinanceBudget::SERIES,$s['finance']['corrective_enabled']??false);
         if(isset($s['calendar_replay']))$x->enableCalendarReplay();
         if(isset($s['national_service']))$x->enableNationalService();
+        if(isset($s['social_programme']))$x->enableSocialProgramme();
         foreach($s['history'] as $h){
             $x->advance($h['day']);
             if($h['kind']==='draft')$x->draft($h['id'],$h['policy']);
