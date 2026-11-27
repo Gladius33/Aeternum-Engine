@@ -111,6 +111,13 @@ ck($newResult['status']===202,'reviewed 2027 economic measure allowed for PM');
 $after=req('GET',$ep.'/economy',null,$etoken);
 ck($after['status']===200&&$after['body']['day']==='2027-05-15'&&$after['body']['domestic']['state']['day']==='2027-05-15'&&count($after['body']['domestic']['state']['days'])===1,'coordinated economic day');
 ck($after['body']['domestic']['state']['days'][0]['active_policies']===[],'unlegislated policy remains inert');
+$preview=$after['body']['score_preview'];
+ck(!$preview['rankable']&&!$preview['official_eligible']&&count($preview['series'])===1,'own experimental series only');
+$ps=$preview['series'][0];
+ck($ps['status']==='provisional_preview'&&$ps['tenure_days']===1&&$ps['credit_days']===0
+    &&$ps['baseline_index_bps']===10000&&$ps['window_days']===1&&is_int($ps['score']),'real committed post-accession score calculation');
+$pmView=req('GET',$ep.'/economy',null,$t2);
+ck($pmView['status']===200&&$pmView['body']['score_preview']['series']===[],'PM never receives another career score');
 \Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-15');
 ck(req('GET',$ep.'/economy',null,$etoken)===$after,'no duplicate accrual');
 $participation=req('GET',$ep.'/career',null,$etoken)['body']['score_progress'];
@@ -178,7 +185,10 @@ $shared=req('GET',$pp.'/economy',null,$etoken);
 $public2=req('POST','/career-worlds/join',['world_id'=>$pw],$t2,'public-career-join-02');
 ck($public2['status']===201&&$public2['body']['world_id']===$pw&&$public2['body']['career_id']!==$public['body']['career_id']
     &&$public2['body']['handover_day']==='2027-05-15','second human enters same committed world');
-ck(req('GET',$pp.'/economy',null,$t2)===$shared,'late career admission does not reset economy');
+$lateEconomic=req('GET',$pp.'/economy',null,$t2);
+ck($lateEconomic['status']===200&&$lateEconomic['body']['score_preview']['series']===[],'late join owns no presidential score');
+unset($lateEconomic['body']['score_preview'],$shared['body']['score_preview']);
+ck($lateEconomic===$shared,'late career admission does not reset shared economy');
 ck(req('GET',$pp.'/career',null,$t2)['body']['mandates']===[],'late join cannot acquire occupied presidency');
 ck(req('GET',$pp.'/career',null,$t2)['body']['score_progress']['admission_mode']==='late_takeover','late career league distinguished');
 for($n=3;$n<=8;$n++){

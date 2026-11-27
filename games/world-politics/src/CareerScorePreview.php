@@ -31,8 +31,17 @@ final class CareerScorePreview
             $v=HouseholdAccount::day($d['macro_baseline'],$d['population_model'],$r,$offset);
             return $v['cases']['fixed_household_structure']['real_rdb_per_uc_proxy_index_bps'];
         };
-        foreach($progress['series'] as $s)
-            $result['series'][]=self::series($s,$progress['admission_mode'],$index);
+        foreach($progress['series'] as $s){
+            try{$result['series'][]=self::series($s,$progress['admission_mode'],$index);}
+            catch(\DomainException $e){
+                // Score ineligibility must not hide the independently verified
+                // economic read. Never publish a fabricated zero or stale score.
+                $result['series'][]=['series_id'=>$s['series_id'],'from'=>$s['human_tenure_from'],
+                    'through'=>$s['through_day'],'terminal'=>$s['status']==='closed',
+                    'tenure_days'=>$s['tenure_days'],'status'=>'score_evidence_unavailable',
+                    'score'=>null,'rankable'=>false,'official_eligible'=>false];
+            }
+        }
         return $result;
     }
 
