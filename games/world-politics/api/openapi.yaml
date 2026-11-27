@@ -200,6 +200,32 @@ paths:
       responses:
         '200': {description: Stable ranking page}
         '409': {description: Snapshot changed or capacity exceeded}
+  /me/data-token:
+    post:
+      summary: Issue or rotate own-data token for premium account
+      responses:
+        '201': {description: One-time data token}
+        '403': {description: Premium required}
+    delete:
+      responses:
+        '200': {description: Data token revoked}
+  /player-data/worlds:
+    get:
+      summary: Own career world directory (separate premium data token)
+      responses:
+        '200': {description: Own worlds}
+        '401': {description: Data token required}
+  /player-data/worlds/{world}:
+    get:
+      summary: Own career and mandate score data only
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Own simulation export}
+        '404': {description: Not found}
   /career-worlds/{world}/economy:
     get:
       summary: Read coherent domestic and international economy in opt-in economic profile

@@ -64,6 +64,19 @@ final class AlphaGateway
                 $accounts->limit('recovery-peer',$peer,10,300);
                 return self::ok(200,$accounts->recover($body));
             }
+            if(str_starts_with($path,'/api/v1/player-data/')){
+                require_once __DIR__.'/PlayerDataAccess.php';
+                if($method!=='GET')throw new AlphaHttpError(405,'method_not_allowed');
+                $header=$h['authorization']??'';$id=PlayerDataAccess::authenticate($this->db(),$header);
+                $accounts->limit('player-data-account',$id,60,60);
+                if($path==='/api/v1/player-data/worlds')return self::ok(200,PlayerDataAccess::worlds($this->db(),$header));
+                if(preg_match('~^/api/v1/player-data/worlds/([a-z][a-z0-9_-]{0,63})$~D',$path,$d)){
+                    $secret=getenv('WP_CAREER_EVIDENCE_KEY');
+                    if(!is_string($secret)||strlen($secret)<32)throw new AlphaHttpError(404,'not_found');
+                    return self::ok(200,(new PdoCareerInstitutionStore($this->db(),new CareerInstitutionEvidence($secret)))->exportForDataToken($d[1],$header));
+                }
+                throw new AlphaHttpError(404,'not_found');
+            }
             $session=$accounts->authenticate($h['authorization']??'');
             $accounts->limit('http-account',$session->id,120,60);
             if ($path==='/api/v1/session' && $method==='DELETE') {
@@ -71,6 +84,12 @@ final class AlphaGateway
             }
             if ($path==='/api/v1/me/recovery-code' && $method==='POST') return self::ok(201,$accounts->createRecovery($session,$body));
             if ($path==='/api/v1/me/password' && $method==='POST') return self::ok(200,$accounts->changePassword($session,$body));
+            if($path==='/api/v1/me/data-token'){
+                require_once __DIR__.'/PlayerDataAccess.php';
+                if($method==='POST'){AlphaAccounts::fields($body,[]);return self::ok(201,PlayerDataAccess::issue($this->db(),$session));}
+                if($method==='DELETE'){PlayerDataAccess::revoke($this->db(),$session);return self::ok(200,['revoked'=>true]);}
+                throw new AlphaHttpError(405,'method_not_allowed');
+            }
             if ($path==='/api/v1/me' && $method==='GET') return self::ok(200,['account_id'=>$session->id,'username'=>$session->username]);
             if($path==='/api/v1/career-worlds'||str_starts_with($path,'/api/v1/career-worlds/')){
                 $secret=getenv('WP_CAREER_EVIDENCE_KEY');

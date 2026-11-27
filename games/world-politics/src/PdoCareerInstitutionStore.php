@@ -131,6 +131,35 @@ final class PdoCareerInstitutionStore
     public function readForSession(string $world,string $token):array{
         return $this->tx(function()use($world,$token){$clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);return $this->viewLocked($world,$account,$clock);});
     }
+    /** Premium export is deliberately own-career only; never return the
+     * shared raw ledger, other careers, pending proposals or credentials. */
+    public function exportForDataToken(string $world,string $header):array{
+        require_once __DIR__.'/PlayerDataAccess.php';
+        return $this->tx(function()use($world,$header){
+            // Reject guessed world IDs before acquiring the world fence.
+            $a=PlayerDataAccess::authenticate($this->db,$header);
+            if($this->query('SELECT 1 FROM wp_career_memberships m JOIN wp_alpha_members b USING(world_id,account_id) WHERE m.world_id=? AND m.account_id=?',[$world,$a])->fetchColumn()===false)
+                throw new AlphaHttpError(404,'not_found');
+            $clock=$this->clock($world);
+            if(PlayerDataAccess::authenticate($this->db,$header,true)!==$a)throw new AlphaHttpError(401,'data_token_required');
+            $this->activeAccount($world,$a);$s=$this->replay($world,$this->row($world));$career=null;
+            foreach($s['careers'] as $id=>$c)if($c['account']===$a)$career=$id;
+            if($career===null)throw new AlphaHttpError(404,'not_found');
+            $c=$s['careers'][$career];$joined=$c['claimed_on']??$c['admitted_on'];
+            $mandates=[];
+            foreach($s['mandates'] as $m)if($m['career']===$career&&($m['end']===null||$m['end']>$joined))
+                $mandates[]=['office'=>$m['office'],'from'=>max($m['start'],$joined),'through'=>$m['end']??$clock['committed_day'],'expires'=>$m['expires'],'interim'=>$m['interim']];
+            $out=['version'=>'wp-player-data-v1','scope'=>'own_simulation_read','world_id'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],
+                'career'=>['id'=>$career,'joined_on'=>$joined,'mode'=>$c['mode']],'mandates'=>$mandates,
+                'score_progress'=>CareerScoreContract::ledgerProgress($s,$career,$clock['committed_day']),'score_preview'=>null];
+            if($this->query('SELECT 1 FROM wp_world_clock WHERE world_id=? AND domestic_enabled=1',[$world])->fetchColumn()!==false){
+                require_once __DIR__.'/CareerEconomicWorld.php';require_once __DIR__.'/CareerScorePreview.php';
+                $d=CareerEconomicWorld::readLocked($this->db,$world,$clock['committed_day']);
+                $out['score_preview']=CareerScorePreview::preview($s,$career,$clock['committed_day'],$d['domestic']);
+            }
+            return $out;
+        });
+    }
     /** Member-visible documentary directory, never a list of authenticated accounts. */
     public function charactersForSession(string $world,string $token):array{
         return $this->tx(function()use($world,$token){
