@@ -167,6 +167,20 @@ final class ResearchQueue
             return $id;
         });
     }
+    public function selectPayg(string $token,string $plan):array{
+        if(!in_array($plan,['standard','pro'],true))throw new \DomainException('Invalid PAYG plan');
+        $tenant=$this->billingIdentity($token);
+        return $this->tx(function()use($tenant,$token,$plan){
+            $a=$this->q('SELECT t.* FROM wp_research_tenants t JOIN wp_research_keys k USING(tenant_id) WHERE t.tenant_id=? AND k.key_sha=? AND k.expires_at>? AND k.revoked=0 AND t.enabled=1 AND t.billing_hold=0 AND t.admin_exempt=0 FOR UPDATE',[$tenant,hash('sha256',$token),time()])->fetch(\PDO::FETCH_ASSOC);
+            if($a===false)throw new ResearchBillingError(401,'billing_authentication_required');
+            if(($a['billing_mode']==='monthly'&&(int)$a['paid_until']>time())||$this->q("SELECT 1 FROM wp_stripe_research_orders WHERE tenant_id=? AND mode='subscription' AND ended_at IS NULL LIMIT 1 FOR UPDATE",[$tenant])->fetchColumn()!==false)
+                throw new \DomainException('Active or pending subscription');
+            if($a['plan']!==$plan&&((int)$a['prepaid_units']>0||$this->q("SELECT 1 FROM wp_stripe_research_orders WHERE tenant_id=? AND mode='payment' AND settled_at IS NULL AND ended_at IS NULL LIMIT 1 FOR UPDATE",[$tenant])->fetchColumn()!==false))
+                throw new \DomainException('Existing tier credit balance or pending pack');
+            $this->q("UPDATE wp_research_tenants SET plan=?,billing_mode='payg',included_units=0,allow_overage=0,paid_until=0 WHERE tenant_id=?",[$plan,$tenant]);
+            return ['plan'=>$plan,'billing_mode'=>'payg','prepaid_remaining'=>(int)$a['prepaid_units']];
+        });
+    }
     public function stripeBilling(string $token,string $op,string $offer='',string $key=''):array{
         require_once __DIR__.'/ResearchStripe.php';
         $id=$this->billingIdentity($token);StripeConfiguration::ready();$c=new StripeTestClient();

@@ -114,10 +114,14 @@ final class ResearchStripe
             throw new \DomainException('Unsupported Stripe price');
         $key=hash('sha256',$requestKey);
         $order=$this->tx(function()use($tenant,$offer,$p,$amount,$key){
-            $a=$this->q('SELECT plan,enabled,billing_mode,admin_exempt,billing_hold FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
+            $a=$this->q('SELECT plan,enabled,billing_mode,admin_exempt,billing_hold,prepaid_units FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$tenant])->fetch(\PDO::FETCH_ASSOC);
             if($a===false||(int)$a['enabled']!==1||(int)$a['admin_exempt']===1||(int)$a['billing_hold']!==0||($p['mode']==='payment'&&$a['plan']!==$p['plan']))throw new \DomainException('Ineligible tenant');
             $old=$this->q('SELECT * FROM wp_stripe_research_orders WHERE tenant_id=? AND request_sha=?',[$tenant,$key])->fetch(\PDO::FETCH_ASSOC);
             if($old!==false){if($old['offer']!==$offer||$old['ended_at']!==null)throw new \DomainException('Checkout conflict or closed order');return $old;}
+            if($a['plan']!==$p['plan']&&((int)$a['prepaid_units']>0||$this->q("SELECT 1 FROM wp_stripe_research_orders WHERE tenant_id=? AND mode='payment' AND settled_at IS NULL AND ended_at IS NULL LIMIT 1",[$tenant])->fetchColumn()!==false))
+                throw new \DomainException('Consume existing tier credits and close pending packs before changing tiers');
+            if($p['mode']==='payment'&&$this->q("SELECT 1 FROM wp_stripe_research_orders WHERE tenant_id=? AND mode='subscription' AND plan<>? AND settled_at IS NULL AND ended_at IS NULL LIMIT 1",[$tenant,$p['plan']])->fetchColumn()!==false)
+                throw new \DomainException('Tier change pending');
             if($p['mode']==='subscription'&&$this->q("SELECT 1 FROM wp_stripe_research_orders WHERE tenant_id=? AND mode='subscription' AND ended_at IS NULL LIMIT 1",[$tenant])->fetchColumn()!==false)
                 throw new \DomainException('Subscription already provisioned; operator review required');
             $id=bin2hex(random_bytes(16));
@@ -205,17 +209,32 @@ final class ResearchStripe
             $status=$sub['status']??null;
             if(!in_array($status,['canceled','unpaid','incomplete_expired'],true))return ['status'=>'unchanged'];
             if(!isset($sub['metadata']['wp_order']))return ['status'=>'unrelated'];
-            $o=$this->order($sub['metadata']['wp_order']);
-            return $this->tx(function()use($o,$sub,$sid){
+            $o=$this->order($sub['metadata']['wp_order']);$initial=false;
+            if($o['subscription_id']===null){
+                if($o['checkout_id']===null)throw new \RuntimeException('Checkout binding pending');
+                $session=$this->get('checkout/sessions',$o['checkout_id']);self::testObject($session,$o['checkout_id']);
+                if(($session['subscription']??null)!==$sid||($session['customer']??null)!==($sub['customer']??null)||($session['metadata']['wp_order']??null)!==$o['order_id']||($session['mode']??null)!=='subscription')
+                    throw new \DomainException('Initial subscription binding');
+                $initial=true;
+            }
+            return $this->tx(function()use($o,$sub,$sid,$initial){
                 $a=$this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$o['tenant_id']])->fetchColumn();
                 $r=$this->order($o['order_id'],true);
-                if($a===false||$r['subscription_id']!==$sid||$r['customer_id']!==($sub['customer']??null))return ['status'=>'unallocated_subscription'];
+                if($a===false)return ['status'=>'unallocated_subscription'];
+                if($r['subscription_id']===null&&$initial){
+                    if(!in_array($sub['status'],['canceled','incomplete_expired'],true))return ['status'=>'await_initial_payment'];
+                    if($r['ended_at']!==null)return ['status'=>'already_ended'];
+                    $this->q('UPDATE wp_stripe_research_orders SET ended_at=? WHERE order_id=?',[time(),$r['order_id']]);
+                    return ['status'=>'unpaid_order_ended'];
+                }
+                if($r['subscription_id']!==$sid||$r['customer_id']!==($sub['customer']??null))return ['status'=>'unallocated_subscription'];
                 if($r['ended_at']!==null)return ['status'=>'already_ended'];
                 // "unpaid" may recover: suspend paid entitlement, keep the
                 // existing subscription binding until terminal cancellation.
-                if(in_array($sub['status'],['canceled','incomplete_expired'],true))
+                if(in_array($sub['status'],['canceled','incomplete_expired'],true)){
                     $this->q('UPDATE wp_stripe_research_orders SET ended_at=? WHERE order_id=?',[time(),$r['order_id']]);
-                $this->q('UPDATE wp_research_tenants SET paid_until=LEAST(paid_until,?),included_units=0 WHERE tenant_id=? AND admin_exempt=0',[time(),$a]);
+                    $this->q("UPDATE wp_research_tenants SET paid_until=LEAST(paid_until,?),included_units=0,billing_mode='payg',allow_overage=0 WHERE tenant_id=? AND admin_exempt=0",[time(),$a]);
+                }else $this->q('UPDATE wp_research_tenants SET paid_until=LEAST(paid_until,?),included_units=0 WHERE tenant_id=? AND admin_exempt=0',[time(),$a]);
                 return ['status'=>'subscription_ended'];
             });
         }
@@ -226,6 +245,7 @@ final class ResearchStripe
             return $this->tx(function()use($o,$sid){
                 $this->q('SELECT tenant_id FROM wp_research_tenants WHERE tenant_id=? FOR UPDATE',[$o['tenant_id']]);
                 $r=$this->order($o['order_id'],true);
+                if($r['checkout_id']===null)throw new \RuntimeException('Checkout binding pending');
                 if($r['checkout_id']!==$sid||$r['settled_at']!==null||$r['subscription_id']!==null)return ['status'=>'unchanged'];
                 $this->q('UPDATE wp_stripe_research_orders SET ended_at=COALESCE(ended_at,?) WHERE order_id=?',[time(),$r['order_id']]);
                 return ['status'=>'checkout_expired'];
@@ -284,6 +304,7 @@ final class ResearchStripe
                 if($r['settled_at']!==null||$a['plan']!==$r['plan'])throw new \DomainException('Credit pack tier changed or already settled');
                 ResearchBilling::fund($this->db,$tenant,'stripe-'.$payment,'topup',(int)$r['units'],null,null,null,false);
             }else{
+                if($a['plan']!==$r['plan']&&(int)$a['prepaid_units']>0)throw new \DomainException('Existing tier credit balance requires reconciliation');
                 if($end===null||$end<=time()||$end<=(int)$r['period_end']||($r['period_end']>0&&$end<=(int)$a['paid_until']))return ['status'=>'stale_period'];
                 ResearchBilling::fund($this->db,$tenant,'stripe-'.$payment,'renewal',(int)$r['units'],$end,$r['plan'],'monthly',false);
             }

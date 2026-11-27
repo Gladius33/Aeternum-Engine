@@ -191,3 +191,11 @@ ckResearch(SC::portal($portalApi,'cus_fixture001')['test_mode'],'explicit restri
 $features['subscription_update']['enabled']=true;
 try{SC::portal($portalApi,'cus_fixture001');throw new RuntimeException('Unsafe portal accepted');}catch(DomainException $expected){}
 echo "PASS billing-only credentials, bounded admission and restricted portal\n";
+
+$choose=$q->createTenant('standard',0,false,'payg');
+$paygRoute='/research/v1/billing/payg';
+ckResearch($g->handle('POST',$paygRoute,'{"plan":"pro"}',$head($choose['token']))['body']['plan']==='pro','self-service PAYG Pro selection');
+ckResearch($g->handle('GET','/research/v1/datasets/global','',$head($choose['token']))['status']===402,'selecting Pro does not grant credits');
+$q->fund($choose['tenant_id'],'payg-tier-fixture-01','topup',10);
+ckResearch($g->handle('POST',$paygRoute,'{"plan":"standard"}',$head($choose['token']))['status']===409,'cannot transfer prepaid credits across tiers');
+echo "PASS PAYG self-service and tier balance isolation\n";

@@ -89,8 +89,21 @@ final class GameStripe
             $sid=ResearchStripe::id($obj['id']??null,'sub_');$s=$this->get('subscriptions',$sid);ResearchStripe::testObject($s,$sid);
             if(!isset($s['metadata']['wp_game_order']))return ['status'=>'unrelated'];
             if(!in_array($s['status']??null,['canceled','unpaid','incomplete_expired'],true))return ['status'=>'unchanged'];
-            $o=$this->order($s['metadata']['wp_game_order']);
-            return $this->tx(function()use($o,$s,$sid){$this->q('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE',[$o['account_id']]);$r=$this->order($o['order_id'],true);
+            $o=$this->order($s['metadata']['wp_game_order']);$initial=false;
+            if($o['subscription_id']===null){
+                if($o['checkout_id']===null)throw new \RuntimeException('Checkout binding pending');
+                $session=$this->get('checkout/sessions',$o['checkout_id']);ResearchStripe::testObject($session,$o['checkout_id']);
+                if(($session['subscription']??null)!==$sid||($session['customer']??null)!==($s['customer']??null)||($session['metadata']['wp_game_order']??null)!==$o['order_id']||($session['mode']??null)!=='subscription')
+                    throw new \DomainException('Initial game subscription binding');
+                $initial=true;
+            }
+            return $this->tx(function()use($o,$s,$sid,$initial){$this->q('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE',[$o['account_id']]);$r=$this->order($o['order_id'],true);
+                if($r['subscription_id']===null&&$initial){
+                    if(!in_array($s['status'],['canceled','incomplete_expired'],true))return ['status'=>'await_initial_payment'];
+                    if($r['ended_at']!==null)return ['status'=>'already_ended'];
+                    $this->q('UPDATE wp_stripe_game_orders SET ended_at=? WHERE order_id=?',[time(),$r['order_id']]);
+                    return ['status'=>'unpaid_order_ended'];
+                }
                 if($r['subscription_id']!==$sid||$r['customer_id']!==($s['customer']??null))return ['status'=>'unallocated_subscription'];
                 if($r['ended_at']!==null)return ['status'=>'already_ended'];
                 if(in_array($s['status'],['canceled','incomplete_expired'],true))$this->q('UPDATE wp_stripe_game_orders SET ended_at=? WHERE order_id=?',[time(),$r['order_id']]);
@@ -103,6 +116,7 @@ final class GameStripe
             return $this->tx(function()use($o,$sid){
                 $this->q('SELECT account_id FROM wp_accounts WHERE account_id=? FOR UPDATE',[$o['account_id']]);
                 $r=$this->order($o['order_id'],true);
+                if($r['checkout_id']===null)throw new \RuntimeException('Checkout binding pending');
                 if($r['checkout_id']!==$sid||$r['subscription_id']!==null||$r['held'])return ['status'=>'unchanged'];
                 $this->q('UPDATE wp_stripe_game_orders SET ended_at=COALESCE(ended_at,?) WHERE order_id=?',[time(),$r['order_id']]);
                 return ['status'=>'checkout_expired'];

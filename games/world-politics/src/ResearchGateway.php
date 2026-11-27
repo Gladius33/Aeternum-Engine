@@ -15,13 +15,17 @@ final class ResearchGateway
             if(!preg_match('/^Bearer ([a-f0-9]{64})$/D',$h['authorization']??'',$m))
                 return self::response(401,['code'=>'research_authentication_required']);
             $token=$m[1];
-            if(in_array($path,['/research/v1/billing/checkout','/research/v1/billing/portal'],true)){
+            if(in_array($path,['/research/v1/billing/checkout','/research/v1/billing/portal','/research/v1/billing/payg'],true)){
                 if($method!=='POST')return self::response(405,['code'=>'method_not_allowed']);
-                if(getenv('WP_STRIPE_ENABLED')!=='YES')return self::response(503,['code'=>'stripe_disabled']);
+                if($path!=='/research/v1/billing/payg'&&getenv('WP_STRIPE_ENABLED')!=='YES')return self::response(503,['code'=>'stripe_disabled']);
                 if(!preg_match('/^application\/json(?:; ?charset=utf-8)?$/iD',$h['content-type']??''))return self::response(415,['code'=>'json_required']);
                 $obj=json_decode($raw,false,16,JSON_THROW_ON_ERROR);
                 if(!$obj instanceof \stdClass)return self::response(400,['code'=>'invalid_json']);
                 $body=(array)$obj;
+                if($path==='/research/v1/billing/payg'){
+                    if(array_keys($body)!==['plan']||!is_string($body['plan']))return self::response(400,['code'=>'invalid_fields']);
+                    return self::response(200,$this->queue->selectPayg($token,$body['plan']));
+                }
                 if($path==='/research/v1/billing/portal'){
                     if($body!==[])return self::response(400,['code'=>'invalid_fields']);
                     return self::response(200,$this->queue->stripeBilling($token,'portal'));
