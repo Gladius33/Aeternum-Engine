@@ -354,11 +354,11 @@ paths:
   /worlds/{world}/countries/FR/finance:
     get:
       operationId: readFrenchFinanceBudget
-      summary: Read fictional annual finance bills and treasury projection
+      summary: Read fictional annual and opt-in corrective finance bills and treasury projection
       parameters:
         - $ref: '#/components/parameters/world'
       responses:
-        '200': { description: Finance budget, policy catalog and treasury projection }
+        '200': { description: Finance budget, annual and eligible corrective catalogs, effective dates and treasury projection }
         '404': { description: Inaccessible world or unsupported scenario }
         '409': { description: World advancing }
   /worlds/{world}/countries/FR/executive:
@@ -927,7 +927,7 @@ paths:
               properties:
                 action:
                   type: string
-                  enum: [record_consultation, submit_bill, dissolve_lower_house, hold_election, electoral_coalition, revision_draft, legislation_draft]
+                  enum: [record_consultation, submit_bill, dissolve_lower_house, hold_election, electoral_coalition, revision_draft, legislation_draft, request_dissolution, request_cabinet_appointment, request_annual_budget, request_corrective_budget]
                 payload:
                   type: object
                   additionalProperties: true

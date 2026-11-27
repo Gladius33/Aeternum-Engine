@@ -380,3 +380,25 @@ jobs:
             exit 1
           fi
           echo "Restored campaign audit identical; read-only writer denied"
+      - name: WP100 two-node shared MariaDB concurrency regression
+        env:
+          WP_CI_MARIADB_CONTAINER: ${{ job.services.mariadb.id }}
+        run: |
+          set -euo pipefail
+          test "$WP_TEST_ISOLATED" = YES
+          docker exec -e MYSQL_PWD=ci-only "$WP_CI_MARIADB_CONTAINER" mariadb -uroot -e "CREATE DATABASE wp_test_multinode; GRANT ALL ON wp_test_multinode.* TO 'wp_test'@'%';"
+          export WP_DB_DSN='mysql:host=127.0.0.1;port=3306;dbname=wp_test_multinode;charset=utf8mb4'
+          php games/world-politics/bin/install-alpha.php
+          php -S 127.0.0.1:18731 -t games/world-politics/public games/world-politics/public/index.php > /tmp/wp100-a.log 2>&1 &
+          first=$!
+          php -S 127.0.0.1:18732 -t games/world-politics/public games/world-politics/public/index.php > /tmp/wp100-b.log 2>&1 &
+          second=$!
+          trap 'kill "$first" "$second" 2>/dev/null || true; cat /tmp/wp100-a.log /tmp/wp100-b.log' EXIT
+          for port in 18731 18732; do
+            for i in $(seq 1 30); do
+              if curl --fail --silent "http://127.0.0.1:$port/api/v1/health" >/dev/null; then break; fi
+              sleep 1
+            done
+            curl --fail --silent "http://127.0.0.1:$port/api/v1/health" >/dev/null
+          done
+          python3 tests/wp100-multinode.py
