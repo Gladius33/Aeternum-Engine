@@ -24,7 +24,7 @@ final class CampaignCandidate
                 ['id'=>'fr2027-les-ecologistes','publisher'=>'Les Écologistes','kind'=>'party_programme',
                     'url'=>'https://lesecologistes.fr/pages/6ImK65GKUnvibm33WGkjkj/projet-2027'],
                 ['id'=>'fr2027-debout-la-france','publisher'=>'Debout la France','kind'=>'partial_project_announcement',
-                    'url'=>'https://www.debout-la-france.fr/evenements/liste/?eventDisplay=past&tribe-bar-date=2055-10-01'],
+                    'url'=>'https://www.debout-la-france.fr/evenement/conference-de-presse-sur-le-projet-economique-le-12-11-2026/'],
                 ['id'=>'fr2027-retailleau','publisher'=>'Bruno Retailleau','kind'=>'campaign_project',
                     'url'=>'https://www.avecretailleau.fr/projet/faq'],
                 ['id'=>'fr2027-place-publique','publisher'=>'Place publique','kind'=>'partial_project_announcement',
@@ -33,7 +33,19 @@ final class CampaignCandidate
                     'url'=>'https://www.data.gouv.fr/datasets/programmes-presidentielle-2027-qui-a-publie-son-programme-quand-et-les-mesures-par-theme-swipe-your-president'],
                 ['id'=>'fr2027-data-gouv-ratio','publisher'=>'Ratio 2027','kind'=>'independent_discovery_index',
                     'url'=>'https://www.data.gouv.fr/datasets/programmes-de-lelection-presidentielle-francaise-2027'],
-            ],'extraction_complete'=>false,'executable_measure_count'=>0,
+                ['id'=>'fr2027-lfi','publisher'=>'La France insoumise','kind'=>'campaign_project',
+                    'url'=>'https://melenchon2027.fr/programme/livre'],
+            ],'extraction_complete'=>false,'executable_measure_count'=>count(SocialProgramme::target2027()),
+            'reviewed_measures'=>[
+                ['id'=>'pf2027-jean-luc-melenchon-smic','publisher'=>'La France insoumise',
+                    'source'=>'https://melenchon2027.fr/communique/plan-pauvrete/',
+                    'target'=>SocialProgramme::target2027()['pf2027-jean-luc-melenchon-smic']['target'],
+                    'scope'=>'nominal_net_wage_floor_cohort_proxy'],
+                ['id'=>'pf2027-jean-luc-melenchon-pension','publisher'=>'La France insoumise',
+                    'source'=>'https://melenchon2027.fr/programme/livre/mettre-en-securite-sociale/chapitre1',
+                    'target'=>SocialProgramme::target2027()['pf2027-jean-luc-melenchon-pension']['target'],
+                    'scope'=>'representative_pension_career_and_age_cohort_proxy'],
+            ],
             'selection_enabled'=>false,'requires_primary_source_review'=>true];
     }
     public static function options():array
