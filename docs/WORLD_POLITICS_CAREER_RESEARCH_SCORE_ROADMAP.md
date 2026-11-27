@@ -105,3 +105,5 @@ See [WP117 registry](WORLD_POLITICS_WP117_MOVEMENT_REFERENCE.md). Global directo
 WP117 academic supplement: the exact Party Facts 2023 v1.1 CC0 release has been frozen and included as 7,199 documentary source IDs, preserving 223 source country codes and explicitly unmapped codes. No identity reconciliation or current office inference. Ordinary gameplay and v1 remain unchanged. Exact-head CI required.
 
 WP117 French supplement: 575 accounting identifiers from the CNCCFP 2024 official open-data export are now frozen; distinct from academic and electoral labels, no legal status inference. The source count is not an active-party census. Exact-head CI required.
+
+WP117 v4 supplement: Canada (14 registered-party observations and 14 dated leader observations), New Zealand (16 registered-party observations and 16 statutes catalogue entries), nine reviewed French CNCCFP name correspondences and immutable seed/supplement pins. Exact-head CI required. Global collection and document editions remain incomplete; no automatic authority or identity merge.

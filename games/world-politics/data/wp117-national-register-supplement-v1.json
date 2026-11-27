@@ -1,0 +1,1143 @@
+{
+  "schema": "wp117-national-register-supplement-v1",
+  "as_of": "2026-11-27",
+  "runtime_admission": false,
+  "exhaustive": false,
+  "sources": {
+    "ca-electoral-register": {
+      "url": "https://www.elections.ca/content.aspx?dir=par&document=index&lang=e&section=pol",
+      "kind": "institutional",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "nz-electoral-register": {
+      "url": "https://elections.nz/democracy-in-nz/political-parties-in-new-zealand/register-of-political-parties",
+      "kind": "institutional",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    }
+  },
+  "organizations": [
+    {
+      "id": "ca-animal-protection",
+      "country": "CA",
+      "name": "Animal Protection Party of Canada",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2005-12-10",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-bloc",
+      "country": "CA",
+      "name": "Bloc Québécois",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1993-09-11",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-future",
+      "country": "CA",
+      "name": "Canadian Future Party",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2024-08-08",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-centrist",
+      "country": "CA",
+      "name": "Centrist Party of Canada",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2021-08-25",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-christian-heritage",
+      "country": "CA",
+      "name": "Christian Heritage Party of Canada",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2004-05-28",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-communist",
+      "country": "CA",
+      "name": "Communist Party of Canada",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2000-11-08",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-conservative",
+      "country": "CA",
+      "name": "Conservative Party of Canada",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2003-12-07",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-green",
+      "country": "CA",
+      "name": "Green Party of Canada",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1984-08-08",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-liberal",
+      "country": "CA",
+      "name": "Liberal Party of Canada",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1972-04-04",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-marxist-leninist",
+      "country": "CA",
+      "name": "Marxist-Leninist Party of Canada",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1993-09-28",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-ndp",
+      "country": "CA",
+      "name": "New Democratic Party",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1971-06-07",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-rhinoceros",
+      "country": "CA",
+      "name": "Parti Rhinocéros Party",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2007-08-23",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-people",
+      "country": "CA",
+      "name": "People's Party of Canada",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2019-01-17",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "ca-reforge",
+      "country": "CA",
+      "name": "Reforge Party",
+      "kind": "party",
+      "source_ids": [
+        "ca-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2024-02-06",
+        "observed_on": "2026-11-27",
+        "source": "ca-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-act",
+      "country": "NZ",
+      "name": "ACT New Zealand",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1995-02-17",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-alliance",
+      "country": "NZ",
+      "name": "Alliance Party of Aotearoa New Zealand",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2026-08-05",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-animal-justice",
+      "country": "NZ",
+      "name": "Animal Justice Party Aotearoa New Zealand",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2023-08-16",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-cannabis",
+      "country": "NZ",
+      "name": "Aotearoa Legalise Cannabis Party",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1996-05-30",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-conservative",
+      "country": "NZ",
+      "name": "Conservative Party NZ",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2011-10-06",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-free-palestine",
+      "country": "NZ",
+      "name": "Free Palestine",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2026-08-05",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-first",
+      "country": "NZ",
+      "name": "New Zealand First Party",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1994-12-20",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-labour",
+      "country": "NZ",
+      "name": "New Zealand Labour Party",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1995-02-17",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-loyal",
+      "country": "NZ",
+      "name": "New Zealand Loyal",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2026-08-05",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-outdoors",
+      "country": "NZ",
+      "name": "NZ Outdoors & Freedom Party",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2017-08-11",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-opportunity",
+      "country": "NZ",
+      "name": "Opportunity Party",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2017-03-06",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-maori",
+      "country": "NZ",
+      "name": "Te Pāti Māori",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2004-06-24",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-tai-tokerau",
+      "country": "NZ",
+      "name": "Te Tai Tokerau Party",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2026-08-05",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-green",
+      "country": "NZ",
+      "name": "The Green Party of Aotearoa New Zealand",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1995-08-17",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-national",
+      "country": "NZ",
+      "name": "The New Zealand National Party",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "1994-12-02",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-vision",
+      "country": "NZ",
+      "name": "Vision New Zealand",
+      "kind": "party",
+      "source_ids": [
+        "nz-electoral-register"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "registration_observation": {
+        "registered_on": "2019-12-04",
+        "observed_on": "2026-11-27",
+        "source": "nz-electoral-register",
+        "classification": "listed_as_registered_at_review"
+      },
+      "runtime_admission": false
+    }
+  ],
+  "people": [
+    {
+      "id": "ca-leader-animal-protection",
+      "country": "CA",
+      "name": "Liz White",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-bloc",
+      "country": "CA",
+      "name": "Yves-François Blanchet",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-future",
+      "country": "CA",
+      "name": "Dominic Cardy",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-centrist",
+      "country": "CA",
+      "name": "A.Q. Rana",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-christian-heritage",
+      "country": "CA",
+      "name": "Rodney L. Taylor",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-communist",
+      "country": "CA",
+      "name": "Drew Garvie",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-conservative",
+      "country": "CA",
+      "name": "Pierre M.J. Poilievre",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-green",
+      "country": "CA",
+      "name": "Elizabeth May",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-liberal",
+      "country": "CA",
+      "name": "Mark Carney",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-marxist-leninist",
+      "country": "CA",
+      "name": "Anna Di Carlo",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-ndp",
+      "country": "CA",
+      "name": "Avram Lewis",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-rhinoceros",
+      "country": "CA",
+      "name": "Chinook B. Blais-Leduc",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-people",
+      "country": "CA",
+      "name": "Maxime Bernier",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    },
+    {
+      "id": "ca-leader-reforge",
+      "country": "CA",
+      "name": "Grant S. Abraham",
+      "source_ids": [
+        "ca-electoral-register"
+      ]
+    }
+  ],
+  "affiliations": [
+    {
+      "id": "ca-leader-observation-animal-protection",
+      "person": "ca-leader-animal-protection",
+      "organization": "ca-animal-protection",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-bloc",
+      "person": "ca-leader-bloc",
+      "organization": "ca-bloc",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-future",
+      "person": "ca-leader-future",
+      "organization": "ca-future",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-centrist",
+      "person": "ca-leader-centrist",
+      "organization": "ca-centrist",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-christian-heritage",
+      "person": "ca-leader-christian-heritage",
+      "organization": "ca-christian-heritage",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-communist",
+      "person": "ca-leader-communist",
+      "organization": "ca-communist",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-conservative",
+      "person": "ca-leader-conservative",
+      "organization": "ca-conservative",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-green",
+      "person": "ca-leader-green",
+      "organization": "ca-green",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-liberal",
+      "person": "ca-leader-liberal",
+      "organization": "ca-liberal",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-marxist-leninist",
+      "person": "ca-leader-marxist-leninist",
+      "organization": "ca-marxist-leninist",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-ndp",
+      "person": "ca-leader-ndp",
+      "organization": "ca-ndp",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-rhinoceros",
+      "person": "ca-leader-rhinoceros",
+      "organization": "ca-rhinoceros",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-people",
+      "person": "ca-leader-people",
+      "organization": "ca-people",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "ca-leader-observation-reforge",
+      "person": "ca-leader-reforge",
+      "organization": "ca-reforge",
+      "role": "party_leader",
+      "observed_on": "2026-11-27",
+      "start": null,
+      "end": null,
+      "source": "ca-electoral-register",
+      "classification": "institutional_observation"
+    }
+  ],
+  "documents": [
+    {
+      "id": "nz-act-rules-index-v1",
+      "organization": "nz-act",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-alliance-rules-index-v1",
+      "organization": "nz-alliance",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-animal-justice-rules-index-v1",
+      "organization": "nz-animal-justice",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-cannabis-rules-index-v1",
+      "organization": "nz-cannabis",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-conservative-rules-index-v1",
+      "organization": "nz-conservative",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-free-palestine-rules-index-v1",
+      "organization": "nz-free-palestine",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-first-rules-index-v1",
+      "organization": "nz-first",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-labour-rules-index-v1",
+      "organization": "nz-labour",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-loyal-rules-index-v1",
+      "organization": "nz-loyal",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-outdoors-rules-index-v1",
+      "organization": "nz-outdoors",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-opportunity-rules-index-v1",
+      "organization": "nz-opportunity",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-maori-rules-index-v1",
+      "organization": "nz-maori",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-tai-tokerau-rules-index-v1",
+      "organization": "nz-tai-tokerau",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-green-rules-index-v1",
+      "organization": "nz-green",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-national-rules-index-v1",
+      "organization": "nz-national",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "nz-vision-rules-index-v1",
+      "organization": "nz-vision",
+      "kind": "statutes",
+      "source": "nz-electoral-register",
+      "section_ids": [],
+      "content_status": "catalogue_reference_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    }
+  ],
+  "crosswalks": [
+    {
+      "id": "cnccfp-name-fr-lfi",
+      "country": "FR",
+      "organization_id": "fr-lfi",
+      "cnccfp_source_id": "976",
+      "source_label": "LA FRANCE INSOUMISE",
+      "observed_on": "2026-11-27",
+      "classification": "reviewed_name_correspondence_only",
+      "legal_identity_verified": false,
+      "runtime_admission": false
+    },
+    {
+      "id": "cnccfp-name-fr-pcf",
+      "country": "FR",
+      "organization_id": "fr-pcf",
+      "cnccfp_source_id": "60",
+      "source_label": "PARTI COMMUNISTE FRANÇAIS",
+      "observed_on": "2026-11-27",
+      "classification": "reviewed_name_correspondence_only",
+      "legal_identity_verified": false,
+      "runtime_admission": false
+    },
+    {
+      "id": "cnccfp-name-fr-ps",
+      "country": "FR",
+      "organization_id": "fr-ps",
+      "cnccfp_source_id": "76",
+      "source_label": "PARTI SOCIALISTE",
+      "observed_on": "2026-11-27",
+      "classification": "reviewed_name_correspondence_only",
+      "legal_identity_verified": false,
+      "runtime_admission": false
+    },
+    {
+      "id": "cnccfp-name-fr-rn",
+      "country": "FR",
+      "organization_id": "fr-rn",
+      "cnccfp_source_id": "40",
+      "source_label": "RASSEMBLEMENT NATIONAL",
+      "observed_on": "2026-11-27",
+      "classification": "reviewed_name_correspondence_only",
+      "legal_identity_verified": false,
+      "runtime_admission": false
+    },
+    {
+      "id": "cnccfp-name-fr-lr",
+      "country": "FR",
+      "organization_id": "fr-lr",
+      "cnccfp_source_id": "401",
+      "source_label": "LES RÉPUBLICAINS",
+      "observed_on": "2026-11-27",
+      "classification": "reviewed_name_correspondence_only",
+      "legal_identity_verified": false,
+      "runtime_admission": false
+    },
+    {
+      "id": "cnccfp-name-fr-renaissance",
+      "country": "FR",
+      "organization_id": "fr-renaissance",
+      "cnccfp_source_id": "910",
+      "source_label": "RENAISSANCE",
+      "observed_on": "2026-11-27",
+      "classification": "reviewed_name_correspondence_only",
+      "legal_identity_verified": false,
+      "runtime_admission": false
+    },
+    {
+      "id": "cnccfp-name-fr-modem",
+      "country": "FR",
+      "organization_id": "fr-modem",
+      "cnccfp_source_id": "529",
+      "source_label": "MOUVEMENT DÉMOCRATE",
+      "observed_on": "2026-11-27",
+      "classification": "reviewed_name_correspondence_only",
+      "legal_identity_verified": false,
+      "runtime_admission": false
+    },
+    {
+      "id": "cnccfp-name-fr-horizons",
+      "country": "FR",
+      "organization_id": "fr-horizons",
+      "cnccfp_source_id": "1344",
+      "source_label": "HORIZONS",
+      "observed_on": "2026-11-27",
+      "classification": "reviewed_name_correspondence_only",
+      "legal_identity_verified": false,
+      "runtime_admission": false
+    },
+    {
+      "id": "cnccfp-name-fr-alliance-royale",
+      "country": "FR",
+      "organization_id": "fr-alliance-royale",
+      "cnccfp_source_id": "424",
+      "source_label": "ALLIANCE ROYALE",
+      "observed_on": "2026-11-27",
+      "classification": "reviewed_name_correspondence_only",
+      "legal_identity_verified": false,
+      "runtime_admission": false
+    }
+  ]
+}
