@@ -263,3 +263,23 @@ ck($planClass::next($cs,'2027-05-14',['pf2027-dlf-production-tax'=>true],$catalo
 ck($planClass::next($cs,'2027-05-14',[],$catalog,['minister'=>true])===null,'human economic proposal suppresses replacement');
 foreach(\Aeternum\WorldPolitics\SocialProgramme::target2027() as $id=>$definition)ck($planClass::permitted('prime-minister',$id)&&!$planClass::permitted('president',$id),'reviewed catalogue authority '.$id);
 no(fn()=>$planClass::portfolio('pf2022-marine-le-pen-2'));
+
+// Participation is sealed only from contiguous clock-owned intervals.
+$part=add(add(L::initial('participation-world','FR','career','2027-05-14'),'a'),'b');
+$pe=function(array $state,string $operation,array $payload,string $day):array{
+    $e=evt($state,$operation,$payload,$day);$e['actor']='career-participation-clerk';
+    $e['world_revision']=\Aeternum\WorldPolitics\CareerScoreContract::elapsed('2027-05-14',$day);
+    $e['evidence_sha']=\Aeternum\WorldPolitics\CareerParticipation::digest($e);return $e;
+};
+$part=L::apply($part,$pe($part,'participation_enable',['version'=>\Aeternum\WorldPolitics\CareerParticipation::VERSION],'2027-05-14'));
+$tickPart=fn($s,$day,$next,$members)=>L::apply($s,$pe($s,'participation_tick',['through'=>$next,'members'=>$members],$day));
+$part=$tickPart($part,'2027-05-14','2027-05-15',['a']);
+no(fn()=>$tickPart($part,'2027-05-16','2027-05-17',['a','b']));
+$part=$tickPart($part,'2027-05-15','2027-05-16',['a','b']);
+$partA=change($part,'election',[],[grant('president','a')],'2027-05-16');
+$partB=change($part,'election',[],[grant('president','b')],'2027-05-16');
+$partA=$tickPart($partA,'2027-05-16','2027-05-17',['a','b']);
+$pa=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($partA,'a','2027-05-17');
+ck($pa['series'][0]['verified_credit_days']===2&&$pa['series'][0]['tenure_participation_verified']&&$pa['score']===null,'daily participation seals exact wait but no unsupported income score');
+$pb=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($partB,'b','2027-05-16');
+ck($pb['series'][0]['verified_credit_days']===null,'pre-accession gap cannot be laundered into opening credit');

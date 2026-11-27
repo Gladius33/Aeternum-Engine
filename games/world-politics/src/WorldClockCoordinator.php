@@ -338,6 +338,8 @@ final class WorldClockCoordinator
                 foreach($this->countries as $cc)if($cc!=='FR'&&in_array($cc,ComparativeGovernment::COUNTRIES,true))
                     UniverseContinuity::publishComparative($this->pdo,$world,$cc,$row['committed_day'],$targetDay);
             }
+            if($this->principal->actorId()==='career-clock-'.$world)
+                PdoCareerInstitutionStore::publishParticipation($this->pdo,$world,$row['committed_day'],$targetDay,(int)$row['revision']);
             $result=[
                 'status'=>200,
                 'result'=>[

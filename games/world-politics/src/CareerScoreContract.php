@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/CareerParticipation.php';
 
 /** WP116 executable specification only. NOT wired into authorization,
  * persistence, HTTP, v1 score publication or live world clocks.
@@ -87,11 +88,13 @@ final class CareerScoreContract
                 'through_day'=>$cutoff,'status'=>$status,'tenure_days'=>$tenure,
                 'tenure_time_points'=>self::timePoints($tenure),'minimum_tenure_reached'=>$tenure>=self::MIN_TENURE,'maximum_unverified_credit_days'=>$maximum,
                 'maximum_unverified_credit_points'=>self::timePoints($tenure+$maximum)-self::timePoints($tenure),
-                'verified_credit_days'=>null,'purchasing_power_gain_bps'=>null,'score'=>null,'rankable'=>false];
+                'verified_credit_days'=>($series['credit_verified']??false)?$series['credit_days']:null,
+                'tenure_participation_verified'=>CareerParticipation::tenureVerified($state,$id,$humanStart,$cutoff),
+                'purchasing_power_gain_bps'=>null,'score'=>null,'rankable'=>false];
         }
         usort($out,fn($a,$b)=>strcmp($a['accession_on'],$b['accession_on'])?:strcmp($a['series_id'],$b['series_id']));
         $waiting=$out===[]&&$mode==='opening'&&$c['first_series']===null?self::elapsed($joined,$through):0;
-        return $base+['status'=>$out===[]?'pre_mandate':'evidence_pending',
+        return $base+['participation_evidence_version'=>$state['participation']['version']??null,'participation_evidence_through'=>$state['participation']['through']??null,'status'=>$out===[]?'pre_mandate':'evidence_pending',
             'pre_mandate_elapsed_days'=>$waiting,'series'=>$out];
     }
 

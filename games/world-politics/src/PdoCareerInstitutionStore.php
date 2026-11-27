@@ -57,6 +57,7 @@ final class PdoCareerInstitutionStore
         CareerInstitutionLedger::check((int)$r===1,'no active world membership');
     }
     public function execute(array $e,string $signature):array{
+        CareerInstitutionLedger::check(!in_array($e['operation']??null,['participation_enable','participation_tick'],true),'participation requires clock-owned evidence');
         $this->evidence->verify($e,$signature);$world=$e['world'];
         return $this->tx(fn()=>$this->applyLocked($e,$signature));
     }
@@ -408,6 +409,11 @@ final class PdoCareerInstitutionStore
             $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
             if($country!=='FR')$this->seedForeignOpening($world,$secret);
             $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret,$reference,$fictional);
+            if($profile==='economic'){
+                $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>0,'command'=>'participation-opening-v1','actor'=>'career-participation-clerk','operation'=>'participation_enable','payload'=>['version'=>CareerParticipation::VERSION]];
+                $e['evidence_sha']=CareerParticipation::digest($e);
+                $this->applyLocked($e,$this->evidence->sign($e));
+            }
             return ['world_id'=>$world,'scenario'=>'wp-career-v1','label'=>$label];
         });
     }
@@ -518,6 +524,29 @@ final class PdoCareerInstitutionStore
             $clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);$this->replay($world,$this->row($world));
             require_once __DIR__.'/CareerEconomicWorld.php';return CareerEconomicWorld::readLocked($this->db,$world,$clock['committed_day']);
         });
+    }
+    /** Called only inside the final recoverable clock publication, after
+     * all domains are verified and before the committed date changes. */
+    public static function publishParticipation(\PDO $db,string $world,string $before,string $target,int $revision):void{
+        CareerInstitutionLedger::check($db->inTransaction(),'participation requires clock transaction');
+        $q=$db->prepare('SELECT w.scenario,w.reference_bundle_sha,c.committed_day,c.pending_day,c.revision,c.domestic_enabled,l.state_json FROM wp_alpha_worlds w JOIN wp_world_clock c ON c.world_id=w.world_id JOIN wp_career_ledgers l ON l.world_id=w.world_id WHERE w.world_id=? FOR UPDATE');
+        $q->execute([$world]);$r=$q->fetch(\PDO::FETCH_ASSOC);
+        if($r===false)return;
+        $state=self::decode($r['state_json']);
+        if(!isset($state['participation']))return; // old worlds never backfill
+        CareerInstitutionLedger::check($r['scenario']==='wp-career-v1'&&is_string($r['reference_bundle_sha'])&&(int)$r['domestic_enabled']===1
+            &&$r['committed_day']===$before&&$r['pending_day']===$target&&(int)$r['revision']===$revision,'participation publication scope');
+        $secret=getenv('WP_CAREER_EVIDENCE_KEY');CareerInstitutionLedger::check(is_string($secret)&&strlen($secret)>=32,'participation key required');
+        $store=new self($db,new CareerInstitutionEvidence($secret));$s=$store->replay($world,$store->row($world));
+        CareerInstitutionLedger::check(isset($s['participation']),'missing replayed participation pin');
+        $members=$store->query('SELECT c.career_id FROM wp_career_memberships c JOIN wp_alpha_members m ON m.world_id=c.world_id AND m.account_id=c.account_id JOIN wp_accounts a ON a.account_id=c.account_id WHERE c.world_id=? AND a.enabled=1 ORDER BY c.career_id FOR UPDATE',[$world])->fetchAll(\PDO::FETCH_COLUMN);
+        $e=['world'=>$world,'country'=>'FR','day'=>$before,'world_revision'=>$revision,'command'=>'participation-'.$before,'actor'=>'career-participation-clerk','operation'=>'participation_tick','payload'=>['through'=>$target,'members'=>$members]];
+        $e['evidence_sha']=CareerParticipation::digest($e);$sig=$store->evidence->sign($e);
+        $next=CareerInstitutionLedger::apply($s,$e);$receipt=self::receipt($next);
+        $store->query('INSERT INTO wp_career_events(world_id,sequence_no,actor_id,command_id,event_json,signature_sha,previous_sha,event_sha,receipt_json) VALUES(?,?,?,?,?,?,?,?,?)',
+            [$world,$next['sequence'],$e['actor'],$e['command'],CareerInstitutionLedger::json($e),$sig,$s['last_event_sha'],$next['last_event_sha'],CareerInstitutionLedger::json($receipt)]);
+        $store->query('UPDATE wp_career_ledgers SET state_json=?,state_sha=?,sequence_no=? WHERE world_id=?',
+            [CareerInstitutionLedger::json($next),$receipt['state_sha'],$next['sequence'],$world]);
     }
     /** Called by the clock with its fence and clock row already locked.
      * Equal expiry may be reached, but no later day until a signed closure/renewal.

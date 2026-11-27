@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/CareerParticipation.php';
 require_once __DIR__.'/CareerScoreContract.php';
 require_once __DIR__.'/ConstitutionalRevision.php';
 require_once __DIR__.'/PresidentialMandate.php';
@@ -75,6 +76,7 @@ final class CareerInstitutionLedger
                 self::check($latest===null||$latest['career']!==$g['career']||$latest['end']!==$day,'same-day renewal cannot reset terms');
                 $series='series-'.hash('sha256',$id);$terms=$latest!==null&&$latest['career']===$g['career']?$latest['terms']+1:1;self::check($s['constitution_rules']['term_limit']===null||$terms<=$s['constitution_rules']['term_limit'],'consecutive presidential term limit');$first=$s['careers'][$g['career']]['first_series']===null;
                 $s['series'][$series]=['career'=>$g['career'],'start'=>$day,'end'=>null,'end_reason'=>null,'credit_days'=>null,'credit_verified'=>false,'first'=>$first,'rankable'=>false];
+                CareerParticipation::seal($s,$series,$day);
                 if($first)$s['careers'][$g['career']]['first_series']=$series;
             }
             $limit=(new \DateTimeImmutable($day))->modify('+'.$s['constitution_rules']['next_term_years'].' years')->format('Y-m-d');
@@ -377,6 +379,8 @@ final class CareerInstitutionLedger
             self::fields($p,['regime_label','assembly_status','legality']);
             self::check(in_array($p['regime_label'],['republic','monarchy','other','contested'],true)&&in_array($p['assembly_status'],['active','disrupted','suspended','restored'],true)&&in_array($p['legality'],['disputed','unverified','recognized'],true),'research categories');
             $s['research_observation']=['day'=>$day,...$p,'runtime_authority'=>false,'rankable'=>false];
+        }elseif(in_array($op,['participation_enable','participation_tick'],true)){
+            CareerParticipation::apply($s,$e);
         }elseif($op==='admit_real_ai_roster'){
             self::admitRealAutonomousRoster($s,$e);
         }elseif($op==='admit_party_ai_roster'){

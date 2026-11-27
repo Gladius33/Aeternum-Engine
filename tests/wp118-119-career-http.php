@@ -113,6 +113,10 @@ ck($after['status']===200&&$after['body']['day']==='2027-05-15'&&$after['body'][
 ck($after['body']['domestic']['state']['days'][0]['active_policies']===[],'unlegislated policy remains inert');
 \Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-15');
 ck(req('GET',$ep.'/economy',null,$etoken)===$after,'no duplicate accrual');
+$participation=req('GET',$ep.'/career',null,$etoken)['body']['score_progress'];
+ck($participation['participation_evidence_through']==='2027-05-15'&&$participation['series'][0]['verified_credit_days']===0
+    &&$participation['series'][0]['tenure_days']===1&&$participation['series'][0]['tenure_participation_verified']&&$participation['score']===null,'clock publishes participation atomically even without daily human action');
+
 ck(!isset($after['body']['domestic']['state']['policies']['administration-report']),'human activity suppressed fallback');
 \Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-16');
 $auto=req('GET',$ep.'/economy',null,$etoken);
