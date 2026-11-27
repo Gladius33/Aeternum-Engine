@@ -207,7 +207,7 @@ $reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
 $resetProfile=PP::compileProfile([$reset114,'industry-active']);
 ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
 no82(fn()=>PP::compileProfile([$reset114,$pension114]));
-ck82(count(SP::objectives())===112&&count(SP::definitions())===24,'WP114j ten explicit repeal families preserve historical archive');
+ck82(count(SP::objectives())===114&&count(SP::definitions())===24&&count(SP::target2027())===2,'WP114j ten explicit repeal families preserve historical archive');
 $pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
 ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
 $resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
