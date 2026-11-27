@@ -241,6 +241,8 @@ jobs:
           python3 games/world-politics/bin/freeze-wp115-wdi.py --audit games/world-politics/data/wp115-wdi-2026-11-27-v1
           python3 tests/wp115-wdi-economic-social.py
           php tests/wp115-reference-catalog.php
+      - name: WP117 documentary political movement registry and provenance
+        run: php tests/wp117-movement-reference.php
       - name: WP97 deterministic source handoff and extracted tests
         run: |
           tmp=$(mktemp -d)

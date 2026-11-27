@@ -98,3 +98,6 @@ Exigences traçables, tests verts sur commit exact, documents et licences, versi
 
 ## WP116 — executable design contract
 See [WP116 ADR](WORLD_POLITICS_WP116_CAREER_SCORE_ADR.md). Identity/office/mandate/career and score v2 architecture is specified; isolated executable specification and formal tests added to CI. No v1 edits, no migration or live activation. Exact-head CI required. WP118–120 remain implementation work; WP117 is the next documentary registry lot.
+
+## WP117 — initial documentary registry
+See [WP117 registry](WORLD_POLITICS_WP117_MOVEMENT_REFERENCE.md). Global directory, immutable WP115 electoral and office observations, WP114 campaign sources, French curated identities, attributed roles and restricted document indexes; exact-head CI required. Worldwide exhaustive collection, complete crosswalks and manifesto editions remain ongoing; no documentary record grants gameplay authority. WP118 is the next engineering lot.

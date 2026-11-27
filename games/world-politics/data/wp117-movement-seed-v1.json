@@ -1,0 +1,988 @@
+{
+  "schema": "wp117-movement-seed-v1",
+  "as_of": "2026-11-27",
+  "runtime_admission": false,
+  "exhaustive": false,
+  "sources": {
+    "ipu-fr-2024": {
+      "url": "https://data.ipu.org/fr/parliament/FR/FR-LC01/election/FR-LC01-E20240630/",
+      "kind": "institutional",
+      "source_date": "2024-07-07",
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "cnccfp": {
+      "url": "https://liste.cnccfp.fr/liste_partis.php",
+      "kind": "institutional",
+      "source_date": "2026-06-05",
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "cnccfp-2024": {
+      "url": "https://cnccfp.fr/publication-de-lavis-de-la-cnccfp-sur-les-comptes-des-partis-politiques-exercice-2024/",
+      "kind": "institutional",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "royalist-directory": {
+      "url": "https://www.france-politique.fr/wiki/Cat%C3%A9gorie%3AMouvements_royalistes",
+      "kind": "secondary_directory",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "aaf-history": {
+      "url": "https://www.lactionfrancaise.fr/qui-sommes-nous/",
+      "kind": "self_description",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "aaf-committee": {
+      "url": "https://www.lactionfrancaise.fr/2022/12/22/communique/",
+      "kind": "self_description",
+      "source_date": "2022-12-22",
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "gar-description": {
+      "url": "https://www.actionroyaliste.fr/qui-sommes-nous/",
+      "kind": "self_description",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "alliance-royale": {
+      "url": "https://allianceroyale.fr/",
+      "kind": "self_description",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "nar-history": {
+      "url": "https://www.bertrand-renouvin.fr/les-50-ans-de-la-nar-ce-que-nous-sommes/",
+      "kind": "self_description",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "an-2019": {
+      "url": "https://www.assemblee-nationale.fr/dyn/15/organes/cnpe/commission-d-enquete-sur-la-lutte-contre-les-groupuscules-d-extreme-droite/documents",
+      "kind": "institutional",
+      "source_date": "2019-04-25",
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "press-2023": {
+      "url": "https://www.leparisien.fr/val-de-marne-94/un-rassemblement-du-mouvement-dextreme-droite-les-nationalistes-interdit-a-thiais-01-09-2023-QIBI72JTZNDNFGAJWO5ZBAZLDQ.php",
+      "kind": "independent_press",
+      "source_date": "2023-09-01",
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "nationalistes-bio": {
+      "url": "https://www.les-nationalistes.com/notre-combat/yvan-benedetti/",
+      "kind": "self_description",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "nationalistes-p": {
+      "url": "https://www.les-nationalistes.com/notre-combat/programme/",
+      "kind": "self_description",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "nationalistes-m": {
+      "url": "https://www.les-nationalistes.com/notre-combat/manifeste-nationaliste/",
+      "kind": "self_description",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "fr-party-directory": {
+      "url": "https://www.france-politique.fr/mediawiki/index.php?pagefrom=Comit%C3%A9+Central+Bonapartiste+d%27Ajaccio+%28CCBA%29&title=Cat%C3%A9gorie%3APartis_politiques_Ve_R%C3%A9publique",
+      "kind": "secondary_directory",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "fr-party-list": {
+      "url": "https://fr.wikipedia.org/wiki/Liste_de_partis_politiques_en_France",
+      "kind": "secondary_directory",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "partyfacts-2023": {
+      "url": "https://doi.org/10.7910/DVN/TJINLQ",
+      "kind": "academic_discovery",
+      "source_date": "2023-12-15",
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "manifesto-2026a": {
+      "url": "https://manifestoproject.wzb.eu/datasets/MPDS2026a",
+      "kind": "academic_discovery",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    },
+    "gps": {
+      "url": "https://www.globalpartysurvey.org/download-data",
+      "kind": "academic_discovery",
+      "source_date": null,
+      "reviewed_on": "2026-11-27",
+      "source_bytes_sha256": null
+    }
+  },
+  "doctrines": [
+    {
+      "id": "liberalism",
+      "label": "liberalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "social_liberalism",
+      "label": "social liberalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "classical_liberalism",
+      "label": "classical liberalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "libertarianism",
+      "label": "libertarianism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "conservatism",
+      "label": "conservatism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "christian_democracy",
+      "label": "christian democracy",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "social_democracy",
+      "label": "social democracy",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "democratic_socialism",
+      "label": "democratic socialism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "socialism",
+      "label": "socialism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "communism",
+      "label": "communism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "marxism",
+      "label": "marxism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "leninism",
+      "label": "leninism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "trotskyism",
+      "label": "trotskyism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "maoism",
+      "label": "maoism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "libertarian_communism",
+      "label": "libertarian communism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "anarchism",
+      "label": "anarchism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "anarcho_syndicalism",
+      "label": "anarcho syndicalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "environmentalism",
+      "label": "environmentalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "green_politics",
+      "label": "green politics",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "agrarianism",
+      "label": "agrarianism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "regionalism",
+      "label": "regionalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "federalism",
+      "label": "federalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "nationalism",
+      "label": "nationalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "civic_nationalism",
+      "label": "civic nationalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "ethnic_nationalism",
+      "label": "ethnic nationalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "sovereigntism",
+      "label": "sovereigntism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "monarchism",
+      "label": "monarchism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "legitimism",
+      "label": "legitimism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "orleanism",
+      "label": "orleanism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "constitutional_monarchism",
+      "label": "constitutional monarchism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "absolute_monarchism",
+      "label": "absolute monarchism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "bonapartism",
+      "label": "bonapartism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "republicanism",
+      "label": "republicanism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "direct_democracy",
+      "label": "direct democracy",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "technocracy",
+      "label": "technocracy",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "corporatism",
+      "label": "corporatism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "distributism",
+      "label": "distributism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "theocracy",
+      "label": "theocracy",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "political_islam",
+      "label": "political islam",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "historical_fascism",
+      "label": "historical fascism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "historical_nazism",
+      "label": "historical nazism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "far_right",
+      "label": "far right",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "far_left",
+      "label": "far left",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "populism",
+      "label": "populism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "social_conservatism",
+      "label": "social conservatism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "progressivism",
+      "label": "progressivism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "feminism",
+      "label": "feminism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "pacifism",
+      "label": "pacifism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "anti_colonialism",
+      "label": "anti colonialism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "pan_africanism",
+      "label": "pan africanism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "pan_arabism",
+      "label": "pan arabism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "separatism",
+      "label": "separatism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "unionism",
+      "label": "unionism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "social_market_economy",
+      "label": "social market economy",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    },
+    {
+      "id": "syndicalism",
+      "label": "syndicalism",
+      "kind": "open_descriptive_vocabulary",
+      "normative_rank": null
+    }
+  ],
+  "organizations": [
+    {
+      "id": "fr-lfi",
+      "country": "FR",
+      "name": "La France insoumise",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-pcf",
+      "country": "FR",
+      "name": "Parti communiste français",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-ecologistes",
+      "country": "FR",
+      "name": "Les Écologistes",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-ps",
+      "country": "FR",
+      "name": "Parti socialiste",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-renaissance",
+      "country": "FR",
+      "name": "Renaissance",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-modem",
+      "country": "FR",
+      "name": "Mouvement démocrate",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-horizons",
+      "country": "FR",
+      "name": "Horizons",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-udi",
+      "country": "FR",
+      "name": "Union des démocrates et indépendants",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-rn",
+      "country": "FR",
+      "name": "Rassemblement national",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-lr",
+      "country": "FR",
+      "name": "Les Républicains",
+      "kind": "party",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-nfp",
+      "country": "FR",
+      "name": "Nouveau Front populaire",
+      "kind": "electoral_coalition",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-ensemble",
+      "country": "FR",
+      "name": "Ensemble",
+      "kind": "electoral_coalition",
+      "source_ids": [
+        "ipu-fr-2024"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-craf",
+      "country": "FR",
+      "name": "Centre royaliste d’Action française",
+      "kind": "movement",
+      "source_ids": [
+        "royalist-directory"
+      ],
+      "doctrines": [
+        {
+          "id": "monarchism",
+          "source": "royalist-directory",
+          "classification": "attributed_descriptor"
+        }
+      ],
+      "status": "documented_identity_only",
+      "note": "Directory identity only; no present leadership inferred.",
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-aaf",
+      "country": "FR",
+      "name": "Amitié et Action française",
+      "kind": "association",
+      "source_ids": [
+        "aaf-history",
+        "aaf-committee"
+      ],
+      "doctrines": [
+        {
+          "id": "monarchism",
+          "source": "aaf-history",
+          "classification": "attributed_descriptor"
+        },
+        {
+          "id": "nationalism",
+          "source": "aaf-history",
+          "classification": "attributed_descriptor"
+        }
+      ],
+      "status": "documented_identity_only",
+      "note": "Distinct from the CRAF.",
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-af-committee",
+      "country": "FR",
+      "name": "Comité directeur de l’Action française",
+      "kind": "organization_body",
+      "source_ids": [
+        "aaf-committee"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": "Body as described in its 2022 statement; not merged with AAF or CRAF.",
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-alliance-royale",
+      "country": "FR",
+      "name": "Alliance royale",
+      "kind": "party",
+      "source_ids": [
+        "alliance-royale",
+        "royalist-directory"
+      ],
+      "doctrines": [
+        {
+          "id": "monarchism",
+          "source": "alliance-royale",
+          "classification": "attributed_descriptor"
+        }
+      ],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-nar",
+      "country": "FR",
+      "name": "Nouvelle Action royaliste",
+      "kind": "movement",
+      "source_ids": [
+        "nar-history",
+        "royalist-directory"
+      ],
+      "doctrines": [
+        {
+          "id": "monarchism",
+          "source": "royalist-directory",
+          "classification": "attributed_descriptor"
+        }
+      ],
+      "status": "documented_identity_only",
+      "note": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-uclf",
+      "country": "FR",
+      "name": "Union des cercles légitimistes de France",
+      "kind": "association",
+      "source_ids": [
+        "royalist-directory"
+      ],
+      "doctrines": [
+        {
+          "id": "legitimism",
+          "source": "royalist-directory",
+          "classification": "attributed_descriptor"
+        }
+      ],
+      "status": "documented_identity_only",
+      "note": "Legal form and current officers not independently established; association is a descriptive category.",
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-gar",
+      "country": "FR",
+      "name": "Groupe d’Action royaliste",
+      "kind": "advocacy_structure",
+      "source_ids": [
+        "gar-description"
+      ],
+      "doctrines": [
+        {
+          "id": "monarchism",
+          "source": "gar-description",
+          "classification": "attributed_descriptor"
+        }
+      ],
+      "status": "documented_identity_only",
+      "note": "Self-description distinguishes this structure from a political party.",
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-nationalistes",
+      "country": "FR",
+      "name": "Les Nationalistes",
+      "kind": "movement",
+      "source_ids": [
+        "press-2023",
+        "nationalistes-bio"
+      ],
+      "doctrines": [
+        {
+          "id": "far_right",
+          "source": "press-2023",
+          "classification": "attributed_descriptor"
+        }
+      ],
+      "status": "documented_identity_only",
+      "note": "Documentary identity; discriminatory and antisemitic conspiratorial claims in source corpus are not facts or executable objectives.",
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-pnf",
+      "country": "FR",
+      "name": "Parti nationaliste français",
+      "kind": "historical_party",
+      "source_ids": [
+        "an-2019",
+        "nationalistes-bio"
+      ],
+      "doctrines": [],
+      "status": "documented_identity_only",
+      "note": "2019 historical identity; subsequent transformation is a sourced claim, not a proven legal merger.",
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-ccba",
+      "country": "FR",
+      "name": "Comité central bonapartiste d’Ajaccio",
+      "kind": "movement",
+      "source_ids": [
+        "fr-party-directory"
+      ],
+      "doctrines": [
+        {
+          "id": "bonapartism",
+          "source": "fr-party-directory",
+          "classification": "attributed_descriptor"
+        }
+      ],
+      "status": "documented_identity_only",
+      "note": "Directory observation; current status unverified.",
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-ucl",
+      "country": "FR",
+      "name": "Union communiste libertaire",
+      "kind": "movement",
+      "source_ids": [
+        "fr-party-list"
+      ],
+      "doctrines": [
+        {
+          "id": "libertarian_communism",
+          "source": "fr-party-list",
+          "classification": "attributed_descriptor"
+        }
+      ],
+      "status": "documented_identity_only",
+      "note": "Secondary discovery only.",
+      "runtime_admission": false
+    }
+  ],
+  "people": [
+    {
+      "id": "fr-yvan-benedetti",
+      "country": "FR",
+      "name": "Yvan Benedetti",
+      "source_ids": [
+        "an-2019",
+        "press-2023"
+      ]
+    },
+    {
+      "id": "fr-clement-gautier",
+      "country": "FR",
+      "name": "Clément Gautier",
+      "source_ids": [
+        "aaf-committee"
+      ]
+    }
+  ],
+  "affiliations": [
+    {
+      "id": "fr-benedetti-pnf-2019",
+      "person": "fr-yvan-benedetti",
+      "organization": "fr-pnf",
+      "role": "spokesperson",
+      "observed_on": "2019-04-25",
+      "start": null,
+      "end": null,
+      "source": "an-2019",
+      "classification": "institutional_observation"
+    },
+    {
+      "id": "fr-benedetti-nationalistes-2023",
+      "person": "fr-yvan-benedetti",
+      "organization": "fr-nationalistes",
+      "role": "leader",
+      "observed_on": "2023-09-01",
+      "start": null,
+      "end": null,
+      "source": "press-2023",
+      "classification": "independent_observation"
+    },
+    {
+      "id": "fr-gautier-committee-2022",
+      "person": "fr-clement-gautier",
+      "organization": "fr-af-committee",
+      "role": "secretary",
+      "observed_on": "2022-12-22",
+      "start": null,
+      "end": null,
+      "source": "aaf-committee",
+      "classification": "self_reported_observation"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "fr-pnf-nationalistes-2019",
+      "from": "fr-pnf",
+      "to": "fr-nationalistes",
+      "kind": "claimed_transformation",
+      "observed_on": "2019-06-30",
+      "source": "nationalistes-bio",
+      "legal_continuity_verified": false
+    },
+    {
+      "id": "fr-af-committee-aaf-2022",
+      "from": "fr-af-committee",
+      "to": "fr-aaf",
+      "kind": "claimed_recognition",
+      "observed_on": "2022-12-22",
+      "source": "aaf-committee",
+      "legal_continuity_verified": false
+    }
+  ],
+  "documents": [
+    {
+      "id": "fr-nationalistes-programme-v1",
+      "organization": "fr-nationalistes",
+      "kind": "programme",
+      "source": "nationalistes-p",
+      "section_ids": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "P20",
+        "P21",
+        "P22",
+        "P23",
+        "P24",
+        "P25"
+      ],
+      "content_status": "section_index_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    },
+    {
+      "id": "fr-nationalistes-manifeste-v1",
+      "organization": "fr-nationalistes",
+      "kind": "manifesto",
+      "source": "nationalistes-m",
+      "section_ids": [
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "M7",
+        "M8",
+        "M9",
+        "M10",
+        "M11",
+        "M12",
+        "M13",
+        "M14",
+        "M15",
+        "M16",
+        "M17",
+        "M18",
+        "M19",
+        "M20",
+        "M21",
+        "M22",
+        "M23",
+        "M24",
+        "M25"
+      ],
+      "content_status": "section_index_only",
+      "restricted_documentary": true,
+      "publication_date": null,
+      "runtime_admission": false
+    }
+  ]
+}
