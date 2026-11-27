@@ -178,7 +178,8 @@ ck(count($dir['universes'])===1&&$dir['universes'][0]['vacant']===7&&$dir['unive
 ck(req('POST',$pp.'/members',['account_id'=>$eid],$etoken)['status']===409,'public membership never grants owner role');
 ck(req('GET',$pp.'/career',null,$etoken)['body']['mandates']===[],'joining confers no office');
 $publicCareer=$public['body']['career_id'];
-$cs->certifyBallot($pw,['ballot'=>['registered'=>1000,'first'=>['votes'=>[$publicCareer=>600],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'],'public-score-ballot-01',$secret);
+$publicRoster=$cs->audit($pw)['careers'];$publicOpponent=array_key_first(array_filter($publicRoster,fn($c)=>$c['account']===null));
+$cs->certifyBallot($pw,['ballot'=>['registered'=>1000,'first'=>['votes'=>[$publicCareer=>600,$publicOpponent=>300],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'],'public-score-ballot-01',$secret);
 $exec('UPDATE wp_career_public_worlds SET next_tick_epoch=UNIX_TIMESTAMP()-1 WHERE world_id=?',[$pw]);
 $sch=new \Aeternum\WorldPolitics\CareerUniverseScheduler($connect);
 ck($sch->tick($pw)['day']==='2027-05-15','one human public world ticks autonomously');
@@ -192,7 +193,7 @@ ck($rank['status']===200&&$rank['body']['rows']===[]&&!$rank['body']['official_e
 $rank2=req('GET','/career-worlds/rankings/global/'.$opening.'/2/'.$rank['body']['snapshot'],null,$etoken);
 ck($rank2['status']===200&&$rank2['body']['rows']===[],'snapshot pagination');
 ck(req('GET','/career-worlds/rankings/global/'.$opening.'/2/'.str_repeat('0',64),null,$etoken)['status']===409,'stale snapshot rejected');
-$pubq=$db->prepare('SELECT COUNT(*) FROM wp_career_score_latest WHERE world_id=? AND qualified=0');$pubq->execute([$pw]);
+$pubq=$pdo->prepare('SELECT COUNT(*) FROM wp_career_score_latest WHERE world_id=? AND qualified=0');$pubq->execute([$pw]);
 ck((int)$pubq->fetchColumn()===1,'daily score committed atomically');
 
 $public2=req('POST','/career-worlds/join',['world_id'=>$pw],$t2,'public-career-join-02');
