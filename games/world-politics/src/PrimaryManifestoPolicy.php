@@ -119,9 +119,11 @@ final class PrimaryManifestoPolicy
             $r['affected_persons_proxy']=$a['eligible_persons'];$r['annual_expense_delta_eur']=$a['eligible_persons']*max(0,$monthly-$a['reference_monthly_eur'])*12;
             $r['benefit_floor_cash_minor']=intdiv($r['annual_expense_delta_eur']*100,365);
         }elseif($f==='public-pay'){
-            $net=intdiv($a['reference_monthly_net_eur']*$t['increase_bps'],10000);
+            $increase=$t['increase_bps'];
+            if(isset($t['phase_years']))$increase=intdiv($increase*min($elapsed+1,$t['phase_years']*365),$t['phase_years']*365);
+            $net=intdiv($a['reference_monthly_net_eur']*$increase,10000);
             $r['affected_persons_proxy']=$a['workers'];$r['annual_expense_delta_eur']=intdiv($net*$a['employer_cost_bps'],10000)*$a['workers']*12;
-            $r['wage_premium_bps']=intdiv($t['increase_bps']*min($a['workers'],$employed),max(1,$employed));
+            $r['wage_premium_bps']=intdiv($increase*min($a['workers'],$employed),max(1,$employed));
         }elseif($f==='agriculture-fund'){
             $r['annual_expense_delta_eur']=$t['annual_eur'];
         }elseif($f==='culture-budget'){

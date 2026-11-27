@@ -207,7 +207,7 @@ $reset114='social-repeal-pension';$pension114='hist2022-jean-luc-melenchon-1';
 $resetProfile=PP::compileProfile([$reset114,'industry-active']);
 ck82(strlen($resetProfile)<=24&&PP::socialIds($resetProfile)===[$reset114]&&PP::agenda($resetProfile)['industry']==='active','WP114j canonical mixed repeal programme');
 no82(fn()=>PP::compileProfile([$reset114,$pension114]));
-ck82(count(SP::objectives())===127&&count(SP::definitions())===24&&count(SP::target2027())===12,'WP114j ten explicit repeal families preserve historical archive');
+ck82(count(SP::objectives())===128&&count(SP::definitions())===24&&count(SP::target2027())===13,'WP114j ten explicit repeal families preserve historical archive');
 $pendingReset=PP::nextProposal($resetProfile,'2027-10-01',[$pension114=>$oldSocial],true);
 ck82($pendingReset['policy_id']===$reset114,'WP114j explicit repeal proposed only with active prior reform');
 $resetPolicy=['proposed_on'=>'2027-10-01','effective_on'=>$pendingReset['effective_day'],'authorized_on'=>null,'instrument_sha'=>null];
@@ -499,7 +499,7 @@ ck82($reference2027['scenario_start']==='2027-05-14'&&$reference2027['observed_o
     &&!$reference2027['final_candidate_list_verified']&&!$reference2027['complete_programmes_verified']
     &&!$reference2027['historical_2022_is_2027_programme']&&!$reference2027['historical_2022_automatic_import'],
     'WP114 provisional sources cannot certify future programmes');
-ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_count']===12
+ck82(!$reference2027['selection_enabled']&&$reference2027['executable_measure_count']===13
     &&count(array_unique(array_column($reference2027['sources'],'id')))===count($reference2027['sources']),
     'WP114 discovery register separates reviewed objectives from candidate selection');
 foreach($reference2027['sources'] as $source2027)ck82(str_starts_with($source2027['url'],'https://'),'WP114 dated programme discovery link');
@@ -580,7 +580,7 @@ foreach(['social-repeal-contribution-cut','social-repeal-industrial-grants'] as 
 
 $cc2027=\Aeternum\WorldPolitics\CampaignCandidate::class;
 $choices2027=$cc2027::campaign2027Choices();
-ck82(count($choices2027)===5,'WP114 provisional candidate references separately discoverable');
+ck82(count($choices2027)===6,'WP114 provisional candidate references separately discoverable');
 foreach($choices2027 as $choice){
     $p2027=$cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>$choice['id']]);
     ck82($p2027['kind']==='real'&&$p2027['as_of']==='2026-11-27'
@@ -590,7 +590,7 @@ foreach($choices2027 as $choice){
 no82(fn()=>$cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'real-emmanuel-macron']));
 no82(fn()=>$cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'campaign2027-jean-luc-melenchon','programme'=>[]]));
 $sensitivity2027=SC::target2027Sensitivity($pop,$services,$base);
-ck82(count($sensitivity2027['measures'])===12&&!$sensitivity2027['causal_calibration_qualified'],'WP114 all reviewed 2027 objectives have explicit scenario diagnostics');
+ck82(count($sensitivity2027['measures'])===13&&!$sensitivity2027['causal_calibration_qualified'],'WP114 all reviewed 2027 objectives have explicit scenario diagnostics');
 foreach($sensitivity2027['measures'] as $m)foreach($m['periods'] as $p)foreach($p['metrics'] as $v)
     ck82($v['min']<=$v['central']&&$v['central']<=$v['max'],'WP114 2027 sensitivity contains central');
 
@@ -603,3 +603,13 @@ ck82($overtimeFlow['daily_revenue_delta_minor']<0&&$overtimeFlow['measures'][0][
 no82(fn()=>PP::compileProfile(['pf2027-lfi-renovation','pf2027-ecologistes-renovation']));
 ck82(count($cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'campaign2027-jean-luc-melenchon'])['programme'])===2
     &&count($cc2027::normalizeManaged(['type'=>'campaign2027','reference_id'=>'campaign2027-jean-luc-melenchon-v2'])['programme'])===6,'WP114 immutable prior profile and expanded edition');
+
+
+$teacher27='pf2027-philippe-teacher-pay';$teacherLaw=[$teacher27=>['effective_on'=>$effect2027]];
+$firstTeacher=SE::calculate([$teacher27],$teacherLaw,$effect2027,$pop,$services,$base,null);
+$lastTeacher=SE::calculate([$teacher27],$teacherLaw,'2032-09-11',$pop,$services,$base,null);
+ck82($lastTeacher['daily_expense_delta_minor']>$firstTeacher['daily_expense_delta_minor']&&$lastTeacher['measures'][0]['affected_persons_proxy']===850000,'WP114 teacher pay ramp and scoped cohort');
+no82(fn()=>PP::compileProfile([$teacher27,'pf2027-lfi-public-index']));
+$inventory27=$reference2027['direct_source_inventory'];
+ck82(count($inventory27['people'])>=16&&!$inventory27['exhaustive']&&!$inventory27['final_ballot_verified'],'WP114 dated direct-site inventory is explicitly incomplete');
+ck82($inventory27['people']['francois-asselineau']['publication_state']==='announced_not_published','WP114 do not import 2022 as an unpublished 2027 programme');

@@ -4,6 +4,7 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/HistoricalCandidateReference.php';
 require_once __DIR__.'/CampaignLifecycle.php';
 require_once __DIR__.'/PresidentialProgramme.php';
+require_once __DIR__.'/ProgrammeSourceInventory.php';
 
 /** Choose the player-controlled identity at creation, not an electoral claim.
  * The immutable simulation character ID and all score rules are unchanged.
@@ -35,6 +36,8 @@ final class CampaignCandidate
                     'url'=>'https://www.data.gouv.fr/datasets/programmes-de-lelection-presidentielle-francaise-2027'],
                 ['id'=>'fr2027-lfi','publisher'=>'La France insoumise','kind'=>'campaign_project',
                     'url'=>'https://melenchon2027.fr/programme/livre'],
+                ['id'=>'fr2027-philippe','publisher'=>'Édouard Philippe','kind'=>'campaign_project',
+                    'url'=>'https://www.edouardphilippe.fr/programme'],
             ],'extraction_complete'=>false,'executable_measure_count'=>count(SocialProgramme::target2027()),
             'reviewed_measures'=>[
                 ['id'=>'pf2027-jean-luc-melenchon-smic','publisher'=>'La France insoumise',
@@ -69,8 +72,11 @@ final class CampaignCandidate
                     'target'=>['annual_places'=>10000,'years'=>5],'scope'=>'incremental_operating_cost_not_construction_certification'],
                 ['id'=>'pf2027-retailleau-overtime','publisher'=>'Bruno Retailleau','source'=>'https://www.avecretailleau.fr/projet/mesure/rapprocher-le-brut-du-net-avec-le-seuil-zero-cotisation',
                     'target'=>['annual_threshold_hours'=>1623,'social_contributions_above_threshold_bps'=>0,'csg_crds_retained'=>true],'scope'=>'residual_payroll_relief_without_claimed_financing'],
+                ['id'=>'pf2027-philippe-teacher-pay','publisher'=>'Édouard Philippe','source'=>'https://www.edouardphilippe.fr/programme/ecole',
+                    'target'=>['increase_bps'=>2000,'phase_years'=>5,'scope'=>'teachers'],'scope'=>'linear_five_year_payroll_proxy'],
             ],
             'identified_unmapped'=>[],
+            'direct_source_inventory'=>ProgrammeSourceInventory::report(),
             'selection_enabled'=>false,'reviewed_profile_selection_enabled'=>true,'requires_primary_source_review'=>true];
         $ids=[];
         foreach($r['reviewed_measures'] as $m){
@@ -93,6 +99,7 @@ final class CampaignCandidate
             ['id'=>'campaign2027-jean-luc-melenchon','name'=>'Jean-Luc Mélenchon','publisher'=>'La France insoumise','source'=>'https://melenchon2027.fr/programme/decouvrir'],
             ['id'=>'campaign2027-bruno-retailleau','name'=>'Bruno Retailleau','publisher'=>'Bruno Retailleau','source'=>'https://www.avecretailleau.fr/projet/faq'],
             ['id'=>'campaign2027-nicolas-dupont-aignan','name'=>'Nicolas Dupont-Aignan','publisher'=>'Debout la France','source'=>'https://www.debout-la-france.fr/wp-content/uploads/2026/11/Programme-et-plan-de-financement-economique.pdf'],
+            ['id'=>'campaign2027-edouard-philippe','name'=>'Édouard Philippe','publisher'=>'Édouard Philippe','source'=>'https://www.edouardphilippe.fr/programme'],
         ];
         // Preserve previously issued reference IDs and their exact roster
         // fingerprints. New programme editions have separate IDs.
@@ -100,6 +107,7 @@ final class CampaignCandidate
             'campaign2027-jean-luc-melenchon'=>['pf2027-jean-luc-melenchon-smic','pf2027-jean-luc-melenchon-pension'],
             'campaign2027-bruno-retailleau'=>['pf2027-retailleau-contributions'],
             'campaign2027-nicolas-dupont-aignan'=>['pf2027-dlf-production-tax','pf2027-dlf-industrial-grants'],
+            'campaign2027-edouard-philippe'=>['pf2027-philippe-teacher-pay'],
         ];
         foreach([$rows[0],$rows[1]] as $row){$row['id'].='-v2';$rows[]=$row;}
         foreach($rows as &$row){

@@ -1,0 +1,204 @@
+{
+  "schema": "wp114-direct-source-inventory-v1",
+  "election_year": 2027,
+  "observed_on": "2026-11-27",
+  "exhaustive": false,
+  "final_ballot_verified": false,
+  "people": {
+    "jean-luc-melenchon": {
+      "name": "Jean-Luc Mélenchon",
+      "url": "https://melenchon2027.fr/programme/livre",
+      "publication_state": "programme_and_archives_distinguished",
+      "note": "Current book and separate older collections; review each chapter edition.",
+      "observed_on": "2026-11-27"
+    },
+    "bruno-retailleau": {
+      "name": "Bruno Retailleau",
+      "url": "https://www.avecretailleau.fr/projet/faq",
+      "publication_state": "published_project",
+      "note": "Consolidated costing referred to by the campaign; claimed savings require independent modelling.",
+      "observed_on": "2026-11-27"
+    },
+    "nicolas-dupont-aignan": {
+      "name": "Nicolas Dupont-Aignan",
+      "url": "https://www.debout-la-france.fr/projet/produire-en-france/",
+      "publication_state": "published_project",
+      "note": "Industrial policy and financing documents; other policy chapters not fully extracted.",
+      "observed_on": "2026-11-27"
+    },
+    "marine-tondelier": {
+      "name": "Marine Tondelier",
+      "url": "https://lesecologistes.fr/pages/6ImK65GKUnvibm33WGkjkj/projet-2027",
+      "publication_state": "party_project",
+      "note": "Party project; personal attribution not inferred.",
+      "observed_on": "2026-11-27"
+    },
+    "edouard-philippe": {
+      "name": "Édouard Philippe",
+      "url": "https://www.edouardphilippe.fr/programme",
+      "publication_state": "published_in_progress",
+      "note": "First volume and online topic pages; further publications expected.",
+      "observed_on": "2026-11-27"
+    },
+    "gabriel-attal": {
+      "name": "Gabriel Attal",
+      "url": "https://attalpresident.fr/programme",
+      "publication_state": "published_in_progress",
+      "note": "Thematic measures; detailed policy and financing review needed.",
+      "observed_on": "2026-11-27"
+    },
+    "raphael-glucksmann": {
+      "name": "Raphaël Glucksmann",
+      "url": "https://glucks2027.fr/revolution-ecologique/",
+      "publication_state": "published_partial",
+      "note": "First ecological programme booklet dated 9 November.",
+      "observed_on": "2026-11-27"
+    },
+    "dominique-de-villepin": {
+      "name": "Dominique de Villepin",
+      "url": "https://lafrancehumaniste.fr/france2027.html",
+      "publication_state": "published_project",
+      "note": "Programme sections on economic, social and institutional policy.",
+      "observed_on": "2026-11-27"
+    },
+    "david-lisnard": {
+      "name": "David Lisnard",
+      "url": "https://www.unenouvelleenergie.fr/notre-programme/",
+      "publication_state": "party_project",
+      "note": "Programme and thematic work; require direct mapping of targets.",
+      "observed_on": "2026-11-27"
+    },
+    "fabien-roussel": {
+      "name": "Fabien Roussel",
+      "url": "https://www.fabienroussel2027.fr/",
+      "publication_state": "campaign_material",
+      "note": "Campaign materials and policy chapters; no assumption of full final programme.",
+      "observed_on": "2026-11-27"
+    },
+    "nathalie-arthaud": {
+      "name": "Nathalie Arthaud",
+      "url": "https://www.lutte-ouvriere.org/portail/rubrique/presidentielle-2027-la-campagne-de-nathalie-arthaud.html",
+      "publication_state": "campaign_material",
+      "note": "Campaign brochure and dated statements; full document extraction pending.",
+      "observed_on": "2026-11-27"
+    },
+    "clara-egger": {
+      "name": "Clara Egger",
+      "url": "https://solutiondemocratique.fr/programme-presidentielle/",
+      "publication_state": "published_project",
+      "note": "Constitutional and local direct democracy, requires specific legal route.",
+      "observed_on": "2026-11-27"
+    },
+    "juan-branco": {
+      "name": "Juan Branco",
+      "url": "https://ruches.org/",
+      "publication_state": "campaign_material",
+      "note": "Programme link and publications; distinguish project from older archive.",
+      "observed_on": "2026-11-27"
+    },
+    "antoine-mikolajczak": {
+      "name": "Antoine Mikolajczak",
+      "url": "https://parti-equinoxe.fr/contre-budget-2027/",
+      "publication_state": "published_partial",
+      "note": "Party counter-budget is a proposal, not enacted fiscal baseline.",
+      "observed_on": "2026-11-27"
+    },
+    "bernard-cazeneuve": {
+      "name": "Bernard Cazeneuve",
+      "url": "https://bc2027.fr/",
+      "publication_state": "published_partial",
+      "note": "Letter and campaign project; no final ballot claim.",
+      "observed_on": "2026-11-27"
+    },
+    "eric-zemmour": {
+      "name": "Éric Zemmour",
+      "url": "https://www.ericzemmour.fr/",
+      "publication_state": "published_partial",
+      "note": "Campaign priorities, detailed programme extraction incomplete.",
+      "observed_on": "2026-11-27"
+    },
+    "xavier-bertrand": {
+      "name": "Xavier Bertrand",
+      "url": "https://www.nousfrance.fr/",
+      "publication_state": "campaign_material",
+      "note": "Party pages; no complete 2027 programme established by this review.",
+      "observed_on": "2026-11-27"
+    },
+    "florian-philippot": {
+      "name": "Florian Philippot",
+      "url": "https://les-patriotes.fr/",
+      "publication_state": "party_project",
+      "note": "Party project link; verify the dated edition before mapping.",
+      "observed_on": "2026-11-27"
+    },
+    "francois-asselineau": {
+      "name": "François Asselineau",
+      "url": "https://upr.fr/notre-programme",
+      "publication_state": "announced_not_published",
+      "note": "Official page explicitly announces forthcoming programme.",
+      "observed_on": "2026-11-27"
+    },
+    "marine-le-pen": {
+      "name": "Marine Le Pen",
+      "url": "https://marinelepen.com/",
+      "publication_state": "campaign_material",
+      "note": "Official campaign site contains news/material; complete programme not verified.",
+      "observed_on": "2026-11-27"
+    },
+    "anasse-kazib": {
+      "name": "Anasse Kazib",
+      "url": "https://www.revolutionpermanente.fr/28h-expropriation-des-secteurs-strategiques-RP-presente-les-premieres-mesures-de-sa-candidature?amp=1",
+      "publication_state": "published_partial",
+      "note": "Initial proposals; model working hours separately and retain institutional constraints.",
+      "observed_on": "2026-11-27"
+    },
+    "olivier-becht": {
+      "name": "Olivier Becht",
+      "url": "https://becht2027.fr/projet-france/",
+      "publication_state": "published_project",
+      "note": "Project France book; complete text extraction and costing review pending.",
+      "observed_on": "2026-11-27"
+    }
+  },
+  "identified_unmapped": [
+    {
+      "person": "gabriel-attal",
+      "source": "https://attalpresident.fr/programme/travail-salaires",
+      "target": {
+        "trained_childcare_professionals": 200000,
+        "target_year": 2030
+      },
+      "reason": "training throughput distinct from new public hires"
+    },
+    {
+      "person": "edouard-philippe",
+      "source": "https://www.edouardphilippe.fr/programme/logement",
+      "target": {
+        "annual_housing_units": 400000,
+        "years": 10
+      },
+      "reason": "all housing construction not social housing or public appropriation"
+    },
+    {
+      "person": "clara-egger",
+      "source": "https://solutiondemocratique.fr/programme-presidentielle/",
+      "target": {
+        "constitutional_citizen_initiative": true,
+        "local_direct_democracy": true
+      },
+      "reason": "not the existing annual reporting referendum"
+    },
+    {
+      "person": "anasse-kazib",
+      "source": "https://www.revolutionpermanente.fr/28h-expropriation-des-secteurs-strategiques-RP-presente-les-premieres-mesures-de-sa-candidature?amp=1",
+      "target": {
+        "weekly_hours": 28
+      },
+      "reason": "new exact policy identity and conflict-checked catalogue capacity required"
+    }
+  ],
+  "teacher_pay_reference": {
+    "source": "https://www.education.gouv.fr/depp/panorama-statistique-des-personnels-de-l-enseignement-scolaire-2025-2026-504389",
+    "scope": "DEPP teacher remuneration context; 3180 EUR reference net per month and 850000 covered teachers are model inputs, not a verified 2027 payroll count"
+  }
+}

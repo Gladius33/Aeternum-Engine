@@ -96,6 +96,10 @@ final class SocialProgramme
                 'target'=>['annual_threshold_hours'=>1623,'social_contributions_above_threshold_bps'=>0,'csg_crds_retained'=>true],
                 'parameters'=>['workers_share_bps'=>2000,'reference_annual_hours'=>1700,'reference_hourly_gross_eur'=>20,'remaining_employee_rate_bps'=>900,'remaining_employer_rate_bps'=>1500],
                 'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
+            'pf2027-philippe-teacher-pay'=>['bit'=>93,'domain'=>'education','family'=>'public-pay',
+                'target'=>['increase_bps'=>2000,'phase_years'=>5,'scope'=>'teachers'],
+                'parameters'=>['workers'=>850000,'reference_monthly_net_eur'=>3180,'employer_cost_bps'=>16667],
+                'assumptions'=>$zero,'classification'=>'fictional_2027_cohort_proxy'],
         ];
     }
     // Stable allocation beyond the original 24 historical bits.
