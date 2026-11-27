@@ -1,0 +1,38 @@
+{
+  "real_gdp_growth": {
+    "unit": "basis_points",
+    "definition_fr": "Variation annuelle du PIB réel",
+    "scale": "100 points de base = 1 point de pourcentage",
+    "source": "IMF_WEO"
+  },
+  "consumer_price_inflation_annual_average": {
+    "unit": "basis_points",
+    "definition_fr": "Variation annuelle moyenne des prix à la consommation",
+    "scale": "100 points de base = 1 point de pourcentage",
+    "source": "IMF_WEO"
+  },
+  "current_account_balance_share_gdp": {
+    "unit": "basis_points",
+    "definition_fr": "Solde courant en proportion du PIB",
+    "scale": "100 points de base = 1 point de pourcentage",
+    "source": "IMF_WEO"
+  },
+  "unemployment_rate": {
+    "unit": "basis_points",
+    "definition_fr": "Taux de chômage selon définition du tableau FMI",
+    "scale": "100 points de base = 1 point de pourcentage",
+    "source": "IMF_WEO"
+  },
+  "population_total": {
+    "unit": "persons",
+    "definition_fr": "Population en personnes (source arrondie au millier)",
+    "scale": "1",
+    "source": "REPO_WDI"
+  },
+  "gdp_current_usd": {
+    "unit": "USD",
+    "definition_fr": "PIB en dollars courants (source arrondie au million)",
+    "scale": "1",
+    "source": "REPO_WDI"
+  }
+}

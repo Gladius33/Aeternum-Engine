@@ -1,0 +1,43 @@
+﻿iso2,chamber,last_renewal_start,last_renewal_end,first_session,first_session_status,expected_renewal_raw,expected_renewal_month,expected_status,source_id,note,designation
+AU,lower_or_single,2025-05-03,2025-05-03,2025-07-22,reported,2028-05-31,2028-05,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+AT,lower_or_single,2024-09-29,2024-09-29,2024-10-24,reported,2029-09-30,2029-09,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+BE,lower_or_single,2024-06-09,2024-06-09,2024-07-04,reported,2029-06-30,2029-06,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+BR,lower_or_single,2026-10-04,2026-10-04,2027-02-01,planned,2030-10-06,2030-10,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+BG,lower_or_single,2026-04-19,2026-04-19,2026-04-30,reported,2030-04-30,2030-04,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+CA,lower_or_single,2025-04-28,2025-04-28,2025-05-26,reported,2029-10-15,2029-10,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+CN,lower_or_single,2023-03-05,2023-03-05,2023-03-05,reported,2028-03-05,2028-03,projection_not_confirmed,IPU_ELECTION_DATES,Renouvellement indirect; ne pas interpréter comme suffrage populaire.,indirect
+HR,lower_or_single,2024-04-17,2024-04-17,2024-05-16,reported,2028-04-30,2028-04,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+CY,lower_or_single,2026-05-24,2026-05-24,2026-06-04,reported,2031-05-31,2031-05,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+CZ,lower_or_single,2025-10-03,2025-10-04,2025-11-03,reported,2029-10-31,2029-10,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+DK,lower_or_single,2026-03-24,2026-03-24,2026-04-10,reported,2030-03-31,2030-03,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+DE,lower_or_single,2025-02-23,2025-02-23,2025-03-25,reported,2029-02-28,2029-02,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+GR,lower_or_single,2023-06-25,2023-06-25,2023-07-03,reported,2027-06-30,2027-06,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+FI,lower_or_single,2023-04-02,2023-04-02,2023-04-13,reported,2027-04-18,2027-04,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+HU,lower_or_single,2026-04-12,2026-04-12,2026-05-09,reported,2030-04-30,2030-04,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+IN,lower_or_single,2024-04-19,2024-06-01,2024-06-24,reported,2029-04-30,2029-04,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+ID,lower_or_single,2024-02-14,2024-02-14,2024-10-01,reported,2029-04-30,2029-04,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+IT,lower_or_single,2022-09-25,2022-09-25,2022-10-13,reported,2027-09-30,2027-09,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+JP,lower_or_single,2026-02-08,2026-02-08,2026-02-18,reported,2030-01-31,2030-01,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+LT,lower_or_single,2024-10-13,2024-10-27,2024-11-14,reported,2028-10-31,2028-10,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+LU,lower_or_single,2023-10-08,2023-10-08,2023-10-24,reported,2028-10-31,2028-10,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+MX,lower_or_single,2024-06-02,2024-06-02,2024-09-01,reported,2027-06-06,2027-06,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+RU,lower_or_single,2026-09-18,2026-09-20,2026-09-30,reported,2031-09-30,2031-09,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+ES,lower_or_single,2023-07-23,2023-07-23,2023-08-17,reported,2026-11-29,2026-11,projection_not_confirmed,IPU_ELECTION_DATES,"Conflit avec scénario Espagne 2027-08; conserver les deux, aucun remplacement.",direct
+SE,lower_or_single,2026-09-13,2026-09-13,2026-09-28,reported,2030-09-30,2030-09,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+CH,lower_or_single,2023-10-22,2023-10-22,2023-12-04,reported,2027-10-24,2027-10,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+GB,lower_or_single,2024-07-04,2024-07-04,2024-07-09,reported,2029-07-31,2029-07,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+US,lower_or_single,2026-11-03,2026-11-03,,missing,2028-11-07,2028-11,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+EE,lower_or_single,2023-03-05,2023-03-05,2023-04-10,reported,2027-03-07,2027-03,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+IE,lower_or_single,2024-11-29,2024-11-29,2024-12-18,reported,2029-11-30,2029-11,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+KR,lower_or_single,2024-04-10,2024-04-10,2024-05-30,reported,2028-04-30,2028-04,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+LV,lower_or_single,2026-10-03,2026-10-03,2026-11-03,reported,2030-10-05,2030-10,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+MT,lower_or_single,2026-05-30,2026-05-30,2026-06-20,reported,2031-05-31,2031-05,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+NL,lower_or_single,2025-10-29,2025-10-29,2025-11-12,reported,2029-10-31,2029-10,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+PL,lower_or_single,2023-10-15,2023-10-15,2023-11-13,reported,2027-10-31,2027-10,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+PT,lower_or_single,2025-05-18,2025-05-18,2025-06-03,reported,2029-09-30,2029-09,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+RO,lower_or_single,2024-12-01,2024-12-01,2024-12-20,reported,2028-11-30,2028-11,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+SA,lower_or_single,2024-09-02,2024-09-02,2024-09-02,reported,2028-08-31,2028-08,projection_not_confirmed,IPU_ELECTION_DATES,Conseil nommé; ce n’est pas un scrutin populaire.,appointed
+SI,lower_or_single,2026-03-22,2026-03-22,2026-04-10,reported,2030-03-31,2030-03,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+SK,lower_or_single,2023-09-30,2023-09-30,2023-10-25,reported,2027-09-30,2027-09,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+TR,lower_or_single,2023-05-14,2023-05-14,2023-06-02,reported,2028-05-31,2028-05,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct
+ZA,lower_or_single,2024-05-29,2024-05-29,2024-06-14,reported,2029-05-31,2029-05,projection_not_confirmed,IPU_ELECTION_DATES,"Calendrier, pas résultats certifiés.",direct

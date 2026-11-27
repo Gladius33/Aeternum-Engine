@@ -1,0 +1,518 @@
+{
+  "identity": {
+    "iso2": "HR",
+    "iso3": "HRV",
+    "name_fr": "Croatie",
+    "currency_iso4217": "EUR",
+    "human_play_target": true,
+    "group": "EU",
+    "eu_member": true,
+    "euro_currency": true,
+    "nato_member_repo_snapshot": true,
+    "brics_status_repo_snapshot": "not_in_repo_member_list",
+    "status": "staging_not_playability_certification"
+  },
+  "institutional_working_profile": {
+    "system": "parliamentary_republic",
+    "head_of_state_title": "Président",
+    "head_of_government_title": "Premier ministre",
+    "head_of_state_or_collective_term_years": 5,
+    "term_limit_working_classification": "2_total",
+    "government_formation_summary_fr": "président donne mandat au candidat soutenu par majorité; vote de confiance",
+    "accountability_dissolution_summary_fr": "censure; dissolution ou élections anticipées sous conditions, compétences présidentielles en défense et affaires étrangères",
+    "candidate_articles": "Constitution 73, 77, 98, 110-116 (numérotation à vérifier)",
+    "candidate_official_portal": "https://www.sabor.hr/",
+    "status": "working_synthesis_not_article_verified",
+    "executable": false,
+    "source_id": "CONSTITUTION_RESEARCH",
+    "note": "Le chef d’État n’est pas nécessairement le chef de l’exécutif jouable. Vérifier texte consolidé, exceptions, jurisprudence et date d’effet. CH: mandat du Conseil fédéral, présidence tournante annuelle."
+  },
+  "parliament_reference": {
+    "iso2": "HR",
+    "lower_or_single_chamber": "Sabor",
+    "lower_reference_seats": 151,
+    "upper_chamber": null,
+    "upper_reference_seats": null,
+    "electoral_family_simplified": "PR",
+    "source_seats": "IPU_SEATS",
+    "source_electoral_family": "IPU_ELECTORAL",
+    "status": "reference_requires_country_validation"
+  },
+  "renewal_reference": {
+    "iso2": "HR",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2028-04",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  "numeric_series": [
+    {
+      "iso2": "HR",
+      "metric": "population_total",
+      "year": 2024,
+      "value": 3866000,
+      "unit": "persons",
+      "kind": "observed",
+      "quality": "published_rounded",
+      "source_id": "REPO_WDI"
+    },
+    {
+      "iso2": "HR",
+      "metric": "gdp_current_usd",
+      "year": 2024,
+      "value": 92984000000,
+      "unit": "USD",
+      "kind": "observed",
+      "quality": "published_rounded",
+      "source_id": "REPO_WDI"
+    },
+    {
+      "iso2": "HR",
+      "metric": "real_gdp_growth",
+      "year": 2025,
+      "value": 340,
+      "unit": "basis_points",
+      "kind": "historical_estimate",
+      "quality": "published_historical_or_estimated",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "real_gdp_growth",
+      "year": 2026,
+      "value": 220,
+      "unit": "basis_points",
+      "kind": "projection",
+      "quality": "published_forecast",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "real_gdp_growth",
+      "year": 2027,
+      "value": 230,
+      "unit": "basis_points",
+      "kind": "projection",
+      "quality": "published_forecast",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "consumer_price_inflation_annual_average",
+      "year": 2025,
+      "value": 440,
+      "unit": "basis_points",
+      "kind": "historical_estimate",
+      "quality": "published_historical_or_estimated",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "consumer_price_inflation_annual_average",
+      "year": 2026,
+      "value": 450,
+      "unit": "basis_points",
+      "kind": "projection",
+      "quality": "published_forecast",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "consumer_price_inflation_annual_average",
+      "year": 2027,
+      "value": 330,
+      "unit": "basis_points",
+      "kind": "projection",
+      "quality": "published_forecast",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "current_account_balance_share_gdp",
+      "year": 2025,
+      "value": -350,
+      "unit": "basis_points",
+      "kind": "historical_estimate",
+      "quality": "published_historical_or_estimated",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "current_account_balance_share_gdp",
+      "year": 2026,
+      "value": -440,
+      "unit": "basis_points",
+      "kind": "projection",
+      "quality": "published_forecast",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "current_account_balance_share_gdp",
+      "year": 2027,
+      "value": -330,
+      "unit": "basis_points",
+      "kind": "projection",
+      "quality": "published_forecast",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "unemployment_rate",
+      "year": 2025,
+      "value": 450,
+      "unit": "basis_points",
+      "kind": "historical_estimate",
+      "quality": "published_historical_or_estimated",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "unemployment_rate",
+      "year": 2026,
+      "value": 450,
+      "unit": "basis_points",
+      "kind": "projection",
+      "quality": "published_forecast",
+      "source_id": "IMF_WEO"
+    },
+    {
+      "iso2": "HR",
+      "metric": "unemployment_rate",
+      "year": 2027,
+      "value": 460,
+      "unit": "basis_points",
+      "kind": "projection",
+      "quality": "published_forecast",
+      "source_id": "IMF_WEO"
+    }
+  ],
+  "unresolved_fields": {
+    "constitutional_primary_text_verified": null,
+    "executive_election_and_succession": null,
+    "legislative_election_algorithm": null,
+    "current_officeholders_and_government": null,
+    "party_and_coalition_register": null,
+    "election_results_historical": null,
+    "public_opinion_and_social_movements": null,
+    "government_debt_and_creditors": null,
+    "government_revenue_expenditure_balance": null,
+    "national_tax_and_social_security": null,
+    "household_disposable_income_wages": null,
+    "population_structure_and_migration": null,
+    "labour_market_sectoral": null,
+    "defense_budget_and_service_law": null,
+    "bilateral_trade_and_energy": null,
+    "foreign_reserves_currency_policy": null,
+    "education_health_housing_services": null,
+    "international_treaty_obligations": null,
+    "political_programme_costing": null,
+    "investiture_2027_opening_balance": null,
+    "corporate_and_industrial_structure": null,
+    "legal_emergency_and_security_powers": null
+  },
+  "source_registry": "../documentation/sources.json",
+  "supplementary_collection": {
+    "numeric": [
+      {
+        "iso2": "HR",
+        "metric": "gdp_edp",
+        "year": 2025,
+        "period": "2025",
+        "value": 94026,
+        "unit": "EUR_million",
+        "kind": "published_reference",
+        "source_id": "EUROSTAT_EDP_2026_10",
+        "gap_field": "government_revenue_expenditure_balance",
+        "note": "Dette EDP brute consolidée à la valeur nominale; solde positif = excédent. Montants et ratios arrondis."
+      },
+      {
+        "iso2": "HR",
+        "metric": "government_balance_edp",
+        "year": 2025,
+        "period": "2025",
+        "value": -2827,
+        "unit": "EUR_million",
+        "kind": "published_reference",
+        "source_id": "EUROSTAT_EDP_2026_10",
+        "gap_field": "government_revenue_expenditure_balance",
+        "note": "Dette EDP brute consolidée à la valeur nominale; solde positif = excédent. Montants et ratios arrondis."
+      },
+      {
+        "iso2": "HR",
+        "metric": "government_gross_debt_edp",
+        "year": 2025,
+        "period": "2025",
+        "value": 52371,
+        "unit": "EUR_million",
+        "kind": "published_reference",
+        "source_id": "EUROSTAT_EDP_2026_10",
+        "gap_field": "government_debt_and_creditors",
+        "note": "Dette EDP brute consolidée à la valeur nominale; solde positif = excédent. Montants et ratios arrondis."
+      },
+      {
+        "iso2": "HR",
+        "metric": "government_balance_pct_gdp",
+        "year": 2025,
+        "period": "2025",
+        "value": -3.0,
+        "unit": "pct_gdp",
+        "kind": "published_reference",
+        "source_id": "EUROSTAT_EDP_2026_10",
+        "gap_field": "government_revenue_expenditure_balance",
+        "note": "Dette EDP brute consolidée à la valeur nominale; solde positif = excédent. Montants et ratios arrondis."
+      },
+      {
+        "iso2": "HR",
+        "metric": "government_expenditure_pct_gdp",
+        "year": 2025,
+        "period": "2025",
+        "value": 49.4,
+        "unit": "pct_gdp",
+        "kind": "published_reference",
+        "source_id": "EUROSTAT_EDP_2026_10",
+        "gap_field": "government_revenue_expenditure_balance",
+        "note": "Dette EDP brute consolidée à la valeur nominale; solde positif = excédent. Montants et ratios arrondis."
+      },
+      {
+        "iso2": "HR",
+        "metric": "government_revenue_pct_gdp",
+        "year": 2025,
+        "period": "2025",
+        "value": 46.4,
+        "unit": "pct_gdp",
+        "kind": "published_reference",
+        "source_id": "EUROSTAT_EDP_2026_10",
+        "gap_field": "government_revenue_expenditure_balance",
+        "note": "Dette EDP brute consolidée à la valeur nominale; solde positif = excédent. Montants et ratios arrondis."
+      },
+      {
+        "iso2": "HR",
+        "metric": "government_debt_edp_pct_gdp",
+        "year": 2025,
+        "period": "2025",
+        "value": 55.7,
+        "unit": "pct_gdp",
+        "kind": "published_reference",
+        "source_id": "EUROSTAT_EDP_2026_10",
+        "gap_field": "government_debt_and_creditors",
+        "note": "Dette EDP brute consolidée à la valeur nominale; solde positif = excédent. Montants et ratios arrondis."
+      },
+      {
+        "iso2": "HR",
+        "metric": "human_development_index",
+        "year": 2023,
+        "period": "2023",
+        "value": 0.889,
+        "unit": "index_0_1",
+        "kind": "published_reference",
+        "source_id": "UNDP_HDR25_T1",
+        "gap_field": "education_health_housing_services",
+        "note": "RNB par habitant ≠ revenu disponible des ménages. Année de référence HDR; dates de certaines enquêtes différentes."
+      },
+      {
+        "iso2": "HR",
+        "metric": "life_expectancy_at_birth",
+        "year": 2023,
+        "period": "2023",
+        "value": 78.6,
+        "unit": "years",
+        "kind": "published_reference",
+        "source_id": "UNDP_HDR25_T1",
+        "gap_field": "education_health_housing_services",
+        "note": "RNB par habitant ≠ revenu disponible des ménages. Année de référence HDR; dates de certaines enquêtes différentes."
+      },
+      {
+        "iso2": "HR",
+        "metric": "expected_schooling_years",
+        "year": 2023,
+        "period": "2023",
+        "value": 16.3,
+        "unit": "years",
+        "kind": "published_reference",
+        "source_id": "UNDP_HDR25_T1",
+        "gap_field": "education_health_housing_services",
+        "note": "RNB par habitant ≠ revenu disponible des ménages. Année de référence HDR; dates de certaines enquêtes différentes."
+      },
+      {
+        "iso2": "HR",
+        "metric": "mean_schooling_years",
+        "year": 2023,
+        "period": "2023",
+        "value": 12.1,
+        "unit": "years",
+        "kind": "published_reference",
+        "source_id": "UNDP_HDR25_T1",
+        "gap_field": "education_health_housing_services",
+        "note": "RNB par habitant ≠ revenu disponible des ménages. Année de référence HDR; dates de certaines enquêtes différentes."
+      },
+      {
+        "iso2": "HR",
+        "metric": "gni_per_capita_ppp",
+        "year": 2023,
+        "period": "2023",
+        "value": 41380,
+        "unit": "international_dollar_2021_ppp",
+        "kind": "published_reference",
+        "source_id": "UNDP_HDR25_T1",
+        "gap_field": "education_health_housing_services",
+        "note": "RNB par habitant ≠ revenu disponible des ménages. Année de référence HDR; dates de certaines enquêtes différentes."
+      },
+      {
+        "iso2": "HR",
+        "metric": "standard_vat_or_gst_pct",
+        "year": 2026,
+        "period": "2026",
+        "value": 25,
+        "unit": "pct",
+        "kind": "secondary_reference",
+        "source_id": "TF_VAT26",
+        "gap_field": "national_tax_and_social_security",
+        "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+      }
+    ],
+    "vat": [
+      {
+        "iso2": "HR",
+        "year": 2026,
+        "standard_pct": 25,
+        "other_pct": [
+          5,
+          13
+        ],
+        "source_id": "TF_VAT26",
+        "status": "secondary_reference_not_legal_rule",
+        "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+      }
+    ],
+    "election_dates": [
+      {
+        "iso2": "HR",
+        "chamber": "lower_or_single",
+        "last_renewal_start": "2024-04-17",
+        "last_renewal_end": "2024-04-17",
+        "first_session": "2024-05-16",
+        "first_session_status": "reported",
+        "expected_renewal_raw": "2028-04-30",
+        "expected_renewal_month": "2028-04",
+        "expected_status": "projection_not_confirmed",
+        "source_id": "IPU_ELECTION_DATES",
+        "note": "Calendrier, pas résultats certifiés.",
+        "designation": "direct"
+      }
+    ],
+    "status": "staging_review_required"
+  },
+  "fiscal_monitor_2026_04": [
+    {
+      "iso2": "HR",
+      "metric": "government_gross_debt",
+      "year": 2025,
+      "value": 5590,
+      "unit": "basis_points_of_gdp",
+      "kind": "historical_estimate",
+      "source_id": "IMF_FM_2026_04",
+      "vintage": "2026-04",
+      "gap_field": "government_debt_and_creditors",
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HR",
+      "metric": "government_gross_debt",
+      "year": 2026,
+      "value": 5650,
+      "unit": "basis_points_of_gdp",
+      "kind": "projection",
+      "source_id": "IMF_FM_2026_04",
+      "vintage": "2026-04",
+      "gap_field": "government_debt_and_creditors",
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HR",
+      "metric": "government_gross_debt",
+      "year": 2027,
+      "value": 5690,
+      "unit": "basis_points_of_gdp",
+      "kind": "projection",
+      "source_id": "IMF_FM_2026_04",
+      "vintage": "2026-04",
+      "gap_field": "government_debt_and_creditors",
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HR",
+      "metric": "government_revenue",
+      "year": 2025,
+      "value": 4640,
+      "unit": "basis_points_of_gdp",
+      "kind": "historical_estimate",
+      "source_id": "IMF_FM_2026_04",
+      "vintage": "2026-04",
+      "gap_field": "government_revenue_expenditure_balance",
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HR",
+      "metric": "government_revenue",
+      "year": 2026,
+      "value": 4730,
+      "unit": "basis_points_of_gdp",
+      "kind": "projection",
+      "source_id": "IMF_FM_2026_04",
+      "vintage": "2026-04",
+      "gap_field": "government_revenue_expenditure_balance",
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HR",
+      "metric": "government_revenue",
+      "year": 2027,
+      "value": 4620,
+      "unit": "basis_points_of_gdp",
+      "kind": "projection",
+      "source_id": "IMF_FM_2026_04",
+      "vintage": "2026-04",
+      "gap_field": "government_revenue_expenditure_balance",
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HR",
+      "metric": "government_expenditure",
+      "year": 2025,
+      "value": 4930,
+      "unit": "basis_points_of_gdp",
+      "kind": "historical_estimate",
+      "source_id": "IMF_FM_2026_04",
+      "vintage": "2026-04",
+      "gap_field": "government_revenue_expenditure_balance",
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HR",
+      "metric": "government_expenditure",
+      "year": 2026,
+      "value": 5020,
+      "unit": "basis_points_of_gdp",
+      "kind": "projection",
+      "source_id": "IMF_FM_2026_04",
+      "vintage": "2026-04",
+      "gap_field": "government_revenue_expenditure_balance",
+      "runtime_admission": false
+    },
+    {
+      "iso2": "HR",
+      "metric": "government_expenditure",
+      "year": 2027,
+      "value": 4910,
+      "unit": "basis_points_of_gdp",
+      "kind": "projection",
+      "source_id": "IMF_FM_2026_04",
+      "vintage": "2026-04",
+      "gap_field": "government_revenue_expenditure_balance",
+      "runtime_admission": false
+    }
+  ]
+}

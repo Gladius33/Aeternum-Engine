@@ -1,0 +1,43 @@
+﻿iso2,year,standard_pct,other_pct,source_id,status,note
+AT,2026,20,"[10, 13]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+BE,2026,21,"[6, 12]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+BG,2026,20,[9],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+HR,2026,25,"[5, 13]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+CY,2026,19,"[5, 9]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+CZ,2026,21,[12],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+DK,2026,25,[],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+EE,2026,24,"[9, 13]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+FI,2026,25.5,"[10, 13.5]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+DE,2026,19,[7],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+GR,2026,24,"[6, 13]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+HU,2026,27,"[5, 18]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+IE,2026,23,"[9, 13.5]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+IT,2026,22,"[5, 10]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+LV,2026,21,"[5, 12]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+LT,2026,21,"[5, 9]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+LU,2026,17,[8],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+MT,2026,18,"[5, 7]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+NL,2026,21,[9],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+PL,2026,23,"[5, 8]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+PT,2026,23,"[6, 13]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+RO,2026,21,[11],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+SK,2026,23,"[5, 19]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+SI,2026,22,"[5, 9.5]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+ES,2026,21,[10],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+SE,2026,25,"[6, 12]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+CH,2026,8.1,"[2.6, 3.8]",TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+TR,2026,20,[10],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+GB,2026,20,[5],TF_VAT26,secondary_reference_not_legal_rule,"Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+AU,2026,10,[],PWC_VAT,secondary_reference_not_legal_rule,GST
+CA,2026,,"[5, 15]",PWC_VAT,secondary_reference_not_legal_rule,Fourchette combinée 5–15 % selon province; pas un taux national unique.
+CN,2026,13,"[9, 6]",PWC_VAT,secondary_reference_not_legal_rule,Taux par catégorie; autres règles possibles.
+IN,2026,,"[5, 28]",PWC_VAT,secondary_reference_not_legal_rule,Fourchette affichée par la source secondaire; réformes et taux actuels à vérifier.
+ID,2026,12,[],PWC_VAT,secondary_reference_not_legal_rule,Taux statutaire; taux effectifs et assiette particuliers à vérifier.
+JP,2026,10,[],PWC_VAT,secondary_reference_not_legal_rule,Consumption tax.
+KR,2026,10,[],PWC_VAT,secondary_reference_not_legal_rule,VAT.
+MX,2026,16,[],PWC_VAT,secondary_reference_not_legal_rule,VAT.
+SA,2026,15,[],PWC_VAT,secondary_reference_not_legal_rule,VAT.
+ZA,2026,15,[],PWC_VAT,secondary_reference_not_legal_rule,VAT.
+US,2026,,[],PWC_VAT,secondary_reference_not_legal_rule,Pas de TVA fédérale; taxes locales et étatiques distinctes.
+BR,2026,,[],PWC_VAT,secondary_reference_not_legal_rule,Système multi-taxes en transition; pas de taux unique.
+RU,2026,22,"[0, 10]",RU_FNS_VAT2026,official_reference_not_full_legal_rule,Taux normal 22 %; taux de 0 et 10 % maintenus; régime simplifié 5 ou 7 % sous conditions.

@@ -1,0 +1,193 @@
+{
+  "REPO_WDI": {
+    "url": "https://github.com/Gladius33/Aeternum-Engine/blob/169a36bfd2c323b82ce8ef10b2c6d7dee80b862f/games/world-politics/data/2026-11-25-global-published-tables-v1.json",
+    "original_urls": [
+      "https://data.worldbank.org/indicator/SP.POP.TOTL",
+      "https://data.worldbank.org/indicator/NY.GDP.MKTP.CD"
+    ],
+    "vintage": "2025-12-15",
+    "status": "reprise du dépôt; pas de nouvelle extraction WDI",
+    "license": "CC BY 4.0 sous réserve des conditions WDI",
+    "license_url": "https://www.worldbank.org/ext/en/legal/terms-conditions/datasets"
+  },
+  "REPO_RENEWAL": {
+    "url": "https://github.com/Gladius33/Aeternum-Engine/blob/169a36bfd2c323b82ce8ef10b2c6d7dee80b862f/games/world-politics/data/2026-11-26-national-renewals-v1.json",
+    "original_urls": [
+      "https://data.ipu.org/elections/?structure=any",
+      "https://data.ipu.org/compare/?field=chamber%3A%3Afield_parliamentary_term&structure=any__lower_chamber"
+    ],
+    "status": "reprise du dépôt; mois prévisionnels; Espagne scénario distinct",
+    "license": "droits de réutilisation à vérifier"
+  },
+  "IMF_WEO": {
+    "url": "https://www.imf.org/en/Publications/WEO/Issues/2026/10/13/world-economic-outlook-october-2026",
+    "table_url": "https://www.imf.org/-/media/files/publications/weo/2026/october/english/text.pdf",
+    "locator": "annexe statistique, pages imprimées 39–43",
+    "vintage": "2026-10",
+    "status": "transcription de tableaux publiés; 2025 historique/estimé, 2026–2027 projections",
+    "license": "autorisation commerciale à vérifier auprès du FMI avant diffusion",
+    "license_url": "https://www.imf.org/en/About/copyright-and-terms"
+  },
+  "IPU_SEATS": {
+    "url": "https://data.ipu.org/compare/?field=statutory_members_number&sort=value_desc",
+    "status": "tableau comparatif consulté; effectifs de référence, non résultats électoraux",
+    "license": "droits commerciaux à vérifier",
+    "license_url": "https://www.ipu.org/terms-use"
+  },
+  "IPU_ELECTORAL": {
+    "url": "https://data.ipu.org/compare/?field=electoral_system&sort=value_asc&structure=any__lower_chamber",
+    "status": "tableau comparatif consulté; famille simplifiée, pas un algorithme électoral",
+    "license": "droits commerciaux à vérifier",
+    "license_url": "https://www.ipu.org/terms-use"
+  },
+  "CONSTITUTION_RESEARCH": {
+    "url": "https://www.constituteproject.org/constitutions",
+    "additional_url": "https://comparativeconstitutionsproject.org/download-data/",
+    "status": "point de départ documentaire; fiches juridiques non vérifiées article par article",
+    "license": "droits des textes et traductions à vérifier"
+  },
+  "IDEA": {
+    "url": "https://www.idea.int/data-tools/data/electoral-system-design-database",
+    "status": "source candidate pour enrichissement, pas d’import exhaustif"
+  },
+  "REPO_RULEBOOK": {
+    "url": "https://github.com/Gladius33/Aeternum-Engine/blob/169a36bfd2c323b82ce8ef10b2c6d7dee80b862f/games/world-politics/src/InstitutionalRulebook.php",
+    "status": "contrat technique consulté; ne valide pas les nouvelles fiches"
+  },
+  "REPO_COUNTRY": {
+    "url": "https://github.com/Gladius33/Aeternum-Engine/blob/169a36bfd2c323b82ce8ef10b2c6d7dee80b862f/games/world-politics/src/CountryCatalog.php",
+    "status": "registre périmètre confirmé"
+  },
+  "REPO_ECON": {
+    "url": "https://github.com/Gladius33/Aeternum-Engine/blob/169a36bfd2c323b82ce8ef10b2c6d7dee80b862f/games/world-politics/src/EconomicReferenceRegistry.php",
+    "status": "contrat technique consulté"
+  },
+  "IMF_FISCAL": {
+    "url": "https://www.imf.org/external/datamapper/datasets/FM",
+    "status": "source candidate non extraite"
+  },
+  "IMF_API": {
+    "url": "https://www.imf.org/external/datamapper/api/help",
+    "status": "documentation API candidate; valeurs non téléchargées"
+  },
+  "WDI_API": {
+    "url": "https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation",
+    "status": "documentation candidate; téléchargement massif non disponible"
+  },
+  "SIPRI": {
+    "url": "https://www.sipri.org/databases/milex",
+    "status": "source candidate, non extraite"
+  },
+  "UN_COMTRADE": {
+    "url": "https://comtradeplus.un.org/",
+    "status": "source candidate, non extraite"
+  },
+  "ILO": {
+    "url": "https://ilostat.ilo.org/data/",
+    "status": "source candidate, non extraite"
+  },
+  "OECD": {
+    "url": "https://data-explorer.oecd.org/",
+    "status": "source candidate, non extraite"
+  },
+  "UN_POP": {
+    "url": "https://population.un.org/wpp/",
+    "status": "source candidate, non extraite"
+  },
+  "WTO": {
+    "url": "https://www.wto.org/english/thewto_e/whatis_e/tif_e/org6_e.htm",
+    "status": "source candidate, non extraite"
+  },
+  "WHO": {
+    "url": "https://www.who.int/countries/",
+    "status": "source candidate, non extraite"
+  },
+  "EUROSTAT": {
+    "url": "https://ec.europa.eu/eurostat/web/main/data/database",
+    "status": "source candidate, non extraite"
+  },
+  "ECB": {
+    "url": "https://data.ecb.europa.eu/",
+    "status": "source candidate, non extraite"
+  },
+  "EUROSTAT_EDP_2026_10": {
+    "url": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-21102026-ap",
+    "locator": "21 octobre 2026, tableaux nationaux, année 2025",
+    "status": "Données publiées, révisables; administrations publiques consolidées.",
+    "license": "Politique de réutilisation Eurostat : https://ec.europa.eu/eurostat/about-us/policies/copyright",
+    "retrieved_on": "2026-11-27"
+  },
+  "UNDP_HDR25_T1": {
+    "url": "https://hdr.undp.org/sites/default/files/2025_HDR/HDR25_Statistical_Annex_HDI_Table.pdf",
+    "locator": "Rapport 2025, tableau 1, année de référence 2023",
+    "status": "Transcription de tableaux; notes de bas de page individuelles non reproduites.",
+    "license": "Conditions de réutilisation commerciale à vérifier avant diffusion.",
+    "retrieved_on": "2026-11-27"
+  },
+  "OECD_TW26_T12": {
+    "url": "https://www.oecd.org/en/publications/taxing-wages-2026_3a5169ef-en/full-report/overview_d93131c3.html",
+    "locator": "Tableau 1.2, année 2025, célibataire sans enfant au salaire moyen",
+    "status": "Cas type modélisé par OCDE, non barème légal.",
+    "license": "Conditions de réutilisation commerciale à vérifier avant diffusion.",
+    "retrieved_on": "2026-11-27"
+  },
+  "TF_VAT26": {
+    "url": "https://taxfoundation.org/data/all/eu/value-added-tax-vat-rates-europe/",
+    "locator": "Tableau des taux européens, janvier 2026",
+    "status": "Source secondaire s’appuyant sur Commission européenne; validation légale requise.",
+    "license": "Conditions de réutilisation commerciale à vérifier avant diffusion.",
+    "retrieved_on": "2026-11-27"
+  },
+  "PWC_VAT": {
+    "url": "https://taxsummaries.pwc.com/quick%20charts/value-added-tax-vat-rates",
+    "locator": "Quick charts, TVA/GST, pays concernés",
+    "status": "Source secondaire, dates de révision nationales variables; validation légale requise.",
+    "license": "Conditions de réutilisation commerciale à vérifier avant diffusion.",
+    "retrieved_on": "2026-11-27"
+  },
+  "SIPRI_MILEX25": {
+    "url": "https://www.sipri.org/sites/default/files/2026-04/2604_milex_2025.pdf",
+    "locator": "Tableau 1, dépenses militaires 2025",
+    "status": "Estimation SIPRI ou observation compilée; ne constitue pas une loi de finances.",
+    "license": "Conditions de réutilisation commerciale à vérifier avant diffusion.",
+    "retrieved_on": "2026-11-27"
+  },
+  "IPU_ELECTION_DATES": {
+    "url": "https://data.ipu.org/elections/",
+    "locator": "Calendrier par pays et chambre, date du dernier scrutin et session",
+    "status": "Calendrier publié, dates futures non certifiées; scrutin direct, indirect ou désignation selon pays.",
+    "license": "Conditions de réutilisation commerciale à vérifier avant diffusion.",
+    "retrieved_on": "2026-11-27"
+  },
+  "IMF_WHD_REO26": {
+    "url": "https://www.elibrary.imf.org/display/book/9798229058032/CH001.xml",
+    "locator": "Perspectives régionales, tableau finances publiques 2024–2028",
+    "status": "Extraits indexés de tableau, page intégrale non accessible (403); contrôle secondaire requis.",
+    "license": "Conditions de réutilisation commerciale à vérifier avant diffusion.",
+    "retrieved_on": "2026-11-27"
+  },
+  "RU_FNS_VAT2026": {
+    "url": "https://www.nalog.gov.ru/new2026/",
+    "locator": "Réforme 2026, loi fédérale 425-FZ du 28 novembre 2025; article 164 du code fiscal",
+    "status": "Administration fiscale russe; taux normal 22 % dès le 1er janvier 2026.",
+    "license": "Conditions de réutilisation commerciale à vérifier avant diffusion.",
+    "retrieved_on": "2026-11-27",
+    "corroboration_url": "https://www.nalog.gov.ru/rn91/ifns/ifns7/info/16590442/"
+  },
+  "IMF_FM_2026_04": {
+    "url": "https://www.imf.org/-/media/files/publications/fiscal-monitor/2026/april/english/msa.pdf",
+    "vintage": "2026-04",
+    "tables": [
+      "A5 p20",
+      "A6 p21",
+      "A7 p22",
+      "A13 p28",
+      "A14 p29",
+      "A15 p30"
+    ],
+    "status": "transcription manuelle des pages PDF; seconde validation indépendante nécessaire; non admis en production",
+    "license": "conditions commerciales à vérifier",
+    "license_url": "https://www.imf.org/en/About/copyright-and-terms",
+    "notes": "Périmètres nationaux différents, voir tables B/C et conventions. Inde exercice budgétaire; Australie, Canada et États-Unis ajustement des passifs de pension; Chine définition plus étroite que Article IV; Brésil définition différente de la dette domestique."
+  }
+}

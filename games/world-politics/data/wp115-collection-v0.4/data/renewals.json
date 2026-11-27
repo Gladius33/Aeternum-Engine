@@ -1,0 +1,380 @@
+[
+  {
+    "iso2": "AT",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2029-09",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "AU",
+    "ordinary_term_years": 3,
+    "expected_renewal_month": "2028-05",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "BE",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2029-06",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "BG",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2030-04",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "BR",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2030-10",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "CA",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2029-10",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "CH",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2027-10",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "CN",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2028-03",
+    "designation": "indirect",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "CY",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2031-05",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "CZ",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2029-10",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "DE",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2029-02",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "DK",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2030-03",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "EE",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2027-03",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "ES",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2027-08",
+    "designation": "direct",
+    "classification": "scenario_reference",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "FI",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2027-04",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "GB",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2029-07",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "GR",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2027-06",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "HR",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2028-04",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "HU",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2030-04",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "ID",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2029-04",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "IE",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2029-11",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "IN",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2029-04",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "IT",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2027-09",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "JP",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2030-01",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "KR",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2028-04",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "LT",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2028-10",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "LU",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2028-10",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "LV",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2030-10",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "MT",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2031-05",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "MX",
+    "ordinary_term_years": 3,
+    "expected_renewal_month": "2027-06",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "NL",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2029-10",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "PL",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2027-10",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "PT",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2029-09",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "RO",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2028-11",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "RU",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2031-09",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "SA",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2028-08",
+    "designation": "appointed",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "SE",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2030-09",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "SI",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2030-03",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "SK",
+    "ordinary_term_years": 4,
+    "expected_renewal_month": "2027-09",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "TR",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2028-05",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "US",
+    "ordinary_term_years": 2,
+    "expected_renewal_month": "2028-11",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  },
+  {
+    "iso2": "ZA",
+    "ordinary_term_years": 5,
+    "expected_renewal_month": "2029-05",
+    "designation": "direct",
+    "classification": "reference_expected_month",
+    "certifies_result": false,
+    "source_id": "REPO_RENEWAL"
+  }
+]

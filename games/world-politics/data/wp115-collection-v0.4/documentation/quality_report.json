@@ -1,0 +1,64 @@
+{
+  "country_count": 42,
+  "numeric_slots": 588,
+  "numeric_non_null": 586,
+  "repo_wdi_values": 84,
+  "weo_historical_values": 168,
+  "weo_projection_values": 334,
+  "weo_missing_values": 2,
+  "country_gaps_count": 924,
+  "gap_categories": 22,
+  "collection_request_count": 1512,
+  "validation": [
+    "ISO2 coverage and uniqueness",
+    "numeric JSON Schema validation (588 records)",
+    "unit agreement",
+    "unique ISO2/metric/year",
+    "source IDs exist",
+    "null gap values",
+    "projection split and counts"
+  ],
+  "not_validated": [
+    "exact runtime import compatibility",
+    "legal article verification",
+    "commercial redistribution clearance",
+    "independent second transcription of every WEO cell",
+    "full WP115 completeness"
+  ],
+  "supplementary_slots": 710,
+  "supplementary_non_null": 705,
+  "supplementary_by_source": {
+    "EUROSTAT_EDP_2026_10": 181,
+    "UNDP_HDR25_T1": 210,
+    "OECD_TW26_T12": 150,
+    "TF_VAT26": 29,
+    "PWC_VAT": 8,
+    "SIPRI_MILEX25": 81,
+    "IMF_WHD_REO26": 45,
+    "RU_FNS_VAT2026": 1
+  },
+  "vat_profiles": 42,
+  "election_date_profiles": 42,
+  "gaps_partially_documented": 195,
+  "gaps_not_collected_or_not_validated": 729,
+  "gaps_fully_closed": 0,
+  "supplementary_validation": [
+    "country coverage",
+    "unique metric country period",
+    "source references present",
+    "no projection converted to observation",
+    "null unresolved fields retained",
+    "archive hashes"
+  ],
+  "supplementary_limitations": [
+    "Transcriptions non revues indépendamment cellule par cellule.",
+    "Pas de vérification intégrale des textes légaux ni de leurs exceptions.",
+    "IMF WHD: extrait indexé, non admissible pour import sans vérification.",
+    "Aucune donnée future présentée comme résultat certifié."
+  ],
+  "fiscal_v04_values": 378,
+  "fiscal_v04_country_count": 42,
+  "numeric_values_cumulative_including_distinct_vintages": 1669,
+  "github_staging_commit": "c686ab9020183df804edcbaa307029af1f8b568a",
+  "runtime_admission": false
+}

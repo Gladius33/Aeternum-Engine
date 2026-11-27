@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WP115 numeric staging record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "iso2",
+    "metric",
+    "year",
+    "value",
+    "unit",
+    "kind",
+    "quality",
+    "source_id"
+  ],
+  "properties": {
+    "iso2": {
+      "type": "string",
+      "enum": [
+        "AT",
+        "AU",
+        "BE",
+        "BG",
+        "BR",
+        "CA",
+        "CH",
+        "CN",
+        "CY",
+        "CZ",
+        "DE",
+        "DK",
+        "EE",
+        "ES",
+        "FI",
+        "GB",
+        "GR",
+        "HR",
+        "HU",
+        "ID",
+        "IE",
+        "IN",
+        "IT",
+        "JP",
+        "KR",
+        "LT",
+        "LU",
+        "LV",
+        "MT",
+        "MX",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "RU",
+        "SA",
+        "SE",
+        "SI",
+        "SK",
+        "TR",
+        "US",
+        "ZA"
+      ]
+    },
+    "metric": {
+      "enum": [
+        "real_gdp_growth",
+        "consumer_price_inflation_annual_average",
+        "current_account_balance_share_gdp",
+        "unemployment_rate",
+        "population_total",
+        "gdp_current_usd"
+      ]
+    },
+    "year": {
+      "type": "integer",
+      "minimum": 2024,
+      "maximum": 2027
+    },
+    "value": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "unit": {
+      "enum": [
+        "basis_points",
+        "persons",
+        "USD"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "observed",
+        "historical_estimate",
+        "projection",
+        "missing"
+      ]
+    },
+    "quality": {
+      "type": "string"
+    },
+    "source_id": {
+      "enum": [
+        "REPO_WDI",
+        "IMF_WEO"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "missing"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "value": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  ]
+}

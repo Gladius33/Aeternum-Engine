@@ -1,0 +1,43 @@
+iso2,iso3,name_fr,currency_iso4217,human_play_target,group,eu_member,euro_currency,nato_member_repo_snapshot,brics_status_repo_snapshot,status
+AT,AUT,Autriche,EUR,True,EU,True,True,False,not_in_repo_member_list,staging_not_playability_certification
+AU,AUS,Australie,AUD,True,strategic,False,False,False,not_in_repo_member_list,staging_not_playability_certification
+BE,BEL,Belgique,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+BG,BGR,Bulgarie,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+BR,BRA,Brésil,BRL,True,strategic,False,False,False,reported_member,staging_not_playability_certification
+CA,CAN,Canada,CAD,True,strategic,False,False,True,not_in_repo_member_list,staging_not_playability_certification
+CH,CHE,Suisse,CHF,True,CH,False,False,False,not_in_repo_member_list,staging_not_playability_certification
+CN,CHN,Chine,CNY,True,strategic,False,False,False,reported_member,staging_not_playability_certification
+CY,CYP,Chypre,EUR,True,EU,True,True,False,not_in_repo_member_list,staging_not_playability_certification
+CZ,CZE,Tchéquie,CZK,True,EU,True,False,True,not_in_repo_member_list,staging_not_playability_certification
+DE,DEU,Allemagne,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+DK,DNK,Danemark,DKK,True,EU,True,False,True,not_in_repo_member_list,staging_not_playability_certification
+EE,EST,Estonie,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+ES,ESP,Espagne,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+FI,FIN,Finlande,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+GB,GBR,Royaume-Uni,GBP,True,strategic,False,False,True,not_in_repo_member_list,staging_not_playability_certification
+GR,GRC,Grèce,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+HR,HRV,Croatie,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+HU,HUN,Hongrie,HUF,True,EU,True,False,True,not_in_repo_member_list,staging_not_playability_certification
+ID,IDN,Indonésie,IDR,True,strategic,False,False,False,reported_member,staging_not_playability_certification
+IE,IRL,Irlande,EUR,True,EU,True,True,False,not_in_repo_member_list,staging_not_playability_certification
+IN,IND,Inde,INR,True,strategic,False,False,False,reported_member,staging_not_playability_certification
+IT,ITA,Italie,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+JP,JPN,Japon,JPY,True,strategic,False,False,False,not_in_repo_member_list,staging_not_playability_certification
+KR,KOR,Corée du Sud,KRW,True,strategic,False,False,False,not_in_repo_member_list,staging_not_playability_certification
+LT,LTU,Lituanie,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+LU,LUX,Luxembourg,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+LV,LVA,Lettonie,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+MT,MLT,Malte,EUR,True,EU,True,True,False,not_in_repo_member_list,staging_not_playability_certification
+MX,MEX,Mexique,MXN,True,strategic,False,False,False,not_in_repo_member_list,staging_not_playability_certification
+NL,NLD,Pays-Bas,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+PL,POL,Pologne,PLN,True,EU,True,False,True,not_in_repo_member_list,staging_not_playability_certification
+PT,PRT,Portugal,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+RO,ROU,Roumanie,RON,True,EU,True,False,True,not_in_repo_member_list,staging_not_playability_certification
+RU,RUS,Russie,RUB,True,strategic,False,False,False,reported_member,staging_not_playability_certification
+SA,SAU,Arabie saoudite,SAR,True,strategic,False,False,False,unresolved,staging_not_playability_certification
+SE,SWE,Suède,SEK,True,EU,True,False,True,not_in_repo_member_list,staging_not_playability_certification
+SI,SVN,Slovénie,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+SK,SVK,Slovaquie,EUR,True,EU,True,True,True,not_in_repo_member_list,staging_not_playability_certification
+TR,TUR,Turquie,TRY,True,strategic,False,False,True,not_in_repo_member_list,staging_not_playability_certification
+US,USA,États-Unis,USD,True,strategic,False,False,True,not_in_repo_member_list,staging_not_playability_certification
+ZA,ZAF,Afrique du Sud,ZAR,True,strategic,False,False,False,reported_member,staging_not_playability_certification

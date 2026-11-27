@@ -1,0 +1,467 @@
+[
+  {
+    "iso2": "AT",
+    "year": 2026,
+    "standard_pct": 20,
+    "other_pct": [
+      10,
+      13
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "BE",
+    "year": 2026,
+    "standard_pct": 21,
+    "other_pct": [
+      6,
+      12
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "BG",
+    "year": 2026,
+    "standard_pct": 20,
+    "other_pct": [
+      9
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "HR",
+    "year": 2026,
+    "standard_pct": 25,
+    "other_pct": [
+      5,
+      13
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "CY",
+    "year": 2026,
+    "standard_pct": 19,
+    "other_pct": [
+      5,
+      9
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "CZ",
+    "year": 2026,
+    "standard_pct": 21,
+    "other_pct": [
+      12
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "DK",
+    "year": 2026,
+    "standard_pct": 25,
+    "other_pct": [],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "EE",
+    "year": 2026,
+    "standard_pct": 24,
+    "other_pct": [
+      9,
+      13
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "FI",
+    "year": 2026,
+    "standard_pct": 25.5,
+    "other_pct": [
+      10,
+      13.5
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "DE",
+    "year": 2026,
+    "standard_pct": 19,
+    "other_pct": [
+      7
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "GR",
+    "year": 2026,
+    "standard_pct": 24,
+    "other_pct": [
+      6,
+      13
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "HU",
+    "year": 2026,
+    "standard_pct": 27,
+    "other_pct": [
+      5,
+      18
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "IE",
+    "year": 2026,
+    "standard_pct": 23,
+    "other_pct": [
+      9,
+      13.5
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "IT",
+    "year": 2026,
+    "standard_pct": 22,
+    "other_pct": [
+      5,
+      10
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "LV",
+    "year": 2026,
+    "standard_pct": 21,
+    "other_pct": [
+      5,
+      12
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "LT",
+    "year": 2026,
+    "standard_pct": 21,
+    "other_pct": [
+      5,
+      9
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "LU",
+    "year": 2026,
+    "standard_pct": 17,
+    "other_pct": [
+      8
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "MT",
+    "year": 2026,
+    "standard_pct": 18,
+    "other_pct": [
+      5,
+      7
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "NL",
+    "year": 2026,
+    "standard_pct": 21,
+    "other_pct": [
+      9
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "PL",
+    "year": 2026,
+    "standard_pct": 23,
+    "other_pct": [
+      5,
+      8
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "PT",
+    "year": 2026,
+    "standard_pct": 23,
+    "other_pct": [
+      6,
+      13
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "RO",
+    "year": 2026,
+    "standard_pct": 21,
+    "other_pct": [
+      11
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "SK",
+    "year": 2026,
+    "standard_pct": 23,
+    "other_pct": [
+      5,
+      19
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "SI",
+    "year": 2026,
+    "standard_pct": 22,
+    "other_pct": [
+      5,
+      9.5
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "ES",
+    "year": 2026,
+    "standard_pct": 21,
+    "other_pct": [
+      10
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "SE",
+    "year": 2026,
+    "standard_pct": 25,
+    "other_pct": [
+      6,
+      12
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "CH",
+    "year": 2026,
+    "standard_pct": 8.1,
+    "other_pct": [
+      2.6,
+      3.8
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "TR",
+    "year": 2026,
+    "standard_pct": 20,
+    "other_pct": [
+      10
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "GB",
+    "year": 2026,
+    "standard_pct": 20,
+    "other_pct": [
+      5
+    ],
+    "source_id": "TF_VAT26",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux réduits indicatifs; hors régimes particuliers, exemptions, territoires, taux parking et super-réduits."
+  },
+  {
+    "iso2": "AU",
+    "year": 2026,
+    "standard_pct": 10,
+    "other_pct": [],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "GST"
+  },
+  {
+    "iso2": "CA",
+    "year": 2026,
+    "standard_pct": null,
+    "other_pct": [
+      5,
+      15
+    ],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Fourchette combinée 5–15 % selon province; pas un taux national unique."
+  },
+  {
+    "iso2": "CN",
+    "year": 2026,
+    "standard_pct": 13,
+    "other_pct": [
+      9,
+      6
+    ],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux par catégorie; autres règles possibles."
+  },
+  {
+    "iso2": "IN",
+    "year": 2026,
+    "standard_pct": null,
+    "other_pct": [
+      5,
+      28
+    ],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Fourchette affichée par la source secondaire; réformes et taux actuels à vérifier."
+  },
+  {
+    "iso2": "ID",
+    "year": 2026,
+    "standard_pct": 12,
+    "other_pct": [],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Taux statutaire; taux effectifs et assiette particuliers à vérifier."
+  },
+  {
+    "iso2": "JP",
+    "year": 2026,
+    "standard_pct": 10,
+    "other_pct": [],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Consumption tax."
+  },
+  {
+    "iso2": "KR",
+    "year": 2026,
+    "standard_pct": 10,
+    "other_pct": [],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "VAT."
+  },
+  {
+    "iso2": "MX",
+    "year": 2026,
+    "standard_pct": 16,
+    "other_pct": [],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "VAT."
+  },
+  {
+    "iso2": "SA",
+    "year": 2026,
+    "standard_pct": 15,
+    "other_pct": [],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "VAT."
+  },
+  {
+    "iso2": "ZA",
+    "year": 2026,
+    "standard_pct": 15,
+    "other_pct": [],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "VAT."
+  },
+  {
+    "iso2": "US",
+    "year": 2026,
+    "standard_pct": null,
+    "other_pct": [],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Pas de TVA fédérale; taxes locales et étatiques distinctes."
+  },
+  {
+    "iso2": "BR",
+    "year": 2026,
+    "standard_pct": null,
+    "other_pct": [],
+    "source_id": "PWC_VAT",
+    "status": "secondary_reference_not_legal_rule",
+    "note": "Système multi-taxes en transition; pas de taux unique."
+  },
+  {
+    "iso2": "RU",
+    "year": 2026,
+    "standard_pct": 22,
+    "other_pct": [
+      0,
+      10
+    ],
+    "source_id": "RU_FNS_VAT2026",
+    "status": "official_reference_not_full_legal_rule",
+    "note": "Taux normal 22 %; taux de 0 et 10 % maintenus; régime simplifié 5 ou 7 % sous conditions."
+  }
+]

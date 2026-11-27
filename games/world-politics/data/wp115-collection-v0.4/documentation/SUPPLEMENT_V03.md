@@ -1,0 +1,7 @@
+# Complément v0.3 — collecte web du 27 novembre 2026
+
+Le schéma v0.1 et ses données numériques sont conservés. Les nouvelles valeurs sont dans `data/supplementary_numeric.json` et son CSV; elles ne sont pas directement compatibles avec le registre PHP d'origine. `kind`, `source_id`, `period`, `unit` et `note` doivent être préservés lors d’une future adaptation. Les ratios sont des pourcentages (non des points de base), les montants conservent l’échelle indiquée par `unit`, et les dates électorales attendues ne sont pas des échéances légales certifiées. Aucune conversion arbitraire, aucun zéro inventé.
+
+Les comptes Eurostat sont des comptes exécutés/révisables, pas des budgets votés; les mesures OCDE concernent uniquement un cas type, pas l’ensemble des contribuables. Le RNB par habitant n’est pas le revenu disponible des ménages. Les chiffres SIPRI ne couvrent pas les lois de conscription. Les références TVA secondaires exigent une vérification primaire. Les extraits IMF WHD sont mis en quarantaine logique par leur `kind`.
+
+La collecte reste incomplète. Aucune des 22 catégories complexes n’est déclarée intégralement close sur la seule base de ces indicateurs. Les fiches nationales et le tableau des lacunes distinguent les éléments partiellement documentés des données non collectées. Les conditions commerciales de réutilisation des publications doivent être vérifiées. Aucun changement au dépôt ni implémentation.

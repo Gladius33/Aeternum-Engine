@@ -1,0 +1,43 @@
+iso2,lower_or_single_chamber,lower_reference_seats,upper_chamber,upper_reference_seats,electoral_family_simplified,source_seats,source_electoral_family,status
+AT,Nationalrat,183,Bundesrat,60,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+AU,House of Representatives,150,Senate,76,majority,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+BE,Chambre des représentants,150,Sénat,60,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+BG,Assemblée nationale,240,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+BR,Câmara dos Deputados,513,Senado Federal,81,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+CA,House of Commons,343,Senate,105,majority,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+CH,Conseil national,200,Conseil des États,46,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+CN,Assemblée populaire nationale,3000,,,NA,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+CY,Chambre des représentants,80,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+CZ,Chambre des députés,200,Sénat,81,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+DE,Bundestag,630,Bundesrat,69,mixed,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+DK,Folketing,179,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+EE,Riigikogu,101,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+ES,Congreso de los Diputados,350,Senado,265,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+FI,Eduskunta,200,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+GB,House of Commons,650,House of Lords,800,majority,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+GR,Vouli,300,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+HR,Sabor,151,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+HU,Országgyűlés,199,,,mixed,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+ID,DPR,580,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+IE,Dáil Éireann,174,Seanad Éireann,60,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+IN,Lok Sabha,545,Rajya Sabha,245,majority,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+IT,Camera dei deputati,400,Senato,205,mixed,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+JP,Shūgiin,465,Sangiin,248,mixed,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+KR,Assemblée nationale,300,,,mixed,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+LT,Seimas,141,,,mixed,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+LU,Chambre des députés,60,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+LV,Saeima,100,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+MT,House of Representatives,65,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+MX,Cámara de Diputados,500,Senado,128,mixed,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+NL,Tweede Kamer,150,Eerste Kamer,75,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+PL,Sejm,460,Senat,100,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+PT,Assembleia da República,230,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+RO,Camera Deputaților,331,Senat,136,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+RU,Douma d'État,450,Conseil de la Fédération,170,mixed,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+SA,Majlis ash-Shura,151,,,NA,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+SE,Riksdag,349,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+SI,Državni zbor,90,Državni svet,40,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+SK,Národná rada,150,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+TR,Grande Assemblée nationale,600,,,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+US,House of Representatives,435,Senate,100,majority,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation
+ZA,National Assembly,400,National Council of Provinces,90,PR,IPU_SEATS,IPU_ELECTORAL,reference_requires_country_validation

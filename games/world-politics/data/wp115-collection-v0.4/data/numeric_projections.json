@@ -1,0 +1,3362 @@
+[
+  {
+    "iso2": "AT",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 60,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AT",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 90,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 310,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 140,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 160,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AT",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 570,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AT",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 560,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AU",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AU",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 160,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AU",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 390,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AU",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 310,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AU",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -310,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AU",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -270,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AU",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 440,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "AU",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 470,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BE",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 70,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BE",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 110,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 380,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 290,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -260,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BE",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 620,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BE",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 610,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BG",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 260,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BG",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 270,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BG",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 490,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BG",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 480,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BG",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -800,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BG",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -660,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BG",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 340,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BG",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BR",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 220,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BR",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 440,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 410,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -240,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -200,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BR",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 620,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "BR",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 680,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CA",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 110,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CA",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 170,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CA",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CA",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 240,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CA",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -10,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CA",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -20,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CA",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 650,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CA",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 630,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CH",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CH",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 120,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CH",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 70,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CH",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 80,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CH",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 620,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CH",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 650,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CH",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CH",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CN",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 450,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CN",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 400,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CN",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 100,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CN",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 140,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CN",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 400,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CN",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 390,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CN",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 510,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CN",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 510,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CY",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 290,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CY",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 320,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CY",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 370,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CY",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CY",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -770,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CY",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -770,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CY",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 400,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CY",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 440,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CZ",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 180,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CZ",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CZ",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 210,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CZ",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CZ",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CZ",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -160,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CZ",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "CZ",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 290,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DE",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 130,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DE",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 110,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 270,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 310,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 450,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 420,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DE",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 400,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DE",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 370,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DK",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 370,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DK",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 200,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DK",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 180,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DK",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 250,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DK",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 1120,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DK",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 1030,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DK",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "DK",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 310,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "EE",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 210,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "EE",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 220,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "EE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "EE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "EE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -250,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "EE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -360,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "EE",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 680,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "EE",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 660,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ES",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 250,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ES",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 180,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ES",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 370,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ES",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 270,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ES",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 260,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ES",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 200,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ES",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 980,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ES",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 980,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "FI",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 170,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "FI",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 140,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "FI",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 240,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "FI",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 160,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "FI",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 30,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "FI",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 30,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "FI",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 1020,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "FI",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 960,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GB",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 130,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GB",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 120,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GB",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GB",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GB",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GB",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -320,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GB",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 530,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GB",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 530,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GR",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 180,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GR",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 180,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 420,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 360,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -660,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -590,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GR",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 800,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "GR",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 760,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HR",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 220,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HR",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 230,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 450,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -440,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HR",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 450,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HR",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 460,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HU",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HU",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 210,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HU",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HU",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HU",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -50,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HU",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -30,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HU",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 450,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "HU",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 420,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ID",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 510,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ID",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 510,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ID",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ID",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ID",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -160,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ID",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -100,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ID",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 470,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ID",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 470,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IE",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": -100,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IE",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 370,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 340,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 740,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 750,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IE",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 500,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IE",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 500,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IN",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 700,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IN",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 700,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IN",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 500,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IN",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 440,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IN",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -150,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IN",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -130,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IN",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 500,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IN",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 500,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IT",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 80,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IT",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 60,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 70,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 120,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IT",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 560,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "IT",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 580,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "JP",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 70,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "JP",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 70,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "JP",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 200,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "JP",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 260,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "JP",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 460,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "JP",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 430,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "JP",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 250,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "JP",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 250,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "KR",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "KR",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "KR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 270,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "KR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 230,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "KR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 1880,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "KR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 1610,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "KR",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "KR",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 290,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LT",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 270,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LT",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 210,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 540,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 350,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -230,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -210,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LT",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 680,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LT",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 660,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LU",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 110,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LU",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 160,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LU",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LU",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 260,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LU",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 420,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LU",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 390,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LU",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 640,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LU",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 650,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LV",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 230,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LV",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 180,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LV",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 360,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LV",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 390,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LV",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -590,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LV",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -610,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LV",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 670,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "LV",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 650,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MT",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 420,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MT",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 400,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 240,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 220,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 650,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 580,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MT",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MT",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MX",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 150,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MX",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 180,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MX",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 380,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MX",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 360,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MX",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -30,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MX",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -50,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MX",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "MX",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "NL",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 150,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "NL",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 130,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "NL",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 290,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "NL",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "NL",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 830,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "NL",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 820,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "NL",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 400,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "NL",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 410,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PL",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 340,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PL",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 250,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PL",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 320,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PL",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PL",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PL",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -150,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PL",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 320,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PL",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 320,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PT",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 210,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PT",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 320,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PT",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 0,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PT",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 120,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PT",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 590,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "PT",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 590,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RO",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": -50,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RO",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 220,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RO",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 820,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RO",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 410,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RO",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -700,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RO",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -670,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RO",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 650,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RO",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 590,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RU",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 90,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RU",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 90,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RU",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 610,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RU",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 480,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RU",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 380,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RU",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 320,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RU",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 220,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "RU",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 240,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SA",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": -330,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SA",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 790,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SA",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SA",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 220,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SA",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -350,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SA",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -130,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SA",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": null,
+    "unit": "basis_points",
+    "kind": "missing",
+    "quality": "missing",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SA",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": null,
+    "unit": "basis_points",
+    "kind": "missing",
+    "quality": "missing",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SE",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 250,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SE",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 220,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 110,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SE",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 190,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 730,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SE",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 640,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SE",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 850,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SE",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 810,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SI",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 320,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SI",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 220,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SI",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 350,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SI",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 250,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SI",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": 290,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SI",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": 240,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SI",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 390,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SI",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 400,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SK",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 80,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SK",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 160,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SK",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 360,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SK",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 350,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SK",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -340,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SK",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -290,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SK",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 580,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "SK",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 570,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "TR",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 270,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "TR",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 360,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "TR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 3120,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "TR",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 2650,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "TR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -290,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "TR",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -240,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "TR",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 820,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "TR",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 830,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "US",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 230,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "US",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 230,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "US",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 360,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "US",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 280,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "US",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -390,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "US",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -380,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "US",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 420,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "US",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 400,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ZA",
+    "metric": "real_gdp_growth",
+    "year": 2026,
+    "value": 100,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ZA",
+    "metric": "real_gdp_growth",
+    "year": 2027,
+    "value": 130,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ZA",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2026,
+    "value": 440,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ZA",
+    "metric": "consumer_price_inflation_annual_average",
+    "year": 2027,
+    "value": 390,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ZA",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2026,
+    "value": -70,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ZA",
+    "metric": "current_account_balance_share_gdp",
+    "year": 2027,
+    "value": -90,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ZA",
+    "metric": "unemployment_rate",
+    "year": 2026,
+    "value": 3320,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  },
+  {
+    "iso2": "ZA",
+    "metric": "unemployment_rate",
+    "year": 2027,
+    "value": 3300,
+    "unit": "basis_points",
+    "kind": "projection",
+    "quality": "published_forecast",
+    "source_id": "IMF_WEO"
+  }
+]
