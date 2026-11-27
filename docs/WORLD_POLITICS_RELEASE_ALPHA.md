@@ -54,3 +54,5 @@ An authenticated account can replace its optional recovery code after current-pa
 ## WP99 limited corrective finance route
 
 New canonical campaigns pin a separate in-year corrective catalogue (state health credits, fictional ±920 million EUR over the fourth quarter). The player requests a distinct bill; both chambers, final adoption, review and publication precede the fixed 1 October scenario effective date. It does not replace the annual budget. For 2028 onwards an annual published law must exist. Domestic authorization still requires the exact legal instrument and proposal. Old saves do not acquire the new catalogue or score cohort. This is a bounded finance-law pilot, not a full LOLF model. Reference: https://questions.assemblee-nationale.fr/synthese/fonctionnement-assemblee-nationale/travail-legislatif/l-examen-parlementaire-des-lois-de-finances .
+
+The isolated MariaDB suite also replays a certified corrective law, injects a receipt failure to check atomic rollback, proves expenditure starts on 1 October, and verifies that the exact 92-day appropriation ends at the next fiscal year. This test uses synthetic state only.

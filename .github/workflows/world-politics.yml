@@ -351,6 +351,7 @@ jobs:
           done
           php tests/wp30-http.php
           php tests/wp71-finance-2028-db.php
+          php tests/wp99-corrective-finance-db.php
       - name: WP96 isolated logical backup restoration and read-only audit
         env:
           WP_CI_MARIADB_CONTAINER: ${{ job.services.mariadb.id }}
