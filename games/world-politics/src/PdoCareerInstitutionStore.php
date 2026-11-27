@@ -256,7 +256,7 @@ final class PdoCareerInstitutionStore
         }
         $state=$this->replay($world,$this->row($world));
         $sim->enableElectoral(DocumentaryForeignBallot::config($cc,ComparativeElectionCalendar::config($cc,$day),true));
-        $sim->enablePoliticalAI();$sim->enableForeignRecurring();$sim->enableFormationProtocol();$sim->enableAutonomousFormation($cc==='JP',$cc==='JP',true);if($cc==='US')$sim->enableUsPresidential(true);
+        $sim->enablePoliticalAI();$sim->enableForeignRecurring();$sim->enableFormationProtocol();$sim->enableAutonomousFormation($cc==='JP',$cc==='JP',true);if($cc==='US')$sim->enableUsPresidential(true,true);
         require_once __DIR__.'/PoliticalRoster.php';
         $roster=new PoliticalRoster($world,$state['country'],['government']);
         foreach($state['careers'] as $career){
@@ -323,7 +323,7 @@ final class PdoCareerInstitutionStore
         return $this->tx(function()use($world,$action,$proof,$secret){
             $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));
             [$sim,$prior]=$this->foreignInstitutionLocked($world,$state,$clock);
-            CareerInstitutionLedger::check(in_array($action,['accountability_file','accountability_vote','accountability_resolve'],true)&&is_string($proof['evidence_id']??null),'unsupported comparative evidence');
+            CareerInstitutionLedger::check(in_array($action,['accountability_file','accountability_vote','accountability_resolve','accountability_us_succession','accountability_us_vice_confirmation'],true)&&is_string($proof['evidence_id']??null),'unsupported comparative evidence');
             CareerInstitutionLedger::id($proof['evidence_id']);
             $actor='career-comparative-clerk';$key=hash('sha256','career-foreign-evidence-v1|'.$proof['evidence_id']);
             $fingerprint=CareerInstitutionLedger::digest(['action'=>$action,'proof'=>$proof]);
@@ -337,14 +337,14 @@ final class PdoCareerInstitutionStore
                 CareerInstitutionLedger::check(is_array($career)&&($career['account']!==null||isset($career['person_reference'])),'unknown or fictional AI successor');
                 if($career['account']!==null)$this->activeAccount($world,$career['account']);
             }
-            $before=$sim->snapshot()['accountability'];$role=$action==='accountability_resolve'?'constitutional_clerk':'parliament_clerk';
+            $before=$sim->snapshot()['accountability'];$role=in_array($action,['accountability_resolve','accountability_us_succession','accountability_us_vice_confirmation'],true)?'constitutional_clerk':'parliament_clerk';
             $result=$sim->accountability($role,$action,$proof,$proof['evidence_id']);
             $after=$sim->snapshot()['accountability'];
             $out=$this->publishForeignInstitution($world,$state['country'],$sim,$prior,$action,$proof,$result);
             $transition=($after['status']==='in_office'&&$after['incumbent']!==$before['incumbent'])
                 ||(in_array($after['status'],['caretaker','election_pending','removed_successor_pending'],true)&&$after['status']!==$before['status']);
             if($transition){
-                $p=['government_json'=>CareerForeignWorld::json($after),'expires'=>$after['status']==='in_office'?CareerForeignWorld::boundary($state['country']):null];
+                $p=['government_json'=>CareerForeignWorld::json($after),'expires'=>$after['status']==='in_office'?($action==='accountability_us_succession'?UsPresidentialElection::termEnd($after):CareerForeignWorld::boundary($state['country'])):null];
                 $digest=CareerInstitutionLedger::digest(['kind'=>'comparative-government-replay-v1','world'=>$world,'country'=>$state['country'],'payload'=>$p]);
                 $e=['world'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'foreign-'.substr($digest,0,48),'actor'=>'career-comparative-clerk','operation'=>'foreign_government','payload'=>$p,'evidence_sha'=>$digest];
                 $out['career_receipt']=$this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));

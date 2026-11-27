@@ -198,3 +198,19 @@ try{$cs->joinPublic($tok,'public-career-full-09',$secret,$pw);throw new RuntimeE
 $next=$cs->joinPublic($tok,'public-career-auto-09',$secret);
 ck($next['world_id']===$dir['universes'][1]['world_id']&&!$next['state_reset'],'next newcomer selects fresh reserve');
 echo "PASS WP119 public shared career pool, reserve, late admission and autonomous clock\n";
+
+// Transactional US career projection: the newly admitted documented VP
+// inherits the original expiry, not a fresh four-year presidential term.
+$usWorld=req('POST','/career-worlds',['label'=>'US succession','country'=>'US'],$etoken,'career-us-v3-creation');
+ck($usWorld['status']===201,'US v3 career world');
+$uw=$usWorld['body']['world_id'];$up='/career-worlds/'.$uw;
+$usState=req('GET',$up.'/institutions',null,$etoken)['body']['state'];
+$uc=\Aeternum\WorldPolitics\UsPresidentialElection::class;
+$vp=$uc::vicePresident($usState['accountability']);
+$proof=['world_id'=>$uw,'country'=>'US','evidence_id'=>'vp-succession-fixture','at'=>'2027-05-14T12:00:00Z','procedure_certified'=>true,'successor'=>$vp,'term_end'=>'2029-01-20','cause'=>'resignation'];
+$receipt=$cs->applyForeignEvidence($uw,'accountability_us_succession',$proof,$secret);
+ck($cs->applyForeignEvidence($uw,'accountability_us_succession',$proof,$secret)===$receipt,'US certified succession receipt replay');
+$uv=req('GET',$up.'/career',null,$etoken)['body'];
+ck(count($uv['occupied_offices'])===1&&$uv['occupied_offices'][0]['identity']['id']===$vp&&$uv['occupied_offices'][0]['expires']==='2029-01-20','US successor retains original term end');
+$cs->tickForeignInstitution($uw,'2027-05-15');
+ck(req('GET',$up.'/career',null,$etoken)['body']['occupied_offices'][0]['identity']['id']===$vp,'US successor survives committed day');

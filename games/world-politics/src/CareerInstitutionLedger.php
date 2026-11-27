@@ -350,15 +350,17 @@ final class CareerInstitutionLedger
         $office=str_replace('_','-',InstitutionalRulebook::forCountry($s['country'])['head_of_government']);
         $previous=$s['active'][$office]??null;
         if($gov['status']==='in_office'){
-            self::check(($opening||in_array($last['action'],['accountability_resolve','certified_electoral_formation','us_presidential_inauguration'],true))&&isset($s['careers'][$gov['incumbent']])&&is_string($p['expires']),'certified foreign successor required');
+            self::check(($opening||in_array($last['action'],['accountability_resolve','certified_electoral_formation','us_presidential_inauguration','accountability_us_succession'],true))&&isset($s['careers'][$gov['incumbent']])&&is_string($p['expires']),'certified foreign successor required');
             $usElection=($last['action']??null)==='us_presidential_inauguration';
+            $usSuccession=($last['action']??null)==='accountability_us_succession';
             // The final ordinary US term may legally end after the season.
             // Event dates remain bounded by the season; only this certified
             // expiry may extend beyond it.
-            if(!$usElection)self::day($p['expires']);
+            if(!$usElection&&!$usSuccession)self::day($p['expires']);
             self::check($p['expires']>$day,'foreign expiry');
             if($s['country']==='US')self::check($p['expires']<=(new \DateTimeImmutable($day))->modify('+4 years')->format('Y-m-d'),'US maximum modeled term');
             if($usElection)self::check($s['country']==='US'&&$p['expires']===(new \DateTimeImmutable($day))->modify('+4 years')->format('Y-m-d'),'US elected term boundary');
+            if($usSuccession)self::check($s['country']==='US'&&$p['expires']===UsPresidentialElection::termEnd($gov),'US successor inherits fixed term boundary');
             if($previous!==null){
                 $same=$s['mandates'][$previous]['career']===$gov['incumbent'];
                 self::check(!$same||($usElection&&$s['mandates'][$previous]['expires']===$day),'same incumbent does not create new mandate');

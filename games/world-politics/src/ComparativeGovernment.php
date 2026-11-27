@@ -59,6 +59,7 @@ final class ComparativeGovernment
      */
     public function apply(string $action,string $role,array $e):array
     {
+        if(in_array($action,['accountability_us_succession','accountability_us_vice_confirmation'],true))return $this->usSuccession($action,$role,$e);
         $common=['world_id','country','evidence_id','motion_id','at','procedure_certified'];
         $specific=match($action) {
             'accountability_file'=>['chamber','signatures','candidate','kind'],
@@ -143,6 +144,38 @@ final class ComparativeGovernment
         return ['government_status'=>$this->state['status'],'incumbent'=>$this->state['incumbent'],'pending'=>$this->state['pending'],
             'regime_changed'=>false]+($result??[]);
     }
+    private function usSuccession(string $action,string $role,array $e):array{
+        $base=['world_id','country','evidence_id','at','procedure_certified','successor','term_end'];
+        $confirm=$action==='accountability_us_vice_confirmation';
+        self::fields($e,[...$base,...($confirm?['president','nomination_certified','house_yes','senate_yes']:['cause'])]);
+        $g=$this->state;self::id($e['evidence_id']);self::id($e['successor']);
+        $at=is_string($e['at'])?\DateTimeImmutable::createFromFormat('!Y-m-d\TH:i:s\Z',$e['at'],new \DateTimeZone('UTC')):false;
+        if($role!=='constitutional_clerk'||$g['country']!=='US'||$e['country']!=='US'||$e['world_id']!==$g['world_id']
+            ||$e['procedure_certified']!==true||$at===false||$at->format('Y-m-d\TH:i:s\Z')!==$e['at']||substr($e['at'],0,10)!==$g['day']
+            ||$e['term_end']!==UsPresidentialElection::termEnd($g)||$g['day']>=$e['term_end'])
+            throw new \DomainException('Invalid US constitutional succession evidence');
+        foreach($g['history'] as $h)if($h['evidence']['evidence_id']===$e['evidence_id']||($h['evidence']['at']??$h['evidence']['day'].'T00:00:00Z')>$e['at'])
+            throw new \DomainException('Replayed or backdated succession');
+        $vp=UsPresidentialElection::vicePresident($g);
+        if($confirm){
+            $c=UsPresidentialElection::candidates($g['initial_incumbent']===UsPresidentialElection::initial(true));
+            $terms=0;foreach($g['history'] as $h)if($h['action']==='us_presidential_inauguration'&&$h['evidence']['winner']===$e['successor'])$terms++;
+            $limits=UsPresidentialElection::limitsAt($g,(new \DateTimeImmutable($g['day']))->modify('+1 day')->format('Y-m-d'),$c);
+            if($vp!==null||$g['status']!=='in_office'||$g['pending']!==null||$e['president']!==$g['incumbent']||$e['nomination_certified']!==true
+                ||$e['successor']===$g['incumbent']||!isset($c[$e['successor']])||$terms>=($limits[$e['successor']]??0))
+                throw new \DomainException('No eligible vice presidential confirmation');
+            foreach(['house','senate'] as $ch){$yes=$e[$ch.'_yes'];$n=$g['seats'][$ch];
+                if(!is_int($yes)||$yes<=intdiv($n,2)||$yes>$n)throw new \DomainException('Both chambers must confirm vice president');}
+            $result=['president'=>$g['incumbent'],'vice_president'=>$e['successor'],'term_end'=>$e['term_end'],'regime_changed'=>false];
+        }else{
+            if($vp===null||$e['successor']!==$vp||$vp===$g['incumbent']||!in_array($e['cause'],['resignation','death','removal'],true)
+                ||($e['cause']==='removal'?$g['status']!=='removed_successor_pending':($g['status']!=='in_office'||$g['pending']!==null)))
+                throw new \DomainException('Vice president must fill certified presidential vacancy');
+            $this->state['incumbent']=$vp;$this->state['pending']=null;$this->state['status']='in_office';
+            $result=['president'=>$vp,'vice_president'=>null,'term_end'=>$e['term_end'],'regime_changed'=>false];
+        }
+        $this->state['history'][]=['action'=>$action,'role'=>$role,'evidence'=>$e];return $result;
+    }
     /** Verified formation evidence originates in the institutional store;
      * this route is not available to a player or ordinary confidence clerk.
      */
@@ -186,7 +219,7 @@ final class ComparativeGovernment
         $year=$proof['year']??null;
         if(!is_int($year)||$this->state['country']!=='US'||$this->state['status']!=='in_office'||$this->state['pending']!==null
             ||$this->state['day']!==UsPresidentialElection::dates($year)['inauguration']||UsPresidentialElection::result($this->state,$year,$proof['version']??'')!==$proof
-            ||$proof['winner']===null)throw new \DomainException('Unresolved US presidential accession');
+            ||$proof['winner']===null||(($proof['version']??null)===UsPresidentialElection::VERSION_V3&&$proof['vice_winner']===null))throw new \DomainException('Unresolved US presidential accession');
         foreach($this->state['history'] as $h){
             if($h['action']==='us_presidential_inauguration'&&$h['evidence']['year']===$year)
                 throw new \DomainException('Duplicate US election');

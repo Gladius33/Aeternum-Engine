@@ -123,7 +123,7 @@ final class InstitutionalSimulation
         if(array_key_exists('formation_protocol',$state))FormationProtocol::validateHistory($state);
         if(array_key_exists('autonomous_formation',$state))AutonomousForeignFormation::validateHistory($state);
         if(array_key_exists('us_presidential',$state))UsPresidentialElection::validateHistory($state);
-        else foreach($state['accountability']['history']??[] as $h)if($h['action']==='us_presidential_inauguration')throw new \DomainException('Unpinned US presidency');
+        else foreach($state['accountability']['history']??[] as $h)if(in_array($h['action'],['us_presidential_inauguration','accountability_us_succession','accountability_us_vice_confirmation'],true))throw new \DomainException('Unpinned US presidency');
         if(array_key_exists('revision',$state)){
             if(!is_array($state['revision'])||$state['country_code']!=='FR')throw new \DomainException('Invalid revision scope');
             $r=ConstitutionalRevision::restore($state['revision'])->snapshot();
@@ -308,6 +308,10 @@ final class InstitutionalSimulation
     {
         self::id($commandId);
         if (!isset($this->state['accountability'])) throw new \DomainException('Comparative government not enabled');
+        $v3=($this->state['us_presidential']??null)===UsPresidentialElection::VERSION_V3;
+        $special=in_array($action,['accountability_us_succession','accountability_us_vice_confirmation'],true);
+        if(($special&&(!$v3||$commandId!==($evidence['evidence_id']??null)))||($v3&&$action==='accountability_resolve'))
+            throw new \DomainException('US succession requires versioned constitutional evidence');
         $g=ComparativeGovernment::restore($this->state['accountability']);
         $result=$g->apply($action,$role,$evidence);
         $this->state['accountability']=$g->snapshot();
@@ -357,7 +361,7 @@ final class InstitutionalSimulation
         return $result;
     }
 
-    public function enableUsPresidential(bool $extended=false):void{$this->state=UsPresidentialElection::bootstrap($this->state,$extended);}
+    public function enableUsPresidential(bool $extended=false,bool $succession=false):void{$this->state=UsPresidentialElection::bootstrap($this->state,$extended,$succession);}
     public function enableAutonomousFormation(bool $japan=false,bool $extended=false,bool $recovery=false):void
     {
         $this->state=AutonomousForeignFormation::bootstrap($this->state,$japan,$extended,$recovery);

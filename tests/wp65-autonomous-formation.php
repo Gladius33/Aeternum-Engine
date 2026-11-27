@@ -193,3 +193,33 @@ ck65(!$govClass::formationAvailable($g,null)&&!$govClass::formationAvailable($g,
 for($t=new DateTimeImmutable('2027-05-15');$t->format('Y-m-d')<=$due;$t=$t->modify('+1 day'))$gb->advanceTo($t->format('Y-m-d'));
 $s=$gb->snapshot();ck65($s['accountability']['status']==='in_office'&&$s['accountability']['pending']===null&&I::restore($s)->snapshot()===$s,'fresh ordinary ballot ends caretaker and replays');
 $h=$s['accountability']['history'];ck65($h[array_key_last($h)]['formation_poll']===$poll,'recovery bound to fresh election date');
+
+// XXV vacancy/confirmation and XXII limit, preserving v1/v2 histories.
+$us=new I('us-vice-v3','US','2027-05-14');
+$us->enableAccountability($u::initial(false),['house'=>100,'senate'=>50]);
+$us->enableElectoral(\Aeternum\WorldPolitics\DocumentaryForeignBallot::config('US',C::config('US','2027-05-14')));
+$us->enablePoliticalAI();$us->enableForeignRecurring();$us->enableFormationProtocol();$us->enableAutonomousFormation();$us->enableUsPresidential(true,true);
+$g=$us->snapshot()['accountability'];$vp=$u::vicePresident($g);
+$e=['world_id'=>'us-vice-v3','country'=>'US','evidence_id'=>'vacancy-fixture','at'=>'2027-05-14T10:00:00Z','procedure_certified'=>true,'successor'=>$vp,'term_end'=>'2029-01-20','cause'=>'resignation'];
+$bad=$e;$bad['successor']=$u::initial(false);
+try{$us->accountability('constitutional_clerk','accountability_us_succession',$bad,$bad['evidence_id']);throw new RuntimeException('Incorrect VP accepted');}catch(DomainException $expected){}
+$us->accountability('constitutional_clerk','accountability_us_succession',$e,$e['evidence_id']);
+$g=$us->snapshot()['accountability'];ck65($g['incumbent']===$vp&&$u::vicePresident($g)===null&&I::restore($us->snapshot())->snapshot()===$us->snapshot(),'VP succeeds for remainder of fixed term');
+$candidates=$u::candidates(false);$replacement=array_values(array_filter(array_keys($candidates),fn($id)=>$id!==$vp))[0];
+$confirm=['world_id'=>'us-vice-v3','country'=>'US','evidence_id'=>'vice-confirm-fixture','at'=>'2027-05-14T11:00:00Z','procedure_certified'=>true,'successor'=>$replacement,'term_end'=>'2029-01-20','president'=>$vp,'nomination_certified'=>true,'house_yes'=>51,'senate_yes'=>26];
+$bad=$confirm;$bad['senate_yes']=25;
+try{$us->accountability('constitutional_clerk','accountability_us_vice_confirmation',$bad,$bad['evidence_id']);throw new RuntimeException('One-chamber confirmation accepted');}catch(DomainException $expected){}
+$us->accountability('constitutional_clerk','accountability_us_vice_confirmation',$confirm,$confirm['evidence_id']);
+ck65($u::vicePresident($us->snapshot()['accountability'])===$replacement,'both chambers fill vice vacancy');
+$g=$us->snapshot()['accountability'];$new=$u::result($g,2028,$u::VERSION_V3);
+ck65($new['election_limits'][$vp]===2&&array_sum($new['vice_electoral_votes'])===538&&$new['vice_winner']!==null,'opening remainder less than two years and distinct VP election');
+for($t=new DateTimeImmutable('2027-05-15');$t->format('Y-m-d')<=$dates['inauguration'];$t=$t->modify('+1 day'))$us->advanceTo($t->format('Y-m-d'));
+$s=$us->snapshot();ck65(I::restore($s)->snapshot()===$s&&$s['accountability']['incumbent']===$new['winner']&&$u::vicePresident($s['accountability'])===$new['vice_winner'],'ordinary election after succession replays');
+$gov=new \Aeternum\WorldPolitics\ComparativeGovernment('us-limit-v3','US','2027-05-14',$u::initial(false),['house'=>100,'senate'=>50]);
+$proof=$u::result($gov->snapshot(),2028,$u::VERSION_V3);$gov->advance('2029-01-20');$gov->installUsPresidential($proof);
+$gov->advance('2029-02-01');$vp2=$u::vicePresident($gov->snapshot());
+$e=['world_id'=>'us-limit-v3','country'=>'US','evidence_id'=>'long-vacancy-fixture','at'=>'2029-02-01T12:00:00Z','procedure_certified'=>true,'successor'=>$vp2,'term_end'=>'2033-01-20','cause'=>'resignation'];
+$gov->apply('accountability_us_succession','constitutional_clerk',$e);
+$next=$u::result($gov->snapshot(),2032,$u::VERSION_V3);
+ck65($next['election_limits'][$vp2]===1,'more than two years of another elected term restricts elections to one');
+ck65(\Aeternum\WorldPolitics\ComparativeGovernment::restore($gov->snapshot())->snapshot()===$gov->snapshot(),'succession chronology and limits replay');
