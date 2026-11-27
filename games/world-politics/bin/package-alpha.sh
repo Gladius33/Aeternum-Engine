@@ -15,9 +15,12 @@ cd "$root"
 mapfile -t selected < <(git ls-tree -r --name-only "$sha" -- games/world-politics docs tests LICENSE.md NOTICE WORLD_POLITICS_BRANCH_ONLY.md | awk '/^games\/world-politics\// || /^docs\/WORLD_POLITICS.*\.md$/ || /^tests\/wp.*\.php$/ || /^(LICENSE\.md|NOTICE|WORLD_POLITICS_BRANCH_ONLY\.md)$/')
 (("${#selected[@]}" > 10))
 tmp=$(mktemp "${out}.XXXXXX")
-trap 'rm -f -- "$tmp"' EXIT
-git archive --format=tar --prefix=world-politics/ "$sha" -- "${selected[@]}" | gzip -n > "$tmp"
-[[ $(gzip -dc "$tmp" | git get-tar-commit-id) == "$sha" ]]
+raw=""
+trap 'rm -f -- "$tmp" ${raw:+"$raw"}' EXIT
+raw=$(mktemp "${out}.raw.XXXXXX")
+git archive --format=tar --prefix=world-politics/ "$sha" -- "${selected[@]}" > "$raw"
+[[ $(git get-tar-commit-id < "$raw") == "$sha" ]]
+gzip -n -c -- "$raw" > "$tmp"
 # Refuse to replace an existing artifact, even if created concurrently.
 ln -- "$tmp" "$out"
 sha256sum -- "$out"
