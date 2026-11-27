@@ -28,7 +28,7 @@ paths:
               additionalProperties: false
               required: [type, parameters]
               properties:
-                type: {enum: [programme-coverage, policy-capacity, working-hours, household-sensitivity, household-backtest]}
+                type: {enum: [programme-coverage, policy-capacity, working-hours, household-sensitivity, household-backtest, fiscal-path, family-transfer, countries]}
                 parameters: {type: object}
       responses:
         '202': {description: Job accepted}

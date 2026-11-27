@@ -435,3 +435,50 @@ jobs:
           done
           python3 tests/wp100-multinode.py
           php tests/wp102-universes.php
+
+  research-isolated-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci-only
+          MARIADB_DATABASE: wp_research_test
+          MARIADB_USER: wp_research_test
+          MARIADB_PASSWORD: ci-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      WP_RESEARCH_DB_DSN: mysql:host=127.0.0.1;port=3306;dbname=wp_research_test;charset=utf8mb4
+      WP_RESEARCH_DB_USER: wp_research_test
+      WP_RESEARCH_DB_PASSWORD: ci-only
+      WP_RESEARCH_OPERATOR: 'YES'
+      WP_RESEARCH_TEST: 'YES'
+      WP_RESEARCH_ENABLED: 'YES'
+      WP_RESEARCH_LOOPBACK: 'YES'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql
+          coverage: none
+      - name: Dedicated research database and real HTTP acceptance
+        run: |
+          php games/world-politics/research/operator.php install
+          php -S 127.0.0.1:18731 games/world-politics/research/public/index.php > /tmp/research-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://127.0.0.1:18731/research/v1/models; then break; fi
+            sleep 1
+          done
+          php tests/wp123-research-http.php

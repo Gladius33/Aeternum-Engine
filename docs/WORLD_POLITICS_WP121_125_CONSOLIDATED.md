@@ -19,3 +19,5 @@ Tenant creation outputs a one-time secret; store it privately, do not log it. Ro
 
 ## Remaining release gates
 Full WP121–125 scope is not completed by these increments: international programme data and rulebooks, empirical calibration, comprehensive cross-country economies and career gameplay, general research orchestration/exports, scale/security and extraction to a separately approved destination repository remain open. Exact-head CI must pass before engineering acceptance.
+
+Second consolidated increment: 20-year conditional net-liability stock-flow model, one-time family transfer accounting, 195-country pinned documentary reference and actual separate-MariaDB HTTP test with loopback-only test mode (production HTTPS required). CSV exports retain the union of fields. The eight-model research catalogue remains conditional rather than a complete scientific economy.

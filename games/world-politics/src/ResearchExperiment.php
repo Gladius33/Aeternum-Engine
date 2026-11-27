@@ -8,13 +8,13 @@ require_once __DIR__.'/ResearchModels.php';
 final class ResearchExperiment
 {
     public const VERSION='wp123-experiment-v1';
-    public const TYPES=['programme-coverage','policy-capacity','working-hours','household-sensitivity','household-backtest'];
+    public const TYPES=['programme-coverage','policy-capacity','working-hours','household-sensitivity','household-backtest','fiscal-path','family-transfer','countries'];
     public static function json(array $x):string{return json_encode($x,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
     public static function hash(array $x):string{return hash('sha256',self::json($x));}
     public static function pin():array{
         $files=['src/ResearchExperiment.php','src/ResearchModels.php','src/HouseholdIncomeReference.php',
             'src/HouseholdHistoricalBacktest.php','src/HouseholdAccount.php','src/ProgrammeSourceInventory.php',
-            'data/2026-11-26-household-income-v1.json','data/wp114-direct-source-inventory.json'];
+            'data/2026-11-26-household-income-v1.json','data/wp114-direct-source-inventory.json','data/2026-11-25-un-members-v1.json'];
         $pins=[];foreach($files as $f){$h=hash_file('sha256',__DIR__.'/../'.$f);if($h===false)throw new \DomainException('Missing experiment dependency');$pins[$f]=$h;}
         return ['version'=>self::VERSION,'php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'files'=>$pins];
     }
@@ -36,7 +36,10 @@ final class ResearchExperiment
             'policy-capacity'=>ResearchModels::policy($p),
             'working-hours'=>ResearchModels::hours($p),
             'household-sensitivity'=>ResearchModels::income($p),
-            'household-backtest'=>ResearchModels::calibration()
+            'household-backtest'=>ResearchModels::calibration(),
+            'fiscal-path'=>ResearchModels::fiscal($p),
+            'family-transfer'=>ResearchModels::family($p),
+            'countries'=>ResearchModels::countries($p)
         };
         $out=['version'=>self::VERSION,'request'=>$r,'manifest'=>$current,'result'=>$result,
             'research_only'=>true,'runtime_authority'=>false,'official_score_eligible'=>false];
@@ -45,7 +48,8 @@ final class ResearchExperiment
     public static function csv(array $report):string{
         $rows=$report['result']['rows']??$report['result']['backtest']['rows']??null;
         if(!is_array($rows)||$rows===[])throw new \DomainException('No tabular result');
-        $keys=array_keys($rows[0]);$f=fopen('php://temp','w+');
+        $keys=[];foreach($rows as $row)foreach(array_keys($row) as $k)if(!in_array($k,$keys,true))$keys[]=$k;
+        $f=fopen('php://temp','w+');
         if($f===false)throw new \RuntimeException('CSV unavailable');
         fputcsv($f,$keys,',','"','');
         foreach($rows as $row){

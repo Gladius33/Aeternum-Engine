@@ -6,7 +6,7 @@ header('Content-Type: application/json');header('Cache-Control: no-store');heade
 header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
 try{
     if(getenv('WP_RESEARCH_ENABLED')!=='YES')$r=['status'=>503,'body'=>['code'=>'research_disabled']];
-    elseif(!in_array($_SERVER['HTTPS']??'',['on','1'],true))$r=['status'=>403,'body'=>['code'=>'https_required']];
+    elseif(!(PHP_SAPI==='cli-server'&&getenv('WP_RESEARCH_LOOPBACK')==='YES'&&in_array($_SERVER['REMOTE_ADDR']??'',['127.0.0.1','::1'],true)&&in_array($_SERVER['SERVER_NAME']??'',['127.0.0.1','::1'],true))&&!in_array($_SERVER['HTTPS']??'',['on','1'],true))$r=['status'=>403,'body'=>['code'=>'https_required']];
     else{
         $length=$_SERVER['CONTENT_LENGTH']??'0';
         if(!ctype_digit((string)$length)||(int)$length>16384)$r=['status'=>413,'body'=>['code'=>'request_bound']];

@@ -82,6 +82,61 @@ final class ResearchModels
         return ['classification'=>'deterministic_sensitivity_not_confidence_interval','central_bps'=>$v[13],
             'minimum_bps'=>min($v),'maximum_bps'=>max($v),'rows'=>$rows,'official_score_eligible'=>false];
     }
+    /** Conditional annual fiscal stock-flow accounting, not an economic
+     * forecast. All quantities are EUR, signed net liability permits assets. */
+    public static function fiscal(array $p):array{
+        self::fields($p,['years','opening_net_liability_eur','annual_revenue_eur','annual_primary_expense_eur',
+            'revenue_growth_bps','expense_growth_bps','interest_bps','annual_measure_cost_eur']);
+        $years=self::integer($p,'years',1,20);
+        $debt=self::integer($p,'opening_net_liability_eur',-10000000000000,10000000000000);
+        $rev=self::integer($p,'annual_revenue_eur',0,10000000000000);
+        $expense=self::integer($p,'annual_primary_expense_eur',0,10000000000000);
+        $rg=self::integer($p,'revenue_growth_bps',-1000,1000);
+        $eg=self::integer($p,'expense_growth_bps',-1000,1000);
+        $rate=self::integer($p,'interest_bps',0,2000);
+        $measure=self::integer($p,'annual_measure_cost_eur',-1000000000000,1000000000000);
+        $rows=[];
+        for($year=1;$year<=$years;$year++){
+            $opening=$debt;$primary=$expense+$measure;
+            if($primary<0)throw new \DomainException('Negative primary spending');
+            $interest=intdiv(max(0,$opening)*$rate,10000);
+            $deficit=$primary+$interest-$rev;$debt=$opening+$deficit;
+            if(abs($debt)>1000000000000000)throw new \DomainException('Fiscal path outside scope');
+            $rows[]=['year'=>$year,'opening_net_liability_eur'=>$opening,'revenue_eur'=>$rev,
+                'primary_expense_eur'=>$primary,'interest_eur'=>$interest,'deficit_eur'=>$deficit,
+                'closing_net_liability_eur'=>$debt];
+            $rev=intdiv($rev*(10000+$rg),10000);$expense=intdiv($expense*(10000+$eg),10000);
+        }
+        return ['classification'=>'conditional_stock_flow_not_macro_forecast','rows'=>$rows,
+            'closing_net_liability_eur'=>$debt,'interest_on_assets_modelled'=>false,'legal_enactment'=>false];
+    }
+    public static function family(array $p):array{
+        self::fields($p,['first_births','subsequent_births','first_grant_eur','subsequent_grant_eur','takeup_bps']);
+        $a=self::integer($p,'first_births',0,2000000);$b=self::integer($p,'subsequent_births',0,2000000);
+        $g=self::integer($p,'first_grant_eur',0,50000);$h=self::integer($p,'subsequent_grant_eur',0,50000);
+        $takeup=self::integer($p,'takeup_bps',0,10000);
+        $rows=[];
+        foreach([['first',$a,$g],['subsequent',$b,$h]] as [$kind,$births,$grant]){
+            $recipients=intdiv($births*$takeup,10000);
+            $rows[]=['birth_order'=>$kind,'births'=>$births,'recipients'=>$recipients,'one_time_grant_eur'=>$grant,'outlay_eur'=>$recipients*$grant];
+        }
+        return ['classification'=>'conditional_one_time_transfer_not_fertility_prediction','rows'=>$rows,
+            'total_outlay_eur'=>array_sum(array_column($rows,'outlay_eur')),'behavioural_response_modelled'=>false,'legal_enactment'=>false];
+    }
+    public static function countries(array $p):array{
+        self::fields($p,[]);
+        $d=json_decode(file_get_contents(__DIR__.'/../data/2026-11-25-un-members-v1.json'),true,32,JSON_THROW_ON_ERROR);
+        $rows=$d['countries'];$seen=[];
+        foreach($rows as $r){
+            if(!preg_match('/^[A-Z]{2}$/D',$r['iso2'])||isset($seen[$r['iso2']])||!is_string($r['name'])||!is_bool($r['un_member']))
+                throw new \DomainException('Invalid country reference');
+            $seen[$r['iso2']]=true;
+        }
+        if(count($rows)!==195||count(array_filter($rows,fn($r)=>$r['un_member']))!==193)
+            throw new \DomainException('Country coverage mismatch');
+        return ['classification'=>'documentary_reference_not_gameplay_eligibility','as_of'=>$d['as_of'],
+            'sources'=>[$d['membership_source'],$d['observer_source'],$d['code_source']],'rows'=>$rows,'exhaustive_programmes'=>false];
+    }
     public static function calibration():array{
         $r=HouseholdHistoricalBacktest::report(HouseholdIncomeReference::pin());
         $h=$r['metrics']['holdout'];
