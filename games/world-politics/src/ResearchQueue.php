@@ -106,6 +106,14 @@ final class ResearchQueue
             };
         });
     }
+    public function globalTransitions(string $token,int $after=0,?int $through=null):array{
+        require_once __DIR__.'/ResearchPersistentStore.php';
+        return $this->tx(function()use($token,$after,$through){
+            $r=$this->entitlement($this->authorized($token));
+            if($r['plan']!=='pro')throw new ResearchBillingError(403,'research_pro_required');
+            return (new ResearchPersistentStore($this->db,$this->evidenceKey))->globalDataset($after,$through);
+        });
+    }
     private function issueLocked(string $tenant):string{
         $token=bin2hex(random_bytes(32));$this->q('INSERT INTO wp_research_keys(key_sha,tenant_id,expires_at) VALUES(?,?,?)',[hash('sha256',$token),$tenant,time()+86400*90]);
         return $token;
@@ -226,11 +234,22 @@ final class ResearchQueue
         return $this->tx(function()use($pack){
             $n=0;foreach($pack['rows'] as $e){
                 $r=GameDataset::verify($e);$json=ResearchExperiment::json($e);
+                if($this->q('SELECT 1 FROM wp_research_game_dataset_withdrawn WHERE world_alias=? FOR UPDATE',[$r['world']])->fetchColumn()!==false)throw new \DomainException('Dataset withdrawn');
                 $old=$this->q('SELECT envelope_json FROM wp_research_game_dataset WHERE world_alias=? AND committed_day=? FOR UPDATE',[$r['world'],$r['day']])->fetchColumn();
                 if(is_string($old)){if(!hash_equals($old,$json))throw new \DomainException('Dataset revision conflict');continue;}
                 $this->q('INSERT INTO wp_research_game_dataset(world_alias,committed_day,envelope_json) VALUES(?,?,?)',[$r['world'],$r['day'],$json]);$n++;
             }
             return ['inserted'=>$n];
+        });
+    }
+    /** Trusted operator withdrawal using the exported pseudonymous world ID.
+     * Past downloads cannot be recalled. Future imports are rejected. */
+    public function withdrawGameDataset(string $alias):array{
+        if(!preg_match('/^[a-f0-9]{64}$/D',$alias))throw new \DomainException('Invalid world alias');
+        return $this->tx(function()use($alias){
+            $this->q('INSERT IGNORE INTO wp_research_game_dataset_withdrawn(world_alias,withdrawn_at) VALUES(?,?)',[$alias,time()]);
+            $n=$this->q('DELETE FROM wp_research_game_dataset WHERE world_alias=?',[$alias])->rowCount();
+            return ['withdrawn'=>true,'deleted_rows'=>$n];
         });
     }
     public function gameDataset(string $token,int $after=0,?int $through=null):array{

@@ -74,6 +74,7 @@ CREATE TABLE wp_research_billing_events (
  operation VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  created_at BIGINT UNSIGNED NOT NULL,
  UNIQUE KEY billing_idempotency(tenant_id,event_key),
+ UNIQUE KEY global_payment_reference(event_key),
  INDEX billing_history(tenant_id,event_id),
  FOREIGN KEY(tenant_id) REFERENCES wp_research_tenants(tenant_id)
 ) ENGINE=InnoDB;
@@ -119,6 +120,7 @@ CREATE TABLE wp_research_simulations (
  FOREIGN KEY(world_id,tenant_id) REFERENCES wp_research_worlds(world_id,tenant_id)
 ) ENGINE=InnoDB;
 CREATE TABLE wp_research_simulation_events (
+ seq BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE,
  world_id CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  revision INT UNSIGNED NOT NULL,
  command_sha CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -127,4 +129,10 @@ CREATE TABLE wp_research_simulation_events (
  PRIMARY KEY(world_id,revision),
  UNIQUE KEY simulation_command(world_id,command_sha),
  FOREIGN KEY(world_id) REFERENCES wp_research_simulations(world_id)
+) ENGINE=InnoDB;
+
+-- Permanent withdrawal tombstones prevent re-import of old signed batches.
+CREATE TABLE wp_research_game_dataset_withdrawn (
+ world_alias CHAR(64) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ withdrawn_at BIGINT UNSIGNED NOT NULL
 ) ENGINE=InnoDB;

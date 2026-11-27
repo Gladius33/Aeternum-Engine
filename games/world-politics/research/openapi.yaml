@@ -90,6 +90,11 @@ paths:
           schema: {type: string}
       responses:
         '200': {description: Own world dataset page}
+  /datasets/transitions:
+    get:
+      responses:
+        '200': {description: Research Pro global eligible persistent state-action-next-state transitions}
+        '403': {description: Research Pro required}
   /datasets/game-worlds:
     get:
       responses:

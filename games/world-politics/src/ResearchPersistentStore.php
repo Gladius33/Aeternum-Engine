@@ -35,7 +35,7 @@ final class ResearchPersistentStore
         $events=$this->q('SELECT * FROM wp_research_simulation_events WHERE world_id=? ORDER BY revision LIMIT 65',[$world]);
         foreach($events as $e){
             $i++;$v=self::decode($e['event_json']);$a=$v['request'];
-            if((int)$e['revision']!==$i||$i>$rev||$a['expected_revision']!==$i-1||$v['previous_sha']!==$last||$v['world']!==$world||$v['tenant']!==$tenant||$v['command']!==$e['command_sha']
+            if((int)$e['revision']!==$i||$i>$rev||$a['expected_revision']!==$i-1||$v['previous_sha']!==$last||$v['world']!==$world||$v['tenant']!==$tenant||$v['command']!==$e['command_sha']||$v['pin_sha']!==hash('sha256',$h['pin_json'])
                 ||!hash_equals($this->seal($v),$e['signature_sha']))throw new \DomainException('Research journal signature');
             $transition=ResearchPersistentModel::step($sim,$c,$a);
             if($transition!==$v['transition']||$sim->hash()!==$v['state_sha'])throw new \DomainException('Research replay diverged');
@@ -63,11 +63,34 @@ final class ResearchPersistentStore
         // Atomic compute charge before executing new work; rollback with any failure.
         ResearchBilling::simulation($this->db,$tenant,$world,$key,$a['days']);
         $transition=ResearchPersistentModel::step($sim,$c,$a);$rev++;
-        $v=['world'=>$world,'tenant'=>$tenant,'command'=>$key,'previous_sha'=>$h['last_sha'],'request'=>$a,'transition'=>$transition,'state_sha'=>$sim->hash()];
+        $v=['world'=>$world,'tenant'=>$tenant,'command'=>$key,'pin_sha'=>hash('sha256',$h['pin_json']),'previous_sha'=>$h['last_sha'],'request'=>$a,'transition'=>$transition,'state_sha'=>$sim->hash()];
         $last=ResearchExperiment::hash($v);
         $this->q('INSERT INTO wp_research_simulation_events(world_id,revision,command_sha,event_json,signature_sha) VALUES(?,?,?,?,?)',[$world,$rev,$key,ResearchExperiment::json($v),$this->seal($v)]);
         $this->q('UPDATE wp_research_simulations SET revision=?,state_sha=?,last_sha=?,head_signature=? WHERE world_id=?',[$rev,$sim->hash(),$last,$this->head($world,$tenant,$rev,$h['pin_json'],$sim->hash(),$last),$world]);
         return ['revision'=>$rev,'transition'=>$transition,'event_sha'=>$last];
+    }
+    /** Pro feed: previously replay-validated signed transition evidence,
+     * current opt-in only. No tenant IDs, account IDs or raw command IDs. */
+    public function globalDataset(int $after,?int $through):array{
+        $this->scope();
+        if($after<0||($through!==null&&$through<$after))throw new \DomainException('Invalid transition cursor');
+        $max=$through??(int)$this->q('SELECT COALESCE(MAX(seq),0) FROM wp_research_simulation_events')->fetchColumn();
+        $raw=$this->q('SELECT e.*,s.tenant_id,s.pin_json,s.revision AS head_revision,s.state_sha,s.last_sha,s.head_signature
+            FROM wp_research_simulation_events e JOIN wp_research_simulations s USING(world_id)
+            JOIN wp_research_tenants t USING(tenant_id)
+            WHERE t.share_dataset=1 AND e.seq>? AND e.seq<=? ORDER BY e.seq LIMIT 11',[$after,$max])->fetchAll(\PDO::FETCH_ASSOC);
+        $out=[];
+        foreach(array_slice($raw,0,10) as $e){
+            $v=self::decode($e['event_json']);$revision=(int)$e['revision'];
+            if(!hash_equals($this->head($e['world_id'],$e['tenant_id'],(int)$e['head_revision'],$e['pin_json'],$e['state_sha'],$e['last_sha']),$e['head_signature'])
+                ||!hash_equals($this->seal($v),$e['signature_sha'])||$v['world']!==$e['world_id']||$v['tenant']!==$e['tenant_id']||$v['command']!==$e['command_sha']
+                ||$v['pin_sha']!==hash('sha256',$e['pin_json'])||$v['request']['expected_revision']!==$revision-1||$revision>(int)$e['head_revision'])
+                throw new \DomainException('Transition dataset evidence mismatch');
+            $out[]=['seq'=>(int)$e['seq'],'world'=>hash_hmac('sha256','research-simulation-world|'.$e['world_id'],$this->key),
+                'revision'=>$revision,'manifest'=>self::decode($e['pin_json']),'transition'=>$v['transition']];
+        }
+        return ['version'=>ResearchPersistentModel::VERSION,'scope'=>'global_opted_in_research_transitions','through'=>$max,
+            'next_after'=>count($raw)>10?$out[9]['seq']:null,'rows'=>$out,'synthetic_simulation'=>true];
     }
     public function dataset(string $world,string $tenant,int $after):array{
         if($after<0||$after>ResearchPersistentModel::MAX_EVENTS)throw new \DomainException('Invalid transition cursor');

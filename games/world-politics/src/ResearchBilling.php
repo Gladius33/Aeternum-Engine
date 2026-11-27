@@ -15,7 +15,7 @@ final class ResearchBilling
     public static function included(string $plan):int{return match($plan){'standard'=>10000,'pro'=>50000,default=>throw new \DomainException('Invalid plan')};}
     public static function operation(string $method,string $path):string{
         if($method==='GET'&&in_array($path,['/research/v1/usage','/research/v1/entitlements'],true))return 'usage';
-        if(str_starts_with($path,'/research/v1/datasets/global')||str_starts_with($path,'/research/v1/datasets/game-worlds'))return 'global_export';
+        if(str_starts_with($path,'/research/v1/datasets/global')||str_starts_with($path,'/research/v1/datasets/game-worlds')||str_starts_with($path,'/research/v1/datasets/transitions'))return 'global_export';
         if(str_contains($path,'/dataset')||str_ends_with($path,'/csv'))return 'export';
         return 'request';
     }
@@ -91,8 +91,8 @@ final class ResearchBilling
             throw new \DomainException('Invalid payment event');
         $r=self::account($db,$tenant);$key=hash('sha256','payment|'.$reference);
         $fingerprint=hash('sha256',json_encode([$kind,$units,$until,$plan,$mode,$overage],JSON_THROW_ON_ERROR));
-        $old=self::q($db,'SELECT fingerprint FROM wp_research_billing_events WHERE tenant_id=? AND event_key=?',[$tenant,$key])->fetchColumn();
-        if(is_string($old)){if(!hash_equals($old,$fingerprint))throw new \DomainException('Payment event conflict');return self::usage($db,$tenant);}
+        $old=self::q($db,'SELECT tenant_id,fingerprint FROM wp_research_billing_events WHERE event_key=?',[$key])->fetch(\PDO::FETCH_ASSOC);
+        if($old!==false){if($old['tenant_id']!==$tenant||!hash_equals($old['fingerprint'],$fingerprint))throw new \DomainException('Payment event conflict');return self::usage($db,$tenant);}
         if($kind==='topup'){
             if($units===0||$until!==null||$plan!==null||$mode!==null||$overage||(int)$r['prepaid_units']+ $units>self::MAX)throw new \DomainException('Invalid topup');
             self::q($db,'UPDATE wp_research_tenants SET prepaid_units=prepaid_units+? WHERE tenant_id=?',[$units,$tenant]);

@@ -26,6 +26,8 @@ final class ResearchGateway
                 if($raw!==''&&$raw!=='{}')return self::response(400,['code'=>'body_forbidden']);
                 return self::response(201,$this->queue->createWorld($token,$h['idempotency-key']));
             }
+            if($method==='GET'&&preg_match('~^/research/v1/datasets/transitions(?:/([0-9]{1,15})/([0-9]{1,15}))?$~D',$path,$ds))
+                return self::response(200,$this->queue->globalTransitions($token,isset($ds[1])?(int)$ds[1]:0,isset($ds[2])?(int)$ds[2]:null));
             if($method==='GET'&&preg_match('~^/research/v1/datasets/game-worlds(?:/([0-9]{1,15})/([0-9]{1,15}))?$~D',$path,$ds))
                 return self::response(200,$this->queue->gameDataset($token,isset($ds[1])?(int)$ds[1]:0,isset($ds[2])?(int)$ds[2]:null));
             if($method==='GET'&&preg_match('~^/research/v1/datasets/(own|global)(?:/([0-9]{1,15})/([0-9]{1,15}))?$~D',$path,$ds)){

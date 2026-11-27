@@ -36,6 +36,7 @@ $pay=$q->createTenant('standard',30,false,'payg');
 ckResearch($g->handle('GET','/research/v1/models','',$head($pay['token']))['status']===402,'empty prepaid wallet denied');
 $q->fund($pay['tenant_id'],'payment-fixture-001','topup',50);
 $q->fund($pay['tenant_id'],'payment-fixture-001','topup',50);
+try{$q->fund($a['tenant_id'],'payment-fixture-001','topup',50);throw new RuntimeException('Cross-tenant payment replay accepted');}catch(DomainException $expected){}
 ckResearch($q->usage($pay['token'])['prepaid_remaining']===50,'idempotent funding');
 $x=$g->handle('POST',$path,$body,$head($pay['token']));
 ckResearch($x['status']===202&&$q->usage($pay['token'])['prepaid_remaining']===39,'admission plus compute debit');
@@ -50,6 +51,9 @@ ckResearch($q->importGameDataset($pack)['inserted']===1&&$q->importGameDataset($
 $pro=$q->createTenant('pro',30);
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pro['token']))['body']['rows'][0]['row']===$game['row'],'Pro game data feed');
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pay['token']))['status']===403,'standard game feed denied');
+ckResearch($q->withdrawGameDataset($game['row']['world'])['deleted_rows']===1,'withdrawn imported aggregate');
+ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pro['token']))['body']['rows']===[],'withdrawn data no longer served');
+try{$q->importGameDataset($pack);throw new RuntimeException('Withdrawn world reimported');}catch(DomainException $expected){}
 $meter=$q->usage($pro['token']);$remaining=$meter['included_remaining'];
 $q->configureCapacity('global',86400,0,0);
 ckResearch($g->handle('GET','/research/v1/models','',$head($pro['token']))['status']===429,'global emergency stop despite credit');
