@@ -4,6 +4,8 @@ namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/CareerScoreContract.php';
 require_once __DIR__.'/ConstitutionalRevision.php';
 require_once __DIR__.'/PresidentialMandate.php';
+require_once __DIR__.'/InstitutionalRulebook.php';
+require_once __DIR__.'/ComparativeGovernment.php';
 
 /** WP118–119 opt-in institutional ledger. Documentary identities never authorize acts. */
 final class CareerInstitutionLedger
@@ -23,7 +25,13 @@ final class CareerInstitutionLedger
     public static function digest(mixed $x):string{return hash('sha256',self::json($x));}
     public static function day(string $s):void{CareerScoreContract::elapsed(CareerScoreContract::START,$s);}
     public static function initial(string $world,string $country,string $mode,string $day):array{
-        self::id($world);self::day($day);self::check($country==='FR'&&in_array($mode,['career','research'],true),'only French reviewed fixture');
+        self::id($world);self::day($day);self::check(InstitutionalRulebook::hasRules($country)&&in_array($mode,['career','research'],true),'reviewed country required');
+        if($country!=='FR'){
+            $rules=InstitutionalRulebook::forCountry($country);
+            return ['version'=>self::VERSION,'world'=>$world,'country'=>$country,'mode'=>$mode,'state_id'=>$country,'regime'=>$rules['system'],'constitution_revision'=>1,
+                'constitution_sha'=>self::digest($rules),'constitution_rules'=>['country_rulebook'=>$rules['version'],'source'=>$rules['policy_source'],'head_of_state'=>$rules['head_of_state'],'head_of_government'=>$rules['head_of_government']],'day'=>$day,'sequence'=>0,'last_event_sha'=>str_repeat('0',64),
+                'careers'=>[],'mandates'=>[],'active'=>[],'generations'=>[],'series'=>[],'assembly'=>'active','senate'=>'not_modelled','assembly_changed_on'=>$day,'government'=>'vacant','research_observation'=>null,'foreign_evidence'=>[]];
+        }
         return ['version'=>self::VERSION,'world'=>$world,'country'=>$country,'mode'=>$mode,'state_id'=>'FR','regime'=>'fr-fifth-republic','constitution_revision'=>1,
             'constitution_sha'=>self::digest(['source'=>self::SOURCE,'rules'=>'fr-career-v1']),'constitution_rules'=>['term_limit'=>2,'next_term_years'=>5,'effective_clauses'=>[]],'day'=>$day,'sequence'=>0,'last_event_sha'=>str_repeat('0',64),
             'careers'=>[],'mandates'=>[],'active'=>[],'generations'=>[],'series'=>[],'assembly'=>'active','senate'=>'active','assembly_changed_on'=>$day,
@@ -157,12 +165,44 @@ final class CareerInstitutionLedger
         $office='minister-'.$proposal['portfolio'];$s['appointment_proposals'][$p['proposal']]['status']='confirmed';
         return ['reason'=>'reshuffle','close'=>isset($s['active'][$office])?[$office]:[],'grants'=>[['office'=>$office,'career'=>$proposal['target'],'expires'=>$end,'interim'=>false]]];
     }
+    /** Country-specific government authority derives from the existing comparative
+     * accountability journal, not the French appointment model or a role string. */
+    public static function foreignGovernment(array &$s,array $e):void{
+        $p=$e['payload'];self::fields($p,['government_json','expires']);
+        self::check($s['country']!=='FR'&&$e['actor']==='career-comparative-clerk'&&is_string($p['government_json'])&&strlen($p['government_json'])<=1000000,'foreign government scope');
+        $gov=ComparativeGovernment::restore(json_decode($p['government_json'],true,64,JSON_THROW_ON_ERROR))->snapshot();
+        $day=$e['day'];$last=$gov['history'][array_key_last($gov['history'])]??null;
+        self::check($gov['world_id']===$s['world']&&$gov['country']===$s['country']&&$gov['day']===$day&&$last!==null,'government source scope');
+        $proof=$last['evidence'];$id=$proof['evidence_id'];
+        self::check(substr($proof['at']??$proof['day'],0,10)===$day&&!isset($s['foreign_evidence'][$id]),'stale or reused foreign evidence');
+        self::check($e['evidence_sha']===self::digest(['kind'=>'comparative-government-replay-v1','world'=>$s['world'],'country'=>$s['country'],'payload'=>$p]),'foreign evidence binding');
+        $office=str_replace('_','-',InstitutionalRulebook::forCountry($s['country'])['head_of_government']);
+        $previous=$s['active'][$office]??null;
+        if($gov['status']==='in_office'){
+            self::check(in_array($last['action'],['accountability_resolve','certified_electoral_formation'],true)&&isset($s['careers'][$gov['incumbent']])&&is_string($p['expires']),'certified foreign successor required');
+            self::day($p['expires']);self::check($p['expires']>$day,'foreign expiry');
+            if($s['country']==='US')self::check($p['expires']<=(new \DateTimeImmutable($day))->modify('+4 years')->format('Y-m-d'),'US maximum modeled term');
+            if($previous!==null){
+                self::check($s['mandates'][$previous]['career']!==$gov['incumbent'],'same incumbent does not create new mandate');
+                self::close($s,$office,$day,'succession');
+            }
+            $generation=($s['generations'][$office]??0)+1;$s['generations'][$office]=$generation;
+            $mandate='mandate-'.hash('sha256',self::json([$s['world'],$s['country'],$office,$generation,$e['command']]));
+            $s['mandates'][$mandate]=['id'=>$mandate,'office'=>$office,'career'=>$gov['incumbent'],'generation'=>$generation,'start'=>$day,'expires'=>$p['expires'],'end'=>null,'end_reason'=>null,'interim'=>false,'constitution_revision'=>$s['constitution_revision'],'powers'=>['foreign.government.represent'],'series'=>null,'terms'=>0];
+            $s['active'][$office]=$mandate;$s['government']='in_office';
+        }else{
+            self::check(in_array($gov['status'],['caretaker','election_pending','removed_successor_pending'],true)&&$p['expires']===null&&$previous!==null&&$s['mandates'][$previous]['career']===$gov['incumbent'],'foreign closure proof');
+            self::close($s,$office,$day,'constitutional_transition');$s['government']=$gov['status'];
+        }
+        $s['foreign_evidence'][$id]=$e['evidence_sha'];
+    }
     /** Applies only institution-certified commands, never raw player inputs. */
     public static function apply(array $s,array $e):array{
         self::fields($e,['world','country','day','world_revision','command','actor','operation','payload','evidence_sha']);
         self::id($e['command']);self::id($e['actor']);self::day($e['day']);
         self::check($e['world']===$s['world']&&$e['country']===$s['country']&&$e['day']>=$s['day']&&is_int($e['world_revision'])&&$e['world_revision']>=0&&preg_match('/^[a-f0-9]{64}$/D',$e['evidence_sha'])===1,'event scope');
         $p=$e['payload'];$day=$e['day'];$op=$e['operation'];
+        if($s['country']!=='FR')self::check(in_array($op,['admit','foreign_government','research_observe'],true),'French powers unavailable outside France');
         if($s['mode']==='career'&&$op==='presidential_ballot'){$p=self::ballotTransition($s,$e);$op='transition';}
         if($s['mode']==='career'&&$op==='cabinet_act'){$p=self::cabinetTransition($s,$e);$op=$p===null?'cabinet_proposal_recorded':'transition';}
         if($s['mode']==='research'){
@@ -175,6 +215,8 @@ final class CareerInstitutionLedger
             self::check(!isset($s['careers'][$p['career']])&&in_array($p['mode'],['opening','late_takeover'],true)&&($p['mode']==='opening')===($day===CareerScoreContract::START),'admission mode');
             foreach($s['careers'] as $c)self::check($c['account']!==$p['account']&&$c['character']!==$p['character'],'duplicate career');
             $s['careers'][$p['career']]=['account'=>$p['account'],'character'=>$p['character'],'admitted_on'=>$day,'mode'=>$p['mode'],'first_series'=>null];
+        }elseif($op==='foreign_government'){
+            self::foreignGovernment($s,$e);
         }elseif($op==='cabinet_proposal_recorded'){
             self::check($e['operation']==='cabinet_act','invalid proposal event');
         }elseif($op==='transition'){

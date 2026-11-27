@@ -6,7 +6,7 @@ use Aeternum\WorldPolitics\{ConstitutionalRevision,InstitutionalSimulation,Frenc
 require_once __DIR__.'/../games/world-politics/src/FrenchCareerInstitutionBridge.php';
 function ck(bool $x,string $m):void{if(!$x)throw new RuntimeException($m);}
 function no(callable $f):void{try{$f();}catch(DomainException $e){return;}throw new RuntimeException('expected rejection');}
-function evt(array $s,string $op,array $p,string $day='2027-05-14'):array{return ['world'=>$s['world'],'country'=>'FR','day'=>$day,'world_revision'=>0,'command'=>'cmd-'.($s['sequence']+1),'actor'=>'institution','operation'=>$op,'payload'=>$p,'evidence_sha'=>str_repeat('a',64)];}
+function evt(array $s,string $op,array $p,string $day='2027-05-14'):array{return ['world'=>$s['world'],'country'=>$s['country'],'day'=>$day,'world_revision'=>0,'command'=>'cmd-'.($s['sequence']+1),'actor'=>'institution','operation'=>$op,'payload'=>$p,'evidence_sha'=>str_repeat('a',64)];}
 function add(array $s,string $id):array{return L::apply($s,evt($s,'admit',['career'=>$id,'account'=>'acct-'.$id,'character'=>'person-'.$id,'mode'=>'opening']));}
 function grant(string $o,string $c,string $end='2032-05-14',bool $interim=false):array{return ['office'=>$o,'career'=>$c,'expires'=>$end,'interim'=>$interim];}
 function change(array $s,string $reason,array $close,array $grants,string $day='2027-05-14'):array{return L::apply($s,evt($s,'transition',compact('reason','close','grants'),$day));}
@@ -81,4 +81,25 @@ $ev=evt($auto,'presidential_ballot',$payload,'2032-05-14');$ev['actor']='career-
 $next=L::apply($auto,$ev);ck($next['active']['president']!==$auto['active']['president'],'automatic handover advances generation');
 $auto=change($auto,'renewal',['president'],[grant('president','a','2037-05-14')],'2032-05-14');
 $payload=L::automaticBallot($auto,'2037-05-14');ck(!isset($payload['ballot']['first']['votes']['a']),'third consecutive term excluded');
+// International identity / research isolation and existing constructive succession replay.
+foreach(['DE','ES','GB','IT','JP','US'] as $cc){
+    $f=add(L::initial('foreign-'.$cc,$cc,'career','2027-05-14'),'a');
+    ck($f['country']===$cc&&$f['active']===[],'international opposition only');
+    no(fn()=>change($f,'election',[],[grant('president','a')]));
+    $r=L::initial('research-'.$cc,$cc,'research','2027-05-14');
+    $r=L::apply($r,evt($r,'research_observe',['regime_label'=>'contested','assembly_status'=>'disrupted','legality'=>'disputed']));
+    ck($r['state_id']===$cc&&$r['active']===[]&&!$r['research_observation']['runtime_authority'],'research does not transfer powers');
+}
+$f=add(L::initial('foreign-de','DE','career','2027-05-14'),'a');
+$cg=new \Aeternum\WorldPolitics\ComparativeGovernment('foreign-de','DE','2027-05-14','initial-government',['bundestag'=>100]);
+$common=['world_id'=>'foreign-de','country'=>'DE','motion_id'=>'motion-one','procedure_certified'=>true];
+$cg->apply('accountability_file','parliament_clerk',$common+['evidence_id'=>'file-one','at'=>'2027-05-14T00:00:00Z','chamber'=>'bundestag','signatures'=>30,'candidate'=>'a','kind'=>'no_confidence']);
+$cg->advance('2027-05-16');
+$cg->apply('accountability_vote','parliament_clerk',$common+['evidence_id'=>'vote-one','at'=>'2027-05-16T00:00:00Z','chamber'=>'bundestag','present'=>100,'yes'=>60,'no'=>40,'abstain'=>0]);
+$cg->apply('accountability_resolve','constitutional_clerk',$common+['evidence_id'=>'resolve-one','at'=>'2027-05-16T01:00:00Z','outcome'=>'appoint_successor','successor'=>'a']);
+$fp=['government_json'=>json_encode($cg->snapshot(),JSON_THROW_ON_ERROR),'expires'=>'2030-05-16'];
+$fe=evt($f,'foreign_government',$fp,'2027-05-16');$fe['actor']='career-comparative-clerk';$fe['evidence_sha']=L::digest(['kind'=>'comparative-government-replay-v1','world'=>$f['world'],'country'=>'DE','payload'=>$fp]);
+$f=L::apply($f,$fe);$fm=$f['active']['federal-chancellor'];
+ck(L::allows($f,'acct-a',$fm,1,'foreign.government.represent','2027-05-16')&&!L::allows($f,'acct-a',$fm,1,'president.request_dissolution','2027-05-16'),'country-specific authority');
+no(fn()=>L::apply($f,$fe));
 echo "PASS WP118–119: careers, distinct powers, compatibility, succession, continuity, research isolation and renewal\n";

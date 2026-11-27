@@ -103,4 +103,9 @@ ck($after['body']['domestic']['state']['days'][0]['active_policies']===[],'unleg
 ck(req('GET',$ep.'/economy',null,$etoken)===$after,'no duplicate accrual');
 ck(req('POST','/worlds/'.$ew.'/clock/advances',['target_day'=>'2027-05-16'],$etoken)['status']===404,'no player clock grant');
 echo "PASS WP118 economic profile, committed-day recovery, no duplicate economic accrual\n";
+$fn=req('POST','/career-worlds',['label'=>'German career','country'=>'DE'],$etoken,'career-de-creation-001');
+ck($fn['status']===201,'German opposition career creation');
+$fw=$fn['body']['world_id'];$fv=req('GET','/career-worlds/'.$fw.'/career',null,$etoken);
+ck($fv['status']===200&&$fv['body']['country']==='DE'&&$fv['body']['mandates']===[],'German country pinned, no French powers');
+ck(req('POST','/career-worlds',['label'=>'Unknown','country'=>'CH'],$etoken,'career-ch-creation-001')['status']===409,'unimplemented rules fail closed');
 echo "PASS WP118 HTTP career sandbox, invitations, admission, replay, principal and legacy isolation\n";

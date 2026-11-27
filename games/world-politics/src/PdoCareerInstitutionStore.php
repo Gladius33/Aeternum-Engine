@@ -78,6 +78,19 @@ final class PdoCareerInstitutionStore
             if($e['operation']==='presidential_ballot')$grants=CareerInstitutionLedger::ballotTransition($s,$e)['grants'];
             if($e['operation']==='cabinet_act'){$tmp=$s;$grants=CareerInstitutionLedger::cabinetTransition($tmp,$e)['grants']??[];}
             foreach($grants as $g){$account=$s['careers'][$g['career']]['account']??null;CareerInstitutionLedger::check(is_string($account),'unknown career');$this->activeAccount($world,$account);}
+            if($e['operation']==='foreign_government'){
+                require_once __DIR__.'/InstitutionalSimulation.php';
+                $source=$this->query('SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code=? FOR UPDATE',[$world,$s['country']])->fetch(\PDO::FETCH_ASSOC);
+                CareerInstitutionLedger::check($source!==false,'missing committed comparative institution');
+                $inst=InstitutionalSimulation::restore(self::decode($source['state_json']));$is=$inst->snapshot();
+                CareerInstitutionLedger::check($is['world_id']===$world&&$is['country_code']===$s['country']&&$is['day']===$e['day']&&hash_equals($source['state_sha'],$inst->hash())&&isset($is['accountability']),'comparative committed source mismatch');
+                $gov=self::decode($e['payload']['government_json']);
+                CareerInstitutionLedger::check($gov===$is['accountability'],'comparative source differs');
+                if($gov['status']==='in_office'){
+                    $account=$s['careers'][$gov['incumbent']]['account']??null;
+                    CareerInstitutionLedger::check(is_string($account),'unknown successor career');$this->activeAccount($world,$account);
+                }
+            }
             $next=CareerInstitutionLedger::apply($s,$e);$receipt=self::receipt($next);
             $this->query('INSERT INTO wp_career_events(world_id,sequence_no,actor_id,command_id,event_json,signature_sha,previous_sha,event_sha,receipt_json) VALUES(?,?,?,?,?,?,?,?,?)',[$world,$next['sequence'],$e['actor'],$e['command'],CareerInstitutionLedger::json($e),$signature,$s['last_event_sha'],$next['last_event_sha'],CareerInstitutionLedger::json($receipt)]);
             if($e['operation']==='admit'){$p=$e['payload'];$this->query('INSERT INTO wp_career_memberships(world_id,account_id,career_id,character_id) VALUES(?,?,?,?)',[$world,$p['account'],$p['career'],$p['character']]);}
@@ -109,7 +122,7 @@ final class PdoCareerInstitutionStore
         foreach($s['careers'] as $c)if($c['account']===$account)return $this->viewLocked($world,$account,$clock);
         CareerInstitutionLedger::check($s['mode']==='career','research admission forbidden');
         $hash=substr(hash('sha256',$world."\n".$account),0,40);
-        $e=['world'=>$world,'country'=>'FR','day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'admit-'.$hash,'actor'=>'career-admission','operation'=>'admit',
+        $e=['world'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'admit-'.$hash,'actor'=>'career-admission','operation'=>'admit',
             'payload'=>['career'=>'career-'.$hash,'account'=>$account,'character'=>'fiction-'.$hash,'mode'=>$clock['committed_day']===CareerScoreContract::START?'opening':'late_takeover'],
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'authenticated-fictional-admission','world'=>$world,'account'=>$account,'day'=>$clock['committed_day']])];
         $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
@@ -158,6 +171,21 @@ final class PdoCareerInstitutionStore
             return $this->applyLocked($event,hash_hmac('sha256',CareerInstitutionLedger::json($event),$secret));
         });
     }
+    /** Trusted service imports the exact committed comparative government
+     * state. No foreign power is inferred from party labels or ownership. */
+    public function synchronizeForeignGovernment(string $world,?string $expires,string $secret):array{
+        return $this->tx(function()use($world,$expires,$secret){
+            $clock=$this->clock($world);$state=$this->replay($world,$this->row($world));
+            CareerInstitutionLedger::check($state['country']!=='FR'&&$state['mode']==='career','comparative world required');
+            $r=$this->query('SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code=? FOR UPDATE',[$world,$state['country']])->fetch(\PDO::FETCH_ASSOC);
+            CareerInstitutionLedger::check($r!==false,'no comparative institution');
+            $inst=self::decode($r['state_json']);$gov=$inst['accountability']??throw new \DomainException('No comparative government');
+            $p=['government_json'=>json_encode($gov,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE),'expires'=>$expires];
+            $digest=CareerInstitutionLedger::digest(['kind'=>'comparative-government-replay-v1','world'=>$world,'country'=>$state['country'],'payload'=>$p]);
+            $e=['world'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'foreign-'.substr($digest,0,48),'actor'=>'career-comparative-clerk','operation'=>'foreign_government','payload'=>$p,'evidence_sha'=>$digest];
+            return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
+        });
+    }
     /** A private career-world owner may invite an account as a member, not confer an office. */
     public function inviteForSession(string $world,string $token,string $target):array{
         CareerInstitutionLedger::id($target);
@@ -176,11 +204,11 @@ final class PdoCareerInstitutionStore
         });
     }
     /** Private institution-only sandbox; never grants legacy ownership powers. */
-    public function createForSession(string $token,string $label,string $key,string $secret,string $profile='institutional'):array{
-        CareerInstitutionLedger::check(in_array($profile,['institutional','economic'],true),'unknown career profile');
+    public function createForSession(string $token,string $label,string $key,string $secret,string $profile='institutional',string $country='FR'):array{
+        CareerInstitutionLedger::check(in_array($profile,['institutional','economic'],true)&&InstitutionalRulebook::hasRules($country)&&($country==='FR'||$profile==='institutional'),'unknown or unsupported career profile');
         CareerInstitutionLedger::check(trim($label)!==''&&strlen($label)<=100&&!preg_match('/[\x00-\x1f\x7f]/',$label)&&preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)===1,'invalid career world');
-        $label=trim($label);$key=hash('sha256',"career-world-v1\n".$key);$fingerprint=CareerInstitutionLedger::digest(['label'=>$label,'scenario'=>'wp-career-v1',...($profile==='economic'?['profile'=>$profile]:[])]);
-        return $this->tx(function()use($token,$label,$key,$fingerprint,$secret,$profile){
+        $label=trim($label);$key=hash('sha256',"career-world-v1\n".$key);$fingerprint=CareerInstitutionLedger::digest(['label'=>$label,'scenario'=>'wp-career-v1',...($profile==='economic'?['profile'=>$profile]:[]),...($country!=='FR'?['country'=>$country]:[])]);
+        return $this->tx(function()use($token,$label,$key,$fingerprint,$secret,$profile,$country){
             $a=$this->sessionAccount($token);
             $prior=$this->query('SELECT world_id,request_sha,scenario FROM wp_alpha_worlds WHERE owner_id=? AND create_key=?',[$a,$key])->fetch(\PDO::FETCH_ASSOC);
             if($prior!==false){CareerInstitutionLedger::check($prior['scenario']==='wp-career-v1'&&hash_equals($prior['request_sha'],$fingerprint),'idempotency conflict');return ['world_id'=>$prior['world_id'],'scenario'=>'wp-career-v1','label'=>$label];}
@@ -190,7 +218,7 @@ final class PdoCareerInstitutionStore
             $this->query("INSERT INTO wp_alpha_members(world_id,account_id,role) VALUES(?,?,'owner')",[$world,$a]);
             $this->query('INSERT INTO wp_world_clock(world_id,committed_day,revision) VALUES(?,?,0)',[$world,$day]);
             WorldMutationFence::seed($this->db,$world);
-            $s=CareerInstitutionLedger::initial($world,'FR','career',$day);$j=CareerInstitutionLedger::json($s);
+            $s=CareerInstitutionLedger::initial($world,$country,'career',$day);$j=CareerInstitutionLedger::json($s);
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
             if($profile==='economic'){require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);}
             $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret);

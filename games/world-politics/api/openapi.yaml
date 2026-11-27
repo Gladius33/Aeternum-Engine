@@ -50,6 +50,7 @@ paths:
               properties:
                 label: {type: string, minLength: 1, maxLength: 100}
                 profile: {type: string, enum: [institutional, economic], default: institutional}
+                country: {type: string, enum: [FR, DE, ES, GB, IT, JP, US], default: FR}
       responses:
         '201': {description: World created or receipt replayed}
         '404': {description: Feature disabled}

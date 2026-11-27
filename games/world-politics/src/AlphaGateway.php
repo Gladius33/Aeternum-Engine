@@ -79,9 +79,9 @@ final class AlphaGateway
                 $cs=new PdoCareerInstitutionStore($this->db(),new CareerInstitutionEvidence($secret));
                 try{
                     if($path==='/api/v1/career-worlds'&&$method==='POST'){
-                        AlphaAccounts::fields($body,array_key_exists('profile',$body)?['label','profile']:['label']);if(isset($body['profile'])&&!is_string($body['profile']))throw new AlphaHttpError(422,'invalid_profile');if(array_key_exists('profile',$body)&&$body['profile']===null)throw new AlphaHttpError(422,'invalid_profile');if(!is_string($body['label']))throw new AlphaHttpError(422,'invalid_label');
+                        AlphaAccounts::fields($body,['label',...(array_key_exists('profile',$body)?['profile']:[]),...(array_key_exists('country',$body)?['country']:[])]);if(array_key_exists('country',$body)&&!is_string($body['country']))throw new AlphaHttpError(422,'invalid_country');if(isset($body['profile'])&&!is_string($body['profile']))throw new AlphaHttpError(422,'invalid_profile');if(array_key_exists('profile',$body)&&$body['profile']===null)throw new AlphaHttpError(422,'invalid_profile');if(!is_string($body['label']))throw new AlphaHttpError(422,'invalid_label');
                         if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
-                        return self::ok(201,$cs->createForSession($token,$body['label'],$h['idempotency-key'],$secret,$body['profile']??'institutional'));
+                        return self::ok(201,$cs->createForSession($token,$body['label'],$h['idempotency-key'],$secret,$body['profile']??'institutional',$body['country']??'FR'));
                     }
                     if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|admission|members|economy|cabinet|policy-proposals|institutions|bills)$~D',$path,$cm)){
                         if($session->role($cm[1])===null)throw new AlphaHttpError(404,'not_found');
