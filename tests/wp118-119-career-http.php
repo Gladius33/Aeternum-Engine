@@ -25,6 +25,7 @@ ck(req('GET',$p.'/career',null,$b)['status']===404,'cross account denied');
 ck(req('POST',$p.'/members',['account_id'=>$ids[1]],$a)['status']===200,'invite member');
 ck(req('POST',$p.'/members',['account_id'=>$ids[2]],$b)['status']===409,'viewer cannot invite');
 ck(req('GET',$p.'/career',null,$b)['body']['career']===null,'invitation not admission');
+ck(req('POST',$p.'/admission',['reference_id'=>'campaign2027-jean-luc-melenchon'],$b)['status']===409,'incomplete real programme blocked');
 $ad=req('POST',$p.'/admission',(object)[],$b);ck($ad['status']===200&&$ad['body']['career']!==null&&$ad['body']['mandates']===[],'member career admitted');
 ck(req('POST',$p.'/admission',(object)[],$b)===$ad,'admission replay');
 ck(req('POST',$p.'/admission',['office'=>'president'],$b)['status']===422,'office injection denied');

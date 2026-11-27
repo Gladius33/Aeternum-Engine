@@ -117,7 +117,7 @@ final class CareerEconomicWorld
         $day=$r['committed_day'];
         $opening=$mid===null&&$day===CareerScoreContract::START;
         $due=$mid!==null&&$state['mandates'][$mid]['expires']===$day;
-        $missingAI=!isset($state['careers'][CareerInstitutionLedger::autonomousRoster($state)[0]]);
+        $missingAI=!isset($state['careers'][array_key_first(CareerInstitutionLedger::realAutonomousRoster($state))]);
         // Existing worlds acquire NPCs prospectively, never after the candidacy cutoff.
         if($opening||$due||($missingAI&&$mid!==null&&!$state['mandates'][$mid]['interim']&&$day<FrenchElectionCalendar::presidentialPoll($state['mandates'][$mid]['expires'])['candidacy_lock'])){
             $secret=getenv('WP_CAREER_EVIDENCE_KEY');CareerInstitutionLedger::check(is_string($secret)&&strlen($secret)>=32,'election signing key required');

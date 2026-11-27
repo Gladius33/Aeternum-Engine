@@ -1,0 +1,184 @@
+{
+  "version": "wp119-real-fr-roster-v1",
+  "country": "FR",
+  "source_git_blob": "ba31c17196fd09efbf19661cefd5f000fa6fc372",
+  "final_ballot_verified": false,
+  "people": [
+    {
+      "id": "real-jean-luc-melenchon",
+      "person_reference": "campaign2027-jean-luc-melenchon",
+      "name": "Jean-Luc Mélenchon",
+      "source": "https://melenchon2027.fr/programme/livre",
+      "observed_on": "2026-11-27",
+      "publication_state": "programme_and_archives_distinguished"
+    },
+    {
+      "id": "real-bruno-retailleau",
+      "person_reference": "campaign2027-bruno-retailleau",
+      "name": "Bruno Retailleau",
+      "source": "https://www.avecretailleau.fr/projet/faq",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_project"
+    },
+    {
+      "id": "real-nicolas-dupont-aignan",
+      "person_reference": "campaign2027-nicolas-dupont-aignan",
+      "name": "Nicolas Dupont-Aignan",
+      "source": "https://www.debout-la-france.fr/projet/produire-en-france/",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_project"
+    },
+    {
+      "id": "real-marine-tondelier",
+      "person_reference": "campaign2027-marine-tondelier",
+      "name": "Marine Tondelier",
+      "source": "https://lesecologistes.fr/pages/6ImK65GKUnvibm33WGkjkj/projet-2027",
+      "observed_on": "2026-11-27",
+      "publication_state": "party_project"
+    },
+    {
+      "id": "real-edouard-philippe",
+      "person_reference": "campaign2027-edouard-philippe",
+      "name": "Édouard Philippe",
+      "source": "https://www.edouardphilippe.fr/programme",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_in_progress"
+    },
+    {
+      "id": "real-gabriel-attal",
+      "person_reference": "campaign2027-gabriel-attal",
+      "name": "Gabriel Attal",
+      "source": "https://attalpresident.fr/programme",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_in_progress"
+    },
+    {
+      "id": "real-raphael-glucksmann",
+      "person_reference": "campaign2027-raphael-glucksmann",
+      "name": "Raphaël Glucksmann",
+      "source": "https://glucks2027.fr/revolution-ecologique/",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_partial"
+    },
+    {
+      "id": "real-dominique-de-villepin",
+      "person_reference": "campaign2027-dominique-de-villepin",
+      "name": "Dominique de Villepin",
+      "source": "https://lafrancehumaniste.fr/france2027.html",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_project"
+    },
+    {
+      "id": "real-david-lisnard",
+      "person_reference": "campaign2027-david-lisnard",
+      "name": "David Lisnard",
+      "source": "https://www.unenouvelleenergie.fr/notre-programme/",
+      "observed_on": "2026-11-27",
+      "publication_state": "party_project"
+    },
+    {
+      "id": "real-fabien-roussel",
+      "person_reference": "campaign2027-fabien-roussel",
+      "name": "Fabien Roussel",
+      "source": "https://www.fabienroussel2027.fr/",
+      "observed_on": "2026-11-27",
+      "publication_state": "campaign_material"
+    },
+    {
+      "id": "real-nathalie-arthaud",
+      "person_reference": "campaign2027-nathalie-arthaud",
+      "name": "Nathalie Arthaud",
+      "source": "https://www.lutte-ouvriere.org/portail/rubrique/presidentielle-2027-la-campagne-de-nathalie-arthaud.html",
+      "observed_on": "2026-11-27",
+      "publication_state": "campaign_material"
+    },
+    {
+      "id": "real-clara-egger",
+      "person_reference": "campaign2027-clara-egger",
+      "name": "Clara Egger",
+      "source": "https://solutiondemocratique.fr/programme-presidentielle/",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_project"
+    },
+    {
+      "id": "real-juan-branco",
+      "person_reference": "campaign2027-juan-branco",
+      "name": "Juan Branco",
+      "source": "https://ruches.org/",
+      "observed_on": "2026-11-27",
+      "publication_state": "campaign_material"
+    },
+    {
+      "id": "real-antoine-mikolajczak",
+      "person_reference": "campaign2027-antoine-mikolajczak",
+      "name": "Antoine Mikolajczak",
+      "source": "https://parti-equinoxe.fr/contre-budget-2027/",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_partial"
+    },
+    {
+      "id": "real-bernard-cazeneuve",
+      "person_reference": "campaign2027-bernard-cazeneuve",
+      "name": "Bernard Cazeneuve",
+      "source": "https://bc2027.fr/",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_partial"
+    },
+    {
+      "id": "real-eric-zemmour",
+      "person_reference": "campaign2027-eric-zemmour",
+      "name": "Éric Zemmour",
+      "source": "https://www.ericzemmour.fr/",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_partial"
+    },
+    {
+      "id": "real-xavier-bertrand",
+      "person_reference": "campaign2027-xavier-bertrand",
+      "name": "Xavier Bertrand",
+      "source": "https://www.nousfrance.fr/",
+      "observed_on": "2026-11-27",
+      "publication_state": "campaign_material"
+    },
+    {
+      "id": "real-florian-philippot",
+      "person_reference": "campaign2027-florian-philippot",
+      "name": "Florian Philippot",
+      "source": "https://les-patriotes.fr/",
+      "observed_on": "2026-11-27",
+      "publication_state": "party_project"
+    },
+    {
+      "id": "real-francois-asselineau",
+      "person_reference": "campaign2027-francois-asselineau",
+      "name": "François Asselineau",
+      "source": "https://upr.fr/notre-programme",
+      "observed_on": "2026-11-27",
+      "publication_state": "announced_not_published"
+    },
+    {
+      "id": "real-marine-le-pen",
+      "person_reference": "campaign2027-marine-le-pen",
+      "name": "Marine Le Pen",
+      "source": "https://marinelepen.com/",
+      "observed_on": "2026-11-27",
+      "publication_state": "campaign_material"
+    },
+    {
+      "id": "real-anasse-kazib",
+      "person_reference": "campaign2027-anasse-kazib",
+      "name": "Anasse Kazib",
+      "source": "https://www.revolutionpermanente.fr/28h-expropriation-des-secteurs-strategiques-RP-presente-les-premieres-mesures-de-sa-candidature?amp=1",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_partial"
+    },
+    {
+      "id": "real-olivier-becht",
+      "person_reference": "campaign2027-olivier-becht",
+      "name": "Olivier Becht",
+      "source": "https://becht2027.fr/projet-france/",
+      "observed_on": "2026-11-27",
+      "publication_state": "published_project"
+    }
+  ]
+}

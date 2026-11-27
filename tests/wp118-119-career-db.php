@@ -41,8 +41,8 @@ $q('UPDATE wp_career_active_offices SET generation=999 WHERE world_id=?',[$world
 dbck($store->audit($world)['sequence']===4,'tamper detected and restored');
 dbck($store->seedAutonomousCareers($world,$secret)!==null,'AI roster persisted');
 dbck($other->seedAutonomousCareers($world,$secret)===null,'AI admission idempotent across connections');
-$state=$store->audit($world);$ai=L::autonomousRoster($state)[0];
-dbck(count($state['careers'])===5&&$state['careers'][$ai]['account']===null,'AI identity independent of accounts');
+$state=$store->audit($world);$ai=array_key_first(L::realAutonomousRoster($state));
+dbck(count($state['careers'])===24&&$state['careers'][$ai]['account']===null,'AI identity independent of accounts');
 dbck((int)$q('SELECT COUNT(*) FROM wp_career_memberships WHERE world_id=?',[$world])->fetchColumn()===2,'no artificial authenticated memberships');
 $aiGrant=$event('succession-ai','transition',['reason'=>'succession','close'=>['president'],'grants'=>[['office'=>'president','career'=>$ai,'expires'=>'2032-05-14','interim'=>false]]]);
 $other->execute($aiGrant,$sig($aiGrant));$state=$store->audit($world);$am=$state['active']['president'];

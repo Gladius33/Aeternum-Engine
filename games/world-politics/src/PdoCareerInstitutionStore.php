@@ -73,7 +73,15 @@ final class PdoCareerInstitutionStore
                 $digest=FrenchCareerInstitutionBridge::evidence(self::decode($source['state_json']),(int)$source['revision'],$e,$source['state_sha']);
                 CareerInstitutionLedger::check(hash_equals($digest,$e['evidence_sha']),'institution evidence digest mismatch');
             }
-            if($e['operation']==='admit')$this->activeAccount($world,$e['payload']['account']);
+            CareerInstitutionLedger::check($e['operation']!=='admit_ai_roster','fictional AI admission retired');
+            if(in_array($e['operation'],['admit','claim_real_career'],true))$this->activeAccount($world,$e['payload']['account']);
+            if($e['operation']==='claim_real_career'){
+                require_once __DIR__.'/CampaignCandidate.php';
+                $selection=['type'=>'campaign2027','reference_id'=>$e['payload']['edition']];
+                CareerInstitutionLedger::check(CampaignCandidate::mayStart($selection),'Programme encore non disponible');
+                $approved=ProgrammeSourceInventory::report()['approved_editions'][$e['payload']['edition']];
+                CareerInstitutionLedger::check($approved['document_sha256']===$e['payload']['programme_sha'],'programme edition mismatch');
+            }
             $grants=$e['payload']['grants']??[];
             if($e['operation']==='presidential_ballot')$grants=CareerInstitutionLedger::ballotTransition($s,$e)['grants'];
             if($e['operation']==='cabinet_act'){$tmp=$s;$grants=CareerInstitutionLedger::cabinetTransition($tmp,$e)['grants']??[];}
@@ -93,7 +101,7 @@ final class PdoCareerInstitutionStore
             }
             $next=CareerInstitutionLedger::apply($s,$e);$receipt=self::receipt($next);
             $this->query('INSERT INTO wp_career_events(world_id,sequence_no,actor_id,command_id,event_json,signature_sha,previous_sha,event_sha,receipt_json) VALUES(?,?,?,?,?,?,?,?,?)',[$world,$next['sequence'],$e['actor'],$e['command'],CareerInstitutionLedger::json($e),$signature,$s['last_event_sha'],$next['last_event_sha'],CareerInstitutionLedger::json($receipt)]);
-            if($e['operation']==='admit'){$p=$e['payload'];$this->query('INSERT INTO wp_career_memberships(world_id,account_id,career_id,character_id) VALUES(?,?,?,?)',[$world,$p['account'],$p['career'],$p['character']]);}
+            if(in_array($e['operation'],['admit','claim_real_career'],true)){$p=$e['payload'];$this->query('INSERT INTO wp_career_memberships(world_id,account_id,career_id,character_id) VALUES(?,?,?,?)',[$world,$p['account'],$p['career'],$next['careers'][$p['career']]['character']]);}
             $this->query('DELETE FROM wp_career_active_offices WHERE world_id=?',[$world]);
             foreach($next['active'] as $o=>$id){$m=$next['mandates'][$id];$this->query('INSERT INTO wp_career_active_offices(world_id,office_id,mandate_id,career_id,generation) VALUES(?,?,?,?,?)',[$world,$o,$id,$m['career'],$m['generation']]);}
             $this->query('UPDATE wp_career_ledgers SET state_json=?,state_sha=?,sequence_no=? WHERE world_id=?',[CareerInstitutionLedger::json($next),$receipt['state_sha'],$next['sequence'],$world]);return $receipt;
@@ -105,9 +113,9 @@ final class PdoCareerInstitutionStore
     }
     private function viewLocked(string $world,string $account,array $clock):array{
         $s=$this->replay($world,$this->row($world));$career=null;$mandates=[];$offices=[];
-        foreach($s['careers'] as $id=>$c)if($c['account']===$account)$career=['id'=>$id,'character'=>$c['character'],'admitted_on'=>$c['admitted_on'],'mode'=>$c['mode']];
+        foreach($s['careers'] as $id=>$c)if($c['account']===$account)$career=['id'=>$id,'character'=>$c['character'],'admitted_on'=>$c['admitted_on'],'mode'=>$c['mode'],... (isset($c['person_reference'])?['identity'=>$c['identity'],'claimed_on'=>$c['claimed_on']??null]:[])];
         foreach($s['active'] as $office=>$id){
-            $m=$s['mandates'][$id];$offices[]=['office'=>$office,'expires'=>$m['expires'],'interim'=>$m['interim']];
+            $m=$s['mandates'][$id];$offices[]=['office'=>$office,'expires'=>$m['expires'],'interim'=>$m['interim'],... (isset($s['careers'][$m['career']]['person_reference'])?['identity'=>$s['careers'][$m['career']]['identity'],'controller'=>$s['careers'][$m['career']]['controller']]:[])];
             if($career!==null&&$m['career']===$career['id'])$mandates[]=['id'=>$id,'office'=>$office,'generation'=>$m['generation'],'expires'=>$m['expires'],'powers'=>$clock['committed_day']<$m['expires']?$m['powers']:[]];
         }
         return ['world_id'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],'revision'=>(int)$clock['revision'],'career'=>$career,'mandates'=>$mandates,'occupied_offices'=>$offices,
@@ -117,9 +125,25 @@ final class PdoCareerInstitutionStore
     public function readForSession(string $world,string $token):array{
         return $this->tx(function()use($world,$token){$clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);return $this->viewLocked($world,$account,$clock);});
     }
-    private function admitLocked(string $world,string $account,array $clock,string $secret):array{
+    private function admitLocked(string $world,string $account,array $clock,string $secret,?string $reference=null):array{
         $s=$this->replay($world,$this->row($world));
-        foreach($s['careers'] as $c)if($c['account']===$account)return $this->viewLocked($world,$account,$clock);
+        foreach($s['careers'] as $c)if($c['account']===$account){
+            CareerInstitutionLedger::check($reference===null||($c['programme_edition']??null)===$reference,'account already controls another character');
+            return $this->viewLocked($world,$account,$clock);
+        }
+        if($reference!==null){
+            require_once __DIR__.'/CampaignCandidate.php';
+            CareerInstitutionLedger::check($s['country']==='FR'&&CampaignCandidate::mayStart(['type'=>'campaign2027','reference_id'=>$reference]),'Programme encore non disponible');
+            $target=null;foreach($s['careers'] as $id=>$c)if(isset($c['person_reference'])&&($reference===$c['person_reference']||str_starts_with($reference,$c['person_reference'].'-v'))){$target=$id;break;}
+            CareerInstitutionLedger::check($target!==null,'real identity not in world');
+            $approved=ProgrammeSourceInventory::report()['approved_editions'][$reference];
+            $p=['career'=>$target,'account'=>$account,'edition'=>$reference,'programme_sha'=>$approved['document_sha256']];
+            $day=$clock['committed_day'];
+            $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'claim-'.substr(hash('sha256',$account.'|'.$reference),0,48),'actor'=>'career-admission','operation'=>'claim_real_career','payload'=>$p,
+                'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'approved-real-career-claim-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
+            $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
+            return $this->viewLocked($world,$account,$clock);
+        }
         CareerInstitutionLedger::check($s['mode']==='career','research admission forbidden');
         $hash=substr(hash('sha256',$world."\n".$account),0,40);
         $e=['world'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'admit-'.$hash,'actor'=>'career-admission','operation'=>'admit',
@@ -128,8 +152,8 @@ final class PdoCareerInstitutionStore
         $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
         return $this->viewLocked($world,$account,$clock);
     }
-    public function admitForSession(string $world,string $token,string $secret):array{
-        return $this->tx(function()use($world,$token,$secret){$clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);return $this->admitLocked($world,$a,$clock,$secret);});
+    public function admitForSession(string $world,string $token,string $secret,?string $reference=null):array{
+        return $this->tx(function()use($world,$token,$secret,$reference){$clock=$this->clock($world);$a=$this->sessionAccount($token);$this->activeAccount($world,$a);return $this->admitLocked($world,$a,$clock,$secret,$reference);});
     }
     /** A verified president/PM may perform bounded cabinet acts. No client
      * can choose the actor, date, institutional signature or expiry. */
@@ -162,15 +186,15 @@ final class PdoCareerInstitutionStore
     }
     /** No public signing route; admission and replay share the world fence. */
     private function seedAutonomousLocked(string $world,array $clock,string $secret):?array{
-        $state=$this->replay($world,$this->row($world));$ids=CareerInstitutionLedger::autonomousRoster($state);
+        $state=$this->replay($world,$this->row($world));$people=CareerInstitutionLedger::realAutonomousRoster($state);$ids=array_keys($people);
         $present=0;foreach($ids as $id)if(isset($state['careers'][$id])){
-            CareerInstitutionLedger::check(($state['careers'][$id]['controller']??null)==='ai','reserved AI identity collision');$present++;
+            CareerInstitutionLedger::check(isset($state['careers'][$id]['person_reference'])&&$state['careers'][$id]['identity']===$people[$id],'reserved real identity collision');$present++;
         }
         if($present===count($ids))return null;
         CareerInstitutionLedger::check($present===0,'partial autonomous roster');
-        $day=$clock['committed_day'];$p=['careers'=>$ids];
-        $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-ai-roster-v1','actor'=>'career-ai-clerk','operation'=>'admit_ai_roster','payload'=>$p,
-            'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'fictional-ai-roster-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
+        $day=$clock['committed_day'];$p=['people'=>$people];
+        $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-real-ai-roster-v1','actor'=>'career-ai-clerk','operation'=>'admit_real_ai_roster','payload'=>$p,
+            'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'real-ai-roster-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
         return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
     }
     public function seedAutonomousCareers(string $world,string $secret):?array{
@@ -220,11 +244,11 @@ final class PdoCareerInstitutionStore
         });
     }
     /** Private institution-only sandbox; never grants legacy ownership powers. */
-    public function createForSession(string $token,string $label,string $key,string $secret,string $profile='institutional',string $country='FR'):array{
+    public function createForSession(string $token,string $label,string $key,string $secret,string $profile='institutional',string $country='FR',?string $reference=null):array{
         CareerInstitutionLedger::check(in_array($profile,['institutional','economic'],true)&&InstitutionalRulebook::hasRules($country)&&($country==='FR'||$profile==='institutional'),'unknown or unsupported career profile');
         CareerInstitutionLedger::check(trim($label)!==''&&strlen($label)<=100&&!preg_match('/[\x00-\x1f\x7f]/',$label)&&preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)===1,'invalid career world');
-        $label=trim($label);$key=hash('sha256',"career-world-v1\n".$key);$fingerprint=CareerInstitutionLedger::digest(['label'=>$label,'scenario'=>'wp-career-v1',...($profile==='economic'?['profile'=>$profile]:[]),...($country!=='FR'?['country'=>$country]:[])]);
-        return $this->tx(function()use($token,$label,$key,$fingerprint,$secret,$profile,$country){
+        $label=trim($label);$key=hash('sha256',"career-world-v1\n".$key);$fingerprint=CareerInstitutionLedger::digest(['label'=>$label,'scenario'=>'wp-career-v1',...($profile==='economic'?['profile'=>$profile]:[]),...($country!=='FR'?['country'=>$country]:[]),...($reference!==null?['reference_id'=>$reference]:[])]);
+        return $this->tx(function()use($token,$label,$key,$fingerprint,$secret,$profile,$country,$reference){
             $a=$this->sessionAccount($token);
             $prior=$this->query('SELECT world_id,request_sha,scenario FROM wp_alpha_worlds WHERE owner_id=? AND create_key=?',[$a,$key])->fetch(\PDO::FETCH_ASSOC);
             if($prior!==false){CareerInstitutionLedger::check($prior['scenario']==='wp-career-v1'&&hash_equals($prior['request_sha'],$fingerprint),'idempotency conflict');return ['world_id'=>$prior['world_id'],'scenario'=>'wp-career-v1','label'=>$label];}
@@ -237,8 +261,8 @@ final class PdoCareerInstitutionStore
             $s=CareerInstitutionLedger::initial($world,$country,'career',$day);$j=CareerInstitutionLedger::json($s);
             $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
             if($profile==='economic'){require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day);}
-            $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret);
             if($country==='FR')$this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
+            $this->admitLocked($world,$a,['committed_day'=>$day,'revision'=>0],$secret,$reference);
             return ['world_id'=>$world,'scenario'=>'wp-career-v1','label'=>$label];
         });
     }

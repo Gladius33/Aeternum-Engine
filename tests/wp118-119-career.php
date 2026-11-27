@@ -90,6 +90,15 @@ $ball=L::automaticBallot($npc,'2027-05-14');ck(count($ball['ballot']['first']['v
 $ne=evt($npc,'presidential_ballot',$ball);$ne['actor']='career-election-clerk';$ne['evidence_sha']=L::digest(['kind'=>'fictional-presidential-ballot-v1','world'=>$npc['world'],'day'=>$ne['day'],'payload'=>$ball]);
 $npc=L::apply($npc,$ne);$nm=$npc['active']['president'];$winner=$npc['mandates'][$nm]['career'];
 ck($npc['careers'][$winner]['account']===null&&!L::allows($npc,$winner,$nm,1,'president.represent','2027-05-14'),'AI winner has no human session capability');
+// New production roster uses documentary people, not fictional NPCs.
+$real=L::initial('real-world','FR','career','2027-05-14');
+$rp=['people'=>L::realAutonomousRoster($real)];
+$re=evt($real,'admit_real_ai_roster',$rp);$re['actor']='career-ai-clerk';$re['evidence_sha']=L::digest(['kind'=>'real-ai-roster-v1','world'=>$real['world'],'day'=>$re['day'],'payload'=>$rp]);
+$real=L::apply($real,$re);
+ck(count($real['careers'])===22&&$real['careers']['real-jean-luc-melenchon']['account']===null,'documented roster, no synthetic accounts');
+foreach($real['careers'] as $person)ck(isset($person['identity']['source'],$person['person_reference'])&&$person['controller']==='ai','AI identity provenance');
+$rb=L::automaticBallot($real,'2027-05-14');ck(count($rb['ballot']['first']['votes'])===22,'documented identities in fictional ballot');
+no(fn()=>L::apply($real,$re));
 // WP112 vacancy calendar with an independently certified interim mandate.
 $vac=add(add(add(add(L::initial('vacancy-world','FR','career','2027-05-14'),'a'),'b'),'c'),'d');
 $vac=change($vac,'election',[],[grant('president','a')]);

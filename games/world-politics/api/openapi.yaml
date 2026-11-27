@@ -33,7 +33,7 @@ tags:
 paths:
   /career-worlds:
     post:
-      summary: Create isolated French fictional career sandbox (opt-in)
+      summary: Create isolated career sandbox with fictional or approved real identity (opt-in)
       parameters:
         - in: header
           name: Idempotency-Key
@@ -51,6 +51,7 @@ paths:
                 label: {type: string, minLength: 1, maxLength: 100}
                 profile: {type: string, enum: [institutional, economic], default: institutional}
                 country: {type: string, enum: [FR, DE, ES, GB, IT, JP, US], default: FR}
+                reference_id: {type: string, description: Approved 2027 programme edition; omit for fictional identity}
       responses:
         '201': {description: World created or receipt replayed}
         '404': {description: Feature disabled}
@@ -210,7 +211,7 @@ paths:
         '409': {description: Invitation denied}
   /career-worlds/{world}/admission:
     post:
-      summary: Admit existing member as fictional non-executive career
+      summary: Admit existing member as fictional career or claim an approved real identity
       parameters:
         - in: path
           name: world
@@ -220,7 +221,11 @@ paths:
         required: true
         content:
           application/json:
-            schema: {type: object, additionalProperties: false}
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reference_id: {type: string, description: Approved 2027 programme edition; omit for fictional identity}
       responses:
         '200': {description: Own career projection}
         '404': {description: Feature disabled or world inaccessible}

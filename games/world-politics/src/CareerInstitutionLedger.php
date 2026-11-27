@@ -103,6 +103,41 @@ final class CareerInstitutionLedger
             $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>$e['day']===CareerScoreContract::START?'opening':'late_takeover','first_series'=>null,'controller'=>'ai'];
         }
     }
+    /** Frozen documentary identities; simulated acts are not real statements,
+     * a confirmed candidacy or a prediction. Never invent an AI person. */
+    public static function realAutonomousRoster(array $s):array{
+        self::check($s['country']==='FR'&&$s['mode']==='career','French documented AI roster only');
+        $r=json_decode(file_get_contents(__DIR__.'/../data/wp119-real-fr-roster-v1.json'),true,32,JSON_THROW_ON_ERROR);
+        self::check($r['version']==='wp119-real-fr-roster-v1'&&$r['country']==='FR'&&$r['final_ballot_verified']===false,'roster edition');
+        $out=[];foreach($r['people'] as $p){self::id($p['id']);self::check(!isset($out[$p['id']])&&str_starts_with($p['source'],'https://')&&$p['name']!=='','documentary identity');$out[$p['id']]=$p;}
+        self::check(count($out)===22,'frozen roster count');return $out;
+    }
+    private static function admitRealAutonomousRoster(array &$s,array $e):void{
+        $p=$e['payload'];self::fields($p,['people']);
+        self::check($e['actor']==='career-ai-clerk'&&self::json($p['people'])===self::json(self::realAutonomousRoster($s))&&
+            $e['evidence_sha']===self::digest(['kind'=>'real-ai-roster-v1','world'=>$s['world'],'day'=>$e['day'],'payload'=>$p]),'documented roster evidence');
+        foreach($p['people'] as $id=>$person){
+            self::check(!isset($s['careers'][$id]),'real identity already admitted');
+            foreach($s['careers'] as $c)self::check($c['character']!==$id,'identity collision');
+            $s['careers'][$id]=['account'=>null,'character'=>$id,'admitted_on'=>$e['day'],'mode'=>$e['day']===CareerScoreContract::START?'opening':'late_takeover','first_series'=>null,'controller'=>'ai','person_reference'=>$person['person_reference'],'identity'=>$person];
+        }
+    }
+    /** A human may take the existing documented character, never create a
+     * duplicate. The trusted store verifies the approved programme edition. */
+    private static function claimRealCareer(array &$s,array $e):void{
+        $p=$e['payload'];self::fields($p,['career','account','edition','programme_sha']);
+        self::id($p['career']);self::id($p['account']);self::id($p['edition']);
+        $old=$s['careers'][$p['career']]??null;
+        self::check($e['actor']==='career-admission'&&$old!==null&&($old['controller']??null)==='ai'&&$old['account']===null&&isset($old['person_reference'])&&
+            ($p['edition']===$old['person_reference']||str_starts_with($p['edition'],$old['person_reference'].'-v'))&&preg_match('/^[a-f0-9]{64}$/D',$p['programme_sha'])===1&&
+            $e['evidence_sha']===self::digest(['kind'=>'approved-real-career-claim-v1','world'=>$s['world'],'day'=>$e['day'],'payload'=>$p]),'real career claim evidence');
+        foreach($s['careers'] as $other)self::check($other['account']!==$p['account'],'account already has career');
+        $s['careers'][$p['career']]['account']=$p['account'];
+        $s['careers'][$p['career']]['controller']='human';
+        $s['careers'][$p['career']]['claimed_on']=$e['day'];
+        $s['careers'][$p['career']]['programme_edition']=$p['edition'];
+        $s['careers'][$p['career']]['programme_sha']=$p['programme_sha'];
+    }
     /** Reuse the WP112 fictional vacancy timing, only for an already
      * certified interim whose mandate expires on the modeled handover day.
      * No assumption is made about the cause or legal certification of vacancy. */
@@ -127,10 +162,12 @@ final class CareerInstitutionLedger
         }
         $occupied=[];foreach($s['active'] as $office=>$id)if($office!=='president')$occupied[$s['mandates'][$id]['career']]=true;
         $eligible=[];$outgoing=null;
+        $realRoster=false;foreach($s['careers'] as $c)if(isset($c['person_reference'])){$realRoster=true;break;}
         if($old!==null&&$old['interim']){
             foreach($s['mandates'] as $m)if($m['office']==='president'&&!$m['interim']&&($outgoing===null||$m['generation']>$outgoing['generation']))$outgoing=$m;
         }
         foreach($s['careers'] as $id=>$c){
+            if($realRoster&&($c['controller']??null)==='ai'&&!isset($c['person_reference']))continue;
             // Conservative vacancy fixture: the interrupted incumbent is not
             // a candidate until the reason-specific eligibility adapter exists.
             if($outgoing!==null&&$id===$outgoing['career'])continue;
@@ -250,6 +287,10 @@ final class CareerInstitutionLedger
             self::fields($p,['regime_label','assembly_status','legality']);
             self::check(in_array($p['regime_label'],['republic','monarchy','other','contested'],true)&&in_array($p['assembly_status'],['active','disrupted','suspended','restored'],true)&&in_array($p['legality'],['disputed','unverified','recognized'],true),'research categories');
             $s['research_observation']=['day'=>$day,...$p,'runtime_authority'=>false,'rankable'=>false];
+        }elseif($op==='admit_real_ai_roster'){
+            self::admitRealAutonomousRoster($s,$e);
+        }elseif($op==='claim_real_career'){
+            self::claimRealCareer($s,$e);
         }elseif($op==='admit_ai_roster'){
             self::admitAutonomousRoster($s,$e);
         }elseif($op==='admit'){
