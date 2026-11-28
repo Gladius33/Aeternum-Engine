@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/ResearchQueue.php';
+require_once __DIR__.'/NationalReferenceFallback.php';
 
 /** Separate entrypoint, credentials and database; no gameplay imports. */
 final class ResearchGateway
@@ -71,6 +72,8 @@ final class ResearchGateway
                 }
                 return self::response(405,['code'=>'method_not_allowed']);
             }
+            if($method==='GET'&&preg_match('~^/research/v1/references/([A-Z]{2})$~D',$path,$ref))
+                return self::response(200,NationalReferenceFallback::country($ref[1]));
             if($method==='GET'&&$path==='/research/v1/models')return self::response(200,['models'=>ResearchExperiment::TYPES,'manifest'=>ResearchExperiment::pin()]);
             if($method==='POST'&&($path==='/research/v1/experiments'||preg_match('~^/research/v1/worlds/([a-f0-9]{32})/experiments$~D',$path,$w))){
                 if(!preg_match('/^application\/json(?:; ?charset=utf-8)?$/iD',$h['content-type']??''))return self::response(415,['code'=>'json_required']);
@@ -82,7 +85,7 @@ final class ResearchGateway
             if(preg_match('~^/research/v1/experiments/([a-f0-9]{32})(/csv)?$~D',$path,$m)){
                 $r=$this->queue->read($token,$m[1]);if($r===null)return self::response(404,['code'=>'not_found']);
                 if($method==='GET'&&!isset($m[2]))return self::response(200,$r);
-                if($method==='GET'&&isset($m[2])&&$r['status']==='complete')return self::response(200,['csv'=>ResearchExperiment::csv($r['result']),'result_sha256'=>$r['result']['result_sha256']]);
+                if($method==='GET'&&isset($m[2])&&$r['status']==='complete')return self::response(200,['csv'=>ResearchExperiment::csv($r['result']),'result_sha256'=>$r['result']['result_sha256'],'provenance'=>$r['result']['provenance']??null]);
                 if($method==='DELETE'&&!isset($m[2]))return self::response($this->queue->cancel($token,$m[1])?200:409,['job_id'=>$m[1]]);
                 return self::response(409,['code'=>'invalid_job_state']);
             }

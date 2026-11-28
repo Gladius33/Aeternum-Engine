@@ -188,7 +188,7 @@ async function internationalDashboard(){
   if(profile){
    line($('international-observations'),'Renouvellement ordinaire (mois de scénario)',profile.next_ordinary_chamber_renewal_month);
    line($('international-observations'),'Mode de gouvernement de référence',profile.government_mode);
-   const keys={household_npish_consumption_per_capita_real:'Consommation réelle par habitant',gdp_per_capita_ppp_real:'PIB réel par habitant en PPA',central_government_debt:'Dette de l’administration centrale (% PIB)',revenue_excluding_grants_central_government:'Recettes centrales hors dons',expense_central_government:'Dépenses centrales',tax_revenue_central_government:'Recettes fiscales centrales',youth_unemployment_modelled:'Chômage des jeunes',gini_index:'Indice de Gini'};
+   const keys={household_npish_consumption_per_capita_real:'Consommation réelle par habitant',gdp_per_capita_ppp_real:'PIB réel par habitant en PPA',central_government_debt:'Dette de l’administration centrale (% PIB)',revenue_excluding_grants_central_government:'Recettes centrales hors dons',expense_central_government:'Dépenses centrales',tax_revenue_central_government:'Recettes fiscales centrales',youth_unemployment_modelled:'Chômage des jeunes',gini_index:'Indice de Gini',total_natural_resource_rents:'Rentes des ressources naturelles',government_education_expenditure_share:'Dépenses publiques d’éducation',physicians_density:'Médecins pour 1 000 habitants',hospital_beds_density:'Lits hospitaliers pour 1 000 habitants'};
    for(const [id,label] of Object.entries(keys))line($('international-observations'),label,observedLabel(profile.observations[id]));
   }
   const fiscal=own.fiscal_scenario;

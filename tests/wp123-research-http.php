@@ -25,6 +25,10 @@ ckr(rr('GET',$p.'/'.$id,$b['token'])['status']===404,'cross tenant read denied')
 ckr($q->work()['status']==='complete','separate DB worker');
 $done=rr('GET',$p.'/'.$id,$a['token']);
 ckr($done['status']===200&&count($done['body']['result']['result']['rows'])===195,'real country result');
+ckr($done['body']['result']['provenance']['sources'][0]['source_name']==='United Nations','HTTP signed provenance');
+$national=rr('GET','/research/v1/references/DE',$a['token']);
+ckr($national['status']===200&&$national['body']['observations']['total_natural_resource_rents']['data_year']===2021&&$national['body']['observations']['total_natural_resource_rents']['source_name']==='World Bank — World Development Indicators','HTTP reference year and source');
+ckr(rr('GET','/research/v1/references/DE')['status']===401,'reference endpoint authenticated');
 ckr(rr('GET',$p.'/'.$id.'/csv',$a['token'])['status']===200,'real CSV');
 ckr(rr('GET','/api/v1/worlds',$a['token'])['status']===404,'no player route');
 $world=rr('POST','/research/v1/worlds',$a['token'],null,'research-world-001')['body']['world_id'];
@@ -43,6 +47,7 @@ $action=['expected_revision'=>0,'days'=>2,'policy'=>'administration-report'];
 $step=rr('POST',$simpath.'/step',$a['token'],$action,'simulation-step-001');
 ckr($step['status']===200&&$step['body']['revision']===1&&$step['body']['transition']['next_state']['day']==='2027-05-16','actual domestic model daily transition');
 ckr(rr('POST',$simpath.'/step',$a['token'],$action,'simulation-step-001')===$step,'persistent idempotent transition');
+ckr($step['body']['provenance']['data_date']==='2027-05-16'&&$step['body']['provenance']['date_kind']==='simulation_day','synthetic transition provenance');
 ckr(rr('POST',$simpath.'/step',$a['token'],$action,'simulation-step-002')['status']===409,'stale revision denied');
 $view=rr('GET',$simpath,$a['token']);
 ckr($view['status']===200&&$view['body']['state']===$step['body']['transition']['next_state'],'replayed state matches');

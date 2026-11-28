@@ -92,6 +92,7 @@ ck102(count(array_filter($iv['body']['countries'],fn($r)=>$r['domestic_policy'])
 $ns=\Aeternum\WorldPolitics\NationalEconomicScenario::class;
 ck102(count($ns::pack()['countries'])===42&&count($ns::pack()['series'])===52,'WP115 foreign source pack loaded');
 $np=$ns::profile('DE','2027-05-14');
+ck102($np['observations']['total_natural_resource_rents']['data_year']===2021&&$np['observations']['government_education_expenditure_share']['data_year']===2022,'game uses latest available historical gap references with dates');
 ck102($np['observations']['household_npish_consumption_per_capita_real']['value']>0&&$np['next_ordinary_chamber_renewal_month']==='2029-02','German consumption and calendar reference');
 $baseE=['day'=>'2027-05-14','projections'=>[],'policies'=>[]];
 $gdp=['kind'=>'observed','value'=>1000000000];

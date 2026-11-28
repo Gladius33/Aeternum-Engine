@@ -1,0 +1,53 @@
+<?php
+declare(strict_types=1);
+namespace Aeternum\WorldPolitics;
+
+/** Immutable documentary data. Secondary sources are usable as gameplay
+ * references at their actual historical date; never relabelled as 2027. */
+final class NationalReferenceFallback
+{
+    public const VERSION='wp130-latest-available-reference-v1';
+    private const FILES=[
+        'wp130-national-economy-reference-v1.json'=>'fc951675740ba80b5b6e0b5df8a29ce969f4698f',
+        'wp130-historical-resource-rents-staging-v1.json'=>'36a879c3d35fc782aa2d07c7cbef8c9a61016a29',
+        'wp130-historical-social-services-staging-v1.json'=>'18332733480d6280c38d3389d1a24d5c75910a00'];
+    private static function load(string $file):array{
+        static $cache=[];
+        if(isset($cache[$file]))return $cache[$file];
+        $raw=file_get_contents(__DIR__.'/../data/'.$file);
+        if(!is_string($raw)||!hash_equals(self::FILES[$file],sha1('blob '.strlen($raw)."\0".$raw)))
+            throw new \DomainException('Unpinned reference supplement');
+        return $cache[$file]=json_decode($raw,true,64,JSON_THROW_ON_ERROR);
+    }
+    private static function entry(string $id,string $unit,int $year,int|float|null $value,string $publisher,string $url,string $retrieved,string $quality,?string $mirror=null):array{
+        if($year<1900||$year>2026||($value!==null&&!is_finite((float)$value)))throw new \DomainException('Invalid reference value');
+        return ['value'=>$value,'year'=>$year,'data_year'=>$value===null?null:$year,'indicator'=>$id,'unit'=>$unit,
+            'kind'=>$value===null?'missing':'published_historical_or_estimated','source_name'=>'World Bank — World Development Indicators',
+            'source_url'=>$url,'publisher'=>$publisher,'retrieved_on'=>$retrieved,'quality'=>$value===null?'missing':$quality,'secondary_source_url'=>$mirror];
+    }
+    public static function country(string $cc):array{
+        $base=self::load('wp130-national-economy-reference-v1.json');
+        $rent=self::load('wp130-historical-resource-rents-staging-v1.json');
+        $social=self::load('wp130-historical-social-services-staging-v1.json');
+        if(!isset($base['countries'][$cc])&&!array_key_exists($cc,$rent['countries']))throw new \DomainException('Unknown national reference');
+        $out=[];
+        foreach($base['countries'][$cc]['observations']??[] as $id=>[$year,$value]){
+            $m=$base['series'][$id];$out[$m['metric']]=self::entry($id,$m['unit'],$year,$value,$m['publisher'],$m['source_url'],$base['as_of'],'frozen_wdi_reference');
+        }
+        $id=$rent['indicator'];
+        if(array_key_exists($cc,$rent['countries'])){
+            $m=$base['series'][$id];$key=$m['metric'];
+            if(!isset($out[$key])||$out[$key]['value']===null||$out[$key]['year']<$rent['year'])
+                $out[$key]=self::entry($id,$rent['unit'],$rent['year'],$rent['countries'][$cc],$m['publisher'],$rent['primary_metadata_url'],$rent['retrieved_on'],'secondary_transcription_not_primary_reconciled',$rent['transcription_source_url']);
+        }
+        foreach($social['series'] as $id=>$s){
+            $m=$base['series'][$id];$key=$m['metric'];
+            foreach($s['rows'] as $r)if($r['iso2']===$cc&&(!isset($out[$key])||$out[$key]['value']===null||$out[$key]['year']<$r['year'])){
+                $out[$key]=self::entry($id,$s['unit'],$r['year'],$r['value'],$m['publisher'],$s['primary_metadata_url'],$social['retrieved_on'],'secondary_transcription_not_primary_reconciled',$s['secondary_sources'][0]);
+            }
+        }
+        return ['version'=>self::VERSION,'country'=>$cc,'observations'=>$out,'reference_blobs'=>self::FILES,
+            'coverage'=>['available'=>count(array_filter($out,fn($r)=>$r['value']!==null)),'slots'=>count($out)],
+            'classification'=>'documentary_reference_not_2027_observation','rankable'=>false];
+    }
+}

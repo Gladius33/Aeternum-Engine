@@ -41,9 +41,35 @@ final class ResearchExperiment
             'family-transfer'=>ResearchModels::family($p),
             'countries'=>ResearchModels::countries($p)
         };
-        $out=['version'=>self::VERSION,'request'=>$r,'manifest'=>$current,'result'=>$result,
+        $out=['version'=>self::VERSION,'request'=>$r,'manifest'=>$current,'result'=>$result,'provenance'=>self::provenance($type,$result),
             'research_only'=>true,'runtime_authority'=>false,'official_score_eligible'=>false];
         $out['result_sha256']=self::hash($out);return $out;
+    }
+
+    /** Descriptive metadata is inside the hashed report, not added after
+     * signing. User assumptions never acquire an external source or date. */
+    private static function provenance(string $type,array $result):array{
+        $sources=[];$kind='user_supplied_assumptions_and_model';
+        if($type==='countries'){
+            $kind='documentary_reference';
+            foreach($result['sources'] as $url)$sources[]=['source_name'=>str_contains($url,'unstats')?'United Nations Statistics Division':'United Nations',
+                'source_url'=>$url,'data_date'=>$result['as_of'],'date_kind'=>'reference_snapshot','retrieved_on'=>$result['as_of']];
+        }elseif($type==='programme-coverage'){
+            $kind='documentary_reference';
+            $inventory=ProgrammeSourceInventory::report();
+            foreach($result['rows'] as $r)$sources[]=['source_name'=>$inventory['people'][$r['person']]['name'].' — published political project',
+                'source_url'=>$r['source'],'data_date'=>null,'date_kind'=>'publication_date_unknown','retrieved_on'=>$inventory['observed_on']];
+        }elseif($type==='household-backtest'){
+            $kind='derived_historical_benchmark';
+            $pack=HouseholdIncomeReference::pin()['pack'];
+            foreach($pack['sources'] as $id=>$s)$sources[]=['source_name'=>'INSEE — '.$id,'source_url'=>$s['url'],
+                'data_date'=>$s['published_on'],'date_kind'=>'publication_date','retrieved_on'=>$pack['retrieved_on'],
+                'observation_period'=>$id==='annual'?'2020–2025':($id==='quarterly'?'2025-Q3–2026-Q2':null)];
+        }else{
+            $sources[]=['source_name'=>'Research API caller','source_url'=>null,'data_date'=>null,'date_kind'=>'not_supplied','retrieved_on'=>null];
+        }
+        return ['schema'=>'wp-research-provenance-v1','classification'=>$kind,'sources'=>$sources,
+            'model_name'=>'World Politics Research','model_version'=>ResearchModels::VERSION,'not_an_observed_forecast'=>true];
     }
     public static function csv(array $report):string{
         $rows=$report['result']['rows']??$report['result']['backtest']['rows']??null;

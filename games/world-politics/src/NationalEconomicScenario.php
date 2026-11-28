@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/UniverseLobby.php';
+require_once __DIR__.'/NationalReferenceFallback.php';
 
 /** Derived, reproducible experimental projection. It is neither a fiscal
  * ledger nor observed household income. No new mandate or score authority. */
@@ -20,15 +21,11 @@ final class NationalEconomicScenario{
     }
     public static function profile(string $cc,string $day):?array{
         $p=self::pack();$c=$p['countries'][$cc]??null;if($c===null)return null;
-        $observations=[];
-        foreach($c['observations'] as $id=>[$year,$value]){
-            $m=$p['series'][$id];$observations[$m['metric']]=['value'=>$value,'year'=>$year,'indicator'=>$id,'unit'=>$m['unit'],
-                'kind'=>$value===null?'missing':'published_historical_or_estimated','source_url'=>$m['source_url'],'publisher'=>$m['publisher']];
-        }
+        $reference=NationalReferenceFallback::country($cc);$observations=$reference['observations'];
         $next=new \DateTimeImmutable($c['renewal']['expected_renewal_month'].'-01');
         // Keep the projected month, not an invented election day.
         while($next->format('Y-m')<substr($day,0,7))$next=$next->modify('+'.$c['renewal']['term_years'].' years');
-        return ['reference_as_of'=>$p['as_of'],'reference_blob'=>self::BLOB,'government_mode'=>$c['government_mode'],'electoral_reference'=>$c['electoral_reference'],
+        return ['reference_as_of'=>$p['as_of'],'reference_blob'=>self::BLOB,'supplement_reference_blobs'=>$reference['reference_blobs'],'government_mode'=>$c['government_mode'],'electoral_reference'=>$c['electoral_reference'],
             'next_ordinary_chamber_renewal_month'=>$next->format('Y-m'),'renewal_classification'=>'reference_or_scenario_month_not_certified_result',
             'renewal_rule'=>$c['renewal'],'observations'=>$observations,'consumption_history'=>$c['consumption_history']];
     }

@@ -318,7 +318,7 @@ final class ResearchQueue
             $max=$through??(int)$this->q('SELECT COALESCE(MAX(seq),0) FROM wp_research_game_dataset')->fetchColumn();
             $raw=$this->q('SELECT seq,envelope_json FROM wp_research_game_dataset WHERE seq>? AND seq<=? ORDER BY seq LIMIT 101',[$after,$max])->fetchAll(\PDO::FETCH_ASSOC);
             $rows=[];$next=null;
-            foreach(array_slice($raw,0,100) as $x){$e=json_decode($x['envelope_json'],true,32,JSON_THROW_ON_ERROR);$rows[]=['seq'=>(int)$x['seq'],'row'=>GameDataset::verify($e)];}
+            foreach(array_slice($raw,0,100) as $x){$e=json_decode($x['envelope_json'],true,32,JSON_THROW_ON_ERROR);$row=GameDataset::verify($e);$rows[]=['seq'=>(int)$x['seq'],'row'=>$row,'provenance'=>['source_name'=>'World Politics game simulation','data_date'=>$row['day'],'date_kind'=>'simulation_day','classification'=>'synthetic_game_simulation','model_version'=>$row['version']]];}
             if(count($raw)>100)$next=$rows[99]['seq'];
             return ['version'=>GameDataset::VERSION,'scope'=>'global_eligible_game_worlds','through'=>$max,'next_after'=>$next,'rows'=>$rows];
         });

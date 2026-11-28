@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: World Politics Research Alpha
   version: 0.1.0
-  description: Isolated deterministic research jobs. Not calibrated forecasting or official ranking.
+  description: Isolated deterministic research jobs and dated reference data. New experiment reports include hashed provenance; simulations distinguish simulation dates from observation dates. Older sealed reports may lack provenance. Not calibrated forecasting or official ranking.
 servers:
   - url: /research/v1
 security:
@@ -181,6 +181,92 @@ paths:
       responses:
         '200': {description: Dataset page with highwater and next cursor}
         '403': {description: Global dataset requires active Research Pro}
+  /references/{country}:
+    get:
+      summary: Latest available documentary national indicators with individual provenance
+      parameters:
+        - in: path
+          name: country
+          required: true
+          schema: {type: string, pattern: '^[A-Z]{2}    get:
+      responses:
+        '200': {description: Model catalogue and version pins}
+  /experiments:
+    post:
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [type, parameters]
+              properties:
+                type: {enum: [programme-coverage, policy-capacity, working-hours, household-sensitivity, household-backtest, fiscal-path, family-transfer, countries]}
+                parameters: {type: object}
+      responses:
+        '202': {description: Job accepted}
+        '409': {description: Contract or quota rejected}
+  /experiments/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: {type: string, pattern: '^[a-f0-9]{32}$'}
+    get:
+      responses:
+        '200': {description: Own job state and completed report}
+        '404': {description: Not found}
+    delete:
+      responses:
+        '200': {description: Queued job cancelled}
+        '409': {description: Job no longer queued}
+  /experiments/{id}/csv:
+    get:
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: JSON containing CSV and result digest}
+components:
+  securitySchemes:
+    researchBearer:
+      type: http
+      scheme: bearer
+}
+      responses:
+        '200':
+          description: Historical observations, nullable values, source name, URL, data year, retrieval date, quality and immutable reference hashes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version, country, observations, reference_blobs, coverage, classification]
+                properties:
+                  country: {type: string}
+                  observations:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      required: [value, data_year, source_name, source_url, retrieved_on, kind, quality]
+                      properties:
+                        value: {type: [number, 'null']}
+                        data_year: {type: [integer, 'null']}
+                        source_name: {type: string}
+                        source_url: {type: string}
+                        retrieved_on: {type: string, format: date}
+                        kind: {type: string}
+                        quality: {type: string}
+                        secondary_source_url: {type: [string, 'null']}
+        '401': {description: Authentication required}
+        '409': {description: Unknown country or invalid evidence}
   /models:
     get:
       responses:
