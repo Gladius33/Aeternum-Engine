@@ -79,6 +79,12 @@ paths:
         '200': {description: Verified event processed or ignored}
         '400': {description: Invalid signature or event edition}
         '503': {description: Disabled or retryable processing failure}
+  /career-worlds/capabilities:
+    get:
+      summary: Distinguish documentary countries from runtime profiles
+      responses:
+        '200': {description: Country capability matrix and fictional proposal objectives}
+        '401': {description: Session required}
   /career-worlds/public:
     get:
       summary: List public French economic multi-office career universes
@@ -336,7 +342,7 @@ paths:
               properties:
                 mandate: {type: string}
                 generation: {type: integer, minimum: 1}
-                policy_id: {type: string, enum: [education-reform, administration-report, pf2027-jean-luc-melenchon-smic, pf2027-jean-luc-melenchon-pension, pf2027-ecologistes-renovation, pf2027-ecologistes-smic, pf2027-retailleau-contributions, pf2027-dlf-production-tax, pf2027-dlf-industrial-grants, pf2027-lfi-public-housing, pf2027-lfi-renovation, pf2027-lfi-public-index, pf2027-lfi-eldercare-capacity, pf2027-retailleau-overtime, pf2027-philippe-teacher-pay]}
+                policy_id: {type: string, maxLength: 64, description: Reviewed policy ID from pinned character options; server verifies portfolio and catalogue}
                 effective_day: {type: string, format: date}
       responses:
         '202': {description: Inert proposal recorded in domestic journal}

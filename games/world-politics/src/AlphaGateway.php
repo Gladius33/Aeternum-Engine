@@ -109,6 +109,10 @@ final class AlphaGateway
                 $token=substr($h['authorization'],7);
                 $cs=new PdoCareerInstitutionStore($this->db(),new CareerInstitutionEvidence($secret));
                 try{
+                    if($method==='GET'&&$path==='/api/v1/career-worlds/capabilities'){
+                        require_once __DIR__.'/PlayableScope.php';
+                        return self::ok(200,PlayableScope::report());
+                    }
                     if($method==='GET'&&preg_match('~^/api/v1/career-worlds/rankings/(global|[1-9][0-9]{0,8})/cohorts$~D',$path,$rk)){
                         require_once __DIR__.'/CareerScorePublication.php';
                         return self::ok(200,CareerScorePublication::cohorts($this->db(),$rk[1]==='global'?null:(int)$rk[1]));

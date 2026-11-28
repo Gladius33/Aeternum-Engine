@@ -432,3 +432,20 @@ $rejectSim=new InstitutionalSimulation('career-law-fixture-2','FR','2027-05-14')
 foreach(['2027-10-01','2027-10-02','2027-11-13','2027-12-11','2027-12-14'] as $day){$rejectSim->advanceTo($day);$cl::advanceOne($rejectSim,$rejectLegal,'education-reform',$p,$rejectLegal['active']['prime-minister']);}
 $rejected=array_values($rejectSim->snapshot()['legislation']['bills'])[0];
 ck(!$rejected['last_votes']['assembly']['vote']['passed']&&$rejected['readings']===['assembly'=>1,'senate'=>0]&&$rejected['published_on']===null,'no fabricated majority or publication after rejection');
+
+// Public fallback is an explicitly pinned edition.
+require_once __DIR__.'/../games/world-politics/src/PlayableScope.php';
+$scope=\Aeternum\WorldPolitics\PlayableScope::report();
+ck(count(array_filter($scope['countries'],fn($r)=>$r['public_economic_career']))===1,'only France public career economy');
+ck(count(array_filter($scope['countries'],fn($r)=>$r['isolated_institutions']))===7,'reviewed rulebook scope');
+$v3=evt($real,'pin_cabinet_autonomy',['version'=>L::CABINET_V3]);$v3['actor']='career-ai-clerk';
+$v3['evidence_sha']=L::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$real['world'],'day'=>$v3['day'],'payload'=>$v3['payload']]);
+$fallback=change(add(L::apply($real,$v3),'human'),'election',[],[grant('president','human')]);
+$step=$autoCabinet($fallback,'2027-05-14');
+ck($step['payload']['kind']==='appoint_pm','inactive public human president receives vacancy fallback');
+$appointed=L::apply($fallback,$step);
+ck(isset($appointed['active']['prime-minister'])&&L::automaticCabinet($appointed,'2027-05-14')===null,'single fallback step');
+$manual=['kind'=>'appoint_pm','mandate'=>$fallback['active']['president'],'generation'=>1,'target'=>$step['payload']['target'],'portfolio'=>null,'proposal'=>null];
+$manualState=L::apply($fallback,$act($fallback,'acct-human',$manual));
+ck($manualState['last_human_cabinet_day']['human']==='2027-05-14','accepted human action has durable day');
+ck(L::automaticCabinet($manualState,'2027-05-15')['kind']==='propose_minister','fallback continues next day');

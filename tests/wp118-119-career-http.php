@@ -16,6 +16,14 @@ $ids=[];$tokens=[];foreach(range(1,3) as $i){$id='acct-'.bin2hex(random_bytes(10
 $exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$id,$id,'fixture']);$exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$tok),$id,time()+3600]);}
 [$a,$b,$c]=$tokens;
 ck(req('POST','/career-worlds',['label'=>'Career'])['status']===401,'anonymous denied');
+ck(req('GET','/career-worlds/capabilities')['status']===401,'scope authentication');
+$coverage=req('GET','/career-worlds/capabilities',null,$a);
+ck($coverage['status']===200&&count(array_filter($coverage['body']['countries'],fn($r)=>$r['public_economic_career']))===1,'explicit public scope');
+foreach(['/play'=>'World Politics','/play/app.js'=>'/api/v1','/play/style.css'=>'@media'] as $path=>$needle){
+    $page=file_get_contents('http://127.0.0.1:18730'.$path);
+    ck(is_string($page)&&str_contains($page,$needle),'served extracted UI asset '.$path);
+}
+
 $n=req('POST','/career-worlds',['label'=>'Career'],$a);ck($n['status']===201,'create');
 $w=$n['body']['world_id'];$p='/career-worlds/'.$w;
 ck(req('POST','/career-worlds',['label'=>'Career'],$a)===$n,'idempotent creation');

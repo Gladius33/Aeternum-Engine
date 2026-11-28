@@ -16,6 +16,14 @@ if (getenv('WP_ALPHA_ENABLED')!=='YES') {
     $result=AlphaGateway::problem(403,'https_required');
 } else {
     try {
+        $assets=['/play'=>['index.html','text/html; charset=utf-8'],
+            '/play/app.js'=>['app.js','text/javascript; charset=utf-8'],
+            '/play/style.css'=>['style.css','text/css; charset=utf-8']];
+        $asset=$assets[$_SERVER['REQUEST_URI']??'']??null;
+        if($asset!==null&&($_SERVER['REQUEST_METHOD']??'')==='GET'){
+            header("Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+            header('Content-Type: '.$asset[1]);readfile(__DIR__.'/../ui/'.$asset[0]);exit;
+        }
         $connect=static function():PDO {
             $dsn=getenv('WP_DB_DSN');
             if (!is_string($dsn)||!str_starts_with($dsn,'mysql:')) throw new RuntimeException('MariaDB DSN required');

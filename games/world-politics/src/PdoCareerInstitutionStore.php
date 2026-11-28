@@ -135,7 +135,16 @@ final class PdoCareerInstitutionStore
             $m=$s['mandates'][$id];$offices[]=['office'=>$office,'expires'=>$m['expires'],'interim'=>$m['interim'],... (isset($s['careers'][$m['career']]['person_reference'])?['identity'=>$s['careers'][$m['career']]['identity'],'controller'=>$s['careers'][$m['career']]['controller']]:[])];
             if($career!==null&&$m['career']===$career['id'])$mandates[]=['id'=>$id,'office'=>$office,'generation'=>$m['generation'],'expires'=>$m['expires'],'powers'=>$clock['committed_day']<$m['expires']?$m['powers']:[]];
         }
+        $candidates=[];
+        if($s['country']==='FR'){
+            foreach($s['careers'] as $id=>$c){
+                $held=[];foreach($s['active'] as $office=>$mid)if($s['mandates'][$mid]['career']===$id)$held[]=$office;
+                $candidates[]=['career_id'=>$id,'name'=>$c['identity']['name']??$c['fictional_profile']['name']??$c['character'],
+                    'controller'=>$c['account']===null?'ai':'human','offices'=>$held];
+            }
+        }
         return ['world_id'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],'revision'=>(int)$clock['revision'],'career'=>$career,'mandates'=>$mandates,'occupied_offices'=>$offices,
+            'appointment_candidates'=>$candidates,'cabinet_autonomy'=>$s['cabinet_autonomy']??'legacy',
             'institution'=>['state_id'=>$s['state_id'],'regime'=>$s['regime'],'assembly'=>$s['assembly'],'senate'=>$s['senate'],'government'=>$s['government'],'constitution_revision'=>$s['constitution_revision']],
             'appointment_proposals'=>array_values(array_filter($s['appointment_proposals']??[],fn($p)=>$p['status']==='pending'&&($s['active']['prime-minister']??null)===$p['pm_mandate'])),'rankable'=>false,'score_progress'=>CareerScoreContract::ledgerProgress($s,$career['id']??null,$clock['committed_day']),'profile'=>'isolated-career-alpha'];
     }
@@ -276,7 +285,7 @@ final class PdoCareerInstitutionStore
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'real-ai-roster-v1','world'=>$world,'day'=>$day,'payload'=>$p])];
         return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
     }
-    private function seedFrenchSupplementLocked(string $world,array $clock):void{
+    private function seedFrenchSupplementLocked(string $world,array $clock,bool $public=false):void{
         $state=$this->replay($world,$this->row($world));
         if($state['country']!=='FR')return;
         require_once __DIR__.'/FrenchPoliticalDirectory.php';
@@ -294,8 +303,8 @@ final class PdoCareerInstitutionStore
         $pin=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-fr-programme-pins-v1','actor'=>'career-ai-clerk','operation'=>'pin_fr_programmes','payload'=>$payload,
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'fr-programme-pins-v1','world'=>$world,'day'=>$day,'payload'=>$payload])];
         $this->applyLocked($pin,$this->evidence->sign($pin));
-        $payload=['version'=>CareerInstitutionLedger::CABINET_V2];
-        $pin=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-cabinet-autonomy-v2','actor'=>'career-ai-clerk','operation'=>'pin_cabinet_autonomy','payload'=>$payload,
+        $payload=['version'=>$public?CareerInstitutionLedger::CABINET_V3:CareerInstitutionLedger::CABINET_V2];
+        $pin=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>$public?'seed-cabinet-autonomy-v3':'seed-cabinet-autonomy-v2','actor'=>'career-ai-clerk','operation'=>'pin_cabinet_autonomy','payload'=>$payload,
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$world,'day'=>$day,'payload'=>$payload])];
         $this->applyLocked($pin,$this->evidence->sign($pin));
     }
@@ -477,12 +486,12 @@ final class PdoCareerInstitutionStore
         $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
         require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day,true);
         $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
-        $this->seedFrenchSupplementLocked($world,['committed_day'=>$day,'revision'=>0]);
+        $this->seedFrenchSupplementLocked($world,['committed_day'=>$day,'revision'=>0],true);
         $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>0,'command'=>'participation-opening-v1','actor'=>'career-participation-clerk','operation'=>'participation_enable','payload'=>['version'=>CareerParticipation::VERSION]];
         $e['evidence_sha']=CareerParticipation::digest($e);$this->applyLocked($e,$this->evidence->sign($e));
         $this->query('INSERT INTO wp_career_public_worlds(world_id) VALUES(?)',[$world]);
         $no=(int)$this->db->lastInsertId();
-        require_once __DIR__.'/CareerScorePublication.php';CareerScorePublication::seed($this->db,$world,CareerInstitutionLedger::CABINET_V2);
+        require_once __DIR__.'/CareerScorePublication.php';CareerScorePublication::seed($this->db,$world,CareerInstitutionLedger::CABINET_V3);
         return ['world_id'=>$world,'universe_no'=>$no];
     }
     private static function seasonEnd():string{

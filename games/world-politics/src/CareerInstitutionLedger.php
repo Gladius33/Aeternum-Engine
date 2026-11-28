@@ -293,8 +293,9 @@ final class CareerInstitutionLedger
      * ideological affinity, actual willingness or a forecast of appointments.
      * Never choose a human-held career for an unsolicited nomination. */
     public const CABINET_V2='wp119-cabinet-mixed-v2';
+    public const CABINET_V3='wp128-cabinet-inactivity-v3';
     public static function automaticCabinet(array $s,string $day):?array{
-        if(($s['cabinet_autonomy']??null)===self::CABINET_V2)return self::mixedCabinet($s,$day);
+        if(in_array($s['cabinet_autonomy']??null,[self::CABINET_V2,self::CABINET_V3],true))return self::mixedCabinet($s,$day);
         if($s['country']!=='FR'||$s['mode']!=='career'||($s['last_automatic_cabinet_day']??null)===$day)return null;
         $pres=$s['active']['president']??null;
         if($pres===null)return null;
@@ -339,7 +340,10 @@ final class CareerInstitutionLedger
         $valid=static fn(array $m,string $ability):bool=>!$m['interim']&&$m['end']===null&&$m['start']<=$day&&$day<$m['expires']&&in_array($ability,$m['powers'],true);
         $ai=static fn(array $c):bool=>$c['account']===null&&isset($c['person_reference'])&&($c['controller']??null)==='ai';
         if(!$valid($p,'president.request_appointment'))return null;
-        $presAI=$ai($s['careers'][$p['career']]);
+        $fallback=($s['cabinet_autonomy']??null)===self::CABINET_V3;
+        $mayAct=static fn(string $id):bool=>$ai($s['careers'][$id])||
+            ($fallback&&$s['careers'][$id]['account']!==null&&($s['last_human_cabinet_day'][$id]??null)!==$day);
+        $presAI=$mayAct($p['career']);
         $occupied=[];foreach($s['active'] as $mid)$occupied[$s['mandates'][$mid]['career']]=true;
         $candidates=[];foreach($s['careers'] as $id=>$c)if($ai($c)&&!isset($occupied[$id])&&$c['admitted_on']<=$day)$candidates[]=$id;
         sort($candidates,SORT_STRING);
@@ -354,7 +358,7 @@ final class CareerInstitutionLedger
             if($presAI)return ['kind'=>'confirm_minister','mandate'=>$pres,'generation'=>$p['generation'],'target'=>null,'portfolio'=>null,'proposal'=>$id];
             $pending[$proposal['portfolio']]=true;$reserved[$proposal['target']]=true;
         }
-        if(!$ai($s['careers'][$m['career']]))return null;
+        if(!$mayAct($m['career']))return null;
         $free=array_values(array_filter($candidates,fn($id)=>!isset($reserved[$id])));
         if($free===[])return null;
         foreach(self::MINISTRIES as $portfolio)
@@ -375,7 +379,11 @@ final class CareerInstitutionLedger
             $m=$s['mandates'][$mandate]??null;
             self::check($m!==null&&$m['generation']===$generation&&$m['end']===null&&($s['active'][$m['office']]??null)===$mandate&&$m['start']<=$day&&$day<$m['expires']&&in_array($ability,$m['powers'],true),'autonomous cabinet authority denied');
             $s['last_automatic_cabinet_day']=$day;
-        }else self::check(self::allows($s,$account,$mandate,$generation,$ability,$day),'cabinet authority denied');
+        }else{
+            self::check(self::allows($s,$account,$mandate,$generation,$ability,$day),'cabinet authority denied');
+            if(($s['cabinet_autonomy']??null)===self::CABINET_V3)
+                $s['last_human_cabinet_day'][$s['mandates'][$mandate]['career']]=$day;
+        }
         $end=(new \DateTimeImmutable(CareerScoreContract::START))->modify('+'.CareerScoreContract::HORIZON.' days')->format('Y-m-d');
         if($kind==='appoint_pm'){
             self::check(is_string($p['target'])&&isset($s['careers'][$p['target']])&&$p['portfolio']===null&&$p['proposal']===null&&!isset($s['active']['prime-minister']),'PM appointment requires vacant office');
@@ -473,7 +481,7 @@ final class CareerInstitutionLedger
         }elseif($op==='pin_cabinet_autonomy'){
             self::fields($p,['version']);
             self::check($s['country']==='FR'&&$s['mode']==='career'&&$day===CareerScoreContract::START&&$e['world_revision']===0
-                &&$s['active']===[]&&$s['mandates']===[]&&!isset($s['cabinet_autonomy'])&&$p['version']===self::CABINET_V2
+                &&$s['active']===[]&&$s['mandates']===[]&&!isset($s['cabinet_autonomy'])&&in_array($p['version'],[self::CABINET_V2,self::CABINET_V3],true)
                 &&$e['actor']==='career-ai-clerk'&&$e['evidence_sha']===self::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$s['world'],'day'=>$day,'payload'=>$p]),'cabinet autonomy opening pin');
             $s['cabinet_autonomy']=$p['version'];
         }elseif($op==='pin_fr_programmes'){
