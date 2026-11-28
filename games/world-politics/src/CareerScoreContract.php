@@ -84,12 +84,19 @@ final class CareerScoreContract
             // its first accession is treated like a fictional opening career.
             $maximum=$mode==='opening'&&$series['first']&&$start>=$joined
                 &&(!isset($c['claimed_on'])||$joined<$start)?self::elapsed($joined,$start):0;
+            $participation=CareerParticipation::tenureVerified($state,$id,$humanStart,$cutoff);
+            $credit=($series['credit_verified']??false)?$series['credit_days']:null;
+            // An opening-day claim of an already invested AI has no waiting
+            // interval to certify. Its human tenure must still be verified.
+            // Derive zero from the authenticated claim and accession dates;
+            // never rewrite an existing signed ledger or infer positive credit.
+            if($credit===null&&$participation&&isset($c['claimed_on'])&&$joined===$start&&$maximum===0)$credit=0;
             $out[]=['series_id'=>$id,'accession_on'=>$start,'human_tenure_from'=>$humanStart,
                 'through_day'=>$cutoff,'status'=>$status,'tenure_days'=>$tenure,
                 'tenure_time_points'=>self::timePoints($tenure),'minimum_tenure_reached'=>$tenure>=self::MIN_TENURE,'maximum_unverified_credit_days'=>$maximum,
                 'maximum_unverified_credit_points'=>self::timePoints($tenure+$maximum)-self::timePoints($tenure),
-                'verified_credit_days'=>($series['credit_verified']??false)?$series['credit_days']:null,
-                'tenure_participation_verified'=>CareerParticipation::tenureVerified($state,$id,$humanStart,$cutoff),
+                'verified_credit_days'=>$credit,
+                'tenure_participation_verified'=>$participation,
                 'purchasing_power_gain_bps'=>null,'score'=>null,'rankable'=>false];
         }
         usort($out,fn($a,$b)=>strcmp($a['accession_on'],$b['accession_on'])?:strcmp($a['series_id'],$b['series_id']));

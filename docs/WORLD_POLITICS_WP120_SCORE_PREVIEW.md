@@ -24,3 +24,7 @@ Ranking candidates are now selected from journal heads, not mutable cohort or qu
 
 ### Read-only operational verification
 Run `WP_RELEASE_AUDIT=YES php games/world-politics/bin/audit-career-score.php WORLD_ID` with a SELECT-only MariaDB account and the independent career evidence key. This checks the existing journal, career-event anchors, latest projection and configured score pin inside one repeatable-read, read-only snapshot; pending clock checkpoints are rejected. CI compares this audit before and after restoring the isolated game database, using read-only credentials. This cannot establish authenticity after deletion of the entire journal or independently validate economic calibration.
+
+
+### Opening-day AI takeover parity
+An authenticated same-day claim of an already invested AI career now derives zero waiting credit when its human participation interval is verified. Previously the absence of a pre-claim credit seal could exclude this legitimate opening-day human series indefinitely. No pre-claim days or positive credit are awarded, missing participation still fails closed, and the original signed ledger and published records remain unchanged. The correction applies to subsequently computed previews and publication. Replay regression compares a verified first day with an otherwise identical participation gap.

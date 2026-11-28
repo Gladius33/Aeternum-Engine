@@ -284,6 +284,22 @@ $pa=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($partA,'a','2027
 ck($pa['series'][0]['verified_credit_days']===2&&$pa['series'][0]['tenure_participation_verified']&&$pa['score']===null,'daily participation seals exact wait but no unsupported income score');
 $pb=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($partB,'b','2027-05-16');
 ck($pb['series'][0]['verified_credit_days']===null,'pre-accession gap cannot be laundered into opening credit');
+// AI invested before a human claims the same identity on opening day.
+// No prior human waiting exists, but verified tenure earns ordinary points.
+$openingClaim=L::apply($real,$pe($real,'participation_enable',['version'=>\Aeternum\WorldPolitics\CareerParticipation::VERSION],'2027-05-14'));
+$openingClaim=change($openingClaim,'election',[],[grant('president','real-jean-luc-melenchon')]);
+$claimNow=evt($openingClaim,'claim_real_career',$claim);$claimNow['actor']='career-admission';
+$claimNow['evidence_sha']=L::digest(['kind'=>'approved-real-career-claim-v1','world'=>$openingClaim['world'],'day'=>$claimNow['day'],'payload'=>$claim]);
+$openingClaim=L::apply($openingClaim,$claimNow);
+$openingGap=$tickPart($openingClaim,'2027-05-14','2027-05-15',[]);
+$openingClaim=$tickPart($openingClaim,'2027-05-14','2027-05-15',['real-jean-luc-melenchon']);
+$oc=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($openingClaim,'real-jean-luc-melenchon','2027-05-15')['series'][0];
+require_once __DIR__.'/../games/world-politics/src/CareerScorePreview.php';
+$ocp=\Aeternum\WorldPolitics\CareerScorePreview::series($oc,'opening',fn()=>10000);
+ck($oc['verified_credit_days']===0&&$oc['tenure_participation_verified']&&$ocp['score']===2,'same-day AI claim receives ordinary human tenure without prior credit');
+$og=\Aeternum\WorldPolitics\CareerScoreContract::ledgerProgress($openingGap,'real-jean-luc-melenchon','2027-05-15')['series'][0];
+ck($og['verified_credit_days']===null&&!$og['tenure_participation_verified'],'same-day claim with a participation gap remains unqualified');
+
 
 require_once __DIR__.'/../games/world-politics/src/UniverseIdentityReference.php';
 // Composable non-authoritative research observations preserve the legal
