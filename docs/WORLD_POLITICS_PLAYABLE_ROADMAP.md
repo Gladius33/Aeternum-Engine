@@ -91,3 +91,6 @@ New game aggregate rows sign the simulation date, model version when present, so
 
 ### WP130 multisource documentary gap supplement
 34 additional missing cells receive dated references: 14 hospital-bed observations (OECD 2024, estimate/provisional flags retained), 10 Gini and 10 international poverty observations (WDI secondary table, actual 2017–2022 years). OECD publisher identity is preserved under the normalized hospital-bed metric; no false WDI attribution. Saudi Gini and poverty remain null. The combined documentary foreign pack is expected to cover 2,040/2,184 cells (144 nulls) after exact-head qualification; no change to budget/score equations. Research experiment manifests pin the new supplement, and source names and dates remain embedded in the normal results.
+
+### WP130 historical economic gap collection
+28 additional historical WDI references transcribed from displayed secondary tables: eight sector shares for Canada and the United States, four research expenditure values, three private credit values and thirteen central expense values. Actual years 2008–2022 retained with source URL and secondary attribution. Expected documentary coverage 2068/2184, 116 nulls; no numerical imputation, no general-government substitution, no changes to policy equations. Exact-head qualification pending.
