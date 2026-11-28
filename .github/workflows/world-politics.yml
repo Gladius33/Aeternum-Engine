@@ -247,14 +247,6 @@ jobs:
         run: php tests/wp29e-economic.php
       - name: Sectoral social and economic reaction WP20
         run: php tests/wp20-france-social.php
-      - name: WP115 offline staging integrity and provenance gate
-        run: |
-          python3 tests/wp115-staging.py
-          python3 games/world-politics/bin/freeze-wp115-wdi.py --audit games/world-politics/data/wp115-wdi-2026-11-27-v1
-          python3 tests/wp115-wdi-economic-social.py
-          php tests/wp115-reference-catalog.php
-      - name: WP117 documentary political movement registry and provenance
-        run: php tests/wp117-movement-reference.php
       - name: WP97 deterministic source handoff and extracted tests
         run: |
           tmp=$(mktemp -d)
@@ -369,7 +361,15 @@ jobs:
           php-version: '8.4'
           extensions: pdo_mysql, mbstring
           coverage: none
-      - name: Install isolated game schema and test real HTTP
+      - name: Extract the exact-commit source handoff
+        run: |
+          source="$RUNNER_TEMP/wp-alpha"
+          mkdir "$source"
+          bash games/world-politics/bin/package-alpha.sh "$GITHUB_SHA" "$source/source.tar.gz"
+          python3 games/world-politics/bin/verify-alpha.py "$GITHUB_SHA" "$source/source.tar.gz"
+          tar -xzf "$source/source.tar.gz" -C "$source"
+      - name: Install isolated game schema and test real HTTP from the handoff
+        working-directory: ${{ runner.temp }}/wp-alpha/world-politics
         run: |
           php -l games/world-politics/public/index.php
           php -l games/world-politics/bin/prune-alpha.php
@@ -382,11 +382,13 @@ jobs:
             if curl --fail --silent http://127.0.0.1:18730/api/v1/health >/dev/null; then break; fi
             sleep 1
           done
+          curl --fail --silent http://127.0.0.1:18730/api/v1/health >/dev/null
           php tests/wp30-http.php
           php tests/wp118-119-career-http.php
           php tests/wp71-finance-2028-db.php
           php tests/wp99-corrective-finance-db.php
       - name: WP96 isolated logical backup restoration and read-only audit
+        working-directory: ${{ runner.temp }}/wp-alpha/world-politics
         env:
           WP_CI_MARIADB_CONTAINER: ${{ job.services.mariadb.id }}
         run: |
@@ -419,8 +421,9 @@ jobs:
             echo "Audit account unexpectedly has write access" >&2
             exit 1
           fi
-          echo "Restored campaign audit identical; read-only writer denied"
+          echo "Restored campaign and career score audits identical; audit account cannot write"
       - name: WP100 two-node shared MariaDB concurrency regression
+        working-directory: ${{ runner.temp }}/wp-alpha/world-politics
         env:
           WP_CI_MARIADB_CONTAINER: ${{ job.services.mariadb.id }}
         run: |
@@ -513,7 +516,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - name: Verify complete local extraction including tracked reference inputs
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: Verify and test the complete local extraction with reference inputs
         run: |
           set -euo pipefail
           tmp=$(mktemp -d)
@@ -526,7 +533,12 @@ jobs:
           LC_ALL=C sort -o "$tmp/expected-data" "$tmp/expected-data"
           cmp "$tmp/expected-data" "$tmp/actual-data"
           test ! -e "$tmp/world-politics/packages"
-          # This complete local archive is not uploaded as a CI artifact.
+          cd "$tmp/world-politics"
+          python3 tests/wp115-staging.py
+          python3 games/world-politics/bin/freeze-wp115-wdi.py --audit games/world-politics/data/wp115-wdi-2026-11-27-v1
+          python3 tests/wp115-wdi-economic-social.py
+          php tests/wp115-reference-catalog.php
+          php -d memory_limit=128M tests/wp117-movement-reference.php
       - name: Deterministic exact-commit source handoff
         run: |
           mkdir -p handoff

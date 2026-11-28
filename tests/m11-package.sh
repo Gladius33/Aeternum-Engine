@@ -20,6 +20,9 @@ grep -qx 'aeternum/tools/m11-backup.sh' "$OUT/files.txt"
 grep -qx 'aeternum/tools/m11-restore-lab.sh' "$OUT/files.txt"
 grep -qx 'aeternum/database/migrations/031_admin_test_entitlements.sql' "$OUT/files.txt"
 grep -qx 'aeternum/LICENSE.md' "$OUT/files.txt"
+if grep -Eq '^aeternum/(games/world-politics/|docs/WORLD_POLITICS[^/]*\.md$)' "$OUT/files.txt"; then
+  echo 'World Politics files belong in the separate game archive' >&2; exit 1
+fi
 if grep -E '(^|/)(tests|\.git|\.github|node_modules|client)/|(^|/)\.env|\.pem$|\.key$|\.sql\.gz$' "$OUT/files.txt"; then
   echo 'Forbidden path in package' >&2; exit 1
 fi

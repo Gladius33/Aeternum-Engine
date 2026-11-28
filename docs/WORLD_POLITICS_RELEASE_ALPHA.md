@@ -1,4 +1,14 @@
-# World Politics — WP80 alpha release qualification
+# World Politics — alpha release qualification
+
+## Current private-alpha source handoff
+
+The World Politics headless backend workflow publishes `world-politics-backend-source-<commit SHA>` after the contract, MariaDB, gameplay HTTP, Research HTTP and source handoff jobs pass for that commit. The artifact contains the reduced archive, `COMMIT_SHA` and `SHA256SUMS`. Run `sha256sum -c SHA256SUMS` alongside the downloaded archive before extraction. From a Git checkout with the exact commit, `python3 games/world-politics/bin/verify-alpha.py COMMIT_SHA world-politics-source.tar.gz` verifies the contents against the Git tree. Pass the actual SHA recorded in `COMMIT_SHA`. The Aeternum offline package excludes World Politics game files and documentation even when it is built from the World Politics branch.
+
+The reduced archive is exercised with PHP 8.4 and isolated MariaDB 11.4. Gameplay acceptance installs the current fresh schema (001–045, excluding the maintenance-only 014), provisions and advances campaigns and careers through HTTP, restores a logical backup and compares read-only audits, and checks shared database limits across two HTTP servers. Research HTTP acceptance uses its own schema and database. The complete local archive built with `--with-references` also runs the WP115 evidence and WP117 political movement checks from the extracted tree. Those documentary tools require the complete archive.
+
+For a fresh private environment, use the service settings in `games/world-politics/.env.example` and the separate install procedures in [Research and source handoff](WORLD_POLITICS_WP121_125_CONSOLIDATED.md) and [environment and billing](WORLD_POLITICS_ENV_STRIPE.md). The game installer is `WP_ALPHA_INSTALL=YES php games/world-politics/bin/install-alpha.php` and requires an empty dedicated database. Configure the game and Research HTTP entry points independently with their respective runtime accounts.
+
+## WP80 baseline (historical)
 
 Scope: private headless alpha, canonical France investiture 2027. This is NOT a production release or a claim of comprehensive real-world simulation. No UI and no merge into generic engine.
 
