@@ -112,8 +112,8 @@ final class UniverseLobby
     }
     /** Compact member-only international publication on one committed day.
      * The same world fence covers country ownership and all domain snapshots. */
-    public function international(AlphaSession $s,int $no):array{
-        return $this->transaction(function()use($s,$no){
+    public function international(AlphaSession $s,int $no,?array $budgetPreview=null):array{
+        return $this->transaction(function()use($s,$no,$budgetPreview){
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
             $u=$this->query('SELECT u.world_id,u.roster_version,w.reference_bundle_sha FROM wp_universes u JOIN wp_alpha_worlds w USING(world_id) WHERE u.universe_no=?',[$no])->fetch(\PDO::FETCH_ASSOC);
             if($u===false)throw new AlphaHttpError(404,'not_found');
@@ -127,6 +127,14 @@ final class UniverseLobby
             $p=new UniverseClockPrincipal($this->db,$world);
             $dip=(new PdoDiplomaticStore($this->db,$bundle->actors,$p))->read($world);
             $econ=(new PdoEconomicStore($this->db,$bundle->actors,$bundle->references,$p))->read($world);
+            if($budgetPreview!==null){
+                require_once __DIR__.'/NationalFiscalWorldStore.php';
+                if((bool)$clock['game_over'])throw new AlphaHttpError(409,'world_closed');
+                $preview=NationalFiscalWorldStore::budgetPreview($this->db,$world,$clock['committed_day'],$own['country_code'],$econ,$budgetPreview);
+                if($preview===null)throw new AlphaHttpError(409,'budget_preview_unavailable');
+                if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+                return $preview;
+            }
             $institutions=[];$store=new PdoInstitutionalStore($this->db,$p);
             foreach(self::COUNTRIES as $cc)$institutions[$cc]=$store->read($world,$cc)['state'];
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');

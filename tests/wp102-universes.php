@@ -238,6 +238,17 @@ ck102($deView['national_reference']['reference_as_of']==='2026-11-27'&&$deView['
 ck102($ivDe['body']['national_fiscal_ledger']['country']==='DE'&&$ivDe['body']['national_fiscal_ledger']['persisted']&&!$ivDe['body']['national_fiscal_ledger']['rankable'],'foreign member receives pinned experimental fiscal ledger');
 $current130=$ivDe['body']['national_fiscal_ledger']['current_fiscal_ratios'];
 ck102($current130['nominal_output_reference_units']===1000000000&&$current130['gross_debt_bps']===intdiv($ivDe['body']['national_fiscal_ledger']['state']['stocks']['gross_debt'],100000)&&!$current130['rankable'],'WP130 authenticated opening current fiscal ratios');
+$budgetParams130=['receipts_change_bps'=>500,'primary_spending_change_bps'=>-500];
+$budget130=call102('POST','/universes/'.$no.'/budget-preview',$budgetParams130,2);
+ck102($budget130['status']===200&&$budget130['body']['country']==='DE'&&$budget130['body']['days']===365
+    &&$budget130['body']['baseline']['day']==='2028-05-13'&&!$budget130['body']['persisted']&&!$budget130['body']['legal_effect'],'WP130 authenticated conditional national budget preview');
+ck102($budget130['body']['alternative']['flows']['receipts']>$budget130['body']['baseline']['flows']['receipts'],'WP130 receipts scenario changes budget flows');
+$zero130=call102('POST','/universes/'.$no.'/budget-preview',['receipts_change_bps'=>0,'primary_spending_change_bps'=>0],2);
+ck102($zero130['status']===200&&$zero130['body']['baseline']===$zero130['body']['alternative'],'WP130 unchanged budget deterministic baseline');
+ck102(call102('POST','/universes/'.$no.'/budget-preview',$budgetParams130+['country'=>'FR'],2)['status']===422,'WP130 foreign budget spoof rejected');
+ck102(call102('POST','/universes/'.$no.'/budget-preview',array_replace($budgetParams130,['receipts_change_bps'=>1001]),2)['status']===422,'WP130 invalid budget range rejected');
+ck102(call102('POST','/universes/'.$no.'/budget-preview',$budgetParams130,1)['status']===409,'WP130 French separate budget model not replaced');
+ck102(call102('GET','/universes/'.$no.'/international',null,2)['body']['national_fiscal_ledger']['state_sha256']===$budget130['body']['state_sha256'],'WP130 budget preview leaves committed state unchanged');
 ck102($deView['fiscal_scenario']['tax_reference_year']===2024&&$deView['fiscal_scenario']['trade_tax_shortfall_bps_reference_gdp']===0&&!$deView['fiscal_scenario']['rankable'],'international member receives separate fiscal scenario');
 $dip=call102('GET',$root.'/diplomacy',null,2);
 $payload['from']='state_fr';$payload['to']='state_de';

@@ -91,6 +91,32 @@ paths:
         '200': {description: Committed-day national slot roster, pinned historical economic observations, own diplomatic inbox and effective trade scenario projections}
         '404': {description: No current membership or universe}
         '409': {description: World advancing}
+  /universes/{universeNo}/budget-preview:
+    post:
+      summary: Compare a conditional one-year national budget with unchanged envelopes; no legal or stored effect
+      parameters:
+        - in: path
+          name: universeNo
+          required: true
+          schema: {type: integer, minimum: 1}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [receipts_change_bps, primary_spending_change_bps]
+              properties:
+                receipts_change_bps: {type: integer, minimum: -1000, maximum: 1000}
+                primary_spending_change_bps: {type: integer, minimum: -1000, maximum: 1000}
+      responses:
+        '200': {description: Own country only; baseline and alternative simulated from one committed fiscal checkpoint, with source digests and no legal effect}
+        '401': {description: Authentication required}
+        '404': {description: No current membership}
+        '409': {description: World advancing, closed or budget model unavailable}
+        '422': {description: Invalid or extra parameters}
+        '429': {description: Rate limited}
   /career-worlds/capabilities:
     get:
       summary: Distinguish documentary countries from runtime profiles

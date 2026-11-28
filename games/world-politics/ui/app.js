@@ -207,6 +207,25 @@ async function internationalDashboard(){
     line($('international-observations'),'Principal en retard (déjà inclus dans la dette)',currentPct(ratios.principal_arrears_included_in_debt_bps));
     line($('international-observations'),'Dénominateur courant','PIB réel × indice des prix à la consommation ; proxy nominal expérimental, hors classement.');
    }
+   if(ledger.version==='wp130-normalized-fiscal-world-v3'){
+    const panel=el('section');panel.append(el('h3','Étude budgétaire sur un an'));
+    panel.append(el('p','Variation relative des enveloppes annuelles ; aucune mesure adoptée. Coefficients non calibrés.'));
+    const choices=[[-1000,'−10 %'],[-500,'−5 %'],[0,'Sans changement'],[500,'+5 %'],[1000,'+10 %']];
+    const receipts=select(panel,'Recettes publiques',choices);receipts.value='0';
+    const spending=select(panel,'Dépenses primaires',choices);spending.value='0';
+    const result=el('div');result.setAttribute('aria-live','polite');
+    button(panel,'Comparer au budget inchangé',async()=>{
+     const p=await request('/universes/'+internationalNo+'/budget-preview','POST',{receipts_change_bps:Number(receipts.value),primary_spending_change_bps:Number(spending.value)});
+     clear(result);line(result,'Période',p.opening_day+' → '+p.end_day);
+     for(const [k,label] of [['gross_debt','Dette brute'],['cash','Trésorerie'],['primary_arrears','Arriérés primaires']])line(result,label,pct(p.baseline.end[k])+' → '+pct(p.alternative.end[k]));
+     for(const [k,label] of [['real_output_index','PIB réel'],['price_index','Prix'],['purchasing_power_index','Pouvoir d’achat']]){
+      const ix=v=>v===null?'Non estimé':(v/10000000).toFixed(3);
+      line(result,label+' (base 100)',ix(p.baseline.end[k])+' → '+ix(p.alternative.end[k]));
+     }
+     line(result,'Effet','Aucune modification du budget ou du classement. Recettes non ventilées ; pas d’effet fiscal direct estimé sur les ménages.');
+    });
+    panel.append(result);$('international-observations').append(panel);
+   }
    const opening=ledger.opening_forecast;
    if(opening){
     line($('international-observations'),'Dette projetée au 14 mai 2027',pct(opening.opening_gross_debt));

@@ -100,6 +100,16 @@ final class NationalFiscalWorldStore
             [$target,self::json($s),self::hash($s),$world,$previous,$r['state_sha']]);
         if($q->rowCount()!==1)throw new \DomainException('Fiscal publication conflict');
     }
+    public static function budgetPreview(\PDO $db,string $world,string $day,string $country,array $economic,array $params):?array{
+        require_once __DIR__.'/NationalBudgetPreview.php';
+        NationalBudgetPreview::validate($params);
+        $r=self::load($db,$world,$day);
+        if($r===null||$r['config']['version']!==self::VERSION||!isset($r['config']['countries'][$country]))return null;
+        $c=$r['config']['countries'][$country];
+        $trade=NationalHouseholdMacro::trade($economic,$world,$country,$day,$c['gdp_reference']);
+        return ['country'=>$country,'state_sha256'=>$r['state_sha'],'config_sha256'=>$r['config_sha']]
+            +NationalBudgetPreview::compare($c,$r['state']['countries'][$country],$r['state']['macro'][$country],$trade,$params);
+    }
     public static function dataset(\PDO $db,string $world,string $day):?array{
         require_once __DIR__.'/InternationalGameDataset.php';$r=self::load($db,$world,$day);
         return $r===null?null:InternationalGameDataset::project($r,$day);

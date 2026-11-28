@@ -178,6 +178,13 @@ final class AlphaGateway
                 catch(\InvalidArgumentException $e){throw new AlphaHttpError(422,'invalid_career_request');}
                 throw new AlphaHttpError(404,'not_found');
             }
+            if($method==='POST'&&preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/budget-preview$~D',$path,$bp)){
+                $accounts->limit('budget-preview-account',$session->id,10,60);
+                require_once __DIR__.'/NationalBudgetPreview.php';
+                try{NationalBudgetPreview::validate($body);}
+                catch(\InvalidArgumentException $e){throw new AlphaHttpError(422,'invalid_budget_preview');}
+                return self::ok(200,(new UniverseLobby($this->db()))->international($session,(int)$bp[1],$body));
+            }
             if($method==='GET'&&preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/international$~D',$path,$ui))
                 return self::ok(200,(new UniverseLobby($this->db()))->international($session,(int)$ui[1]));
             if($method==='GET'&&preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/characters/([A-Z]{2})$~D',$path,$uc))
