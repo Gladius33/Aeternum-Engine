@@ -10,7 +10,8 @@ final class NationalReferenceFallback
     private const FILES=[
         'wp130-national-economy-reference-v1.json'=>'fc951675740ba80b5b6e0b5df8a29ce969f4698f',
         'wp130-historical-resource-rents-staging-v1.json'=>'36a879c3d35fc782aa2d07c7cbef8c9a61016a29',
-        'wp130-historical-social-services-staging-v1.json'=>'18332733480d6280c38d3389d1a24d5c75910a00'];
+        'wp130-historical-social-services-staging-v1.json'=>'18332733480d6280c38d3389d1a24d5c75910a00',
+        'wp130-multisource-gap-supplement-v1.json'=>'35d061c2bea4f0650295b0ef30d1015ac29e2312'];
     private static function load(string $file):array{
         static $cache=[];
         if(isset($cache[$file]))return $cache[$file];
@@ -44,6 +45,17 @@ final class NationalReferenceFallback
             $m=$base['series'][$id];$key=$m['metric'];
             foreach($s['rows'] as $r)if($r['iso2']===$cc&&(!isset($out[$key])||$out[$key]['value']===null||$out[$key]['year']<$r['year'])){
                 $out[$key]=self::entry($id,$s['unit'],$r['year'],$r['value'],$m['publisher'],$s['primary_metadata_url'],$social['retrieved_on'],'secondary_transcription_not_primary_reconciled',$s['secondary_sources'][0]);
+            }
+        }
+        $extra=self::load('wp130-multisource-gap-supplement-v1.json');
+        foreach($extra['rows'] as $r){
+            if($r['country']!==$cc)continue;
+            $m=$base['series'][$r['indicator']];$key=$m['metric'];
+            if($r['unit']!==$m['unit'])throw new \DomainException('Supplement unit mismatch');
+            if(!isset($out[$key])||$out[$key]['value']===null||$out[$key]['year']<$r['year']){
+                $entry=self::entry($r['indicator'],$r['unit'],$r['year'],$r['value'],$r['publisher'],$r['source_url'],$extra['retrieved_on'],$r['quality'],$r['secondary_source_url']);
+                $entry['source_name']=$r['source_name'];$entry['source_indicator']=$r['source_indicator'];
+                $out[$key]=$entry;
             }
         }
         return ['version'=>self::VERSION,'country'=>$cc,'observations'=>$out,'reference_blobs'=>self::FILES,

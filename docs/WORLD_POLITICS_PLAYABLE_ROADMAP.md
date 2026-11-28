@@ -88,3 +88,6 @@ Remove GET /references/{country} and its SDK method. Existing POST /experiments 
 
 ### Signed game-to-Research lineage
 New game aggregate rows sign the simulation date, model version when present, source-state SHA-256, pinned public macro source names and observation periods, and configured model hashes. Legacy rows retain their original signature and explicitly lack capture-time lineage. Existing bridge transport edition stays unchanged. No raw state is exported, no claim of full input provenance or scientific qualification, no new routes. Tests reject altered lineage and retain legacy compatibility.
+
+### WP130 multisource documentary gap supplement
+34 additional missing cells receive dated references: 14 hospital-bed observations (OECD 2024, estimate/provisional flags retained), 10 Gini and 10 international poverty observations (WDI secondary table, actual 2017–2022 years). OECD publisher identity is preserved under the normalized hospital-bed metric; no false WDI attribution. Saudi Gini and poverty remain null. The combined documentary foreign pack is expected to cover 2,040/2,184 cells (144 nulls) after exact-head qualification; no change to budget/score equations. Research experiment manifests pin the new supplement, and source names and dates remain embedded in the normal results.

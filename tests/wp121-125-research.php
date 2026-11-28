@@ -35,6 +35,13 @@ $national=E::run(['type'=>'national-indicators','parameters'=>['country'=>'DE']]
 $byMetric=array_column($national['result']['rows'],null,'metric');
 ck125(count($byMetric)===52&&$byMetric['total_natural_resource_rents']['data_year']===2021&&$byMetric['total_natural_resource_rents']['source_name']==='World Bank — World Development Indicators','inline national indicator provenance');
 ck125(str_contains(E::csv($national),'source_name'),'national indicator export includes sources');
+$at=E::run(['type'=>'national-indicators','parameters'=>['country'=>'AT']]);
+$atBeds=array_column($at['result']['rows'],null,'metric')['hospital_beds_density'];
+ck125($atBeds['data_year']===2024&&$atBeds['publisher']==='OECD'&&$atBeds['value']===6.55,'OECD provenance overrides only the source label for the normalized metric');
+$cn=E::run(['type'=>'national-indicators','parameters'=>['country'=>'CN']]);
+ck125(array_column($cn['result']['rows'],null,'metric')['poverty_international_line']['value']===0,'published zero remains an observation');
+$sa=E::run(['type'=>'national-indicators','parameters'=>['country'=>'SA']]);
+ck125(array_column($sa['result']['rows'],null,'metric')['gini_index']['value']===null,'unavailable Saudi Gini remains unknown');
 no125(fn()=>E::run(['type'=>'national-indicators','parameters'=>['country'=>'ZZ']]));
 ck125($countries['provenance']['sources'][0]['source_name']==='United Nations'&&$countries['provenance']['sources'][0]['data_date']==='2026-11-25','dated source provenance in signed report');
 $back=E::run(['type'=>'household-backtest','parameters'=>[]]);
