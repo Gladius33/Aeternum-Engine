@@ -109,3 +109,6 @@ Ten original slots filled from visually checked World Bank Little Data Books for
 
 ### WP130 older debt archives
 14 additional historical values for Cyprus, Greece, Spain, Malta, Korea, Portugal and Slovenia. WDR 1995 principal and interest visually checked; large PDF archive screenshot requests failed, and their text transcriptions are explicitly marked as not visually checked. Stock and service years are independent. 37 original cells remain unresolved. No replacements with distinct QEDS definitions, no fictitious observations. CI required.
+
+### WP130 1960s debt archives
+22 historical observations from table 4 of the World Bank 1963–1967 report for 11 developed countries. Opening stocks assigned to prior year-end; historical service as published, not projected schedules. Historical coverage differs from modern IDS; screenshot unavailable and text transcription flagged. 15 unfilled slots remain; no manufactured observations. CI required.

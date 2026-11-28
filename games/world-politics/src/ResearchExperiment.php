@@ -18,7 +18,7 @@ final class ResearchExperiment
             'data/2026-11-26-household-income-v1.json','data/wp114-direct-source-inventory.json','data/2026-11-25-un-members-v1.json',
             'src/NationalReferenceFallback.php','data/wp130-national-economy-reference-v1.json',
             'data/wp130-historical-resource-rents-staging-v1.json','data/wp130-historical-social-services-staging-v1.json',
-            'data/wp130-multisource-gap-supplement-v1.json','data/wp130-historical-economic-gap-supplement-v1.json','data/wp130-fiscal-debt-gap-supplement-v1.json','data/wp130-final-coverage-supplement-v1.json','data/wp130-archival-national-completion-v1.json','data/wp130-archival-debt-extension-v1.json','data/wp130-older-debt-archives-v1.json'];
+            'data/wp130-multisource-gap-supplement-v1.json','data/wp130-historical-economic-gap-supplement-v1.json','data/wp130-fiscal-debt-gap-supplement-v1.json','data/wp130-final-coverage-supplement-v1.json','data/wp130-archival-national-completion-v1.json','data/wp130-archival-debt-extension-v1.json','data/wp130-older-debt-archives-v1.json','data/wp130-1960s-debt-archives-v1.json'];
         $pins=[];foreach($files as $f){$h=hash_file('sha256',__DIR__.'/../'.$f);if($h===false)throw new \DomainException('Missing experiment dependency');$pins[$f]=$h;}
         return ['version'=>self::VERSION,'php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'files'=>$pins];
     }
