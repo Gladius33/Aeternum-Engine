@@ -169,7 +169,7 @@ paths:
   /datasets/game-worlds:
     get:
       responses:
-        '200': {description: "Approved synthetic game-world aggregate feature page"}
+        '200': {description: "Approved signed synthetic game-world aggregates; v3 envelopes include normalized foreign fiscal and household country rows with inline source lineage; legacy French-only rows remain valid"}
         '403': {description: "Research Pro required"}
   /datasets/{scope}:
     get:
@@ -179,7 +179,7 @@ paths:
           required: true
           schema: {enum: [own, global]}
       responses:
-        '200': {description: "Dataset page with highwater and next cursor"}
+        '200': {description: "Dataset page with highwater, next cursor and per-row data classifications; documentary and estimated values are not labeled synthetic game observations"}
         '403': {description: "Global dataset requires active Research Pro"}
   /models:
     get:

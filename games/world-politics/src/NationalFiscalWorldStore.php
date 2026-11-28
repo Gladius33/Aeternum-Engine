@@ -100,6 +100,10 @@ final class NationalFiscalWorldStore
             [$target,self::json($s),self::hash($s),$world,$previous,$r['state_sha']]);
         if($q->rowCount()!==1)throw new \DomainException('Fiscal publication conflict');
     }
+    public static function dataset(\PDO $db,string $world,string $day):?array{
+        require_once __DIR__.'/InternationalGameDataset.php';$r=self::load($db,$world,$day);
+        return $r===null?null:InternationalGameDataset::project($r,$day);
+    }
     public static function view(\PDO $db,string $world,string $day,string $country):?array{
         $r=self::load($db,$world,$day);if($r===null||!isset($r['state']['countries'][$country]))return null;
         return ['version'=>$r['config']['version'],'classification'=>'synthetic_normalized_general_government_fiscal_pilot',

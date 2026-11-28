@@ -275,10 +275,12 @@ final class ResearchQueue
                 // The experiment catalogue has closed, validated parameters and no free-text profiles.
                 $out[]=['seq'=>$seq,'experiment'=>$scope==='own'?$r['job_id']:hash_hmac('sha256','dataset-job|'.$r['job_id'],$this->evidenceKey),
                     'world'=>$r['world_id']===null?null:($scope==='own'?$r['world_id']:hash_hmac('sha256','dataset-world|'.$r['world_id'],$this->evidenceKey)),
-                    'report'=>$report];
+                    'data_classification'=>$report['provenance']['classification']??'legacy_provenance_unavailable','report'=>$report];
             }
             if(count($raw)>20)$next=$scanned;
-            return ['version'=>'wp-research-dataset-v1','scope'=>$scope,'through'=>$max,'next_after'=>$next,'rows'=>$out,'synthetic_simulations'=>true];
+            $classes=array_values(array_unique(array_column($out,'data_classification')));sort($classes,SORT_STRING);
+            return ['version'=>'wp-research-dataset-v1','scope'=>$scope,'through'=>$max,'next_after'=>$next,'rows'=>$out,
+                'data_classifications'=>$classes,'synthetic_simulations'=>$classes===['user_supplied_assumptions_and_model']];
         });
     }
     /** Operator-only import of signed aggregate envelopes, idempotent by world/day. */

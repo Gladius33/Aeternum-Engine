@@ -241,8 +241,19 @@ ck102(count($p107)===1&&$p107[0]['policy_id']==='education-reform'&&$p107[0]['de
 $q107=$db->prepare('SELECT state_json FROM wp_domestic_states WHERE world_id=?');$q107->execute([$spare]);
 $p107=json_decode($q107->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['policies']['education-reform'];
 ck102($p107['authorized_on']===null&&$p107['instrument_sha']===null,'WP107 programme cannot bypass enactment');
+$db->prepare('INSERT INTO wp_game_dataset_consent(world_id,enabled) VALUES(?,1)')->execute([$world]);
+putenv('WP_DATASET_BRIDGE_KEY=ci-dataset-bridge-key-not-for-production');
 $due->execute([$world]);
 ck102($scheduler->tick($world)['day']==='2027-05-15','WP103 server advances shared clock');
+$dsq=$db->prepare('SELECT envelope_json FROM wp_game_dataset_outbox WHERE world_id=? AND committed_day=?');$dsq->execute([$world,'2027-05-15']);
+$envelope=json_decode($dsq->fetchColumn(),true,32,JSON_THROW_ON_ERROR);$ds=\Aeternum\WorldPolitics\GameDataset::verify($envelope);
+ck102($ds['version']===\Aeternum\WorldPolitics\GameDataset::INTERNATIONAL_ROW_VERSION&&count($ds['international']['country_rows'])===42,'signed international aggregates in real committed outbox');
+$dst=array_column($ds['international']['country_rows'],null,'country');
+ck102($dst['DE']['features']['purchasing_power_index']!==null&&$dst['SA']['features']['purchasing_power_index']===null&&$ds['international']['data_date']==='2027-05-15','dataset preserves household missingness and committed date');
+$bad=$envelope;$bad['row']['international']['country_rows'][0]['features']['cash']++;
+$rejected=false;try{\Aeternum\WorldPolitics\GameDataset::verify($bad);}catch(DomainException $e){$rejected=true;}
+ck102($rejected,'international signature rejects modified feature');
+$db->prepare('UPDATE wp_game_dataset_consent SET enabled=0 WHERE world_id=?')->execute([$world]);
 $fq=$db->prepare('SELECT committed_day,config_json,state_json,state_sha FROM wp_national_fiscal_worlds WHERE world_id=?');$fq->execute([$world]);$fr=$fq->fetch(PDO::FETCH_ASSOC);
 $fc=json_decode($fr['config_json'],true,32,JSON_THROW_ON_ERROR);$fst=json_decode($fr['state_json'],true,32,JSON_THROW_ON_ERROR);
 ck102($fr['committed_day']==='2027-05-15'&&count($fst['countries'])===42&&!isset($fst['countries']['FR'])&&$fst['countries']['DE']['day']==='2027-05-15','42 normalized ledgers committed with common day');

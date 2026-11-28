@@ -32,6 +32,7 @@ $countries=E::run(['type'=>'countries','parameters'=>[]]);
 ck125(count($countries['result']['rows'])===195,'195 documentary countries');
 ck125($countries['result']['rows'][0]['provenance']['data_date']==='2026-11-25','country row carries provenance');
 $national=E::run(['type'=>'national-indicators','parameters'=>['country'=>'DE']]);
+ck125($national['provenance']['classification']==='mixed_documentary_reference_and_opening_estimate'&&$national['result']['opening_forecast']['classification']==='estimated_opening_not_observed','documentary data and opening projections classified separately');
 $byMetric=array_column($national['result']['rows'],null,'metric');
 ck125(count($byMetric)===52&&$byMetric['total_natural_resource_rents']['data_year']===2021&&$byMetric['total_natural_resource_rents']['source_name']==='World Bank — World Development Indicators','inline national indicator provenance');
 ck125(str_contains(E::csv($national),'source_name'),'national indicator export includes sources');

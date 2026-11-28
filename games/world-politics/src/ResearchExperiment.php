@@ -91,10 +91,11 @@ final class ResearchExperiment
     private static function provenance(string $type,array $result):array{
         $sources=[];$kind='user_supplied_assumptions_and_model';
         if($type==='national-indicators'){
-            $kind='documentary_reference';
+            $kind='mixed_documentary_reference_and_opening_estimate';
             foreach($result['rows'] as $row)$sources[]=['metric'=>$row['metric'],'source_name'=>$row['source_name'],
                 'source_url'=>$row['source_url'],'data_year'=>$row['data_year'],'retrieved_on'=>$row['retrieved_on'],
                 'quality'=>$row['quality'],'secondary_source_url'=>$row['secondary_source_url'],'source_indicator'=>$row['source_indicator']??$row['indicator'],'data_period'=>$row['data_period']??null];
+            foreach(['macro_source','fiscal_source','nominal_gdp_source'] as $k){$src=$result['opening_forecast'][$k]??null;if($src!==null)$sources[]=['source_name'=>$src['source_name'],'source_url'=>$src['source_url'],'published_on'=>$src['published_on']??null,'data_period'=>$src['data_period'],'classification'=>'published_forecast_input'];}
         }elseif($type==='countries'){
             $kind='documentary_reference';
             foreach($result['sources'] as $url)$sources[]=['source_name'=>str_contains($url,'unstats')?'United Nations Statistics Division':'United Nations',

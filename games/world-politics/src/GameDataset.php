@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
+require_once __DIR__.'/InternationalGameDataset.php';
 
 /** A closed aggregate feature schema. No raw journals, user input, actor
  * IDs, credentials, biographies, action authors, or real-life records. */
@@ -8,6 +9,7 @@ final class GameDataset
 {
     public const VERSION='wp-game-aggregate-dataset-v1'; // transport edition
     public const ROW_VERSION='wp-game-aggregate-row-v2';
+    public const INTERNATIONAL_ROW_VERSION='wp-game-aggregate-row-v3';
     private const FEATURES=['revenue_minor','expense_minor','closing_balance_minor','real_output_index_bps','unemployment_bps','price_index_scaled','wage_index_scaled','population'];
     private static function key():string{
         $k=getenv('WP_DATASET_BRIDGE_KEY');
@@ -16,7 +18,7 @@ final class GameDataset
     }
     private static function json(array $x):string{return json_encode($x,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
     private static function q(\PDO $db,string $sql,array $p=[]):\PDOStatement{$q=$db->prepare($sql);$q->execute($p);return $q;}
-    public static function project(string $world,string $day,int $revision,array $dom):array{
+    public static function project(string $world,string $day,int $revision,array $dom,?array $international=null):array{
         $d=$dom['state'];$r=end($d['days']);$m=$r['macro']??[];$p=$r['population']['indicators']??[];
         if($d['world_id']!==$world||$d['day']!==$day||($r['day']??null)!==$day||($r['currency']??null)!=='EUR'||$revision<1)
             throw new \DomainException('Dataset source mismatch');
@@ -25,6 +27,7 @@ final class GameDataset
             'price_index_scaled'=>$m['price_index_scaled']??null,'wage_index_scaled'=>$m['wage_index_scaled']??null,'population'=>$p['population']??null];
         $row=['version'=>self::ROW_VERSION,'world'=>hash_hmac('sha256','world|'.$world,self::key()),'country'=>'FR','day'=>$day,'revision'=>$revision,
             'classification'=>'synthetic_game_simulation','features'=>$values,'lineage'=>self::lineage($d,$m,$day)];
+        if($international!==null){$row['version']=self::INTERNATIONAL_ROW_VERSION;$row['international']=$international;}
         $e=['row'=>$row,'signature'=>hash_hmac('sha256',self::json($row),self::key())];self::verify($e);return $e;
     }
     private static function lineage(array $d,array $macro,string $day):array{
@@ -47,7 +50,8 @@ final class GameDataset
         $r=$e['row'];
         $legacy=($r['version']??null)===self::VERSION;
         $keys=['version','world','country','day','revision','classification','features'];if(!$legacy)$keys[]='lineage';
-        if(array_keys($r)!==$keys||!in_array($r['version']??null,[self::VERSION,self::ROW_VERSION],true)
+        $international=($r['version']??null)===self::INTERNATIONAL_ROW_VERSION;if($international)$keys[]='international';
+        if(array_keys($r)!==$keys||!in_array($r['version']??null,[self::VERSION,self::ROW_VERSION,self::INTERNATIONAL_ROW_VERSION],true)
             ||!preg_match('/^[a-f0-9]{64}$/D',$r['world'])||$r['country']!=='FR'||$r['classification']!=='synthetic_game_simulation'
             ||!is_int($r['revision'])||$r['revision']<1||!is_array($r['features'])||array_keys($r['features'])!==self::FEATURES
             ||!hash_equals(hash_hmac('sha256',self::json($r),self::key()),$e['signature']))
@@ -56,16 +60,18 @@ final class GameDataset
         if(!$d||$d->format('Y-m-d')!==$r['day'])throw new \DomainException('Dataset day');
         foreach($r['features'] as $k=>$v)if($v!==null&&(!is_int($v)||abs($v)>100000000000000000))throw new \DomainException('Dataset feature bounds');
         if(!$legacy){$l=$r['lineage'];if(!is_array($l)||($l['source_name']??null)!=='World Politics game simulation'||($l['data_date']??null)!==$r['day']||($l['date_kind']??null)!=='simulation_day'||!preg_match('/^[a-f0-9]{64}$/D',$l['source_state_sha256']??'')||!is_array($l['baseline_sources']??null))throw new \DomainException('Invalid signed lineage');}
+        if($international){if(!is_array($r['international']))throw new \DomainException('Invalid international aggregate');InternationalGameDataset::verify($r['international'],$r['day']);}
         return $r;
     }
     public static function provenance(array $row):array{
         return ['classification'=>'synthetic_game_simulation','source_name'=>'World Politics game simulation','data_date'=>$row['day'],'date_kind'=>'simulation_day',
-            'lineage_status'=>isset($row['lineage'])?'signed_at_capture':'legacy_lineage_unavailable','lineage'=>$row['lineage']??null];
+            'lineage_status'=>isset($row['lineage'])?'signed_at_capture':'legacy_lineage_unavailable','lineage'=>$row['lineage']??null,
+            'international_status'=>isset($row['international'])?'signed_at_capture':'not_available_in_this_row_edition'];
     }
     /** Capture committed simulation facts independently of account tiers.
      * Automatic coverage is enabled by the operator after the published data
      * policy is in force; explicit world exclusions always take precedence. */
-    public static function capture(\PDO $db,string $world,string $day,int $revision,array $dom):void{
+    public static function capture(\PDO $db,string $world,string $day,int $revision,array $dom,bool $managed=false):void{
         if(!$db->inTransaction())throw new \LogicException('Dataset capture outside transaction');
         // Current schema covers EUR French macroeconomic observations only.
         $d=$dom['state'];$last=end($d['days']);
@@ -82,7 +88,9 @@ final class GameDataset
         // lower sequence that was still uncommitted at the time of its read.
         if(self::q($db,'SELECT singleton_id FROM wp_game_dataset_order WHERE singleton_id=1 FOR UPDATE')->fetchColumn()===false)
             throw new \DomainException('Dataset ordering fence unavailable');
-        $e=self::project($world,$day,$revision,$dom);
+        $international=null;
+        if($managed){require_once __DIR__.'/NationalFiscalWorldStore.php';$international=NationalFiscalWorldStore::dataset($db,$world,$day);}
+        $e=self::project($world,$day,$revision,$dom,$international);
         self::q($db,'INSERT INTO wp_game_dataset_outbox(world_id,committed_day,envelope_json) VALUES(?,?,?)',[$world,$day,self::json($e)]);
     }
     /** Explicit operator opt-in: treat a disabled release flag as permanent
