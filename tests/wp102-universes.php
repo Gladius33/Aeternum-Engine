@@ -39,6 +39,28 @@ ck102($plan['unpaid']===['interest'=>100,'principal'=>500,'primary'=>1100]&&$pla
 $rejected=false;try{$ledger::plan($opening,$due,['committed_credit_available'=>null,'gross_debt_ceiling'=>21000]);}catch(\DomainException $e){$rejected=true;}
 ck102($rejected,'unknown credit availability rejected');
 
+
+require_once __DIR__.'/../games/world-politics/src/NationalFiscalCalendar.php';
+$calendar=\Aeternum\WorldPolitics\NationalFiscalCalendar::class;
+foreach([2027=>365,2028=>366] as $yr=>$len){
+    $dt=new DateTimeImmutable($yr.'-01-01');$sum=0;
+    for($i=0;$i<$len;$i++)$sum+=$calendar::daily(100000000000000000,$dt->modify('+'.$i.' day')->format('Y-m-d'));
+    ck102($sum===100000000000000000,'daily annual allocation exact including leap year');
+}
+$annual=['tax_received'=>0,'other_received'=>0,'primary_due'=>36500,'interest_due'=>3650];
+$state=['day'=>'2027-05-13','stocks'=>['cash'=>0,'gross_debt'=>1000],'arrears'=>['interest'=>0,'principal'=>0,'primary'=>0],'credit_remaining'=>0];
+$t1=$calendar::tick($state,'2027-05-14',$annual,['2027-05-14'=>200],1000);
+ck102($t1['next']['arrears']===['interest'=>10,'principal'=>200,'primary'=>100]&&$t1['next']['stocks']['gross_debt']===1000,'calendar retains unpaid principal inside debt');
+$t2=$calendar::tick($t1['next'],'2027-05-15',array_replace($annual,['tax_received'=>146000]),['2027-05-14'=>200],1000);
+ck102($t2['next']['arrears']===['interest'=>0,'principal'=>0,'primary'=>20]&&$t2['next']['stocks']['gross_debt']===800,'arrears paid exactly once from next receipts');
+ck102($t2===$calendar::tick($t1['next'],'2027-05-15',array_replace($annual,['tax_received'=>146000]),['2027-05-14'=>200],1000),'calendar deterministic replay');
+$t3=$calendar::tick(array_replace($state,['credit_remaining'=>150]),'2027-05-14',$annual,[],2000);
+ck102($t3['next']['credit_remaining']===40&&$t3['next']['stocks']['gross_debt']===1110,'facility consumed only by actual draw');
+$t4=$calendar::tick($t3['next'],'2027-05-15',$annual,[],2000);
+ck102($t4['next']['credit_remaining']===0&&$t4['next']['arrears']['primary']===70,'credit not recycled across ticks');
+$reject=false;try{$calendar::tick($state,'2027-05-15',$annual,[],1000);}catch(\DomainException $e){$reject=true;}
+ck102($reject,'calendar rejects skipped day');
+
 $rent=json_decode(file_get_contents(__DIR__.'/../games/world-politics/data/wp130-historical-resource-rents-staging-v1.json'),true,32,JSON_THROW_ON_ERROR);
 $rentCodes=array_keys($rent['countries']);sort($rentCodes);$expectedRent=UniverseLobby::DIPLOMATIC_COUNTRIES;sort($expectedRent);
 ck102($rentCodes===$expectedRent&&$rent['year']===2021&&!$rent['runtime_admission'],'resource rent staging exact roster and historical classification');
