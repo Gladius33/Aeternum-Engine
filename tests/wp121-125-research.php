@@ -64,7 +64,7 @@ ck125($auAlt['qeds_general_government_gross_external_debt']['value']===330330000
 $archiveBase=json_decode(file_get_contents(__DIR__.'/../games/world-politics/data/wp130-national-economy-reference-v1.json'),true,64,JSON_THROW_ON_ERROR);
 $archiveCount=0;$archiveSlots=0;$externalCountries=0;
 foreach(array_keys($archiveBase['countries']) as $cc){$ar=\Aeternum\WorldPolitics\NationalReferenceFallback::country($cc);$archiveCount+=$ar['coverage']['available'];$archiveSlots+=$ar['coverage']['slots'];if(count(array_filter($ar['alternative_references'],fn($x)=>$x['metric']==='qeds_general_government_gross_external_debt'))>0)$externalCountries++;}
-ck125($archiveCount===2169&&$archiveSlots===2184&&$externalCountries===42,'archival coverage and general government external debt for every foreign country');
+ck125($archiveCount===2147&&$archiveSlots===2184&&$externalCountries===42,'archival coverage and general government external debt for every foreign country');
 $ee=E::run(['type'=>'national-indicators','parameters'=>['country'=>'EE']]);
 $eeRows=array_column($ee['result']['rows'],null,'metric');
 ck125($eeRows['external_debt_public_publicly_guaranteed']['value']===435000000&&$eeRows['external_debt_service_public_publicly_guaranteed']['value']===82000000&&$eeRows['external_debt_service_public_publicly_guaranteed']['data_year']===2005,'archive stock and paid service separated');
@@ -75,7 +75,8 @@ $ptRows=array_column($pt['result']['rows'],null,'metric');
 ck125($ptRows['external_debt_public_publicly_guaranteed']['data_year']===1978&&$ptRows['external_debt_service_public_publicly_guaranteed']['value']===4799000000&&$ptRows['external_debt_service_public_publicly_guaranteed']['data_year']===1993,'historic debt stock and service retain independent years');
 $at=E::run(['type'=>'national-indicators','parameters'=>['country'=>'AT']]);
 $atRows=array_column($at['result']['rows'],null,'metric');
-ck125($atRows['external_debt_public_publicly_guaranteed']['value']===459984000&&$atRows['external_debt_public_publicly_guaranteed']['data_year']===1966&&$atRows['external_debt_service_public_publicly_guaranteed']['value']===71440000&&$atRows['external_debt_service_public_publicly_guaranteed']['data_year']===1967,'opening stock date and historical service independent');
+$atAlt=array_column($at['result']['alternative_references'],null,'metric');
+ck125($atRows['external_debt_public_publicly_guaranteed']['value']===null&&$atAlt['historical_external_public_debt_1960s']['value']===459984000&&$atAlt['historical_external_public_debt_1960s']['data_year']===1966&&$atAlt['historical_external_public_debt_service_1960s']['data_year']===1967,'historical definition preserved separately from modern IDS');
 $of=\Aeternum\WorldPolitics\NationalInvestitureForecast::class;
 ck125(count($of::pack()['countries'])===43&&$of::opening('SA')['unemployment_opening_bps']===null,'complete country forecast coverage, missing unemployment explicit');
 $deOpen=$of::opening('DE');ck125($deOpen['debt_bridge']['end_2026']+$deOpen['debt_bridge']['deficit_to_day']+$deOpen['debt_bridge']['stock_flow_adjustment_to_day']===$deOpen['opening_gross_debt'],'debt bridge reconciles');

@@ -198,7 +198,19 @@ async function internationalDashboard(){
    line($('international-observations'),'Dette brute simulée',pct(ledger.state.stocks.gross_debt));
    line($('international-observations'),'Facilité de financement restante',pct(ledger.state.credit_remaining));
    line($('international-observations'),'Arriérés simulés',pct(Object.values(ledger.state.arrears).reduce((a,b)=>a+b,0)));
-   line($('international-observations'),'Source et périmètre',ledger.source.source_name+' ('+ledger.source.data_year+'), administrations publiques ; scénario normalisé, non monétaire, sans échéancier de principal connu.');
+   const opening=ledger.opening_forecast;
+   if(opening){
+    line($('international-observations'),'Dette projetée au 14 mai 2027',pct(opening.opening_gross_debt));
+    line($('international-observations'),'Prévisions macroéconomiques',opening.macro_source.source_name+' — '+opening.macro_source.published_on);
+    line($('international-observations'),'Prévisions budgétaires',opening.fiscal_source.source_name+' — '+opening.fiscal_source.published_on);
+   }
+   if(ledger.macro){const m=ledger.macro,ix=v=>(v/10000000).toFixed(3);
+    line($('international-observations'),'PIB réel simulé (base 100)',ix(m.real_output_index));
+    line($('international-observations'),'Prix simulés (base 100)',ix(m.price_index));
+    line($('international-observations'),'Salaire réel indicatif (base 100, non RDB)',ix(m.indicative_real_wage_index));
+    line($('international-observations'),'Chômage simulé',m.unemployment_scaled===null?'Non estimé':(m.unemployment_scaled/1000000).toFixed(2)+' %');
+   }
+   line($('international-observations'),'Périmètre','Administrations publiques ; scénario normalisé, non monétaire, sans échéancier de principal connu. Coefficients non calibrés.');
   }
   const fiscal=own.fiscal_scenario;
   if(fiscal){

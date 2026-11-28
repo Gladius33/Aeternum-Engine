@@ -44,7 +44,9 @@ final class NationalInvestitureForecast
             'unemployment_opening_bps'=>($m['unemployment_bps'][0]===null||$m['unemployment_bps'][1]===null)?null:self::lerp(($macro['unemployment_bps']??$m['unemployment_bps'])[0],($macro['unemployment_bps']??$m['unemployment_bps'])[1],$days),
             'fiscal_forecasts'=>$d,'macro_source'=>$macro,'fiscal_source'=>$cc==='FR'?$p['sources']['france']:$p['sources']['fiscal'],
             'nominal_gdp_source'=>$cc==='FR'?$p['sources']['france_nominal_gdp']:null,'method'=>'linear stock interpolation across annual forecast endpoints; CPI deflator proxy for foreign normalized GDP; unemployment annual-average interpolation convention',
-            'scenario_uncertainty'=>'mixed_vintage_uncalibrated_not_confidence_interval','rankable'=>false];
+            'scenario_uncertainty'=>'mixed_vintage_uncalibrated_not_confidence_interval',
+            'dynamic_assumptions'=>['fiscal_demand_multiplier_bps'=>5000,'okun_coefficient_bps'=>4000,'price_response_bps'=>1000,'real_wage_growth_fraction_bps'=>5000,'unemployment_anchor_days'=>365,'income_measure'=>'indicative_real_wage_not_household_disposable_income','calibrated'=>false],
+            'rankable'=>false];
     }
     /** Daily real-output, consumer-price and indicative real-wage index.
      * Pure conditional model: spending shortfall reduces demand (0.5 multiplier);
@@ -56,7 +58,10 @@ final class NationalInvestitureForecast
         $g=max(-3000,min(3000,$opening['real_growth_bps_2027']-intdiv($shock,2)));
         $pi=max(-1000,min(6000,$opening['inflation_bps_2027']-intdiv($shock,10)));
         $u=$previous['unemployment_scaled'];
-        if($u!==null)$u=max(0,min(100000000,$u+intdiv(($opening['real_growth_bps_2027']-$g)*400,365)));
+        if($u!==null){
+            $anchor=$opening['unemployment_bps_2027']*10000;
+            $u=max(0,min(100000000,$u+intdiv($anchor-$u,365)+intdiv(($opening['real_growth_bps_2027']-$g)*4000,365)));
+        }
         // Index values are 1e9 at investiture. 1e9*6000 remains within int64.
         $grow=static fn(int $v,int $bps):int=>max(1,min(1000000000000,$v+intdiv($v*$bps,3650000)));
         return ['real_output_index'=>$grow($previous['real_output_index'],$g),'price_index'=>$grow($previous['price_index'],$pi),

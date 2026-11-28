@@ -16,6 +16,11 @@ final class NationalFiscalWorldStore
     private const BASE=1000000000;
     private static function json(array $v):string{return json_encode($v,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
     private static function hash(array $v):string{return hash('sha256',self::json($v));}
+    /** Divide before multiplying to avoid overflow on long-run normalized indexes. */
+    private static function scaled(int $a,int $b):int{
+        if($a<0||$b<0||$a>1000000000000||$b>1000000000000)throw new \DomainException('Fiscal index range');
+        return intdiv($a,self::BASE)*$b+intdiv($b,self::BASE)*($a%self::BASE)+intdiv(($a%self::BASE)*($b%self::BASE),self::BASE);
+    }
     private static function query(\PDO $db,string $sql,array $p=[]):\PDOStatement{$q=$db->prepare($sql);$q->execute($p);return $q;}
     private static function transaction(\PDO $db):void{if(!$db->inTransaction())throw new \LogicException('Fiscal world transaction required');}
     public static function opening(string $day):array{
@@ -68,11 +73,11 @@ final class NationalFiscalWorldStore
         foreach($r['config']['countries'] as $cc=>$c){
             $annual=$c['annual'];
             if($r['config']['version']===self::VERSION){
-                $m=$s['macro'][$cc];$nominal=intdiv($m['real_output_index']*min($m['price_index'],10000000000),self::BASE);
+                $m=$s['macro'][$cc];$nominal=self::scaled($m['real_output_index'],min($m['price_index'],10000000000));
                 // Bound monetary exposure while preserving a finite credit facility.
                 $factor=max(100000000,min(10000000000,$nominal));
-                $annual['other_received']=intdiv($annual['other_received']*$factor,self::BASE);
-                $annual['primary_due']=intdiv($annual['primary_due']*min($m['price_index'],10000000000),self::BASE);
+                $annual['other_received']=self::scaled($annual['other_received'],$factor);
+                $annual['primary_due']=self::scaled($annual['primary_due'],min($m['price_index'],10000000000));
                 $annual['interest_due']=intdiv($s['countries'][$cc]['stocks']['gross_debt']*200,10000);
             }
             $t=NationalFiscalCalendar::tick($s['countries'][$cc],$target,$annual,$c['principal_schedule'],$c['ceiling']);

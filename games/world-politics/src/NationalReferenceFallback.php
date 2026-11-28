@@ -54,7 +54,7 @@ final class NationalReferenceFallback
                 $out[$key]=self::entry($id,$s['unit'],$r['year'],$r['value'],$m['publisher'],$s['primary_metadata_url'],$social['retrieved_on'],'secondary_transcription_not_primary_reconciled',$s['secondary_sources'][0]);
             }
         }
-        foreach(['wp130-multisource-gap-supplement-v1.json','wp130-historical-economic-gap-supplement-v1.json','wp130-fiscal-debt-gap-supplement-v1.json','wp130-final-coverage-supplement-v1.json','wp130-archival-national-completion-v1.json','wp130-archival-debt-extension-v1.json','wp130-older-debt-archives-v1.json','wp130-1960s-debt-archives-v1.json'] as $supplement){
+        foreach(['wp130-multisource-gap-supplement-v1.json','wp130-historical-economic-gap-supplement-v1.json','wp130-fiscal-debt-gap-supplement-v1.json','wp130-final-coverage-supplement-v1.json','wp130-archival-national-completion-v1.json','wp130-archival-debt-extension-v1.json','wp130-older-debt-archives-v1.json'] as $supplement){
         $extra=self::load($supplement);
         foreach($extra['rows'] as $r){
             if($r['country']!==$cc)continue;
@@ -79,7 +79,12 @@ final class NationalReferenceFallback
         foreach($extension['alternatives'] as $r)if($r['country']===$cc)$alternatives[]=$r;
         $older=self::load('wp130-older-debt-archives-v1.json');
         $older1960=self::load('wp130-1960s-debt-archives-v1.json');
-        foreach($older1960['unresolved'] as $r)if($r['country']===$cc&&isset($out[$r['metric']])&&$out[$r['metric']]['value']===null)$out[$r['metric']]['availability']=$r;
+        // The historical definition does not match modern IDS residency coverage.
+        foreach($older1960['rows'] as $r)if($r['country']===$cc){
+            $metric=$r['indicator']==='DT.DOD.DPPG.CD'?'historical_external_public_debt_1960s':'historical_external_public_debt_service_1960s';
+            $alternatives[]=['country'=>$cc,'metric'=>$metric,'value'=>$r['value'],'unit'=>$r['unit'],'data_year'=>$r['year'],'data_period'=>$r['data_period'],'kind'=>$r['kind'],'source_name'=>$r['source_name'],'source_url'=>$r['source_url'],'source_indicator'=>$r['source_indicator'],'retrieved_on'=>$older1960['retrieved_on'],'quality'=>$r['quality'],'not_a_substitute_for'=>$r['indicator']];
+        }
+        foreach($older['unresolved'] as $r)if($r['country']===$cc&&isset($out[$r['metric']])&&$out[$r['metric']]['value']===null)$out[$r['metric']]['availability']=$r;
         return ['version'=>self::VERSION,'country'=>$cc,'observations'=>$out,'alternative_references'=>$alternatives,'reference_blobs'=>self::FILES,
             'coverage'=>['available'=>count(array_filter($out,fn($r)=>$r['value']!==null)),'slots'=>count($out)],
             'classification'=>'documentary_reference_not_2027_observation','rankable'=>false];
