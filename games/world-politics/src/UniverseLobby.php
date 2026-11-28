@@ -110,6 +110,29 @@ final class UniverseLobby
                 'reference'=>UniverseIdentityReference::country($country),...($country!=='FR'&&in_array($country,self::COUNTRIES,true)&&UniverseIdentityReference::isDocumentary($version)?['documentary_parties'=>DocumentaryForeignBallot::reference($country)]:[])];
         });
     }
+    /** Compact member-only international publication on one committed day.
+     * The same world fence covers country ownership and all domain snapshots. */
+    public function international(AlphaSession $s,int $no):array{
+        return $this->transaction(function()use($s,$no){
+            if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+            $u=$this->query('SELECT u.world_id,u.roster_version,w.reference_bundle_sha FROM wp_universes u JOIN wp_alpha_worlds w USING(world_id) WHERE u.universe_no=?',[$no])->fetch(\PDO::FETCH_ASSOC);
+            if($u===false)throw new AlphaHttpError(404,'not_found');
+            $world=$u['world_id'];$clock=$this->lockWorld($world);
+            $slots=$this->query('SELECT country_code,account_id,generation,closed_on,diplomacy_programme FROM wp_universe_slots WHERE world_id=? ORDER BY country_code FOR UPDATE',[$world])->fetchAll(\PDO::FETCH_ASSOC);
+            $own=null;foreach($slots as $slot)if($slot['account_id']===$s->id&&$slot['closed_on']===null)$own=$slot;
+            if($own===null||!$s->active()||$s->role($world)===null)throw new AlphaHttpError(404,'not_found');
+            require_once __DIR__.'/InternationalUniverseView.php';
+            require_once __DIR__.'/UniverseScheduler.php';
+            $bundle=(new PdoGlobalReferenceBundles($this->db))->load($u['reference_bundle_sha']);
+            $p=new UniverseClockPrincipal($this->db,$world);
+            $dip=(new PdoDiplomaticStore($this->db,$bundle->actors,$p))->read($world);
+            $econ=(new PdoEconomicStore($this->db,$bundle->actors,$bundle->references,$p))->read($world);
+            $institutions=[];$store=new PdoInstitutionalStore($this->db,$p);
+            foreach(self::COUNTRIES as $cc)$institutions[$cc]=$store->read($world,$cc)['state'];
+            if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
+            return InternationalUniverseView::build($no,$world,$clock['committed_day'],$u['roster_version'],$s->id,$own,$slots,$bundle,$institutions,$dip,$econ)+( ['game_over'=>(bool)$clock['game_over']]);
+        });
+    }
     private function create():array
     {
         $bundle=GlobalReferenceBundle::published();$sha=(new PdoGlobalReferenceBundles($this->db))->install($bundle);

@@ -79,6 +79,18 @@ paths:
         '200': {description: Verified event processed or ignored}
         '400': {description: Invalid signature or event edition}
         '503': {description: Disabled or retryable processing failure}
+  /universes/{universeNo}/international:
+    get:
+      summary: Read the coherent shared international universe publication for the current member
+      parameters:
+        - in: path
+          name: universeNo
+          required: true
+          schema: {type: integer, minimum: 1}
+      responses:
+        '200': {description: Committed-day national slot roster, pinned historical economic observations, own diplomatic inbox and effective trade scenario projections}
+        '404': {description: No current membership or universe}
+        '409': {description: World advancing}
   /career-worlds/capabilities:
     get:
       summary: Distinguish documentary countries from runtime profiles

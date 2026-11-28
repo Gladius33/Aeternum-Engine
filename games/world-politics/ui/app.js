@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-let token=null, world=null, universe=null, page=1, busy=false;
+let token=null, world=null, universe=null, page=1, busy=false, internationalMode=false, internationalNo=null, internationalPage=1;
 const apiBase='/api/v1';
 const labels={president:'Président','prime-minister':'Premier ministre',economy:'Économie',education:'Éducation',health:'Santé',justice:'Justice',interior:'Intérieur',defence:'Défense',foreign_affairs:'Affaires étrangères'};
 const errText={401:'Session expirée ou identifiants incorrects.',403:'Accès refusé.',404:'Fonction ou univers indisponible.',409:'État modifié, action incompatible ou indisponible. Actualisez avant de réessayer.',422:'Paramètres invalides.',429:'Trop de requêtes.',503:'Service indisponible.'};
@@ -20,18 +20,18 @@ async function request(path,method='GET',body,etag){
  if(!response.ok){if(response.status===401&&token)reset();throw Error(errText[response.status]||'Erreur HTTP '+response.status);}
  return response.json();
 }
-function reset(){token=null;world=null;universe=null;page=1;$('game').hidden=true;$('auth').hidden=false;$('dashboard').hidden=true;$('lobby').hidden=false;for(const id of ['career','offices','cabinet','economy','policies','propose','laws','submit-bill','ranking','worlds','countries'])clear($(id));}
+function reset(){token=null;world=null;universe=null;page=1;internationalMode=false;internationalNo=null;internationalPage=1;$('international-lobby').hidden=true;$('international-dashboard').hidden=true;$('game').hidden=true;$('auth').hidden=false;$('dashboard').hidden=true;$('lobby').hidden=false;for(const id of ['career','offices','cabinet','economy','policies','propose','laws','submit-bill','ranking','worlds','countries'])clear($(id));}
 async function run(fn){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();}catch(e){say(e.message||'Erreur de communication.');}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);}}
 async function login(register=false){const username=$('username').value,password=$('password').value;if(register)await request('/accounts','POST',{username,password,invite:$('invite').value});const r=await request('/sessions','POST',{username,password});token=r.access_token;$('password').value='';$('invite').value='';$('auth').hidden=true;$('game').hidden=false;await lobby();}
 $('auth-form').addEventListener('submit',e=>{e.preventDefault();run(()=>login());});
 $('register').addEventListener('click',()=>run(()=>login(true)));
 $('logout').addEventListener('click',()=>run(async()=>{try{await request('/session','DELETE');}finally{reset();say('Déconnecté.');}}));
 $('lobby-btn').addEventListener('click',()=>run(lobby));
-$('refresh').addEventListener('click',()=>run(()=>world?dashboard():lobby()));
+$('refresh').addEventListener('click',()=>run(()=>internationalMode?(internationalNo?internationalDashboard():internationalLobby()):(world?dashboard():lobby())));
 $('previous-worlds').addEventListener('click',()=>run(async()=>{page=Math.max(1,page-1);await lobby();}));
 $('next-worlds').addEventListener('click',()=>run(async()=>{page++;await lobby();}));
 $('identity').addEventListener('change',()=>{$('fiction').hidden=Boolean($('identity').value);});
-async function lobby(){world=null;universe=null;$('dashboard').hidden=true;$('lobby').hidden=false;
+async function lobby(){internationalMode=false;internationalNo=null;$('international-lobby').hidden=true;$('international-dashboard').hidden=true;world=null;universe=null;$('dashboard').hidden=true;$('lobby').hidden=false;
  const [d,c,o]=await Promise.all([request('/career-worlds/public/'+page),request('/career-worlds/capabilities'),request('/candidate-options')]);
  clear($('worlds'));clear($('world-choice'));option($('world-choice'),'','Choix automatique');
  for(const u of d.universes){const p=el('div');p.className='entry';p.append(el('span','Univers '+u.universe_no+' · '+u.committed_day+' · '+u.member_count+'/'+u.capacity));if(u.is_member)button(p,'Ouvrir',async()=>{world=u.world_id;universe=u.universe_no;await dashboard();});else if(u.joinable)option($('world-choice'),u.world_id,'Univers '+u.universe_no);$('worlds').append(p);}
@@ -119,3 +119,75 @@ async function dashboard(){const path=prefix();const [c,e,i,ch]=await Promise.al
 async function cohorts(){const scope=$('rank-scope').value==='global'?'global':String(universe);const r=await request('/career-worlds/rankings/'+scope+'/cohorts');clear($('rank-cohort'));for(const c of r.cohorts)option($('rank-cohort'),c.cohort_sha,c.admission_mode+' · '+c.cohort_sha.slice(0,8));await ranking();}
 async function ranking(){clear($('ranking'));const id=$('rank-cohort').value;if(!id){$('ranking').append(el('p','Aucune cohorte.'));return;}const scope=$('rank-scope').value==='global'?'global':String(universe);const r=await request('/career-worlds/rankings/'+scope+'/'+id);if(!r.rows.length)$('ranking').append(el('p','Aucun score qualifié (365 jours effectifs minimum).'));for(const row of r.rows)line($('ranking'),row.rank+'. '+(row.is_you?'Vous':row.player),row.score+' points · '+row.tenure_days+' jours');}
 $('rank-scope').addEventListener('change',()=>run(cohorts));$('rank-cohort').addEventListener('change',()=>run(ranking));$('rank-refresh').addEventListener('click',()=>run(cohorts));
+
+const countryNames=new Intl.DisplayNames(['fr'],{type:'region'});
+const countryLabel=code=>countryNames.of(code)||code;
+const fmt=new Intl.NumberFormat('fr-FR');
+function observedLabel(v){return !v||v.value===null?'Non disponible':fmt.format(v.value)+' '+v.unit+' ('+v.year+', '+(v.kind||v.classification)+')';}
+$('international-btn').addEventListener('click',()=>run(internationalLobby));
+$('international-prev').addEventListener('click',()=>run(async()=>{internationalPage=Math.max(1,internationalPage-1);await internationalLobby();}));
+$('international-next').addEventListener('click',()=>run(async()=>{internationalPage++;await internationalLobby();}));
+let internationalDirectory=null;
+function internationalChoices(){
+ const no=$('international-choice').value;const row=internationalDirectory.universes.find(u=>String(u.universe_no)===no);
+ clear($('international-country'));
+ const slots=row?row.slots.filter(s=>s.controller==='ai'):internationalDirectory.playable_country_pilot.map(country=>({country}));
+ for(const s of slots)option($('international-country'),s.country,countryLabel(s.country));
+}
+$('international-choice').addEventListener('change',internationalChoices);
+async function internationalLobby(){
+ internationalMode=true;internationalNo=null;world=null;universe=null;$('lobby').hidden=true;$('dashboard').hidden=true;$('international-dashboard').hidden=true;$('international-lobby').hidden=false;
+ const data=await request('/universes/page/'+internationalPage);internationalDirectory=data;
+ clear($('international-worlds'));clear($('international-choice'));option($('international-choice'),'','Sélection automatique');
+ for(const u of data.universes){
+  const item=el('div');item.className='entry';item.append(el('span','Univers '+u.universe_no+' · '+u.committed_day+' · '+u.vacant+'/'+u.slots.length+' États disponibles'));
+  const own=u.slots.find(s=>s.is_you);
+  if(own)button(item,'Reprendre '+countryLabel(own.country),async()=>{internationalNo=u.universe_no;await internationalDashboard();});
+  else if(u.joinable)option($('international-choice'),String(u.universe_no),'Univers '+u.universe_no);
+  $('international-worlds').append(item);
+ }
+ internationalChoices();say('Univers internationaux · page '+internationalPage);
+}
+$('international-join').addEventListener('submit',e=>{e.preventDefault();run(async()=>{
+ const country=$('international-country').value,no=$('international-choice').value;
+ if(!country)throw Error('Aucun État disponible.');
+ const joined=await request('/universes/join','POST',{country,...(no?{universe_no:Number(no)}:{})});
+ internationalNo=joined.universe_no;await internationalDashboard();
+});});
+async function internationalDashboard(){
+ if(!internationalNo)throw Error('Univers non sélectionné.');
+ const d=await request('/universes/'+internationalNo+'/international');
+ const root='/worlds/'+encodeURIComponent(d.world_id);
+ $('international-lobby').hidden=true;$('international-dashboard').hidden=false;
+ $('international-title').textContent='Univers '+d.universe_no+' · '+countryLabel(d.country)+' · '+d.day;
+ for(const id of ['international-own','international-actions','international-diplomacy','international-incoming','international-history','international-observations','international-trade','international-roster','international-ranking'])clear($(id));
+ line($('international-own'),'État contrôlé',countryLabel(d.country));line($('international-own'),'Génération de contrôle',d.generation);
+ const mode=select($('international-actions'),'Orientation diplomatique automatique',[['cooperative','Coopérative'],['balanced','Équilibrée'],['cautious','Prudente']]);mode.value=d.diplomacy_programme;
+ if(!d.game_over)button($('international-actions'),'Enregistrer',async()=>{await request('/universes/'+d.universe_no+'/programme','POST',{diplomacy:mode.value});await internationalDashboard();});
+ button($('international-actions'),'Quitter le contrôle de cet État',async()=>{if(confirm('Rendre cet État à la simulation automatique ?')){await request('/universes/'+d.universe_no+'/membership','DELETE');await internationalLobby();}});
+ const actorLabels=new Map([[d.actor_id,countryLabel(d.country)],...d.actors.map(a=>[a.id,a.label])]);
+ const actions={dialogue:'Dialogue',humanitarian_assistance:'Assistance humanitaire',trade_cooperation:'Coopération commerciale',treaty_proposal:'Proposition de traité',express_support:'Déclaration de soutien',express_opposition:'Déclaration d’opposition',sanctions_proposal:'Proposition de sanctions (sans effet automatique)'};
+ if(!d.game_over){
+  const target=select($('international-diplomacy'),'Interlocuteur',d.actors.map(a=>[a.id,a.label]));
+  const action=select($('international-diplomacy'),'Action',Object.entries(actions));
+  button($('international-diplomacy'),'Envoyer',async()=>{await request(root+'/diplomacy/proposals','POST',{from:d.actor_id,to:target.value,action:action.value},d.diplomacy_etag);await internationalDashboard();});
+ }
+ for(const p of d.incoming){
+  const item=el('div');line(item,actorLabels.get(p.from)||p.from,actions[p.action]||p.action);line(item,'Échéance',p.response_deadline);
+  if(!d.game_over)for(const [accept,label] of [[true,'Accepter en principe'],[false,'Refuser']])button(item,label,async()=>{await request(root+'/diplomacy/responses','POST',{responder:d.actor_id,proposal_id:p.id,accepted:accept},d.diplomacy_etag);await internationalDashboard();});
+  $('international-incoming').append(item);
+ }
+ if(!d.incoming.length)line($('international-incoming'),'Propositions reçues','Aucune en attente');
+ for(const p of d.recent_offers)line($('international-history'),(actorLabels.get(p.from)||p.from)+' → '+(actorLabels.get(p.to)||p.to),(actions[p.action]||p.action)+' · '+p.status);
+ const own=d.countries.find(c=>c.is_you);
+ if(own){
+  for(const [k,label] of [['gdp','PIB de référence'],['population','Population de référence'],['budget','Budget de référence'],['gdp_per_capita','PIB par habitant historique']])line($('international-observations'),label,observedLabel(own.observations[k]));
+  line($('international-observations'),'Institutions nationales',own.national_institution_clock?'Horloge institutionnelle active':'Module national non disponible');
+  line($('international-observations'),'Économie domestique',own.domestic_policy?'Moteur français':'Non disponible');
+ }
+ for(const p of d.trade_effects)line($('international-trade'),(actorLabels.get(p.from)||p.from)+' → '+(actorLabels.get(p.to)||p.to),p.central_usd===null?'Projection non chiffrable (référence absente)':fmt.format(p.central_usd)+' USD · réduction annuelle hypothétique');
+ if(!d.trade_effect_count)line($('international-trade'),'Effets commerciaux','Aucune projection effective concernant cet État');
+ for(const c of d.countries)line($('international-roster'),countryLabel(c.country),(c.is_you?'Vous':c.controller)+' · '+(c.national_institution_clock?'Institutions suivies':'Diplomatie seulement'));
+ try{const ranking=await request('/universes/'+d.universe_no+'/rankings');for(const p of ranking.rows)line($('international-ranking'),p.rank+' · '+(p.is_you?'Vous':p.player)+' · '+countryLabel(p.country),p.control_days+' jours');}catch(e){line($('international-ranking'),'Classement',e.message);}
+ say('Publication internationale au '+d.day+'.');
+}
