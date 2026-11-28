@@ -61,6 +61,55 @@ ck102($t4['next']['credit_remaining']===0&&$t4['next']['arrears']['primary']===7
 $reject=false;try{$calendar::tick($state,'2027-05-15',$annual,[],1000);}catch(\DomainException $e){$reject=true;}
 ck102($reject,'calendar rejects skipped day');
 
+// Five-year pure component stress/recovery, all 42 foreign opening scenarios.
+// This is not a full multi-year HTTP/SQL scheduler test or a calibration.
+require_once __DIR__.'/../games/world-politics/src/NationalFiscalWorldStore.php';
+$fws=\Aeternum\WorldPolitics\NationalFiscalWorldStore::class;
+$hh130=\Aeternum\WorldPolitics\NationalHouseholdMacro::class;
+$pilot130=$fws::opening('2027-05-14');
+$base130=1000000000;
+ck102(count($pilot130['config']['countries'])===42,'WP130 42 foreign fiscal opening scenarios');
+foreach($pilot130['config']['countries'] as $cc130=>$cfg130){
+    $f130=$pilot130['state']['countries'][$cc130];
+    $m130=$pilot130['state']['macro'][$cc130];
+    $r130=$fws::ratios($f130,$m130);
+    ck102($r130['gross_debt_bps']===intdiv($f130['stocks']['gross_debt'],100000)&&!$r130['rankable'],'WP130 opening current debt ratio '.$cc130);
+    $date130=new DateTimeImmutable('2027-05-14',new DateTimeZone('UTC'));
+    $end130=$date130->modify('+5 years');$n130=0;
+    while($date130<$end130){
+        $date130=$date130->modify('+1 day');$day130=$date130->format('Y-m-d');$n130++;
+        $a130=$cfg130['annual'];
+        $nom130=$hh130::mul($m130['real_output_index'],min($m130['price_index'],10000000000));
+        $a130['other_received']=$hh130::mul($a130['other_received'],max(100000000,min(10000000000,$nom130)));
+        $a130['primary_due']=$hh130::mul($a130['primary_due'],min($m130['price_index'],10000000000));
+        $a130['interest_due']=intdiv($f130['stocks']['gross_debt']*200,10000);
+        $t130=$calendar::tick($f130,$day130,$a130,$cfg130['principal_schedule'],$cfg130['ceiling']);
+        $l130=$t130['settlement']['cash_subledger'];$x130=$l130['executed_flows'];
+        $next130=$t130['next'];
+        if($next130['stocks']['gross_debt']!==$f130['stocks']['gross_debt']+$x130['borrowing_received']-$x130['principal_repaid']
+            ||$next130['stocks']['cash']!==$f130['stocks']['cash']+$l130['overall_cash_balance']+$l130['net_borrowing']
+            ||$next130['credit_remaining']!==$f130['credit_remaining']-$x130['borrowing_received']
+            ||$next130['arrears']['primary']!==$f130['arrears']['primary']+$t130['newly_due']['primary_due']-$x130['primary_paid'])
+            throw new RuntimeException('WP130 fiscal identity '.$cc130.' '.$day130);
+        $short130=max(0,$t130['newly_due']['primary_due']-$x130['primary_paid']);
+        $trade130=['known_exposure_bps'=>$n130<=365?800:0,'coverage_complete'=>true];
+        $newMacro130=$hh130::step($m130,$cfg130['opening_forecast'],$short130,$trade130);
+        if($newMacro130!==$hh130::step($m130,$cfg130['opening_forecast'],$short130,$trade130))
+            throw new RuntimeException('WP130 macro replay '.$cc130.' '.$day130);
+        $h130=$hh130::household($newMacro130,$cfg130['opening_forecast'],$t130['newly_due']['primary_due'],$x130['primary_paid']);
+        $r130=$fws::ratios($next130,$newMacro130);
+        if($r130===null||$r130['gross_debt_bps']<0||$r130['rankable']||$h130['rankable']
+            ||($h130['available']&&(!is_int($h130['purchasing_power_index'])||$h130['purchasing_power_index']<0))
+            ||($cfg130['opening_forecast']['unemployment_opening_bps']===null&&$h130['purchasing_power_index']!==null))
+            throw new RuntimeException('WP130 ratio/household bounds '.$cc130.' '.$day130);
+        $f130=$next130;$m130=$newMacro130;
+    }
+    ck102($n130===1827&&$m130['trade_gap_bps']===0&&$f130['day']==='2032-05-14','WP130 five-year stress and recovery '.$cc130);
+}
+$sample130=['stocks'=>['cash'=>100000000,'gross_debt'=>1000000000],'arrears'=>['primary'=>10000000,'interest'=>0,'principal'=>50000000],'credit_remaining'=>0];
+$double130=$fws::ratios($sample130,['real_output_index'=>2000000000,'price_index'=>$base130]);
+ck102($double130['gross_debt_bps']===5000&&$double130['principal_arrears_included_in_debt_bps']===250&&$fws::ratios($sample130,null)===null,'WP130 current GDP denominator, no double-counting principal, legacy unavailable');
+unset($pilot130);
 $rent=json_decode(file_get_contents(__DIR__.'/../games/world-politics/data/wp130-historical-resource-rents-staging-v1.json'),true,32,JSON_THROW_ON_ERROR);
 $rentCodes=array_keys($rent['countries']);sort($rentCodes);$expectedRent=UniverseLobby::DIPLOMATIC_COUNTRIES;sort($expectedRent);
 ck102($rentCodes===$expectedRent&&$rent['year']===2021&&!$rent['runtime_admission'],'resource rent staging exact roster and historical classification');
@@ -187,6 +236,8 @@ ck102(count(array_filter($ivDe['body']['incoming'],fn($p)=>$p['from']==='state_d
 $deView=array_values(array_filter($ivDe['body']['countries'],fn($c)=>$c['is_you']))[0];
 ck102($deView['national_reference']['reference_as_of']==='2026-11-27'&&$deView['consumption_scenario']['scenario_index_bps']===10000,'foreign member sees pinned macro scenario');
 ck102($ivDe['body']['national_fiscal_ledger']['country']==='DE'&&$ivDe['body']['national_fiscal_ledger']['persisted']&&!$ivDe['body']['national_fiscal_ledger']['rankable'],'foreign member receives pinned experimental fiscal ledger');
+$current130=$ivDe['body']['national_fiscal_ledger']['current_fiscal_ratios'];
+ck102($current130['nominal_output_reference_units']===1000000000&&$current130['gross_debt_bps']===intdiv($ivDe['body']['national_fiscal_ledger']['state']['stocks']['gross_debt'],100000)&&!$current130['rankable'],'WP130 authenticated opening current fiscal ratios');
 ck102($deView['fiscal_scenario']['tax_reference_year']===2024&&$deView['fiscal_scenario']['trade_tax_shortfall_bps_reference_gdp']===0&&!$deView['fiscal_scenario']['rankable'],'international member receives separate fiscal scenario');
 $dip=call102('GET',$root.'/diplomacy',null,2);
 $payload['from']='state_fr';$payload['to']='state_de';

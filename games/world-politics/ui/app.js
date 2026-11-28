@@ -198,6 +198,15 @@ async function internationalDashboard(){
    line($('international-observations'),'Dette brute simulée',pct(ledger.state.stocks.gross_debt));
    line($('international-observations'),'Facilité de financement restante',pct(ledger.state.credit_remaining));
    line($('international-observations'),'Arriérés simulés',pct(Object.values(ledger.state.arrears).reduce((a,b)=>a+b,0)));
+   const ratios=ledger.current_fiscal_ratios;
+   if(ratios){const currentPct=v=>(v/100).toFixed(2)+' % du PIB nominal simulé';
+    line($('international-observations'),'Ratio de dette brute courant',currentPct(ratios.gross_debt_bps));
+    line($('international-observations'),'Ratio de trésorerie courant',currentPct(ratios.cash_bps));
+    line($('international-observations'),'Arriérés primaires',currentPct(ratios.primary_arrears_bps));
+    line($('international-observations'),'Arriérés d’intérêts',currentPct(ratios.interest_arrears_bps));
+    line($('international-observations'),'Principal en retard (déjà inclus dans la dette)',currentPct(ratios.principal_arrears_included_in_debt_bps));
+    line($('international-observations'),'Dénominateur courant','PIB réel × indice des prix à la consommation ; proxy nominal expérimental, hors classement.');
+   }
    const opening=ledger.opening_forecast;
    if(opening){
     line($('international-observations'),'Dette projetée au 14 mai 2027',pct(opening.opening_gross_debt));

@@ -104,12 +104,35 @@ final class NationalFiscalWorldStore
         require_once __DIR__.'/InternationalGameDataset.php';$r=self::load($db,$world,$day);
         return $r===null?null:InternationalGameDataset::project($r,$day);
     }
+    /** Read-only ratios against current annualized nominal output proxy.
+     * CPI is not a measured GDP deflator; no change to the pinned world state. */
+    public static function ratios(array $state,?array $macro):?array{
+        if($macro===null)return null;
+        $nominal=self::scaled($macro['real_output_index'],$macro['price_index']);
+        if($nominal===0)return null;
+        // Four decimal digits of the fractional ratio without multiplying
+        // a large numerator or denominator by 10,000.
+        $bps=static function(int $value)use($nominal):int{
+            if($value<0)throw new \DomainException('Negative fiscal ratio input');
+            $whole=intdiv($value,$nominal);$rem=$value%$nominal;
+            if($whole>intdiv(PHP_INT_MAX-9999,10000))throw new \DomainException('Fiscal ratio overflow');
+            $ratio=$whole*10000;$fraction=0;
+            for($i=0;$i<4;$i++){$rem*=10;$fraction=$fraction*10+intdiv($rem,$nominal);$rem%=$nominal;}
+            return $ratio+$fraction;
+        };
+        return ['version'=>'wp130-current-fiscal-ratios-v1','classification'=>'synthetic_annualized_nominal_output_proxy_not_official_gdp',
+            'nominal_output_reference_units'=>$nominal,'gross_debt_bps'=>$bps($state['stocks']['gross_debt']),
+            'cash_bps'=>$bps($state['stocks']['cash']),'remaining_credit_bps'=>$bps($state['credit_remaining']),
+            'primary_arrears_bps'=>$bps($state['arrears']['primary']),'interest_arrears_bps'=>$bps($state['arrears']['interest']),
+            'principal_arrears_included_in_debt_bps'=>$bps($state['arrears']['principal']),'rankable'=>false];
+    }
     public static function view(\PDO $db,string $world,string $day,string $country):?array{
         $r=self::load($db,$world,$day);if($r===null||!isset($r['state']['countries'][$country]))return null;
         return ['version'=>$r['config']['version'],'classification'=>'synthetic_normalized_general_government_fiscal_pilot',
             'opening_forecast'=>$r['config']['countries'][$country]['opening_forecast']??null,'macro'=>$r['state']['macro'][$country]??null,'household'=>$r['state']['households'][$country]??null,
             'country'=>$country,'day'=>$day,'unit'=>$r['config']['unit'],'reference_gdp_units'=>self::BASE,
             'state'=>$r['state']['countries'][$country],'last_flows'=>$r['state']['last_flows'][$country]??null,
+            'current_fiscal_ratios'=>self::ratios($r['state']['countries'][$country],$r['state']['macro'][$country]??null),
             'reference'=>$r['config']['countries'][$country]['reference'],'source'=>$r['config']['source'],
             'assumptions'=>$r['config']['assumptions'],'config_sha256'=>$r['config_sha'],'state_sha256'=>$r['state_sha'],
             'rankable'=>false,'persisted'=>true,'real_currency'=>false,'full_national_budget'=>false];
