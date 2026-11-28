@@ -7,6 +7,7 @@ final class PoliticalMovementReference
 {
     public const VERSION='wp117-movement-reference-v7';
     public const AS_OF='2026-11-27';
+    private const ACADEMIC_CROSSWALK_SOURCE_URL='https://dataverse.harvard.edu/api/access/datafile/7675616?format=original';
     private const INPUTS=[
         '2026-11-25-un-members-v1.json'=>'c648d718cb4b87d6652e1ecad0bd5afcc31b7dc7',
         'wp115-ipu-party-seats-2026-11-27-v2.json'=>'fc5a828481e626e8cf08504f869dd3636f534a40',
@@ -204,7 +205,7 @@ final class PoliticalMovementReference
     {
         self::need($d['schema']==='wp117-partyfacts-crosswalk-2023-v1'&&$d['doi']==='doi:10.7910/DVN/TJINLQ'
             &&$d['dataset_version']==='1.1'&&$d['runtime_admission']===false&&$d['license']==='CC0-1.0'
-            &&$d['source_url']==='https://dataverse.harvard.edu/api/access/datafile/7675616?format=original'
+            &&$d['source_url']===self::ACADEMIC_CROSSWALK_SOURCE_URL
             &&$d['source_bytes_sha256']==='b7c65b6ca6f7e8314cbb4d79c6187a6eb02633deafb5b7d98a9d35d10d0b11ee'
             &&$d['metadata_sha256']==='541353fd1dea64c91be9bdc1d66cbad40f0ec45adb57b3a793010e6bd430cb23'
             &&$d['fields']===['external_id','dataset_key','dataset_party_id','country','partyfacts_id','year_first','year_last']
@@ -219,19 +220,32 @@ final class PoliticalMovementReference
             $id='partyfacts-external-'.$external;
             self::need(!isset($this->academicCrosswalks[$id]),'duplicate external source identity');
             $country=$iso[$code]??(isset($this->countries[$code])?$code:null);
-            $candidate=$core===null?null:($this->partyfacts['partyfacts-'.$core]??null);
-            $coreRef=$candidate===null?null:$candidate['id'];
-            $status=$core===null?'source_unlinked':($candidate===null?'source_identifier_unresolved':($country===null||$candidate['country']===null?'country_unmapped':($country!==$candidate['country']?'country_mismatch':'source_link_same_country')));
+            [,$status]=$this->academicLink($core,$country);
             $linked+=(int)($core!==null);
             $this->academicDatasetCounts[$dataset]=($this->academicDatasetCounts[$dataset]??0)+1;
             $this->academicStatusCounts[$status]=($this->academicStatusCounts[$status]??0)+1;
             if($country!==null)$this->academicCountryCounts[$country]=($this->academicCountryCounts[$country]??0)+1;
-            $this->academicCrosswalks[$id]=['id'=>$id,'country'=>$country,'source_country_code'=>$code,'external_id'=>$external,'dataset_key'=>$dataset,'dataset_party_id'=>$party,
-                'source_partyfacts_id'=>$core,'core_reference_id'=>$coreRef,'year_first_source'=>$first,'year_last_source'=>$last,
-                'classification'=>$status,'source_url'=>$d['source_url'],'legal_identity_verified'=>false,'runtime_admission'=>false];
+            // Keep the large catalogue in packed rows and expand only the requested page.
+            $this->academicCrosswalks[$id]=[$country,$code,$external,$dataset,$party,$core,$first,$last];
         }
         ksort($this->academicDatasetCounts,SORT_STRING);ksort($this->academicStatusCounts,SORT_STRING);
         self::need(count($this->academicCrosswalks)===$d['source_rows']&&$linked===$d['linked_rows']&&$this->academicDatasetCounts===$d['dataset_counts'],'academic crosswalk counts');
+    }
+    private function academicLink(?string $core,?string $country):array
+    {
+        if($core===null)return [null,'source_unlinked'];
+        $candidate=$this->partyfacts['partyfacts-'.$core]??null;
+        if($candidate===null)return [null,'source_identifier_unresolved'];
+        if($country===null||$candidate['country']===null)return [$candidate['id'],'country_unmapped'];
+        return [$candidate['id'],$country===$candidate['country']?'source_link_same_country':'country_mismatch'];
+    }
+    private function academicCrosswalkRow(string $id,array $row):array
+    {
+        [$country,$code,$external,$dataset,$party,$core,$first,$last]=$row;
+        [$coreRef,$status]=$this->academicLink($core,$country);
+        return ['id'=>$id,'country'=>$country,'source_country_code'=>$code,'external_id'=>$external,'dataset_key'=>$dataset,'dataset_party_id'=>$party,
+            'source_partyfacts_id'=>$core,'core_reference_id'=>$coreRef,'year_first_source'=>$first,'year_last_source'=>$last,
+            'classification'=>$status,'source_url'=>self::ACADEMIC_CROSSWALK_SOURCE_URL,'legal_identity_verified'=>false,'runtime_admission'=>false];
     }
     private function loadCoverageContext(array $d):void
     {
@@ -327,11 +341,18 @@ final class PoliticalMovementReference
         self::need($limit>=1&&$limit<=100&&($country===null||isset($this->countries[$country])),'page scope');
         $map=match($kind){'organizations'=>$this->organizations,'people'=>$this->people,'electoral_observations'=>$this->elections,'office_observations'=>$this->officeholders,'campaign_sources'=>$this->campaigns,'partyfacts_references'=>$this->partyfacts,'cnccfp_references'=>$this->cnccfp,'crosswalks'=>$this->crosswalks,'academic_crosswalks'=>$this->academicCrosswalks,'label_correspondences'=>$this->labelCorrespondences,'coverage_audit'=>$this->coverageAudit,'country_contexts'=>$this->countryContexts,'source_catalogues'=>$this->sourceCatalogues,'programme_references'=>$this->programmeReferences,'doctrines'=>$this->doctrines,'affiliations'=>$this->affiliations,'relationships'=>$this->relationships,'documents'=>$this->documents,'sources'=>$this->sources,default=>throw new \DomainException('Unknown reference kind')};
         if($country!==null)self::need(in_array($kind,['organizations','people','electoral_observations','office_observations','campaign_sources','partyfacts_references','cnccfp_references','crosswalks','academic_crosswalks','label_correspondences','coverage_audit','country_contexts','programme_references'],true),'unsupported country filter');
-        if($country!==null)$map=array_filter($map,fn($r)=>$r['country']===$country);
+        $academic=$kind==='academic_crosswalks';
+        if($country!==null)$map=$academic
+            ?array_filter($map,static fn(array $row):bool=>$row[0]===$country)
+            :array_filter($map,static fn(array $row):bool=>$row['country']===$country);
         ksort($map,SORT_STRING);
         if($after!==null)self::need(isset($map[$after]),'unknown cursor');
         $out=[];$next=null;
-        foreach($map as $id=>$r){if($after!==null&&strcmp($id,$after)<=0)continue;if(count($out)===$limit){$next=$out[count($out)-1]['id'];break;}$out[]=['id'=>$id]+$r;}
+        foreach($map as $id=>$r){
+            if($after!==null&&strcmp($id,$after)<=0)continue;
+            if(count($out)===$limit){$next=$out[count($out)-1]['id'];break;}
+            $out[]=$academic?$this->academicCrosswalkRow($id,$r):['id'=>$id]+$r;
+        }
         return ['edition_sha256'=>$this->sha,'kind'=>$kind,'country'=>$country,'rows'=>$out,'next'=>$next,'runtime_admission'=>false];
     }
 }

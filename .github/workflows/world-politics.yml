@@ -538,7 +538,7 @@ jobs:
           python3 games/world-politics/bin/freeze-wp115-wdi.py --audit games/world-politics/data/wp115-wdi-2026-11-27-v1
           python3 tests/wp115-wdi-economic-social.py
           php tests/wp115-reference-catalog.php
-          php tests/wp117-movement-reference.php
+          php -d memory_limit=128M tests/wp117-movement-reference.php
       - name: Deterministic exact-commit source handoff
         run: |
           mkdir -p handoff
