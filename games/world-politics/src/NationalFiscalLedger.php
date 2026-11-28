@@ -41,4 +41,33 @@ final class NationalFiscalLedger
             'cash_change'=>$cash-$opening['cash'],'gross_debt_change'=>$debt-$opening['gross_debt'],
             'rankable'=>false];
     }
+
+    /** Conditional settlement plan. Credit actually available is an explicit
+     * scenario input, never inferred from debt. Debt service before primary
+     * spending is a documented simulation convention, not a legal priority.
+     * Unpaid amounts are disclosed, not extinguished or capitalized. */
+    public static function plan(array $opening,array $due,array $financing):array
+    {
+        self::validate($opening,self::STOCK);
+        self::validate($due,['tax_received','other_received','primary_due','interest_due','principal_due']);
+        self::validate($financing,['committed_credit_available','gross_debt_ceiling']);
+        if($due['principal_due']>$opening['gross_debt'])
+            throw new \DomainException('Principal due exceeds opening debt');
+        $available=$opening['cash']+$due['tax_received']+$due['other_received'];
+        $need=max(0,$due['primary_due']+$due['interest_due']+$due['principal_due']-$available);
+        // Conservative pre-payment headroom; no circular refinancing.
+        $headroom=max(0,$financing['gross_debt_ceiling']-$opening['gross_debt']);
+        $draw=min($need,$headroom,$financing['committed_credit_available']);
+        $available+=$draw;
+        $interest=min($available,$due['interest_due']);$available-=$interest;
+        $principal=min($available,$due['principal_due']);$available-=$principal;
+        $primary=min($available,$due['primary_due']);
+        $settled=self::close($opening,['tax_received'=>$due['tax_received'],'other_received'=>$due['other_received'],
+            'primary_paid'=>$primary,'interest_paid'=>$interest,'principal_repaid'=>$principal,'borrowing_received'=>$draw]);
+        return ['version'=>'wp130-national-fiscal-settlement-v1','classification'=>'conditional_financing_plan_not_executed',
+            'priority'=>'interest_then_principal_then_primary_scenario_convention','due'=>$due,'financing_assumptions'=>$financing,
+            'funding_need_before_credit'=>$need,'credit_draw_scenario'=>$draw,
+            'unpaid'=>['interest'=>$due['interest_due']-$interest,'principal'=>$due['principal_due']-$principal,'primary'=>$due['primary_due']-$primary],
+            'cash_subledger'=>$settled,'rankable'=>false,'persisted'=>false];
+    }
 }

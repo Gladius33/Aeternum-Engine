@@ -27,6 +27,24 @@ foreach($badCases as [$badOpening,$badFlows]){
     ck102($rejected,'national fiscal incomplete, invalid or unfunded flow rejected');
 }
 
+$due=['tax_received'=>900,'other_received'=>100,'primary_due'=>1100,'interest_due'=>100,'principal_due'=>500];
+$plan=$ledger::plan($opening,$due,['committed_credit_available'=>700,'gross_debt_ceiling'=>21000]);
+ck102($plan['funding_need_before_credit']===0&&$plan['credit_draw_scenario']===0&&$plan['cash_subledger']['closing']===['cash'=>300,'gross_debt'=>19500],'settlement does not draw unnecessary credit');
+$poor=['cash'=>0,'gross_debt'=>20000];
+$plan=$ledger::plan($poor,$due,['committed_credit_available'=>200,'gross_debt_ceiling'=>20100]);
+ck102($plan['funding_need_before_credit']===700&&$plan['credit_draw_scenario']===100&&$plan['unpaid']===['interest'=>0,'principal'=>0,'primary'=>600],'credit cap and unpaid obligations visible');
+ck102($plan['cash_subledger']['closing']===['cash'=>0,'gross_debt'=>19600]&&!$plan['persisted'],'no unpaid amount booked as paid');
+$plan=$ledger::plan($poor,array_replace($due,['tax_received'=>0,'other_received'=>0]),['committed_credit_available'=>0,'gross_debt_ceiling'=>20000]);
+ck102($plan['unpaid']===['interest'=>100,'principal'=>500,'primary'=>1100]&&$plan['cash_subledger']['closing']===$poor,'no funding means no extinguished debt or capitalized interest');
+$rejected=false;try{$ledger::plan($opening,$due,['committed_credit_available'=>null,'gross_debt_ceiling'=>21000]);}catch(\DomainException $e){$rejected=true;}
+ck102($rejected,'unknown credit availability rejected');
+
+$rent=json_decode(file_get_contents(__DIR__.'/../games/world-politics/data/wp130-historical-resource-rents-staging-v1.json'),true,32,JSON_THROW_ON_ERROR);
+$rentCodes=array_keys($rent['countries']);sort($rentCodes);$expectedRent=UniverseLobby::DIPLOMATIC_COUNTRIES;sort($expectedRent);
+ck102($rentCodes===$expectedRent&&$rent['year']===2021&&!$rent['runtime_admission'],'resource rent staging exact roster and historical classification');
+ck102($rent['countries']['MT']===0&&$rent['countries']['SA']>25,'published zero distinguished from absent resource rent');
+foreach($rent['countries'] as $value)ck102(is_numeric($value)&&$value>=0&&$value<=100,'resource rent plausible percentage');
+
 $connect=fn()=>new PDO(getenv('WP_DB_DSN'),getenv('WP_DB_USER'),getenv('WP_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
 $db=$connect();$accounts=new AlphaAccounts($db,getenv('WP_ALPHA_INVITE'));$gw=new AlphaGateway($connect,getenv('WP_ALPHA_INVITE'));
 $tokens=[];foreach(range(1,count(UniverseLobby::DIPLOMATIC_COUNTRIES)+1) as $n){$user='universe-'.$n;$password='universe-test-password-'.$n;
