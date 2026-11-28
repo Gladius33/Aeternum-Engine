@@ -8,7 +8,7 @@ require_once __DIR__.'/CareerInstitutionLedger.php';
  * No dissolution election, party list, Senate renewal or coalition model. */
 final class CareerAssemblyElection{
     public const VERSION='wp127-assembly-career-v1';
-    public static function enabled(array $s):bool{return $s['country']==='FR'&&$s['mode']==='career'&&in_array($s['cabinet_autonomy']??null,[CareerInstitutionLedger::CABINET_V4,CareerInstitutionLedger::CABINET_V5],true);}
+    public static function enabled(array $s):bool{return $s['country']==='FR'&&$s['mode']==='career'&&in_array($s['cabinet_autonomy']??null,[CareerInstitutionLedger::CABINET_V4,CareerInstitutionLedger::CABINET_V5,CareerInstitutionLedger::CABINET_V6],true);}
     public static function digest(array $e):string{return CareerInstitutionLedger::digest(['kind'=>self::VERSION,'world'=>$e['world'],'day'=>$e['day'],'actor'=>$e['actor'],'operation'=>$e['operation'],'payload'=>$e['payload']]);}
     public static function next(array $s,string $day):?string{
         if(!self::enabled($s))return null;
@@ -57,6 +57,10 @@ final class CareerAssemblyElection{
             // granting a human office. Nonrepresented seats remain fixtures.
             $weights=['npc'=>4500+hexdec(substr(hash('sha256',self::VERSION.'|'.$s['world'].'|'.$day.'|'.$seat.'|npc'),0,4))%3001];
             foreach($ids as $id)$weights[$id]=3500+hexdec(substr(hash('sha256',self::VERSION.'|'.$s['world'].'|'.$day.'|'.$seat.'|'.$id),0,4))%5001;
+            if(($s['cabinet_autonomy']??null)===CareerInstitutionLedger::CABINET_V6){
+                require_once __DIR__.'/CareerCampaignActivity.php';
+                foreach($ids as $id)$weights[$id]=CareerCampaignActivity::adjust($s,$id,$day,$weights[$id]);
+            }
             arsort($weights,SORT_NUMERIC);$rank=array_keys($weights);$winner=$weights[$rank[0]]>$weights[$rank[1]]?$rank[0]:'npc';
             $results[]=['seat'=>$seat,'winner'=>$winner==='npc'?null:$winner,'support_weights'=>$weights];
             if($winner!=='npc')$grants[]=['office'=>'deputy-'.$seat,'career'=>$winner,'expires'=>$end,'interim'=>false];

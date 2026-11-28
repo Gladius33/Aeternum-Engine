@@ -175,6 +175,32 @@ paths:
       responses:
         '200': {description: Institutional snapshot and ETag}
         '409': {description: Profile unavailable}
+  /career-worlds/{world}/campaign-activity:
+    post:
+      summary: Perform an own-career fictional political activity in a supported universe
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [kind]
+              properties:
+                kind: {type: string, enum: [programme_review, public_meeting, debate, constituency_work]}
+      responses:
+        '200': {description: Signed activity receipt}
+        '409': {description: Unsupported universe edition or activity cooldown}
+        '428': {description: Missing idempotency key}
   /career-worlds/{world}/senate-candidacy:
     post:
       summary: Declare own candidacy for the next synthetic indirect Senate election

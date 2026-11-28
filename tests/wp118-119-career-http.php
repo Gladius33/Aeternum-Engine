@@ -390,3 +390,11 @@ $sr=req('GET',$pp.'/career',null,$t2);
 ck($sr['status']===200&&$sr['body']['senate_election']['own_candidacy']['seat']===12&&$sr['body']['mandates']===[],'Senate candidacy remains unseated');
 ck(req('POST',$pp.'/senate-candidacy',['seat'=>171,'election_day'=>'2029-09-30'],$t2,'senate-wrong-series-01')['status']===409,'wrong Senate series denied');
 ck(req('POST',$pp.'/parliament-resignation',['mandate'=>'unknown','generation'=>1],$t2,'parliament-resign-denied-01')['status']===409,'unheld mandate resignation denied');
+
+// Public career activity has a signed, idempotent, personal receipt.
+$camp=req('POST',$pp.'/campaign-activity',['kind'=>'programme_review'],$t2,'career-campaign-http-01');
+ck($camp['status']===200&&req('POST',$pp.'/campaign-activity',['kind'=>'programme_review'],$t2,'career-campaign-http-01')===$camp,'campaign receipt replay');
+$cv=req('GET',$pp.'/career',null,$t2);
+ck($cv['status']===200&&$cv['body']['campaign_activity']['support_modifier_bps']===140&&!$cv['body']['campaign_activity']['can_act'],'activity projection and cooldown');
+ck(req('POST',$pp.'/campaign-activity',['kind'=>'debate'],$t2,'career-campaign-http-02')['status']===409,'different key cannot bypass cooldown');
+ck(req('POST',$pp.'/campaign-activity',['kind'=>'programme_review','career'=>'candidate-other'],$t2,'career-campaign-spoof-01')['status']===409,'client cannot select another career');

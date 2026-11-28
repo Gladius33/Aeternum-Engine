@@ -555,3 +555,37 @@ no(fn()=>L::apply($sen,$bad));
 $sen=L::apply($sen,$resign);
 ck($sen['active']===[]&&!L::allows($sen,'acct-candidate-b',$mid2,1,'senate.vote','2035-10-01'),'resignation revokes mandate');
 no(fn()=>L::apply($sen,$resign));
+
+// Political career activity: signed own actions, bounded repetition,
+// time decay, no retroactive influence and no changes in legacy worlds.
+require_once __DIR__.'/../games/world-politics/src/CareerCampaignActivity.php';
+$ca=\Aeternum\WorldPolitics\CareerCampaignActivity::class;
+$campaign=L::initial('campaign-activity-fixture','FR','career','2027-05-14');
+$pin=evt($campaign,'pin_cabinet_autonomy',['version'=>L::CABINET_V6]);$pin['actor']='career-ai-clerk';
+$pin['evidence_sha']=L::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$campaign['world'],'day'=>$pin['day'],'payload'=>$pin['payload']]);
+$campaign=add(add(L::apply($campaign,$pin),'candidate-a'),'candidate-b');
+$activityEvent=function(array $s,string $id,string $kind,string $day)use($ca):array{
+    $e=evt($s,'campaign_activity',['career'=>$id,'kind'=>$kind],$day);$e['actor']='acct-'.$id;$e['evidence_sha']=$ca::digest($e);return $e;
+};
+$first=$activityEvent($campaign,'candidate-a','programme_review','2027-05-14');
+$other=$first;$other['actor']='acct-candidate-b';$other['evidence_sha']=$ca::digest($other);
+no(fn()=>L::apply($campaign,$other));
+$active=L::apply($campaign,$first);
+ck($ca::bonus($active,'candidate-a','2027-05-14')===0&&$ca::bonus($active,'candidate-a','2027-05-15')===140,'exclusive electoral cutoff');
+ck($ca::adjust($active,'candidate-a','2027-05-15',10000)===10140&&$ca::bonus($active,'candidate-b','2027-05-15')===0,'own-career relative electoral weight');
+no(fn()=>L::apply($active,$activityEvent($active,'candidate-a','debate','2027-05-20')));
+$active=L::apply($active,$activityEvent($active,'candidate-a','programme_review','2027-05-21'));
+ck($active['campaign_activities']['candidate-a']['2027-05-21']['points_bps']===90,'diminishing repetition');
+ck($ca::bonus($active,'candidate-a','2028-01-01')===0,'activity expires');
+ck($ca::view($active,'candidate-a','2027-05-21')['next_available_day']==='2027-05-28','server cooldown projection');
+ck($ca::view($sen,'candidate-b','2035-10-01')===null,'previous edition unaffected');
+$assemblyBefore=L::apply($campaign,$declare($campaign,'candidate-a',42));
+$before=$ae::plan($assemblyBefore,'2029-06-10',['candidate-a']);
+$assemblyAfter=L::apply($assemblyBefore,$activityEvent($assemblyBefore,'candidate-a','programme_review','2029-06-09'));
+$after=$ae::plan($assemblyAfter,'2029-06-10',['candidate-a']);
+ck($after['contests'][0]['support_weights']['candidate-a']>$before['contests'][0]['support_weights']['candidate-a'],'Assembly contest consumes career activity');
+$senateBefore=L::apply($campaign,$senDeclare($campaign,'candidate-a',12,'2029-09-30','2027-05-14'));
+$before=$se::plan($senateBefore,'2029-09-30',['candidate-a']);
+$senateAfter=L::apply($senateBefore,$activityEvent($senateBefore,'candidate-a','programme_review','2029-09-29'));
+$after=$se::plan($senateAfter,'2029-09-30',['candidate-a']);
+ck($after['contests'][0]['college_support_weights']['candidate-a']>$before['contests'][0]['college_support_weights']['candidate-a'],'Senate contest consumes career activity');

@@ -135,9 +135,13 @@ final class AlphaGateway
                         if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
                         return self::ok(201,$cs->createForSession($token,$body['label'],$h['idempotency-key'],$secret,$body['profile']??'institutional',$body['country']??'FR',$body['reference_id']??null,$body['fictional']??null));
                     }
-                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|characters|admission|members|economy|cabinet|policy-proposals|institutions|bills|ordinary-votes|assembly-candidacy|senate-candidacy|parliament-resignation)$~D',$path,$cm)){
+                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|characters|admission|members|economy|cabinet|policy-proposals|institutions|bills|ordinary-votes|assembly-candidacy|senate-candidacy|parliament-resignation|campaign-activity)$~D',$path,$cm)){
                         if($session->role($cm[1])===null)throw new AlphaHttpError(404,'not_found');
                         if($cm[2]==='institutions'&&$method==='GET')return self::ok(200,$cs->institutionsForSession($cm[1],$token));
+                        if($cm[2]==='campaign-activity'&&$method==='POST'){
+                            if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
+                            return self::ok(200,$cs->campaignActivityForSession($cm[1],$token,$body,$h['idempotency-key']));
+                        }
                         if(in_array($cm[2],['senate-candidacy','parliament-resignation'],true)&&$method==='POST'){
                             if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
                             return self::ok(200,$cs->bicameralActForSession($cm[1],$token,str_replace('-','_',$cm[2]),$body,$h['idempotency-key']));

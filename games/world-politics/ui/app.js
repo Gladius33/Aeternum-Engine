@@ -56,6 +56,17 @@ async function dashboard(){const path=prefix();const [c,e,i,ch]=await Promise.al
  for(const id of ['career','offices','cabinet','economy','policies','propose','laws','submit-bill'])clear($(id));
  line($('career'),'Personnage',c.career?.identity?.name||c.career?.fictional_profile?.name||c.career?.character);
  line($('career'),'Mandats',c.mandates.map(m=>officeName(m.office)).join(', ')||'Aucun mandat');
+ const activity=c.campaign_activity;
+ if(activity){
+  const names={programme_review:'Travail sur le programme',public_meeting:'Réunion publique simulée',debate:'Débat politique simulé',constituency_work:'Travail de terrain simulé'};
+  line($('career'),'Influence électorale relative simulée',(activity.support_modifier_bps/100).toFixed(2)+' %');
+  line($('career'),'Règle','Une activité tous les '+activity.cooldown_days+' jours ; effet dégressif sur '+activity.decay_days+' jours');
+  for(const [at,a] of Object.entries(activity.recent||{}).reverse())line($('career'),at+' · '+(names[a.kind]||a.kind),(a.points_bps/100).toFixed(2)+' % avant décroissance');
+  if(activity.can_act){
+   const kind=select($('career'),'Activité politique',activity.activity_types.map(k=>[k,names[k]||k]));
+   button($('career'),'Effectuer cette activité',async()=>{await request(path+'/campaign-activity','POST',{kind:kind.value});await dashboard();});
+  }else line($('career'),'Prochaine activité disponible',activity.next_available_day);
+ }
  const election=c.assembly_election;
  if(election){
   line($('career'),'Prochain scrutin législatif simulé',election.election_day);line($('career'),'Clôture des candidatures',election.candidacy_deadline);
