@@ -294,8 +294,9 @@ final class CareerInstitutionLedger
      * Never choose a human-held career for an unsolicited nomination. */
     public const CABINET_V2='wp119-cabinet-mixed-v2';
     public const CABINET_V3='wp128-cabinet-inactivity-v3';
+    public const CABINET_V4='wp127-assembly-career-v4';
     public static function automaticCabinet(array $s,string $day):?array{
-        if(in_array($s['cabinet_autonomy']??null,[self::CABINET_V2,self::CABINET_V3],true))return self::mixedCabinet($s,$day);
+        if(in_array($s['cabinet_autonomy']??null,[self::CABINET_V2,self::CABINET_V3,self::CABINET_V4],true))return self::mixedCabinet($s,$day);
         if($s['country']!=='FR'||$s['mode']!=='career'||($s['last_automatic_cabinet_day']??null)===$day)return null;
         $pres=$s['active']['president']??null;
         if($pres===null)return null;
@@ -340,7 +341,7 @@ final class CareerInstitutionLedger
         $valid=static fn(array $m,string $ability):bool=>!$m['interim']&&$m['end']===null&&$m['start']<=$day&&$day<$m['expires']&&in_array($ability,$m['powers'],true);
         $ai=static fn(array $c):bool=>$c['account']===null&&isset($c['person_reference'])&&($c['controller']??null)==='ai';
         if(!$valid($p,'president.request_appointment'))return null;
-        $fallback=($s['cabinet_autonomy']??null)===self::CABINET_V3;
+        $fallback=in_array($s['cabinet_autonomy']??null,[self::CABINET_V3,self::CABINET_V4],true);
         $mayAct=static fn(string $id):bool=>$ai($s['careers'][$id])||
             ($fallback&&$s['careers'][$id]['account']!==null&&($s['last_human_cabinet_day'][$id]??null)!==$day);
         $presAI=$mayAct($p['career']);
@@ -381,7 +382,7 @@ final class CareerInstitutionLedger
             $s['last_automatic_cabinet_day']=$day;
         }else{
             self::check(self::allows($s,$account,$mandate,$generation,$ability,$day),'cabinet authority denied');
-            if(($s['cabinet_autonomy']??null)===self::CABINET_V3)
+            if(in_array($s['cabinet_autonomy']??null,[self::CABINET_V3,self::CABINET_V4],true))
                 $s['last_human_cabinet_day'][$s['mandates'][$mandate]['career']]=$day;
         }
         $end=(new \DateTimeImmutable(CareerScoreContract::START))->modify('+'.CareerScoreContract::HORIZON.' days')->format('Y-m-d');
@@ -481,12 +482,25 @@ final class CareerInstitutionLedger
         }elseif($op==='pin_cabinet_autonomy'){
             self::fields($p,['version']);
             self::check($s['country']==='FR'&&$s['mode']==='career'&&$day===CareerScoreContract::START&&$e['world_revision']===0
-                &&$s['active']===[]&&$s['mandates']===[]&&!isset($s['cabinet_autonomy'])&&in_array($p['version'],[self::CABINET_V2,self::CABINET_V3],true)
+                &&$s['active']===[]&&$s['mandates']===[]&&!isset($s['cabinet_autonomy'])&&in_array($p['version'],[self::CABINET_V2,self::CABINET_V3,self::CABINET_V4],true)
                 &&$e['actor']==='career-ai-clerk'&&$e['evidence_sha']===self::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$s['world'],'day'=>$day,'payload'=>$p]),'cabinet autonomy opening pin');
             $s['cabinet_autonomy']=$p['version'];
+        }elseif($op==='assembly_candidacy'){
+            require_once __DIR__.'/CareerAssemblyElection.php';
+            CareerAssemblyElection::declare($s,$e);
+        }elseif($op==='assembly_election'){
+            require_once __DIR__.'/CareerAssemblyElection.php';
+            self::fields($p,['eligible','result']);
+            self::check($e['actor']==='career-assembly-clerk'
+                &&$e['evidence_sha']===CareerAssemblyElection::digest($e)
+                &&self::json($p['result'])===self::json(CareerAssemblyElection::plan($s,$day,$p['eligible']))
+                &&$p['result']!==null,'assembly election proof');
+            foreach($p['result']['close'] as $o)self::close($s,$o,$day,'election');
+            foreach($p['result']['grants'] as $g)self::grant($s,$g,$day,'election',null,$e['command']);
+            $s['assembly_elections'][$day]=$p['result'];
         }elseif($op==='ordinary_vote'){
             self::fields($p,['bill','chamber','text_sha','mandate','generation','choice']);
-            self::check($s['country']==='FR'&&$s['mode']==='career'&&($s['cabinet_autonomy']??null)===self::CABINET_V3
+            self::check($s['country']==='FR'&&$s['mode']==='career'&&in_array($s['cabinet_autonomy']??null,[self::CABINET_V3,self::CABINET_V4],true)
                 &&is_string($p['bill'])&&preg_match('/^cl-[a-f0-9]{48}$/D',$p['bill'])===1&&is_string($p['text_sha'])&&preg_match('/^[a-f0-9]{64}$/D',$p['text_sha'])===1
                 &&in_array($p['chamber'],['assembly','senate'],true)&&is_string($p['mandate'])&&is_int($p['generation'])
                 &&in_array($p['choice'],['yes','no','abstain'],true)

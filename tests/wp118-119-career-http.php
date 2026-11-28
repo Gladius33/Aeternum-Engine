@@ -374,4 +374,11 @@ $afterUs=req('GET',$up.'/career',null,$etoken);
 ck($afterUs['status']===200,'US committed career HTTP '.json_encode($afterUs));
 ck($afterUs['body']['occupied_offices'][0]['identity']['id']===$vp,'US successor survives committed day');
 ck(req('POST',$pp.'/ordinary-votes',['bill'=>'cl-'.str_repeat('a',48),'chamber'=>'assembly','text_sha'=>str_repeat('b',64),'mandate'=>'mandate-invalid','generation'=>1,'choice'=>'yes'],$etoken,'ordinary-vote-denied-001')['status']===409,'unverified bill and mandate denied');
+$candidate=['seat'=>42,'election_day'=>'2029-06-10'];
+$late=req('POST',$pp.'/assembly-candidacy',$candidate,$t2,'assembly-candidate-http-01');
+ck($late['status']===200&&req('POST',$pp.'/assembly-candidacy',$candidate,$t2,'assembly-candidate-http-01')===$late,'signed candidacy receipt replay');
+$careerRead=req('GET',$pp.'/career',null,$t2);
+ck($careerRead['status']===200&&$careerRead['body']['assembly_election']['own_candidacy']['seat']===42&&$careerRead['body']['mandates']===[],'candidacy does not confer mandate');
+ck(req('POST',$pp.'/assembly-candidacy',['seat'=>42,'election_day'=>'2028-06-10'],$t2,'assembly-wrong-date-01')['status']===409,'wrong election denied');
+
 

@@ -56,6 +56,16 @@ async function dashboard(){const path=prefix();const [c,e,i,ch]=await Promise.al
  for(const id of ['career','offices','cabinet','economy','policies','propose','laws','submit-bill'])clear($(id));
  line($('career'),'Personnage',c.career?.identity?.name||c.career?.fictional_profile?.name||c.career?.character);
  line($('career'),'Mandats',c.mandates.map(m=>officeName(m.office)).join(', ')||'Aucun mandat');
+ const election=c.assembly_election;
+ if(election){
+  line($('career'),'Prochain scrutin législatif simulé',election.election_day);line($('career'),'Clôture des candidatures',election.candidacy_deadline);
+  if(election.own_candidacy)line($('career'),'Votre circonscription fictive',election.own_candidacy.seat);
+  if(election.can_declare){
+   const input=el('input');input.type='number';input.min='1';input.max='577';input.step='1';input.value=election.own_candidacy?.seat||1;
+   const l=el('label','Circonscription simulée (1 à 577)');l.append(input);$('career').append(l);
+   button($('career'),'Déclarer ou modifier ma candidature',async()=>{const seat=Number(input.value);if(!Number.isInteger(seat)||seat<1||seat>577)throw Error('Circonscription invalide.');await request(path+'/assembly-candidacy','POST',{seat,election_day:election.election_day});await dashboard();});
+  }
+ }
  line($('career'),'Régime',c.institution.regime);line($('career'),'Gouvernement',c.institution.government);line($('career'),'Autonomie',c.cabinet_autonomy);
  for(const o of c.occupied_offices)line($('offices'),officeName(o.office),o.identity?.name||'Personnage fictif');
  const own=(ability)=>c.mandates.find(m=>m.powers.includes(ability));

@@ -135,9 +135,13 @@ final class AlphaGateway
                         if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
                         return self::ok(201,$cs->createForSession($token,$body['label'],$h['idempotency-key'],$secret,$body['profile']??'institutional',$body['country']??'FR',$body['reference_id']??null,$body['fictional']??null));
                     }
-                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|characters|admission|members|economy|cabinet|policy-proposals|institutions|bills|ordinary-votes)$~D',$path,$cm)){
+                    if(preg_match('~^/api/v1/career-worlds/([a-z][a-z0-9_-]{0,63})/(career|characters|admission|members|economy|cabinet|policy-proposals|institutions|bills|ordinary-votes|assembly-candidacy)$~D',$path,$cm)){
                         if($session->role($cm[1])===null)throw new AlphaHttpError(404,'not_found');
                         if($cm[2]==='institutions'&&$method==='GET')return self::ok(200,$cs->institutionsForSession($cm[1],$token));
+                        if($cm[2]==='assembly-candidacy'&&$method==='POST'){
+                            if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
+                            return self::ok(200,$cs->assemblyCandidacyForSession($cm[1],$token,$body,$h['idempotency-key']));
+                        }
                         if($cm[2]==='ordinary-votes'&&$method==='POST'){
                             if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
                             return self::ok(200,$cs->ordinaryVoteForSession($cm[1],$token,$body,$h['idempotency-key']));

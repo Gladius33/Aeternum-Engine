@@ -468,3 +468,40 @@ $closedVotes=change($recorded,'resignation',['deputy-1'],[],'2027-05-16');
 ck($cl::seatChoices($closedVotes,$testBill,'assembly','2027-05-16')===[],'closed mandate ballot not carried forward');
 $sv=new InstitutionalSimulation('ordinary-v2-fixture','FR','2027-05-14');$sv->enableCareerOrdinaryLegislation('career-ordinary-v2');
 ck(InstitutionalSimulation::restore($sv->snapshot())->snapshot()===$sv->snapshot(),'versioned ballot route restores');
+
+// Scheduled Assembly career pilot: a declaration never grants a seat.
+require_once __DIR__.'/../games/world-politics/src/CareerAssemblyElection.php';
+$ae=\Aeternum\WorldPolitics\CareerAssemblyElection::class;
+$assembly=L::initial('assembly-career-fixture','FR','career','2027-05-14');
+$pin=evt($assembly,'pin_cabinet_autonomy',['version'=>L::CABINET_V4]);$pin['actor']='career-ai-clerk';
+$pin['evidence_sha']=L::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$assembly['world'],'day'=>$pin['day'],'payload'=>$pin['payload']]);
+$assembly=add(add(L::apply($assembly,$pin),'candidate-a'),'candidate-b');
+$declare=function(array $s,string $id,int $seat,string $day='2027-05-14')use($ae):array{
+    $e=evt($s,'assembly_candidacy',['career'=>$id,'seat'=>$seat,'election_day'=>'2029-06-10'],$day);$e['actor']='acct-'.$id;
+    $e['evidence_sha']=$ae::digest($e);return $e;
+};
+// Choose a deterministic positive fixture with a competing NPC.
+$seat=null;for($n=1;$n<=577;$n++){
+    $trial=L::apply($assembly,$declare($assembly,'candidate-a',$n));
+    if($ae::plan($trial,'2029-06-10',['candidate-a'])['grants']!==[]){$seat=$n;break;}
+}
+ck($seat!==null,'positive synthetic district fixture');
+$assembly=L::apply($assembly,$declare($assembly,'candidate-a',$seat));
+ck($assembly['active']===[]&&$ae::view($assembly,'2027-05-14','candidate-a')['own_candidacy']['seat']===$seat,'candidate no mandate');
+no(fn()=>L::apply($assembly,$declare($assembly,'candidate-b',578)));
+no(fn()=>L::apply($assembly,$declare($assembly,'candidate-b',1,'2029-06-04')));
+$other=$declare($assembly,'candidate-b',$seat);$other['actor']='acct-candidate-a';$other['evidence_sha']=$ae::digest($other);
+no(fn()=>L::apply($assembly,$other));
+$contested=L::apply($assembly,$declare($assembly,'candidate-b',$seat));
+ck(count($ae::plan($contested,'2029-06-10',['candidate-a','candidate-b'])['grants'])<=1,'one winner per seat');
+ck($ae::plan($assembly,'2029-06-09',['candidate-a'])===null,'no early election');
+ck($ae::plan($assembly,'2029-06-10',[])['grants']===[],'disabled member not elected');
+$settle=function(array $s,string $day,array $eligible)use($ae):array{
+    $e=evt($s,'assembly_election',['eligible'=>$eligible,'result'=>$ae::plan($s,$day,$eligible)],$day);$e['actor']='career-assembly-clerk';$e['evidence_sha']=$ae::digest($e);return $e;
+};
+$event=$settle($assembly,'2029-06-10',['candidate-a']);
+$elected=L::apply($assembly,$event);
+ck(isset($elected['active']['deputy-'.$seat])&&$ae::next($elected,'2029-06-10')==='2034-06-10','deputy receives scheduled term');
+no(fn()=>L::apply($elected,$event));
+$expired=L::apply($elected,$settle($elected,'2034-06-10',['candidate-a']));
+ck($expired['active']===[],'ordinary renewal expires unre-elected deputy');
