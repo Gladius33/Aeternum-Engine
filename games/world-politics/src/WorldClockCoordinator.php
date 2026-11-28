@@ -336,7 +336,7 @@ final class WorldClockCoordinator
             if($managed){
                 UniverseContinuity::publish($this->pdo,$world,$campaign,$targetDay);
                 require_once __DIR__.'/NationalFiscalWorldStore.php';
-                NationalFiscalWorldStore::advance($this->pdo,$world,$row['committed_day'],$targetDay);
+                NationalFiscalWorldStore::advance($this->pdo,$world,$row['committed_day'],$targetDay,$this->economy->read($world));
                 foreach($this->countries as $cc)if($cc!=='FR'&&in_array($cc,ComparativeGovernment::COUNTRIES,true))
                     UniverseContinuity::publishComparative($this->pdo,$world,$cc,$row['committed_day'],$targetDay);
             }

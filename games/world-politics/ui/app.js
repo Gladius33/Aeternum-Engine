@@ -210,6 +210,13 @@ async function internationalDashboard(){
     line($('international-observations'),'Salaire réel indicatif (base 100, non RDB)',ix(m.indicative_real_wage_index));
     line($('international-observations'),'Chômage simulé',m.unemployment_scaled===null?'Non estimé':(m.unemployment_scaled/1000000).toFixed(2)+' %');
    }
+   if(ledger.household){const h=ledger.household;
+    line($('international-observations'),'Pouvoir d’achat expérimental (base 100)',h.available?(h.purchasing_power_index/10000000).toFixed(3):'Non estimé');
+    line($('international-observations'),'Revenus des ménages','Compte normalisé synthétique, parts de revenu et fiscalité supposées ; hors classement.');
+   }
+   if(ledger.macro?.trade){const t=ledger.macro.trade;
+    line($('international-observations'),'Exposition commerciale simulée',t.known_exposure_bps===null?'Inconnue':(t.known_exposure_bps/100).toFixed(2)+' % du PIB historique'+(t.coverage_complete?'':' (couverture partielle)'));
+   }
    line($('international-observations'),'Périmètre','Administrations publiques ; scénario normalisé, non monétaire, sans échéancier de principal connu. Coefficients non calibrés.');
   }
   const fiscal=own.fiscal_scenario;

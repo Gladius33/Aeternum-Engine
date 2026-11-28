@@ -248,6 +248,7 @@ $fc=json_decode($fr['config_json'],true,32,JSON_THROW_ON_ERROR);$fst=json_decode
 ck102($fr['committed_day']==='2027-05-15'&&count($fst['countries'])===42&&!isset($fst['countries']['FR'])&&$fst['countries']['DE']['day']==='2027-05-15','42 normalized ledgers committed with common day');
 ck102(count($fst['last_flows'])===42&&$fc['source']['data_year']===2025&&$fc['unit']==='normalized_reference_GDP_units','fiscal provenance and settlement retained');
 ck102(count($fst['macro'])===42&&$fst['macro']['DE']['real_output_index']>1000000000&&$fc['countries']['DE']['opening_forecast']['opening_day']==='2027-05-14','forecast-backed daily macro state');
+ck102(count($fst['households'])===42&&$fst['households']['DE']['available']&&!$fst['households']['DE']['rankable']&&$fst['macro']['DE']['trade']['data_date']==='2027-05-15','household and trade checkpoints published on same day');
 $firstSha=$fr['state_sha'];ck102($scheduler->tick($world)['status']==='not_due','fiscal ledger not advanced before next deadline');$fq->execute([$world]);ck102($fq->fetch(PDO::FETCH_ASSOC)['state_sha']===$firstSha,'fiscal state cannot consume credit twice');
 $dip103=call102('GET',$root.'/diplomacy',null,8);
 ck102($dip103['status']===200,'WP103 shared diplomacy after tick');

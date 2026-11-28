@@ -152,7 +152,7 @@ final class UniverseLobby
             }
         }
         require_once __DIR__.'/NationalFiscalWorldStore.php';
-        NationalFiscalWorldStore::provision($this->db,$world,FrenchElectionCalendar::PRESIDENTIAL_HANDOVER);
+        NationalFiscalWorldStore::provision($this->db,$world,FrenchElectionCalendar::PRESIDENTIAL_HANDOVER,$bundle);
         return ['universe_no'=>$no,'world_id'=>$world];
     }
     private function ensureSpare():?array
