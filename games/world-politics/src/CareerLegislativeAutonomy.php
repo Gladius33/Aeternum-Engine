@@ -80,9 +80,18 @@ final class CareerLegislativeAutonomy
         $is=$sim->snapshot();$day=$is['day'];
         if(!$db->inTransaction()||$actor!=='career-clock-'.$world||$world!==$is['world_id']||$target!==self::plus($day,1))throw new \DomainException('Career legal clock denied');
         $s=PdoCareerInstitutionStore::verifiedForClock($db,$world,$day,$target);
-        $q=$db->prepare('SELECT state_json,state_sha FROM wp_domestic_states WHERE world_id=?');$q->execute([$world]);$r=$q->fetch(\PDO::FETCH_ASSOC);
-        if($r===false||!hash_equals($r['state_sha'],hash('sha256',$r['state_json'])))throw new \DomainException('Career proposal source digest');
-        $dom=json_decode($r['state_json'],true,64,JSON_THROW_ON_ERROR);
+        // The stored JSON can have a different Unicode representation from
+        // the aggregate's canonical digest, especially at opening bootstrap.
+        // Use the same trusted assumption reconstruction and full replay as
+        // the domestic store, not a hash of the physical SQL text.
+        require_once __DIR__.'/PdoDomesticPolicyStore.php';
+        $q=$db->prepare('SELECT assumptions_json,assumptions_sha,state_json,state_sha FROM wp_domestic_states WHERE world_id=?');
+        $q->execute([$world]);$r=$q->fetch(\PDO::FETCH_ASSOC);
+        if($r===false)throw new \DomainException('Missing career proposal source');
+        $aggregate=PdoDomesticPolicyStore::build($world,json_decode($r['assumptions_json'],true,64,JSON_THROW_ON_ERROR));
+        if(!hash_equals($r['assumptions_sha'],$aggregate->assumptionsHash()))throw new \DomainException('Career proposal assumptions changed');
+        $aggregate->restore(json_decode($r['state_json'],true,64,JSON_THROW_ON_ERROR),$r['state_sha']);
+        $dom=$aggregate->snapshot();
         if($dom['world_id']!==$world||$dom['day']!==$day||!isset($dom['daily_legal_version']))throw new \DomainException('Career proposal source scope');
         $q=$db->prepare("SELECT principal_id,result_json FROM wp_domestic_journal WHERE world_id=? AND operation='propose' ORDER BY revision");$q->execute([$world]);
         foreach($q as $row){

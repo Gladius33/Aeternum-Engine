@@ -1,0 +1,38 @@
+# World Politics — route to a playable V1 (WP126–134)
+
+Status: execution started, 28 November 2026. This supersedes no historical evidence or previously pinned rules. A technical private alpha is not a playable release. Work remains on the dedicated World Politics branch; no merge to generic engine main. The work packages below group unresolved items from WP114–125 and subsequent corrective increments.
+
+## Release gates and scope
+
+- **G0 — qualified baseline:** exact-head CI passes all game and Research jobs, verified archive, schema install/restore, previous save compatibility, no known critical runtime regression.
+- **G1 — playable French private beta:** authentic join, fictional character or clearly identified provisional real profile, meaningful political actions from opposition through government, lawful decisions and economic consequences, AI continuation, recurring elections and a coherent score. A human can complete the loop using a responsive browser UI without operator-only commands for normal play.
+- **G2 — international playable release:** reviewed national institutions and country-specific economic/diplomatic effects for the agreed playable roster (EU member states, Switzerland and the agreed major powers), common multi-country universes, country-role-specific permissions, AI-controlled unclaimed/nonplayable actors. Documentary-only entries never imply playable countries. Israel, Palestine/Palestinian Authority and Iran remain represented nonplayable actors per project scope. Final roster reviewed against product requirements before release.
+- **G3 — public V1:** target-environment installation, security and load qualification, acceptance of the multiplayer and score contract, updated source editions and operational runbook. Experimental score cohorts and modeled economic uncertainty are labeled. Research scientific qualification and actual Stripe payment-provider acceptance are separate gates before advertising those services as validated.
+
+A French beta is a milestone, not a substitute for G2/G3. Final 2027 campaign programmes and election results cannot be assumed before publication; preserve dated provisional editions and fictional alternatives. No arbitrary historical promises attributed to 2027. No forced action in an office not held by the player.
+
+## Ordered work packages
+
+| WP | Deliverable | Exit test / evidence | State |
+| --- | --- | --- | --- |
+| 126 | Stabilize and integrate the standalone source handoff, ordinary career clock and current schema | PR 96 integrated; reproduce failing HTTP fixture; full exact-head CI; clean extracted installation and backup restore | IN_PROGRESS |
+| 127 | French political and institutional loop: career progression, election candidacy, legislative sponsorship and individual chamber votes, political parties, cabinet, confidence/censure, lawful dissolution, succession, constitutional changes and mandate limitations | REST scenario from opposition to executive and back, including losing election or parliamentary majority; negative tests for stale/foreign mandate, rejected law, term cap, and role escalation | OPEN |
+| 128 | Autonomous political decisions, programme-driven priority, inactivity handover, coalition negotiation, cabinet formation and independent institutional outcomes | Compare active human versus inactive human and empty slot, check explicit human decision priority, complete a law or reject it without invented unanimity; preserve pinned replay, no unreviewed promise execution | OPEN |
+| 129 | French economy and society: coherent budget/revenue/expense/stock-flow, households, employment, sectors, social systems, debt, services, trade and currency alternatives | Balanced fiscal/financial ledgers and reproducible baseline, sensitivity scenarios, before/after policy outcomes, historical holdout comparisons with documented tolerances and uncertainty; no automatic financing or claimed causal precision | OPEN |
+| 130 | International national modules: sources and rulebooks, election and cabinet transitions, country economic adapters, shared diplomatic and commercial consequences | Per-country admission and lifecycle test matrix; verified national scope; cross-country shock/response tests; no copying French institutions to foreign states | OPEN |
+| 131 | Public worlds and competition: common multi-country clock, unique control per real office, live AI handover, automatic reserve universe, human inactivity and account protection, per-world and global ranking | Two or more humans share the same world across countries and offices; capacity race, rejoin, no reset and no duplicate control; real 365-day test of score eligibility and pre-presidential credit, freeze and replay; isolated compatible cohorts | OPEN |
+| 132 | End-to-end functional qualification and safety | Deterministic multi-year simulations including elections and crisis/recovery; interrupted ticks, concurrent commands, restore, tamper rejection, API validation, resource ceilings; measured load and independent economic/security review | OPEN |
+| 133 | Responsive French-first web UI backed by authenticated REST | Browser acceptance for account, lobby, character, timeline, office actions, legislation, economy, diplomacy, rankings, notifications and help; keyboard/touch, denied/expired/stale states, no fake data or direct DB access | OPEN |
+| 134 | Standalone release, operator runbook and target environment acceptance | Install from exact archive on target, migration/backups/rollback, TLS/secrets, scheduling, monitoring, admin and incident procedures, acceptance report; no generic engine dependency | OPEN |
+
+WP130 may progress in parallel with 127–129 after the national capability interface is stable. WP133 may begin API-only mock-free integration once G0 is green; final UI acceptance depends on the actual game behavior. WP132 begins immediately as regression tests in each preceding work package; the final long-horizon and load gate follows the functionality. No work package is closed on a code diff alone.
+
+## Immediate WP126 evidence
+
+- PR 96: source qualification and memory optimization, all checks on its exact head `10d2ac1f` passed; merged into World Politics as `e5d53756`, retaining the preceding career ordinary-law commit.
+- Regression: World Politics run 46124852255 for `058f00a7` had three passing jobs, private-alpha-http failed at first public-world clock due to a physical JSON hash comparison, source handoff skipped. The economic aggregate's digest is defined on canonical decoded state, not SQL serialization. Replace the raw-byte comparison with pinned assumptions reconstruction and full aggregate replay. Keep integrity checks; do not accept arbitrary state or rewrite old snapshots.
+- The exact new commit must pass the previously failing real public-world HTTP fixture and all other jobs. Until then G0 remains open. PR-head green status is not evidence for a different merged commit.
+
+## Definition of done
+
+Each increment records exact commit, tested command or CI run, expected/actual result, covered and uncovered functionality, migration compatibility and known blockers. Fail closed on unsupported authorities and unverified evidence. Release gates require working features plus successful tests, not roadmap status alone. Data collection and model version updates continue after release; newly published real-world evidence is not silently injected into running universes. No credentials or private user material in source.

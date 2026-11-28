@@ -147,3 +147,8 @@ Apply migration 038 after 037. Extended canonical masks retain old profile encod
 
 
 The WP114 civic routes require actual constitutional publication and independent simulation transitions. No migration is necessary for these optional aggregate fields. The RIC is limited to the initial reviewed reporting question and synthetic signatures; the franchise model uses fictional registration shares, not actual individual rights or demographics.
+
+
+## Playable V1 execution
+
+The ordered release gates and WP126–134 implementation plan are maintained in [Playable V1 roadmap](WORLD_POLITICS_PLAYABLE_ROADMAP.md). The private-alpha archive qualification is distinct from functional and public acceptance.
