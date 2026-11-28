@@ -159,6 +159,21 @@ final class CareerScorePublication
         if($n!==count($last))throw new \DomainException('Missing score projection');
         return ['world_id'=>$world,'version'=>self::VERSION,'events'=>$count,'series'=>$n,'verified'=>true];
     }
+    /** Offline operator audit in one consistent, read-only snapshot. No
+     * database repair, secret disclosure or client-supplied score input. */
+    public static function inspect(\PDO $db,string $world):array{
+        if($db->inTransaction()||!preg_match('/^[a-z][a-z0-9_-]{0,63}$/D',$world))
+            throw new \DomainException('Invalid score audit scope');
+        $db->exec('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
+        $db->beginTransaction();
+        try{
+            $clock=self::q($db,'SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?',[$world])->fetch(\PDO::FETCH_ASSOC);
+            if($clock===false||$clock['pending_day']!==null)throw new \DomainException('Missing or unsettled world clock');
+            $report=self::audit($db,$world);
+            $db->commit();
+            return $report+['committed_day'=>$clock['committed_day'],'official_eligible'=>false];
+        }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+    }
     /** Best single series per account; shared ties; stable order. */
     public static function rank(array $rows):array{
         $cmp=static fn(array $a,array $b):int=>$b['score']<=>$a['score']?:$b['gain']<=>$a['gain']?:$b['tenure']<=>$a['tenure'];

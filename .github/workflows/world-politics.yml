@@ -403,12 +403,18 @@ jobs:
           root_sql -e "CREATE DATABASE wp_restore; CREATE USER 'wp_audit_ci'@'%' IDENTIFIED BY 'ci-audit-only'; GRANT SELECT ON wp_test.* TO 'wp_audit_ci'@'%'; GRANT SELECT ON wp_restore.* TO 'wp_audit_ci'@'%';"
           export WP_RELEASE_AUDIT=YES WP_DB_USER=wp_audit_ci WP_DB_PASSWORD=ci-audit-only
           php games/world-politics/bin/audit-campaign.php "$world" > "$tmp/before.json"
+          career_world=$(root_sql wp_test -e "SELECT world_id FROM wp_career_score_latest ORDER BY world_id LIMIT 1")
+          [[ "$career_world" =~ ^[a-z][a-z0-9_-]{0,63}$ ]]
+          export WP_CAREER_EVIDENCE_KEY=ci-only-career-evidence-key-not-for-deployment
+          php games/world-politics/bin/audit-career-score.php "$career_world" > "$tmp/career-before.json"
           docker exec -e MYSQL_PWD=ci-only "$WP_CI_MARIADB_CONTAINER" mariadb-dump -uroot --single-transaction --skip-lock-tables wp_test > "$tmp/dump.sql"
           test -s "$tmp/dump.sql"
           root_sql wp_restore < "$tmp/dump.sql"
           export WP_DB_DSN=mysql:host=127.0.0.1\;port=3306\;dbname=wp_restore\;charset=utf8mb4
           php games/world-politics/bin/audit-campaign.php "$world" > "$tmp/after.json"
           cmp "$tmp/before.json" "$tmp/after.json"
+          php games/world-politics/bin/audit-career-score.php "$career_world" > "$tmp/career-after.json"
+          cmp "$tmp/career-before.json" "$tmp/career-after.json"
           if docker exec -e MYSQL_PWD=ci-audit-only "$WP_CI_MARIADB_CONTAINER" mariadb -uwp_audit_ci wp_restore -e "UPDATE wp_accounts SET enabled=0 WHERE 1=0"; then
             echo "Audit account unexpectedly has write access" >&2
             exit 1
@@ -507,6 +513,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Verify complete local extraction including tracked reference inputs
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          bash games/world-politics/bin/package-alpha.sh "$GITHUB_SHA" "$tmp/full.tar.gz" --with-references
+          tar -xzf "$tmp/full.tar.gz" -C "$tmp"
+          git ls-tree -r --name-only "$GITHUB_SHA" -- games/world-politics/data > "$tmp/expected-data"
+          (cd "$tmp/world-politics" && find games/world-politics/data -type f | LC_ALL=C sort) > "$tmp/actual-data"
+          LC_ALL=C sort -o "$tmp/expected-data" "$tmp/expected-data"
+          cmp "$tmp/expected-data" "$tmp/actual-data"
+          test ! -e "$tmp/world-politics/packages"
+          # This complete local archive is not uploaded as a CI artifact.
       - name: Deterministic exact-commit source handoff
         run: |
           mkdir -p handoff

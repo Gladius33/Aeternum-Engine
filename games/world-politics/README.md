@@ -157,3 +157,10 @@ Documentation exhaustive : `docs/WORLD_POLITICS_PARLIAMENT.md`. La composition r
 ## Commercial backend handoff
 
 See `../../docs/WORLD_POLITICS_ENV_STRIPE.md` for the isolated Stripe test-mode workflow, operator access, plan lifecycle and preflight commands; `../../docs/WORLD_POLITICS_DAILY_DATASET_SYNC.md` for daily Research ingestion. The current source is an engineering release candidate, not an authorization to process real payments. Stripe live is blocked in code. Use fresh dedicated development/staging databases or reviewed migrations. Keep `.env` and credentials outside the public web roots and out of Git. The game and Research API contracts are in `api/openapi.yaml` and `research/openapi.yaml`.
+
+
+## Current backend and reproducible handoff
+
+The early WP01–28 sections above are historical milestone notes, not the current runtime contract. The game and Research services now have separate authenticated HTTP adapters, MariaDB storage and explicit environment gates. Consult the current [career](../../docs/WORLD_POLITICS_WP118_119_CAREER.md), [score](../../docs/WORLD_POLITICS_WP120_SCORE_PREVIEW.md), [Research and handoff](../../docs/WORLD_POLITICS_WP121_125_CONSOLIDATED.md), [billing](../../docs/WORLD_POLITICS_ENV_STRIPE.md) and [dataset](../../docs/WORLD_POLITICS_DAILY_DATASET_SYNC.md) documents for exact supported scopes.
+
+Use the CI source artifact for the reduced handoff. For a local, complete extraction of the tracked reference inputs from the exact commit, run `bash games/world-politics/bin/package-alpha.sh COMMIT_SHA OUTPUT.tar.gz --with-references` from the Git checkout. This does not fetch missing external datasets or publish a separate repository. Keep the default reduced mode for CI artifact publication. Verify the reported SHA-256 before extraction. The `audit-career-score.php` operator CLI verifies a committed score journal with read-only database access and the historical evidence key; see the score document. No UI is part of this backend handoff.

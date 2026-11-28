@@ -20,3 +20,7 @@ The experimental ranking read (global and per universe) and prior-score lookup n
 
 ### Consolidation: missing and hidden score projections
 Ranking candidates are now selected from journal heads, not mutable cohort or qualification indexes. The signed head is checked before cohort, qualification, and membership filtering; missing projections, stale pointers and altered flags fail closed. The prior-score lookup also starts from the journal. The 5,000 bound now applies to all discovered series in the selected scope, not only qualified candidates; scalable indexed materialization and independent anchoring remain necessary. HTTP tests cover missing projections, hidden qualification and cohort mutation in addition to authentic rollback. No score formula or existing evidence format changes.
+
+
+### Read-only operational verification
+Run `WP_RELEASE_AUDIT=YES php games/world-politics/bin/audit-career-score.php WORLD_ID` with a SELECT-only MariaDB account and the independent career evidence key. This checks the existing journal, career-event anchors, latest projection and configured score pin inside one repeatable-read, read-only snapshot; pending clock checkpoints are rejected. CI compares this audit before and after restoring the isolated game database, using read-only credentials. This cannot establish authenticity after deletion of the entire journal or independently validate economic calibration.

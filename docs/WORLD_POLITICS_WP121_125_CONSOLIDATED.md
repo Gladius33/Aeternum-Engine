@@ -53,3 +53,7 @@ The canonical `.env.example` is now tracked within the game source and tested bo
 See [daily Game → Research sync](WORLD_POLITICS_DAILY_DATASET_SYNC.md). All supported worlds can automatically contribute regardless of free/Premium participant status when the operator activates the approved data-use policy. Migration 044 serializes committed outbox sequence allocation, and the daily CLI imports with a durable cursor and bounded batches, skips withdrawn aliases and resumes idempotently. This supersedes the earlier per-world opt-in-only capture behavior without overriding explicit exclusions. Coverage remains French EUR aggregate simulation data, not complete game records.
 
 Stripe Research test-mode Checkout and settlement: see [environment and Stripe integration](WORLD_POLITICS_ENV_STRIPE.md). Actual Stripe test-account acceptance and production lifecycle remain open.
+
+
+## Exact-commit complete local extraction
+`bash games/world-politics/bin/package-alpha.sh COMMIT_SHA OUTPUT.tar.gz --with-references` preserves every tracked game reference input in addition to the game source, tests and documentation. CI checks the complete data path inventory in an extracted temporary archive, without uploading the full-reference archive. The default uploaded source handoff remains reduced and deterministic. No external dataset is silently retrieved, no credential is added and no new destination repository is created. The complete local archive still reflects the actual coverage and limits of the committed reference inputs.
