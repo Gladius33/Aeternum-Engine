@@ -51,6 +51,16 @@ ck125($deDebt['value']===44.75&&$deDebt['data_period']==='2025-Q4'&&$deDebt['kin
 $au=E::run(['type'=>'national-indicators','parameters'=>['country'=>'AU']]);
 $auRows=array_column($au['result']['rows'],null,'metric');
 ck125($auRows['external_debt_public_publicly_guaranteed']['value']===null&&isset($auRows['external_debt_public_publicly_guaranteed']['availability'])&&$au['result']['alternative_references'][0]['value']===336570000000,'QEDS alternate scope is not IDS imputation');
+$bg=E::run(['type'=>'national-indicators','parameters'=>['country'=>'BG']]);
+$bgRows=array_column($bg['result']['rows'],null,'metric');
+ck125($bgRows['manufacturing_value_added_share']['value']===12.5&&$bgRows['manufacturing_value_added_share']['data_year']===2024,'UNECE manufacturing gap filled');
+ck125($bgRows['external_debt_public_publicly_guaranteed']['data_year']===2022,'archival IDS date preserved');
+$jp=E::run(['type'=>'national-indicators','parameters'=>['country'=>'JP']]);
+ck125(array_column($jp['result']['rows'],null,'metric')['interest_payments_central_government_share_revenue']['data_year']===1990,'historical Japanese interest provenance');
+$saAlt=array_column($sa['result']['alternative_references'],null,'metric');
+ck125($saAlt['median_monthly_household_disposable_income']['value']===7362&&$saAlt['median_monthly_household_disposable_income']['data_year']===2023,'Saudi national survey not substituted for Gini');
+$auAlt=array_column($au['result']['alternative_references'],null,'metric');
+ck125($auAlt['qeds_general_government_gross_external_debt']['value']===330330000000&&$auRows['external_debt_public_publicly_guaranteed']['value']===null,'QEDS C2 separate from IDS');
 no125(fn()=>E::run(['type'=>'national-indicators','parameters'=>['country'=>'ZZ']]));
 ck125($countries['provenance']['sources'][0]['source_name']==='United Nations'&&$countries['provenance']['sources'][0]['data_date']==='2026-11-25','dated source provenance in signed report');
 $back=E::run(['type'=>'household-backtest','parameters'=>[]]);
