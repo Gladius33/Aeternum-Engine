@@ -2,19 +2,22 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/ResearchModels.php';
+require_once __DIR__.'/NationalReferenceFallback.php';
 
 /** Closed deterministic experiment catalogue. No world IDs, arbitrary code,
  * network calls, live political commands, or access to gameplay storage. */
 final class ResearchExperiment
 {
     public const VERSION='wp123-experiment-v1';
-    public const TYPES=['programme-coverage','policy-capacity','working-hours','household-sensitivity','household-backtest','fiscal-path','family-transfer','countries'];
+    public const TYPES=['programme-coverage','policy-capacity','working-hours','household-sensitivity','household-backtest','fiscal-path','family-transfer','countries','national-indicators'];
     public static function json(array $x):string{return json_encode($x,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
     public static function hash(array $x):string{return hash('sha256',self::json($x));}
     public static function pin():array{
         $files=['src/ResearchExperiment.php','src/ResearchModels.php','src/HouseholdIncomeReference.php',
             'src/HouseholdHistoricalBacktest.php','src/HouseholdAccount.php','src/ProgrammeSourceInventory.php',
-            'data/2026-11-26-household-income-v1.json','data/wp114-direct-source-inventory.json','data/2026-11-25-un-members-v1.json'];
+            'data/2026-11-26-household-income-v1.json','data/wp114-direct-source-inventory.json','data/2026-11-25-un-members-v1.json',
+            'src/NationalReferenceFallback.php','data/wp130-national-economy-reference-v1.json',
+            'data/wp130-historical-resource-rents-staging-v1.json','data/wp130-historical-social-services-staging-v1.json'];
         $pins=[];foreach($files as $f){$h=hash_file('sha256',__DIR__.'/../'.$f);if($h===false)throw new \DomainException('Missing experiment dependency');$pins[$f]=$h;}
         return ['version'=>self::VERSION,'php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'files'=>$pins];
     }
@@ -39,18 +42,58 @@ final class ResearchExperiment
             'household-backtest'=>ResearchModels::calibration(),
             'fiscal-path'=>ResearchModels::fiscal($p),
             'family-transfer'=>ResearchModels::family($p),
-            'countries'=>ResearchModels::countries($p)
+            'countries'=>ResearchModels::countries($p),
+            'national-indicators'=>self::nationalIndicators($p)
         };
-        $out=['version'=>self::VERSION,'request'=>$r,'manifest'=>$current,'result'=>$result,'provenance'=>self::provenance($type,$result),
+        $provenance=self::provenance($type,$result);
+        $result=self::attachRowProvenance($type,$result,$provenance);
+        $out=['version'=>self::VERSION,'request'=>$r,'manifest'=>$current,'result'=>$result,'provenance'=>$provenance,
             'research_only'=>true,'runtime_authority'=>false,'official_score_eligible'=>false];
         $out['result_sha256']=self::hash($out);return $out;
     }
 
+    private static function nationalIndicators(array $p):array{
+        if(array_keys($p)!==['country']||!is_string($p['country'])||!preg_match('/^[A-Z]{2}$/D',$p['country']))
+            throw new \DomainException('Invalid national indicator parameters');
+        $ref=NationalReferenceFallback::country($p['country']);$rows=[];
+        foreach($ref['observations'] as $metric=>$row)$rows[]=['country'=>$p['country'],'metric'=>$metric]+$row;
+        unset($ref['observations']);
+        return $ref+['rows'=>$rows];
+    }
+    /** Each returned row has provenance; a reference catalogue retains individual
+     * per-indicator source and observation year rather than a common date. */
+    private static function attachRowProvenance(string $type,array $result,array $meta):array{
+        if($type==='national-indicators')return $result;
+        if($type==='household-backtest'){
+            foreach($result['backtest']['rows'] as &$row)$row['provenance']=[
+                'source_name'=>'INSEE — annual national accounts and World Politics accounting model',
+                'source_url'=>$result['backtest']['source'],'data_year'=>$row['year'],
+                'published_on'=>$result['backtest']['vintage'],'classification'=>'observed_inputs_and_conditional_model_outputs'];
+            unset($row);return $result;
+        }
+        if(isset($result['rows'])){
+            foreach($result['rows'] as $i=>&$row){
+                if($type==='programme-coverage')$row['provenance']=$meta['sources'][$i];
+                elseif($type==='countries')$row['provenance']=[
+                    'source_name'=>'United Nations','data_date'=>$result['as_of'],'date_kind'=>'reference_snapshot',
+                    'sources'=>$meta['sources']];
+                else $row['provenance']=['source_name'=>'World Politics Research model','data_date'=>null,
+                    'date_kind'=>'conditional_scenario_no_calendar_date','inputs'=>$meta['sources']];
+            }
+            unset($row);
+        }
+        return $result;
+    }
     /** Descriptive metadata is inside the hashed report, not added after
      * signing. User assumptions never acquire an external source or date. */
     private static function provenance(string $type,array $result):array{
         $sources=[];$kind='user_supplied_assumptions_and_model';
-        if($type==='countries'){
+        if($type==='national-indicators'){
+            $kind='documentary_reference';
+            foreach($result['rows'] as $row)$sources[]=['metric'=>$row['metric'],'source_name'=>$row['source_name'],
+                'source_url'=>$row['source_url'],'data_year'=>$row['data_year'],'retrieved_on'=>$row['retrieved_on'],
+                'quality'=>$row['quality'],'secondary_source_url'=>$row['secondary_source_url']];
+        }elseif($type==='countries'){
             $kind='documentary_reference';
             foreach($result['sources'] as $url)$sources[]=['source_name'=>str_contains($url,'unstats')?'United Nations Statistics Division':'United Nations',
                 'source_url'=>$url,'data_date'=>$result['as_of'],'date_kind'=>'reference_snapshot','retrieved_on'=>$result['as_of']];

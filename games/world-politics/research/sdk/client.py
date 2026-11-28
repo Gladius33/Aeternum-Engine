@@ -39,11 +39,6 @@ class ResearchClient:
             raise ValueError("Invalid job ID")
         return job_id
 
-    def references(self, country):
-        if not isinstance(country, str) or len(country) != 2 or any(c not in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' for c in country):
-            raise ValueError('Invalid ISO2 country')
-        return self._request('GET', '/references/' + country)
-
     def models(self):
         return self._request("GET", "/models")
 

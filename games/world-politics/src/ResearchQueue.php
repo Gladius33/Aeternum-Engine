@@ -271,7 +271,7 @@ final class ResearchQueue
                     ||!hash_equals($r['result_signature'],$this->resultSeal($r['job_id'],$r['tenant_id'],$r['request_signature'],$r['result_json'])))
                     throw new \DomainException('Dataset evidence invalid');
                 $report=json_decode($r['result_json'],true,64,JSON_THROW_ON_ERROR);
-                if($scope==='global'&&!in_array($report['request']['type'],['policy-capacity','working-hours','household-sensitivity','household-backtest','fiscal-path','family-transfer','countries','programme-coverage'],true))continue;
+                if($scope==='global'&&!in_array($report['request']['type'],['policy-capacity','working-hours','household-sensitivity','household-backtest','fiscal-path','family-transfer','countries','programme-coverage','national-indicators'],true))continue;
                 // The experiment catalogue has closed, validated parameters and no free-text profiles.
                 $out[]=['seq'=>$seq,'experiment'=>$scope==='own'?$r['job_id']:hash_hmac('sha256','dataset-job|'.$r['job_id'],$this->evidenceKey),
                     'world'=>$r['world_id']===null?null:($scope==='own'?$r['world_id']:hash_hmac('sha256','dataset-world|'.$r['world_id'],$this->evidenceKey)),

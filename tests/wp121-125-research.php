@@ -30,6 +30,12 @@ $family=M::family(['first_births'=>100,'subsequent_births'=>200,'first_grant_eur
 ck125($family['total_outlay_eur']===160000,'conditional family transfer accounting');
 $countries=E::run(['type'=>'countries','parameters'=>[]]);
 ck125(count($countries['result']['rows'])===195,'195 documentary countries');
+ck125($countries['result']['rows'][0]['provenance']['data_date']==='2026-11-25','country row carries provenance');
+$national=E::run(['type'=>'national-indicators','parameters'=>['country'=>'DE']]);
+$byMetric=array_column($national['result']['rows'],null,'metric');
+ck125(count($byMetric)===52&&$byMetric['total_natural_resource_rents']['data_year']===2021&&$byMetric['total_natural_resource_rents']['source_name']==='World Bank — World Development Indicators','inline national indicator provenance');
+ck125(str_contains(E::csv($national),'source_name'),'national indicator export includes sources');
+no125(fn()=>E::run(['type'=>'national-indicators','parameters'=>['country'=>'ZZ']]));
 ck125($countries['provenance']['sources'][0]['source_name']==='United Nations'&&$countries['provenance']['sources'][0]['data_date']==='2026-11-25','dated source provenance in signed report');
 $back=E::run(['type'=>'household-backtest','parameters'=>[]]);
 ck125($back['provenance']['sources'][0]['data_date']==='2026-05-29'&&$back['provenance']['sources'][0]['observation_period']==='2020–2025','publication and observation dates distinct');
