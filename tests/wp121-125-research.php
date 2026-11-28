@@ -55,4 +55,10 @@ $raw=['state'=>['world_id'=>'world-fixture','day'=>'2027-05-15','days'=>[['day'=
 $envelope=\Aeternum\WorldPolitics\GameDataset::project('world-fixture','2027-05-15',1,$raw);
 ck125(!str_contains(json_encode($envelope),'must-not-leak')&&!str_contains(json_encode($envelope),'world-fixture'),'closed aggregate schema');
 no125(fn()=>\Aeternum\WorldPolitics\GameDataset::verify(array_replace($envelope,['signature'=>str_repeat('0',64)])));
+ck125($envelope['row']['lineage']['data_date']==='2027-05-15'&&$envelope['row']['lineage']['baseline_status']==='unavailable','missing baseline explicitly labelled');
+$tampered=$envelope;$tampered['row']['lineage']['data_date']='2027-05-16';
+no125(fn()=>\Aeternum\WorldPolitics\GameDataset::verify($tampered));
+$legacy=$envelope;$legacy['row']['version']=\Aeternum\WorldPolitics\GameDataset::VERSION;unset($legacy['row']['lineage']);
+$legacy['signature']=hash_hmac('sha256',E::json($legacy['row']),getenv('WP_DATASET_BRIDGE_KEY'));
+ck125(\Aeternum\WorldPolitics\GameDataset::provenance(\Aeternum\WorldPolitics\GameDataset::verify($legacy))['lineage_status']==='legacy_lineage_unavailable','legacy not silently upgraded');
 echo "PASS WP121-125: bounded models, historical validation, pinned research, exports and isolation\n";

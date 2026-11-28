@@ -6,7 +6,8 @@ namespace Aeternum\WorldPolitics;
  * IDs, credentials, biographies, action authors, or real-life records. */
 final class GameDataset
 {
-    public const VERSION='wp-game-aggregate-dataset-v1';
+    public const VERSION='wp-game-aggregate-dataset-v1'; // transport edition
+    public const ROW_VERSION='wp-game-aggregate-row-v2';
     private const FEATURES=['revenue_minor','expense_minor','closing_balance_minor','real_output_index_bps','unemployment_bps','price_index_scaled','wage_index_scaled','population'];
     private static function key():string{
         $k=getenv('WP_DATASET_BRIDGE_KEY');
@@ -22,14 +23,31 @@ final class GameDataset
         $values=['revenue_minor'=>$r['revenue']??null,'expense_minor'=>$r['expense']??null,'closing_balance_minor'=>$r['closing_balance']??null,
             'real_output_index_bps'=>$m['real_output_index_bps']??null,'unemployment_bps'=>$m['unemployment_bps']??null,
             'price_index_scaled'=>$m['price_index_scaled']??null,'wage_index_scaled'=>$m['wage_index_scaled']??null,'population'=>$p['population']??null];
-        $row=['version'=>self::VERSION,'world'=>hash_hmac('sha256','world|'.$world,self::key()),'country'=>'FR','day'=>$day,'revision'=>$revision,
-            'classification'=>'synthetic_game_simulation','features'=>$values];
+        $row=['version'=>self::ROW_VERSION,'world'=>hash_hmac('sha256','world|'.$world,self::key()),'country'=>'FR','day'=>$day,'revision'=>$revision,
+            'classification'=>'synthetic_game_simulation','features'=>$values,'lineage'=>self::lineage($d,$m,$day)];
         $e=['row'=>$row,'signature'=>hash_hmac('sha256',self::json($row),self::key())];self::verify($e);return $e;
+    }
+    private static function lineage(array $d,array $macro,string $day):array{
+        $pack=$d['macro_baseline']['source_pack']??[];$sources=[];
+        foreach($pack['sources']??[] as $id=>$src){
+            $periods=[];foreach($pack['observations']??[] as $o)if(($o['source_id']??null)===$id)$periods[]=$o['period'];
+            $periods=array_values(array_unique($periods));sort($periods,SORT_STRING);
+            $sources[]=['source_name'=>$src['provider']??'Unknown publisher','source_url'=>$src['url']??null,
+                'published_on'=>$src['published_on']??null,'reference_as_of'=>$pack['as_of']??null,'observation_periods'=>$periods];
+        }
+        $hashes=[];foreach(['macro_baseline','population_model','debt_model','services_model','firm_model'] as $key)
+            if(isset($d[$key]))$hashes[$key]=hash('sha256',self::json($d[$key]));
+        return ['source_name'=>'World Politics game simulation','data_date'=>$day,'date_kind'=>'simulation_day',
+            'model_version'=>$macro['version']??null,'source_state_sha256'=>hash('sha256',self::json($d)),
+            'baseline_sources'=>$sources,'model_config_sha256'=>$hashes,
+            'baseline_status'=>$sources===[]?'unavailable':'partial_macro_sources','all_inputs_independently_verified'=>false];
     }
     public static function verify(array $e):array{
         if(array_keys($e)!==['row','signature']||!is_array($e['row'])||!is_string($e['signature']))throw new \DomainException('Invalid dataset envelope');
         $r=$e['row'];
-        if(array_keys($r)!==['version','world','country','day','revision','classification','features']||$r['version']!==self::VERSION
+        $legacy=($r['version']??null)===self::VERSION;
+        $keys=['version','world','country','day','revision','classification','features'];if(!$legacy)$keys[]='lineage';
+        if(array_keys($r)!==$keys||!in_array($r['version']??null,[self::VERSION,self::ROW_VERSION],true)
             ||!preg_match('/^[a-f0-9]{64}$/D',$r['world'])||$r['country']!=='FR'||$r['classification']!=='synthetic_game_simulation'
             ||!is_int($r['revision'])||$r['revision']<1||!is_array($r['features'])||array_keys($r['features'])!==self::FEATURES
             ||!hash_equals(hash_hmac('sha256',self::json($r),self::key()),$e['signature']))
@@ -37,7 +55,12 @@ final class GameDataset
         $d=\DateTimeImmutable::createFromFormat('!Y-m-d',$r['day']);
         if(!$d||$d->format('Y-m-d')!==$r['day'])throw new \DomainException('Dataset day');
         foreach($r['features'] as $k=>$v)if($v!==null&&(!is_int($v)||abs($v)>100000000000000000))throw new \DomainException('Dataset feature bounds');
+        if(!$legacy){$l=$r['lineage'];if(!is_array($l)||($l['source_name']??null)!=='World Politics game simulation'||($l['data_date']??null)!==$r['day']||($l['date_kind']??null)!=='simulation_day'||!preg_match('/^[a-f0-9]{64}$/D',$l['source_state_sha256']??'')||!is_array($l['baseline_sources']??null))throw new \DomainException('Invalid signed lineage');}
         return $r;
+    }
+    public static function provenance(array $row):array{
+        return ['classification'=>'synthetic_game_simulation','source_name'=>'World Politics game simulation','data_date'=>$row['day'],'date_kind'=>'simulation_day',
+            'lineage_status'=>isset($row['lineage'])?'signed_at_capture':'legacy_lineage_unavailable','lineage'=>$row['lineage']??null];
     }
     /** Capture committed simulation facts independently of account tiers.
      * Automatic coverage is enabled by the operator after the published data
