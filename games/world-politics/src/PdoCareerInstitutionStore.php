@@ -178,7 +178,10 @@ final class PdoCareerInstitutionStore
                     'claim_reference'=>$available,'playable'=>$available!==null&&$c['account']===null,
                     'programme_provisional'=>$available!==null&&($choices[$available]['provisional']??false),'autonomy_scope'=>$available===null?'none':($choices[$available]['autonomy_scope']??'reviewed_mapped_subset'),'availability_code'=>$available===null?'programme_incomplete':($c['account']===null?($choices[$available]['availability_code']??'available'):'occupied')];
             }
-            return ['world_id'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'characters'=>$out,'additional_political_references'=>$state['country']==='FR'?array_values(array_filter(FrenchPoliticalDirectory::supplementary(),fn($r)=>!isset($state['careers'][$r['id']]))):[],'fictional_creation_available'=>true,'final_ballot_verified'=>false];
+            require_once __DIR__.'/CareerProgrammeAutonomy.php';
+            $config=$this->query('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?',[$world])->fetchColumn();
+            $options=$state['country']==='FR'?CareerProgrammeAutonomy::fictionalOptions(is_string($config)?self::decode($config)['catalog']:null):[];
+            return ['world_id'=>$world,'country'=>$state['country'],'day'=>$clock['committed_day'],'fictional_objective_options'=>$options,'characters'=>$out,'additional_political_references'=>$state['country']==='FR'?array_values(array_filter(FrenchPoliticalDirectory::supplementary(),fn($r)=>!isset($state['careers'][$r['id']]))):[],'fictional_creation_available'=>true,'final_ballot_verified'=>false];
         });
     }
     private function admitLocked(string $world,string $account,array $clock,string $secret,?string $reference=null,?array $fictional=null):array{
@@ -204,6 +207,12 @@ final class PdoCareerInstitutionStore
             return $this->viewLocked($world,$account,$clock);
         }
         CareerInstitutionLedger::check($s['mode']==='career','research admission forbidden');
+        if($fictional!==null&&$fictional['measure_ids']!==[]){
+            $config=$this->query('SELECT assumptions_json FROM wp_domestic_states WHERE world_id=?',[$world])->fetchColumn();
+            $options=CareerProgrammeAutonomy::fictionalOptions(is_string($config)?self::decode($config)['catalog']:null);
+            $allowed=array_fill_keys(array_column($options,'id'),true);
+            foreach($fictional['measure_ids'] as $id)CareerInstitutionLedger::check(isset($allowed[$id]),'objective unavailable in pinned world catalogue');
+        }
         $hash=substr(hash('sha256',$world."\n".$account),0,40);
         $e=['world'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],'world_revision'=>(int)$clock['revision'],'command'=>'admit-'.$hash,'actor'=>'career-admission','operation'=>'admit',
             'payload'=>['career'=>'career-'.$hash,'account'=>$account,'character'=>'fiction-'.$hash,'mode'=>$clock['committed_day']===CareerScoreContract::START?'opening':'late_takeover',...($fictional!==null?['fictional_profile'=>$fictional]:[])],

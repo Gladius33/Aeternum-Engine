@@ -345,3 +345,13 @@ ck($planClass::next($auto,'2027-05-14',[],$catalog,['real-fabien-roussel'=>true]
 $faure=\Aeternum\WorldPolitics\CampaignCandidate::editionEvidence('campaign2027-olivier-faure-v3-public');
 ck($planClass::objectives(['person_reference'=>$faure['base'],'controller'=>'ai','programme_edition'=>$faure['id'],'programme_sha'=>$faure['document_sha256']],true)===$faure['measure_ids'],'pinned new quantitative programme');
 ck($planClass::permitted('prime-minister','frv1-equinoxe-adaptation')&&!$planClass::permitted('president','frv1-equinoxe-adaptation'),'new proxy remains proposal-only');
+
+// Expanded fictional instruments preserve old canonical profiles while
+// disallowing unpublished and wrong-country objectives.
+$customId='frv1-becht-pension-floor';
+$custom=$planClass::normalizeFictional(['name'=>'Independent fixture','measure_ids'=>[$customId]],'FR');
+ck($custom['measure_ids']===[$customId]&&$planClass::permitted('prime-minister',$customId),'custom profile can select reviewed expanded instrument');
+ck(!in_array($customId,array_column($planClass::fictionalOptions(null),'id'),true),'expanded objective unavailable in legacy institutional profile');
+ck(array_column($planClass::fictionalOptions([$customId=>true]),'id')===[$customId],'world-specific objective discovery');
+no(fn()=>$planClass::normalizeFictional(['name'=>'Foreign fixture','measure_ids'=>[$customId]],'DE'));
+no(fn()=>$planClass::normalizeFictional(['name'=>'Duplicate fixture','measure_ids'=>[$customId,$customId]],'FR'));

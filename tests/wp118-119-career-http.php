@@ -129,7 +129,9 @@ ck(req('GET','/player-data/worlds',null,$gpk['body']['token'])['status']===401,'
 // Fixture cleanup, not a production billing deletion operation.
 $exec('DELETE FROM wp_stripe_game_resolutions WHERE payment_id=?',[$pi]);
 $exec('DELETE FROM wp_stripe_game_holds WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_receipts WHERE payment_id=?',[$pi]);$exec('DELETE FROM wp_stripe_game_orders WHERE order_id=?',[$go['order_id']]);$exec('DELETE FROM wp_stripe_payment_fence WHERE payment_id=?',[$pi]);
-$fiction=['name'=>'Camille Simulation','measure_ids'=>['administration-report']];
+$fiction=['name'=>'Camille Simulation','measure_ids'=>['administration-report','frv1-becht-pension-floor']];
+$customOptions=req('GET',$ep.'/characters',null,$t2)['body']['fictional_objective_options'];
+ck(in_array('frv1-becht-pension-floor',array_column($customOptions,'id'),true),'expanded fictional objective exposed for pinned economic world');
 $ebc=req('POST',$ep.'/admission',['fictional'=>$fiction],$t2)['body']['career']['id'];
 ck(req('GET',$ep.'/career',null,$t2)['body']['career']['fictional_profile']['name']==='Camille Simulation','named fictional profile persisted');
 $ebp=['ballot'=>['registered'=>1000,'first'=>['votes'=>[$eac=>600,$ebc=>300],'blank_invalid'=>20],'second'=>null],'first_round_day'=>'2027-05-14','second_round_day'=>'2027-05-14'];
@@ -178,6 +180,9 @@ $auto=req('GET',$ep.'/economy',null,$etoken);
 ck(isset($auto['body']['domestic']['state']['policies']['administration-report'])&&$auto['body']['domestic']['state']['policies']['administration-report']['authorized_on']===null,'inactive PM programme creates inert proposal');
 \Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-16');
 ck(req('GET',$ep.'/economy',null,$etoken)===$auto,'fallback replay stable');
+\Aeternum\WorldPolitics\CareerEconomicWorld::tick($connect,$ew,'2027-05-17');
+$expandedAuto=req('GET',$ep.'/economy',null,$etoken)['body']['domestic']['state'];
+ck(isset($expandedAuto['policies']['frv1-becht-pension-floor'])&&$expandedAuto['policies']['frv1-becht-pension-floor']['authorized_on']===null,'expanded fictional objective autonomously proposed but not enacted');
 ck(req('POST','/worlds/'.$ew.'/clock/advances',['target_day'=>'2027-05-16'],$etoken)['status']===404,'no player clock grant');
 echo "PASS WP118 economic profile, committed-day recovery, no duplicate economic accrual\n";
 $fn=req('POST','/career-worlds',['label'=>'German career','country'=>'DE'],$etoken,'career-de-creation-001');

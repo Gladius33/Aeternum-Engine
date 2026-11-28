@@ -21,9 +21,26 @@ final class CareerProgrammeAutonomy
         CareerInstitutionLedger::check(is_string($name)&&trim($name)!==''&&strlen($name)<=160&&!preg_match('/[\x00-\x1f\x7f]/',$name)&&
             is_string($bio)&&strlen($bio)<=2000&&!preg_match('/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/',$bio)&&is_array($ids)&&array_is_list($ids)&&count($ids)<=15,'invalid fictional profile');
         CareerInstitutionLedger::check($country==='FR'||$ids===[],'no reviewed foreign programme mapping');
-        $catalog=['education-reform'=>true,'administration-report'=>true]+SocialProgramme::target2027();
+        $catalog=self::fictionalObjectives();
         $seen=[];foreach($ids as $id){CareerInstitutionLedger::check(is_string($id)&&isset($catalog[$id])&&!isset($seen[$id]),'unmapped or duplicate objective');$seen[$id]=true;}
         return ['name'=>trim($name),'biography'=>$bio,'measure_ids'=>$ids];
+    }
+    /** Stable explicit instrument IDs, not a claim that a fictional character
+     * authored a real manifesto. Historical aliases are reusable instruments.
+     * Existing valid profiles retain their canonical bytes. */
+    public static function fictionalObjectives():array{
+        $out=['education-reform'=>true,'administration-report'=>true]+SocialProgramme::target2027();
+        foreach([...FrenchExpandedProgramme::policyIds(),...FrenchV1Policy::ids()] as $id){
+            // Only instruments that have a reviewed career proposal gate.
+            try{self::portfolio($id);$out[$id]=true;}catch(\DomainException $e){}
+        }
+        return $out;
+    }
+    public static function fictionalOptions(?array $worldCatalog):array{
+        $legacy=['education-reform'=>true,'administration-report'=>true]+SocialProgramme::target2027();
+        $ids=$worldCatalog===null?$legacy:array_intersect_key(self::fictionalObjectives(),$worldCatalog);
+        $out=[];foreach(array_keys($ids) as $id)$out[]=['id'=>$id,'portfolio'=>self::portfolio($id),'proposal_only'=>true];
+        return $out;
     }
     /** Explicitly reviewed proposal capabilities. The PM may coordinate
      * every mapped objective; the relevant portfolio may propose only its
