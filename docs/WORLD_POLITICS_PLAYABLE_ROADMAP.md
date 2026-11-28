@@ -106,3 +106,6 @@ New managed executive universes now pin 42 foreign general-government fiscal ref
 
 ### WP130 further archival debt collection
 Ten original slots filled from visually checked World Bank Little Data Books for Czechia (2004), Estonia, Hungary, Lithuania and Slovakia (2005). Published rounded principal and interest are summed for service and explicitly marked derived. A separate Saudi income Gini estimate (2016, UN background paper) is not a PIP observation. Coverage 2133/2184, 51 nulls. No invented values or changes to simulated budgets. Existing Research responses carry source, date and status inline. CI pending.
+
+### WP130 older debt archives
+14 additional historical values for Cyprus, Greece, Spain, Malta, Korea, Portugal and Slovenia. WDR 1995 principal and interest visually checked; large PDF archive screenshot requests failed, and their text transcriptions are explicitly marked as not visually checked. Stock and service years are independent. 37 original cells remain unresolved. No replacements with distinct QEDS definitions, no fictitious observations. CI required.
