@@ -191,6 +191,14 @@ async function internationalDashboard(){
    const keys={household_npish_consumption_per_capita_real:'Consommation réelle par habitant',gdp_per_capita_ppp_real:'PIB réel par habitant en PPA',central_government_debt:'Dette de l’administration centrale (% PIB)',revenue_excluding_grants_central_government:'Recettes centrales hors dons',expense_central_government:'Dépenses centrales',tax_revenue_central_government:'Recettes fiscales centrales',youth_unemployment_modelled:'Chômage des jeunes',gini_index:'Indice de Gini'};
    for(const [id,label] of Object.entries(keys))line($('international-observations'),label,observedLabel(profile.observations[id]));
   }
+  const fiscal=own.fiscal_scenario;
+  if(fiscal){
+   const share=(v,year)=>v===null?'Données insuffisantes':(v/100).toFixed(2)+' % du PIB de référence ('+year+')';
+   line($('international-observations'),'Écart recettes hors dons − charges centrales (hors solde complet)',share(fiscal.revenue_minus_expense_excluding_grants_bps_gdp,fiscal.gap_reference_year));
+   line($('international-observations'),'Manque à gagner fiscal hypothétique',share(fiscal.trade_tax_shortfall_bps_reference_gdp,fiscal.tax_reference_year));
+   if(fiscal.trade_tax_shortfall_usd_reference_year!==null)line($('international-observations'),'Équivalent fiscal hypothétique',fmt.format(fiscal.trade_tax_shortfall_usd_reference_year)+' USD de référence ('+fiscal.tax_reference_year+')');
+   line($('international-observations'),'Hypothèse fiscale','Sensibilité unitaire fictive à la pression commerciale ; aucun budget ni score modifié.');
+  }
   if(sc){
    line($('international-observations'),'Indice de consommation simulé (base 100)',sc.scenario_index_bps===null?'Non calculable':(sc.scenario_index_bps/100).toFixed(2));
    line($('international-observations'),'Tendance historique bornée',sc.historical_annual_trend_bps===null?'Non calculable':(sc.historical_annual_trend_bps/100).toFixed(2)+' %/an');

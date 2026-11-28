@@ -32,6 +32,40 @@ final class NationalEconomicScenario{
             'next_ordinary_chamber_renewal_month'=>$next->format('Y-m'),'renewal_classification'=>'reference_or_scenario_month_not_certified_result',
             'renewal_rule'=>$c['renewal'],'observations'=>$observations,'consumption_history'=>$c['consumption_history']];
     }
+    /** Central-government references only, not general-government accounts.
+     * A same-year revenue-minus-expense gap excludes grants and does not
+     * represent a certified fiscal balance (capital transactions may differ).
+     * The tax sensitivity is an explicit fictional unit-elasticity assumption
+     * relative to the trade-only consumption stress, not to GDP growth. */
+    public static function fiscal(array $profile,array $scenario,?array $gdp):array{
+        $o=$profile['observations'];
+        $rev=$o['revenue_excluding_grants_central_government']??null;
+        $exp=$o['expense_central_government']??null;
+        $tax=$o['tax_revenue_central_government']??null;
+        $valid=static fn(?array $v):bool=>$v!==null&&($v['unit']??null)==='percent_gdp'
+            &&is_int($v['year']??null)&&is_numeric($v['value']??null)
+            &&is_finite((float)$v['value'])&&$v['value']>=0;
+        $gap=null;$gapYear=null;
+        if($valid($rev)&&$valid($exp)&&$rev['year']===$exp['year']){
+            $gap=(int)round(100*($rev['value']-$exp['value']));
+            $gapYear=$rev['year'];
+        }
+        $taxYear=$valid($tax)?$tax['year']:null;
+        $taxBps=$taxYear===null?null:(int)round(100*$tax['value']);
+        $stress=$scenario['trade_stress_bps']??null;
+        if($stress!==null&&(!is_int($stress)||$stress<0||$stress>2500))
+            throw new \DomainException('Fiscal scenario stress out of range');
+        $shortfall=$taxBps===null||$stress===null?null:(int)round($taxBps*$stress/10000);
+        $usd=null;
+        if($shortfall!==null&&($gdp['kind']??null)==='observed'&&($gdp['year']??null)===$taxYear
+            &&is_numeric($gdp['value']??null)&&is_finite((float)$gdp['value'])&&$gdp['value']>0)
+            $usd=(int)round($gdp['value']*($shortfall/10000));
+        return ['version'=>'wp130-central-fiscal-stress-v1','classification'=>'experimental_tax_sensitivity_not_fiscal_ledger',
+            'day'=>$scenario['day'],'revenue_minus_expense_excluding_grants_bps_gdp'=>$gap,'gap_reference_year'=>$gapYear,
+            'tax_reference_year'=>$taxYear,'tax_reference_bps_gdp'=>$taxBps,'trade_tax_shortfall_bps_reference_gdp'=>$shortfall,
+            'trade_tax_shortfall_usd_reference_year'=>$usd,'assumed_tax_elasticity_bps'=>10000,
+            'not_a_forecast'=>true,'rankable'=>false];
+    }
     /** The last two historical consumption levels anchor a bounded linear
      * extrapolation from investiture; the starting index is exactly 10000.
      * Trade pressure is a separate relative stress scenario, not a causal

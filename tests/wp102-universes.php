@@ -40,7 +40,25 @@ $baseE['policies']=['a'=>['from'=>'state_fr','to'=>'state_de','status'=>'effecti
 $baseE['projections']=['a'=>['central_usd'=>100000000,'effective_on'=>'2027-05-14'],'b'=>['central_usd'=>50000000,'effective_on'=>'2027-05-14']];
 $shockN=$ns::project($np,'state_de','2028-05-14',$gdp,$baseE);
 ck102($shockN['trade_stress_bps']===250&&$shockN['scenario_index_bps']===$baseN['scenario_index_bps']-250,'trade projection affects index without double counting pair');
+// Fiscal stress is separate from the persistent budget and ranking.
+$fp=['observations'=>[
+    'revenue_excluding_grants_central_government'=>['year'=>2025,'value'=>30,'unit'=>'percent_gdp'],
+    'expense_central_government'=>['year'=>2025,'value'=>35,'unit'=>'percent_gdp'],
+    'tax_revenue_central_government'=>['year'=>2025,'value'=>20,'unit'=>'percent_gdp']]];
+$fgdp=['kind'=>'observed','year'=>2025,'value'=>1000000000];
+$fiscal=$ns::fiscal($fp,$shockN,$fgdp);
+ck102($fiscal['revenue_minus_expense_excluding_grants_bps_gdp']===-500&&$fiscal['gap_reference_year']===2025,'same-year central-government reference gap');
+ck102($fiscal['trade_tax_shortfall_bps_reference_gdp']===50&&$fiscal['trade_tax_shortfall_usd_reference_year']===5000000&&!$fiscal['rankable'],'experimental fiscal transmission uses trade stress and tax base');
+ck102($ns::fiscal($fp,$baseN,$fgdp)['trade_tax_shortfall_bps_reference_gdp']===0,'no effective trade shock has zero modeled tax shortfall');
+$fp['observations']['expense_central_government']['year']=2024;
+$fgdp['year']=2024;
+$fiscal=$ns::fiscal($fp,$shockN,$fgdp);
+ck102($fiscal['revenue_minus_expense_excluding_grants_bps_gdp']===null&&$fiscal['trade_tax_shortfall_usd_reference_year']===null&&$fiscal['trade_tax_shortfall_bps_reference_gdp']===50,'mixed-year fiscal amounts not synthesized');
+$fp['observations']['tax_revenue_central_government']['value']=null;
+ck102($ns::fiscal($fp,$shockN,$fgdp)['trade_tax_shortfall_bps_reference_gdp']===null,'missing tax observation is not zero');
+$fp['observations']['tax_revenue_central_government']['value']=20;
 $baseE['projections']['b']['central_usd']=null;
+ck102($ns::fiscal($fp,$ns::project($np,'state_de','2028-05-14',$gdp,$baseE),$fgdp)['trade_tax_shortfall_bps_reference_gdp']===null,'missing trade observation propagates to fiscal stress');
 ck102($ns::project($np,'state_de','2028-05-14',$gdp,$baseE)['scenario_index_bps']===null,'unknown effect is not treated as zero');
 ck102(call102('GET','/universes/'.$no.'/international',null,2)['status']===404,'international member isolation');
 $restricted=array_values(array_filter($iv['body']['actors'],fn($r)=>in_array($r['id'],['state_il','state_ir','state_ps'],true)));
@@ -104,6 +122,7 @@ ck102(count(array_filter($ivFr['body']['incoming'],fn($p)=>$p['from']==='state_d
 ck102(count(array_filter($ivDe['body']['incoming'],fn($p)=>$p['from']==='state_de'))===0,'outgoing offer not an incoming one');
 $deView=array_values(array_filter($ivDe['body']['countries'],fn($c)=>$c['is_you']))[0];
 ck102($deView['national_reference']['reference_as_of']==='2026-11-27'&&$deView['consumption_scenario']['scenario_index_bps']===10000,'foreign member sees pinned macro scenario');
+ck102($deView['fiscal_scenario']['tax_reference_year']===2024&&$deView['fiscal_scenario']['trade_tax_shortfall_bps_reference_gdp']===0&&!$deView['fiscal_scenario']['rankable'],'international member receives separate fiscal scenario');
 $dip=call102('GET',$root.'/diplomacy',null,2);
 $payload['from']='state_fr';$payload['to']='state_de';
 ck102(call102('POST',$root.'/diplomacy/proposals',$payload,2,['if-match'=>$dip['headers']['ETag'],'idempotency-key'=>'wp102-spoof-fr'])['status']===403,'foreign player cannot spoof another state');

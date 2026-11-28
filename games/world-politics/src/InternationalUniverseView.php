@@ -29,7 +29,8 @@ final class InternationalUniverseView{
             $scenario=$national===null?null:NationalEconomicScenario::project($national,$id,$day,$gdp,$econ['state']);
             $rows[]=['country'=>$cc,'national_reference'=>$cc===$own['country_code']?$national:null,
                 'next_ordinary_chamber_renewal_month'=>$national['next_ordinary_chamber_renewal_month']??null,
-                'consumption_scenario'=>$scenario,'actor_id'=>$id,'name'=>$actor['label'],'controller'=>$slot['closed_on']!==null?'succession_pending':($slot['account_id']===null?'ai':'human'),
+                'consumption_scenario'=>$scenario,
+                'fiscal_scenario'=>$national===null?null:NationalEconomicScenario::fiscal($national,$scenario,$gdp),'actor_id'=>$id,'name'=>$actor['label'],'controller'=>$slot['closed_on']!==null?'succession_pending':($slot['account_id']===null?'ai':'human'),
                 'is_you'=>$slot['account_id']===$account,'national_institution_clock'=>$i!==null,'domestic_policy'=>$cc==='FR',
                 'institution'=>$i===null?null:['legislature'=>$i['legislature'],'government_status'=>$i['accountability']['status']??null,'incumbent_reference'=>$i['accountability']['incumbent']??null],
                 'observations'=>['gdp'=>$gdp,'population'=>$pop,'budget'=>$budget,'gdp_per_capita'=>$perCapita],
