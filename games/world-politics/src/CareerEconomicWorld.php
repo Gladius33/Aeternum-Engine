@@ -66,6 +66,7 @@ final class CareerEconomicWorld
         $put('INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',[$world,'FR',self::json($roster->snapshot()),$roster->snapshotHash()]);
         $inst=new InstitutionalSimulation($world,'FR',$day);
         $inst->enableRevision();
+        if($expandedProgramme)$inst->enableCareerOrdinaryLegislation();
         $put('INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',[$world,'FR',self::json($inst->snapshot()),$inst->hash()]);
         $dip=new DiplomaticSimulation($world,$day,$bundle->actors);
         $put('INSERT INTO wp_diplomatic_states(world_id,state_json,state_sha,actor_registry_sha,revision) VALUES(?,?,?,?,0)',[$world,self::json($dip->snapshot()),$dip->hash(),$bundle->actors->hash()]);
@@ -74,8 +75,8 @@ final class CareerEconomicWorld
         $econ=new WorldEconomicSimulation($world,$day,$bundle->actors,$bundle->references);
         $put('INSERT INTO wp_economic_states(world_id,state_json,state_sha,reference_sha,actor_registry_sha,revision) VALUES(?,?,?,?,?,0)',[$world,self::json($econ->snapshot()),$econ->hash(),$bundle->references->hash(),$bundle->actors->hash()]);
         // The opening macro/debt/demography/service/firm inputs are identical to
-        // Investiture. Legacy automatic finance and legislative/trade bridges
-        // stay off until new mandates can legally authorize their actions.
+        // Investiture. Legacy automatic finance and trade bridges stay off;
+        // the expanded profile enables the separate career ordinary-law route.
         $c=$scenario->domestic();
         $c['catalog']+=array_intersect_key(SocialProgramme::policies($c['macro_baseline']),SocialProgramme::target2027());
         if($expandedProgramme){
@@ -87,6 +88,7 @@ final class CareerEconomicWorld
             $c['social_economy_from']=$day;
         }
         foreach(['finance_autonomy','daily_legal_enabled','trade_feedback_enabled','eu_trade_enabled','eu_trade_v2','eu_trade_v3','eu_trade_v4'] as $flag)$c[$flag]=false;
+        if($expandedProgramme)$c['daily_legal_enabled']=true;
         $dom=PdoDomesticPolicyStore::build($world,$c);
         $put('INSERT INTO wp_domestic_states(world_id,assumptions_json,assumptions_sha,state_json,state_sha,revision) VALUES(?,?,?,?,?,0)',[$world,self::json($c),$dom->assumptionsHash(),self::json($dom->snapshot()),$dom->hash()]);
         $put("UPDATE wp_alpha_worlds SET reference_bundle_sha=? WHERE world_id=? AND scenario='wp-career-v1'",[$sha,$world]);

@@ -393,3 +393,42 @@ ck(!in_array($customId,array_column($planClass::fictionalOptions(null),'id'),tru
 ck(array_column($planClass::fictionalOptions([$customId=>true]),'id')===[$customId],'world-specific objective discovery');
 no(fn()=>$planClass::normalizeFictional(['name'=>'Foreign fixture','measure_ids'=>[$customId]],'DE'));
 no(fn()=>$planClass::normalizeFictional(['name'=>'Duplicate fixture','measure_ids'=>[$customId,$customId]],'FR'));
+
+// Career ordinary-law pilot: no phantom legacy cabinet, separate chamber
+// votes, independently replayed publication and no outcome on proposal alone.
+require_once __DIR__.'/../games/world-politics/src/CareerLegislativeAutonomy.php';
+require_once __DIR__.'/../games/world-politics/src/DailyLegalActivation.php';
+$cl=\Aeternum\WorldPolitics\CareerLegislativeAutonomy::class;
+$legal=add(add(L::initial('career-law-fixture-0','FR','career','2027-05-14'),'pres'),'pm');
+$legal=change($legal,'election',[],[grant('president','pres')]);
+$legal=change($legal,'appointment',[],[grant('prime-minister','pm')]);
+$ls=new InstitutionalSimulation('career-law-fixture-0','FR','2027-05-14');$ls->enableCareerOrdinaryLegislation();
+$ls->advanceTo('2027-10-01');$p=['proposed_on'=>'2027-09-30','effective_on'=>'2028-03-01','authorized_on'=>null,'instrument_sha'=>null];
+ck($cl::advanceOne($ls,$legal,'education-reform',$p,$legal['active']['president'])===null,'wrong sponsor cannot originate bill');
+$step=$cl::advanceOne($ls,$legal,'education-reform',$p,$legal['active']['prime-minister']);
+ck($step['stage']==='draft'&&!isset($ls->snapshot()['legislation']['responsibility']),'career draft without duplicate cabinet');
+$ls->advanceTo('2027-10-02');$step=$cl::advanceOne($ls,$legal,'education-reform',$p,$legal['active']['prime-minister']);
+ck($step['stage']==='file','career PM files reviewed bill');
+$ls->advanceTo('2027-11-12');ck($cl::advanceOne($ls,$legal,'education-reform',$p,$legal['active']['prime-minister'])===null,'first reading delay');
+$ls->advanceTo('2027-11-13');$step=$cl::advanceOne($ls,$legal,'education-reform',$p,$legal['active']['prime-minister']);
+ck($step['stage']==='reading-assembly','independent chamber reading');
+$ls->advanceTo('2027-12-11');$cl::advanceOne($ls,$legal,'education-reform',$p,$legal['active']['prime-minister']);
+$ls->advanceTo('2027-12-12');$cl::advanceOne($ls,$legal,'education-reform',$p,$legal['active']['prime-minister']);
+$ls->advanceTo('2027-12-13');$cl::advanceOne($ls,$legal,'education-reform',$p,$legal['active']['prime-minister']);
+$ls->advanceTo('2027-12-14');$cl::advanceOne($ls,$legal,'education-reform',$p,$legal['active']['prime-minister']);
+$leg=$ls->snapshot()['legislation'];$bill=array_values($leg['bills'])[0];
+$expected=($bill['last_votes']['assembly']['vote']['passed']??false)&&($bill['last_votes']['senate']['vote']['passed']??false);
+ck($expected&&$bill['status']==='published','positive fixture publishes only after both chambers pass');
+$proof=\Aeternum\WorldPolitics\DailyLegalActivation::candidates($leg,'education-reform','2028-03-01','2027-12-14');
+ck(count($proof)===1&&$proof[0]['text']===$bill['texts']['standard'],'exact standard text is eligible for daily activation');
+ck(\Aeternum\WorldPolitics\DailyLegalActivation::candidates($leg,'education-reform','2028-03-02','2027-12-14')===[],'mismatched date denied');
+ck(InstitutionalSimulation::restore($ls->snapshot())->hash()===$ls->hash(),'career ordinary legal replay');
+
+// Independent negative fixture: no repeated voting after a refusal.
+$rejectLegal=add(add(L::initial('career-law-fixture-2','FR','career','2027-05-14'),'pres'),'pm');
+$rejectLegal=change($rejectLegal,'election',[],[grant('president','pres')]);
+$rejectLegal=change($rejectLegal,'appointment',[],[grant('prime-minister','pm')]);
+$rejectSim=new InstitutionalSimulation('career-law-fixture-2','FR','2027-05-14');$rejectSim->enableCareerOrdinaryLegislation();
+foreach(['2027-10-01','2027-10-02','2027-11-13','2027-12-11','2027-12-14'] as $day){$rejectSim->advanceTo($day);$cl::advanceOne($rejectSim,$rejectLegal,'education-reform',$p,$rejectLegal['active']['prime-minister']);}
+$rejected=array_values($rejectSim->snapshot()['legislation']['bills'])[0];
+ck(!$rejected['last_votes']['assembly']['vote']['passed']&&$rejected['readings']===['assembly'=>1,'senate'=>0]&&$rejected['published_on']===null,'no fabricated majority or publication after rejection');

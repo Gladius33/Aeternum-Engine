@@ -234,9 +234,15 @@ final class PdoInstitutionalStore
                     $opinion=['world_id'=>$world,'day'=>$v['day'],'approval'=>$v['approval'],'sha'=>$x->hash()];
                 }
                 $programmeStep=$clock&&$country==='FR'?UniverseAutonomy::advanceInstitutions($this->pdo,$simulation,$world,$actor,$payload['target_day']):null;
+                $careerStep=null;
+                if($clock&&isset($simulation->snapshot()['legislation']['career_ordinary'])){
+                    require_once __DIR__.'/CareerLegislativeAutonomy.php';
+                    $careerStep=CareerLegislativeAutonomy::advanceClock($this->pdo,$simulation,$world,$actor,$payload['target_day']);
+                }
                 $result=$clock ? $simulation->advanceTo($payload['target_day'],$opinion)
                     :$simulation->decide($role,$action,$payload,$commandId);
                 if($programmeStep!==null)$result['presidential_programme_step']=$programmeStep;
+                if($careerStep!==null)$result['career_legislation_step']=$careerStep;
             }
             if(!$clock&&$country==='FR')UniverseAutonomy::markDomestic($this->pdo,$world,$actor,$simulation->snapshot()['day']);
             $after=$simulation->hash();

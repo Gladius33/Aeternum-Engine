@@ -52,6 +52,17 @@ final class PdoCareerInstitutionStore
         $actual=[];foreach($this->query('SELECT account_id,career_id,character_id FROM wp_career_memberships WHERE world_id=?',[$world]) as $v)$actual[$v['account_id']]=[$v['career_id'],$v['character_id']];
         CareerInstitutionLedger::check(CareerInstitutionLedger::json($expected)===CareerInstitutionLedger::json($actual),'membership projection mismatch');return $s;
     }
+    /** Called only from the fenced national clock transaction. Verify the
+     * signed career journal and the immutable pending-day scope. */
+    public static function verifiedForClock(\PDO $db,string $world,string $day,string $target):array{
+        CareerInstitutionLedger::check($db->inTransaction(),'career legislative clock transaction required');
+        $secret=getenv('WP_CAREER_EVIDENCE_KEY');
+        CareerInstitutionLedger::check(is_string($secret)&&strlen($secret)>=32,'career evidence key required');
+        $store=new self($db,new CareerInstitutionEvidence($secret));
+        $clock=$store->query('SELECT committed_day,pending_day FROM wp_world_clock WHERE world_id=?',[$world])->fetch(\PDO::FETCH_ASSOC);
+        CareerInstitutionLedger::check($clock!==false&&$clock['committed_day']===$day&&$clock['pending_day']===$target,'career legislative clock scope');
+        return $store->replay($world,$store->row($world));
+    }
     private static function receipt(array $s):array{return CareerInstitutionLedger::canonical(['sequence'=>$s['sequence'],'event_sha'=>$s['last_event_sha'],'state_sha'=>CareerInstitutionLedger::digest($s)]);}
     private function activeAccount(string $world,string $account):void{
         $r=$this->query('SELECT a.enabled FROM wp_accounts a JOIN wp_alpha_members m ON m.account_id=a.account_id WHERE m.world_id=? AND a.account_id=? FOR UPDATE',[$world,$account])->fetchColumn();
@@ -678,6 +689,9 @@ final class PdoCareerInstitutionStore
             CareerInstitutionLedger::check($d['state']['day']===$day,'domestic source mismatch');
             $proposal=CareerProgrammeAutonomy::next($state,$day,$d['state']['policies'],self::decode($row['assumptions_json'])['catalog'],$acted);
             if($proposal===null)return null;
+            // New ordinary-law worlds allow for summer recess and review.
+            if(isset($inst->snapshot()['legislation']['career_ordinary'])&&$proposal['policy_id']!=='administration-report')
+                $proposal['effective_day']=max($proposal['effective_day'],(new \DateTimeImmutable($day))->modify('+220 days')->format('Y-m-d'));
             $principal=new CareerEconomicProposalPrincipal($this->db,$world,$proposal['mandate'],true);
             $key='career-auto-'.substr(hash('sha256',$world.'|'.$day.'|'.$proposal['mandate'].'|'.$proposal['policy_id']),0,48);
             return (new PdoDomesticPolicyStore($this->db,$principal))->proposeInCareerTransaction($world,

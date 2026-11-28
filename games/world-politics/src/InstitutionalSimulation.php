@@ -444,6 +444,10 @@ final class InstitutionalSimulation
         if($finance)$l->enableFinance($financeYear,$financeSeries,$correctiveFinance);
         $this->state['legislation']=$l->snapshot();
     }
+    public function enableCareerOrdinaryLegislation():void{
+        if($this->state['country_code']!=='FR'||isset($this->state['legislation'])||$this->state['events']!==[])throw new \DomainException('Career legislation bootstrap only');
+        $l=new BicameralLegislation($this->state['world_id'],$this->state['day']);$l->enablePreciseUnits();$l->enableCareerOrdinary();$this->state['legislation']=$l->snapshot();
+    }
     public function legislation(string $role,string $action,array $payload,string $commandId):array
     {
         self::id($commandId);

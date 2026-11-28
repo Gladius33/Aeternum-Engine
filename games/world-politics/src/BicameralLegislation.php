@@ -34,6 +34,13 @@ final class BicameralLegislation
         if(!isset($this->s['minor_units'],$this->s['national_service'])||isset($this->s['social_programme'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])throw new \DomainException('Social programme must be pinned at bootstrap');
         $this->s['social_programme']=SocialProgramme::VERSION;
     }
+    /** Career worlds have their own signed government, not the legacy
+     * fictional cabinet. Only ordinary reviewed economic texts are enabled. */
+    public function enableCareerOrdinary():void{
+        if(!isset($this->s['minor_units'])||isset($this->s['career_ordinary'])||isset($this->s['responsibility'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
+            throw new \DomainException('Career ordinary route must be pinned at bootstrap');
+        $this->s['career_ordinary']='career-ordinary-v1';
+    }
     public function enablePreciseUnits():void
     {
         if(isset($this->s['minor_units'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])throw new \DomainException('Text units must be pinned at bootstrap');
@@ -150,8 +157,9 @@ final class BicameralLegislation
     }
     public function draft(string $id,string $policy):array
     {
-        self::id($id);$catalog=self::catalog(isset($this->s['minor_units']),isset($this->s['national_service']),isset($this->s['social_programme']));
-        if(isset($this->s['social_programme'])&&!isset($catalog[$policy])&&($text=SocialProgramme::legalText($policy))!==null)$catalog[$policy]=$text;
+        self::id($id);$social=isset($this->s['social_programme'])||isset($this->s['career_ordinary']);
+        $catalog=self::catalog(isset($this->s['minor_units']),isset($this->s['national_service']),$social);
+        if($social&&!isset($catalog[$policy])&&($text=SocialProgramme::legalText($policy))!==null)$catalog[$policy]=$text;
         if(!isset($catalog[$policy])||isset($this->s['bills'][$id])||count($this->s['bills'])>=100)
             throw new \DomainException('Unknown or duplicate bill');
         if(NationalServiceLaw::isPolicy($policy))NationalServiceLaw::validateDraft($this->s,$policy);
@@ -337,6 +345,7 @@ final class BicameralLegislation
             if($s['minor_units']!==true)throw new \DomainException('Invalid text unit model');
             $x->enablePreciseUnits();
         }
+        if(isset($s['career_ordinary']))$x->enableCareerOrdinary();
         if(array_key_exists('responsibility',$s))$x->enableResponsibility();
         if(isset($s['responsibility']['assembly']))$x->enableAssembly();
         if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();
