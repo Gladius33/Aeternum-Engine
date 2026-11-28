@@ -64,7 +64,12 @@ ck125($auAlt['qeds_general_government_gross_external_debt']['value']===330330000
 $archiveBase=json_decode(file_get_contents(__DIR__.'/../games/world-politics/data/wp130-national-economy-reference-v1.json'),true,64,JSON_THROW_ON_ERROR);
 $archiveCount=0;$archiveSlots=0;$externalCountries=0;
 foreach(array_keys($archiveBase['countries']) as $cc){$ar=\Aeternum\WorldPolitics\NationalReferenceFallback::country($cc);$archiveCount+=$ar['coverage']['available'];$archiveSlots+=$ar['coverage']['slots'];if(count(array_filter($ar['alternative_references'],fn($x)=>$x['metric']==='qeds_general_government_gross_external_debt'))>0)$externalCountries++;}
-ck125($archiveCount===2123&&$archiveSlots===2184&&$externalCountries===42,'archival coverage and general government external debt for every foreign country');
+ck125($archiveCount===2133&&$archiveSlots===2184&&$externalCountries===42,'archival coverage and general government external debt for every foreign country');
+$ee=E::run(['type'=>'national-indicators','parameters'=>['country'=>'EE']]);
+$eeRows=array_column($ee['result']['rows'],null,'metric');
+ck125($eeRows['external_debt_public_publicly_guaranteed']['value']===435000000&&$eeRows['external_debt_service_public_publicly_guaranteed']['value']===82000000&&$eeRows['external_debt_service_public_publicly_guaranteed']['data_year']===2005,'archive stock and paid service separated');
+$saExt=array_column($sa['result']['alternative_references'],null,'metric');
+ck125($saExt['estimated_income_gini_alvaredo_assouad_piketty']['value']===72&&$saExt['estimated_income_gini_alvaredo_assouad_piketty']['data_year']===2016,'income Gini estimate separate from PIP');
 no125(fn()=>E::run(['type'=>'national-indicators','parameters'=>['country'=>'ZZ']]));
 ck125($countries['provenance']['sources'][0]['source_name']==='United Nations'&&$countries['provenance']['sources'][0]['data_date']==='2026-11-25','dated source provenance in signed report');
 $back=E::run(['type'=>'household-backtest','parameters'=>[]]);
