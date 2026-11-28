@@ -289,6 +289,13 @@ try{
     $final=$pubClass::rankings($pdo,$eid,null,$opening);
     ck($final['rows'][0]['terminal']&&$final['rows'][0]['score']===$positive['rows'][0]['score'],'terminal score freeze');
     try{$pubClass::rankings($pdo,$eid,null,$opening,2,$positive['snapshot']);throw new RuntimeException('stale snapshot accepted');}catch(DomainException $expected){}
+    // An authentic earlier signature must not resurrect an active score on
+    // the same committed day after its terminal event has been published.
+    $exec('UPDATE wp_career_score_latest SET sequence_no=? WHERE world_id=? AND series_id=?',[$fixture['sequence'],$pw,$sid]);
+    try{$pubClass::rankings($pdo,$eid,null,$opening);throw new RuntimeException('rolled-back global score accepted');}catch(DomainException $expected){}
+    try{$pubClass::rankings($pdo,$eid,$public['body']['universe_no'],$opening);throw new RuntimeException('rolled-back universe score accepted');}catch(DomainException $expected){}
+    $exec('UPDATE wp_career_score_latest SET sequence_no=? WHERE world_id=? AND series_id=?',[$closed['sequence'],$pw,$sid]);
+    ck($pubClass::rankings($pdo,$eid,null,$opening)['rows']===$final['rows'],'restored journal head retains terminal score');
     $exec('UPDATE wp_career_score_events SET signature_sha=? WHERE world_id=? AND series_id=? AND sequence_no=?',[str_repeat('0',64),$pw,$sid,$closed['sequence']]);
     try{$pubClass::rankings($pdo,$eid,null,$opening);throw new RuntimeException('tampered score accepted');}catch(DomainException $expected){}
 }finally{$pdo->rollBack();}

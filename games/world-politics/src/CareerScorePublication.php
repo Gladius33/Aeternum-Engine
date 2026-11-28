@@ -50,11 +50,15 @@ final class CareerScorePublication
         return CareerScoreContract::cohort($p['pins'],'FR',$p['start'],CareerScoreContract::HORIZON,$mode);
     }
     private static function prior(\PDO $db,string $world,string $series):?array{
-        $r=self::q($db,'SELECT l.*,e.evidence_json,e.signature_sha FROM wp_career_score_latest l JOIN wp_career_score_events e USING(world_id,series_id,sequence_no) WHERE l.world_id=? AND l.series_id=? FOR UPDATE',[$world,$series])->fetch(\PDO::FETCH_ASSOC);
+        $r=self::q($db,'SELECT l.*,e.evidence_json,e.signature_sha,
+            (SELECT MAX(h.sequence_no) FROM wp_career_score_events h WHERE h.world_id=l.world_id AND h.series_id=l.series_id) AS journal_head_sequence
+            FROM wp_career_score_latest l JOIN wp_career_score_events e USING(world_id,series_id,sequence_no) WHERE l.world_id=? AND l.series_id=? FOR UPDATE',[$world,$series])->fetch(\PDO::FETCH_ASSOC);
         return $r===false?null:self::verified($r);
     }
     private static function verified(array $r):array{
         $e=self::decode($r['evidence_json']);self::key()->verify($e,$r['signature_sha']);
+        if(array_key_exists('journal_head_sequence',$r)&&($r['journal_head_sequence']===null||(int)$r['journal_head_sequence']!==(int)$r['sequence_no']))
+            throw new \DomainException('Score projection is not the journal head');
         foreach(['world'=>'world_id','series'=>'series_id','account'=>'account_id','cohort'=>'cohort_sha'] as $k=>$v)
             if($e[$k]!==$r[$v])throw new \DomainException('Score index mismatch');
         if($e['version']!==self::VERSION||$e['sequence']!==(int)$r['sequence_no']||(int)$e['qualified']!==(int)$r['qualified'])
@@ -181,7 +185,8 @@ final class CareerScorePublication
     public static function rankings(\PDO $db,string $account,?int $no,string $cohort,int $page=1,?string $snapshot=null):array{
         if(!preg_match('/^[a-f0-9]{64}$/D',$cohort)||$page<1||$page>100||($page>1&&$snapshot===null))
             throw new \DomainException('Invalid ranking page or missing snapshot');
-        $sql='SELECT l.*,e.evidence_json,e.signature_sha,u.universe_no,c.committed_day,p.manifest_json,p.signature_sha AS pin_signature
+        $sql='SELECT l.*,e.evidence_json,e.signature_sha,u.universe_no,c.committed_day,p.manifest_json,p.signature_sha AS pin_signature,
+            (SELECT MAX(h.sequence_no) FROM wp_career_score_events h WHERE h.world_id=l.world_id AND h.series_id=l.series_id) AS journal_head_sequence
             FROM wp_career_score_latest l JOIN wp_career_score_events e USING(world_id,series_id,sequence_no)
             JOIN wp_career_score_pins p USING(world_id) JOIN wp_career_public_worlds u USING(world_id)
             JOIN wp_world_clock c USING(world_id) JOIN wp_accounts a ON a.account_id=l.account_id
