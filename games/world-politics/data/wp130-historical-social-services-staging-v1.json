@@ -1,0 +1,453 @@
+{
+  "schema": "wp130-historical-social-services-staging-v1",
+  "retrieved_on": "2026-11-28",
+  "publisher": "World Bank WDI",
+  "classification": "secondary_transcription_pending_direct_primary_value_reconciliation",
+  "runtime_admission": false,
+  "notes": [
+    "Only gaps in the frozen WP130 pack are included. These references are not 2027 estimates, do not establish latest available values, and do not imply comparability across years or health-system definitions.",
+    "Hospital beds values for Australia and South Africa are old, suitable only as historical observations pending replacement. No silent backfill or substitution of the runtime pack."
+  ],
+  "series": {
+    "SE.XPD.TOTL.GD.ZS": {
+      "unit": "percent_gdp",
+      "primary_metadata_url": "https://data.worldbank.org/indicator/SE.XPD.TOTL.GD.ZS",
+      "secondary_sources": [
+        "https://api.agentdatahub.de/datasets/wb.SE.XPD.TOTL.GD.ZS",
+        "https://api.agentdatahub.de/tables/wb.SE.XPD.TOTL.GD.ZS/WORLD"
+      ],
+      "rows": [
+        {
+          "iso2": "AT",
+          "year": 2022,
+          "value": 5.27749013901
+        },
+        {
+          "iso2": "AU",
+          "year": 2022,
+          "value": 5.05915021896
+        },
+        {
+          "iso2": "BE",
+          "year": 2022,
+          "value": 6.27611017227
+        },
+        {
+          "iso2": "BG",
+          "year": 2022,
+          "value": 4.50109004974
+        },
+        {
+          "iso2": "BR",
+          "year": 2022,
+          "value": 5.61920976639
+        },
+        {
+          "iso2": "CA",
+          "year": 2022,
+          "value": 4.84426021576
+        },
+        {
+          "iso2": "CH",
+          "year": 2022,
+          "value": 4.86427021027
+        },
+        {
+          "iso2": "CY",
+          "year": 2022,
+          "value": 4.74210977554
+        },
+        {
+          "iso2": "CZ",
+          "year": 2022,
+          "value": 4.30291986465
+        },
+        {
+          "iso2": "DE",
+          "year": 2022,
+          "value": 5.23916006088
+        },
+        {
+          "iso2": "DK",
+          "year": 2022,
+          "value": 6.35586023331
+        },
+        {
+          "iso2": "EE",
+          "year": 2022,
+          "value": 5.20733976364
+        },
+        {
+          "iso2": "ES",
+          "year": 2022,
+          "value": 4.58553981781
+        },
+        {
+          "iso2": "FI",
+          "year": 2022,
+          "value": 6.37578010559
+        },
+        {
+          "iso2": "GB",
+          "year": 2021,
+          "value": 5.9068198204
+        },
+        {
+          "iso2": "GR",
+          "year": 2022,
+          "value": 3.3754799366
+        },
+        {
+          "iso2": "HR",
+          "year": 2021,
+          "value": 4.09166002274
+        },
+        {
+          "iso2": "HU",
+          "year": 2022,
+          "value": 3.80119991302
+        },
+        {
+          "iso2": "IE",
+          "year": 2021,
+          "value": 2.90461993217
+        },
+        {
+          "iso2": "IN",
+          "year": 2022,
+          "value": 4.09865814175
+        },
+        {
+          "iso2": "IT",
+          "year": 2022,
+          "value": 4.06775999069
+        },
+        {
+          "iso2": "JP",
+          "year": 2021,
+          "value": 3.33663988113
+        },
+        {
+          "iso2": "KR",
+          "year": 2022,
+          "value": 5.40910005569
+        },
+        {
+          "iso2": "LT",
+          "year": 2022,
+          "value": 4.25285005569
+        },
+        {
+          "iso2": "LU",
+          "year": 2022,
+          "value": 3.74451994896
+        },
+        {
+          "iso2": "LV",
+          "year": 2022,
+          "value": 4.31967020035
+        },
+        {
+          "iso2": "MT",
+          "year": 2022,
+          "value": 4.71258020401
+        },
+        {
+          "iso2": "MX",
+          "year": 2022,
+          "value": 4.05987977982
+        },
+        {
+          "iso2": "NL",
+          "year": 2022,
+          "value": 5.17918014526
+        },
+        {
+          "iso2": "PL",
+          "year": 2022,
+          "value": 4.31372976303
+        },
+        {
+          "iso2": "PT",
+          "year": 2022,
+          "value": 4.55160999298
+        },
+        {
+          "iso2": "RO",
+          "year": 2022,
+          "value": 3.27882003784
+        },
+        {
+          "iso2": "SE",
+          "year": 2022,
+          "value": 7.31909990311
+        },
+        {
+          "iso2": "SI",
+          "year": 2022,
+          "value": 5.28065013885
+        },
+        {
+          "iso2": "SK",
+          "year": 2022,
+          "value": 4.65688991547
+        },
+        {
+          "iso2": "TR",
+          "year": 2022,
+          "value": 3.09571003914
+        },
+        {
+          "iso2": "US",
+          "year": 2021,
+          "value": 5.42038011551
+        }
+      ]
+    },
+    "SH.MED.PHYS.ZS": {
+      "unit": "per_1000_people",
+      "primary_metadata_url": "https://data.worldbank.org/indicator/SH.MED.PHYS.ZS",
+      "secondary_sources": [
+        "https://api.agentdatahub.de/datasets/wb.SH.MED.PHYS.ZS",
+        "https://api.agentdatahub.de/tables/wb.SH.MED.PHYS.ZS/WORLD"
+      ],
+      "rows": [
+        {
+          "iso2": "AU",
+          "year": 2022,
+          "value": 4.086
+        },
+        {
+          "iso2": "BE",
+          "year": 2018,
+          "value": 3.355
+        },
+        {
+          "iso2": "BG",
+          "year": 2018,
+          "value": 4.217
+        },
+        {
+          "iso2": "CH",
+          "year": 2018,
+          "value": 4.338
+        },
+        {
+          "iso2": "CN",
+          "year": 2022,
+          "value": 3.112
+        },
+        {
+          "iso2": "CY",
+          "year": 2018,
+          "value": 2.789
+        },
+        {
+          "iso2": "CZ",
+          "year": 2018,
+          "value": 4.069
+        },
+        {
+          "iso2": "DE",
+          "year": 2022,
+          "value": 4.534
+        },
+        {
+          "iso2": "DK",
+          "year": 2018,
+          "value": 4.196
+        },
+        {
+          "iso2": "EE",
+          "year": 2018,
+          "value": 3.483
+        },
+        {
+          "iso2": "ES",
+          "year": 2018,
+          "value": 3.996
+        },
+        {
+          "iso2": "FI",
+          "year": 2018,
+          "value": 3.463
+        },
+        {
+          "iso2": "GR",
+          "year": 2018,
+          "value": 6.105
+        },
+        {
+          "iso2": "HR",
+          "year": 2018,
+          "value": 3.497
+        },
+        {
+          "iso2": "HU",
+          "year": 2018,
+          "value": 3.384
+        },
+        {
+          "iso2": "IN",
+          "year": 2020,
+          "value": 0.723
+        },
+        {
+          "iso2": "IT",
+          "year": 2022,
+          "value": 4.191
+        },
+        {
+          "iso2": "JP",
+          "year": 2022,
+          "value": 2.649
+        },
+        {
+          "iso2": "KR",
+          "year": 2022,
+          "value": 2.61
+        },
+        {
+          "iso2": "LT",
+          "year": 2018,
+          "value": 4.596
+        },
+        {
+          "iso2": "LU",
+          "year": 2017,
+          "value": 2.984
+        },
+        {
+          "iso2": "LV",
+          "year": 2018,
+          "value": 3.303
+        },
+        {
+          "iso2": "MT",
+          "year": 2018,
+          "value": 3.972
+        },
+        {
+          "iso2": "MX",
+          "year": 2022,
+          "value": 2.588
+        },
+        {
+          "iso2": "NL",
+          "year": 2018,
+          "value": 3.632
+        },
+        {
+          "iso2": "PT",
+          "year": 2018,
+          "value": 5.276
+        },
+        {
+          "iso2": "RO",
+          "year": 2018,
+          "value": 3.028
+        },
+        {
+          "iso2": "RU",
+          "year": 2022,
+          "value": 5.111
+        },
+        {
+          "iso2": "SE",
+          "year": 2018,
+          "value": 4.322
+        },
+        {
+          "iso2": "SI",
+          "year": 2018,
+          "value": 3.185
+        },
+        {
+          "iso2": "SK",
+          "year": 2018,
+          "value": 3.523
+        },
+        {
+          "iso2": "TR",
+          "year": 2022,
+          "value": 2.236
+        },
+        {
+          "iso2": "US",
+          "year": 2022,
+          "value": 3.681
+        },
+        {
+          "iso2": "ZA",
+          "year": 2022,
+          "value": 0.794
+        }
+      ]
+    },
+    "SH.MED.BEDS.ZS": {
+      "unit": "per_1000_people",
+      "primary_metadata_url": "https://data.worldbank.org/indicator/SH.MED.BEDS.ZS",
+      "secondary_sources": [
+        "https://api.agentdatahub.de/datasets/wb.SH.MED.BEDS.ZS",
+        "https://api.agentdatahub.de/tables/wb.SH.MED.BEDS.ZS/WORLD"
+      ],
+      "rows": [
+        {
+          "iso2": "AU",
+          "year": 2016,
+          "value": 3.82
+        },
+        {
+          "iso2": "BR",
+          "year": 2021,
+          "value": 2.52
+        },
+        {
+          "iso2": "CA",
+          "year": 2022,
+          "value": 2.54
+        },
+        {
+          "iso2": "GB",
+          "year": 2022,
+          "value": 2.42
+        },
+        {
+          "iso2": "IN",
+          "year": 2021,
+          "value": 1.59
+        },
+        {
+          "iso2": "IT",
+          "year": 2022,
+          "value": 3.06
+        },
+        {
+          "iso2": "JP",
+          "year": 2022,
+          "value": 12.59
+        },
+        {
+          "iso2": "KR",
+          "year": 2022,
+          "value": 12.81
+        },
+        {
+          "iso2": "MX",
+          "year": 2022,
+          "value": 1.01
+        },
+        {
+          "iso2": "US",
+          "year": 2022,
+          "value": 2.68
+        },
+        {
+          "iso2": "ZA",
+          "year": 2010,
+          "value": 2.25
+        }
+      ]
+    }
+  }
+}
