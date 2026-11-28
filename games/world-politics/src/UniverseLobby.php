@@ -130,7 +130,8 @@ final class UniverseLobby
             $institutions=[];$store=new PdoInstitutionalStore($this->db,$p);
             foreach(self::COUNTRIES as $cc)$institutions[$cc]=$store->read($world,$cc)['state'];
             if(!$s->active())throw new AlphaHttpError(401,'authentication_required');
-            return InternationalUniverseView::build($no,$world,$clock['committed_day'],$u['roster_version'],$s->id,$own,$slots,$bundle,$institutions,$dip,$econ)+( ['game_over'=>(bool)$clock['game_over']]);
+            require_once __DIR__.'/NationalFiscalWorldStore.php';
+            return InternationalUniverseView::build($no,$world,$clock['committed_day'],$u['roster_version'],$s->id,$own,$slots,$bundle,$institutions,$dip,$econ)+( ['game_over'=>(bool)$clock['game_over'],'national_fiscal_ledger'=>NationalFiscalWorldStore::view($this->db,$world,$clock['committed_day'],$own['country_code'])]);
         });
     }
     private function create():array
@@ -150,6 +151,8 @@ final class UniverseLobby
                     [$world,$country,json_encode($roster->snapshot(),JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE),$roster->snapshotHash()]);
             }
         }
+        require_once __DIR__.'/NationalFiscalWorldStore.php';
+        NationalFiscalWorldStore::provision($this->db,$world,FrenchElectionCalendar::PRESIDENTIAL_HANDOVER);
         return ['universe_no'=>$no,'world_id'=>$world];
     }
     private function ensureSpare():?array

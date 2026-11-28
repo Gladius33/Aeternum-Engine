@@ -1,0 +1,236 @@
+{
+  "schema": "wp130-general-government-fiscal-pilot-v1",
+  "source_name": "IMF — Fiscal Monitor, April 2026",
+  "source_url": "https://www.imf.org/-/media/files/publications/fiscal-monitor/2026/april/english/msa.pdf",
+  "source_tables": [
+    "A5 p20",
+    "A6 p21",
+    "A7 p22",
+    "A13 p28",
+    "A14 p29",
+    "A15 p30"
+  ],
+  "retrieved_on": "2026-11-27",
+  "data_year": 2025,
+  "classification": "historical_estimates_from_transcribed_fiscal_monitor",
+  "source_scope_notes": [
+    "Manual transcription of selected numerical facts from six tables, checked against displayed PDF pages; independent verification pending.",
+    "Older vintage retained separately: do not supersede October 2026 Eurostat/WEO observations automatically.",
+    "Country-specific fiscal boundaries differ; see source Table B/C and conventions. India fiscal year; Australia/Canada/US pension liability adjustment; China narrower perimeter than Article IV; Brazil definition differs from domestic measure.",
+    "No exact May 2027 state, no executable rules, no legal or commercial clearance. No pinned universe migration."
+  ],
+  "qualification": "private_experimental_scenario_not_public_release_clearance",
+  "unit": "basis_points_of_reference_GDP",
+  "countries": {
+    "AT": {
+      "gross_debt_bps": 8050,
+      "revenue_bps": 5070,
+      "expense_bps": 5520
+    },
+    "AU": {
+      "gross_debt_bps": 5100,
+      "revenue_bps": 3670,
+      "expense_bps": 3950
+    },
+    "BE": {
+      "gross_debt_bps": 10630,
+      "revenue_bps": 4970,
+      "expense_bps": 5500
+    },
+    "BG": {
+      "gross_debt_bps": 2710,
+      "revenue_bps": 3590,
+      "expense_bps": 3890
+    },
+    "BR": {
+      "gross_debt_bps": 9330,
+      "revenue_bps": 3930,
+      "expense_bps": 4740
+    },
+    "CA": {
+      "gross_debt_bps": 11350,
+      "revenue_bps": 4220,
+      "expense_bps": 4400
+    },
+    "CH": {
+      "gross_debt_bps": 3940,
+      "revenue_bps": 3170,
+      "expense_bps": 3120
+    },
+    "CN": {
+      "gross_debt_bps": 9920,
+      "revenue_bps": 2500,
+      "expense_bps": 3290
+    },
+    "CY": {
+      "gross_debt_bps": 5530,
+      "revenue_bps": 4340,
+      "expense_bps": 4040
+    },
+    "CZ": {
+      "gross_debt_bps": 4460,
+      "revenue_bps": 4140,
+      "expense_bps": 4350
+    },
+    "DE": {
+      "gross_debt_bps": 6290,
+      "revenue_bps": 4790,
+      "expense_bps": 5050
+    },
+    "DK": {
+      "gross_debt_bps": 2750,
+      "revenue_bps": 5050,
+      "expense_bps": 4760
+    },
+    "EE": {
+      "gross_debt_bps": 2420,
+      "revenue_bps": 4390,
+      "expense_bps": 4520
+    },
+    "ES": {
+      "gross_debt_bps": 10040,
+      "revenue_bps": 4220,
+      "expense_bps": 4470
+    },
+    "FI": {
+      "gross_debt_bps": 8930,
+      "revenue_bps": 5370,
+      "expense_bps": 5760
+    },
+    "GB": {
+      "gross_debt_bps": 10230,
+      "revenue_bps": 3830,
+      "expense_bps": 4360
+    },
+    "GR": {
+      "gross_debt_bps": 14570,
+      "revenue_bps": 5090,
+      "expense_bps": 4970
+    },
+    "HR": {
+      "gross_debt_bps": 5590,
+      "revenue_bps": 4640,
+      "expense_bps": 4930
+    },
+    "HU": {
+      "gross_debt_bps": 7520,
+      "revenue_bps": 4280,
+      "expense_bps": 4750
+    },
+    "ID": {
+      "gross_debt_bps": 4100,
+      "revenue_bps": 1330,
+      "expense_bps": 1620
+    },
+    "IE": {
+      "gross_debt_bps": 3290,
+      "revenue_bps": 2320,
+      "expense_bps": 2160
+    },
+    "IN": {
+      "gross_debt_bps": 8410,
+      "revenue_bps": 2100,
+      "expense_bps": 2850
+    },
+    "IT": {
+      "gross_debt_bps": 13710,
+      "revenue_bps": 4790,
+      "expense_bps": 5110
+    },
+    "JP": {
+      "gross_debt_bps": 20650,
+      "revenue_bps": 3580,
+      "expense_bps": 3690
+    },
+    "KR": {
+      "gross_debt_bps": 5230,
+      "revenue_bps": 2260,
+      "expense_bps": 2400
+    },
+    "LT": {
+      "gross_debt_bps": 3980,
+      "revenue_bps": 3900,
+      "expense_bps": 4120
+    },
+    "LU": {
+      "gross_debt_bps": 2700,
+      "revenue_bps": 4730,
+      "expense_bps": 4830
+    },
+    "LV": {
+      "gross_debt_bps": 4690,
+      "revenue_bps": 4130,
+      "expense_bps": 4540
+    },
+    "MT": {
+      "gross_debt_bps": 4680,
+      "revenue_bps": 3390,
+      "expense_bps": 3700
+    },
+    "MX": {
+      "gross_debt_bps": 6180,
+      "revenue_bps": 2500,
+      "expense_bps": 2980
+    },
+    "NL": {
+      "gross_debt_bps": 4330,
+      "revenue_bps": 4330,
+      "expense_bps": 4510
+    },
+    "PL": {
+      "gross_debt_bps": 5880,
+      "revenue_bps": 4290,
+      "expense_bps": 4940
+    },
+    "PT": {
+      "gross_debt_bps": 8990,
+      "revenue_bps": 4410,
+      "expense_bps": 4370
+    },
+    "RO": {
+      "gross_debt_bps": 6060,
+      "revenue_bps": 3280,
+      "expense_bps": 4000
+    },
+    "RU": {
+      "gross_debt_bps": 1720,
+      "revenue_bps": 3520,
+      "expense_bps": 3670
+    },
+    "SA": {
+      "gross_debt_bps": 3170,
+      "revenue_bps": 2320,
+      "expense_bps": 2920
+    },
+    "SE": {
+      "gross_debt_bps": 3490,
+      "revenue_bps": 4800,
+      "expense_bps": 4940
+    },
+    "SI": {
+      "gross_debt_bps": 6590,
+      "revenue_bps": 4610,
+      "expense_bps": 4850
+    },
+    "SK": {
+      "gross_debt_bps": 6160,
+      "revenue_bps": 4370,
+      "expense_bps": 4870
+    },
+    "TR": {
+      "gross_debt_bps": 2350,
+      "revenue_bps": 2960,
+      "expense_bps": 3290
+    },
+    "US": {
+      "gross_debt_bps": 12390,
+      "revenue_bps": 3090,
+      "expense_bps": 3770
+    },
+    "ZA": {
+      "gross_debt_bps": 7860,
+      "revenue_bps": 2840,
+      "expense_bps": 3300
+    }
+  }
+}

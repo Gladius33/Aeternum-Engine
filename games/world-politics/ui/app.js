@@ -183,13 +183,22 @@ async function internationalDashboard(){
  if(own){
   for(const [k,label] of [['gdp','PIB de référence'],['population','Population de référence'],['budget','Budget de référence'],['gdp_per_capita','PIB par habitant historique']])line($('international-observations'),label,observedLabel(own.observations[k]));
   line($('international-observations'),'Institutions nationales',own.national_institution_clock?'Horloge institutionnelle active':'Module national non disponible');
-  line($('international-observations'),'Économie domestique',own.domestic_policy?'Moteur français':'Projection partielle, sans budget dynamique');
+  line($('international-observations'),'Économie domestique',own.domestic_policy?'Moteur français':(d.national_fiscal_ledger?'Budget normalisé expérimental':'Projection partielle, sans budget dynamique'));
   const profile=own.national_reference,sc=own.consumption_scenario;
   if(profile){
    line($('international-observations'),'Renouvellement ordinaire (mois de scénario)',profile.next_ordinary_chamber_renewal_month);
    line($('international-observations'),'Mode de gouvernement de référence',profile.government_mode);
    const keys={household_npish_consumption_per_capita_real:'Consommation réelle par habitant',gdp_per_capita_ppp_real:'PIB réel par habitant en PPA',central_government_debt:'Dette de l’administration centrale (% PIB)',revenue_excluding_grants_central_government:'Recettes centrales hors dons',expense_central_government:'Dépenses centrales',tax_revenue_central_government:'Recettes fiscales centrales',youth_unemployment_modelled:'Chômage des jeunes',gini_index:'Indice de Gini',total_natural_resource_rents:'Rentes des ressources naturelles',government_education_expenditure_share:'Dépenses publiques d’éducation',physicians_density:'Médecins pour 1 000 habitants',hospital_beds_density:'Lits hospitaliers pour 1 000 habitants'};
    for(const [id,label] of Object.entries(keys))line($('international-observations'),label,observedLabel(profile.observations[id]));
+  }
+  const ledger=d.national_fiscal_ledger;
+  if(ledger){
+   const pct=v=>(100*v/ledger.reference_gdp_units).toFixed(4)+' % du PIB de référence';
+   line($('international-observations'),'Trésorerie simulée',pct(ledger.state.stocks.cash));
+   line($('international-observations'),'Dette brute simulée',pct(ledger.state.stocks.gross_debt));
+   line($('international-observations'),'Facilité de financement restante',pct(ledger.state.credit_remaining));
+   line($('international-observations'),'Arriérés simulés',pct(Object.values(ledger.state.arrears).reduce((a,b)=>a+b,0)));
+   line($('international-observations'),'Source et périmètre',ledger.source.source_name+' ('+ledger.source.data_year+'), administrations publiques ; scénario normalisé, non monétaire, sans échéancier de principal connu.');
   }
   const fiscal=own.fiscal_scenario;
   if(fiscal){

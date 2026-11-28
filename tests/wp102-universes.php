@@ -186,6 +186,7 @@ ck102(count(array_filter($ivFr['body']['incoming'],fn($p)=>$p['from']==='state_d
 ck102(count(array_filter($ivDe['body']['incoming'],fn($p)=>$p['from']==='state_de'))===0,'outgoing offer not an incoming one');
 $deView=array_values(array_filter($ivDe['body']['countries'],fn($c)=>$c['is_you']))[0];
 ck102($deView['national_reference']['reference_as_of']==='2026-11-27'&&$deView['consumption_scenario']['scenario_index_bps']===10000,'foreign member sees pinned macro scenario');
+ck102($ivDe['body']['national_fiscal_ledger']['country']==='DE'&&$ivDe['body']['national_fiscal_ledger']['persisted']&&!$ivDe['body']['national_fiscal_ledger']['rankable'],'foreign member receives pinned experimental fiscal ledger');
 ck102($deView['fiscal_scenario']['tax_reference_year']===2024&&$deView['fiscal_scenario']['trade_tax_shortfall_bps_reference_gdp']===0&&!$deView['fiscal_scenario']['rankable'],'international member receives separate fiscal scenario');
 $dip=call102('GET',$root.'/diplomacy',null,2);
 $payload['from']='state_fr';$payload['to']='state_de';
@@ -242,6 +243,11 @@ $p107=json_decode($q107->fetchColumn(),true,64,JSON_THROW_ON_ERROR)['policies'][
 ck102($p107['authorized_on']===null&&$p107['instrument_sha']===null,'WP107 programme cannot bypass enactment');
 $due->execute([$world]);
 ck102($scheduler->tick($world)['day']==='2027-05-15','WP103 server advances shared clock');
+$fq=$db->prepare('SELECT committed_day,config_json,state_json,state_sha FROM wp_national_fiscal_worlds WHERE world_id=?');$fq->execute([$world]);$fr=$fq->fetch(PDO::FETCH_ASSOC);
+$fc=json_decode($fr['config_json'],true,32,JSON_THROW_ON_ERROR);$fst=json_decode($fr['state_json'],true,32,JSON_THROW_ON_ERROR);
+ck102($fr['committed_day']==='2027-05-15'&&count($fst['countries'])===42&&!isset($fst['countries']['FR'])&&$fst['countries']['DE']['day']==='2027-05-15','42 normalized ledgers committed with common day');
+ck102(count($fst['last_flows'])===42&&$fc['source']['data_year']===2025&&$fc['unit']==='normalized_reference_GDP_units','fiscal provenance and settlement retained');
+$firstSha=$fr['state_sha'];ck102($scheduler->tick($world)['status']==='not_due','fiscal ledger not advanced before next deadline');$fq->execute([$world]);ck102($fq->fetch(PDO::FETCH_ASSOC)['state_sha']===$firstSha,'fiscal state cannot consume credit twice');
 $dip103=call102('GET',$root.'/diplomacy',null,8);
 ck102($dip103['status']===200,'WP103 shared diplomacy after tick');
 $check=$db->prepare('SELECT state_json FROM wp_diplomatic_states WHERE world_id=?');$check->execute([$world]);
