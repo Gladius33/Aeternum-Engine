@@ -56,7 +56,7 @@ final class CareerLegislativePrincipal implements InstitutionalActorAuthorizer{
 final class CareerEconomicWorld
 {
     private static function json(array $x):string{return json_encode($x,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
-    public static function seed(\PDO $db,string $world,string $day,bool $expandedProgramme=false):void{
+    public static function seed(\PDO $db,string $world,string $day,bool $expandedProgramme=false,bool $humanBallots=false):void{
         CareerInstitutionLedger::check($db->inTransaction()&&$day===CareerScoreContract::START,'economic bootstrap requires opening transaction');
         $put=static function(string $sql,array $params)use($db):void{$q=$db->prepare($sql);$q->execute($params);};
         $bundle=GlobalReferenceBundle::published();$sha=(new PdoGlobalReferenceBundles($db))->install($bundle);
@@ -66,7 +66,7 @@ final class CareerEconomicWorld
         $put('INSERT INTO wp_world_rosters(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',[$world,'FR',self::json($roster->snapshot()),$roster->snapshotHash()]);
         $inst=new InstitutionalSimulation($world,'FR',$day);
         $inst->enableRevision();
-        if($expandedProgramme)$inst->enableCareerOrdinaryLegislation();
+        if($expandedProgramme)$inst->enableCareerOrdinaryLegislation($humanBallots?'career-ordinary-v2':'career-ordinary-v1');
         $put('INSERT INTO wp_institutional_states(world_id,country_code,state_json,state_sha,revision) VALUES(?,?,?,?,0)',[$world,'FR',self::json($inst->snapshot()),$inst->hash()]);
         $dip=new DiplomaticSimulation($world,$day,$bundle->actors);
         $put('INSERT INTO wp_diplomatic_states(world_id,state_json,state_sha,actor_registry_sha,revision) VALUES(?,?,?,?,0)',[$world,self::json($dip->snapshot()),$dip->hash(),$bundle->actors->hash()]);

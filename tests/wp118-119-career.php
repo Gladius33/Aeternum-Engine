@@ -449,3 +449,22 @@ $manual=['kind'=>'appoint_pm','mandate'=>$fallback['active']['president'],'gener
 $manualState=L::apply($fallback,$act($fallback,'acct-human',$manual));
 ck($manualState['last_human_cabinet_day']['human']==='2027-05-14','accepted human action has durable day');
 ck(L::automaticCabinet($manualState,'2027-05-15')['kind']==='propose_minister','fallback continues next day');
+
+// Signed individual ballots: one seat, text-bound, current mandate only.
+$votes=add($fallback,'legislator');
+$votes=change($votes,'election',[],[grant('deputy-1','legislator')]);
+$mid=$votes['active']['deputy-1'];
+$testBill=['id'=>'cl-'.str_repeat('c',48),'texts'=>['standard'=>str_repeat('d',64)]];
+$pVote=['bill'=>$testBill['id'],'chamber'=>'assembly','text_sha'=>$testBill['texts']['standard'],'mandate'=>$mid,'generation'=>1,'choice'=>'no'];
+$eVote=evt($votes,'ordinary_vote',$pVote,'2027-05-15');$eVote['actor']='acct-legislator';
+$eVote['evidence_sha']=L::digest(['kind'=>'career-ordinary-vote-v1','world'=>$votes['world'],'day'=>$eVote['day'],'actor'=>$eVote['actor'],'payload'=>$pVote]);
+$recorded=L::apply($votes,$eVote);no(fn()=>L::apply($recorded,$eVote));
+ck($cl::seatChoices($recorded,$testBill,'assembly','2027-05-15')===[1=>'no'],'human ballot replaces exact seat');
+ck($cl::seatChoices($recorded,$testBill,'senate','2027-05-15')===[],'no cross chamber vote');
+$baseBallot=$cl::ballot($votes['world'],$testBill['id'],'assembly');
+$humanBallot=$cl::ballot($votes['world'],$testBill['id'],'assembly',[1=>'no']);
+ck(array_sum($humanBallot)<=577&&$humanBallot['no']>=$baseBallot['no']&&$humanBallot['no']<=$baseBallot['no']+1,'no additional synthetic seat');
+$closedVotes=change($recorded,'resignation',['deputy-1'],[],'2027-05-16');
+ck($cl::seatChoices($closedVotes,$testBill,'assembly','2027-05-16')===[],'closed mandate ballot not carried forward');
+$sv=new InstitutionalSimulation('ordinary-v2-fixture','FR','2027-05-14');$sv->enableCareerOrdinaryLegislation('career-ordinary-v2');
+ck(InstitutionalSimulation::restore($sv->snapshot())->snapshot()===$sv->snapshot(),'versioned ballot route restores');

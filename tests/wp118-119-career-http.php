@@ -12,6 +12,9 @@ function req(string $method,string $path,mixed $body=null,?string $token=null,st
 }
 $pdo=new PDO(getenv('WP_DB_DSN'),getenv('WP_DB_USER'),getenv('WP_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 $exec=function($sql,$args)use($pdo){$q=$pdo->prepare($sql);$q->execute($args);};
+// Separate the shared loopback peer budget from the preceding HTTP suite.
+// Test-only DB guard above; do not weaken any application rate limit.
+$exec('DELETE FROM wp_http_limits WHERE bucket_sha=?',[hash('sha256',"http-peer\n127.0.0.1")]);
 $ids=[];$tokens=[];foreach(range(1,3) as $i){$id='acct-'.bin2hex(random_bytes(10));$tok=bin2hex(random_bytes(32));$ids[]=$id;$tokens[]=$tok;
 $exec('INSERT INTO wp_accounts(account_id,username,password_hash) VALUES(?,?,?)',[$id,$id,'fixture']);$exec('INSERT INTO wp_sessions(token_sha,account_id,expires_at) VALUES(?,?,?)',[hash('sha256',$tok),$id,time()+3600]);}
 [$a,$b,$c]=$tokens;
@@ -367,4 +370,8 @@ ck($cs->applyForeignEvidence($uw,'accountability_us_succession',$proof,$secret)=
 $uv=req('GET',$up.'/career',null,$etoken)['body'];
 ck(count($uv['occupied_offices'])===1&&$uv['occupied_offices'][0]['identity']['id']===$vp&&$uv['occupied_offices'][0]['expires']==='2029-01-20','US successor retains original term end');
 $cs->tickForeignInstitution($uw,'2027-05-15');
-ck(req('GET',$up.'/career',null,$etoken)['body']['occupied_offices'][0]['identity']['id']===$vp,'US successor survives committed day');
+$afterUs=req('GET',$up.'/career',null,$etoken);
+ck($afterUs['status']===200,'US committed career HTTP '.json_encode($afterUs));
+ck($afterUs['body']['occupied_offices'][0]['identity']['id']===$vp,'US successor survives committed day');
+ck(req('POST',$pp.'/ordinary-votes',['bill'=>'cl-'.str_repeat('a',48),'chamber'=>'assembly','text_sha'=>str_repeat('b',64),'mandate'=>'mandate-invalid','generation'=>1,'choice'=>'yes'],$etoken,'ordinary-vote-denied-001')['status']===409,'unverified bill and mandate denied');
+

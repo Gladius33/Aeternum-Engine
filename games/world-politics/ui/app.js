@@ -69,7 +69,15 @@ async function dashboard(){const path=prefix();const [c,e,i,ch]=await Promise.al
  for(const [id,p] of Object.entries(d.policies))line($('policies'),id,p.authorized_on?'Autorisé le '+p.authorized_on+' · effet '+p.effective_on:'Proposé · effet prévu '+p.effective_on+' · non autorisé');
  const opts=ch.fictional_objective_options.filter(p=>!Object.hasOwn(d.policies,p.id)&&(pm||(p.portfolio&&own('ministry.'+p.portfolio+'.propose'))));
  if(opts.length){const s=select($('propose'),'Mesure',opts.map(x=>[x.id,x.id]));const dt=el('input');dt.type='date';const date=new Date(c.day+'T00:00:00Z');date.setUTCDate(date.getUTCDate()+220);dt.value=date.toISOString().slice(0,10);const l=el('label','Date d’effet proposée');l.append(dt);$('propose').append(l);button($('propose'),'Déposer',async()=>{const p=opts.find(x=>x.id===s.value),m=pm||own('ministry.'+p.portfolio+'.propose');await request(path+'/policy-proposals','POST',{mandate:m.id,generation:m.generation,policy_id:p.id,effective_day:dt.value},e.domestic.etag);await dashboard();});}
- for(const b of Object.values(i.state.legislation?.bills||{}))line($('laws'),b.policy_id,b.status+' · '+(b.effect_on||'Date non fixée'));
+ for(const b of Object.values(i.state.legislation?.bills||{})){
+  line($('laws'),b.policy_id,b.status+' · '+(b.effect_on||'Date non fixée'));
+  const ch=b.next_chamber,m=ch==='assembly'?own('assembly.vote'):ch==='senate'?own('senate.vote'):null;
+  if(i.state.legislation.career_ordinary==='career-ordinary-v2'&&m&&b.status==='navette'&&b.readings[ch]===0&&(ch!=='senate'||b.last_votes.assembly?.vote?.passed)){
+   const prior=(c.own_ordinary_votes||[]).find(v=>v.bill===b.id&&v.mandate===m.id);
+   if(prior)line($('laws'),'Votre vote',prior.choice);
+   else{const choice=select($('laws'),'Vote '+(ch==='assembly'?'Assemblée':'Sénat'),[['yes','Pour'],['no','Contre'],['abstain','Abstention']]);button($('laws'),'Enregistrer mon vote',async()=>{if(!confirm('Confirmer ce vote définitif ?'))return;await request(path+'/ordinary-votes','POST',{bill:b.id,chamber:ch,text_sha:b.texts.standard,mandate:m.id,generation:m.generation,choice:choice.value});await dashboard();});}
+  }
+ }
  for(const b of Object.values(i.state.bills||{}))line($('laws'),b.title||b.id,b.status);
  const mp=pm||own('assembly.propose')||own('senate.propose');if(mp){const input=el('input');input.maxLength=120;input.placeholder='Titre du texte';$('submit-bill').append(input);button($('submit-bill'),'Soumettre un texte',async()=>{await request(path+'/bills','POST',{mandate:mp.id,generation:mp.generation,title:input.value},i.etag);await dashboard();});}
  await cohorts();say('État publié au '+c.day+'.');

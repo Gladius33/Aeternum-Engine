@@ -36,10 +36,11 @@ final class BicameralLegislation
     }
     /** Career worlds have their own signed government, not the legacy
      * fictional cabinet. Only ordinary reviewed economic texts are enabled. */
-    public function enableCareerOrdinary():void{
+    public function enableCareerOrdinary(string $edition='career-ordinary-v1'):void{
         if(!isset($this->s['minor_units'])||isset($this->s['career_ordinary'])||isset($this->s['responsibility'])||$this->s['history']!==[]||$this->s['day']!==$this->s['start_day'])
             throw new \DomainException('Career ordinary route must be pinned at bootstrap');
-        $this->s['career_ordinary']='career-ordinary-v1';
+        if(!in_array($edition,['career-ordinary-v1','career-ordinary-v2'],true))throw new \DomainException('Unknown career ordinary edition');
+        $this->s['career_ordinary']=$edition;
     }
     public function enablePreciseUnits():void
     {
@@ -345,7 +346,7 @@ final class BicameralLegislation
             if($s['minor_units']!==true)throw new \DomainException('Invalid text unit model');
             $x->enablePreciseUnits();
         }
-        if(isset($s['career_ordinary']))$x->enableCareerOrdinary();
+        if(isset($s['career_ordinary']))$x->enableCareerOrdinary($s['career_ordinary']);
         if(array_key_exists('responsibility',$s))$x->enableResponsibility();
         if(isset($s['responsibility']['assembly']))$x->enableAssembly();
         if(isset($s['responsibility']['lifecycle']))$x->enableLifecycle();

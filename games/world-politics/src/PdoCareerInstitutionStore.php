@@ -86,6 +86,14 @@ final class PdoCareerInstitutionStore
                 $digest=FrenchCareerInstitutionBridge::evidence(self::decode($source['state_json']),(int)$source['revision'],$e,$source['state_sha']);
                 CareerInstitutionLedger::check(hash_equals($digest,$e['evidence_sha']),'institution evidence digest mismatch');
             }
+            if($e['operation']==='ordinary_vote'){
+                require_once __DIR__.'/CareerLegislativeAutonomy.php';
+                $source=$this->query("SELECT state_json,state_sha FROM wp_institutional_states WHERE world_id=? AND country_code='FR' FOR UPDATE",[$world])->fetch(\PDO::FETCH_ASSOC);
+                CareerInstitutionLedger::check($source!==false,'missing ordinary vote source');
+                $is=InstitutionalSimulation::restore(self::decode($source['state_json']));
+                CareerInstitutionLedger::check(hash_equals($source['state_sha'],$is->hash()),'ordinary vote source digest');
+                CareerLegislativeAutonomy::assertOpenVote($is->snapshot(),$e['payload'],$e['day']);
+            }
             CareerInstitutionLedger::check($e['operation']!=='admit_ai_roster','fictional AI admission retired');
             if(in_array($e['operation'],['admit','claim_real_career'],true))$this->activeAccount($world,$e['payload']['account']);
             if($e['operation']==='claim_real_career'){
@@ -135,6 +143,8 @@ final class PdoCareerInstitutionStore
             $m=$s['mandates'][$id];$offices[]=['office'=>$office,'expires'=>$m['expires'],'interim'=>$m['interim'],... (isset($s['careers'][$m['career']]['person_reference'])?['identity'=>$s['careers'][$m['career']]['identity'],'controller'=>$s['careers'][$m['career']]['controller']]:[])];
             if($career!==null&&$m['career']===$career['id'])$mandates[]=['id'=>$id,'office'=>$office,'generation'=>$m['generation'],'expires'=>$m['expires'],'powers'=>$clock['committed_day']<$m['expires']?$m['powers']:[]];
         }
+        $ownVotes=[];foreach($s['ordinary_votes']??[] as $votes)foreach($votes as $v)
+            if(($s['mandates'][$v['mandate']]['career']??null)!==null&&$s['mandates'][$v['mandate']]['career']===($career['id']??null))$ownVotes[]=$v;
         $candidates=[];
         if($s['country']==='FR'){
             foreach($s['careers'] as $id=>$c){
@@ -145,6 +155,7 @@ final class PdoCareerInstitutionStore
         }
         return ['world_id'=>$world,'country'=>$s['country'],'day'=>$clock['committed_day'],'revision'=>(int)$clock['revision'],'career'=>$career,'mandates'=>$mandates,'occupied_offices'=>$offices,
             'appointment_candidates'=>$candidates,'cabinet_autonomy'=>$s['cabinet_autonomy']??'legacy',
+            'own_ordinary_votes'=>$ownVotes,
             'institution'=>['state_id'=>$s['state_id'],'regime'=>$s['regime'],'assembly'=>$s['assembly'],'senate'=>$s['senate'],'government'=>$s['government'],'constitution_revision'=>$s['constitution_revision']],
             'appointment_proposals'=>array_values(array_filter($s['appointment_proposals']??[],fn($p)=>$p['status']==='pending'&&($s['active']['prime-minister']??null)===$p['pm_mandate'])),'rankable'=>false,'score_progress'=>CareerScoreContract::ledgerProgress($s,$career['id']??null,$clock['committed_day']),'profile'=>'isolated-career-alpha'];
     }
@@ -257,6 +268,26 @@ final class PdoCareerInstitutionStore
             $day=$clock['committed_day'];$e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>$command,'actor'=>$a,'operation'=>'cabinet_act','payload'=>$p,
                 'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'session-cabinet-act-v1','world'=>$world,'day'=>$day,'actor'=>$a,'payload'=>$p])];
             return $this->applyLocked($e,hash_hmac('sha256',CareerInstitutionLedger::json($e),$secret));
+        });
+    }
+    /** Record the member's own ballot under the same fence as the clock. */
+    public function ordinaryVoteForSession(string $world,string $token,array $p,string $key):array{
+        CareerInstitutionLedger::fields($p,['bill','chamber','text_sha','mandate','generation','choice']);
+        foreach(['bill','chamber','text_sha','mandate','choice'] as $k)CareerInstitutionLedger::check(is_string($p[$k]),'invalid vote field');
+        CareerInstitutionLedger::check(is_int($p['generation'])&&$p['generation']>=1&&preg_match('/^[A-Za-z0-9_-]{12,100}$/D',$key)===1,'invalid vote request');
+        $command='ordinary-vote-'.substr(hash('sha256',$key),0,48);
+        return $this->tx(function()use($world,$token,$p,$command){
+            $clock=$this->clock($world);$account=$this->sessionAccount($token);$this->activeAccount($world,$account);
+            $this->replay($world,$this->row($world));
+            $prior=$this->query('SELECT event_json,receipt_json FROM wp_career_events WHERE world_id=? AND actor_id=? AND command_id=?',[$world,$account,$command])->fetch(\PDO::FETCH_ASSOC);
+            if($prior!==false){
+                $e=self::decode($prior['event_json']);CareerInstitutionLedger::check($e['operation']==='ordinary_vote'&&CareerInstitutionLedger::json($e['payload'])===CareerInstitutionLedger::json($p),'vote idempotency conflict');
+                return self::decode($prior['receipt_json']);
+            }
+            $day=$clock['committed_day'];
+            $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>$command,'actor'=>$account,'operation'=>'ordinary_vote','payload'=>$p,
+                'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'career-ordinary-vote-v1','world'=>$world,'day'=>$day,'actor'=>$account,'payload'=>$p])];
+            return $this->applyLocked($e,$this->evidence->sign($e));
         });
     }
     /** Server-side fictional ballot importer. No public route or competitive status. */
@@ -484,14 +515,14 @@ final class PdoCareerInstitutionStore
         WorldMutationFence::seed($this->db,$world);
         $s=CareerInstitutionLedger::initial($world,'FR','career',$day);$j=CareerInstitutionLedger::json($s);
         $this->query('INSERT INTO wp_career_ledgers(world_id,initial_json,state_json,state_sha) VALUES(?,?,?,?)',[$world,$j,$j,CareerInstitutionLedger::digest($s)]);
-        require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day,true);
+        require_once __DIR__.'/CareerEconomicWorld.php';CareerEconomicWorld::seed($this->db,$world,$day,true,true);
         $this->seedAutonomousLocked($world,['committed_day'=>$day,'revision'=>0],$secret);
         $this->seedFrenchSupplementLocked($world,['committed_day'=>$day,'revision'=>0],true);
         $e=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>0,'command'=>'participation-opening-v1','actor'=>'career-participation-clerk','operation'=>'participation_enable','payload'=>['version'=>CareerParticipation::VERSION]];
         $e['evidence_sha']=CareerParticipation::digest($e);$this->applyLocked($e,$this->evidence->sign($e));
         $this->query('INSERT INTO wp_career_public_worlds(world_id) VALUES(?)',[$world]);
         $no=(int)$this->db->lastInsertId();
-        require_once __DIR__.'/CareerScorePublication.php';CareerScorePublication::seed($this->db,$world,CareerInstitutionLedger::CABINET_V3);
+        require_once __DIR__.'/CareerScorePublication.php';CareerScorePublication::seed($this->db,$world,CareerInstitutionLedger::CABINET_V3.'|career-ordinary-v2');
         return ['world_id'=>$world,'universe_no'=>$no];
     }
     private static function seasonEnd():string{

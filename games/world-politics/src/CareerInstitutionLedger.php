@@ -484,6 +484,17 @@ final class CareerInstitutionLedger
                 &&$s['active']===[]&&$s['mandates']===[]&&!isset($s['cabinet_autonomy'])&&in_array($p['version'],[self::CABINET_V2,self::CABINET_V3],true)
                 &&$e['actor']==='career-ai-clerk'&&$e['evidence_sha']===self::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$s['world'],'day'=>$day,'payload'=>$p]),'cabinet autonomy opening pin');
             $s['cabinet_autonomy']=$p['version'];
+        }elseif($op==='ordinary_vote'){
+            self::fields($p,['bill','chamber','text_sha','mandate','generation','choice']);
+            self::check($s['country']==='FR'&&$s['mode']==='career'&&($s['cabinet_autonomy']??null)===self::CABINET_V3
+                &&is_string($p['bill'])&&preg_match('/^cl-[a-f0-9]{48}$/D',$p['bill'])===1&&is_string($p['text_sha'])&&preg_match('/^[a-f0-9]{64}$/D',$p['text_sha'])===1
+                &&in_array($p['chamber'],['assembly','senate'],true)&&is_string($p['mandate'])&&is_int($p['generation'])
+                &&in_array($p['choice'],['yes','no','abstain'],true)
+                &&$e['evidence_sha']===self::digest(['kind'=>'career-ordinary-vote-v1','world'=>$s['world'],'day'=>$day,'actor'=>$e['actor'],'payload'=>$p]),'ordinary vote shape');
+            $ability=$p['chamber']==='assembly'?'assembly.vote':'senate.vote';
+            self::check($s['assembly']==='active'&&self::allows($s,$e['actor'],$p['mandate'],$p['generation'],$ability,$day),'ordinary vote authority denied');
+            self::check(!isset($s['ordinary_votes'][$p['bill']][$p['mandate']]),'ordinary vote already recorded');
+            $s['ordinary_votes'][$p['bill']][$p['mandate']]=['day'=>$day,...$p];
         }elseif($op==='pin_fr_programmes'){
             self::pinFrenchProgrammes($s,$e);
         }elseif($op==='admit_party_ai_roster'){
