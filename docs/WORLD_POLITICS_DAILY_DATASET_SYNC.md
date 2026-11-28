@@ -70,3 +70,7 @@ withdraw-game-dataset operator command. No automatic cross-database
 withdrawal propagation or retention cleanup yet.
 
 No cron is installed by GitHub CI; deploy and schedule on the actual server.
+
+
+### Optional permanent exclusion propagation
+Set `WP_DATASET_SYNC_WITHDRAW_EXCLUDED=YES` only when the operator intends disabled source-world release flags to mean permanent withdrawal in Research. The default remains NO. Under the existing stream lock, the sync scans up to 1,000 disabled source flags before importing any new page, derives the same pseudonymous aliases, deletes existing imported rows and installs idempotent permanent tombstones. Invalid or oversized scans fail before any withdrawal; reruns safely finish interrupted processing. Subsequent re-enabling of a source flag does not undo a tombstone. No new SQL privileges or schema are needed. Source worlds deleted without a retained disabled flag still need manual withdrawal; there is no immediate cross-database revocation or recall of downloaded copies. Monitor exclusions_processed and excluded_rows_deleted. Test fixtures exercise malformed scan, idempotent purge and prevention of reimport.

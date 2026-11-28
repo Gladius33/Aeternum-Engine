@@ -296,6 +296,14 @@ try{
     try{$pubClass::rankings($pdo,$eid,$public['body']['universe_no'],$opening);throw new RuntimeException('rolled-back universe score accepted');}catch(DomainException $expected){}
     $exec('UPDATE wp_career_score_latest SET sequence_no=? WHERE world_id=? AND series_id=?',[$closed['sequence'],$pw,$sid]);
     ck($pubClass::rankings($pdo,$eid,null,$opening)['rows']===$final['rows'],'restored journal head retains terminal score');
+    $exec('UPDATE wp_career_score_latest SET qualified=0 WHERE world_id=? AND series_id=?',[$pw,$sid]);
+    try{$pubClass::rankings($pdo,$eid,null,$opening);throw new RuntimeException('hidden qualified score accepted');}catch(DomainException $expected){}
+    $exec('UPDATE wp_career_score_latest SET qualified=1,cohort_sha=? WHERE world_id=? AND series_id=?',[str_repeat('d',64),$pw,$sid]);
+    try{$pubClass::rankings($pdo,$eid,$public['body']['universe_no'],$opening);throw new RuntimeException('hidden cohort accepted');}catch(DomainException $expected){}
+    $exec('UPDATE wp_career_score_latest SET cohort_sha=? WHERE world_id=? AND series_id=?',[$opening,$pw,$sid]);
+    $exec('DELETE FROM wp_career_score_latest WHERE world_id=? AND series_id=?',[$pw,$sid]);
+    try{$pubClass::rankings($pdo,$eid,null,$opening);throw new RuntimeException('missing score index accepted');}catch(DomainException $expected){}
+    $exec('INSERT INTO wp_career_score_latest(world_id,series_id,sequence_no,account_id,cohort_sha,qualified) VALUES(?,?,?,?,?,1)',[$pw,$sid,$closed['sequence'],$eid,$opening]);
     $exec('UPDATE wp_career_score_events SET signature_sha=? WHERE world_id=? AND series_id=? AND sequence_no=?',[str_repeat('0',64),$pw,$sid,$closed['sequence']]);
     try{$pubClass::rankings($pdo,$eid,null,$opening);throw new RuntimeException('tampered score accepted');}catch(DomainException $expected){}
 }finally{$pdo->rollBack();}

@@ -16,3 +16,7 @@ The independent journal audit verifies HMAC, predecessor chain, career-event SHA
 
 ### Journal-head rollback protection
 The experimental ranking read (global and per universe) and prior-score lookup now check that each selected projection points at the maximum sequence in its own score journal. An older valid signature cannot replace a newer terminal event on the same committed day. The HTTP/MariaDB regression rolls the index back to the authentic preceding event, verifies rejection in both scopes, and restores the terminal projection. This is a selected-row integrity guard, not a substitute for the independent full journal audit (missing or hidden projections, entire journal rollback and external anchoring remain distinct concerns). No scoring formula, cohort pins or historic world state changes.
+
+
+### Consolidation: missing and hidden score projections
+Ranking candidates are now selected from journal heads, not mutable cohort or qualification indexes. The signed head is checked before cohort, qualification, and membership filtering; missing projections, stale pointers and altered flags fail closed. The prior-score lookup also starts from the journal. The 5,000 bound now applies to all discovered series in the selected scope, not only qualified candidates; scalable indexed materialization and independent anchoring remain necessary. HTTP tests cover missing projections, hidden qualification and cohort mutation in addition to authentic rollback. No score formula or existing evidence format changes.

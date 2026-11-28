@@ -62,6 +62,17 @@ final class GameDataset
         $e=self::project($world,$day,$revision,$dom);
         self::q($db,'INSERT INTO wp_game_dataset_outbox(world_id,committed_day,envelope_json) VALUES(?,?,?)',[$world,$day,self::json($e)]);
     }
+    /** Explicit operator opt-in: treat a disabled release flag as permanent
+     * destination withdrawal. Bound and validate the entire exclusion scan. */
+    public static function excludedAliases(\PDO $db):array{
+        $raw=self::q($db,'SELECT world_id FROM wp_game_dataset_consent WHERE enabled=0 ORDER BY world_id LIMIT 1001')->fetchAll(\PDO::FETCH_COLUMN);
+        if(count($raw)>1000)throw new \DomainException('Dataset exclusion scan capacity');
+        $aliases=[];foreach($raw as $world){
+            if(!is_string($world)||$world==='')throw new \DomainException('Invalid excluded world');
+            $aliases[]=hash_hmac('sha256','world|'.$world,self::key());
+        }
+        return $aliases;
+    }
     public static function page(\PDO $db,int $after):array{
         if($after<0)throw new \DomainException('Invalid cursor');
         $raw=self::q($db,'SELECT o.seq,o.envelope_json FROM wp_game_dataset_outbox o JOIN wp_game_dataset_consent c USING(world_id) WHERE c.enabled=1 AND o.seq>? ORDER BY o.seq LIMIT 101',[$after])->fetchAll(\PDO::FETCH_ASSOC);

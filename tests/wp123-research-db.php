@@ -61,7 +61,13 @@ ckResearch((int)$db->query("SELECT last_seq FROM wp_research_dataset_sync WHERE 
 $pro=$q->createTenant('pro',30);
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pro['token']))['body']['rows'][0]['row']===$game['row'],'Pro game data feed');
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pay['token']))['status']===403,'standard game feed denied');
-ckResearch($q->withdrawGameDataset($game['row']['world'])['deleted_rows']===1,'withdrawn imported aggregate');
+$exclude=fn()=>[$game['row']['world']];
+$empty=fn(int $after)=>['version'=>$pack['version'],'rows'=>[],'next_after'=>$after,'has_more'=>false];
+try{$sync::run($db,$q,'ci-source',10,$empty,fn()=>[$game['row']['world'],'invalid']);throw new RuntimeException('Invalid exclusion accepted');}catch(DomainException $expected){}
+ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pro['token']))['body']['rows'][0]['row']===$game['row'],'invalid exclusion scan made no withdrawal');
+$excluded=$sync::run($db,$q,'ci-source',10,$empty,$exclude);
+ckResearch($excluded['exclusions_processed']===1&&$excluded['excluded_rows_deleted']===1&&$excluded['through_seq']===8,'daily exclusion purges imported aggregate without cursor change');
+ckResearch($sync::run($db,$q,'ci-source',10,$empty,$exclude)['excluded_rows_deleted']===0,'withdrawal idempotent');
 ckResearch($g->handle('GET','/research/v1/datasets/game-worlds','',$head($pro['token']))['body']['rows']===[],'withdrawn data no longer served');
 try{$q->importGameDataset($pack);throw new RuntimeException('Withdrawn world reimported');}catch(DomainException $expected){}
 $withdrawn=$sync::run($db,$q,'ci-withdrawn',10,fn(int $after)=>$after===0?($pack+['next_after'=>1,'has_more'=>false]):['version'=>$pack['version'],'rows'=>[],'next_after'=>$after,'has_more'=>false]);

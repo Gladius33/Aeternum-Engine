@@ -11,7 +11,8 @@ try{
     $pages=getenv('WP_DATASET_SYNC_MAX_PAGES')?:'100';
     if(!ctype_digit($pages))throw new RuntimeException('Invalid page budget');
     $r=\Aeternum\WorldPolitics\GameDatasetSync::run($db,new \Aeternum\WorldPolitics\ResearchQueue($db),$stream,(int)$pages,
-        fn(int $after)=>\Aeternum\WorldPolitics\GameDataset::page($source,$after));
+        fn(int $after)=>\Aeternum\WorldPolitics\GameDataset::page($source,$after),
+        getenv('WP_DATASET_SYNC_WITHDRAW_EXCLUDED')==='YES'?fn()=>\Aeternum\WorldPolitics\GameDataset::excludedAliases($source):null);
     echo json_encode($r,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES).PHP_EOL;
     if($r['status']==='backlog_remaining')exit(75);
 }catch(Throwable $e){fwrite(STDERR,"Dataset synchronization failed (".get_class($e).")\n");exit(1);}

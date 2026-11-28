@@ -50,9 +50,10 @@ final class CareerScorePublication
         return CareerScoreContract::cohort($p['pins'],'FR',$p['start'],CareerScoreContract::HORIZON,$mode);
     }
     private static function prior(\PDO $db,string $world,string $series):?array{
-        $r=self::q($db,'SELECT l.*,e.evidence_json,e.signature_sha,
-            (SELECT MAX(h.sequence_no) FROM wp_career_score_events h WHERE h.world_id=l.world_id AND h.series_id=l.series_id) AS journal_head_sequence
-            FROM wp_career_score_latest l JOIN wp_career_score_events e USING(world_id,series_id,sequence_no) WHERE l.world_id=? AND l.series_id=? FOR UPDATE',[$world,$series])->fetch(\PDO::FETCH_ASSOC);
+        $r=self::q($db,'SELECT e.world_id,e.series_id,e.sequence_no,e.evidence_json,e.signature_sha,
+            l.account_id,l.cohort_sha,l.qualified,l.sequence_no AS journal_head_sequence
+            FROM wp_career_score_events e LEFT JOIN wp_career_score_latest l USING(world_id,series_id)
+            WHERE e.world_id=? AND e.series_id=? ORDER BY e.sequence_no DESC LIMIT 1 FOR UPDATE',[$world,$series])->fetch(\PDO::FETCH_ASSOC);
         return $r===false?null:self::verified($r);
     }
     private static function verified(array $r):array{
@@ -185,20 +186,26 @@ final class CareerScorePublication
     public static function rankings(\PDO $db,string $account,?int $no,string $cohort,int $page=1,?string $snapshot=null):array{
         if(!preg_match('/^[a-f0-9]{64}$/D',$cohort)||$page<1||$page>100||($page>1&&$snapshot===null))
             throw new \DomainException('Invalid ranking page or missing snapshot');
-        $sql='SELECT l.*,e.evidence_json,e.signature_sha,u.universe_no,c.committed_day,p.manifest_json,p.signature_sha AS pin_signature,
-            (SELECT MAX(h.sequence_no) FROM wp_career_score_events h WHERE h.world_id=l.world_id AND h.series_id=l.series_id) AS journal_head_sequence
-            FROM wp_career_score_latest l JOIN wp_career_score_events e USING(world_id,series_id,sequence_no)
-            JOIN wp_career_score_pins p USING(world_id) JOIN wp_career_public_worlds u USING(world_id)
-            JOIN wp_world_clock c USING(world_id) JOIN wp_accounts a ON a.account_id=l.account_id
-            JOIN wp_alpha_members m ON m.world_id=l.world_id AND m.account_id=l.account_id
-            WHERE l.cohort_sha=? AND l.qualified=1 AND a.enabled=1';
-        $raw=self::q($db,$sql.($no===null?'':' AND u.universe_no=?').' ORDER BY l.world_id,l.series_id LIMIT '.(self::LIMIT+1),$no===null?[$cohort]:[$cohort,$no])->fetchAll(\PDO::FETCH_ASSOC);
+        // Start from the signed journal, not from mutable qualification or cohort
+        // indexes. A missing projection or hidden qualified series must fail
+        // closed rather than silently disappear from the league.
+        $sql='SELECT e.world_id,e.series_id,e.sequence_no,e.evidence_json,e.signature_sha,
+            l.account_id,l.cohort_sha,l.qualified,l.sequence_no AS journal_head_sequence,
+            u.universe_no,c.committed_day,p.manifest_json,p.signature_sha AS pin_signature,
+            a.enabled AS account_enabled,m.account_id AS member_account
+            FROM wp_career_score_events e LEFT JOIN wp_career_score_latest l USING(world_id,series_id)
+            JOIN wp_career_score_pins p ON p.world_id=e.world_id JOIN wp_career_public_worlds u ON u.world_id=e.world_id
+            JOIN wp_world_clock c ON c.world_id=e.world_id LEFT JOIN wp_accounts a ON a.account_id=l.account_id
+            LEFT JOIN wp_alpha_members m ON m.world_id=e.world_id AND m.account_id=l.account_id
+            WHERE NOT EXISTS (SELECT 1 FROM wp_career_score_events h WHERE h.world_id=e.world_id AND h.series_id=e.series_id AND h.sequence_no>e.sequence_no)';
+        $raw=self::q($db,$sql.($no===null?'':' AND u.universe_no=?').' ORDER BY e.world_id,e.series_id LIMIT '.(self::LIMIT+1),$no===null?[]:[$no])->fetchAll(\PDO::FETCH_ASSOC);
         if(count($raw)>self::LIMIT)throw new \DomainException('Ranking capacity exceeded');
         $rows=[];foreach($raw as $r){
             $e=self::verified($r);$p=$e['preview'];$pin=self::decode($r['manifest_json']);self::key()->verify($pin,$r['pin_signature']);
-            if($pin['world']!==$e['world']||$pin['version']!==self::VERSION||self::cohort($pin,$e['mode'])!==$cohort
+            if($pin['world']!==$e['world']||$pin['version']!==self::VERSION||self::cohort($pin,$e['mode'])!==$e['cohort']
                 ||$e['published_day']>$r['committed_day']||(!$p['terminal']&&$e['published_day']!==$r['committed_day']))
                 throw new \DomainException('Uncommitted ranking evidence');
+            if($e['cohort']!==$cohort||!$e['qualified']||(int)$r['account_enabled']!==1||$r['member_account']!==$e['account'])continue;
             $rows[]=['account'=>$e['account'],'universe'=>(int)$r['universe_no'],'series'=>$e['series'],'score'=>$p['score'],
                 'gain'=>$p['purchasing_power_points'],'tenure'=>$p['tenure_days'],'credit'=>$p['credit_days'],
                 'through'=>$p['through'],'terminal'=>$p['terminal'],'evidence_sha'=>CareerInstitutionLedger::digest($e)];
