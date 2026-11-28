@@ -8,7 +8,7 @@ require_once __DIR__.'/CareerInstitutionLedger.php';
  * No dissolution election, party list, Senate renewal or coalition model. */
 final class CareerAssemblyElection{
     public const VERSION='wp127-assembly-career-v1';
-    public static function enabled(array $s):bool{return $s['country']==='FR'&&$s['mode']==='career'&&($s['cabinet_autonomy']??null)===CareerInstitutionLedger::CABINET_V4;}
+    public static function enabled(array $s):bool{return $s['country']==='FR'&&$s['mode']==='career'&&in_array($s['cabinet_autonomy']??null,[CareerInstitutionLedger::CABINET_V4,CareerInstitutionLedger::CABINET_V5],true);}
     public static function digest(array $e):string{return CareerInstitutionLedger::digest(['kind'=>self::VERSION,'world'=>$e['world'],'day'=>$e['day'],'actor'=>$e['actor'],'operation'=>$e['operation'],'payload'=>$e['payload']]);}
     public static function next(array $s,string $day):?string{
         if(!self::enabled($s))return null;

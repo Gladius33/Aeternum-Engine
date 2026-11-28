@@ -382,3 +382,11 @@ ck($careerRead['status']===200&&$careerRead['body']['assembly_election']['own_ca
 ck(req('POST',$pp.'/assembly-candidacy',['seat'=>42,'election_day'=>'2028-06-10'],$t2,'assembly-wrong-date-01')['status']===409,'wrong election denied');
 
 
+
+// New public edition exposes only the current Senate series.
+$sc=req('POST',$pp.'/senate-candidacy',['seat'=>12,'election_day'=>'2029-09-30'],$t2,'senate-candidate-http-01');
+ck($sc['status']===200&&req('POST',$pp.'/senate-candidacy',['seat'=>12,'election_day'=>'2029-09-30'],$t2,'senate-candidate-http-01')===$sc,'Senate candidacy receipt replay');
+$sr=req('GET',$pp.'/career',null,$t2);
+ck($sr['status']===200&&$sr['body']['senate_election']['own_candidacy']['seat']===12&&$sr['body']['mandates']===[],'Senate candidacy remains unseated');
+ck(req('POST',$pp.'/senate-candidacy',['seat'=>171,'election_day'=>'2029-09-30'],$t2,'senate-wrong-series-01')['status']===409,'wrong Senate series denied');
+ck(req('POST',$pp.'/parliament-resignation',['mandate'=>'unknown','generation'=>1],$t2,'parliament-resign-denied-01')['status']===409,'unheld mandate resignation denied');

@@ -66,6 +66,19 @@ async function dashboard(){const path=prefix();const [c,e,i,ch]=await Promise.al
    button($('career'),'Déclarer ou modifier ma candidature',async()=>{const seat=Number(input.value);if(!Number.isInteger(seat)||seat<1||seat>577)throw Error('Circonscription invalide.');await request(path+'/assembly-candidacy','POST',{seat,election_day:election.election_day});await dashboard();});
   }
  }
+ const senate=c.senate_election;
+ if(senate){
+  line($('career'),'Renouvellement sénatorial simulé',senate.election_day+' · série '+senate.series);
+  line($('career'),'Clôture des candidatures sénatoriales',senate.candidacy_deadline);
+  if(senate.own_candidacy)line($('career'),'Votre siège sénatorial fictif',senate.own_candidacy.seat);
+  if(senate.can_declare){
+   const input=el('input');input.type='number';input.min=String(senate.min);input.max=String(senate.max);input.step='1';input.value=senate.own_candidacy?.seat||senate.min;
+   const l=el('label','Siège fictif de la série ('+senate.min+' à '+senate.max+')');l.append(input);$('career').append(l);
+   button($('career'),'Déclarer ma candidature au Sénat',async()=>{const seat=Number(input.value);if(!Number.isInteger(seat)||seat<senate.min||seat>senate.max)throw Error('Siège hors série.');await request(path+'/senate-candidacy','POST',{seat,election_day:senate.election_day});await dashboard();});
+  }
+ }
+ if(c.parliament_resignation_enabled)for(const m of c.mandates.filter(x=>x.powers.includes('assembly.vote')||x.powers.includes('senate.vote')))
+  button($('career'),'Démissionner : '+officeName(m.office),async()=>{if(confirm('Abandonner définitivement ce mandat ?')){await request(path+'/parliament-resignation','POST',{mandate:m.id,generation:m.generation});await dashboard();}});
  line($('career'),'Régime',c.institution.regime);line($('career'),'Gouvernement',c.institution.government);line($('career'),'Autonomie',c.cabinet_autonomy);
  for(const o of c.occupied_offices)line($('offices'),officeName(o.office),o.identity?.name||'Personnage fictif');
  const own=(ability)=>c.mandates.find(m=>m.powers.includes(ability));

@@ -139,6 +139,7 @@ final class CareerEconomicWorld
         $secret=getenv('WP_CAREER_EVIDENCE_KEY');CareerInstitutionLedger::check(is_string($secret)&&strlen($secret)>=32,'career replay key required');
         $careerStore=new PdoCareerInstitutionStore($db,new CareerInstitutionEvidence($secret));
         $careerStore->settleAssemblyElection($world);
+        $careerStore->settleSenateElection($world);
         $careerStore->settleAutomaticCabinet($world,$secret);
         $careerStore->settleProgrammeProposal($world);
         $current=$clock->read($world);return $clock->advance($world,$target,'career-day-'.$target,$current['etag']);

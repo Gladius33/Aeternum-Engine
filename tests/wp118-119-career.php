@@ -505,3 +505,53 @@ ck(isset($elected['active']['deputy-'.$seat])&&$ae::next($elected,'2029-06-10')=
 no(fn()=>L::apply($elected,$event));
 $expired=L::apply($elected,$settle($elected,'2034-06-10',['candidate-a']));
 ck($expired['active']===[],'ordinary renewal expires unre-elected deputy');
+
+// Senate partial renewals: six-year terms, alternating 170/178-seat
+// series, indirect synthetic support and signed personal resignation.
+require_once __DIR__.'/../games/world-politics/src/CareerSenateElection.php';
+$se=\Aeternum\WorldPolitics\CareerSenateElection::class;
+$sen=L::initial('senate-career-fixture','FR','career','2027-05-14');
+$pin=evt($sen,'pin_cabinet_autonomy',['version'=>L::CABINET_V5]);$pin['actor']='career-ai-clerk';
+$pin['evidence_sha']=L::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$sen['world'],'day'=>$pin['day'],'payload'=>$pin['payload']]);
+$sen=add(add(L::apply($sen,$pin),'candidate-a'),'candidate-b');
+ck($ae::next($sen,'2027-05-14')==='2029-06-10','bicameral edition retains Assembly elections');
+$sv=$se::view($sen,'2027-05-14','candidate-a');
+ck($sv['min']===1&&$sv['max']===170&&$sv['election_day']==='2029-09-30','first Senate series');
+$senDeclare=function(array $s,string $id,int $seat,string $date,string $day)use($se):array{
+    $e=evt($s,'senate_candidacy',['career'=>$id,'seat'=>$seat,'election_day'=>$date],$day);$e['actor']='acct-'.$id;$e['evidence_sha']=$se::digest($e);return $e;
+};
+no(fn()=>L::apply($sen,$senDeclare($sen,'candidate-a',171,'2029-09-30','2027-05-14')));
+no(fn()=>L::apply($sen,$senDeclare($sen,'candidate-a',1,'2029-09-30','2029-09-24')));
+$seat1=null;for($n=1;$n<=170;$n++){
+    $trial=L::apply($sen,$senDeclare($sen,'candidate-a',$n,'2029-09-30','2027-05-14'));
+    if($se::plan($trial,'2029-09-30',['candidate-a'])['grants']!==[]){$seat1=$n;break;}
+}
+ck($seat1!==null,'winning Senate fixture');
+$sen=L::apply($sen,$senDeclare($sen,'candidate-a',$seat1,'2029-09-30','2027-05-14'));
+ck($sen['active']===[],'Senate candidacy gives no mandate');
+$senSettle=function(array $s,string $day,array $eligible)use($se):array{
+    $e=evt($s,'senate_election',['eligible'=>$eligible,'result'=>$se::plan($s,$day,$eligible)],$day);$e['actor']='career-senate-clerk';$e['evidence_sha']=$se::digest($e);return $e;
+};
+$sen=L::apply($sen,$senSettle($sen,'2029-09-30',['candidate-a']));
+$mid=$sen['active']['senator-'.$seat1];
+ck($sen['mandates'][$mid]['expires']==='2035-09-30','six-year Senate mandate');
+$sv=$se::view($sen,'2029-09-30','candidate-a');
+ck($sv['min']===171&&$sv['max']===348&&!$sv['can_declare'],'other series cannot be claimed by sitting senator');
+$seat2=null;for($n=171;$n<=348;$n++){
+    $trial=L::apply($sen,$senDeclare($sen,'candidate-b',$n,'2032-09-30','2029-09-30'));
+    if($se::plan($trial,'2032-09-30',['candidate-a','candidate-b'])['grants']!==[]){$seat2=$n;break;}
+}
+ck($seat2!==null,'winning second series fixture');
+$sen=L::apply($sen,$senDeclare($sen,'candidate-b',$seat2,'2032-09-30','2029-09-30'));
+$sen=L::apply($sen,$senSettle($sen,'2032-09-30',['candidate-a','candidate-b']));
+$mid2=$sen['active']['senator-'.$seat2];
+ck($sen['active']['senator-'.$seat1]===$mid&&$sen['mandates'][$mid2]['expires']==='2038-09-30','partial renewal preserves first series');
+$sen=L::apply($sen,$senSettle($sen,'2035-09-30',['candidate-a','candidate-b']));
+ck(!isset($sen['active']['senator-'.$seat1])&&$sen['active']['senator-'.$seat2]===$mid2,'only first series expires');
+$payload=['mandate'=>$mid2,'generation'=>1];$resign=evt($sen,'parliament_resignation',$payload,'2035-10-01');$resign['actor']='acct-candidate-b';
+$resign['evidence_sha']=L::digest(['kind'=>'parliament-resignation-v1','world'=>$sen['world'],'day'=>$resign['day'],'actor'=>$resign['actor'],'payload'=>$payload]);
+$bad=$resign;$bad['actor']='acct-candidate-a';$bad['evidence_sha']=L::digest(['kind'=>'parliament-resignation-v1','world'=>$sen['world'],'day'=>$bad['day'],'actor'=>$bad['actor'],'payload'=>$payload]);
+no(fn()=>L::apply($sen,$bad));
+$sen=L::apply($sen,$resign);
+ck($sen['active']===[]&&!L::allows($sen,'acct-candidate-b',$mid2,1,'senate.vote','2035-10-01'),'resignation revokes mandate');
+no(fn()=>L::apply($sen,$resign));

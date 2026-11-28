@@ -175,6 +175,60 @@ paths:
       responses:
         '200': {description: Institutional snapshot and ETag}
         '409': {description: Profile unavailable}
+  /career-worlds/{world}/senate-candidacy:
+    post:
+      summary: Declare own candidacy for the next synthetic indirect Senate election
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [seat, election_day]
+              properties:
+                seat: {type: integer, minimum: 1, maximum: 348}
+                election_day: {type: string, format: date}
+      responses:
+        '200': {description: Candidacy receipt only}
+        '409': {description: Wrong renewal series or incompatible career}
+        '428': {description: Missing idempotency key}
+  /career-worlds/{world}/parliament-resignation:
+    post:
+      summary: Relinquish an own active parliamentary mandate
+      parameters:
+        - in: path
+          name: world
+          required: true
+          schema: {type: string}
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 12, maxLength: 100}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [mandate, generation]
+              properties:
+                mandate: {type: string}
+                generation: {type: integer, minimum: 1}
+      responses:
+        '200': {description: Signed resignation receipt}
+        '409': {description: Invalid or incompatible mandate}
+        '428': {description: Missing idempotency key}
   /career-worlds/{world}/assembly-candidacy:
     post:
       summary: Declare or change own candidacy for the next synthetic ordinary Assembly election
