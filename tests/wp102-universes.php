@@ -4,6 +4,29 @@ require_once __DIR__.'/../games/world-politics/src/AlphaGateway.php';
 use Aeternum\WorldPolitics\{AlphaGateway,AlphaAccounts,UniverseLobby};
 if(getenv('WP_TEST_ISOLATED')!=='YES'||!str_contains(getenv('WP_DB_DSN')?:'','dbname=wp_test_multinode;'))exit(2);
 function ck102(bool $v,string $msg):void{if(!$v)throw new RuntimeException('WP102 '.$msg);echo "PASS WP102: $msg\n";}
+// Pure fiscal subledger: explicit executed flows, no hidden financing or calibration.
+require_once __DIR__.'/../games/world-politics/src/NationalFiscalLedger.php';
+$ledger=\Aeternum\WorldPolitics\NationalFiscalLedger::class;
+$opening=['cash'=>1000,'gross_debt'=>20000];
+$flows=['tax_received'=>900,'other_received'=>100,'primary_paid'=>1100,'interest_paid'=>100,'principal_repaid'=>500,'borrowing_received'=>700];
+$closed=$ledger::close($opening,$flows);
+ck102($closed['primary_cash_balance']===-100&&$closed['overall_cash_balance']===-200&&$closed['net_borrowing']===200,'national fiscal cash and financing identities');
+ck102($closed['closing']===['cash'=>1000,'gross_debt'=>20200]&&!$closed['rankable'],'national fiscal stocks reconcile');
+ck102($ledger::close($closed['closing'],$flows)['closing']===['cash'=>1000,'gross_debt'=>20400],'national fiscal repeated period rolls stocks forward');
+$badCases=[
+    [$opening,array_replace($flows,['primary_paid'=>5000])],
+    [$opening,array_replace($flows,['principal_repaid'=>20001])],
+    [$opening,array_replace($flows,['tax_received'=>null])],
+    [$opening,array_replace($flows,['tax_received'=>-1])],
+    [$opening,array_diff_key($flows,['interest_paid'=>true])],
+    [$opening,array_replace($flows,['unexpected'=>1])],
+    [['cash'=>100000000000000000,'gross_debt'=>20000],array_replace($flows,['tax_received'=>1000])]
+];
+foreach($badCases as [$badOpening,$badFlows]){
+    $rejected=false;try{$ledger::close($badOpening,$badFlows);}catch(\DomainException $e){$rejected=true;}
+    ck102($rejected,'national fiscal incomplete, invalid or unfunded flow rejected');
+}
+
 $connect=fn()=>new PDO(getenv('WP_DB_DSN'),getenv('WP_DB_USER'),getenv('WP_DB_PASSWORD'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
 $db=$connect();$accounts=new AlphaAccounts($db,getenv('WP_ALPHA_INVITE'));$gw=new AlphaGateway($connect,getenv('WP_ALPHA_INVITE'));
 $tokens=[];foreach(range(1,count(UniverseLobby::DIPLOMATIC_COUNTRIES)+1) as $n){$user='universe-'.$n;$password='universe-test-password-'.$n;
