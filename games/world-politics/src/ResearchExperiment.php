@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/ResearchModels.php';
 require_once __DIR__.'/NationalReferenceFallback.php';
+require_once __DIR__.'/NationalInvestitureForecast.php';
 
 /** Closed deterministic experiment catalogue. No world IDs, arbitrary code,
  * network calls, live political commands, or access to gameplay storage. */
@@ -18,7 +19,7 @@ final class ResearchExperiment
             'data/2026-11-26-household-income-v1.json','data/wp114-direct-source-inventory.json','data/2026-11-25-un-members-v1.json',
             'src/NationalReferenceFallback.php','data/wp130-national-economy-reference-v1.json',
             'data/wp130-historical-resource-rents-staging-v1.json','data/wp130-historical-social-services-staging-v1.json',
-            'data/wp130-multisource-gap-supplement-v1.json','data/wp130-historical-economic-gap-supplement-v1.json','data/wp130-fiscal-debt-gap-supplement-v1.json','data/wp130-final-coverage-supplement-v1.json','data/wp130-archival-national-completion-v1.json','data/wp130-archival-debt-extension-v1.json','data/wp130-older-debt-archives-v1.json','data/wp130-1960s-debt-archives-v1.json'];
+            'data/wp130-multisource-gap-supplement-v1.json','data/wp130-historical-economic-gap-supplement-v1.json','data/wp130-fiscal-debt-gap-supplement-v1.json','data/wp130-final-coverage-supplement-v1.json','data/wp130-archival-national-completion-v1.json','data/wp130-archival-debt-extension-v1.json','data/wp130-older-debt-archives-v1.json','data/wp130-1960s-debt-archives-v1.json','src/NationalInvestitureForecast.php','data/wp130-investiture-macro-forecast-v1.json'];
         $pins=[];foreach($files as $f){$h=hash_file('sha256',__DIR__.'/../'.$f);if($h===false)throw new \DomainException('Missing experiment dependency');$pins[$f]=$h;}
         return ['version'=>self::VERSION,'php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'files'=>$pins];
     }
@@ -59,7 +60,7 @@ final class ResearchExperiment
         $ref=NationalReferenceFallback::country($p['country']);$rows=[];
         foreach($ref['observations'] as $metric=>$row)$rows[]=['country'=>$p['country'],'metric'=>$metric]+$row;
         unset($ref['observations']);
-        return $ref+['rows'=>$rows];
+        return $ref+['rows'=>$rows,'opening_forecast'=>NationalInvestitureForecast::opening($p['country'])];
     }
     /** Each returned row has provenance; a reference catalogue retains individual
      * per-indicator source and observation year rather than a common date. */

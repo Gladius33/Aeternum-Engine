@@ -1,0 +1,1363 @@
+{
+  "schema": "wp130-investiture-macro-forecast-v1",
+  "as_of": "2026-11-28",
+  "opening_day": "2027-05-14",
+  "years": [
+    2026,
+    2027
+  ],
+  "classification": "published_forecasts_and_explicit_model_estimates_not_observations",
+  "sources": {
+    "macro": {
+      "source_name": "IMF — World Economic Outlook October 2026",
+      "source_url": "https://www.imf.org/-/media/files/publications/weo/2026/october/english/text.pdf",
+      "published_on": "2026-10-13",
+      "tables": "Annex 1.1.1–1.1.5 pp. 39–43, visually checked",
+      "data_period": "2026–2027"
+    },
+    "fiscal": {
+      "source_name": "IMF — Fiscal Monitor April 2026",
+      "source_url": "https://www.imf.org/-/media/files/publications/fiscal-monitor/2026/april/english/msa.pdf",
+      "published_on": "2026-04-15",
+      "tables": [
+        "A5 p20",
+        "A6 p21",
+        "A7 p22",
+        "A13 p28",
+        "A14 p29",
+        "A15 p30"
+      ],
+      "data_period": "2026–2027",
+      "notes": [
+        "Manual transcription of selected numerical facts from six tables, checked against displayed PDF pages; independent verification pending.",
+        "Older vintage retained separately: do not supersede October 2026 Eurostat/WEO observations automatically.",
+        "Country-specific fiscal boundaries differ; see source Table B/C and conventions. India fiscal year; Australia/Canada/US pension liability adjustment; China narrower perimeter than Article IV; Brazil definition differs from domestic measure.",
+        "No exact May 2027 state, no executable rules, no legal or commercial clearance. No pinned universe migration."
+      ]
+    },
+    "france": {
+      "source_name": "European Commission — Autumn 2026 forecast, France",
+      "source_url": "https://economy-finance.ec.europa.eu/economic-surveillance-eu-member-states/country-pages-including-country-reports/france/economic-forecast-france_en",
+      "published_on": "2026-11-17",
+      "data_period": "2026–2027",
+      "real_growth_bps": [
+        40,
+        60
+      ],
+      "consumer_price_inflation_bps": [
+        260,
+        290
+      ],
+      "unemployment_bps": [
+        840,
+        920
+      ]
+    },
+    "france_nominal_gdp": {
+      "source_name": "French draft budget 2027 / Senate, prior pinned WP54r projection",
+      "source_url": "https://intranet.senat.fr/amendements/2026-2027/155/jeu_classe.html",
+      "data_period": "2026–2027",
+      "published_on": null
+    }
+  },
+  "notes": [
+    "Annual average consumer price inflation is used as a nominal GDP deflator proxy only for normalized foreign debt interpolation; it is not an actual GDP deflator. Fiscal-year conventions and cross-vintage uncertainty apply. Saudi WEO unemployment unavailable; no fabricated value. France alternate EC + PLF scenario does not overwrite existing French pinned opening. No use of 1960s external-debt observations as opening data."
+  ],
+  "countries": {
+    "AT": {
+      "weo": {
+        "real_growth_bps": [
+          60,
+          90
+        ],
+        "consumer_price_inflation_bps": [
+          310,
+          330
+        ],
+        "unemployment_bps": [
+          570,
+          560
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          8210,
+          8270
+        ],
+        "revenue_bps": [
+          5100,
+          5150
+        ],
+        "expense_bps": [
+          5520,
+          5530
+        ]
+      }
+    },
+    "AU": {
+      "weo": {
+        "real_growth_bps": [
+          190,
+          160
+        ],
+        "consumer_price_inflation_bps": [
+          390,
+          310
+        ],
+        "unemployment_bps": [
+          440,
+          470
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          5060,
+          5070
+        ],
+        "revenue_bps": [
+          3660,
+          3620
+        ],
+        "expense_bps": [
+          3910,
+          3830
+        ]
+      }
+    },
+    "BE": {
+      "weo": {
+        "real_growth_bps": [
+          70,
+          110
+        ],
+        "consumer_price_inflation_bps": [
+          380,
+          290
+        ],
+        "unemployment_bps": [
+          620,
+          610
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          10920,
+          11150
+        ],
+        "revenue_bps": [
+          4980,
+          4990
+        ],
+        "expense_bps": [
+          5490,
+          5510
+        ]
+      }
+    },
+    "BG": {
+      "weo": {
+        "real_growth_bps": [
+          260,
+          270
+        ],
+        "consumer_price_inflation_bps": [
+          490,
+          480
+        ],
+        "unemployment_bps": [
+          340,
+          330
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          2820,
+          2970
+        ],
+        "revenue_bps": [
+          3450,
+          3370
+        ],
+        "expense_bps": [
+          3780,
+          3720
+        ]
+      }
+    },
+    "BR": {
+      "weo": {
+        "real_growth_bps": [
+          220,
+          190
+        ],
+        "consumer_price_inflation_bps": [
+          440,
+          410
+        ],
+        "unemployment_bps": [
+          620,
+          680
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          9650,
+          10000
+        ],
+        "revenue_bps": [
+          4020,
+          3980
+        ],
+        "expense_bps": [
+          4790,
+          4670
+        ]
+      }
+    },
+    "CA": {
+      "weo": {
+        "real_growth_bps": [
+          110,
+          170
+        ],
+        "consumer_price_inflation_bps": [
+          280,
+          240
+        ],
+        "unemployment_bps": [
+          650,
+          630
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          11070,
+          10950
+        ],
+        "revenue_bps": [
+          4190,
+          4170
+        ],
+        "expense_bps": [
+          4460,
+          4420
+        ]
+      }
+    },
+    "CH": {
+      "weo": {
+        "real_growth_bps": [
+          190,
+          120
+        ],
+        "consumer_price_inflation_bps": [
+          70,
+          80
+        ],
+        "unemployment_bps": [
+          300,
+          300
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          3850,
+          3750
+        ],
+        "revenue_bps": [
+          3170,
+          3170
+        ],
+        "expense_bps": [
+          3150,
+          3140
+        ]
+      }
+    },
+    "CN": {
+      "weo": {
+        "real_growth_bps": [
+          450,
+          400
+        ],
+        "consumer_price_inflation_bps": [
+          100,
+          140
+        ],
+        "unemployment_bps": [
+          510,
+          510
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          10690,
+          11250
+        ],
+        "revenue_bps": [
+          2470,
+          2490
+        ],
+        "expense_bps": [
+          3280,
+          3320
+        ]
+      }
+    },
+    "CY": {
+      "weo": {
+        "real_growth_bps": [
+          290,
+          320
+        ],
+        "consumer_price_inflation_bps": [
+          370,
+          190
+        ],
+        "unemployment_bps": [
+          400,
+          440
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          5090,
+          4660
+        ],
+        "revenue_bps": [
+          4280,
+          4170
+        ],
+        "expense_bps": [
+          4010,
+          3920
+        ]
+      }
+    },
+    "CZ": {
+      "weo": {
+        "real_growth_bps": [
+          180,
+          190
+        ],
+        "consumer_price_inflation_bps": [
+          210,
+          280
+        ],
+        "unemployment_bps": [
+          300,
+          290
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          4640,
+          4760
+        ],
+        "revenue_bps": [
+          4110,
+          4060
+        ],
+        "expense_bps": [
+          4330,
+          4310
+        ]
+      }
+    },
+    "DE": {
+      "weo": {
+        "real_growth_bps": [
+          130,
+          110
+        ],
+        "consumer_price_inflation_bps": [
+          270,
+          310
+        ],
+        "unemployment_bps": [
+          400,
+          370
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          6460,
+          6650
+        ],
+        "revenue_bps": [
+          4790,
+          4780
+        ],
+        "expense_bps": [
+          5170,
+          5210
+        ]
+      }
+    },
+    "DK": {
+      "weo": {
+        "real_growth_bps": [
+          370,
+          200
+        ],
+        "consumer_price_inflation_bps": [
+          180,
+          250
+        ],
+        "unemployment_bps": [
+          300,
+          310
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          2740,
+          2780
+        ],
+        "revenue_bps": [
+          4910,
+          4960
+        ],
+        "expense_bps": [
+          4890,
+          5000
+        ]
+      }
+    },
+    "EE": {
+      "weo": {
+        "real_growth_bps": [
+          210,
+          220
+        ],
+        "consumer_price_inflation_bps": [
+          300,
+          330
+        ],
+        "unemployment_bps": [
+          680,
+          660
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          2780,
+          3130
+        ],
+        "revenue_bps": [
+          4280,
+          4210
+        ],
+        "expense_bps": [
+          4730,
+          4660
+        ]
+      }
+    },
+    "ES": {
+      "weo": {
+        "real_growth_bps": [
+          250,
+          180
+        ],
+        "consumer_price_inflation_bps": [
+          370,
+          270
+        ],
+        "unemployment_bps": [
+          980,
+          980
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          9820,
+          9620
+        ],
+        "revenue_bps": [
+          4320,
+          4320
+        ],
+        "expense_bps": [
+          4530,
+          4540
+        ]
+      }
+    },
+    "FI": {
+      "weo": {
+        "real_growth_bps": [
+          170,
+          140
+        ],
+        "consumer_price_inflation_bps": [
+          240,
+          160
+        ],
+        "unemployment_bps": [
+          1020,
+          960
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          9310,
+          9420
+        ],
+        "revenue_bps": [
+          5390,
+          5370
+        ],
+        "expense_bps": [
+          5870,
+          5800
+        ]
+      }
+    },
+    "FR": {
+      "weo": {
+        "real_growth_bps": [
+          40,
+          70
+        ],
+        "consumer_price_inflation_bps": [
+          240,
+          220
+        ],
+        "unemployment_bps": [
+          840,
+          830
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          11920,
+          12210
+        ],
+        "balance_bps": [
+          -550,
+          -540
+        ],
+        "interest_bps": [
+          260,
+          300
+        ],
+        "nominal_gdp_million_eur": [
+          3051400,
+          3135000
+        ],
+        "scope": "EC autumn ratios; separate PLF nominal GDP scenario, not same-vintage forecast"
+      }
+    },
+    "GB": {
+      "weo": {
+        "real_growth_bps": [
+          130,
+          120
+        ],
+        "consumer_price_inflation_bps": [
+          330,
+          280
+        ],
+        "unemployment_bps": [
+          530,
+          530
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          10360,
+          10410
+        ],
+        "revenue_bps": [
+          4000,
+          4090
+        ],
+        "expense_bps": [
+          4390,
+          4410
+        ]
+      }
+    },
+    "GR": {
+      "weo": {
+        "real_growth_bps": [
+          180,
+          180
+        ],
+        "consumer_price_inflation_bps": [
+          420,
+          360
+        ],
+        "unemployment_bps": [
+          800,
+          760
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          13690,
+          13030
+        ],
+        "revenue_bps": [
+          5090,
+          4970
+        ],
+        "expense_bps": [
+          5030,
+          4990
+        ]
+      }
+    },
+    "HR": {
+      "weo": {
+        "real_growth_bps": [
+          220,
+          230
+        ],
+        "consumer_price_inflation_bps": [
+          450,
+          330
+        ],
+        "unemployment_bps": [
+          450,
+          460
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          5650,
+          5690
+        ],
+        "revenue_bps": [
+          4730,
+          4620
+        ],
+        "expense_bps": [
+          5020,
+          4910
+        ]
+      }
+    },
+    "HU": {
+      "weo": {
+        "real_growth_bps": [
+          190,
+          210
+        ],
+        "consumer_price_inflation_bps": [
+          190,
+          280
+        ],
+        "unemployment_bps": [
+          450,
+          420
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          7790,
+          8030
+        ],
+        "revenue_bps": [
+          4260,
+          4260
+        ],
+        "expense_bps": [
+          4810,
+          4830
+        ]
+      }
+    },
+    "ID": {
+      "weo": {
+        "real_growth_bps": [
+          510,
+          510
+        ],
+        "consumer_price_inflation_bps": [
+          330,
+          280
+        ],
+        "unemployment_bps": [
+          470,
+          470
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          4150,
+          4180
+        ],
+        "revenue_bps": [
+          1380,
+          1380
+        ],
+        "expense_bps": [
+          1680,
+          1670
+        ]
+      }
+    },
+    "IE": {
+      "weo": {
+        "real_growth_bps": [
+          -100,
+          370
+        ],
+        "consumer_price_inflation_bps": [
+          340,
+          280
+        ],
+        "unemployment_bps": [
+          500,
+          500
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          3160,
+          3030
+        ],
+        "revenue_bps": [
+          2310,
+          2370
+        ],
+        "expense_bps": [
+          2260,
+          2300
+        ]
+      }
+    },
+    "IN": {
+      "weo": {
+        "real_growth_bps": [
+          700,
+          700
+        ],
+        "consumer_price_inflation_bps": [
+          500,
+          440
+        ],
+        "unemployment_bps": [
+          500,
+          500
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          8340,
+          8250
+        ],
+        "revenue_bps": [
+          2120,
+          2140
+        ],
+        "expense_bps": [
+          2860,
+          2870
+        ]
+      }
+    },
+    "IT": {
+      "weo": {
+        "real_growth_bps": [
+          80,
+          60
+        ],
+        "consumer_price_inflation_bps": [
+          330,
+          280
+        ],
+        "unemployment_bps": [
+          560,
+          580
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          13840,
+          13880
+        ],
+        "revenue_bps": [
+          4780,
+          4780
+        ],
+        "expense_bps": [
+          5060,
+          5040
+        ]
+      }
+    },
+    "JP": {
+      "weo": {
+        "real_growth_bps": [
+          70,
+          70
+        ],
+        "consumer_price_inflation_bps": [
+          200,
+          260
+        ],
+        "unemployment_bps": [
+          250,
+          250
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          20440,
+          20010
+        ],
+        "revenue_bps": [
+          3560,
+          3560
+        ],
+        "expense_bps": [
+          3760,
+          3790
+        ]
+      }
+    },
+    "KR": {
+      "weo": {
+        "real_growth_bps": [
+          330,
+          280
+        ],
+        "consumer_price_inflation_bps": [
+          270,
+          230
+        ],
+        "unemployment_bps": [
+          280,
+          290
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          5440,
+          5660
+        ],
+        "revenue_bps": [
+          2380,
+          2310
+        ],
+        "expense_bps": [
+          2520,
+          2440
+        ]
+      }
+    },
+    "LT": {
+      "weo": {
+        "real_growth_bps": [
+          270,
+          210
+        ],
+        "consumer_price_inflation_bps": [
+          540,
+          350
+        ],
+        "unemployment_bps": [
+          680,
+          660
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          4510,
+          4890
+        ],
+        "revenue_bps": [
+          3990,
+          3970
+        ],
+        "expense_bps": [
+          4270,
+          4270
+        ]
+      }
+    },
+    "LU": {
+      "weo": {
+        "real_growth_bps": [
+          110,
+          160
+        ],
+        "consumer_price_inflation_bps": [
+          300,
+          260
+        ],
+        "unemployment_bps": [
+          640,
+          650
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          2800,
+          2890
+        ],
+        "revenue_bps": [
+          4740,
+          4770
+        ],
+        "expense_bps": [
+          4860,
+          4900
+        ]
+      }
+    },
+    "LV": {
+      "weo": {
+        "real_growth_bps": [
+          230,
+          180
+        ],
+        "consumer_price_inflation_bps": [
+          360,
+          390
+        ],
+        "unemployment_bps": [
+          670,
+          650
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          4740,
+          4850
+        ],
+        "revenue_bps": [
+          4150,
+          4140
+        ],
+        "expense_bps": [
+          4490,
+          4530
+        ]
+      }
+    },
+    "MT": {
+      "weo": {
+        "real_growth_bps": [
+          420,
+          400
+        ],
+        "consumer_price_inflation_bps": [
+          240,
+          220
+        ],
+        "unemployment_bps": [
+          300,
+          300
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          4730,
+          4750
+        ],
+        "revenue_bps": [
+          3310,
+          3310
+        ],
+        "expense_bps": [
+          3590,
+          3580
+        ]
+      }
+    },
+    "MX": {
+      "weo": {
+        "real_growth_bps": [
+          150,
+          180
+        ],
+        "consumer_price_inflation_bps": [
+          380,
+          360
+        ],
+        "unemployment_bps": [
+          280,
+          280
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          6270,
+          6310
+        ],
+        "revenue_bps": [
+          2520,
+          2520
+        ],
+        "expense_bps": [
+          2950,
+          2870
+        ]
+      }
+    },
+    "NL": {
+      "weo": {
+        "real_growth_bps": [
+          150,
+          130
+        ],
+        "consumer_price_inflation_bps": [
+          290,
+          280
+        ],
+        "unemployment_bps": [
+          400,
+          410
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          4410,
+          4450
+        ],
+        "revenue_bps": [
+          4350,
+          4370
+        ],
+        "expense_bps": [
+          4620,
+          4580
+        ]
+      }
+    },
+    "PL": {
+      "weo": {
+        "real_growth_bps": [
+          340,
+          250
+        ],
+        "consumer_price_inflation_bps": [
+          320,
+          280
+        ],
+        "unemployment_bps": [
+          320,
+          320
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          6570,
+          6960
+        ],
+        "revenue_bps": [
+          4440,
+          4430
+        ],
+        "expense_bps": [
+          5000,
+          5120
+        ]
+      }
+    },
+    "PT": {
+      "weo": {
+        "real_growth_bps": [
+          210,
+          190
+        ],
+        "consumer_price_inflation_bps": [
+          320,
+          300
+        ],
+        "unemployment_bps": [
+          590,
+          590
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          8560,
+          8220
+        ],
+        "revenue_bps": [
+          4380,
+          4240
+        ],
+        "expense_bps": [
+          4390,
+          4250
+        ]
+      }
+    },
+    "RO": {
+      "weo": {
+        "real_growth_bps": [
+          -50,
+          220
+        ],
+        "consumer_price_inflation_bps": [
+          820,
+          410
+        ],
+        "unemployment_bps": [
+          650,
+          590
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          6190,
+          6390
+        ],
+        "revenue_bps": [
+          3350,
+          3190
+        ],
+        "expense_bps": [
+          4050,
+          3970
+        ]
+      }
+    },
+    "RU": {
+      "weo": {
+        "real_growth_bps": [
+          90,
+          90
+        ],
+        "consumer_price_inflation_bps": [
+          610,
+          480
+        ],
+        "unemployment_bps": [
+          220,
+          240
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          1910,
+          2120
+        ],
+        "revenue_bps": [
+          3540,
+          3520
+        ],
+        "expense_bps": [
+          3910,
+          3750
+        ]
+      }
+    },
+    "SA": {
+      "weo": {
+        "real_growth_bps": [
+          -330,
+          790
+        ],
+        "consumer_price_inflation_bps": [
+          190,
+          220
+        ],
+        "unemployment_bps": [
+          null,
+          null
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          3210,
+          3480
+        ],
+        "revenue_bps": [
+          2320,
+          2330
+        ],
+        "expense_bps": [
+          2900,
+          2670
+        ]
+      }
+    },
+    "SE": {
+      "weo": {
+        "real_growth_bps": [
+          250,
+          220
+        ],
+        "consumer_price_inflation_bps": [
+          110,
+          190
+        ],
+        "unemployment_bps": [
+          850,
+          810
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          3670,
+          3820
+        ],
+        "revenue_bps": [
+          4700,
+          4700
+        ],
+        "expense_bps": [
+          4940,
+          4890
+        ]
+      }
+    },
+    "SI": {
+      "weo": {
+        "real_growth_bps": [
+          320,
+          220
+        ],
+        "consumer_price_inflation_bps": [
+          350,
+          250
+        ],
+        "unemployment_bps": [
+          390,
+          400
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          6520,
+          6540
+        ],
+        "revenue_bps": [
+          4700,
+          4680
+        ],
+        "expense_bps": [
+          4960,
+          4950
+        ]
+      }
+    },
+    "SK": {
+      "weo": {
+        "real_growth_bps": [
+          80,
+          160
+        ],
+        "consumer_price_inflation_bps": [
+          360,
+          350
+        ],
+        "unemployment_bps": [
+          580,
+          570
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          6300,
+          6550
+        ],
+        "revenue_bps": [
+          4410,
+          4180
+        ],
+        "expense_bps": [
+          4850,
+          4670
+        ]
+      }
+    },
+    "TR": {
+      "weo": {
+        "real_growth_bps": [
+          270,
+          360
+        ],
+        "consumer_price_inflation_bps": [
+          3120,
+          2650
+        ],
+        "unemployment_bps": [
+          820,
+          830
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          2550,
+          2690
+        ],
+        "revenue_bps": [
+          2990,
+          3010
+        ],
+        "expense_bps": [
+          3240,
+          3320
+        ]
+      }
+    },
+    "US": {
+      "weo": {
+        "real_growth_bps": [
+          230,
+          230
+        ],
+        "consumer_price_inflation_bps": [
+          360,
+          280
+        ],
+        "unemployment_bps": [
+          420,
+          400
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          12580,
+          12860
+        ],
+        "revenue_bps": [
+          3040,
+          3050
+        ],
+        "expense_bps": [
+          3790,
+          3790
+        ]
+      }
+    },
+    "ZA": {
+      "weo": {
+        "real_growth_bps": [
+          100,
+          130
+        ],
+        "consumer_price_inflation_bps": [
+          440,
+          390
+        ],
+        "unemployment_bps": [
+          3320,
+          3300
+        ]
+      },
+      "fiscal": {
+        "gross_debt_bps": [
+          7890,
+          7970
+        ],
+        "revenue_bps": [
+          2850,
+          2850
+        ],
+        "expense_bps": [
+          3420,
+          3330
+        ]
+      }
+    }
+  }
+}

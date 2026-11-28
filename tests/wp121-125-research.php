@@ -76,6 +76,12 @@ ck125($ptRows['external_debt_public_publicly_guaranteed']['data_year']===1978&&$
 $at=E::run(['type'=>'national-indicators','parameters'=>['country'=>'AT']]);
 $atRows=array_column($at['result']['rows'],null,'metric');
 ck125($atRows['external_debt_public_publicly_guaranteed']['value']===459984000&&$atRows['external_debt_public_publicly_guaranteed']['data_year']===1966&&$atRows['external_debt_service_public_publicly_guaranteed']['value']===71440000&&$atRows['external_debt_service_public_publicly_guaranteed']['data_year']===1967,'opening stock date and historical service independent');
+$of=\Aeternum\WorldPolitics\NationalInvestitureForecast::class;
+ck125(count($of::pack()['countries'])===43&&$of::opening('SA')['unemployment_opening_bps']===null,'complete country forecast coverage, missing unemployment explicit');
+$deOpen=$of::opening('DE');ck125($deOpen['debt_bridge']['end_2026']+$deOpen['debt_bridge']['deficit_to_day']+$deOpen['debt_bridge']['stock_flow_adjustment_to_day']===$deOpen['opening_gross_debt'],'debt bridge reconciles');
+$st=['real_output_index'=>1000000000,'price_index'=>1000000000,'indicative_real_wage_index'=>1000000000,'unemployment_scaled'=>4000000];
+ck125($of::step($st,$deOpen,100000)['real_output_index']<$of::step($st,$deOpen,0)['real_output_index'],'unfunded fiscal spending reduces modeled demand');
+ck125($of::opening('FR')['unit']==='million_EUR'&&$of::opening('FR')['inflation_bps_2027']===290,'France alternate autumn forecast labeled');
 no125(fn()=>E::run(['type'=>'national-indicators','parameters'=>['country'=>'ZZ']]));
 ck125($countries['provenance']['sources'][0]['source_name']==='United Nations'&&$countries['provenance']['sources'][0]['data_date']==='2026-11-25','dated source provenance in signed report');
 $back=E::run(['type'=>'household-backtest','parameters'=>[]]);

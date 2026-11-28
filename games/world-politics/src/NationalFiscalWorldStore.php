@@ -3,13 +3,15 @@ declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/NationalFiscalLedger.php';
 require_once __DIR__.'/NationalFiscalCalendar.php';
+require_once __DIR__.'/NationalInvestitureForecast.php';
 
 /** Private-alpha normalized fiscal pilot. One atomic row per managed world;
  * never confuses general-government ratios with central-government cash or
  * national currencies. Old worlds without an edition are not backfilled. */
 final class NationalFiscalWorldStore
 {
-    public const VERSION='wp130-normalized-fiscal-world-v1';
+    public const LEGACY='wp130-normalized-fiscal-world-v1';
+    public const VERSION='wp130-normalized-fiscal-world-v2';
     private const BLOB='0b5c74c7e43ea7ffea66cf4b9ed0afb76c0be8e6';
     private const BASE=1000000000;
     private static function json(array $v):string{return json_encode($v,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
@@ -26,19 +28,22 @@ final class NationalFiscalWorldStore
             'source'=>array_diff_key($pack,['countries'=>true]),'reference_blob'=>self::BLOB,
             'assumptions'=>['opening_cash_bps_gdp'=>100,'credit_facility_bps_gdp'=>1000,'debt_ceiling_headroom_bps_gdp'=>1000,
                 'annual_interest_bps_opening_debt'=>200,'revenue_split'=>'all_unclassified_receipts_tax_component_unknown',
-                'principal_schedule'=>'unknown_not_modeled','annual_envelopes'=>'constant_historical_ratio_scenario',
+                'principal_schedule'=>'unknown_not_modeled','annual_envelopes'=>'projected_2027_ratio_scenario_dynamic_receipts_prices_and_interest',
                 'allocation'=>'uniform_calendar_days','payment_priority'=>'interest_then_principal_then_primary_scenario'],
             'countries'=>[]];
-        $states=[];
+        $states=[];$macro=[];
         foreach($pack['countries'] as $cc=>$r){
-            $debt=intdiv(self::BASE*$r['gross_debt_bps'],10000);$revenue=intdiv(self::BASE*$r['revenue_bps'],10000);
-            $expense=intdiv(self::BASE*$r['expense_bps'],10000);$interest=min($expense,intdiv($debt*200,10000));
-            $config['countries'][$cc]=['reference'=>$r,'annual'=>['tax_received'=>0,'other_received'=>$revenue,'primary_due'=>$expense-$interest,'interest_due'=>$interest],
+            $opening=NationalInvestitureForecast::opening($cc);$forecast=$opening['fiscal_forecasts'];
+            $debt=$opening['opening_gross_debt'];$revenue=intdiv(self::BASE*$forecast['revenue_bps'][1],10000);
+            $expense=intdiv(self::BASE*$forecast['expense_bps'][1],10000);$interest=min($expense,intdiv($debt*200,10000));
+            $config['countries'][$cc]=['reference'=>$r,'opening_forecast'=>$opening,'annual'=>['tax_received'=>0,'other_received'=>$revenue,'primary_due'=>$expense-$interest,'interest_due'=>$interest],
                 'principal_schedule'=>[],'ceiling'=>$debt+intdiv(self::BASE,10)];
             $states[$cc]=['day'=>$day,'stocks'=>['cash'=>intdiv(self::BASE,100),'gross_debt'=>$debt],
                 'arrears'=>['interest'=>0,'principal'=>0,'primary'=>0],'credit_remaining'=>intdiv(self::BASE,10)];
+            $macro[$cc]=['real_output_index'=>self::BASE,'price_index'=>self::BASE,'indicative_real_wage_index'=>self::BASE,
+                'unemployment_scaled'=>$opening['unemployment_opening_bps']===null?null:$opening['unemployment_opening_bps']*10000];
         }
-        return ['config'=>$config,'state'=>['day'=>$day,'countries'=>$states,'last_flows'=>[]]];
+        return ['config'=>$config,'state'=>['day'=>$day,'countries'=>$states,'last_flows'=>[],'macro'=>$macro]];
     }
     public static function provision(\PDO $db,string $world,string $day):void{
         self::transaction($db);$p=self::opening($day);
@@ -50,7 +55,7 @@ final class NationalFiscalWorldStore
         $r=self::query($db,'SELECT * FROM wp_national_fiscal_worlds WHERE world_id=? FOR UPDATE',[$world])->fetch(\PDO::FETCH_ASSOC);
         if($r===false)return null;
         $c=json_decode($r['config_json'],true,32,JSON_THROW_ON_ERROR);$s=json_decode($r['state_json'],true,32,JSON_THROW_ON_ERROR);
-        if($r['edition']!==self::VERSION||$c['version']!==self::VERSION||$r['committed_day']!==$day||$s['day']!==$day
+        if(!in_array($r['edition'],[self::LEGACY,self::VERSION],true)||$c['version']!==$r['edition']||$r['committed_day']!==$day||$s['day']!==$day
             ||!hash_equals($r['config_sha'],self::hash($c))||!hash_equals($r['state_sha'],self::hash($s))
             ||array_keys($c['countries'])!==array_keys($s['countries']))throw new \DomainException('Fiscal world checkpoint mismatch');
         return ['config'=>$c,'state'=>$s,'config_sha'=>$r['config_sha'],'state_sha'=>$r['state_sha']];
@@ -61,7 +66,17 @@ final class NationalFiscalWorldStore
         $r=self::load($db,$world,$previous);if($r===null)return;
         $s=$r['state'];$s['day']=$target;
         foreach($r['config']['countries'] as $cc=>$c){
-            $t=NationalFiscalCalendar::tick($s['countries'][$cc],$target,$c['annual'],$c['principal_schedule'],$c['ceiling']);
+            $annual=$c['annual'];
+            if($r['config']['version']===self::VERSION){
+                $m=$s['macro'][$cc];$nominal=intdiv($m['real_output_index']*min($m['price_index'],10000000000),self::BASE);
+                // Bound monetary exposure while preserving a finite credit facility.
+                $factor=max(100000000,min(10000000000,$nominal));
+                $annual['other_received']=intdiv($annual['other_received']*$factor,self::BASE);
+                $annual['primary_due']=intdiv($annual['primary_due']*min($m['price_index'],10000000000),self::BASE);
+                $annual['interest_due']=intdiv($s['countries'][$cc]['stocks']['gross_debt']*200,10000);
+            }
+            $t=NationalFiscalCalendar::tick($s['countries'][$cc],$target,$annual,$c['principal_schedule'],$c['ceiling']);
+            if($r['config']['version']===self::VERSION)$s['macro'][$cc]=NationalInvestitureForecast::step($s['macro'][$cc],$c['opening_forecast'],$t['newly_due']['primary_due']-$t['settlement']['cash_subledger']['executed_flows']['primary_paid']);
             $s['countries'][$cc]=$t['next'];
             $s['last_flows'][$cc]=['newly_due'=>$t['newly_due'],'executed_flows'=>$t['settlement']['cash_subledger']['executed_flows'],
                 'overall_cash_balance'=>$t['settlement']['cash_subledger']['overall_cash_balance'],'unpaid'=>$t['settlement']['unpaid']];
@@ -72,7 +87,8 @@ final class NationalFiscalWorldStore
     }
     public static function view(\PDO $db,string $world,string $day,string $country):?array{
         $r=self::load($db,$world,$day);if($r===null||!isset($r['state']['countries'][$country]))return null;
-        return ['version'=>self::VERSION,'classification'=>'synthetic_normalized_general_government_fiscal_pilot',
+        return ['version'=>$r['config']['version'],'classification'=>'synthetic_normalized_general_government_fiscal_pilot',
+            'opening_forecast'=>$r['config']['countries'][$country]['opening_forecast']??null,'macro'=>$r['state']['macro'][$country]??null,
             'country'=>$country,'day'=>$day,'unit'=>$r['config']['unit'],'reference_gdp_units'=>self::BASE,
             'state'=>$r['state']['countries'][$country],'last_flows'=>$r['state']['last_flows'][$country]??null,
             'reference'=>$r['config']['countries'][$country]['reference'],'source'=>$r['config']['source'],
