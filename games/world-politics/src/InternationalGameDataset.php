@@ -17,7 +17,7 @@ final class InternationalGameDataset
     }
     public static function project(array $r,string $day):?array{
         $c=$r['config'];$s=$r['state'];$edition=$c['version'];
-        if($edition!=='wp130-normalized-fiscal-world-v3')return null;
+        if(!in_array($edition,['wp130-normalized-fiscal-world-v3','wp130-normalized-fiscal-world-v4'],true))return null;
         if($s['day']!==$day||array_keys($c['countries'])!==self::COUNTRIES||array_keys($s['countries'])!==self::COUNTRIES)throw new \DomainException('International aggregate scope');
         $first=$c['countries']['AT']['opening_forecast'];
         $macro=self::source($first['macro_source']);$fiscal=self::source($first['fiscal_source']);
@@ -52,7 +52,7 @@ final class InternationalGameDataset
     public static function verify(array $p,string $day):void{
         if(array_keys($p)!==['version','classification','data_date','date_kind','model_version','source_name','fiscal_unit','index_base','household_unit','unemployment_unit','forecast_reference_blob','source_state_sha256','config_sha256','forecast_sources','assumptions_calibrated','country_rows']
             ||$p['version']!==self::VERSION||$p['classification']!=='synthetic_game_simulation'||$p['data_date']!==$day||$p['date_kind']!=='simulation_day'
-            ||$p['model_version']!=='wp130-normalized-fiscal-world-v3'||$p['source_name']!=='World Politics international macro-fiscal simulation'
+            ||!in_array($p['model_version'],['wp130-normalized-fiscal-world-v3','wp130-normalized-fiscal-world-v4'],true)||$p['source_name']!=='World Politics international macro-fiscal simulation'
             ||$p['fiscal_unit']!=='normalized_reference_GDP_units'||$p['index_base']!==1000000000||$p['household_unit']!=='normalized_opening_household_income_units'
             ||$p['unemployment_unit']!=='percent_times_1000000'||$p['assumptions_calibrated']!==false||!self::sha($p['forecast_reference_blob'],40)||!self::sha($p['source_state_sha256'])||!self::sha($p['config_sha256'])
             ||!is_array($p['forecast_sources'])||array_keys($p['forecast_sources'])!==['macro','fiscal']

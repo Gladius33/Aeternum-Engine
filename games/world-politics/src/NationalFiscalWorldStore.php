@@ -13,7 +13,8 @@ final class NationalFiscalWorldStore
 {
     public const LEGACY='wp130-normalized-fiscal-world-v1';
     public const FORECAST='wp130-normalized-fiscal-world-v2';
-    public const VERSION='wp130-normalized-fiscal-world-v3';
+    public const HOUSEHOLD='wp130-normalized-fiscal-world-v3';
+    public const VERSION='wp130-normalized-fiscal-world-v4';
     private const BLOB='0b5c74c7e43ea7ffea66cf4b9ed0afb76c0be8e6';
     private const BASE=1000000000;
     private static function json(array $v):string{return json_encode($v,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);}
@@ -63,7 +64,7 @@ final class NationalFiscalWorldStore
         $r=self::query($db,'SELECT * FROM wp_national_fiscal_worlds WHERE world_id=? FOR UPDATE',[$world])->fetch(\PDO::FETCH_ASSOC);
         if($r===false)return null;
         $c=json_decode($r['config_json'],true,32,JSON_THROW_ON_ERROR);$s=json_decode($r['state_json'],true,32,JSON_THROW_ON_ERROR);
-        if(!in_array($r['edition'],[self::LEGACY,self::FORECAST,self::VERSION],true)||$c['version']!==$r['edition']||$r['committed_day']!==$day||$s['day']!==$day
+        if(!in_array($r['edition'],[self::LEGACY,self::FORECAST,self::HOUSEHOLD,self::VERSION],true)||$c['version']!==$r['edition']||$r['committed_day']!==$day||$s['day']!==$day
             ||!hash_equals($r['config_sha'],self::hash($c))||!hash_equals($r['state_sha'],self::hash($s))
             ||array_keys($c['countries'])!==array_keys($s['countries']))throw new \DomainException('Fiscal world checkpoint mismatch');
         return ['config'=>$c,'state'=>$s,'config_sha'=>$r['config_sha'],'state_sha'=>$r['state_sha']];
@@ -73,6 +74,11 @@ final class NationalFiscalWorldStore
     public static function advance(\PDO $db,string $world,string $previous,string $target,?array $economic=null):void{
         $r=self::load($db,$world,$previous);if($r===null)return;
         $s=$r['state'];$s['day']=$target;
+        $policies=[];
+        if($r['config']['version']===self::VERSION){
+            require_once __DIR__.'/NationalBudgetCommands.php';
+            $policies=NationalBudgetCommands::active($db,$world,$target);$s['budget_scenarios']=$policies;
+        }
         foreach($r['config']['countries'] as $cc=>$c){
             $annual=$c['annual'];
             if($r['config']['version']!==self::LEGACY){
@@ -83,10 +89,14 @@ final class NationalFiscalWorldStore
                 $annual['primary_due']=self::scaled($annual['primary_due'],min($m['price_index'],10000000000));
                 $annual['interest_due']=intdiv($s['countries'][$cc]['stocks']['gross_debt']*200,10000);
             }
+            $policy=$policies[$cc]??null;
+            $referenceDue=NationalFiscalCalendar::daily($annual['primary_due'],$target);
+            if($policy!==null)$annual=NationalBudgetCommands::apply($annual,$policy);
             $t=NationalFiscalCalendar::tick($s['countries'][$cc],$target,$annual,$c['principal_schedule'],$c['ceiling']);
             $shortfall=$t['newly_due']['primary_due']-min($t['newly_due']['primary_due'],$t['settlement']['cash_subledger']['executed_flows']['primary_paid']);
             if($r['config']['version']===self::FORECAST)$s['macro'][$cc]=NationalInvestitureForecast::step($s['macro'][$cc],$c['opening_forecast'],$t['newly_due']['primary_due']-$t['settlement']['cash_subledger']['executed_flows']['primary_paid']);
-            if($r['config']['version']===self::VERSION){
+            if(in_array($r['config']['version'],[self::HOUSEHOLD,self::VERSION],true)){
+                if($policy!==null)$shortfall=$referenceDue-min($t['newly_due']['primary_due'],$t['settlement']['cash_subledger']['executed_flows']['primary_paid']);
                 if($economic===null)throw new \DomainException('Missing committed trade input');
                 $trade=NationalHouseholdMacro::trade($economic,$world,$cc,$target,$c['gdp_reference']);
                 $s['macro'][$cc]=NationalHouseholdMacro::step($s['macro'][$cc],$c['opening_forecast'],$shortfall,$trade);
@@ -100,11 +110,18 @@ final class NationalFiscalWorldStore
             [$target,self::json($s),self::hash($s),$world,$previous,$r['state_sha']]);
         if($q->rowCount()!==1)throw new \DomainException('Fiscal publication conflict');
     }
+    public static function scheduleBudget(\PDO $db,string $world,string $day,string $country,int $generation,array $body,string $key):?array{
+        require_once __DIR__.'/NationalBudgetCommands.php';
+        $r=self::load($db,$world,$day);
+        if($r===null||$r['config']['version']!==self::VERSION||!isset($r['config']['countries'][$country]))return null;
+        return NationalBudgetCommands::submit($db,$world,$country,$generation,$day,$r['state_sha'],$body,$key);
+    }
     public static function budgetPreview(\PDO $db,string $world,string $day,string $country,array $economic,array $params):?array{
         require_once __DIR__.'/NationalBudgetPreview.php';
         NationalBudgetPreview::validate($params);
         $r=self::load($db,$world,$day);
-        if($r===null||$r['config']['version']!==self::VERSION||!isset($r['config']['countries'][$country]))return null;
+        if($r===null||!in_array($r['config']['version'],[self::HOUSEHOLD,self::VERSION],true)||!isset($r['config']['countries'][$country]))return null;
+        if(isset($r['state']['budget_scenarios'][$country]))throw new \DomainException('Preview of an active scenario not supported');
         $c=$r['config']['countries'][$country];
         $trade=NationalHouseholdMacro::trade($economic,$world,$country,$day,$c['gdp_reference']);
         return ['country'=>$country,'state_sha256'=>$r['state_sha'],'config_sha256'=>$r['config_sha']]
@@ -138,7 +155,14 @@ final class NationalFiscalWorldStore
     }
     public static function view(\PDO $db,string $world,string $day,string $country):?array{
         $r=self::load($db,$world,$day);if($r===null||!isset($r['state']['countries'][$country]))return null;
-        return ['version'=>$r['config']['version'],'classification'=>'synthetic_normalized_general_government_fiscal_pilot',
+        $scenario=null;
+        if($r['config']['version']===self::VERSION){
+            require_once __DIR__.'/NationalBudgetCommands.php';
+            $scenario=['enabled'=>getenv('WP_EXPERIMENTAL_BUDGET_COMMANDS')==='YES',
+                'active'=>$r['state']['budget_scenarios'][$country]??null,
+                'pending'=>NationalBudgetCommands::pending($db,$world,$country,$day)];
+        }
+        return ['version'=>$r['config']['version'],'classification'=>'synthetic_normalized_general_government_fiscal_pilot','budget_scenario'=>$scenario,
             'opening_forecast'=>$r['config']['countries'][$country]['opening_forecast']??null,'macro'=>$r['state']['macro'][$country]??null,'household'=>$r['state']['households'][$country]??null,
             'country'=>$country,'day'=>$day,'unit'=>$r['config']['unit'],'reference_gdp_units'=>self::BASE,
             'state'=>$r['state']['countries'][$country],'last_flows'=>$r['state']['last_flows'][$country]??null,

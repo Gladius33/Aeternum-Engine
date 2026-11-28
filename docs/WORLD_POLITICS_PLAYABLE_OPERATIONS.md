@@ -8,3 +8,6 @@ Acceptance: verify health, invitation signup, login, public lobby, fictional and
 
 
 International mode uses the existing managed universe scheduler (`bin/tick-universes.php`, see the script's explicit environment gate) as well as the distinct French career scheduler. Configure both for the private alpha only after testing their independent lock and database configuration. The international page uses the same authentication and HTTPS boundary, and displays only committed data for a current slot holder. Duration-only rankings are separate from career rankings. The international mode is an executive diplomacy alpha, not the completed multinational career release.
+
+
+Apply migration 047 before creating v4 fiscal worlds on an existing database. `WP_EXPERIMENTAL_BUDGET_COMMANDS=YES` enables submission of explicitly fictional foreign budget scenarios only. Default is disabled; disabling submissions does not cancel already scheduled 365-day commitments. Preserve the new table in backups. Do not advertise this as country-specific legal enactment or a ranked feature.

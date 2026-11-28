@@ -178,6 +178,13 @@ final class AlphaGateway
                 catch(\InvalidArgumentException $e){throw new AlphaHttpError(422,'invalid_career_request');}
                 throw new AlphaHttpError(404,'not_found');
             }
+            if($method==='POST'&&preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/budget-scenario$~D',$path,$bs)){
+                if(!isset($h['idempotency-key']))throw new AlphaHttpError(428,'precondition_required');
+                require_once __DIR__.'/NationalBudgetCommands.php';
+                try{NationalBudgetCommands::validate($body,$h['idempotency-key']);}
+                catch(\InvalidArgumentException $e){throw new AlphaHttpError(422,'invalid_budget_command');}
+                return self::ok(202,(new UniverseLobby($this->db()))->international($session,(int)$bs[1],null,$body,$h['idempotency-key']));
+            }
             if($method==='POST'&&preg_match('~^/api/v1/universes/([1-9][0-9]{0,8})/budget-preview$~D',$path,$bp)){
                 $accounts->limit('budget-preview-account',$session->id,10,60);
                 require_once __DIR__.'/NationalBudgetPreview.php';

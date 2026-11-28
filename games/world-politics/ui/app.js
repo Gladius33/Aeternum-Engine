@@ -207,7 +207,12 @@ async function internationalDashboard(){
     line($('international-observations'),'Principal en retard (déjà inclus dans la dette)',currentPct(ratios.principal_arrears_included_in_debt_bps));
     line($('international-observations'),'Dénominateur courant','PIB réel × indice des prix à la consommation ; proxy nominal expérimental, hors classement.');
    }
-   if(ledger.version==='wp130-normalized-fiscal-world-v3'){
+   const scenario=ledger.budget_scenario;
+   if(scenario?.active||scenario?.pending){
+    const p=scenario.active||scenario.pending;
+    line($('international-observations'),'Scénario budgétaire expérimental',p.effective_day+' → '+p.expires_day_exclusive+' (fin exclue) ; recettes '+p.receipts_change_bps/100+' %, dépenses '+p.primary_spending_change_bps/100+' % ; aucune loi adoptée');
+   }
+   if(['wp130-normalized-fiscal-world-v3','wp130-normalized-fiscal-world-v4'].includes(ledger.version)&&!scenario?.active){
     const panel=el('section');panel.append(el('h3','Étude budgétaire sur un an'));
     panel.append(el('p','Variation relative des enveloppes annuelles ; aucune mesure adoptée. Coefficients non calibrés.'));
     const choices=[[-1000,'−10 %'],[-500,'−5 %'],[0,'Sans changement'],[500,'+5 %'],[1000,'+10 %']];
@@ -224,6 +229,12 @@ async function internationalDashboard(){
      }
      line(result,'Effet','Aucune modification du budget ou du classement. Recettes non ventilées ; pas d’effet fiscal direct estimé sur les ménages.');
     });
+    if(scenario?.enabled&&!scenario?.pending){
+     button(panel,'Appliquer comme scénario expérimental (365 jours)',async()=>{
+      const p=await request('/universes/'+internationalNo+'/budget-scenario','POST',{opening_sha:ledger.state_sha256,receipts_change_bps:Number(receipts.value),primary_spending_change_bps:Number(spending.value)});
+      await internationalDashboard();say('Scénario programmé au '+p.effective_day+' ; aucune loi adoptée.');
+     });
+    }
     panel.append(result);$('international-observations').append(panel);
    }
    const opening=ledger.opening_forecast;
