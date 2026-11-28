@@ -283,6 +283,10 @@ final class PdoCareerInstitutionStore
         $pin=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-fr-programme-pins-v1','actor'=>'career-ai-clerk','operation'=>'pin_fr_programmes','payload'=>$payload,
             'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'fr-programme-pins-v1','world'=>$world,'day'=>$day,'payload'=>$payload])];
         $this->applyLocked($pin,$this->evidence->sign($pin));
+        $payload=['version'=>CareerInstitutionLedger::CABINET_V2];
+        $pin=['world'=>$world,'country'=>'FR','day'=>$day,'world_revision'=>(int)$clock['revision'],'command'=>'seed-cabinet-autonomy-v2','actor'=>'career-ai-clerk','operation'=>'pin_cabinet_autonomy','payload'=>$payload,
+            'evidence_sha'=>CareerInstitutionLedger::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$world,'day'=>$day,'payload'=>$payload])];
+        $this->applyLocked($pin,$this->evidence->sign($pin));
     }
     public function seedAutonomousCareers(string $world,string $secret):?array{
         return $this->tx(fn()=>$this->seedAutonomousLocked($world,$this->clock($world),$secret));
@@ -467,7 +471,7 @@ final class PdoCareerInstitutionStore
         $e['evidence_sha']=CareerParticipation::digest($e);$this->applyLocked($e,$this->evidence->sign($e));
         $this->query('INSERT INTO wp_career_public_worlds(world_id) VALUES(?)',[$world]);
         $no=(int)$this->db->lastInsertId();
-        require_once __DIR__.'/CareerScorePublication.php';CareerScorePublication::seed($this->db,$world);
+        require_once __DIR__.'/CareerScorePublication.php';CareerScorePublication::seed($this->db,$world,CareerInstitutionLedger::CABINET_V2);
         return ['world_id'=>$world,'universe_no'=>$no];
     }
     private static function seasonEnd():string{

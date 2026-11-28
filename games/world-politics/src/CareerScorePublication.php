@@ -23,7 +23,7 @@ final class CareerScorePublication
         if($r===false||!is_string($r['reference_bundle_sha']))throw new \DomainException('Missing score configuration');
         return ['bundle'=>$r['reference_bundle_sha'],'config'=>hash('sha256',$r['assumptions_json'])];
     }
-    public static function seed(\PDO $db,string $world):void{
+    public static function seed(\PDO $db,string $world,string $autonomy='wp119-cabinet-programme-autonomy-v1'):void{
         if(!$db->inTransaction())throw new \LogicException('Score seed outside transaction');
         $cfg=self::config($db,$world);
         $pin=['world'=>$world,'version'=>self::VERSION,'start'=>CareerScoreContract::START,'country'=>'FR','config'=>$cfg,
@@ -31,7 +31,7 @@ final class CareerScorePublication
                 'rules'=>hash('sha256',self::VERSION.'|'.CareerScoreContract::VERSION.'|'.CareerScorePreview::VERSION),
                 'economy'=>$cfg['config'],'data'=>$cfg['bundle'],'difficulty'=>hash('sha256','standard-public-capacity-8'),
                 'participation'=>hash('sha256',CareerParticipation::VERSION),
-                'autonomy'=>hash('sha256','wp119-cabinet-programme-autonomy-v1'),
+                'autonomy'=>hash('sha256',$autonomy),
                 'population_scope'=>hash('sha256',HouseholdAccount::VERSION.'|fixed_household_structure'),
                 'mandate_authority'=>hash('sha256',CareerInstitutionLedger::VERSION.'|FR')]];
         self::q($db,'INSERT INTO wp_career_score_pins(world_id,manifest_json,signature_sha) VALUES(?,?,?)',

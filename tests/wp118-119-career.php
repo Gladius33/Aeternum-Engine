@@ -128,6 +128,28 @@ $ac=L::apply($ac,$ap);ck(isset($ac['active']['minister-economy']),'minister inst
 $human=change(add($real,'human'),'election',[],[grant('president','human')]);ck(L::automaticCabinet($human,'2027-05-14')===null,'human presidency never silently appoints');
 $humanPm=change(change(add($real,'human'),'election',[],[grant('president','real-jean-luc-melenchon')]),'appointment',[],[grant('prime-minister','human')]);
 ck(L::automaticCabinet($humanPm,'2027-05-14')===null,'human PM right to nominate preserved');
+// Mixed cabinets are a new signed opening edition. Legacy histories retain
+// their original planner and no human receives an unsolicited AI office.
+$cp=evt($real,'pin_cabinet_autonomy',['version'=>L::CABINET_V2]);$cp['actor']='career-ai-clerk';
+$cp['evidence_sha']=L::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$real['world'],'day'=>$cp['day'],'payload'=>$cp['payload']]);
+$mixed=L::apply($real,$cp);no(fn()=>L::apply($mixed,$cp));
+$mix=change(change(add($mixed,'human'),'election',[],[grant('president','real-jean-luc-melenchon')]),'appointment',[],[grant('prime-minister','human')]);
+ck(L::automaticCabinet($mix,'2027-05-14')===null,'AI president cannot originate human PM nomination');
+$target=array_values(array_diff(array_keys($mixed['careers']),['real-jean-luc-melenchon']))[0];
+$nom=['kind'=>'propose_minister','mandate'=>$mix['active']['prime-minister'],'generation'=>1,'target'=>$target,'portfolio'=>'economy','proposal'=>null];
+$mix=L::apply($mix,$act($mix,'acct-human',$nom));
+$step=$autoCabinet($mix,'2027-05-14');
+ck($step['payload']['kind']==='confirm_minister','AI president can confirm explicit human PM nomination');
+$mix=L::apply($mix,$step);
+ck($mix['mandates'][$mix['active']['minister-economy']]['career']===$target&&L::automaticCabinet($mix,'2027-05-14')===null,'valid nomination confirmed once');
+$mix2=change(change(add($mixed,'human'),'election',[],[grant('president','human')]),'appointment',[],[grant('prime-minister','real-jean-luc-melenchon')]);
+$step=$autoCabinet($mix2,'2027-05-14');
+ck($step['payload']['kind']==='propose_minister'&&$step['payload']['mandate']===$mix2['active']['prime-minister'],'AI PM proposes to human president');
+$mix2=L::apply($mix2,$step);
+ck(!isset($mix2['active']['minister-economy']),'AI proposal does not appoint for human president');
+$next=$autoCabinet($mix2,'2027-05-15');
+ck($next['payload']['kind']==='propose_minister'&&$next['payload']['target']!==$step['payload']['target']&&$next['payload']['portfolio']!==$step['payload']['portfolio'],'pending nomination reserves target and portfolio');
+
 // WP112 vacancy calendar with an independently certified interim mandate.
 $vac=add(add(add(add(L::initial('vacancy-world','FR','career','2027-05-14'),'a'),'b'),'c'),'d');
 $vac=change($vac,'election',[],[grant('president','a')]);

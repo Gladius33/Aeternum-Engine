@@ -292,7 +292,9 @@ final class CareerInstitutionLedger
      * convention among documented, unencumbered AI careers; not evidence of
      * ideological affinity, actual willingness or a forecast of appointments.
      * Never choose a human-held career for an unsolicited nomination. */
+    public const CABINET_V2='wp119-cabinet-mixed-v2';
     public static function automaticCabinet(array $s,string $day):?array{
+        if(($s['cabinet_autonomy']??null)===self::CABINET_V2)return self::mixedCabinet($s,$day);
         if($s['country']!=='FR'||$s['mode']!=='career'||($s['last_automatic_cabinet_day']??null)===$day)return null;
         $pres=$s['active']['president']??null;
         if($pres===null)return null;
@@ -323,6 +325,41 @@ final class CareerInstitutionLedger
             foreach($s['appointment_proposals']??[] as $proposal)if($proposal['status']==='pending'&&$proposal['pm_mandate']===$pm&&$proposal['portfolio']===$portfolio){$pending=true;break;}
             if(!$pending)return ['kind'=>'propose_minister','mandate'=>$pm,'generation'=>$m['generation'],'target'=>$candidates[0],'portfolio'=>$portfolio,'proposal'=>null];
         }
+        return null;
+    }
+    /** Mixed cabinet continuity: each AI exercises only its own office.
+     * A human PM's explicit proposal can be confirmed by an AI president;
+     * an AI PM can propose to a human president without confirming for them.
+     * Vacancy-only, no unsolicited human appointments or reshuffles. */
+    private static function mixedCabinet(array $s,string $day):?array{
+        if($s['country']!=='FR'||$s['mode']!=='career'||($s['last_automatic_cabinet_day']??null)===$day)return null;
+        $pres=$s['active']['president']??null;
+        if($pres===null)return null;
+        $p=$s['mandates'][$pres];
+        $valid=static fn(array $m,string $ability):bool=>!$m['interim']&&$m['end']===null&&$m['start']<=$day&&$day<$m['expires']&&in_array($ability,$m['powers'],true);
+        $ai=static fn(array $c):bool=>$c['account']===null&&isset($c['person_reference'])&&($c['controller']??null)==='ai';
+        if(!$valid($p,'president.request_appointment'))return null;
+        $presAI=$ai($s['careers'][$p['career']]);
+        $occupied=[];foreach($s['active'] as $mid)$occupied[$s['mandates'][$mid]['career']]=true;
+        $candidates=[];foreach($s['careers'] as $id=>$c)if($ai($c)&&!isset($occupied[$id])&&$c['admitted_on']<=$day)$candidates[]=$id;
+        sort($candidates,SORT_STRING);
+        $pm=$s['active']['prime-minister']??null;
+        if($pm===null)return $presAI&&$candidates!==[]?['kind'=>'appoint_pm','mandate'=>$pres,'generation'=>$p['generation'],'target'=>$candidates[0],'portfolio'=>null,'proposal'=>null]:null;
+        $m=$s['mandates'][$pm];
+        if(!$valid($m,'government.propose_ministers'))return null;
+        $pending=[];$reserved=[];
+        foreach($s['appointment_proposals']??[] as $id=>$proposal){
+            if($proposal['status']!=='pending'||$proposal['pm_mandate']!==$pm||isset($s['active']['minister-'.$proposal['portfolio']]))continue;
+            if(!in_array($proposal['target'],$candidates,true))continue;
+            if($presAI)return ['kind'=>'confirm_minister','mandate'=>$pres,'generation'=>$p['generation'],'target'=>null,'portfolio'=>null,'proposal'=>$id];
+            $pending[$proposal['portfolio']]=true;$reserved[$proposal['target']]=true;
+        }
+        if(!$ai($s['careers'][$m['career']]))return null;
+        $free=array_values(array_filter($candidates,fn($id)=>!isset($reserved[$id])));
+        if($free===[])return null;
+        foreach(self::MINISTRIES as $portfolio)
+            if(!isset($s['active']['minister-'.$portfolio])&&!isset($pending[$portfolio]))
+                return ['kind'=>'propose_minister','mandate'=>$pm,'generation'=>$m['generation'],'target'=>$free[0],'portfolio'=>$portfolio,'proposal'=>null];
         return null;
     }
     /** Institution-only cabinet decisions; the account and generation are derived from a verified session. */
@@ -433,6 +470,12 @@ final class CareerInstitutionLedger
             self::admitRealAutonomousRoster($s,$e);
         }elseif($op==='admit_fr_supplement_roster'){
             self::admitFrenchSupplement($s,$e);
+        }elseif($op==='pin_cabinet_autonomy'){
+            self::fields($p,['version']);
+            self::check($s['country']==='FR'&&$s['mode']==='career'&&$day===CareerScoreContract::START&&$e['world_revision']===0
+                &&$s['active']===[]&&$s['mandates']===[]&&!isset($s['cabinet_autonomy'])&&$p['version']===self::CABINET_V2
+                &&$e['actor']==='career-ai-clerk'&&$e['evidence_sha']===self::digest(['kind'=>'cabinet-autonomy-pin-v1','world'=>$s['world'],'day'=>$day,'payload'=>$p]),'cabinet autonomy opening pin');
+            $s['cabinet_autonomy']=$p['version'];
         }elseif($op==='pin_fr_programmes'){
             self::pinFrenchProgrammes($s,$e);
         }elseif($op==='admit_party_ai_roster'){
