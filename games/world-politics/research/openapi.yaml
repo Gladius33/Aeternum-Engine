@@ -22,10 +22,10 @@ paths:
               properties:
                 plan: {enum: [standard, pro]}
       responses:
-        '200': {description: Selected tier and wallet balance}
-        '401': {description: Invalid or held billing identity}
-        '409': {description: Active subscription or incompatible prepaid balance}
-        '429': {description: Billing admission limit}
+        '200': {description: "Selected tier and wallet balance"}
+        '401': {description: "Invalid or held billing identity"}
+        '409': {description: "Active subscription or incompatible prepaid balance"}
+        '429': {description: "Billing admission limit"}
   /billing/checkout:
     post:
       summary: Create Stripe test Checkout for an existing ordinary billing identity
@@ -45,10 +45,10 @@ paths:
               properties:
                 offer: {enum: [standard-monthly, pro-monthly, standard-credits, pro-credits]}
       responses:
-        '201': {description: Hosted test Checkout URL and order ID}
-        '409': {description: Order, plan or balance conflict}
-        '429': {description: Billing admission limit}
-        '503': {description: Stripe disabled or unavailable}
+        '201': {description: "Hosted test Checkout URL and order ID"}
+        '409': {description: "Order, plan or balance conflict"}
+        '429': {description: "Billing admission limit"}
+        '503': {description: "Stripe disabled or unavailable"}
   /billing/portal:
     post:
       summary: Open restricted hosted test customer portal
@@ -58,9 +58,9 @@ paths:
           application/json:
             schema: {type: object, additionalProperties: false}
       responses:
-        '200': {description: Hosted portal URL}
-        '409': {description: No bound subscription or unsafe portal configuration}
-        '503': {description: Stripe disabled or unavailable}
+        '200': {description: "Hosted portal URL"}
+        '409': {description: "No bound subscription or unsafe portal configuration"}
+        '503': {description: "Stripe disabled or unavailable"}
   /stripe/webhook:
     post:
       security: []
@@ -76,25 +76,25 @@ paths:
           application/json:
             schema: {type: object}
       responses:
-        '200': {description: Verified event processed or ignored}
-        '400': {description: Invalid signature or event edition}
-        '503': {description: Disabled or retryable processing failure}
+        '200': {description: "Verified event processed or ignored"}
+        '400': {description: "Invalid signature or event edition"}
+        '503': {description: "Disabled or retryable processing failure"}
   /usage:
     get:
       responses:
-        '200': {description: Remaining included and prepaid usage units and lifetime consumption}
-        '429': {description: Hard capacity limit}
+        '200': {description: "Remaining included and prepaid usage units and lifetime consumption"}
+        '429': {description: "Hard capacity limit"}
   /entitlements:
     get:
       responses:
-        '200': {description: Active server-side subscription and capabilities}
+        '200': {description: "Active server-side subscription and capabilities"}
   /worlds:
     get:
       responses:
-        '200': {description: Own research experiment collections}
+        '200': {description: "Own research experiment collections"}
     post:
       responses:
-        '201': {description: Create own collection with Idempotency-Key}
+        '201': {description: "Create own collection with Idempotency-Key"}
   /worlds/{world}/experiments:
     post:
       parameters:
@@ -103,7 +103,7 @@ paths:
           required: true
           schema: {type: string}
       responses:
-        '202': {description: Queue experiment in own collection}
+        '202': {description: "Queue experiment in own collection"}
   /worlds/{world}/simulation:
     parameters:
       - in: path
@@ -112,10 +112,10 @@ paths:
         schema: {type: string}
     post:
       responses:
-        '201': {description: Initialize isolated persistent French domestic research world}
+        '201': {description: "Initialize isolated persistent French domestic research world"}
     get:
       responses:
-        '200': {description: Verified persistent simulation state}
+        '200': {description: "Verified persistent simulation state"}
   /worlds/{world}/simulation/step:
     post:
       parameters:
@@ -140,9 +140,9 @@ paths:
                 days: {type: integer, minimum: 1, maximum: 7}
                 policy: {type: [string, 'null']}
       responses:
-        '200': {description: Verified state-action-next-state transition}
-        '402': {description: Insufficient credits}
-        '409': {description: Stale revision, unsupported hypothesis or horizon}
+        '200': {description: "Verified state-action-next-state transition"}
+        '402': {description: "Insufficient credits"}
+        '409': {description: "Stale revision, unsupported hypothesis or horizon"}
   /worlds/{world}/simulation/dataset:
     get:
       parameters:
@@ -151,7 +151,7 @@ paths:
           required: true
           schema: {type: string}
       responses:
-        '200': {description: Own signed replayed transition dataset, ten records per page}
+        '200': {description: "Own signed replayed transition dataset, ten records per page"}
   /worlds/{world}/dataset:
     get:
       parameters:
@@ -160,17 +160,17 @@ paths:
           required: true
           schema: {type: string}
       responses:
-        '200': {description: Own world dataset page}
+        '200': {description: "Own world dataset page"}
   /datasets/transitions:
     get:
       responses:
-        '200': {description: Research Pro global eligible persistent state-action-next-state transitions}
-        '403': {description: Research Pro required}
+        '200': {description: "Research Pro global eligible persistent state-action-next-state transitions"}
+        '403': {description: "Research Pro required"}
   /datasets/game-worlds:
     get:
       responses:
-        '200': {description: Approved synthetic game-world aggregate feature page}
-        '403': {description: Research Pro required}
+        '200': {description: "Approved synthetic game-world aggregate feature page"}
+        '403': {description: "Research Pro required"}
   /datasets/{scope}:
     get:
       parameters:
@@ -179,12 +179,12 @@ paths:
           required: true
           schema: {enum: [own, global]}
       responses:
-        '200': {description: Dataset page with highwater and next cursor}
-        '403': {description: Global dataset requires active Research Pro}
+        '200': {description: "Dataset page with highwater and next cursor"}
+        '403': {description: "Global dataset requires active Research Pro"}
   /models:
     get:
       responses:
-        '200': {description: Model catalogue and version pins}
+        '200': {description: "Model catalogue and version pins"}
   /experiments:
     post:
       parameters:
@@ -204,8 +204,8 @@ paths:
                 type: {enum: [programme-coverage, policy-capacity, working-hours, household-sensitivity, household-backtest, fiscal-path, family-transfer, countries, national-indicators]}
                 parameters: {type: object}
       responses:
-        '202': {description: Job accepted; national-indicators accepts parameters.country (ISO2) and returns dated observations in the ordinary report}
-        '409': {description: Contract or quota rejected}
+        '202': {description: "Job accepted; national-indicators accepts parameters.country (ISO2) and returns dated observations in the ordinary report"}
+        '409': {description: "Contract or quota rejected"}
   /experiments/{id}:
     parameters:
       - in: path
@@ -214,12 +214,12 @@ paths:
         schema: {type: string, pattern: '^[a-f0-9]{32}$'}
     get:
       responses:
-        '200': {description: Own job state and completed report with inline provenance, source names, observation periods and collection dates where available}
-        '404': {description: Not found}
+        '200': {description: "Own job state and completed report with inline provenance, source names, observation periods and collection dates where available"}
+        '404': {description: "Not found"}
     delete:
       responses:
-        '200': {description: Queued job cancelled}
-        '409': {description: Job no longer queued}
+        '200': {description: "Queued job cancelled"}
+        '409': {description: "Job no longer queued"}
   /experiments/{id}/csv:
     get:
       parameters:
@@ -228,7 +228,7 @@ paths:
           required: true
           schema: {type: string}
       responses:
-        '200': {description: JSON containing CSV, result digest and inline provenance}
+        '200': {description: "JSON containing CSV, result digest and inline provenance"}
 components:
   securitySchemes:
     researchBearer:
