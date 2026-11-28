@@ -57,3 +57,8 @@ Stripe Research test-mode Checkout and settlement: see [environment and Stripe i
 
 ## Exact-commit complete local extraction
 `bash games/world-politics/bin/package-alpha.sh COMMIT_SHA OUTPUT.tar.gz --with-references` preserves every tracked game reference input in addition to the game source, tests and documentation. CI checks the complete data path inventory in an extracted temporary archive, without uploading the full-reference archive. The default uploaded source handoff remains reduced and deterministic. No external dataset is silently retrieved, no credential is added and no new destination repository is created. The complete local archive still reflects the actual coverage and limits of the committed reference inputs.
+
+
+### WP125 exact-source integrity verification
+
+The `verify-alpha.py` utility independently checks archive members, Git blob identities and executable flags against the selected exact commit without extracting the archive. It rejects missing, duplicate and unexpected entries and verifies the Git archive commit header. Both complete local and reduced CI handoffs must pass this check. From a checkout, run `python3 games/world-politics/bin/verify-alpha.py COMMIT_SHA archive.tar.gz` (append `--with-references` for complete local archives). This is source-integrity evidence, not proof of dataset coverage or deployment qualification. The artifact uploader uses the same pinned Node 24-compatible release as the WP115 collector.

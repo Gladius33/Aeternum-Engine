@@ -519,6 +519,7 @@ jobs:
           tmp=$(mktemp -d)
           trap 'rm -rf "$tmp"' EXIT
           bash games/world-politics/bin/package-alpha.sh "$GITHUB_SHA" "$tmp/full.tar.gz" --with-references
+          python3 games/world-politics/bin/verify-alpha.py "$GITHUB_SHA" "$tmp/full.tar.gz" --with-references
           tar -xzf "$tmp/full.tar.gz" -C "$tmp"
           git ls-tree -r --name-only "$GITHUB_SHA" -- games/world-politics/data > "$tmp/expected-data"
           (cd "$tmp/world-politics" && find games/world-politics/data -type f | LC_ALL=C sort) > "$tmp/actual-data"
@@ -530,10 +531,11 @@ jobs:
         run: |
           mkdir -p handoff
           bash games/world-politics/bin/package-alpha.sh "$GITHUB_SHA" "handoff/world-politics-source.tar.gz"
+          python3 games/world-politics/bin/verify-alpha.py "$GITHUB_SHA" handoff/world-politics-source.tar.gz
           (cd handoff && sha256sum world-politics-source.tar.gz > SHA256SUMS)
           printf '%s\n' "$GITHUB_SHA" > handoff/COMMIT_SHA
           printf '%s\n' 'Engineering source candidate; reduced reference inputs; not production authorization.' > handoff/STATUS.txt
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: world-politics-backend-source-${{ github.sha }}
           path: handoff/
