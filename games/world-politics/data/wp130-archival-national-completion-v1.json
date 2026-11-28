@@ -1,0 +1,903 @@
+{
+  "schema": "wp130-final-coverage-supplement-v1",
+  "retrieved_on": "2026-11-28",
+  "notes": [
+    "Archive amounts in rounded millions of USD. Historical service sums principal and interest; never relabelled as current data.",
+    "General government external debt is not PPG debt. Latvia is in EUR; preserve native units, no implicit conversion.",
+    "ESCWA Saudi nationals poverty estimate is not the international poverty line or Gini. Exact missing values remain null."
+  ],
+  "rows": [
+    {
+      "country": "LV",
+      "indicator": "DT.DOD.DPPG.CD",
+      "year": 2007,
+      "data_period": "2007",
+      "value": 1809000000,
+      "unit": "USD_current",
+      "publisher": "World Bank — Global Development Finance 2009",
+      "source_name": "World Bank — Global Development Finance 2009",
+      "source_url": "https://documents1.worldbank.org/curated/en/624521468160182106/pdf/493170PUB0v20G101Official0Use0Only1.pdf#page=187",
+      "secondary_source_url": null,
+      "source_indicator": "Global Development Finance 2009, p. 147, long-term public and publicly guaranteed debt, 2007, USD millions",
+      "quality": "publisher_archive_rounded_usd_millions",
+      "kind": "published_historical_or_estimated"
+    },
+    {
+      "country": "LV",
+      "indicator": "DT.TDS.DPPG.CD",
+      "year": 2007,
+      "data_period": "2007",
+      "value": 120000000,
+      "unit": "USD_current",
+      "publisher": "World Bank — Global Development Finance 2009",
+      "source_name": "World Bank — Global Development Finance 2009",
+      "source_url": "https://documents1.worldbank.org/curated/en/624521468160182106/pdf/493170PUB0v20G101Official0Use0Only1.pdf#page=187",
+      "secondary_source_url": null,
+      "source_indicator": "Global Development Finance 2009, p. 147, 2007 PPG principal repayments (41) + interest payments (79), USD millions",
+      "quality": "derived_from_published_rounded_components",
+      "kind": "derived_historical_observation"
+    },
+    {
+      "country": "HR",
+      "indicator": "DT.DOD.DPPG.CD",
+      "year": 2007,
+      "data_period": "2007",
+      "value": 14212000000,
+      "unit": "USD_current",
+      "publisher": "World Bank — Global Development Finance 2009",
+      "source_name": "World Bank — Global Development Finance 2009",
+      "source_url": "https://documents1.worldbank.org/curated/en/624521468160182106/pdf/493170PUB0v20G101Official0Use0Only1.pdf#page=127",
+      "secondary_source_url": null,
+      "source_indicator": "Global Development Finance 2009, p. 87, long-term public and publicly guaranteed debt, 2007, USD millions",
+      "quality": "publisher_archive_rounded_usd_millions",
+      "kind": "published_historical_or_estimated"
+    },
+    {
+      "country": "HR",
+      "indicator": "DT.TDS.DPPG.CD",
+      "year": 2007,
+      "data_period": "2007",
+      "value": 2498000000,
+      "unit": "USD_current",
+      "publisher": "World Bank — Global Development Finance 2009",
+      "source_name": "World Bank — Global Development Finance 2009",
+      "source_url": "https://documents1.worldbank.org/curated/en/624521468160182106/pdf/493170PUB0v20G101Official0Use0Only1.pdf#page=127",
+      "secondary_source_url": null,
+      "source_indicator": "Global Development Finance 2009, p. 87, 2007 PPG principal repayments (1894) + interest payments (604), USD millions",
+      "quality": "derived_from_published_rounded_components",
+      "kind": "derived_historical_observation"
+    },
+    {
+      "country": "PL",
+      "indicator": "DT.DOD.DPPG.CD",
+      "year": 2007,
+      "data_period": "2007",
+      "value": 43598000000,
+      "unit": "USD_current",
+      "publisher": "World Bank — Global Development Finance 2009",
+      "source_name": "World Bank — Global Development Finance 2009",
+      "source_url": "https://documents1.worldbank.org/curated/en/624521468160182106/pdf/493170PUB0v20G101Official0Use0Only1.pdf#page=245",
+      "secondary_source_url": null,
+      "source_indicator": "Global Development Finance 2009, p. 205, long-term public and publicly guaranteed debt, 2007, USD millions",
+      "quality": "publisher_archive_rounded_usd_millions",
+      "kind": "published_historical_or_estimated"
+    },
+    {
+      "country": "PL",
+      "indicator": "DT.TDS.DPPG.CD",
+      "year": 2007,
+      "data_period": "2007",
+      "value": 4301000000,
+      "unit": "USD_current",
+      "publisher": "World Bank — Global Development Finance 2009",
+      "source_name": "World Bank — Global Development Finance 2009",
+      "source_url": "https://documents1.worldbank.org/curated/en/624521468160182106/pdf/493170PUB0v20G101Official0Use0Only1.pdf#page=245",
+      "secondary_source_url": null,
+      "source_indicator": "Global Development Finance 2009, p. 205, 2007 PPG principal repayments (2806) + interest payments (1495), USD millions",
+      "quality": "derived_from_published_rounded_components",
+      "kind": "derived_historical_observation"
+    }
+  ],
+  "alternatives": [
+    {
+      "country": "CN",
+      "metric": "qeds_general_government_gross_external_debt",
+      "value": 380800000000,
+      "unit": "USD",
+      "data_year": 2026,
+      "data_period": "2026-Q2",
+      "kind": "published_quarter_end_stock",
+      "source_name": "State Administration of Foreign Exchange (SAFE), China",
+      "source_url": "https://www.safe.gov.cn/en/2026/0929/2454.html",
+      "source_indicator": "Annexed table, general government total, end June 2026, 100 million USD",
+      "retrieved_on": "2026-11-28",
+      "quality": "publisher_table_transcription_100_million_usd",
+      "published_on": "2026-09-29",
+      "not_a_substitute_for": "DT.DOD.DPPG.CD"
+    },
+    {
+      "country": "LV",
+      "metric": "qeds_general_government_gross_external_debt",
+      "value": 17261000000,
+      "unit": "EUR",
+      "data_year": 2026,
+      "data_period": "2026-Q2",
+      "kind": "published_quarter_end_stock",
+      "source_name": "Latvijas Banka",
+      "source_url": "https://statdb.bank.lv/lb/Data.aspx?id=126&lang=en",
+      "source_indicator": "Gross external debt, general government total, closing position, millions EUR, Q2 2026",
+      "retrieved_on": "2026-11-28",
+      "quality": "publisher_table_transcription_millions_eur",
+      "published_on": null,
+      "not_a_substitute_for": "DT.DOD.DPPG.CD"
+    },
+    {
+      "country": "SA",
+      "metric": "escwa_poverty_rate_saudi_nationals",
+      "value": 13.56,
+      "unit": "percent_population",
+      "data_year": 2021,
+      "data_period": "2021",
+      "kind": "published_model_estimate",
+      "source_name": "UN ESCWA",
+      "source_url": "https://www.unescwa.org/sites/default/files/pubs/pdf/poverty-in-the-gcc-countries-2010-2021-english_3.pdf#page=15",
+      "source_indicator": "Poverty in the GCC Countries 2010–2021, p. 7, Saudi nationals only, ESCWA-specific poverty threshold",
+      "retrieved_on": "2026-11-28",
+      "quality": "publisher_report_estimate_not_international_poverty_line",
+      "published_on": null,
+      "not_a_substitute_for": "SI.POV.DDAY"
+    }
+  ],
+  "unresolved": [
+    {
+      "country": "AT",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "AT",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "AU",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": "qeds_long_term_public_sector_and_publicly_guaranteed_private_external_debt",
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "AU",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "BE",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "BE",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "CA",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "CA",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "CH",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "CH",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "CN",
+      "indicator": "GC.XPN.TOTL.GD.ZS",
+      "metric": "expense_central_government",
+      "status": "not_recovered_in_this_pass",
+      "source_url": "https://data.worldbank.org/indicator/GC.XPN.TOTL.GD.ZS",
+      "reason": "No compatible value verified in the available sources during this iteration. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "central_level_general_public_budget_expenditure_excluding_prior_year_carryovers"
+      ]
+    },
+    {
+      "country": "CY",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "CY",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "CZ",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": "qeds_long_term_public_sector_and_publicly_guaranteed_private_external_debt",
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "CZ",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "DE",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "DE",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "DK",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "DK",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "EE",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "EE",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "ES",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "ES",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "FI",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "FI",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "GB",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "GB",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "GR",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "GR",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "HU",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": "qeds_long_term_public_sector_and_publicly_guaranteed_private_external_debt",
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "HU",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "IE",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "IE",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "IT",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "IT",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "JP",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "JP",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "KR",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "KR",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "LT",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "LT",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "LU",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "LU",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "MT",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "MT",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "NL",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "NL",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "PT",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "PT",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "SA",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "SA",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "SA",
+      "indicator": "SI.POV.DDAY",
+      "metric": "poverty_international_line",
+      "status": "no_compatible_household_survey_value_recovered",
+      "source_url": "https://data.worldbank.org/indicator/SI.POV.DDAY?locations=SA",
+      "reason": "No compatible published survey indicator recovered; leave null. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "mean_monthly_household_disposable_income",
+        "median_monthly_household_disposable_income",
+        "mean_monthly_per_capita_disposable_income",
+        "median_monthly_per_capita_disposable_income",
+        "mean_monthly_household_consumption_expenditure",
+        "mean_monthly_per_capita_consumption_expenditure",
+        "mean_monthly_household_final_monetary_consumption",
+        "mean_monthly_per_capita_final_monetary_consumption",
+        "escwa_poverty_rate_saudi_nationals"
+      ]
+    },
+    {
+      "country": "SA",
+      "indicator": "SI.POV.GINI",
+      "metric": "gini_index",
+      "status": "no_compatible_household_survey_value_recovered",
+      "source_url": "https://data.worldbank.org/indicator/SI.POV.GINI?locations=SA",
+      "reason": "No compatible published survey indicator recovered; leave null. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "mean_monthly_household_disposable_income",
+        "median_monthly_household_disposable_income",
+        "mean_monthly_per_capita_disposable_income",
+        "median_monthly_per_capita_disposable_income",
+        "mean_monthly_household_consumption_expenditure",
+        "mean_monthly_per_capita_consumption_expenditure",
+        "mean_monthly_household_final_monetary_consumption",
+        "mean_monthly_per_capita_final_monetary_consumption"
+      ]
+    },
+    {
+      "country": "SE",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "SE",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "SI",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "SI",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "SK",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "SK",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    },
+    {
+      "country": "US",
+      "indicator": "DT.DOD.DPPG.CD",
+      "metric": "external_debt_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": [
+        "qeds_general_government_gross_external_debt"
+      ]
+    },
+    {
+      "country": "US",
+      "indicator": "DT.TDS.DPPG.CD",
+      "metric": "external_debt_service_public_publicly_guaranteed",
+      "status": "ids_reporting_coverage_or_historical_gap",
+      "source_url": "https://www.worldbank.org/en/programs/debt-statistics/ids",
+      "reason": "IDS is designed for reporting low- and middle-income borrowers; this null does not prove zero or permanent non-applicability. QEDS stock and payment schedules use distinct coverage; no automatic substitution. Additional search: QEDS cross-country table, national sources and historical IDS mirrors; no further equivalent series recovered in this pass. Archive tables and national data checked; no additional exact match verified in this pass.",
+      "checked_on": "2026-11-28",
+      "alternative_metric": null,
+      "alternative_metrics": []
+    }
+  ]
+}

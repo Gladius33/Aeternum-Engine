@@ -61,6 +61,10 @@ $saAlt=array_column($sa['result']['alternative_references'],null,'metric');
 ck125($saAlt['median_monthly_household_disposable_income']['value']===7362&&$saAlt['median_monthly_household_disposable_income']['data_year']===2023,'Saudi national survey not substituted for Gini');
 $auAlt=array_column($au['result']['alternative_references'],null,'metric');
 ck125($auAlt['qeds_general_government_gross_external_debt']['value']===330330000000&&$auRows['external_debt_public_publicly_guaranteed']['value']===null,'QEDS C2 separate from IDS');
+$archiveBase=json_decode(file_get_contents(__DIR__.'/../games/world-politics/data/wp130-national-economy-reference-v1.json'),true,64,JSON_THROW_ON_ERROR);
+$archiveCount=0;$archiveSlots=0;$externalCountries=0;
+foreach(array_keys($archiveBase['countries']) as $cc){$ar=\Aeternum\WorldPolitics\NationalReferenceFallback::country($cc);$archiveCount+=$ar['coverage']['available'];$archiveSlots+=$ar['coverage']['slots'];if(count(array_filter($ar['alternative_references'],fn($x)=>$x['metric']==='qeds_general_government_gross_external_debt'))>0)$externalCountries++;}
+ck125($archiveCount===2123&&$archiveSlots===2184&&$externalCountries===42,'archival coverage and general government external debt for every foreign country');
 no125(fn()=>E::run(['type'=>'national-indicators','parameters'=>['country'=>'ZZ']]));
 ck125($countries['provenance']['sources'][0]['source_name']==='United Nations'&&$countries['provenance']['sources'][0]['data_date']==='2026-11-25','dated source provenance in signed report');
 $back=E::run(['type'=>'household-backtest','parameters'=>[]]);

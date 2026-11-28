@@ -14,7 +14,8 @@ final class NationalReferenceFallback
         'wp130-multisource-gap-supplement-v1.json'=>'35d061c2bea4f0650295b0ef30d1015ac29e2312',
         'wp130-historical-economic-gap-supplement-v1.json'=>'9ac663bafdf84205b6bb800cfa36e9002f604d68',
         'wp130-fiscal-debt-gap-supplement-v1.json'=>'2e9fbc40ffc7696136b31b0967fe1f3a3659c171',
-        'wp130-final-coverage-supplement-v1.json'=>'e71744cc6196a4e420919fa137a67a827df96b65'];
+        'wp130-final-coverage-supplement-v1.json'=>'e71744cc6196a4e420919fa137a67a827df96b65',
+        'wp130-archival-national-completion-v1.json'=>'ca85aa11102971a0173ea60991b8447a68c5498a'];
     private static function load(string $file):array{
         static $cache=[];
         if(isset($cache[$file]))return $cache[$file];
@@ -50,7 +51,7 @@ final class NationalReferenceFallback
                 $out[$key]=self::entry($id,$s['unit'],$r['year'],$r['value'],$m['publisher'],$s['primary_metadata_url'],$social['retrieved_on'],'secondary_transcription_not_primary_reconciled',$s['secondary_sources'][0]);
             }
         }
-        foreach(['wp130-multisource-gap-supplement-v1.json','wp130-historical-economic-gap-supplement-v1.json','wp130-fiscal-debt-gap-supplement-v1.json','wp130-final-coverage-supplement-v1.json'] as $supplement){
+        foreach(['wp130-multisource-gap-supplement-v1.json','wp130-historical-economic-gap-supplement-v1.json','wp130-fiscal-debt-gap-supplement-v1.json','wp130-final-coverage-supplement-v1.json','wp130-archival-national-completion-v1.json'] as $supplement){
         $extra=self::load($supplement);
         foreach($extra['rows'] as $r){
             if($r['country']!==$cc)continue;
@@ -69,7 +70,9 @@ final class NationalReferenceFallback
         foreach($final['alternatives'] as $r)if($r['country']===$cc)$alternatives[]=$r;
         $closing=self::load('wp130-final-coverage-supplement-v1.json');
         foreach($closing['alternatives'] as $r)if($r['country']===$cc)$alternatives[]=$r;
-        foreach($closing['unresolved'] as $r)if($r['country']===$cc&&isset($out[$r['metric']])&&$out[$r['metric']]['value']===null)$out[$r['metric']]['availability']=$r;
+        $archive=self::load('wp130-archival-national-completion-v1.json');
+        foreach($archive['alternatives'] as $r)if($r['country']===$cc)$alternatives[]=$r;
+        foreach($archive['unresolved'] as $r)if($r['country']===$cc&&isset($out[$r['metric']])&&$out[$r['metric']]['value']===null)$out[$r['metric']]['availability']=$r;
         return ['version'=>self::VERSION,'country'=>$cc,'observations'=>$out,'alternative_references'=>$alternatives,'reference_blobs'=>self::FILES,
             'coverage'=>['available'=>count(array_filter($out,fn($r)=>$r['value']!==null)),'slots'=>count($out)],
             'classification'=>'documentary_reference_not_2027_observation','rankable'=>false];
