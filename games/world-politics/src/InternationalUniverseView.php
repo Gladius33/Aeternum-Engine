@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace Aeternum\WorldPolitics;
 require_once __DIR__.'/UniverseLobby.php';
+require_once __DIR__.'/NationalEconomicScenario.php';
 
 /** Read model only: no synthetic GDP growth, no new office authority.
  * Historical observations and effective trade scenarios remain distinct. */
@@ -24,7 +25,11 @@ final class InternationalUniverseView{
             $perCapita=null;
             if(($gdp['kind']??null)==='observed'&&($pop['kind']??null)==='observed'&&$gdp['year']===$pop['year']&&$pop['value']>0)
                 $perCapita=['value'=>intdiv($gdp['value'],$pop['value']),'unit'=>'USD/person','year'=>$gdp['year'],'classification'=>'derived_historical_observation'];
-            $rows[]=['country'=>$cc,'actor_id'=>$id,'name'=>$actor['label'],'controller'=>$slot['closed_on']!==null?'succession_pending':($slot['account_id']===null?'ai':'human'),
+            $national=NationalEconomicScenario::profile($cc,$day);
+            $scenario=$national===null?null:NationalEconomicScenario::project($national,$id,$day,$gdp,$econ['state']);
+            $rows[]=['country'=>$cc,'national_reference'=>$cc===$own['country_code']?$national:null,
+                'next_ordinary_chamber_renewal_month'=>$national['next_ordinary_chamber_renewal_month']??null,
+                'consumption_scenario'=>$scenario,'actor_id'=>$id,'name'=>$actor['label'],'controller'=>$slot['closed_on']!==null?'succession_pending':($slot['account_id']===null?'ai':'human'),
                 'is_you'=>$slot['account_id']===$account,'national_institution_clock'=>$i!==null,'domestic_policy'=>$cc==='FR',
                 'institution'=>$i===null?null:['legislature'=>$i['legislature'],'government_status'=>$i['accountability']['status']??null,'incumbent_reference'=>$i['accountability']['incumbent']??null],
                 'observations'=>['gdp'=>$gdp,'population'=>$pop,'budget'=>$budget,'gdp_per_capita'=>$perCapita],

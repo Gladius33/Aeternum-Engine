@@ -183,7 +183,20 @@ async function internationalDashboard(){
  if(own){
   for(const [k,label] of [['gdp','PIB de référence'],['population','Population de référence'],['budget','Budget de référence'],['gdp_per_capita','PIB par habitant historique']])line($('international-observations'),label,observedLabel(own.observations[k]));
   line($('international-observations'),'Institutions nationales',own.national_institution_clock?'Horloge institutionnelle active':'Module national non disponible');
-  line($('international-observations'),'Économie domestique',own.domestic_policy?'Moteur français':'Non disponible');
+  line($('international-observations'),'Économie domestique',own.domestic_policy?'Moteur français':'Projection partielle, sans budget dynamique');
+  const profile=own.national_reference,sc=own.consumption_scenario;
+  if(profile){
+   line($('international-observations'),'Renouvellement ordinaire (mois de scénario)',profile.next_ordinary_chamber_renewal_month);
+   line($('international-observations'),'Mode de gouvernement de référence',profile.government_mode);
+   const keys={household_npish_consumption_per_capita_real:'Consommation réelle par habitant',gdp_per_capita_ppp_real:'PIB réel par habitant en PPA',central_government_debt:'Dette de l’administration centrale (% PIB)',revenue_excluding_grants_central_government:'Recettes centrales hors dons',expense_central_government:'Dépenses centrales',tax_revenue_central_government:'Recettes fiscales centrales',youth_unemployment_modelled:'Chômage des jeunes',gini_index:'Indice de Gini'};
+   for(const [id,label] of Object.entries(keys))line($('international-observations'),label,observedLabel(profile.observations[id]));
+  }
+  if(sc){
+   line($('international-observations'),'Indice de consommation simulé (base 100)',sc.scenario_index_bps===null?'Non calculable':(sc.scenario_index_bps/100).toFixed(2));
+   line($('international-observations'),'Tendance historique bornée',sc.historical_annual_trend_bps===null?'Non calculable':(sc.historical_annual_trend_bps/100).toFixed(2)+' %/an');
+   line($('international-observations'),'Pression commerciale simulée',sc.trade_stress_bps===null?'Données insuffisantes':(sc.trade_stress_bps/100).toFixed(2)+' points d’indice');
+   line($('international-observations'),'Périmètre','Projection expérimentale, ni revenu réel ni score.');
+  }
  }
  for(const p of d.trade_effects)line($('international-trade'),(actorLabels.get(p.from)||p.from)+' → '+(actorLabels.get(p.to)||p.to),p.central_usd===null?'Projection non chiffrable (référence absente)':fmt.format(p.central_usd)+' USD · réduction annuelle hypothétique');
  if(!d.trade_effect_count)line($('international-trade'),'Effets commerciaux','Aucune projection effective concernant cet État');
