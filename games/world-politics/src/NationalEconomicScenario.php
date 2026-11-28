@@ -25,7 +25,7 @@ final class NationalEconomicScenario{
         $next=new \DateTimeImmutable($c['renewal']['expected_renewal_month'].'-01');
         // Keep the projected month, not an invented election day.
         while($next->format('Y-m')<substr($day,0,7))$next=$next->modify('+'.$c['renewal']['term_years'].' years');
-        return ['reference_as_of'=>$p['as_of'],'reference_blob'=>self::BLOB,'supplement_reference_blobs'=>$reference['reference_blobs'],'government_mode'=>$c['government_mode'],'electoral_reference'=>$c['electoral_reference'],
+        return ['reference_as_of'=>$p['as_of'],'reference_blob'=>self::BLOB,'supplement_reference_blobs'=>$reference['reference_blobs'],'alternative_references'=>$reference['alternative_references'],'government_mode'=>$c['government_mode'],'electoral_reference'=>$c['electoral_reference'],
             'next_ordinary_chamber_renewal_month'=>$next->format('Y-m'),'renewal_classification'=>'reference_or_scenario_month_not_certified_result',
             'renewal_rule'=>$c['renewal'],'observations'=>$observations,'consumption_history'=>$c['consumption_history']];
     }

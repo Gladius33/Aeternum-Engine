@@ -94,3 +94,6 @@ New game aggregate rows sign the simulation date, model version when present, so
 
 ### WP130 historical economic gap collection
 28 additional historical WDI references transcribed from displayed secondary tables: eight sector shares for Canada and the United States, four research expenditure values, three private credit values and thirteen central expense values. Actual years 2008–2022 retained with source URL and secondary attribution. Expected documentary coverage 2068/2184, 116 nulls; no numerical imputation, no general-government substitution, no changes to policy equations. Exact-head qualification pending.
+
+### WP130 consolidated fiscal and debt acquisition
+43 additional missing cells receive dated references, including 28 QPSD quarter-end central government debt stocks, India historical WDI and Saudi budgetary central government IMF historical estimate, plus revenue/tax/interest series. 5 separate QEDS long-term public-sector and guaranteed private debt references are exposed inline, without replacing IDS definitions. All 73 still-null cells have per-country availability records and source/reason, including IDS scope/reporting gaps. Coverage 2111/2184; not full acquisition or scientific validation. WDI historical source revisions and Saudi scope remain explicit. No new API routes or scenario equation changes.

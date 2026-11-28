@@ -45,6 +45,12 @@ ck125(array_column($sa['result']['rows'],null,'metric')['gini_index']['value']==
 $ca=E::run(['type'=>'national-indicators','parameters'=>['country'=>'CA']]);
 $caRows=array_column($ca['result']['rows'],null,'metric');
 ck125($caRows['agriculture_value_added_share']['data_year']===2022&&$caRows['domestic_credit_private_sector']['data_year']===2008,'historical economic references retain actual years');
+$de=E::run(['type'=>'national-indicators','parameters'=>['country'=>'DE']]);
+$deDebt=array_column($de['result']['rows'],null,'metric')['central_government_debt'];
+ck125($deDebt['value']===44.75&&$deDebt['data_period']==='2025-Q4'&&$deDebt['kind']==='published_quarter_end_stock','QPSD quarter-end debt and source retained');
+$au=E::run(['type'=>'national-indicators','parameters'=>['country'=>'AU']]);
+$auRows=array_column($au['result']['rows'],null,'metric');
+ck125($auRows['external_debt_public_publicly_guaranteed']['value']===null&&isset($auRows['external_debt_public_publicly_guaranteed']['availability'])&&$au['result']['alternative_references'][0]['value']===336570000000,'QEDS alternate scope is not IDS imputation');
 no125(fn()=>E::run(['type'=>'national-indicators','parameters'=>['country'=>'ZZ']]));
 ck125($countries['provenance']['sources'][0]['source_name']==='United Nations'&&$countries['provenance']['sources'][0]['data_date']==='2026-11-25','dated source provenance in signed report');
 $back=E::run(['type'=>'household-backtest','parameters'=>[]]);

@@ -18,7 +18,7 @@ final class ResearchExperiment
             'data/2026-11-26-household-income-v1.json','data/wp114-direct-source-inventory.json','data/2026-11-25-un-members-v1.json',
             'src/NationalReferenceFallback.php','data/wp130-national-economy-reference-v1.json',
             'data/wp130-historical-resource-rents-staging-v1.json','data/wp130-historical-social-services-staging-v1.json',
-            'data/wp130-multisource-gap-supplement-v1.json','data/wp130-historical-economic-gap-supplement-v1.json'];
+            'data/wp130-multisource-gap-supplement-v1.json','data/wp130-historical-economic-gap-supplement-v1.json','data/wp130-fiscal-debt-gap-supplement-v1.json'];
         $pins=[];foreach($files as $f){$h=hash_file('sha256',__DIR__.'/../'.$f);if($h===false)throw new \DomainException('Missing experiment dependency');$pins[$f]=$h;}
         return ['version'=>self::VERSION,'php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'files'=>$pins];
     }
@@ -93,7 +93,7 @@ final class ResearchExperiment
             $kind='documentary_reference';
             foreach($result['rows'] as $row)$sources[]=['metric'=>$row['metric'],'source_name'=>$row['source_name'],
                 'source_url'=>$row['source_url'],'data_year'=>$row['data_year'],'retrieved_on'=>$row['retrieved_on'],
-                'quality'=>$row['quality'],'secondary_source_url'=>$row['secondary_source_url'],'source_indicator'=>$row['source_indicator']??$row['indicator']];
+                'quality'=>$row['quality'],'secondary_source_url'=>$row['secondary_source_url'],'source_indicator'=>$row['source_indicator']??$row['indicator'],'data_period'=>$row['data_period']??null];
         }elseif($type==='countries'){
             $kind='documentary_reference';
             foreach($result['sources'] as $url)$sources[]=['source_name'=>str_contains($url,'unstats')?'United Nations Statistics Division':'United Nations',
